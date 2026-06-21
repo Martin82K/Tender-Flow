@@ -161,6 +161,49 @@ describe('bidComparisonEngine', () => {
     expect(cellL6 == null || cellL6 === '').toBe(true);
   });
 
+  it('buildComparisonWorkbook vytvoří porovnání pouze z nabídek bez zadání', async () => {
+    const tempDir = await createTempDir();
+    const offerDrywallPath = path.join(tempDir, 'drywall.xlsx');
+    const offerPbkPath = path.join(tempDir, 'pbk.xlsx');
+
+    await writeWorkbook(offerDrywallPath, buildRows(100, 200));
+    await writeWorkbook(offerPbkPath, buildRows(120, ''));
+
+    const result = await buildComparisonWorkbook({
+      offers: [
+        {
+          supplierName: 'Drywall',
+          displayLabel: 'Drywall (K1 v1)',
+          filePath: offerDrywallPath,
+          round: 1,
+          variant: 1,
+        },
+        {
+          supplierName: 'PBK',
+          displayLabel: 'PBK (K1 v1)',
+          filePath: offerPbkPath,
+          round: 1,
+          variant: 1,
+        },
+      ],
+    });
+
+    expect(result.sourceMode).toBe('offers_only');
+    expect(result.pocetPolozek).toBe(2);
+    expect(result.suppliers['Drywall (K1 v1)']?.sparovano).toBe(2);
+    expect(result.suppliers['PBK (K1 v1)']?.sparovano).toBe(1);
+    expect(result.matrix[0].offers['PBK (K1 v1)']?.jcena).toBe(120);
+    expect(result.matrix[1].offers['PBK (K1 v1)']?.matched).toBe(false);
+
+    const outputWorkbook = new ExcelJS.Workbook();
+    await outputWorkbook.xlsx.load(result.outputBuffer);
+    const outputSheet = outputWorkbook.getWorksheet('Porovnání nabídek');
+    expect(outputSheet).toBeDefined();
+    expect(outputSheet?.getCell('A1').value).toBe('Porovnání nabídek bez souboru zadání');
+    expect(outputSheet?.getCell('G5').value).toBe(100);
+    expect(outputSheet?.getCell('I5').value).toBe(120);
+  });
+
   it('buildComparisonWorkbook zapíše doporučení agenta do samostatného listu', async () => {
     const tempDir = await createTempDir();
     const zadaniPath = path.join(tempDir, 'zadani.xlsx');

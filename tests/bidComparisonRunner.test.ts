@@ -196,6 +196,46 @@ describe('BidComparisonRunner.start', () => {
     expect(files.some((file) => /^porovnani-nabidek-\d{8}-\d{6}\.xlsx$/.test(file))).toBe(true);
   });
 
+  it('vytvoří porovnání i bez souboru zadání pouze z nabídek', async () => {
+    const tempDir = await createTempDir();
+    await writeWorkbook(
+      path.join(tempDir, 'VV_Drywall_kolo1.xlsx'),
+      buildRows(125),
+    );
+
+    const runner = new BidComparisonRunner();
+    const detected = await runner.detectInputs({
+      tenderFolderPath: tempDir,
+      suppliers: [{ name: 'Drywall' }],
+    });
+
+    expect(detected.warnings).toContain(
+      'Nebyl nalezen vhodný soubor zadání. Porovnání bude možné spustit pouze z dodaných nabídek.',
+    );
+
+    const selectedFiles = detected.files
+      .filter((file) => file.fileName.includes('Drywall'))
+      .map((file) => ({
+        path: file.path,
+        role: 'offer' as const,
+        supplierName: 'Drywall',
+        round: file.suggestedRound,
+        mtimeMs: file.mtimeMs,
+      }));
+
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles,
+    });
+
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.stats?.sourceMode).toBe('offers_only');
+    expect(job.stats?.matrix).toHaveLength(1);
+    await expect(access(path.join(tempDir, 'porovnani-nabidek-latest.xlsx'))).resolves.toBeUndefined();
+  });
+
   it('při chybě Hermes agenta dokončí workbook bez agentního listu', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: false,

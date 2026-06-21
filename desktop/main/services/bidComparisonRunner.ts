@@ -207,9 +207,10 @@ export class BidComparisonRunner {
     }
 
     const validTemplates = detected.filter((file) => file.analysis?.isValidTemplate);
+    const zadaniTemplates = validTemplates.filter((file) => (file.analysis?.pricedKRows ?? 0) === 0);
 
     // Zadání: preferujeme soubor bez ocenění, s nejvyšším počtem K řádků.
-    const zadaniCandidate = [...validTemplates].sort((a, b) => {
+    const zadaniCandidate = [...zadaniTemplates].sort((a, b) => {
       const aPriced = a.analysis?.pricedKRows ?? Number.MAX_SAFE_INTEGER;
       const bPriced = b.analysis?.pricedKRows ?? Number.MAX_SAFE_INTEGER;
       if (aPriced !== bPriced) return aPriced - bPriced;
@@ -237,7 +238,7 @@ export class BidComparisonRunner {
 
     const warnings: string[] = [];
     if (!zadaniCandidate) {
-      warnings.push('Nebyl nalezen vhodný soubor zadání. Nastavte jej ručně.');
+      warnings.push('Nebyl nalezen vhodný soubor zadání. Porovnání bude možné spustit pouze z dodaných nabídek.');
     }
 
     args.suppliers.forEach((supplier) => {
@@ -354,8 +355,8 @@ export class BidComparisonRunner {
       const zadani = selected.filter((file) => file.role === 'zadani');
       const offersRaw = selected.filter((file) => file.role === 'offer');
 
-      if (zadani.length !== 1) {
-        throw new Error('Musí být vybrán právě jeden soubor zadání.');
+      if (zadani.length > 1) {
+        throw new Error('Může být vybrán nejvýše jeden soubor zadání.');
       }
 
       if (!offersRaw.length) {
@@ -408,7 +409,7 @@ export class BidComparisonRunner {
       setProgress(10, 'Spouštím porovnání nabídek...');
       const wantsAgentAnalysis = input.agent?.enabled === true;
       const result = await buildComparisonWorkbook({
-        zadaniPath: zadani[0].path,
+        zadaniPath: zadani[0]?.path,
         offers: offerEntries,
         onProgress: createProgressMapper(setProgress, 10, wantsAgentAnalysis ? 78 : 95),
         isCancelled: () => job.cancelRequested === true,
@@ -439,7 +440,7 @@ export class BidComparisonRunner {
 
           setProgress(90, 'Zapisuji doporučení agenta do workbooku...');
           finalResult = await buildComparisonWorkbook({
-            zadaniPath: zadani[0].path,
+            zadaniPath: zadani[0]?.path,
             offers: offerEntries,
             agentRecommendation,
             onProgress: createProgressMapper(setProgress, 90, 98),
@@ -477,6 +478,7 @@ export class BidComparisonRunner {
 
       const stats: BidComparisonJobResult = {
         pocetPolozek: finalResult.pocetPolozek,
+        sourceMode: finalResult.sourceMode,
         matrix: finalResult.matrix,
         agentRecommendation,
         suppliers: finalResult.suppliers,

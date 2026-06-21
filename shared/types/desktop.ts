@@ -63,6 +63,7 @@ export interface FileSystemAPI {
     writeFile: (filePath: string, data: Buffer | string) => Promise<void>;
     openInExplorer: (path: string) => Promise<FileSystemOpenResult>;
     openFile: (filePath: string) => Promise<FileSystemOpenResult>;
+    showItemInFolder: (filePath: string) => Promise<FileSystemOpenResult>;
     createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     renameFolder: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
@@ -319,6 +320,7 @@ export interface BidComparisonAutoStartResult {
 
 export interface BidComparisonJobResult {
     pocetPolozek: number;
+    sourceMode?: 'zadani' | 'offers_only';
     matrix?: BidComparisonMatrixItem[];
     agentRecommendation?: BidComparisonAgentRecommendation | null;
     suppliers: Record<string, {

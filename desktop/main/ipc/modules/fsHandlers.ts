@@ -254,6 +254,21 @@ export const registerFsHandlers = ({
     }
   });
 
+  ipcMain.handle("fs:showItemInFolder", async (event, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    requireAuth(event.sender, 'fs:showItemInFolder');
+    await ensurePersistedRootsLoaded();
+    try {
+      const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
+      shell.showItemInFolder(resolvedFilePath);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
   ipcMain.handle(
     "fs:createFolder",
     async (event, folderPath: string): Promise<{ success: boolean; error?: string }> => {

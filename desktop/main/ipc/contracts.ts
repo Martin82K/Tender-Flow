@@ -31,6 +31,10 @@ export interface IpcContractMap {
     args: [filePath: string];
     result: { success: boolean; error?: string };
   };
+  "fs:showItemInFolder": {
+    args: [filePath: string];
+    result: { success: boolean; error?: string };
+  };
   "fs:createFolder": {
     args: [folderPath: string];
     result: { success: boolean; error?: string };

@@ -84,6 +84,16 @@ export const fileSystemAdapter = {
     },
 
     /**
+     * Reveal a file in the system file explorer without opening it.
+     */
+    async showItemInFolder(filePath: string): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.showItemInFolder(filePath);
+        }
+        return { success: false, error: 'File reveal is available only in desktop app.' };
+    },
+
+    /**
      * Show file in system file explorer
      */
     async openInExplorer(folderPath: string): Promise<{ success: boolean; error?: string }> {

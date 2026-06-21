@@ -33,6 +33,7 @@ vi.mock("electron", () => ({
   },
   shell: {
     openPath: vi.fn(),
+    showItemInFolder: vi.fn(),
   },
   app: {
     getPath: vi.fn((name: string) => {
@@ -220,6 +221,35 @@ describe("fsHandlers", () => {
     expect(vi.mocked(shell.openPath)).toHaveBeenCalledWith("/Users/tester/Projects/Tender/03_Vyberova_rizeni");
     expect(vi.mocked(dialog.showOpenDialog)).not.toHaveBeenCalled();
     expect(grantedRootsStorage.set).not.toHaveBeenCalled();
+  });
+
+  it("fs:showItemInFolder zobrazi soubor ve Finderu bez otevreni binarniho xlsx", async () => {
+    const { shell } = await import("electron");
+    const grantedRootsStorage = {
+      get: vi.fn().mockResolvedValue(JSON.stringify(["/Users/tester/Projects/Tender"])),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async (targetPath: string) => ({
+      isDirectory: () => targetPath === "/Users/tester/Projects/Tender",
+    }));
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+      grantedRootsStorage,
+    });
+
+    await expect(
+      handlers.get("fs:showItemInFolder")?.({}, "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx"),
+    ).resolves.toEqual({ success: true });
+
+    expect(vi.mocked(shell.showItemInFolder)).toHaveBeenCalledWith(
+      "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx",
+    );
+    expect(vi.mocked(shell.openPath)).not.toHaveBeenCalled();
   });
 
   it("grantAccess potvrzuje uz premapovanou portable cestu", async () => {

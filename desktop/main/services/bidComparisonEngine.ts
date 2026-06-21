@@ -56,7 +56,7 @@ export interface BidOfferInput {
 }
 
 export interface BuildComparisonInput {
-  zadaniPath: string;
+  zadaniPath?: string;
   offers: BidOfferInput[];
   agentRecommendation?: BidComparisonAgentRecommendation | null;
   onProgress?: (percent: number, step: string) => void;
@@ -102,6 +102,7 @@ export interface BidComparisonAgentRecommendation {
 export interface BuildComparisonResult {
   outputBuffer: Buffer;
   pocetPolozek: number;
+  sourceMode: 'zadani' | 'offers_only';
   matrix: BidComparisonMatrixItem[];
   suppliers: Record<
     string,
@@ -373,6 +374,104 @@ const calculateTotal = (item: BidComparisonItem, quantity: number | null): numbe
   return item.jcena * quantity;
 };
 
+const getItemKey = (item: BidComparisonItem): string | null => {
+  const kod = item.kod?.trim();
+  if (kod) return `kod:${kod}`;
+
+  const pc = item.pc?.trim();
+  if (pc) return `pc:${pc}`;
+
+  return null;
+};
+
+const createOfferOnlyWorkbook = (
+  parsedOffers: Array<{
+    offer: BidOfferInput;
+    parsed: ParsedSheetResult;
+  }>,
+): { workbook: ExcelJS.Workbook; sheet: ExcelJS.Worksheet; parsedSheet: ParsedSheetResult } => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Porovnání nabídek');
+  const headerRow = 3;
+  const recapRow = 4;
+  const firstItemRow = 5;
+  const columnMap: HeaderColumnMap = {
+    pc: 1,
+    typ: 2,
+    kod: 3,
+    popis: 4,
+    mj: 5,
+    mnozstvi: 6,
+  };
+
+  sheet.getCell(1, 1).value = 'Porovnání nabídek bez souboru zadání';
+  sheet.getCell(1, 1).font = { name: 'Arial', size: 12, bold: true };
+  sheet.getCell(2, 1).value = 'Položky jsou složené z dodaných nabídek.';
+  sheet.getCell(2, 1).font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF666666' } };
+
+  const headers = ['PČ', 'Typ', 'Kód', 'Popis', 'MJ', 'Množství'];
+  headers.forEach((header, index) => {
+    const cell = sheet.getCell(headerRow, index + 1);
+    cell.value = header;
+    cell.font = { name: 'Arial', size: 10, bold: true };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE7E6E6' },
+    };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = BORDER_THIN;
+  });
+
+  sheet.getRow(recapRow).values = ['', 'R', '', 'REKAPITULACE', '', ''];
+  sheet.getRow(recapRow).font = { name: 'Arial', size: 10, bold: true };
+
+  const seen = new Set<string>();
+  const items: BidComparisonItem[] = [];
+
+  parsedOffers.forEach((entry) => {
+    entry.parsed.items.forEach((item) => {
+      const baseKey = getItemKey(item);
+      const key = baseKey || `file:${entry.offer.displayLabel}:row:${item.radek}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      items.push({
+        ...item,
+        radek: firstItemRow + items.length,
+      });
+    });
+  });
+
+  items.forEach((item) => {
+    const row = sheet.getRow(item.radek);
+    row.getCell(columnMap.pc!).value = item.pc || '';
+    row.getCell(columnMap.typ!).value = 'K';
+    row.getCell(columnMap.kod!).value = item.kod || '';
+    row.getCell(columnMap.popis!).value = item.popis || '';
+    row.getCell(columnMap.mj!).value = item.mj || '';
+    row.getCell(columnMap.mnozstvi!).value = item.mnozstvi ?? null;
+  });
+
+  sheet.getColumn(1).width = 12;
+  sheet.getColumn(2).width = 8;
+  sheet.getColumn(3).width = 16;
+  sheet.getColumn(4).width = 48;
+  sheet.getColumn(5).width = 10;
+  sheet.getColumn(6).width = 12;
+
+  return {
+    workbook,
+    sheet,
+    parsedSheet: {
+      items,
+      headerRow,
+      columnMap,
+      kRows: items.map((item) => item.radek),
+    },
+  };
+};
+
 const getSeverityLabel = (severity: BidComparisonAgentRisk['severity']): string => {
   if (severity === 'high') return 'Vysoké';
   if (severity === 'medium') return 'Střední';
@@ -450,22 +549,7 @@ export const buildComparisonWorkbook = async (
     throw new Error('Nebyla vybrána žádná nabídka k porovnání.');
   }
 
-  onProgress?.(5, 'Načítám zadání...');
-
-  const zadaniWorkbook = new ExcelJS.Workbook();
-  await zadaniWorkbook.xlsx.readFile(zadaniPath);
-  const zadaniSheet = zadaniWorkbook.worksheets[0];
-  if (!zadaniSheet) {
-    throw new Error('Soubor zadání neobsahuje žádný list.');
-  }
-
-  const parsedZadani = parseWorksheet(zadaniSheet);
-
-  if (!parsedZadani.columnMap.mnozstvi) {
-    throw new Error('V zadání chybí sloupec Množství.');
-  }
-
-  onProgress?.(10, 'Načítám nabídky dodavatelů...');
+  onProgress?.(5, zadaniPath ? 'Načítám zadání...' : 'Připravuji porovnání z nabídek...');
 
   const parsedOffers = await Promise.all(
     offers.map(async (offer) => {
@@ -486,11 +570,45 @@ export const buildComparisonWorkbook = async (
     throw new Error('Porovnání bylo zrušeno.');
   }
 
+  let zadaniWorkbook: ExcelJS.Workbook;
+  let zadaniSheet: ExcelJS.Worksheet;
+  let parsedZadani: ParsedSheetResult;
+  let sourceMode: BuildComparisonResult['sourceMode'];
+
+  if (zadaniPath) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(zadaniPath);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) {
+      throw new Error('Soubor zadání neobsahuje žádný list.');
+    }
+
+    const parsed = parseWorksheet(sheet);
+
+    if (!parsed.columnMap.mnozstvi) {
+      throw new Error('V zadání chybí sloupec Množství.');
+    }
+
+    zadaniWorkbook = workbook;
+    zadaniSheet = sheet;
+    parsedZadani = parsed;
+    sourceMode = 'zadani';
+  } else {
+    const generated = createOfferOnlyWorkbook(parsedOffers);
+    zadaniWorkbook = generated.workbook;
+    zadaniSheet = generated.sheet;
+    parsedZadani = generated.parsedSheet;
+    sourceMode = 'offers_only';
+  }
+
   const startColumn = zadaniSheet.columnCount + 1;
   const titleRow = Math.max(1, parsedZadani.headerRow - 2);
   const sumRow = Math.max(1, parsedZadani.headerRow - 1);
   const recapRow = parsedZadani.headerRow + 1;
   const quantityCol = parsedZadani.columnMap.mnozstvi;
+  if (!quantityCol) {
+    throw new Error('V porovnání chybí sloupec Množství.');
+  }
 
   const suppliers: BuildComparisonResult['suppliers'] = {};
   const matrix: BidComparisonMatrixItem[] = parsedZadani.items.map((item) => ({
@@ -658,6 +776,7 @@ export const buildComparisonWorkbook = async (
   return {
     outputBuffer,
     pocetPolozek: parsedZadani.items.length,
+    sourceMode,
     matrix,
     suppliers,
   };

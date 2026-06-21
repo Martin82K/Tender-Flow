@@ -33,13 +33,39 @@ interface BidComparisonPanelProps {
 }
 
 const terminalStates = new Set(['success', 'error', 'cancelled']);
-type BidComparisonPhase = 'source' | 'mapping' | 'run';
 const OUTPUT_BASE_NAME = 'porovnani-nabidek';
 
 const normalizeSupplierList = (list: string[]): string[] =>
   Array.from(new Set(list.map((value) => value.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, 'cs'),
   );
+
+const formatFileSize = (sizeBytes: number): string => {
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return '0 MB';
+  return `${(sizeBytes / 1024 / 1024).toFixed(2)} MB`;
+};
+
+const getRoleLabel = (role: BidComparisonRole): string => {
+  if (role === 'zadani') return 'Zadání';
+  if (role === 'offer') return 'Nabídka';
+  return 'Ignorovat';
+};
+
+const getStatusTone = (tone: 'ok' | 'warn' | 'idle'): string => {
+  if (tone === 'ok') {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800';
+  }
+  if (tone === 'warn') {
+    return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800';
+  }
+  return 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+};
+
+const getTopLevelFolder = (relativePath: string): string => {
+  const normalized = relativePath.replace(/\\/g, '/');
+  const [firstPart] = normalized.split('/');
+  return firstPart || 'Kořen složky';
+};
 
 export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   isOpen,
@@ -64,7 +90,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [autoStatus, setAutoStatus] = useState<BidComparisonAutoStatus | null>(null);
   const [autoError, setAutoError] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
-  const [uiPhase, setUiPhase] = useState<BidComparisonPhase>('source');
   const [agentConfig, setAgentConfig] = useState<BidComparisonAgentConfig>(
     parseBidComparisonAgentSettings(null),
   );
@@ -97,7 +122,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     setFiles([]);
     setAutoError(null);
     setAutoStatus(null);
-    setUiPhase('source');
     setAgentConfig(parseBidComparisonAgentSettings(null));
     trackedSuccessJobIdRef.current = null;
     autoDetectedPathRef.current = null;
@@ -205,11 +229,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
           round: Number.isFinite(file.suggestedRound) ? Math.max(0, file.suggestedRound) : 0,
         }));
         setFiles(mappedFiles);
-        if (mappedFiles.length > 0) {
-          setUiPhase('mapping');
-        } else {
-          setUiPhase('source');
-        }
       } catch (error) {
         setDetectError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -358,21 +377,110 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     };
   }, [autoEnabled, canUseDesktopApi, files, isOpen, syncAutoConfig, tenderFolderPath]);
 
-  useEffect(() => {
-    if (files.length === 0 && uiPhase !== 'source') {
-      setUiPhase('source');
-    }
-  }, [files.length, uiPhase]);
-
   const roleSummary = useMemo(() => {
     const zadaniCount = files.filter((file) => file.role === 'zadani').length;
     const offerCount = files.filter((file) => file.role === 'offer').length;
     return { zadaniCount, offerCount };
   }, [files]);
 
+  const offerFiles = useMemo(
+    () => files.filter((file) => file.role === 'offer'),
+    [files],
+  );
+
+  const blockingReasons = useMemo(() => {
+    const reasons: string[] = [];
+    if (!files.length) {
+      reasons.push('Nejdřív načtěte složku VŘ.');
+      return reasons;
+    }
+    if (roleSummary.zadaniCount > 1) {
+      reasons.push('Může být vybrán nejvýše jeden soubor zadání.');
+    }
+    if (roleSummary.offerCount < 1) {
+      reasons.push('Musí být alespoň jedna nabídka dodavatele.');
+    }
+    if (offerFiles.some((file) => !(file.supplierName || '').trim())) {
+      reasons.push('Každá nabídka musí mít přiřazeného dodavatele.');
+    }
+    return reasons;
+  }, [files.length, offerFiles, roleSummary.offerCount, roleSummary.zadaniCount]);
+
+  const supplierReadiness = useMemo(
+    () =>
+      supplierOptions.map((supplier) => {
+        const supplierOfferFiles = offerFiles.filter((file) => file.supplierName === supplier);
+        return {
+          supplier,
+          offerCount: supplierOfferFiles.length,
+          folders: Array.from(
+            new Set(supplierOfferFiles.map((file) => getTopLevelFolder(file.relativePath))),
+          ),
+          latestRound: supplierOfferFiles.reduce((max, file) => Math.max(max, file.round), 0),
+        };
+      }),
+    [offerFiles, supplierOptions],
+  );
+
+  const unresolvedFiles = useMemo(
+    () =>
+      files.filter(
+        (file) =>
+          file.role === 'ignore' ||
+          (file.role === 'offer' && !(file.supplierName || '').trim()) ||
+          !!file.analysisError,
+      ),
+    [files],
+  );
+
+  const folderTreeItems = useMemo(() => {
+    const zadaniFiles = files.filter((file) => file.role === 'zadani');
+    const supplierItems = supplierReadiness.map((supplier) => ({
+      label: supplier.supplier,
+      helper:
+        supplier.offerCount > 0
+          ? `${supplier.offerCount} nabídka${supplier.offerCount === 1 ? '' : supplier.offerCount < 5 ? 'y' : 'ek'}`
+          : 'chybí nabídka',
+      tone: supplier.offerCount > 0 ? 'ok' as const : 'warn' as const,
+      folders: supplier.folders,
+    }));
+
+    return [
+      {
+        label: '00 Zadání',
+        helper:
+          zadaniFiles.length === 1
+            ? zadaniFiles[0].fileName
+            : zadaniFiles.length > 1
+              ? `${zadaniFiles.length} soubory zadání`
+              : 'nenalezeno, použije se alternativní porovnání',
+        tone: zadaniFiles.length === 1 ? 'ok' as const : zadaniFiles.length > 1 ? 'warn' as const : 'idle' as const,
+        folders: zadaniFiles.map((file) => getTopLevelFolder(file.relativePath)),
+      },
+      ...supplierItems,
+      {
+        label: 'Nepřiřazené',
+        helper: unresolvedFiles.length ? `${unresolvedFiles.length} souborů ke kontrole` : 'čisté',
+        tone: unresolvedFiles.length ? 'warn' as const : 'ok' as const,
+        folders: unresolvedFiles.slice(0, 3).map((file) => file.fileName),
+      },
+    ];
+  }, [files, supplierReadiness, unresolvedFiles]);
+
+  const previewSupplierLabels = useMemo(() => {
+    const fromStats = job?.stats?.suppliers ? Object.keys(job.stats.suppliers) : [];
+    if (fromStats.length) return fromStats;
+    return normalizeSupplierList(offerFiles.map((file) => file.supplierName || ''));
+  }, [job?.stats?.suppliers, offerFiles]);
+
+  const previewRows = useMemo(
+    () => job?.stats?.matrix?.slice(0, 6) || [],
+    [job?.stats?.matrix],
+  );
+
   const canStart = useMemo(() => {
     if (!files.length) return false;
-    if (roleSummary.zadaniCount !== 1) return false;
+    if (roleSummary.zadaniCount > 1) return false;
     if (roleSummary.offerCount < 1) return false;
 
     return files
@@ -385,7 +493,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
     setIsStarting(true);
     setDetectError(null);
-    setUiPhase('run');
 
     try {
       const payload = {
@@ -436,7 +543,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     if (!job?.outputLatestPath && !job?.outputPath) return;
     const target = job.outputLatestPath || job.outputPath;
     if (!target) return;
-    await platformAdapter.fs.openFile(target);
+    const result = await platformAdapter.fs.showItemInFolder(target);
+    if (!result.success) {
+      setDetectError(result.error || 'Výstupní soubor se nepodařilo zobrazit ve složce.');
+    }
   }, [job?.outputLatestPath, job?.outputPath]);
 
   const openTenderFolder = useCallback(async () => {
@@ -489,8 +599,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   if (!isOpen) return null;
 
   const jobIsRunning = !!job && !terminalStates.has(job.status);
-  const canOpenMapping = files.length > 0;
-  const canOpenRun = files.length > 0;
   const agentStatusText =
     job?.agentAnalysisStatus === 'success'
       ? 'Agent hotovo'
@@ -534,327 +642,449 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-5 bg-slate-50/60 dark:bg-slate-950/30">
           {!canUseDesktopApi && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
               Tento modul je dostupný pouze v desktop aplikaci Tender Flow.
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Složka VŘ</p>
-            <div className="flex gap-2">
-              <input
-                value={tenderFolderPath}
-                onChange={(event) => setTenderFolderPath(event.target.value)}
-                placeholder="Cesta ke složce výběrového řízení"
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => void runDetection()}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
-                disabled={isDetecting || !tenderFolderPath.trim()}
-              >
-                {isDetecting ? 'Načítám...' : 'Načíst'}
-              </button>
-              <button
-                type="button"
-                onClick={() => void pickFolder()}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
-                disabled={isPickingFolder}
-              >
-                {isPickingFolder ? 'Výběr...' : 'Vybrat složku'}
-              </button>
+          <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+              <label className="flex-1 space-y-1">
+                <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Složka výběrového řízení</span>
+                <input
+                  value={tenderFolderPath}
+                  onChange={(event) => setTenderFolderPath(event.target.value)}
+                  placeholder="Cesta ke složce výběrového řízení"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void runDetection()}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                  disabled={isDetecting || !tenderFolderPath.trim()}
+                >
+                  {isDetecting ? 'Načítám...' : 'Načíst'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void pickFolder()}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
+                  disabled={isPickingFolder}
+                >
+                  {isPickingFolder ? 'Výběr...' : 'Vybrat složku'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleAutoMode(!autoEnabled)}
+                  disabled={isAutoSaving}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+                    autoEnabled
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {isAutoSaving ? 'Ukládám...' : autoEnabled ? 'Vypnout auto' : 'Zapnout auto'}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Watcher porovnání</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Výstup: {OUTPUT_BASE_NAME}-latest.xlsx + archivní kopie po každém běhu
+            <div className="grid gap-2 md:grid-cols-4 text-xs">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">Režim výstupu</p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  {roleSummary.zadaniCount === 0 ? 'Alternativní porovnání' : 'Doplnění do zadání'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => void toggleAutoMode(!autoEnabled)}
-                disabled={isAutoSaving}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
-                  autoEnabled
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                {isAutoSaving ? 'Ukládám...' : autoEnabled ? 'Vypnout auto' : 'Zapnout auto'}
-              </button>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-3 text-xs">
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-slate-600 dark:text-slate-300">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
                 <p className="font-semibold text-slate-700 dark:text-slate-100">Latest XLSX</p>
-                <p>{OUTPUT_BASE_NAME}-latest.xlsx</p>
+                <p className="text-slate-500 dark:text-slate-400">{OUTPUT_BASE_NAME}-latest.xlsx</p>
               </div>
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-slate-600 dark:text-slate-300">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
                 <p className="font-semibold text-slate-700 dark:text-slate-100">Agent</p>
-                <p>{agentStatusText}</p>
+                <p className="text-slate-500 dark:text-slate-400">{agentStatusText}</p>
               </div>
               <button
                 type="button"
                 onClick={openAgentSettings}
-                className="rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
               >
                 Nastavení agenta
               </button>
             </div>
+          </section>
 
-            {autoStatus && (
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                <p>
-                  Stav: <span className="font-semibold">{autoStatus.state}</span>
-                </p>
-                <p>
-                  Poslední běh:{' '}
-                  {autoStatus.lastRunAt
-                    ? new Date(autoStatus.lastRunAt).toLocaleString('cs-CZ')
-                    : 'zatím neproběhl'}
-                </p>
-                {autoStatus.pendingReason !== 'none' && (
-                  <p>Čekání: {autoStatus.pendingReason}</p>
-                )}
-                {autoStatus.unresolvedFiles.length > 0 && (
-                  <p>
-                    Nevyřešené soubory: {autoStatus.unresolvedFiles.slice(0, 3).join(', ')}
-                    {autoStatus.unresolvedFiles.length > 3 ? '…' : ''}
-                  </p>
-                )}
-                {autoStatus.lastError && (
-                  <p className="text-rose-600 dark:text-rose-400">{autoStatus.lastError}</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2">
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setUiPhase('source')}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  uiPhase === 'source'
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
-                }`}
-              >
-                1. Zdroj
-              </button>
-              <button
-                type="button"
-                onClick={() => canOpenMapping && setUiPhase('mapping')}
-                disabled={!canOpenMapping}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 ${
-                  uiPhase === 'mapping'
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
-                }`}
-              >
-                2. Mapování
-              </button>
-              <button
-                type="button"
-                onClick={() => canOpenRun && setUiPhase('run')}
-                disabled={!canOpenRun}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 ${
-                  uiPhase === 'run'
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
-                }`}
-              >
-                3. Spuštění
-              </button>
-            </div>
-          </div>
-
-          {warnings.length > 0 && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
-              {warnings.map((warning) => (
-                <p key={warning}>{warning}</p>
-              ))}
-            </div>
-          )}
-
-          {detectError && (
-            <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {detectError}
-            </div>
-          )}
-
-          {autoError && (
-            <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {autoError}
-            </div>
-          )}
-
-          {uiPhase === 'mapping' && (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Mapování souborů
-            </div>
-
-            {files.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
-                Nejsou načtené žádné soubory. Zadejte složku a spusťte detekci.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px] text-sm">
-                  <thead className="bg-slate-100 dark:bg-slate-800/50">
-                    <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      <th className="px-3 py-2">Soubor</th>
-                      <th className="px-3 py-2">Role</th>
-                      <th className="px-3 py-2">Dodavatel</th>
-                      <th className="px-3 py-2">Kolo</th>
-                      <th className="px-3 py-2">Analýza</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {files.map((file, index) => {
-                      const isOffer = file.role === 'offer';
-                      return (
-                        <tr key={file.path} className="border-t border-slate-200 dark:border-slate-700">
-                          <td className="px-3 py-2">
-                            <p className="font-medium text-slate-800 dark:text-slate-100">{file.relativePath}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </td>
-                          <td className="px-3 py-2">
-                            <select
-                              value={file.role}
-                              onChange={(event) => {
-                                const nextRole = event.target.value as BidComparisonRole;
-                                setFiles((prev) =>
-                                  prev.map((entry, entryIndex) =>
-                                    entryIndex === index
-                                      ? {
-                                          ...entry,
-                                          role: nextRole,
-                                          supplierName:
-                                            nextRole === 'offer'
-                                              ? entry.supplierName || supplierOptions[0] || null
-                                              : null,
-                                        }
-                                      : entry,
-                                  ),
-                                );
-                              }}
-                              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1"
-                            >
-                              <option value="ignore">Ignorovat</option>
-                              <option value="zadani">Zadání</option>
-                              <option value="offer">Nabídka</option>
-                            </select>
-                          </td>
-                          <td className="px-3 py-2">
-                            <select
-                              value={file.supplierName || ''}
-                              onChange={(event) => {
-                                setFiles((prev) =>
-                                  prev.map((entry, entryIndex) =>
-                                    entryIndex === index
-                                      ? {
-                                          ...entry,
-                                          supplierName: event.target.value || null,
-                                        }
-                                      : entry,
-                                  ),
-                                );
-                              }}
-                              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 min-w-[220px]"
-                              disabled={!isOffer}
-                            >
-                              <option value="">Vyber dodavatele</option>
-                              {supplierOptions.map((supplier) => (
-                                <option key={supplier} value={supplier}>
-                                  {supplier}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              min={0}
-                              step={1}
-                              value={file.round}
-                              onChange={(event) => {
-                                const nextRound = Number(event.target.value);
-                                setFiles((prev) =>
-                                  prev.map((entry, entryIndex) =>
-                                    entryIndex === index
-                                      ? {
-                                          ...entry,
-                                          round: Number.isFinite(nextRound) ? Math.max(0, Math.floor(nextRound)) : 0,
-                                        }
-                                      : entry,
-                                  ),
-                                );
-                              }}
-                              disabled={!isOffer}
-                              className="w-20 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1"
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-                            {file.analysisError ? (
-                              <span className="text-rose-600">{file.analysisError}</span>
-                            ) : file.analysis ? (
-                              <span>
-                                K řádky: {file.analysis.kRows}, oceněné: {file.analysis.pricedKRows}
-                              </span>
-                            ) : (
-                              '-'
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            </div>
-          )}
-
-          {uiPhase === 'run' && (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => void startComparison()}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
-                disabled={!canStart || isStarting || jobIsRunning}
-              >
-                {isStarting ? 'Spouštím...' : 'Spustit porovnání'}
-              </button>
-
-              {jobIsRunning && (
-                <button
-                  type="button"
-                  onClick={() => void cancelJob()}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-500"
-                >
-                  Zrušit job
-                </button>
+          {(warnings.length > 0 || detectError || autoError) && (
+            <div className="space-y-2">
+              {warnings.length > 0 && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
+                  {warnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
+                </div>
               )}
 
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Zadání: {roleSummary.zadaniCount} | Nabídky: {roleSummary.offerCount}
-              </span>
+              {detectError && (
+                <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {detectError}
+                </div>
+              )}
+
+              {autoError && (
+                <div className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {autoError}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_280px]">
+            <aside className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Struktura VŘ</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Zadání, dodavatelé a nepřiřazené soubory.</p>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {folderTreeItems.map((item) => (
+                  <div key={item.label} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{item.label}</p>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(item.tone)}`}>
+                        {item.tone === 'ok' ? 'OK' : item.tone === 'warn' ? 'Kontrola' : 'Volitelné'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.helper}</p>
+                    {item.folders.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {item.folders.slice(0, 2).map((folder) => (
+                          <p key={folder} className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                            {folder}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Mapování souborů</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Přiřaďte roli, dodavatele a kolo nabídky.</p>
+                </div>
+                <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {files.length} souborů
+                </span>
+              </div>
+
+              {files.length === 0 ? (
+                <div className="px-4 py-8 text-sm text-slate-500 dark:text-slate-400">
+                  Nejsou načtené žádné soubory. Zadejte složku a spusťte detekci.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[860px] text-sm">
+                    <thead className="bg-slate-100 dark:bg-slate-800/50">
+                      <tr className="text-left text-xs uppercase text-slate-500 dark:text-slate-400">
+                        <th className="px-3 py-2">Soubor</th>
+                        <th className="px-3 py-2">Typ</th>
+                        <th className="px-3 py-2">Dodavatel</th>
+                        <th className="px-3 py-2">Kolo</th>
+                        <th className="px-3 py-2">Stav</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {files.map((file, index) => {
+                        const isOffer = file.role === 'offer';
+                        return (
+                          <tr key={file.path} className="border-t border-slate-200 dark:border-slate-700 align-top">
+                            <td className="px-3 py-2">
+                              <p className="font-medium text-slate-800 dark:text-slate-100">{file.relativePath}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.sizeBytes)}</p>
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                aria-label={`Typ souboru ${file.fileName}`}
+                                value={file.role}
+                                onChange={(event) => {
+                                  const nextRole = event.target.value as BidComparisonRole;
+                                  setFiles((prev) =>
+                                    prev.map((entry, entryIndex) =>
+                                      entryIndex === index
+                                        ? {
+                                            ...entry,
+                                            role: nextRole,
+                                            supplierName:
+                                              nextRole === 'offer'
+                                                ? entry.supplierName || supplierOptions[0] || null
+                                                : null,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+                              >
+                                <option value="zadani">Zadání</option>
+                                <option value="offer">Nabídka</option>
+                                <option value="ignore">Příloha / ignorovat</option>
+                              </select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                aria-label={`Dodavatel pro ${file.fileName}`}
+                                value={file.supplierName || ''}
+                                onChange={(event) => {
+                                  setFiles((prev) =>
+                                    prev.map((entry, entryIndex) =>
+                                      entryIndex === index
+                                        ? {
+                                            ...entry,
+                                            supplierName: event.target.value || null,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                                className="min-w-[190px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+                                disabled={!isOffer}
+                              >
+                                <option value="">Vyber dodavatele</option>
+                                {supplierOptions.map((supplier) => (
+                                  <option key={supplier} value={supplier}>
+                                    {supplier}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                aria-label={`Kolo pro ${file.fileName}`}
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={file.round}
+                                onChange={(event) => {
+                                  const nextRound = Number(event.target.value);
+                                  setFiles((prev) =>
+                                    prev.map((entry, entryIndex) =>
+                                      entryIndex === index
+                                        ? {
+                                            ...entry,
+                                            round: Number.isFinite(nextRound) ? Math.max(0, Math.floor(nextRound)) : 0,
+                                          }
+                                        : entry,
+                                    ),
+                                  );
+                                }}
+                                disabled={!isOffer}
+                                className="w-20 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                              {file.analysisError ? (
+                                <span className="text-rose-600">{file.analysisError}</span>
+                              ) : file.analysis ? (
+                                <span>
+                                  {getRoleLabel(file.role)} · K řádky {file.analysis.kRows}, oceněné {file.analysis.pricedKRows}
+                                </span>
+                              ) : (
+                                <span>{getRoleLabel(file.role)} · bez analýzy</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <aside className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Připravenost</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Co brání vytvoření porovnání.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Zadání</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.zadaniCount}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Nabídky</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.offerCount}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Dodavatelé</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">
+                    {supplierReadiness.filter((supplier) => supplier.offerCount > 0).length}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Ke kontrole</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{unresolvedFiles.length}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {blockingReasons.length === 0 ? (
+                  <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${getStatusTone('ok')}`}>
+                    Porovnání je připravené ke spuštění.
+                  </div>
+                ) : (
+                  blockingReasons.map((reason) => (
+                    <div key={reason} className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone('warn')}`}>
+                      {reason}
+                    </div>
+                  ))
+                )}
+                {roleSummary.zadaniCount === 0 && files.length > 0 && (
+                  <div className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone('idle')}`}>
+                    Bez zadání vznikne alternativní porovnání z dodaných nabídek.
+                  </div>
+                )}
+              </div>
+
+              {autoStatus && (
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <p>
+                    Auto: <span className="font-semibold">{autoStatus.state}</span>
+                  </p>
+                  <p>
+                    Poslední běh:{' '}
+                    {autoStatus.lastRunAt
+                      ? new Date(autoStatus.lastRunAt).toLocaleString('cs-CZ')
+                      : 'zatím neproběhl'}
+                  </p>
+                  {autoStatus.pendingReason !== 'none' && <p>Čekání: {autoStatus.pendingReason}</p>}
+                  {autoStatus.lastError && <p className="text-rose-600 dark:text-rose-400">{autoStatus.lastError}</p>}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => void startComparison()}
+                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+                  disabled={!canStart || isStarting || jobIsRunning}
+                >
+                  {isStarting ? 'Spouštím...' : 'Spustit porovnání'}
+                </button>
+                {jobIsRunning && (
+                  <button
+                    type="button"
+                    onClick={() => void cancelJob()}
+                    className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-500"
+                  >
+                    Zrušit job
+                  </button>
+                )}
+              </div>
+            </aside>
+          </div>
+
+          <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="flex flex-col gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Výstup porovnání</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {job?.stats?.sourceMode === 'offers_only'
+                    ? 'Alternativní tabulka složená z položek dodavatelských nabídek.'
+                    : 'Původní rozpočet doplněný o jednotkové ceny a součty dodavatelů.'}
+                </p>
+              </div>
+              {(job?.outputLatestPath || job?.outputPath) && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void openOutputFile()}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Zobrazit výstup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void openTenderFolder()}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Otevřít složku VŘ
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-sm">
+                <thead className="bg-slate-100 dark:bg-slate-800/50">
+                  <tr className="text-left text-xs uppercase text-slate-500 dark:text-slate-400">
+                    <th className="px-3 py-2">Kód</th>
+                    <th className="px-3 py-2">Popis</th>
+                    <th className="px-3 py-2">MJ</th>
+                    <th className="px-3 py-2 text-right">Množství</th>
+                    {previewSupplierLabels.map((supplier) => (
+                      <th key={supplier} className="px-3 py-2 text-center" colSpan={2}>
+                        {supplier}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr className="border-t border-slate-200 dark:border-slate-700 text-left text-[11px] uppercase text-slate-400">
+                    <th className="px-3 py-1" />
+                    <th className="px-3 py-1" />
+                    <th className="px-3 py-1" />
+                    <th className="px-3 py-1" />
+                    {previewSupplierLabels.map((supplier) => (
+                      <React.Fragment key={`${supplier}-subhead`}>
+                        <th className="px-3 py-1 text-right">JC</th>
+                        <th className="px-3 py-1 text-right">Celkem</th>
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.length > 0 ? (
+                    previewRows.map((row) => (
+                      <tr key={row.radek} className="border-t border-slate-200 dark:border-slate-700">
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.kod || row.pc || '-'}</td>
+                        <td className="px-3 py-2 max-w-[320px] truncate text-slate-800 dark:text-slate-100">{row.popis || '-'}</td>
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.mj || '-'}</td>
+                        <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">{row.mnozstvi ?? '-'}</td>
+                        {previewSupplierLabels.map((supplier) => {
+                          const offer = row.offers[supplier];
+                          return (
+                            <React.Fragment key={`${row.radek}-${supplier}`}>
+                              <td className={`px-3 py-2 text-right ${offer?.matched ? 'text-slate-800 dark:text-slate-100' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'}`}>
+                                {offer?.jcena ?? '-'}
+                              </td>
+                              <td className={`px-3 py-2 text-right font-semibold ${offer?.matched ? 'text-slate-800 dark:text-slate-100' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'}`}>
+                                {offer?.celkem ?? '-'}
+                              </td>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="px-4 py-8 text-sm text-slate-500 dark:text-slate-400" colSpan={4 + previewSupplierLabels.length * 2}>
+                        {previewSupplierLabels.length
+                          ? 'Náhled položek se zobrazí po spuštění porovnání.'
+                          : 'Po načtení nabídek se zde připraví sloupce JC a Celkem pro každého dodavatele.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {job && (
-              <div className="space-y-3">
+              <div className="border-t border-slate-200 dark:border-slate-700 p-4 space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <p className="font-semibold text-slate-800 dark:text-slate-100">{job.step}</p>
                   <p className="text-slate-500 dark:text-slate-400">{Math.round(job.progressPercent)}%</p>
@@ -874,54 +1104,32 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                   />
                 </div>
 
-                {job.error && (
-                  <p className="text-sm text-rose-600 dark:text-rose-400">{job.error}</p>
-                )}
-
-                {(job.outputLatestPath || job.outputPath) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void openOutputFile()}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    >
-                      Otevřít výstup
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void openTenderFolder()}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    >
-                      Otevřít složku VŘ
-                    </button>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {job.outputWorkbookPath || job.outputLatestPath || job.outputPath}
-                    </span>
-                  </div>
-                )}
-
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                  <p>Agent: {agentStatusText}</p>
-                  {job.agentRecommendationWrittenAt && (
-                    <p>Doporučení zapsáno: {new Date(job.agentRecommendationWrittenAt).toLocaleString('cs-CZ')}</p>
-                  )}
-                  {job.agentAnalysisError && (
-                    <p className="text-amber-700 dark:text-amber-300">{job.agentAnalysisError}</p>
-                  )}
-                </div>
+                {job.error && <p className="text-sm text-rose-600 dark:text-rose-400">{job.error}</p>}
 
                 {job.stats && (
-                  <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                    <p>Položek v zadání: {job.stats.pocetPolozek}</p>
+                  <div className="grid gap-2 md:grid-cols-2 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
+                      {job.stats.sourceMode === 'offers_only' ? 'Položek z nabídek' : 'Položek v zadání'}: {job.stats.pocetPolozek}
+                    </div>
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
+                      Agent: {agentStatusText}
+                      {job.agentRecommendationWrittenAt && (
+                        <span> · doporučení zapsáno {new Date(job.agentRecommendationWrittenAt).toLocaleString('cs-CZ')}</span>
+                      )}
+                    </div>
                     {(Object.entries(job.stats.suppliers) as [string, { sparovano: number }][]).map(([label, supplierStats]) => (
-                      <p key={label}>
+                      <div key={label} className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3">
                         {label}: {supplierStats.sparovano}/{job.stats?.pocetPolozek} spárováno
-                      </p>
+                      </div>
                     ))}
                   </div>
                 )}
 
-                <div className="max-h-44 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 p-2 bg-slate-50 dark:bg-slate-950/40">
+                {job.agentAnalysisError && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300">{job.agentAnalysisError}</p>
+                )}
+
+                <div className="max-h-32 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 p-2 bg-slate-50 dark:bg-slate-950/40">
                   {job.logs.map((log, index) => (
                     <p key={`${log}-${index}`} className="text-xs text-slate-600 dark:text-slate-300">
                       {log}
@@ -930,8 +1138,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 </div>
               </div>
             )}
-            </div>
-          )}
+          </section>
         </div>
       </div>
     </div>

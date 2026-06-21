@@ -161,6 +161,51 @@ describe('BidComparisonAutoRunner', () => {
     expect(callbacks.length).toBe(1);
   });
 
+  it('spustí auto běh i bez souboru zadání, pokud jsou namapované nabídky', async () => {
+    const storage = new InMemoryStorage();
+    const runner = new FakeRunner(() => [
+      makeDetectedFile({
+        path: '/tmp/tender/offer.xlsx',
+        fileName: 'offer.xlsx',
+        suggestedRole: 'offer',
+        suggestedSupplierName: 'Drywall',
+      }),
+    ]);
+
+    const autoRunner = new BidComparisonAutoRunner(
+      storage,
+      runner as any,
+      () => ({
+        start: async () => {},
+        stop: async () => {},
+      }),
+    );
+
+    const config: BidComparisonAutoConfig = {
+      projectId: 'p-offers',
+      categoryId: 'c-offers',
+      tenderFolderPath: '/tmp/tender',
+      suppliers: [{ name: 'Drywall' }],
+      selectedFiles: [],
+      enabled: true,
+      debounceMs: 120,
+      fallbackIntervalMinutes: 15,
+      outputBaseName: 'porovnani-nabidek',
+    };
+
+    await autoRunner.autoStart(config);
+
+    await waitFor(async () => {
+      const status = await autoRunner.autoStatus({ projectId: 'p-offers', categoryId: 'c-offers' });
+      return status?.lastRunResult === 'success';
+    });
+
+    const status = await autoRunner.autoStatus({ projectId: 'p-offers', categoryId: 'c-offers' });
+    expect(status?.state).toBe('watching');
+    expect(status?.lastRunResult).toBe('success');
+    expect(runner.startCalls).toBe(1);
+  });
+
   it('zablokuje auto běh při nejednoznačném mapování', async () => {
     const storage = new InMemoryStorage();
     const runner = new FakeRunner(() => [

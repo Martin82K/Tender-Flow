@@ -197,8 +197,8 @@ const extractStartInput = (
   const offersMissingSupplier = offers.some((offer) => !(offer.supplierName || '').trim());
 
   const blockingReasons: string[] = [];
-  if (zadaniCount !== 1) {
-    blockingReasons.push('Musí být právě jeden soubor zadání.');
+  if (zadaniCount > 1) {
+    blockingReasons.push('Může být vybrán nejvýše jeden soubor zadání.');
   }
   if (offers.length < 1) {
     blockingReasons.push('Musí být alespoň jedna nabídka dodavatele.');

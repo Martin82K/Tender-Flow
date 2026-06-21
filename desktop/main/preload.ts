@@ -88,6 +88,9 @@ const electronAPI: ElectronAPI = {
         openFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
             invokeTyped('fs:openFile', filePath),
 
+        showItemInFolder: (filePath: string): Promise<{ success: boolean; error?: string }> =>
+            invokeTyped('fs:showItemInFolder', filePath),
+
         createFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
             invokeTyped('fs:createFolder', folderPath),
 
