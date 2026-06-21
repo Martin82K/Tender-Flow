@@ -155,10 +155,12 @@ describe('bidComparisonEngine', () => {
     const cellJ5 = outputSheet.getCell('J5').value as ExcelJS.CellFormulaValue;
     const cellJ4 = outputSheet.getCell('J4').value as ExcelJS.CellFormulaValue;
     const cellL6 = outputSheet.getCell('L6').value;
+    const bestTotalFill = outputSheet.getCell('J5').fill as ExcelJS.FillPattern;
 
     expect(cellJ5.formula).toBe('I5*F5');
-    expect(cellJ4.formula).toBe('J5+J6');
-    expect(cellL6 == null || cellL6 === '').toBe(true);
+    expect(cellJ4.formula).toBe('SUM(J5,J6)');
+    expect(cellL6).toBe('-');
+    expect(bestTotalFill.fgColor?.argb).toBe('FFC6EFCE');
   });
 
   it('buildComparisonWorkbook vytvoří porovnání pouze z nabídek bez zadání', async () => {
@@ -202,6 +204,7 @@ describe('bidComparisonEngine', () => {
     expect(outputSheet?.getCell('A1').value).toBe('Porovnání nabídek bez souboru zadání');
     expect(outputSheet?.getCell('G5').value).toBe(100);
     expect(outputSheet?.getCell('I5').value).toBe(120);
+    expect(outputSheet?.getCell('J6').value).toBe('-');
   });
 
   it('buildComparisonWorkbook zapíše doporučení agenta do samostatného listu', async () => {

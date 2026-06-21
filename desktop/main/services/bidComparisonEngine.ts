@@ -143,6 +143,16 @@ const BORDER_THIN: Partial<ExcelJS.Borders> = {
 };
 
 const NUMBER_FORMAT = '#,##0.00';
+const BEST_PRICE_FILL: ExcelJS.FillPattern = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFC6EFCE' },
+};
+const MISSING_PRICE_FILL: ExcelJS.FillPattern = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFFFF2CC' },
+};
 
 const toArgb = (hex: string): string => {
   const clean = hex.trim().replace('#', '').toUpperCase();
@@ -372,6 +382,39 @@ const calculateTotal = (item: BidComparisonItem, quantity: number | null): numbe
   if (item.celkem != null) return item.celkem;
   if (item.jcena == null || quantity == null) return null;
   return item.jcena * quantity;
+};
+
+const highlightBestPrices = (
+  sheet: ExcelJS.Worksheet,
+  matrix: BidComparisonMatrixItem[],
+  parsedOffers: Array<{ offer: BidOfferInput }>,
+  startColumn: number,
+): void => {
+  matrix.forEach((item) => {
+    const totals = Object.values(item.offers)
+      .map((offer) => offer.celkem)
+      .filter((value): value is number => value != null && Number.isFinite(value));
+
+    if (!totals.length) return;
+
+    const minTotal = Math.min(...totals);
+    parsedOffers.forEach((entry, offerIndex) => {
+      const offer = item.offers[entry.offer.displayLabel];
+      if (!offer || offer.celkem !== minTotal) return;
+
+      const colJcena = startColumn + offerIndex * 2;
+      const colCelkem = colJcena + 1;
+      [colJcena, colCelkem].forEach((columnIndex) => {
+        const cell = sheet.getCell(item.radek, columnIndex);
+        cell.fill = BEST_PRICE_FILL;
+        cell.font = {
+          ...cell.font,
+          bold: true,
+          color: { argb: 'FF006100' },
+        };
+      });
+    });
+  });
 };
 
 const getItemKey = (item: BidComparisonItem): string | null => {
@@ -696,6 +739,14 @@ export const buildComparisonWorkbook = async (
           celkem: null,
           matched: false,
         };
+        [colJcena, colCelkem].forEach((columnIndex) => {
+          const cell = zadaniSheet.getCell(zadaniItem.radek, columnIndex);
+          cell.value = '-';
+          cell.font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF9C6500' } };
+          cell.fill = MISSING_PRICE_FILL;
+          cell.border = BORDER_THIN;
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
         return;
       }
 
@@ -730,7 +781,7 @@ export const buildComparisonWorkbook = async (
     const recapCell = zadaniSheet.getCell(recapRow, colCelkem);
     const recapTerms = parsedZadani.kRows.map((rowIndex) => `${letterCelkem}${rowIndex}`);
     recapCell.value = (recapTerms.length
-      ? { formula: recapTerms.join('+') }
+      ? { formula: `SUM(${recapTerms.join(',')})` }
       : { formula: '0' }) as ExcelJS.CellFormulaValue;
     recapCell.font = { name: 'Arial', size: 10, bold: true };
     recapCell.numFmt = NUMBER_FORMAT;
@@ -758,6 +809,8 @@ export const buildComparisonWorkbook = async (
     const progress = 20 + Math.round(((offerIndex + 1) / parsedOffers.length) * 75);
     onProgress?.(Math.min(progress, 95), `Zpracováno: ${entry.offer.displayLabel}`);
   });
+
+  highlightBestPrices(zadaniSheet, matrix, parsedOffers, startColumn);
 
   if (isCancelled?.()) {
     throw new Error('Porovnání bylo zrušeno.');

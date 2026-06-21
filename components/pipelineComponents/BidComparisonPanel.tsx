@@ -67,6 +67,14 @@ const getTopLevelFolder = (relativePath: string): string => {
   return firstPart || 'Kořen složky';
 };
 
+const getBestRowTotal = (offers: Record<string, { celkem: number | null }>): number | null => {
+  const totals = Object.values(offers)
+    .map((offer) => offer.celkem)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+
+  return totals.length ? Math.min(...totals) : null;
+};
+
 export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   isOpen,
   onClose,
@@ -1049,27 +1057,42 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 </thead>
                 <tbody>
                   {previewRows.length > 0 ? (
-                    previewRows.map((row) => (
-                      <tr key={row.radek} className="border-t border-slate-200 dark:border-slate-700">
-                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.kod || row.pc || '-'}</td>
-                        <td className="px-3 py-2 max-w-[320px] truncate text-slate-800 dark:text-slate-100">{row.popis || '-'}</td>
-                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.mj || '-'}</td>
-                        <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">{row.mnozstvi ?? '-'}</td>
-                        {previewSupplierLabels.map((supplier) => {
-                          const offer = row.offers[supplier];
-                          return (
-                            <React.Fragment key={`${row.radek}-${supplier}`}>
-                              <td className={`px-3 py-2 text-right ${offer?.matched ? 'text-slate-800 dark:text-slate-100' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'}`}>
-                                {offer?.jcena ?? '-'}
-                              </td>
-                              <td className={`px-3 py-2 text-right font-semibold ${offer?.matched ? 'text-slate-800 dark:text-slate-100' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'}`}>
-                                {offer?.celkem ?? '-'}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
-                      </tr>
-                    ))
+                    previewRows.map((row) => {
+                      const bestTotal = getBestRowTotal(row.offers);
+                      return (
+                        <tr key={row.radek} className="border-t border-slate-200 dark:border-slate-700">
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.kod || row.pc || '-'}</td>
+                          <td className="px-3 py-2 max-w-[320px] truncate text-slate-800 dark:text-slate-100">{row.popis || '-'}</td>
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.mj || '-'}</td>
+                          <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">{row.mnozstvi ?? '-'}</td>
+                          {previewSupplierLabels.map((supplier) => {
+                            const offer = row.offers[supplier];
+                            const isBest = offer?.matched && offer.celkem != null && offer.celkem === bestTotal;
+                            const priceCellClass = !offer?.matched
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                              : isBest
+                                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                : 'text-slate-800 dark:text-slate-100';
+
+                            return (
+                              <React.Fragment key={`${row.radek}-${supplier}`}>
+                                <td className={`px-3 py-2 text-right ${priceCellClass}`}>
+                                  {offer?.jcena ?? '-'}
+                                </td>
+                                <td className={`px-3 py-2 text-right font-semibold ${priceCellClass}`}>
+                                  <span>{offer?.celkem ?? '-'}</span>
+                                  {isBest && (
+                                    <span className="ml-2 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] uppercase text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200">
+                                      nejnižší
+                                    </span>
+                                  )}
+                                </td>
+                              </React.Fragment>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td className="px-4 py-8 text-sm text-slate-500 dark:text-slate-400" colSpan={4 + previewSupplierLabels.length * 2}>

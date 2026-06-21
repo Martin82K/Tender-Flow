@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BidComparisonPanel } from '../components/pipelineComponents/BidComparisonPanel';
 import type { BidComparisonDetectionResult } from '../shared/types/desktop';
@@ -146,5 +146,84 @@ describe('BidComparisonPanel', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Spustit porovnání' })).toBeDisabled();
+  });
+
+  it('po dokončeném jobu označí nejnižší cenu v náhledu výstupu', async () => {
+    platformMocks.detectInputs.mockResolvedValue(
+      detectedResult([
+        detectedFile('nabidka-kamenolom.xlsx', '01 Kamenolom Číhaná/nabidka-kamenolom.xlsx', 'offer', 'Kamenolom Číhaná'),
+        detectedFile('nabidka-doprava.xlsx', '02 Doprava/nabidka-doprava.xlsx', 'offer', 'Doprava'),
+      ]),
+    );
+    platformMocks.start.mockResolvedValue({ jobId: 'job-1' });
+    platformMocks.get.mockResolvedValue({
+      id: 'job-1',
+      projectId: 'project-1',
+      categoryId: 'category-1',
+      tenderFolderPath: '/Tender/Vyberove-rizeni',
+      status: 'success',
+      progressPercent: 100,
+      step: 'Hotovo',
+      logs: ['Hotovo'],
+      startedAt: '2026-06-21T20:00:00.000Z',
+      finishedAt: '2026-06-21T20:00:01.000Z',
+      outputPath: '/Tender/Vyberove-rizeni/porovnani-nabidek.xlsx',
+      outputLatestPath: '/Tender/Vyberove-rizeni/porovnani-nabidek-latest.xlsx',
+      outputWorkbookPath: '/Tender/Vyberove-rizeni/porovnani-nabidek-latest.xlsx',
+      agentAnalysisStatus: 'disabled',
+      agentAnalysisError: null,
+      agentRecommendationWrittenAt: null,
+      error: null,
+      stats: {
+        pocetPolozek: 1,
+        sourceMode: 'offers_only',
+        suppliers: {
+          'Kamenolom Číhaná': { sparovano: 1, nesparovano: [], round: 0, variant: 1 },
+          Doprava: { sparovano: 1, nesparovano: [], round: 0, variant: 1 },
+        },
+        matrix: [
+          {
+            pc: '1',
+            kod: 'MAT-1',
+            popis: 'Kamenivo frakce 0/32',
+            mj: 't',
+            mnozstvi: 10,
+            radek: 5,
+            offers: {
+              'Kamenolom Číhaná': {
+                supplierName: 'Kamenolom Číhaná',
+                displayLabel: 'Kamenolom Číhaná',
+                round: 0,
+                variant: 1,
+                jcena: 100,
+                celkem: 1000,
+                matched: true,
+              },
+              Doprava: {
+                supplierName: 'Doprava',
+                displayLabel: 'Doprava',
+                round: 0,
+                variant: 1,
+                jcena: 130,
+                celkem: 1300,
+                matched: true,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    renderPanel();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Spustit porovnání' })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Spustit porovnání' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('nejnižší')).toBeInTheDocument();
+    });
   });
 });
