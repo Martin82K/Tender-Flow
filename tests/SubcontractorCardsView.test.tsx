@@ -96,6 +96,89 @@ describe("SubcontractorCardsView", () => {
     ).toBeInTheDocument();
   });
 
+  it("nezobrazí ouška kontaktních osob pro jediný kontakt", () => {
+    const contacts = [
+      make({
+        id: "a",
+        company: "Alfa",
+        contacts: [
+          {
+            id: "p1",
+            name: "Jan Novák",
+            phone: "+420 777 123 456",
+            email: "jan@example.cz",
+            position: "Vedoucí stavby",
+          },
+        ],
+      }),
+    ];
+
+    render(
+      <SubcontractorCardsView
+        contacts={contacts}
+        statuses={statuses}
+        selectedIds={new Set()}
+        onSelectionChange={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("tablist", { name: /Kontaktní osoby Alfa/i }),
+    ).toBeNull();
+    expect(screen.getByText("Jan Novák")).toBeInTheDocument();
+  });
+
+  it("přepíná kontaktní osoby přes kompaktní ouška", () => {
+    const contacts = [
+      make({
+        id: "a",
+        company: "Alfa",
+        contacts: [
+          {
+            id: "p1",
+            name: "Jan Novák",
+            phone: "+420 777 123 456",
+            email: "jan@example.cz",
+            position: "Hlavní kontakt",
+          },
+          {
+            id: "p2",
+            name: "Petra Svobodová",
+            phone: "+420 222 123 456",
+            email: "petra@example.cz",
+            position: "Obchodní zástupce",
+          },
+        ],
+      }),
+    ];
+
+    render(
+      <SubcontractorCardsView
+        contacts={contacts}
+        statuses={statuses}
+        selectedIds={new Set()}
+        onSelectionChange={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByRole("tablist", { name: /Kontaktní osoby Alfa/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "Hlavní" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("+420 777 123 456")).toBeInTheDocument();
+    expect(screen.queryByText("+420 222 123 456")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "OZ" }));
+
+    expect(
+      screen.getByRole("tab", { name: "OZ" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("+420 222 123 456")).toBeInTheDocument();
+    expect(screen.queryByText("+420 777 123 456")).toBeNull();
+  });
+
   it("double-click na kartu zavolá onEditContact", () => {
     const handleEdit = vi.fn();
     const contacts = [make({ id: "a", company: "Alfa" })];

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Subcontractor, StatusConfig } from "@/types";
+import type { ContactPerson, Subcontractor, StatusConfig } from "@/types";
 import { StarRating } from "@/shared/ui/StarRating";
 import { formatDecimal } from "@/utils/formatters";
 import { useContactsFilters } from "@/shared/ui/contacts/useContactsFilters";
@@ -10,6 +10,8 @@ import {
   ContactContextMenuItem,
 } from "@/shared/ui/contacts/ContactContextMenu";
 import {
+  contactInitials,
+  contactPersonTabLabel,
   formatRegionCoverage,
   formatSpecializations,
   getStatusConfig,
@@ -69,6 +71,34 @@ function saveVisibleColumns(columns: Set<ColumnId>) {
 
 // ─── Virtualized table component ───────────────────────────────────────────
 const ROW_HEIGHT = 72;
+
+const hasContactPersonValue = (contact: ContactPerson): boolean =>
+  [contact.name, contact.phone, contact.email, contact.position].some(
+    (value) => Boolean(value && value !== "-"),
+  );
+
+export const getRowContactPerson = (
+  contact: Subcontractor,
+): ContactPerson | undefined =>
+  contact.contacts.find(hasContactPersonValue) || contact.contacts[0];
+
+export const getAdditionalContactPersons = (
+  contact: Subcontractor,
+  rowContactPerson: ContactPerson | undefined,
+): ContactPerson[] =>
+  rowContactPerson
+    ? contact.contacts.filter((person) => person.id !== rowContactPerson.id)
+    : contact.contacts.slice(1);
+
+export const formatAdditionalContactsTitle = (contacts: ContactPerson[]): string =>
+  contacts
+    .map((contact, index) => {
+      const label = contactPersonTabLabel(contact, index);
+      return contact.name && contact.name !== "-"
+        ? `${label}: ${contact.name}`
+        : label;
+    })
+    .join("\n");
 
 interface VirtualizedContactTableProps {
   filteredContacts: Subcontractor[];
@@ -236,6 +266,12 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
               const contact = filteredContacts[virtualRow.index];
               const status = getStatusConfig(statuses, contact.status);
               const selected = selectedIds.has(contact.id);
+              const rowContactPerson = getRowContactPerson(contact);
+              const additionalContacts = getAdditionalContactPersons(
+                contact,
+                rowContactPerson,
+              );
+              const additionalContactsCount = additionalContacts.length;
               const rowBg = selected
                 ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                 : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800";
@@ -286,46 +322,41 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
                     <div
                       className={`${cellBase} text-slate-900 dark:text-slate-200`}
                     >
-                      <div className="flex flex-col gap-2">
-                        {contact.contacts.map((c, idx) => {
-                          const initials = c.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join("")
-                            .toUpperCase();
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-3"
-                            >
-                              <div className="size-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-600 shadow-sm">
-                                {initials || "?"}
-                              </div>
-                              <div className="flex flex-col">
-                                <span
-                                  className={
-                                    idx === 0
-                                      ? "text-sm font-medium"
-                                      : "text-xs text-slate-500"
-                                  }
-                                >
-                                  {c.name !== "-" ? (
-                                    c.name
-                                  ) : (
-                                    <span className="italic">Nezadáno</span>
-                                  )}
-                                </span>
-                                {c.position && (
-                                  <span className="text-[10px] text-slate-400 font-medium">
-                                    {c.position}
-                                  </span>
-                                )}
-                              </div>
+                      <div className="flex min-w-0 items-center gap-3">
+                        {rowContactPerson ? (
+                          <>
+                            <div className="size-8 shrink-0 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-600 shadow-sm">
+                              {contactInitials(
+                                rowContactPerson.name !== "-"
+                                  ? rowContactPerson.name || ""
+                                  : "",
+                              ) || "?"}
                             </div>
-                          );
-                        })}
-                        {contact.contacts.length === 0 && (
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate text-sm font-medium">
+                                {rowContactPerson.name &&
+                                rowContactPerson.name !== "-" ? (
+                                  rowContactPerson.name
+                                ) : (
+                                  <span className="italic">Nezadáno</span>
+                                )}
+                              </span>
+                              {rowContactPerson.position && (
+                                <span className="truncate text-[10px] text-slate-400 font-medium">
+                                  {rowContactPerson.position}
+                                </span>
+                              )}
+                            </div>
+                            {additionalContactsCount > 0 && (
+                              <span
+                                className="ml-auto inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-1.5 text-[10px] font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                title={formatAdditionalContactsTitle(additionalContacts)}
+                              >
+                                +{additionalContactsCount}
+                              </span>
+                            )}
+                          </>
+                        ) : (
                           <span className="text-slate-400 italic text-xs">
                             Bez kontaktu
                           </span>
@@ -335,40 +366,41 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
                   )}
                   {isColumnVisible("telefon") && (
                     <div className={cellBase}>
-                      <div className="flex flex-col gap-2">
-                        {contact.contacts.map((c, idx) => (
-                          <div
-                            key={idx}
-                            className={`flex flex-col gap-0.5 ${
-                              idx > 0
-                                ? "mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/50"
-                                : ""
-                            }`}
-                          >
-                            {c.phone !== "-" && (
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        {rowContactPerson ? (
+                          <>
+                            {rowContactPerson.phone &&
+                              rowContactPerson.phone !== "-" && (
                               <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                                   call
                                 </span>
-                                {c.phone}
+                                <span className="truncate">
+                                  {rowContactPerson.phone}
+                                </span>
                               </div>
                             )}
-                            {c.email !== "-" && (
+                            {rowContactPerson.email &&
+                              rowContactPerson.email !== "-" && (
                               <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                                   mail
                                 </span>
                                 <a
-                                  href={`mailto:${c.email}`}
+                                  href={`mailto:${rowContactPerson.email}`}
                                   onClick={(e) => e.stopPropagation()}
                                   className="hover:text-primary hover:underline truncate max-w-[150px]"
                                 >
-                                  {c.email}
+                                  {rowContactPerson.email}
                                 </a>
                               </div>
                             )}
-                          </div>
-                        ))}
+                          </>
+                        ) : (
+                          <span className="text-slate-400 italic text-xs">
+                            —
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}

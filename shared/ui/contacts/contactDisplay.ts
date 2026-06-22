@@ -1,4 +1,4 @@
-import { StatusConfig, Subcontractor } from "@/types";
+import type { ContactPerson, StatusConfig, Subcontractor } from "@/types";
 import { CZ_REGIONS, CzRegionCode } from "@/config/constants";
 
 export type StatusColor =
@@ -95,6 +95,39 @@ export function contactInitials(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function normalizeContactPosition(position: string): string {
+  return position
+    .trim()
+    .toLocaleLowerCase("cs-CZ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+export function contactPersonTabLabel(
+  contact: ContactPerson,
+  index: number,
+): string {
+  const normalizedPosition = normalizeContactPosition(contact.position || "");
+
+  if (normalizedPosition) {
+    if (normalizedPosition.includes("hlavni kontakt")) return "Hlavní";
+    if (normalizedPosition.includes("obchodni zastupce")) return "OZ";
+    if (normalizedPosition.includes("jednatel")) return "jednatel";
+    if (
+      normalizedPosition.includes("pripravar") ||
+      normalizedPosition.includes("priprava")
+    ) {
+      return "příprava";
+    }
+
+    return contact.position!.trim();
+  }
+
+  if (contact.name && contact.name !== "-") return contact.name;
+  return `Osoba ${index + 1}`;
 }
 
 export function primaryContact(contact: Subcontractor) {

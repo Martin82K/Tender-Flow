@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Subcontractor, StatusConfig } from "@/types";
+import type { ContactPerson, Subcontractor, StatusConfig } from "@/types";
 import { StarRating } from "@/shared/ui/StarRating";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { useContactsFilters } from "@/shared/ui/contacts/useContactsFilters";
@@ -10,6 +10,7 @@ import {
 } from "@/shared/ui/contacts/ContactContextMenu";
 import {
   contactInitials,
+  contactPersonTabLabel,
   formatRegionCoverage,
   formatSpecializations,
   getStatusConfig,
@@ -35,11 +36,28 @@ interface CardProps {
   onContextMenu: (e: React.MouseEvent, contact: Subcontractor) => void;
 }
 
+const isFilledContactPerson = (person: ContactPerson): boolean =>
+  [person.name, person.phone, person.email, person.position].some(
+    (value) => Boolean(value && value !== "-"),
+  );
+
 const SubcontractorCard: React.FC<CardProps> = React.memo(
   ({ contact, selected, status, onToggleSelect, onEdit, onContextMenu }) => {
-    const primary = contact.contacts?.[0];
-    const initials = primary
-      ? contactInitials(primary.name !== "-" ? primary.name : contact.company)
+    const contactPeople = (contact.contacts || []).filter(isFilledContactPerson);
+    const [activeContactIndex, setActiveContactIndex] = useState(0);
+
+    React.useEffect(() => {
+      if (activeContactIndex >= contactPeople.length) {
+        setActiveContactIndex(0);
+      }
+    }, [activeContactIndex, contactPeople.length]);
+
+    const activeContact = contactPeople[activeContactIndex] || contactPeople[0];
+    const hasMultipleContactPeople = contactPeople.length > 1;
+    const initials = activeContact
+      ? contactInitials(
+          activeContact.name !== "-" ? activeContact.name : contact.company,
+        )
       : contactInitials(contact.company);
 
     const isRated =
@@ -90,35 +108,88 @@ const SubcontractorCard: React.FC<CardProps> = React.memo(
           </p>
         )}
 
-        {primary && primary.name && primary.name !== "-" && (
-          <div className="flex flex-col gap-0.5 text-xs text-slate-600 dark:text-slate-300">
+        {hasMultipleContactPeople && (
+          <div
+            role="tablist"
+            aria-label={`Kontaktní osoby ${contact.company}`}
+            className="relative flex min-w-0 items-end gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
+          >
+            {contactPeople.map((person, index) => {
+              const isActive = index === activeContactIndex;
+
+              return (
+                <button
+                  key={person.id || `${person.name}-${index}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`contact-person-panel-${contact.id}-${index}`}
+                  title={[person.position, person.name].filter(Boolean).join(" · ")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveContactIndex(index);
+                  }}
+                  onDoubleClick={(event) => event.stopPropagation()}
+                  className={`-mb-px inline-flex min-w-0 max-w-[6.75rem] shrink-0 items-center gap-1.5 rounded-t-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                    isActive
+                      ? "border-slate-200 border-b-white bg-white text-primary shadow-sm dark:border-slate-700 dark:border-b-slate-900 dark:bg-slate-900"
+                      : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-800/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[14px] ${
+                      isActive ? "text-primary" : "text-slate-400"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    person
+                  </span>
+                  <span className="truncate">
+                    {contactPersonTabLabel(person, index)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {activeContact && activeContact.name && activeContact.name !== "-" && (
+          <div
+            id={
+              hasMultipleContactPeople
+                ? `contact-person-panel-${contact.id}-${activeContactIndex}`
+                : undefined
+            }
+            role={hasMultipleContactPeople ? "tabpanel" : undefined}
+            className="flex flex-col gap-0.5 text-xs text-slate-600 dark:text-slate-300"
+          >
             <span className="font-medium text-slate-700 dark:text-slate-200">
-              {primary.name}
-              {primary.position && (
+              {activeContact.name}
+              {activeContact.position && (
                 <span className="text-slate-400 font-normal">
                   {" "}
-                  · {primary.position}
+                  · {activeContact.position}
                 </span>
               )}
             </span>
-            {primary.phone && primary.phone !== "-" && (
+            {activeContact.phone && activeContact.phone !== "-" && (
               <span className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                   call
                 </span>
-                {primary.phone}
+                {activeContact.phone}
               </span>
             )}
-            {primary.email && primary.email !== "-" && (
+            {activeContact.email && activeContact.email !== "-" && (
               <a
-                href={`mailto:${primary.email}`}
+                href={`mailto:${activeContact.email}`}
                 onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-1.5 hover:text-primary truncate"
               >
                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                   mail
                 </span>
-                <span className="truncate">{primary.email}</span>
+                <span className="truncate">{activeContact.email}</span>
               </a>
             )}
           </div>

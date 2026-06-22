@@ -2,7 +2,12 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 
-import { SubcontractorSelector } from "../shared/ui/SubcontractorSelector";
+import {
+  formatAdditionalContactsTitle,
+  getAdditionalContactPersons,
+  getRowContactPerson,
+  SubcontractorSelector,
+} from "../shared/ui/SubcontractorSelector";
 import type { Subcontractor, StatusConfig } from "../types";
 
 const statuses: StatusConfig[] = [
@@ -140,5 +145,43 @@ describe("SubcontractorSelector", () => {
     );
 
     expect(container.querySelector('button[title="Upravit"]')).toBeNull();
+  });
+
+  it("pro seznam vybere jeden řádkový kontakt a zbytek nechá jen jako dodatečný počet", () => {
+    const contacts = [
+      make({
+        id: "a",
+        company: "Alfa",
+        contacts: [
+          {
+            id: "p1",
+            name: "Jan Novák",
+            phone: "+420 777 123 456",
+            email: "jan@example.cz",
+            position: "Hlavní kontakt",
+          },
+          {
+            id: "p2",
+            name: "Petra Svobodová",
+            phone: "+420 222 123 456",
+            email: "petra@example.cz",
+            position: "Obchodní zástupce",
+          },
+        ],
+      }),
+    ];
+
+    const rowContact = getRowContactPerson(contacts[0]);
+    const additionalContacts = getAdditionalContactPersons(
+      contacts[0],
+      rowContact,
+    );
+
+    expect(rowContact?.name).toBe("Jan Novák");
+    expect(additionalContacts).toHaveLength(1);
+    expect(additionalContacts[0].name).toBe("Petra Svobodová");
+    expect(formatAdditionalContactsTitle(additionalContacts)).toBe(
+      "OZ: Petra Svobodová",
+    );
   });
 });

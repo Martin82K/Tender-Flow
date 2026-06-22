@@ -4,7 +4,7 @@ import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { StarRating } from '@/shared/ui/StarRating';
 import { AutocompleteInput } from '@/shared/ui/AutocompleteInput';
-import { Subcontractor, StatusConfig } from '@/types';
+import type { ContactPerson, Subcontractor, StatusConfig } from '@/types';
 import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
@@ -19,6 +19,7 @@ import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCards
 import {
     analyzeContactQuickPaste,
 } from '@features/contacts/model/contactQuickPaste';
+import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
 
 interface ContactsProps {
@@ -52,6 +53,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     // Contact Modal State
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Subcontractor | null>(null);
+    const [activeContactPersonIndex, setActiveContactPersonIndex] = useState(0);
 
     // Quick paste assistant modal state
     const [isQuickPasteModalOpen, setIsQuickPasteModalOpen] = useState(false);
@@ -77,6 +79,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         city: '',
         status: 'available'
     });
+
+    useEffect(() => {
+        const contactCount = formData.contacts?.length || 0;
+        if (activeContactPersonIndex >= contactCount && contactCount > 0) {
+            setActiveContactPersonIndex(contactCount - 1);
+        }
+        if (contactCount === 0 && activeContactPersonIndex !== 0) {
+            setActiveContactPersonIndex(0);
+        }
+    }, [activeContactPersonIndex, formData.contacts?.length]);
 
     // Confirmation Modal State
     const [confirmModal, setConfirmModal] = useState<{
@@ -485,6 +497,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             regions: [],
             status: 'available'
         });
+        setActiveContactPersonIndex(0);
         setIsContactModalOpen(true);
     };
 
@@ -515,6 +528,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         const draft = quickPasteAnalysis.contact;
         setEditingContact(quickPasteAnalysis.matchedContact || null);
         setFormData({ ...draft, specializationRaw: '' });
+        setActiveContactPersonIndex(0);
         setIsQuickPasteModalOpen(false);
         setIsContactModalOpen(true);
     };
@@ -522,6 +536,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const handleOpenEditModal = (contact: Subcontractor) => {
         setEditingContact(contact);
         setFormData({ ...contact });
+        setActiveContactPersonIndex(0);
         setIsContactModalOpen(true);
     };
 
@@ -579,10 +594,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             email: '',
             position: ''
         };
+        const nextIndex = formData.contacts?.length || 0;
         setFormData(prev => ({
             ...prev,
             contacts: [...(prev.contacts || []), newContact]
         }));
+        setActiveContactPersonIndex(nextIndex);
     };
 
     const handleRemoveContactPerson = (id: string) => {
@@ -590,9 +607,27 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             ...prev,
             contacts: (prev.contacts || []).filter(c => c.id !== id)
         }));
+        setActiveContactPersonIndex(prev => Math.max(0, prev - 1));
     };
 
-    const handleUpdateContactPerson = (id: string, updates: any) => {
+    const handleSetPrimaryContactPerson = (id: string) => {
+        setFormData(prev => {
+            const currentContacts = prev.contacts || [];
+            const selectedContact = currentContacts.find(contact => contact.id === id);
+            if (!selectedContact) return prev;
+
+            return {
+                ...prev,
+                contacts: [
+                    selectedContact,
+                    ...currentContacts.filter(contact => contact.id !== id),
+                ],
+            };
+        });
+        setActiveContactPersonIndex(0);
+    };
+
+    const handleUpdateContactPerson = (id: string, updates: Partial<ContactPerson>) => {
         setFormData(prev => ({
             ...prev,
             contacts: (prev.contacts || []).map(c => c.id === id ? { ...c, ...updates } : c)
@@ -643,6 +678,9 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const companyValidation = validateSubcontractorCompanyName(formData.company || '');
     const companyError = formData.company && !companyValidation.isValid ? companyValidation.reason : null;
     const isSaveDisabled = !formData.company || !formData.specialization || formData.specialization.length === 0 || !companyValidation.isValid;
+    const contactPeople = formData.contacts || [];
+    const activeContactPerson = contactPeople[activeContactPersonIndex] || contactPeople[0];
+    const hasMultipleContactPeople = contactPeople.length > 1;
 
     return (
         <div className="tf-contacts-view flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
@@ -1191,64 +1229,140 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                             </button>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            {formData.contacts?.map((contact, index) => (
-                                                <div key={contact.id} className="relative p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 group">
-                                                    {formData.contacts!.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveContactPerson(contact.id)}
-                                                            className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors"
+                                        <div>
+                                            {activeContactPerson ? (
+                                                <div>
+                                                    {hasMultipleContactPeople && (
+                                                        <div
+                                                            role="tablist"
+                                                            aria-label="Kontaktní osoby ve formuláři"
+                                                            className="relative flex min-w-0 items-end gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
                                                         >
-                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                        </button>
+                                                            {contactPeople.map((contact, index) => {
+                                                                const isActive = index === activeContactPersonIndex;
+                                                                const isPrimary = index === 0;
+
+                                                                return (
+                                                                    <button
+                                                                        key={contact.id}
+                                                                        type="button"
+                                                                        role="tab"
+                                                                        aria-selected={isActive}
+                                                                        aria-controls={`contact-person-form-panel-${contact.id}`}
+                                                                        title={[contact.position, contact.name].filter(Boolean).join(' · ')}
+                                                                        onClick={() => setActiveContactPersonIndex(index)}
+                                                                        className={`-mb-px inline-flex min-w-0 max-w-[8.5rem] shrink-0 items-center gap-1.5 rounded-t-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                                                                            isActive
+                                                                                ? 'border-slate-200 border-b-slate-50 bg-slate-50 text-primary shadow-sm dark:border-slate-700 dark:border-b-slate-800 dark:bg-slate-800'
+                                                                                : 'border-slate-200 bg-slate-100/70 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                                                                        }`}
+                                                                    >
+                                                                        <span
+                                                                            className={`material-symbols-outlined text-[14px] ${isActive ? 'text-primary' : 'text-slate-400'}`}
+                                                                            aria-hidden="true"
+                                                                        >
+                                                                            person
+                                                                        </span>
+                                                                        <span className="truncate">
+                                                                            {contactPersonTabLabel(contact, index)}
+                                                                        </span>
+                                                                        {isPrimary && (
+                                                                            <span
+                                                                                className="material-symbols-outlined text-[12px] text-primary"
+                                                                                aria-hidden="true"
+                                                                            >
+                                                                                push_pin
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     )}
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jméno *</label>
-                                                            <input
-                                                                required
-                                                                type="text"
-                                                                value={contact.name}
-                                                                onChange={e => handleUpdateContactPerson(contact.id, { name: e.target.value })}
-                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                                placeholder="Jméno a Příjmení"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Pozice</label>
-                                                            <input
-                                                                type="text"
-                                                                value={contact.position || ''}
-                                                                onChange={e => handleUpdateContactPerson(contact.id, { position: e.target.value })}
-                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                                placeholder="Např. Obchodní zástupce"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telefon</label>
-                                                            <input
-                                                                type="text"
-                                                                value={contact.phone}
-                                                                onChange={e => handleUpdateContactPerson(contact.id, { phone: e.target.value })}
-                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                                placeholder="+420 ..."
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
-                                                            <input
-                                                                type="email"
-                                                                value={contact.email}
-                                                                onChange={e => handleUpdateContactPerson(contact.id, { email: e.target.value })}
-                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                                placeholder="email@example.com"
-                                                            />
+
+                                                    <div
+                                                        id={`contact-person-form-panel-${activeContactPerson.id}`}
+                                                        role={hasMultipleContactPeople ? 'tabpanel' : undefined}
+                                                        className={`relative rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-4 ${
+                                                            hasMultipleContactPeople ? 'rounded-tl-none border-t-0' : ''
+                                                        }`}
+                                                    >
+                                                        {hasMultipleContactPeople && (
+                                                            <div className="absolute top-2 right-2 flex items-center gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSetPrimaryContactPerson(activeContactPerson.id)}
+                                                                    disabled={activeContactPersonIndex === 0}
+                                                                    className={`transition-colors ${
+                                                                        activeContactPersonIndex === 0
+                                                                            ? 'text-primary cursor-default'
+                                                                            : 'text-slate-400 hover:text-primary'
+                                                                    }`}
+                                                                    title={activeContactPersonIndex === 0 ? 'Hlavní kontakt' : 'Nastavit jako hlavní'}
+                                                                    aria-label={
+                                                                        activeContactPersonIndex === 0
+                                                                            ? `Hlavní kontakt ${contactPersonTabLabel(activeContactPerson, activeContactPersonIndex)}`
+                                                                            : `Nastavit jako hlavní ${contactPersonTabLabel(activeContactPerson, activeContactPersonIndex)}`
+                                                                    }
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">push_pin</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveContactPerson(activeContactPerson.id)}
+                                                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                                                    aria-label={`Smazat osobu ${contactPersonTabLabel(activeContactPerson, activeContactPersonIndex)}`}
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jméno *</label>
+                                                                <input
+                                                                    required
+                                                                    type="text"
+                                                                    value={activeContactPerson.name}
+                                                                    onChange={e => handleUpdateContactPerson(activeContactPerson.id, { name: e.target.value })}
+                                                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                    placeholder="Jméno a Příjmení"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Pozice</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={activeContactPerson.position || ''}
+                                                                    onChange={e => handleUpdateContactPerson(activeContactPerson.id, { position: e.target.value })}
+                                                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                    placeholder="Např. Obchodní zástupce"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telefon</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={activeContactPerson.phone}
+                                                                    onChange={e => handleUpdateContactPerson(activeContactPerson.id, { phone: e.target.value })}
+                                                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                    placeholder="+420 ..."
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
+                                                                <input
+                                                                    type="email"
+                                                                    value={activeContactPerson.email}
+                                                                    onChange={e => handleUpdateContactPerson(activeContactPerson.id, { email: e.target.value })}
+                                                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                    placeholder="email@example.com"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ))}
-                                            {(!formData.contacts || formData.contacts.length === 0) && (
+                                            ) : (
                                                 <div className="text-center py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
                                                     <p className="text-sm text-slate-500">Žádné kontaktní osoby nebyly přidány.</p>
                                                     <button

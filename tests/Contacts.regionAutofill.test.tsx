@@ -255,6 +255,115 @@ describe("Contacts auto-fill regions", () => {
     });
   });
 
+  it("ve formuláři přepíná více kontaktních osob přes kompaktní ouška", async () => {
+    render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={vi.fn()}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /přidat kontakt/i }));
+    fireEvent.change(screen.getByPlaceholderText("Jméno a Příjmení"), {
+      target: { value: "Jan Novák" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /přidat osobu/i }));
+
+    expect(
+      screen.getByRole("tablist", { name: /kontaktní osoby ve formuláři/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Hlavní" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByRole("tab", { name: "Osoba 2" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.queryByDisplayValue("Jan Novák")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Hlavní" }));
+
+    expect(screen.getByRole("tab", { name: "Hlavní" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByDisplayValue("Jan Novák")).toBeInTheDocument();
+  });
+
+  it("ve formuláři nastaví vybranou osobu jako hlavní přes pin", async () => {
+    const onAddContact = vi.fn();
+
+    render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={onAddContact}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /přidat kontakt/i }));
+    fireEvent.change(screen.getByPlaceholderText("Název firmy"), {
+      target: { value: "Alfa Stav" },
+    });
+    const specializationInput = screen.getByPlaceholderText(
+      "Přidat specializaci (stiskněte Enter)",
+    );
+    fireEvent.change(specializationInput, {
+      target: { value: "Zednictví" },
+    });
+    fireEvent.keyDown(specializationInput, {
+      key: "Enter",
+      code: "Enter",
+    });
+    fireEvent.change(screen.getByPlaceholderText("Jméno a Příjmení"), {
+      target: { value: "Jan Novák" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /přidat osobu/i }));
+    fireEvent.change(screen.getByPlaceholderText("Jméno a Příjmení"), {
+      target: { value: "Petra Svobodová" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Např. Obchodní zástupce"), {
+      target: { value: "Obchodní zástupce" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /nastavit jako hlavní oz/i }),
+    );
+
+    expect(screen.getByRole("tab", { name: /OZ/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    fireEvent.submit(screen.getByRole("button", { name: /vytvořit kontakt/i }).closest("form")!);
+
+    await waitFor(() => {
+      expect(onAddContact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contacts: expect.arrayContaining([
+            expect.objectContaining({ name: "Petra Svobodová", position: "Obchodní zástupce" }),
+            expect.objectContaining({ name: "Jan Novák" }),
+          ]),
+        }),
+      );
+    });
+    const savedContact = onAddContact.mock.calls[0][0] as Subcontractor;
+    expect(savedContact.contacts[0].name).toBe("Petra Svobodová");
+    expect(savedContact.contacts[1].name).toBe("Jan Novák");
+  });
+
   it("rychlé vložení jen předvyplní standardní formulář před uložením", async () => {
     const onAddContact = vi.fn();
 
