@@ -134,6 +134,18 @@ const todayAt = (hour: number, minute = 0): string => {
   return date.toISOString();
 };
 
+const dateKey = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const getNeighborDayInCurrentWeek = (sourceIso: string): Date => {
+  const targetDay = new Date(sourceIso);
+  targetDay.setDate(targetDay.getDate() + (targetDay.getDay() === 0 ? -1 : 1));
+  return targetDay;
+};
+
 const setViewportWidth = (width: number) => {
   Object.defineProperty(window, "innerWidth", {
     configurable: true,
@@ -141,6 +153,18 @@ const setViewportWidth = (width: number) => {
     value: width,
   });
   window.dispatchEvent(new Event("resize"));
+};
+
+const selectSystemView = (container: HTMLElement, viewName: RegExp) => {
+  const menu = container.querySelector('[data-help-id="tasks-menu"]');
+  expect(menu).not.toBeNull();
+  fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: viewName }));
+};
+
+const selectCalendarMode = (container: HTMLElement, modeName: string) => {
+  const calendar = container.querySelector('[data-help-id="tasks-calendar"]');
+  expect(calendar).not.toBeNull();
+  fireEvent.click(within(calendar as HTMLElement).getByRole("button", { name: modeName }));
 };
 
 describe("TasksPage note preview", () => {
@@ -167,6 +191,7 @@ describe("TasksPage note preview", () => {
     ];
 
     const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
     const taskList = container.querySelector('[data-help-id="tasks-list"]');
 
     expect(taskList).not.toBeNull();
@@ -194,6 +219,7 @@ describe("TasksPage note preview", () => {
     ];
 
     const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
     const taskList = container.querySelector('[data-help-id="tasks-list"]');
 
     expect(taskList).not.toBeNull();
@@ -223,7 +249,8 @@ describe("TasksPage note preview", () => {
     ];
     taskState.deleteTask.mockResolvedValue(undefined);
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     const deleteCard = screen.getByText("Smazatelný úkol").closest('[data-help-id="tasks-list-item"]');
     const deleteRow = screen.getByText("Smazatelný úkol").closest('[data-help-id="tasks-root-row"]');
@@ -283,7 +310,8 @@ describe("TasksPage note preview", () => {
     ];
     taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     fireEvent.click(screen.getByRole("button", { name: /LOKET/i }));
     const addSubtaskButton = screen.getByRole("button", { name: "Přidat podúkol k úkolu Midas - CN svodidla" });
@@ -338,7 +366,8 @@ describe("TasksPage note preview", () => {
     ];
     taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     expect(screen.queryByRole("textbox", { name: "Nový podúkol" })).not.toBeInTheDocument();
 
@@ -376,7 +405,8 @@ describe("TasksPage note preview", () => {
       }),
     ];
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
     expect(subtaskRow).not.toBeNull();
@@ -399,7 +429,8 @@ describe("TasksPage note preview", () => {
       }),
     ];
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
     expect(subtaskRow).not.toBeNull();
@@ -428,7 +459,8 @@ describe("TasksPage note preview", () => {
       }),
     ];
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
     expect(subtaskRow).not.toBeNull();
@@ -455,7 +487,8 @@ describe("TasksPage note preview", () => {
     ];
     taskState.updateTask.mockResolvedValue(makeTask({ id: "subtask", title: "Betony upraveno" }));
 
-    render(<TasksPage />);
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Inbox/i);
 
     const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
     expect(subtaskRow).not.toBeNull();
@@ -480,18 +513,23 @@ describe("TasksPage note preview", () => {
     expect(screen.queryByText("Detail podúkolu")).not.toBeInTheDocument();
   });
 
-  it("označí aktuální systémový pohled a vyplní jeho ikonu", () => {
+  it("otevře TODO standardně v kalendáři s jednodenním pohledem", () => {
     const { container } = render(<TasksPage />);
     const menu = container.querySelector('[data-help-id="tasks-menu"]');
+    const calendar = container.querySelector('[data-help-id="tasks-calendar"]');
 
     expect(menu).not.toBeNull();
+    expect(calendar).not.toBeNull();
 
-    const inboxButton = within(menu as HTMLElement).getByRole("button", { name: /Inbox/i });
-    expect(inboxButton).toHaveAttribute("data-active", "true");
-    expect(inboxButton).toHaveAttribute("aria-current", "page");
-    expect(inboxButton).toHaveClass("bg-orange-50");
-    expect(inboxButton).toHaveClass("text-orange-700");
-    expect(inboxButton.querySelector('[data-help-id="tasks-menu-icon"]')).toHaveClass("fill");
+    const calendarButton = within(menu as HTMLElement).getByRole("button", { name: /Kalendář/i });
+    expect(calendarButton).toHaveAttribute("data-active", "true");
+    expect(calendarButton).toHaveAttribute("aria-current", "page");
+    expect(calendarButton).toHaveClass("bg-orange-50");
+    expect(calendarButton).toHaveClass("text-orange-700");
+    expect(calendarButton.querySelector('[data-help-id="tasks-menu-icon"]')).toHaveClass("fill");
+
+    const dayModeButton = within(calendar as HTMLElement).getByRole("button", { name: "Den" });
+    expect(dayModeButton).toHaveAttribute("data-active", "true");
 
     fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: /Dnes/i }));
 
@@ -501,8 +539,8 @@ describe("TasksPage note preview", () => {
     expect(todayButton).toHaveClass("bg-orange-50");
     expect(todayButton).toHaveClass("text-orange-700");
     expect(todayButton.querySelector('[data-help-id="tasks-menu-icon"]')).toHaveClass("fill");
-    expect(inboxButton).toHaveAttribute("data-active", "false");
-    expect(inboxButton.querySelector('[data-help-id="tasks-menu-icon"]')).not.toHaveClass("fill");
+    expect(calendarButton).toHaveAttribute("data-active", "false");
+    expect(calendarButton.querySelector('[data-help-id="tasks-menu-icon"]')).not.toHaveClass("fill");
   });
 
   it("zobrazí u archivu popisek retence 30 dnů", () => {
@@ -699,7 +737,6 @@ describe("TasksPage note preview", () => {
     ];
 
     const { container } = render(<TasksPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Kalendář/i }));
 
     const calendarTasks = Array.from(container.querySelectorAll('[data-help-id="todo-calendar-task"]'));
 
@@ -708,6 +745,118 @@ describe("TasksPage note preview", () => {
     expect(calendarTasks[0]).toHaveTextContent("09:00");
     expect(calendarTasks[1]).toHaveTextContent("Pozdější kontrola");
     expect(calendarTasks[1]).toHaveTextContent("17:00");
+  });
+
+  it("přesune kalendářovou aktivitu přetažením na jiný den a zachová čas", async () => {
+    const sourceDueAt = todayAt(9, 30);
+    const targetDayDate = getNeighborDayInCurrentWeek(sourceDueAt);
+    const expectedDueAt = new Date(targetDayDate);
+    const sourceDate = new Date(sourceDueAt);
+    expectedDueAt.setHours(
+      sourceDate.getHours(),
+      sourceDate.getMinutes(),
+      sourceDate.getSeconds(),
+      sourceDate.getMilliseconds(),
+    );
+
+    taskState.tasks = [
+      makeTask({
+        id: "calendar-move",
+        title: "Přesunout betonáž",
+        dueAt: sourceDueAt,
+      }),
+    ];
+    taskState.updateTask.mockResolvedValue(makeTask({ id: "calendar-move", dueAt: expectedDueAt.toISOString() }));
+
+    const { container } = render(<TasksPage />);
+    selectCalendarMode(container, "Týden");
+
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+    const targetDay = container.querySelector(
+      `[data-help-id="todo-calendar-day"][data-date="${dateKey(targetDayDate)}"]`,
+    );
+    const dragData: Record<string, string> = {};
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      setData: vi.fn((type: string, value: string) => {
+        dragData[type] = value;
+      }),
+      getData: vi.fn((type: string) => dragData[type] ?? ""),
+    };
+
+    expect(card).not.toBeNull();
+    expect(targetDay).not.toBeNull();
+
+    fireEvent.dragStart(card as HTMLElement, { dataTransfer });
+    fireEvent.dragOver(targetDay as HTMLElement, { dataTransfer });
+    expect(targetDay).toHaveAttribute("data-drop-target", "true");
+    fireEvent.drop(targetDay as HTMLElement, { dataTransfer });
+
+    await waitFor(() => {
+      expect(taskState.updateTask).toHaveBeenCalledWith({
+        id: "calendar-move",
+        input: { dueAt: expectedDueAt.toISOString() },
+      });
+    });
+  });
+
+  it("povolí drop kalendářové aktivity podle dataTransfer payloadu i bez aktuálního drag state", async () => {
+    const taskDragDataType = "application/x-tender-flow-task-id";
+    const sourceDueAt = todayAt(10, 15);
+    const targetDayDate = getNeighborDayInCurrentWeek(sourceDueAt);
+    const expectedDueAt = new Date(targetDayDate);
+    const sourceDate = new Date(sourceDueAt);
+    expectedDueAt.setHours(
+      sourceDate.getHours(),
+      sourceDate.getMinutes(),
+      sourceDate.getSeconds(),
+      sourceDate.getMilliseconds(),
+    );
+
+    taskState.tasks = [
+      makeTask({
+        id: "payload-calendar-move",
+        title: "Přesunout přes payload",
+        dueAt: sourceDueAt,
+      }),
+    ];
+    taskState.updateTask.mockResolvedValue(
+      makeTask({ id: "payload-calendar-move", dueAt: expectedDueAt.toISOString() }),
+    );
+
+    const { container } = render(<TasksPage />);
+    selectCalendarMode(container, "Týden");
+
+    const targetDay = container.querySelector(
+      `[data-help-id="todo-calendar-day"][data-date="${dateKey(targetDayDate)}"]`,
+    );
+    const dragData: Record<string, string> = {
+      [taskDragDataType]: "payload-calendar-move",
+      "text/plain": "payload-calendar-move",
+    };
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      types: [taskDragDataType, "text/plain"],
+      setData: vi.fn((type: string, value: string) => {
+        dragData[type] = value;
+      }),
+      getData: vi.fn((type: string) => dragData[type] ?? ""),
+    };
+
+    expect(targetDay).not.toBeNull();
+
+    fireEvent.dragOver(targetDay as HTMLElement, { dataTransfer });
+    expect(targetDay).toHaveAttribute("data-drop-target", "true");
+    fireEvent.drop(targetDay as HTMLElement, { dataTransfer });
+
+    await waitFor(() => {
+      expect(taskState.updateTask).toHaveBeenCalledWith({
+        id: "payload-calendar-move",
+        input: { dueAt: expectedDueAt.toISOString() },
+      });
+    });
   });
 
   it("v úzké kalendářové kartě oddělí projektový badge od zalamovaného názvu úkolu", () => {
@@ -731,7 +880,6 @@ describe("TasksPage note preview", () => {
     ];
 
     const { container } = render(<TasksPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Kalendář/i }));
 
     const card = container.querySelector('[data-help-id="todo-calendar-task"]');
     const heading = card?.querySelector('[data-help-id="todo-calendar-task-heading"]');
