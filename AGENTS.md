@@ -1,5 +1,13 @@
 # Repository Guidelines for Agents
 
+## Core Agent Instructions
+- Always respond in Czech.
+- Check your own conclusions and verify that statements are true before presenting them as facts.
+- Plan and discuss the plan before starting build or implementation work.
+- Write tests for behavior changes and verify code quality with the relevant project commands.
+- Review solutions from a cybersecurity perspective and avoid unsafe designs.
+- Never install packages that are younger than 14 days, to reduce supply-chain attack risk.
+
 ## Snapshot
 - Product: Tender Flow (full-stack CRM for construction tenders).
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS v4.
