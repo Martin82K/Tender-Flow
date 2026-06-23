@@ -1066,6 +1066,7 @@ interface TaskListItemProps {
   isDragging?: boolean;
   isDropTarget?: boolean;
   onSelect: (taskId: string) => void;
+  onOpenTaskEditor: (taskId: string) => void;
   onDeleted: (task: Task, isSubtask: boolean) => void;
   expanded: boolean;
   onToggleExpanded: (taskId: string) => void;
@@ -1082,6 +1083,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   isDragging = false,
   isDropTarget = false,
   onSelect,
+  onOpenTaskEditor,
   onDeleted,
   expanded,
   onToggleExpanded,
@@ -1155,7 +1157,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 
   const openDetailFromContextMenu = () => {
     if (!menuState) return;
-    onSelect(menuState.task.id);
+    onOpenTaskEditor(menuState.task.id);
     setMenuState(null);
   };
 
@@ -1215,6 +1217,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       >
         <div
           data-help-id="tasks-root-row"
+          onDoubleClick={() => onOpenTaskEditor(item.task.id)}
           onContextMenu={(event) => openContextMenu(event, item.task, false)}
           onKeyDown={(event) => {
             if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
@@ -1325,7 +1328,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               <div
                 key={subtask.id}
                 data-active={selectedTaskId === subtask.id ? "true" : "false"}
-                onDoubleClick={() => onSelect(subtask.id)}
+                onDoubleClick={() => onOpenTaskEditor(subtask.id)}
                 onContextMenu={(event) => openContextMenu(event, subtask, true)}
                 onKeyDown={(event) => {
                   if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
@@ -1453,6 +1456,7 @@ interface TodoCalendarViewProps {
   onModeChange: (mode: TodoCalendarMode) => void;
   onCursorChange: (date: Date) => void;
   onSelectTask: (taskId: string) => void;
+  onOpenTaskEditor: (taskId: string) => void;
   draggedTaskId: string | null;
   dropTargetDayKey: string | null;
   onTaskDragStart: (taskId: string, event: React.DragEvent<HTMLElement>) => void;
@@ -1545,6 +1549,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
   onModeChange,
   onCursorChange,
   onSelectTask,
+  onOpenTaskEditor,
   draggedTaskId,
   dropTargetDayKey,
   onTaskDragStart,
@@ -1553,6 +1558,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
   onDayDragLeave,
   onDayDrop,
 }) => {
+  const toggleTask = useToggleTaskMutation();
   const today = startOfLocalDay(new Date());
   const days = getCalendarDays(mode, cursorDate);
   const calendarTasks = flattenCalendarTasks(tree);
@@ -1720,74 +1726,91 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                   return (
                     <div
                       key={task.id}
-                      role="button"
-                      tabIndex={0}
                       data-active={selectedTaskId === task.id ? "true" : "false"}
                       data-dragging={draggedTaskId === task.id ? "true" : "false"}
                       data-has-project={assignedProjectColor ? "true" : "false"}
                       data-help-id="todo-calendar-task"
                       draggable
-                      onClick={() => onSelectTask(task.id)}
                       onDragStart={(event) => onTaskDragStart(task.id, event)}
                       onDragEnd={onTaskDragEnd}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onSelectTask(task.id);
-                        }
-                      }}
-                      className="relative w-full cursor-grab overflow-hidden rounded-lg border px-2 py-1.5 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px active:cursor-grabbing focus:ring-2 focus:ring-offset-1 data-[active=true]:shadow-md data-[dragging=true]:opacity-55"
+                      className="relative w-full cursor-grab overflow-hidden rounded-lg border px-2 py-1.5 pr-7 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px active:cursor-grabbing focus:ring-2 focus:ring-offset-1 data-[active=true]:shadow-md data-[dragging=true]:opacity-55"
                       style={cardStyle}
                     >
-                      <span className="block min-w-0" data-help-id="todo-calendar-task-heading">
-                        {projectName && (
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={task.completed}
+                        aria-label={task.completed ? `Znovu otevřít úkol ${task.title}` : `Označit úkol ${task.title} jako hotový`}
+                        draggable={false}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleTask.mutate({ id: task.id, completed: !task.completed });
+                        }}
+                        onDoubleClick={(event) => event.stopPropagation()}
+                        className="absolute right-1.5 top-1.5 inline-flex size-4 shrink-0 items-center justify-center rounded border bg-white/75 text-[11px] font-bold shadow-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white/80"
+                        style={{
+                          borderColor: mutedTextColor,
+                          color: textColor,
+                        }}
+                      >
+                        <TaskCompletionMark completed={task.completed} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSelectTask(task.id)}
+                        onDoubleClick={() => onOpenTaskEditor(task.id)}
+                        className="block w-full min-w-0 rounded-md text-left outline-none focus:ring-2 focus:ring-white/80"
+                      >
+                        <span className="block min-w-0" data-help-id="todo-calendar-task-heading">
+                          {projectName && (
+                            <span
+                              data-help-id="todo-calendar-task-chip"
+                              className="mb-1 inline-flex max-w-full truncate rounded px-1.5 py-0.5 text-[10px] font-bold"
+                              style={{
+                                backgroundColor: "var(--todo-card-chip-background)",
+                                color: "var(--todo-card-text)",
+                              }}
+                            >
+                              # {projectName}
+                            </span>
+                          )}
                           <span
-                            data-help-id="todo-calendar-task-chip"
-                            className="mb-1 inline-flex max-w-full truncate rounded px-1.5 py-0.5 text-[10px] font-bold"
-                            style={{
-                              backgroundColor: "var(--todo-card-chip-background)",
-                              color: "var(--todo-card-text)",
-                            }}
+                            data-help-id="todo-calendar-task-title"
+                            className="block min-w-0 whitespace-normal break-words font-semibold leading-snug"
                           >
-                            # {projectName}
+                            {isSubtask ? `↳ ${task.title}` : task.title}
                           </span>
-                        )}
-                        <span
-                          data-help-id="todo-calendar-task-title"
-                          className="block min-w-0 whitespace-normal break-words font-semibold leading-snug"
-                        >
-                          {isSubtask ? `↳ ${task.title}` : task.title}
                         </span>
-                      </span>
-                      {note && (
-                        <span
-                          data-help-id="todo-calendar-task-muted"
-                          className={`${compact ? "hidden xl:block" : "block"} mt-1 text-[11px] leading-snug`}
-                          style={{
-                            display: compact ? undefined : "-webkit-box",
-                            WebkitLineClamp: compact ? undefined : 2,
-                            WebkitBoxOrient: compact ? undefined : "vertical",
-                            overflow: "hidden",
-                            color: mutedTextColor,
-                          }}
-                        >
-                          {note}
-                        </span>
-                      )}
-                      <span className="mt-0.5 flex flex-wrap items-center gap-1">
-                        <span data-help-id="todo-calendar-task-muted" className="text-[11px]" style={{ color: mutedTextColor }}>
-                          {formatTime(new Date(task.dueAt ?? ""))}
-                        </span>
-                        {isSubtask && (
+                        {note && (
                           <span
                             data-help-id="todo-calendar-task-muted"
-                            className="truncate text-[11px]"
-                            style={{ color: mutedTextColor }}
+                            className={`${compact ? "hidden xl:block" : "block"} mt-1 text-[11px] leading-snug`}
+                            style={{
+                              display: compact ? undefined : "-webkit-box",
+                              WebkitLineClamp: compact ? undefined : 2,
+                              WebkitBoxOrient: compact ? undefined : "vertical",
+                              overflow: "hidden",
+                              color: mutedTextColor,
+                            }}
                           >
-                            {rootTask.title}
+                            {note}
                           </span>
                         )}
-                      </span>
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1">
+                          <span data-help-id="todo-calendar-task-muted" className="text-[11px]" style={{ color: mutedTextColor }}>
+                            {formatTime(new Date(task.dueAt ?? ""))}
+                          </span>
+                          {isSubtask && (
+                            <span
+                              data-help-id="todo-calendar-task-muted"
+                              className="truncate text-[11px]"
+                              style={{ color: mutedTextColor }}
+                            >
+                              {rootTask.title}
+                            </span>
+                          )}
+                        </span>
+                      </button>
                     </div>
                   );
                 })}
@@ -1805,6 +1828,7 @@ interface TodoAgendaViewProps {
   todoProjects: TodoProject[];
   selectedTaskId: string | null;
   onSelectTask: (taskId: string) => void;
+  onOpenTaskEditor: (taskId: string) => void;
 }
 
 const TODO_AGENDA_TONE_CLASSES: Record<TodoAgendaGroup["tone"], string> = {
@@ -1818,13 +1842,52 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
   todoProjects,
   selectedTaskId,
   onSelectTask,
+  onOpenTaskEditor,
 }) => {
   const toggleTask = useToggleTaskMutation();
+  const createTask = useCreateTaskMutation();
+  const [subtaskDialogParent, setSubtaskDialogParent] = useState<Task | null>(null);
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const groups = useMemo(() => buildUpcomingAgendaGroups(tree), [tree]);
+  const subtaskCountByRootId = useMemo(
+    () => new Map(tree.map((item) => [item.task.id, item.subtasks.length])),
+    [tree],
+  );
   const projectNameById = useMemo(
     () => new Map(todoProjects.map((project) => [project.id, project.name])),
     [todoProjects],
   );
+
+  const openSubtaskDialog = (parentTask: Task) => {
+    setSubtaskDialogParent(parentTask);
+    setSubtaskError(null);
+  };
+
+  const closeSubtaskDialog = () => {
+    if (createTask.isPending) return;
+    setSubtaskDialogParent(null);
+    setSubtaskError(null);
+  };
+
+  const handleCreateSubtask = async (draft: AddSubtaskDraft) => {
+    if (!subtaskDialogParent || createTask.isPending) return;
+    const value = draft.title.trim();
+    if (!value) return;
+
+    try {
+      await createTask.mutateAsync(
+        buildSubtaskCreateInput(
+          subtaskDialogParent,
+          draft,
+          subtaskCountByRootId.get(subtaskDialogParent.id) ?? 0,
+        ),
+      );
+      setSubtaskDialogParent(null);
+      setSubtaskError(null);
+    } catch (error) {
+      setSubtaskError(getTaskMutationErrorMessage(error));
+    }
+  };
 
   if (groups.length === 0) {
     return (
@@ -1838,17 +1901,18 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
   }
 
   return (
-    <div
-      data-help-id="tasks-upcoming-agenda"
-      className="max-h-full space-y-3 overflow-y-auto pr-1"
-    >
-      {groups.map((group) => (
-        <section
-          key={group.id}
-          aria-label={group.label}
-          data-help-id="todo-agenda-group"
-          className={`rounded-xl border p-3 shadow-sm ${TODO_AGENDA_TONE_CLASSES[group.tone]}`}
-        >
+    <>
+      <div
+        data-help-id="tasks-upcoming-agenda"
+        className="max-h-full space-y-3 overflow-y-auto pr-1"
+      >
+        {groups.map((group) => (
+          <section
+            key={group.id}
+            aria-label={group.label}
+            data-help-id="todo-agenda-group"
+            className={`rounded-xl border p-3 shadow-sm ${TODO_AGENDA_TONE_CLASSES[group.tone]}`}
+          >
           <div className="mb-2 flex items-center justify-between gap-3 border-b border-current/10 pb-2">
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold">{group.label}</h3>
@@ -1871,6 +1935,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                   key={task.id}
                   data-active={selectedTaskId === task.id ? "true" : "false"}
                   data-help-id="todo-agenda-row"
+                  onDoubleClick={() => onOpenTaskEditor(task.id)}
                   className="group flex min-w-0 items-start gap-3 rounded-lg border border-slate-200/80 bg-white/85 px-3 py-2 text-slate-900 shadow-sm transition hover:border-primary/40 hover:bg-white data-[active=true]:border-primary data-[active=true]:ring-1 data-[active=true]:ring-primary/25 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
                 >
                   <button
@@ -1894,6 +1959,10 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectTask(task.id)}
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      onOpenTaskEditor(task.id);
+                    }}
                     className="min-w-0 flex-1 text-left"
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -1922,13 +1991,38 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                       )}
                     </span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openSubtaskDialog(rootTask);
+                    }}
+                    className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    aria-label={`Přidat podúkol k úkolu ${rootTask.title}`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden>
+                      add_task
+                    </span>
+                  </button>
                 </div>
               );
             })}
           </div>
-        </section>
-      ))}
-    </div>
+          </section>
+        ))}
+      </div>
+
+      {subtaskDialogParent && (
+        <AddSubtaskDialog
+          parentTask={subtaskDialogParent}
+          dialogId={`agenda-${subtaskDialogParent.id}`}
+          error={subtaskError}
+          isPending={createTask.isPending}
+          onClose={closeSubtaskDialog}
+          onSubmit={handleCreateSubtask}
+        />
+      )}
+    </>
   );
 };
 
@@ -2325,6 +2419,7 @@ interface TaskDetailProps {
   isSubtask?: boolean;
   isComposerActive?: boolean;
   isMobileSheet?: boolean;
+  isModal?: boolean;
   onSelectTask: (taskId: string) => void;
   onDeleted: () => void;
   onCloseDetail?: () => void;
@@ -2337,6 +2432,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   isSubtask = false,
   isComposerActive = false,
   isMobileSheet = false,
+  isModal = false,
   onSelectTask,
   onDeleted,
   onCloseDetail,
@@ -2602,6 +2698,8 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         className={
           isMobileSheet
             ? "h-[100dvh] max-h-[100dvh] min-h-0 overflow-y-auto rounded-none border-0 bg-white p-4 shadow-none dark:bg-slate-900"
+            : isModal
+              ? "max-h-[min(88dvh,760px)] w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
             : "min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
         }
       >
@@ -2610,7 +2708,9 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             type="button"
             data-help-id="tasks-mobile-detail-close"
             onClick={requestCloseDetail}
-            className="mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 lg:hidden"
+            className={`mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 ${
+              isModal ? "" : "lg:hidden"
+            }`}
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
               close
@@ -2638,14 +2738,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                 Vrátit do Hotovo
               </Button>
             )}
-            <Button
-              type="button"
-              variant={selectedTask.completed ? "outline" : "success"}
-              size="sm"
-              onClick={() => toggleTask.mutate({ id: selectedTask.id, completed: !selectedTask.completed })}
-            >
-              {selectedTask.completed ? "Znovu otevřít" : "Hotovo"}
-            </Button>
           </div>
         </div>
 
@@ -2971,6 +3063,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [view, setView] = useState<TaskViewFilter>("calendar");
   const [selectedTodoProjectId, setSelectedTodoProjectId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(() => new Set());
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
@@ -3016,19 +3109,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
     if (visibleTree.length === 0) {
       setSelectedTaskId(null);
       setIsDetailAutoSelectPaused(false);
+      setIsTaskEditorOpen(false);
       return;
     }
-    if (isMobileLayout) {
-      if (selectedTaskId && !findTaskSelection(visibleTree, selectedTaskId)) {
-        setSelectedTaskId(null);
-      }
-      return;
+    if (selectedTaskId && !findTaskSelection(visibleTree, selectedTaskId)) {
+      setSelectedTaskId(null);
+      setIsTaskEditorOpen(false);
     }
-    if (!selectedTaskId || !findTaskSelection(visibleTree, selectedTaskId)) {
-      if (!selectedTaskId && isDetailAutoSelectPaused) return;
-      setSelectedTaskId(visibleTree[0].task.id);
-    }
-  }, [isDetailAutoSelectPaused, isMobileLayout, selectedTaskId, visibleTree]);
+  }, [selectedTaskId, visibleTree]);
 
   const selectedSelection = findTaskSelection(visibleTree, selectedTaskId);
   const activeRootCount = taskTree.filter(({ task }) => !task.archivedAt).length;
@@ -3039,7 +3127,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const mobileMenuCount = selectedTodoProjectId
     ? getTodoProjectRootCount(taskTree, selectedTodoProjectId)
     : getViewCount(taskTree, view);
-  const isMobileDetailActive = Boolean(isMobileLayout && selectedSelection);
+  const isMobileDetailActive = Boolean(isMobileLayout && isTaskEditorOpen && selectedSelection);
 
   useEffect(() => {
     if (!canAddTask) {
@@ -3064,6 +3152,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const handleSelectView = (item: TaskViewFilter) => {
     setSelectedTodoProjectId(null);
     setView(item);
+    setIsTaskEditorOpen(false);
     setIsDetailAutoSelectPaused(false);
     if (isMobileLayout) {
       setSelectedTaskId(null);
@@ -3074,18 +3163,30 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const handleSelectTodoProject = (projectId: string) => {
     setSelectedTodoProjectId(projectId);
     setSelectedTaskId(null);
+    setIsTaskEditorOpen(false);
     setIsDetailAutoSelectPaused(false);
     collapseMobileWorkspaces();
   };
 
   const handleSelectTask = (taskId: string) => {
     setSelectedTaskId(taskId);
+    if (isMobileLayout) {
+      setIsTaskEditorOpen(true);
+    }
+    setIsDetailAutoSelectPaused(false);
+    collapseMobileWorkspaces();
+  };
+
+  const handleOpenTaskEditor = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setIsTaskEditorOpen(true);
     setIsDetailAutoSelectPaused(false);
     collapseMobileWorkspaces();
   };
 
   const handleCloseDetail = () => {
     setSelectedTaskId(null);
+    setIsTaskEditorOpen(false);
     setIsDetailAutoSelectPaused(true);
   };
 
@@ -3229,7 +3330,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
         </div>
       </Header>
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto p-4 lg:grid-cols-[260px_minmax(0,1fr)_380px] lg:overflow-hidden lg:p-6">
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto p-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:overflow-hidden lg:p-6">
         <button
           type="button"
           data-help-id="tasks-mobile-menu-toggle"
@@ -3338,6 +3439,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               onModeChange={setCalendarMode}
               onCursorChange={setCalendarCursorDate}
               onSelectTask={handleSelectTask}
+              onOpenTaskEditor={handleOpenTaskEditor}
               draggedTaskId={draggedTaskId}
               dropTargetDayKey={dropTargetCalendarDayKey}
               onTaskDragStart={handleTaskDragStart}
@@ -3352,6 +3454,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               todoProjects={todoProjects}
               selectedTaskId={selectedTaskId}
               onSelectTask={handleSelectTask}
+              onOpenTaskEditor={handleOpenTaskEditor}
             />
           ) : visibleTree.length === 0 && canAddTask && isQuickAddExpanded ? (
             <div className="min-h-[96px]" aria-hidden />
@@ -3370,6 +3473,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
                   isDragging={draggedTaskId === item.task.id}
                   isDropTarget={dropTargetTaskId === item.task.id}
                   onSelect={handleSelectTask}
+                  onOpenTaskEditor={handleOpenTaskEditor}
                   onDeleted={handleTaskDeleted}
                   expanded={item.subtasks.length > 0 && !collapsedTaskIds.has(item.task.id)}
                   onToggleExpanded={toggleTaskExpanded}
@@ -3383,37 +3487,53 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           )}
         </section>
 
-        {!isMobileLayout && (
-          <TaskDetail
-            item={selectedSelection?.item}
-            selectedTask={selectedSelection?.task}
-            todoProjects={todoProjects}
-            isSubtask={selectedSelection?.isSubtask}
-            isComposerActive={canAddTask && isQuickAddExpanded}
-            onSelectTask={handleSelectTask}
-            onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
-            onCloseDetail={handleCloseDetail}
-          />
-        )}
       </main>
-      {isMobileDetailActive && (
+      {!isMobileLayout && isTaskEditorOpen && selectedSelection && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={selectedSelection?.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
+          aria-label={selectedSelection.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
+          data-help-id="tasks-detail-modal"
+          className="fixed inset-0 z-[85] flex items-start justify-center overflow-y-auto bg-slate-950/45 px-4 py-8 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-[560px]">
+            <TaskDetail
+              item={selectedSelection.item}
+              selectedTask={selectedSelection.task}
+              todoProjects={todoProjects}
+              isSubtask={selectedSelection.isSubtask}
+              isModal
+              onSelectTask={handleOpenTaskEditor}
+              onDeleted={() => {
+                setSelectedTaskId(selectedSelection.isSubtask ? selectedSelection.item.task.id : null);
+                setIsTaskEditorOpen(false);
+              }}
+              onCloseDetail={handleCloseDetail}
+            />
+          </div>
+        </div>
+      )}
+      {isMobileLayout && isTaskEditorOpen && selectedSelection && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedSelection.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
           data-help-id="tasks-mobile-detail-sheet"
           className="fixed inset-0 z-[70] bg-slate-950/45 lg:hidden"
         >
           <div className="absolute inset-0" aria-hidden />
           <div className="relative h-full w-full">
             <TaskDetail
-              item={selectedSelection?.item}
-              selectedTask={selectedSelection?.task}
+              item={selectedSelection.item}
+              selectedTask={selectedSelection.task}
               todoProjects={todoProjects}
-              isSubtask={selectedSelection?.isSubtask}
+              isSubtask={selectedSelection.isSubtask}
               isMobileSheet
-              onSelectTask={handleSelectTask}
-              onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
+              onSelectTask={handleOpenTaskEditor}
+              onDeleted={() => {
+                setSelectedTaskId(selectedSelection.isSubtask ? selectedSelection.item.task.id : null);
+                setIsTaskEditorOpen(false);
+              }}
               onCloseDetail={handleCloseDetail}
             />
           </div>

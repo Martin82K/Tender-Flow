@@ -237,7 +237,6 @@ describe("TasksPage note preview", () => {
     expect(rootCheckbox).not.toHaveTextContent("✓");
     expect(openSubtaskCheckbox).not.toHaveTextContent("✓");
     expect(doneSubtaskCheckbox).toHaveTextContent("✓");
-    expect(screen.getByDisplayValue("Vyžádat podklady")).toBeInTheDocument();
   });
 
   it("umožní smazat úkol přes kontextové menu na pravé tlačítko", async () => {
@@ -371,6 +370,10 @@ describe("TasksPage note preview", () => {
 
     expect(screen.queryByRole("textbox", { name: "Nový podúkol" })).not.toBeInTheDocument();
 
+    const rootRow = screen.getByText("Bazén Aš - tepelná izolace").closest('[data-help-id="tasks-root-row"]');
+    expect(rootRow).not.toBeNull();
+    fireEvent.doubleClick(rootRow as HTMLElement);
+
     fireEvent.click(screen.getByRole("button", { name: "Přidat podúkol" }));
 
     const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
@@ -471,7 +474,7 @@ describe("TasksPage note preview", () => {
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(screen.queryByText("Detail podúkolu")).not.toBeInTheDocument();
-    expect(screen.getByText("Žádný úkol není vybraný")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Detail podúkolu" })).not.toBeInTheDocument();
   });
 
   it("při zavření detailu s neuloženými změnami nabídne uložit nebo zahodit změny", async () => {
@@ -646,21 +649,15 @@ describe("TasksPage note preview", () => {
     expect(groups[2].items.map((item) => item.task.id)).toEqual(["root"]);
   });
 
-  it("zobrazí prázdný detail jako panel v designu aplikace", () => {
+  it("nezobrazuje detail jako trvalý panel, dokud uživatel nezačne editovat", () => {
     const { container } = render(<TasksPage />);
 
     const layout = container.querySelector("main");
     const detail = container.querySelector('[data-help-id="tasks-detail"]');
-    const emptyState = container.querySelector('[data-help-id="tasks-detail-empty"]');
 
-    expect(layout).toHaveClass("lg:grid-cols-[260px_minmax(0,1fr)_380px]");
-    expect(detail).not.toBeNull();
-    expect(detail).toHaveClass("rounded-xl");
-    expect(detail).toHaveClass("border-orange-200/70");
-    expect(detail).toHaveClass("p-3");
-    expect(emptyState).not.toBeNull();
-    expect(within(emptyState as HTMLElement).getByText("Žádný úkol není vybraný")).toBeInTheDocument();
-    expect(within(emptyState as HTMLElement).getByText("Vyberte úkol ze seznamu nebo vytvořte nový.")).toBeInTheDocument();
+    expect(layout).toHaveClass("lg:grid-cols-[260px_minmax(0,1fr)]");
+    expect(detail).toBeNull();
+    expect(screen.queryByText("Žádný úkol není vybraný")).not.toBeInTheDocument();
   });
 
   it("na mobilu drží menu kompaktní a detail úkolu otevírá přes celé okno", () => {
@@ -693,7 +690,9 @@ describe("TasksPage note preview", () => {
 
     expect(menu).toHaveAttribute("data-mobile-open", "false");
     expect(list).toHaveAttribute("data-mobile-hidden", "false");
-    fireEvent.click(screen.getByRole("button", { name: /Boučí/i }));
+    const mobileTaskButton = screen.getByText("Boučí").closest("button");
+    expect(mobileTaskButton).not.toBeNull();
+    fireEvent.click(mobileTaskButton as HTMLElement);
 
     expect(list).toHaveAttribute("data-mobile-hidden", "false");
     expect(list).toHaveAttribute("data-mobile-detail-open", "true");
@@ -745,6 +744,74 @@ describe("TasksPage note preview", () => {
     expect(calendarTasks[0]).toHaveTextContent("09:00");
     expect(calendarTasks[1]).toHaveTextContent("Pozdější kontrola");
     expect(calendarTasks[1]).toHaveTextContent("17:00");
+  });
+
+  it("umožní označit kalendářovou kartu jako hotovou samostatným čtverečkem", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "calendar-complete",
+        title: "Klášterec nad Ohří",
+        dueAt: todayAt(17),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+
+    expect(card).not.toBeNull();
+    fireEvent.click(
+      within(card as HTMLElement).getByRole("checkbox", {
+        name: "Označit úkol Klášterec nad Ohří jako hotový",
+      }),
+    );
+
+    expect(taskState.toggleTask).toHaveBeenCalledWith({ id: "calendar-complete", completed: true });
+    expect(screen.queryByRole("dialog", { name: "Detail úkolu" })).not.toBeInTheDocument();
+  });
+
+  it("otevře editaci kalendářové karty dvojklikem jako modal bez tlačítka Hotovo", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "calendar-edit",
+        title: "Klášterec nad Ohří",
+        note: "ocenit VV pro Klášterec na základě příslibu.",
+        dueAt: todayAt(17),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+
+    expect(card).not.toBeNull();
+    fireEvent.doubleClick(
+      within(card as HTMLElement).getByRole("button", {
+        name: /Klášterec nad Ohří/i,
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Detail úkolu" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue("Klášterec nad Ohří")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Hotovo" })).not.toBeInTheDocument();
+  });
+
+  it("v agendě nabídne rychlé přidání podúkolu přímo z řádku", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "agenda-root",
+        title: "Generální úklid stavby",
+        note: "Doposlat zbývající poptávky",
+        dueAt: todayAt(17),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Nadcházející/i);
+
+    fireEvent.click(screen.getByRole("button", { name: "Přidat podúkol k úkolu Generální úklid stavby" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
+    expect(dialog).toHaveTextContent("Pod úkol: Generální úklid stavby");
   });
 
   it("přesune kalendářovou aktivitu přetažením na jiný den a zachová čas", async () => {
