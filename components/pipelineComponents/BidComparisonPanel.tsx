@@ -665,7 +665,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
   const openAgentSettings = useCallback(() => {
     onClose();
-    navigate('/app/settings?tab=tools&subTab=bidComparison');
+    navigate('/app/settings?tab=admin&subTab=bidComparison');
   }, [onClose]);
 
   const toggleAutoMode = useCallback(

@@ -83,10 +83,9 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
-    | "excelIndexer"
-    | "bidComparison";
+    | "excelIndexer";
   const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
-  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener", "bidComparison"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
   const isUserSubTab = (v: string | null): v is UserSubTab =>
@@ -99,7 +98,8 @@ export const Settings: React.FC<SettingsProps> = ({
     | "usage"
     | "ai"
     | "incidents"
-    | "compliance";
+    | "compliance"
+    | "bidComparison";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -119,6 +119,11 @@ export const Settings: React.FC<SettingsProps> = ({
     // Legacy "tools" subTab under user → tools tab, excelUnlocker
     if (tab === "user" && subTabParam === "tools") {
       return { tab: "tools" as const, subTab: "excelUnlocker" };
+    }
+    if (tab === "tools" && subTabParam === "bidComparison") {
+      return isAdmin
+        ? { tab: "admin" as const, subTab: "bidComparison" }
+        : { tab: "tools" as const, subTab: "excelUnlocker" };
     }
     let subTab: string | null = null;
     if (tab === "user") {
@@ -140,8 +145,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "excelMerger" ||
         subTabParam === "urlShortener" ||
         subTabParam === "indexMatcher" ||
-        subTabParam === "excelIndexer" ||
-        subTabParam === "bidComparison"
+        subTabParam === "excelIndexer"
           ? subTabParam
           : null;
     } else if (tab === "admin") {
@@ -153,7 +157,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "usage" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
-        subTabParam === "compliance"
+        subTabParam === "compliance" ||
+        subTabParam === "bidComparison"
           ? subTabParam
           : null;
     } else if (tab === "organization") {
@@ -166,7 +171,7 @@ export const Settings: React.FC<SettingsProps> = ({
           : "overview";
     }
     return { tab, subTab };
-  }, [search]);
+  }, [isAdmin, search]);
 
   // Internal State for Tabs (Syncs with URL)
   const [activeTab, setActiveTab] = useState<"user" | "tools" | "admin" | "organization">(() => {
@@ -193,8 +198,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "excelUnlocker" ||
         settingsRoute.subTab === "excelMerger" ||
         settingsRoute.subTab === "urlShortener" ||
-        settingsRoute.subTab === "excelIndexer" ||
-        settingsRoute.subTab === "bidComparison")
+        settingsRoute.subTab === "excelIndexer")
     ) {
       return settingsRoute.subTab;
     }
@@ -213,6 +217,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
         settingsRoute.subTab === "compliance" ||
+        settingsRoute.subTab === "bidComparison" ||
         settingsRoute.subTab === "organization"
       ) {
         return settingsRoute.subTab;
@@ -277,8 +282,7 @@ export const Settings: React.FC<SettingsProps> = ({
         (canExcelMerger && "excelMerger") ||
         (canExcelIndexer && "excelIndexer") ||
         (canContactsImport && "contacts") ||
-        (canUrlShortener && "urlShortener") ||
-        "bidComparison";
+        (canUrlShortener && "urlShortener");
       if (firstAvailable) {
         setActiveToolsSubTab(firstAvailable as ToolsSubTab);
         updateSettingsUrl({ tab: "tools", subTab: firstAvailable as ToolsSubTab }, { replace: true });
@@ -579,6 +583,24 @@ export const Settings: React.FC<SettingsProps> = ({
                     Compliance
                   </div>
                 </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "bidComparison" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "bidComparison"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      compare_arrows
+                    </span>
+                    Porovnání nabídek
+                  </div>
+                </button>
                 </nav>
               </aside>
 
@@ -603,6 +625,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 )}
                 {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
                 {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
+                {activeAdminSubTab === "bidComparison" && <BidComparisonAgentSettings />}
               </main>
             </div>
           </AdminMfaGuard>
@@ -800,19 +823,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </button>
                 )}
-                <button
-                  onClick={() => updateSettingsUrl({ tab: "tools", subTab: "bidComparison" })}
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeToolsSubTab === "bidComparison"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">compare_arrows</span>
-                    Porovnání nabídek
-                  </div>
-                </button>
               </nav>
             </aside>
 
@@ -867,7 +877,6 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeToolsSubTab === "excelMerger" && canExcelMerger && <ExcelMergerProSettings />}
               {activeToolsSubTab === "urlShortener" && canUrlShortener && <UrlShortener />}
               {activeToolsSubTab === "excelIndexer" && canExcelIndexer && <ExcelIndexerSettings />}
-              {activeToolsSubTab === "bidComparison" && <BidComparisonAgentSettings />}
             </main>
           </div>
         )}

@@ -44,6 +44,20 @@ describe("TaskDateTimePicker", () => {
     expect(todayBadge).toHaveTextContent("Dnes je 20. 5. 2026");
   });
 
+  it("v mřížce plně podbarví dnešní datum", () => {
+    render(<TaskDateTimePicker label="Termín" value="" onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Bez termínu/i }));
+
+    const dialog = screen.getByRole("dialog", { name: "Termín kalendář" });
+    const todayButton = dialog.querySelector('[data-today="true"]');
+
+    expect(todayButton).not.toBeNull();
+    expect(todayButton).toHaveClass("bg-orange-500");
+    expect(todayButton).toHaveClass("text-white");
+    expect(todayButton).toHaveClass("border-orange-600");
+  });
+
   it("umožní nastavit dnešní datum přes vlastní akci", () => {
     const onChange = vi.fn();
     render(<TaskDateTimePicker label="Termín" value="" onChange={onChange} />);

@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BidComparisonPanel } from '../components/pipelineComponents/BidComparisonPanel';
+import { navigate } from '../shared/routing/router';
 import type { BidComparisonDetectionResult } from '../shared/types/desktop';
 
 const platformMocks = vi.hoisted(() => ({
@@ -129,6 +130,20 @@ describe('BidComparisonPanel', () => {
     expect(panel).toHaveClass('h-screen');
     expect(panel).toHaveClass('w-screen');
     expect(panel).not.toHaveClass('max-w-6xl');
+  });
+
+  it('otevře nastavení agenta v administraci místo nástrojů', async () => {
+    platformMocks.detectInputs.mockResolvedValue(detectedResult([]));
+
+    renderPanel();
+
+    await waitFor(() => {
+      expect(platformMocks.detectInputs).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nastavení agenta' }));
+
+    expect(navigate).toHaveBeenCalledWith('/app/settings?tab=admin&subTab=bidComparison');
   });
 
   it('zobrazí alternativní porovnání, když složka nemá soubor zadání', async () => {

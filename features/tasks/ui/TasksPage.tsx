@@ -1599,13 +1599,35 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
   }, [calendarTasks]);
   const monthCursor = startOfLocalMonth(cursorDate);
   const compact = mode === "month";
+  const calendarScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCalendarScrollDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!getDraggedTaskIdFromEvent(event, draggedTaskId)) return;
+    const scrollContainer = calendarScrollRef.current;
+    if (!scrollContainer) return;
+
+    const rect = scrollContainer.getBoundingClientRect();
+    const edgeSize = 64;
+    const maxStep = 28;
+    const distanceFromTop = event.clientY - rect.top;
+    const distanceFromBottom = rect.bottom - event.clientY;
+    const topRatio = Math.min(1, Math.max(0, (edgeSize - distanceFromTop) / edgeSize));
+    const bottomRatio = Math.min(1, Math.max(0, (edgeSize - distanceFromBottom) / edgeSize));
+    const topDelta = topRatio > 0 ? -Math.ceil(topRatio * maxStep) : 0;
+    const bottomDelta = bottomRatio > 0 ? Math.ceil(bottomRatio * maxStep) : 0;
+    const nextDelta = topDelta || bottomDelta;
+
+    if (nextDelta !== 0) {
+      scrollContainer.scrollBy({ top: nextDelta, behavior: "auto" });
+    }
+  };
 
   return (
     <div
       data-help-id="tasks-calendar"
-      className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 p-3 dark:border-slate-800">
+      <div className="shrink-0 flex flex-wrap items-center gap-2 border-b border-slate-200 p-3 dark:border-slate-800">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {formatCalendarRange(mode, cursorDate)}
@@ -1662,42 +1684,52 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
       </div>
 
       <div
-        className={`grid min-h-[480px] ${compact ? "grid-cols-7" : ""}`}
-        style={compact ? undefined : { gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+        ref={calendarScrollRef}
+        data-help-id="todo-calendar-scroll"
+        onDragOver={handleCalendarScrollDragOver}
+        className="min-h-0 flex-1 overflow-y-auto"
       >
-        {days.map((day) => {
-          const key = localDateKey(day);
-          const tasks = tasksByDay.get(key) ?? [];
-          const outsideMonth = compact && day.getMonth() !== monthCursor.getMonth();
-          const isToday = sameLocalDay(day, today);
-          const isDropTarget = dropTargetDayKey === key;
-          return (
-            <div
-              key={key}
-              data-date={key}
-              data-drop-target={isDropTarget ? "true" : "false"}
-              data-help-id="todo-calendar-day"
-              onDragOver={(event) => onDayDragOver(day, event)}
-              onDragLeave={(event) => onDayDragLeave(day, event)}
-              onDrop={(event) => onDayDrop(day, event)}
-              className={`min-h-[118px] border-r border-b border-slate-200 p-2 transition last:border-r-0 data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-inset data-[drop-target=true]:ring-primary/30 dark:border-slate-800 ${
-                outsideMonth ? "bg-slate-50/70 text-slate-400 dark:bg-slate-950/30" : ""
-              } ${isToday ? "bg-primary/5" : ""}`}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase text-slate-500">
-                    {day.toLocaleDateString("cs-CZ", { weekday: "short" })}
+        <div
+          className={`grid min-h-[480px] ${compact ? "grid-cols-7" : ""}`}
+          style={compact ? undefined : { gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
+        >
+          {days.map((day) => {
+            const key = localDateKey(day);
+            const tasks = tasksByDay.get(key) ?? [];
+            const outsideMonth = compact && day.getMonth() !== monthCursor.getMonth();
+            const isToday = sameLocalDay(day, today);
+            const isDropTarget = dropTargetDayKey === key;
+            return (
+              <div
+                key={key}
+                data-date={key}
+                data-drop-target={isDropTarget ? "true" : "false"}
+                data-help-id="todo-calendar-day"
+                data-today={isToday ? "true" : "false"}
+                onDragOver={(event) => {
+                  handleCalendarScrollDragOver(event);
+                  onDayDragOver(day, event);
+                }}
+                onDragLeave={(event) => onDayDragLeave(day, event)}
+                onDrop={(event) => onDayDrop(day, event)}
+                className={`min-h-[118px] border-r border-b border-slate-200 p-2 transition last:border-r-0 data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-inset data-[drop-target=true]:ring-primary/30 dark:border-slate-800 ${
+                  outsideMonth ? "bg-slate-50/70 text-slate-400 dark:bg-slate-950/30" : ""
+                } ${isToday ? "bg-orange-100/90 ring-1 ring-inset ring-orange-300 dark:bg-orange-950/40 dark:ring-orange-800/70" : ""}`}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase text-slate-500">
+                      {day.toLocaleDateString("cs-CZ", { weekday: "short" })}
+                    </div>
+                    <div className={`text-sm font-bold ${isToday ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}>
+                      {day.toLocaleDateString("cs-CZ", { day: "numeric", month: compact ? undefined : "short" })}
+                    </div>
                   </div>
-                  <div className={`text-sm font-bold ${isToday ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}>
-                    {day.toLocaleDateString("cs-CZ", { day: "numeric", month: compact ? undefined : "short" })}
-                  </div>
+                  {tasks.length > 0 && <MetaBadge tone="subtasks-partial">{tasks.length}</MetaBadge>}
                 </div>
-                {tasks.length > 0 && <MetaBadge tone="subtasks-partial">{tasks.length}</MetaBadge>}
-              </div>
 
-              <div className="space-y-1.5">
-                {tasks.map(({ task, rootTask, isSubtask }) => {
+                <div className="space-y-1.5">
+                  {tasks.map(({ task, rootTask, isSubtask }) => {
                   const assignedProjectColor = getCalendarTaskProjectColor(
                     { task, rootTask, isSubtask },
                     projectColorById,
@@ -1737,6 +1769,9 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                     color: textColor,
                   };
                   const note = task.note?.trim();
+                  const cardClassName = `relative w-full cursor-grab overflow-hidden rounded-lg border px-2 py-1.5 pr-7 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px active:cursor-grabbing focus:ring-2 focus:ring-offset-1 data-[active=true]:shadow-md data-[dragging=true]:opacity-55 ${
+                    compact ? "max-h-36" : ""
+                  }`;
 
                   return (
                     <div
@@ -1748,7 +1783,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                       draggable
                       onDragStart={(event) => onTaskDragStart(task.id, event)}
                       onDragEnd={onTaskDragEnd}
-                      className="relative w-full cursor-grab overflow-hidden rounded-lg border px-2 py-1.5 pr-7 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px active:cursor-grabbing focus:ring-2 focus:ring-offset-1 data-[active=true]:shadow-md data-[dragging=true]:opacity-55"
+                      className={cardClassName}
                       style={cardStyle}
                     >
                       <button
@@ -1775,7 +1810,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                         data-help-id="todo-calendar-task-action"
                         onClick={() => onSelectTask(task.id)}
                         onDoubleClick={() => onOpenTaskEditor(task.id)}
-                        className="relative z-[1] block w-full min-w-0 rounded-md bg-transparent text-left outline-none focus:ring-2 focus:ring-white/80"
+                        className="relative z-[1] block w-full min-w-0 overflow-hidden rounded-md bg-transparent text-left outline-none focus:ring-2 focus:ring-white/80"
                         style={{ color: "var(--todo-card-text)" }}
                       >
                         <span className="block min-w-0" data-help-id="todo-calendar-task-heading">
@@ -1801,11 +1836,11 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                         {note && (
                           <span
                             data-help-id="todo-calendar-task-muted"
-                            className={`${compact ? "hidden xl:block" : "block"} mt-1 text-[11px] leading-snug`}
+                            className="mt-1 block text-[11px] leading-snug"
                             style={{
-                              display: compact ? undefined : "-webkit-box",
-                              WebkitLineClamp: compact ? undefined : 2,
-                              WebkitBoxOrient: compact ? undefined : "vertical",
+                              display: "-webkit-box",
+                              WebkitLineClamp: compact ? 4 : 2,
+                              WebkitBoxOrient: "vertical",
                               overflow: "hidden",
                               color: mutedTextColor,
                             }}
@@ -1835,6 +1870,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
@@ -1953,7 +1989,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                   data-active={selectedTaskId === task.id ? "true" : "false"}
                   data-help-id="todo-agenda-row"
                   onDoubleClick={() => onOpenTaskEditor(task.id)}
-                  className="group flex min-w-0 items-start gap-3 rounded-lg border border-slate-200/80 bg-white/85 px-3 py-2 text-slate-900 shadow-sm transition hover:border-primary/40 hover:bg-white data-[active=true]:border-primary data-[active=true]:ring-1 data-[active=true]:ring-primary/25 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-slate-900"
+                  className="group flex min-w-0 items-stretch gap-3 rounded-lg border border-slate-200/80 bg-white/85 px-3 py-2 text-slate-900 shadow-sm transition hover:border-primary/40 hover:bg-orange-50/55 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/25 data-[active=true]:border-primary data-[active=true]:bg-orange-50/80 data-[active=true]:ring-1 data-[active=true]:ring-primary/25 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-100 dark:hover:bg-orange-950/20 dark:data-[active=true]:bg-orange-950/30"
                 >
                   <button
                     type="button"
@@ -1967,7 +2003,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                     className={`mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-[14px] ${
                       task.completed
                         ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-slate-300 bg-white hover:border-emerald-500 dark:border-slate-600 dark:bg-slate-950"
+                        : "border-slate-300 bg-white/70 hover:border-emerald-500 dark:border-slate-600 dark:bg-slate-950/70"
                     }`}
                   >
                     <TaskCompletionMark completed={task.completed} />
@@ -1980,7 +2016,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                       event.preventDefault();
                       onOpenTaskEditor(task.id);
                     }}
-                    className="min-w-0 flex-1 text-left"
+                    className="min-w-0 flex-1 self-stretch rounded-md bg-transparent text-left outline-none focus:outline-none focus-visible:outline-none"
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold">
@@ -2014,7 +2050,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                       event.stopPropagation();
                       openSubtaskDialog(rootTask);
                     }}
-                    className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white/70 text-slate-500 shadow-sm transition hover:border-primary/40 hover:bg-white hover:text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900"
                     aria-label={`Přidat podúkol k úkolu ${rootTask.title}`}
                   >
                     <span className="material-symbols-outlined text-[16px]" aria-hidden>
@@ -2556,9 +2592,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Detail úkolu
             </div>
-            <div className="mt-1 text-xs text-slate-500">
-              Personal scope · props do Command Center
-            </div>
           </div>
 
           <div
@@ -2716,44 +2749,38 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
           isMobileSheet
             ? "h-[100dvh] max-h-[100dvh] min-h-0 overflow-y-auto rounded-none border-0 bg-white p-4 shadow-none dark:bg-slate-900"
             : isModal
-              ? "max-h-[min(88dvh,760px)] w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+              ? "max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
             : "min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
         }
       >
-        {onCloseDetail && (
-          <button
-            type="button"
-            data-help-id="tasks-mobile-detail-close"
-            onClick={requestCloseDetail}
-            className={`mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 ${
-              isModal ? "" : "lg:hidden"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden>
-              close
-            </span>
-            Zavřít detail
-          </button>
-        )}
         <form onSubmit={handleSave} className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
+        <div data-help-id="tasks-detail-header" className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               {selectedTask.archivedAt ? "Archivovaný úkol" : isSubtask ? "Detail podúkolu" : "Detail úkolu"}
             </div>
-            <div className="mt-1 text-xs text-slate-500">
-              {selectedTask.archivedAt
-                ? "Mimo běžné pohledy a Command Center"
-                : isSubtask
-                  ? `Pod úkolem: ${item.task.title}`
-                  : "Personal scope · props do Command Center"}
-            </div>
+            {isSubtask && <div className="mt-1 text-xs text-slate-500">Pod úkolem: {item.task.title}</div>}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             {selectedTask.archivedAt && (
               <Button type="button" variant="outline" size="sm" onClick={handleRestoreFromArchive}>
                 Vrátit do Hotovo
               </Button>
+            )}
+            {onCloseDetail && (
+              <button
+                type="button"
+                data-help-id="tasks-mobile-detail-close"
+                onClick={requestCloseDetail}
+                className={`relative z-10 inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-input bg-background px-3 text-xs font-medium text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-100/50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/50 dark:hover:text-slate-100 ${
+                  isModal ? "" : "lg:hidden"
+                }`}
+              >
+                <span className="material-symbols-outlined pointer-events-none text-[18px]" aria-hidden>
+                  close
+                </span>
+                Zavřít detail
+              </button>
             )}
           </div>
         </div>
@@ -3425,7 +3452,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           data-help-id="tasks-list"
           data-mobile-hidden="false"
           data-mobile-detail-open={isMobileDetailActive ? "true" : "false"}
-          className="min-h-0 min-w-0 space-y-3 overflow-hidden"
+          className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden"
         >
           {canAddTask && (
             <QuickAdd
@@ -3511,9 +3538,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           aria-modal="true"
           aria-label={selectedSelection.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
           data-help-id="tasks-detail-modal"
-          className="fixed inset-0 z-[85] flex items-start justify-center overflow-y-auto bg-slate-950/45 px-4 py-8 backdrop-blur-sm"
+          className="fixed inset-0 z-[85] flex items-start justify-center overflow-y-auto bg-slate-950/45 px-4 py-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-[560px]">
+          <div className="w-full max-w-[640px]">
             <TaskDetail
               item={selectedSelection.item}
               selectedTask={selectedSelection.task}

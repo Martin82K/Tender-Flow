@@ -90,6 +90,9 @@ describe('Sidebar navigation', () => {
     renderSidebar(onViewChange);
 
     fireEvent.click(screen.getByText('Nástroje'));
+
+    expect(screen.queryByRole('button', { name: /Porovnání nabídek/i })).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /Excel Unlocker PRO/i }));
 
     expect(onViewChange).toHaveBeenCalledWith('settings', {

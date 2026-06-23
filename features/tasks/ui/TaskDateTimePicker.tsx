@@ -215,12 +215,13 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                   key={day.toISOString()}
                   type="button"
                   data-selected={selected ? "true" : "false"}
+                  data-today={current ? "true" : "false"}
                   onClick={() => onChange(getValueWithTime(day, parsedValue))}
                   className={`inline-flex h-8 items-center justify-center rounded-lg border text-xs font-semibold transition ${
                     selected
                       ? "border-primary bg-primary text-white shadow-sm"
                       : current
-                        ? "border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-900/70 dark:bg-orange-950/30 dark:text-orange-200"
+                        ? "border-orange-600 bg-orange-500 text-white shadow-sm hover:bg-orange-600 dark:border-orange-500 dark:bg-orange-500 dark:text-white"
                         : `border-transparent hover:border-orange-200 hover:bg-orange-50 dark:hover:border-orange-900/60 dark:hover:bg-slate-900 ${
                             inMonth ? "text-slate-800 dark:text-slate-100" : "text-slate-400 dark:text-slate-600"
                           }`

@@ -594,7 +594,10 @@ describe("TasksPage note preview", () => {
 
     const dragHandle = screen.getByRole("button", { name: "Přesunout úkol Zkoušky betonu" });
     const targetRow = screen.getByText("Bazén Aš - tepelná izolace").closest('[data-help-id="tasks-list-item"]');
-    const dragData: Record<string, string> = {};
+    const dragData: Record<string, string> = {
+      "application/x-tender-flow-task-id": "calendar-autoscroll",
+      "text/plain": "calendar-autoscroll",
+    };
     const dataTransfer = {
       effectAllowed: "",
       dropEffect: "",
@@ -719,10 +722,18 @@ describe("TasksPage note preview", () => {
     expect(mobileDetail).toHaveClass("border-0");
     expect(mobileDetail).not.toHaveClass("rounded-t-2xl");
     expect(mobileDetail).not.toHaveClass("max-h-[86dvh]");
-    expect(screen.getByRole("button", { name: "Zavřít detail" })).toBeInTheDocument();
+    const closeDetailButton = screen.getByRole("button", { name: "Zavřít detail" });
+    const detailHeader = container.querySelector('[data-help-id="tasks-detail-header"]');
+    expect(closeDetailButton).toBeInTheDocument();
+    expect(closeDetailButton).toHaveClass("h-8");
+    expect(closeDetailButton).toHaveClass("px-3");
+    expect(closeDetailButton).toHaveClass("inline-flex");
+    expect(closeDetailButton).toHaveClass("justify-center");
+    expect(detailHeader).toContainElement(closeDetailButton);
+    expect(closeDetailButton.querySelector(".material-symbols-outlined")).toHaveClass("pointer-events-none");
     expect(screen.getByDisplayValue("Boučí")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
+    fireEvent.click(closeDetailButton);
 
     expect(list).toHaveAttribute("data-mobile-hidden", "false");
     expect(list).toHaveAttribute("data-mobile-detail-open", "false");
@@ -803,9 +814,16 @@ describe("TasksPage note preview", () => {
     );
 
     const dialog = screen.getByRole("dialog", { name: "Detail úkolu" });
+    const detail = container.querySelector('[data-help-id="tasks-detail"]');
     expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass("py-4");
+    expect(dialog.firstElementChild).toHaveClass("max-w-[640px]");
+    expect(detail).not.toBeNull();
+    expect(detail).toHaveClass("max-h-[calc(100dvh-2rem)]");
+    expect(detail).not.toHaveClass("max-h-[min(88dvh,760px)]");
     expect(within(dialog).getByDisplayValue("Klášterec nad Ohří")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Hotovo" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/Command Center/i)).not.toBeInTheDocument();
   });
 
   it("v agendě nabídne rychlé přidání podúkolu přímo z řádku", () => {
@@ -825,6 +843,36 @@ describe("TasksPage note preview", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
     expect(dialog).toHaveTextContent("Pod úkol: Generální úklid stavby");
+  });
+
+  it("v agendě aplikuje hover a aktivní stav na celý blok úkolu", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "agenda-active",
+        title: "Zábradlí",
+        note: "Urgovat zábradlí u Ergomont, pro potvrzení ceny.",
+        dueAt: todayAt(8),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Nadcházející/i);
+
+    const row = container.querySelector('[data-help-id="todo-agenda-row"]');
+    expect(row).not.toBeNull();
+    expect(row).toHaveClass("hover:bg-orange-50/55");
+    expect(row).toHaveClass("data-[active=true]:bg-orange-50/80");
+    expect(row).toHaveClass("focus-within:ring-1");
+
+    const mainButton = within(row as HTMLElement).getByText("Zábradlí").closest("button");
+    expect(mainButton).not.toBeNull();
+    expect(mainButton).toHaveClass("self-stretch");
+    expect(mainButton).toHaveClass("bg-transparent");
+    expect(mainButton).toHaveClass("focus-visible:outline-none");
+
+    fireEvent.click(mainButton as HTMLElement);
+
+    expect(row).toHaveAttribute("data-active", "true");
   });
 
   it("přesune kalendářovou aktivitu přetažením na jiný den a zachová čas", async () => {
@@ -855,7 +903,10 @@ describe("TasksPage note preview", () => {
     const targetDay = container.querySelector(
       `[data-help-id="todo-calendar-day"][data-date="${dateKey(targetDayDate)}"]`,
     );
-    const dragData: Record<string, string> = {};
+    const dragData: Record<string, string> = {
+      "application/x-tender-flow-task-id": "calendar-autoscroll",
+      "text/plain": "calendar-autoscroll",
+    };
     const dataTransfer = {
       effectAllowed: "",
       dropEffect: "",
@@ -937,6 +988,70 @@ describe("TasksPage note preview", () => {
         input: { dueAt: expectedDueAt.toISOString() },
       });
     });
+  });
+
+  it("vykreslí měsíční kalendář ve scrollovatelné mřížce použitelné pro drag and drop", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "calendar-autoscroll",
+        title: "Přetáhnout níž v měsíci",
+        dueAt: todayAt(11),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    selectCalendarMode(container, "Měsíc");
+
+    const calendar = container.querySelector('[data-help-id="tasks-calendar"]');
+    const scrollArea = container.querySelector('[data-help-id="todo-calendar-scroll"]');
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+
+    expect(calendar).not.toBeNull();
+    expect(calendar).toHaveClass("flex");
+    expect(calendar).toHaveClass("flex-col");
+    expect(scrollArea).not.toBeNull();
+    expect(scrollArea).toHaveClass("min-h-0");
+    expect(scrollArea).toHaveClass("flex-1");
+    expect(scrollArea).toHaveClass("overflow-y-auto");
+    expect(card).not.toBeNull();
+    expect(card).toHaveAttribute("draggable", "true");
+  });
+
+  it("v kalendáři výrazně podbarví aktuální datum", () => {
+    const { container } = render(<TasksPage />);
+    selectCalendarMode(container, "Měsíc");
+
+    const todayCell = container.querySelector(
+      `[data-help-id="todo-calendar-day"][data-date="${dateKey(new Date())}"]`,
+    );
+
+    expect(todayCell).not.toBeNull();
+    expect(todayCell).toHaveAttribute("data-today", "true");
+    expect(todayCell).toHaveClass("bg-orange-100/90");
+    expect(todayCell).toHaveClass("ring-orange-300");
+  });
+
+  it("v měsíčním kalendáři omezí výšku karty s dlouhou poznámkou", () => {
+    taskState.tasks = [
+      makeTask({
+        id: "month-long-note",
+        title: "Dlouhá karta v měsíci",
+        note: "Velmi dlouhá poznámka, která by bez omezení roztáhla celou kartu přes většinu dne a zhoršila přehlednost měsíčního kalendáře.",
+        dueAt: todayAt(15),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    selectCalendarMode(container, "Měsíc");
+
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+    const note = card?.querySelector('[data-help-id="todo-calendar-task-muted"]') as HTMLElement | null;
+
+    expect(card).not.toBeNull();
+    expect(card).toHaveClass("max-h-36");
+    expect(note).not.toBeNull();
+    expect(note?.style.WebkitLineClamp).toBe("4");
+    expect(note?.style.WebkitBoxOrient).toBe("vertical");
   });
 
   it("v úzké kalendářové kartě oddělí projektový badge od zalamovaného názvu úkolu", () => {

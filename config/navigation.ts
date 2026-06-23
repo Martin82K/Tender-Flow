@@ -67,14 +67,6 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
       settingsTab: 'tools',
       settingsSubTab: 'urlShortener',
     },
-    {
-      id: 'settings-bid-comparison',
-      label: 'Porovnání nabídek',
-      icon: 'compare_arrows',
-      view: 'settings',
-      settingsTab: 'tools',
-      settingsSubTab: 'bidComparison',
-    },
   ],
 };
 
