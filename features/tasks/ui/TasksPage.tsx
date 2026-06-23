@@ -1475,13 +1475,23 @@ const CALENDAR_MODE_LABELS: Record<TodoCalendarMode, string> = {
 
 const TODO_PROJECT_COLORS = [
   "#f97316",
+  "#f59e0b",
   "#ef4444",
+  "#f43f5e",
   "#eab308",
+  "#84cc16",
   "#22c55e",
+  "#10b981",
+  "#14b8a6",
   "#06b6d4",
+  "#0ea5e9",
   "#3b82f6",
+  "#6366f1",
   "#8b5cf6",
+  "#a855f7",
+  "#d946ef",
   "#ec4899",
+  "#64748b",
 ];
 
 const hexToRgba = (hex: string, alpha: number): string => {
@@ -1607,9 +1617,14 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
             <button
               key={item}
               type="button"
+              data-help-id="todo-calendar-mode"
               data-active={mode === item ? "true" : "false"}
               onClick={() => onModeChange(item)}
-              className="h-7 rounded-md px-2 text-xs font-semibold text-slate-500 transition hover:text-slate-900 data-[active=true]:bg-white data-[active=true]:text-primary data-[active=true]:shadow-sm dark:hover:text-slate-100 dark:data-[active=true]:bg-slate-800"
+              className={`h-7 rounded-md border px-2 text-xs font-semibold transition ${
+                mode === item
+                  ? "border-orange-600 bg-orange-500 text-white shadow-sm hover:bg-orange-600 hover:text-white dark:border-orange-500 dark:bg-orange-500 dark:text-white"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+              }`}
             >
               {CALENDAR_MODE_LABELS[item]}
             </button>
@@ -1747,7 +1762,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                           toggleTask.mutate({ id: task.id, completed: !task.completed });
                         }}
                         onDoubleClick={(event) => event.stopPropagation()}
-                        className="absolute right-1.5 top-1.5 inline-flex size-4 shrink-0 items-center justify-center rounded border bg-white/75 text-[11px] font-bold shadow-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white/80"
+                        className="absolute right-1.5 top-1.5 z-[2] inline-flex size-4 shrink-0 items-center justify-center rounded border bg-white/75 text-[11px] font-bold shadow-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white/80"
                         style={{
                           borderColor: mutedTextColor,
                           color: textColor,
@@ -1757,9 +1772,11 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                       </button>
                       <button
                         type="button"
+                        data-help-id="todo-calendar-task-action"
                         onClick={() => onSelectTask(task.id)}
                         onDoubleClick={() => onOpenTaskEditor(task.id)}
-                        className="block w-full min-w-0 rounded-md text-left outline-none focus:ring-2 focus:ring-white/80"
+                        className="relative z-[1] block w-full min-w-0 rounded-md bg-transparent text-left outline-none focus:ring-2 focus:ring-white/80"
+                        style={{ color: "var(--todo-card-text)" }}
                       >
                         <span className="block min-w-0" data-help-id="todo-calendar-task-heading">
                           {projectName && (
@@ -2311,7 +2328,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
           role="menu"
           aria-label="Akce TODO projektu"
           data-help-id="todo-project-context-menu"
-          className="fixed z-[80] w-[212px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+          className="fixed z-[80] w-[264px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
           style={{ left: menuLeft, top: menuTop }}
         >
           <button
@@ -2332,7 +2349,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
               </span>
               Změnit barvu
             </div>
-            <div className="grid grid-cols-6 gap-1.5" role="group" aria-label="Změnit barvu TODO projektu">
+            <div className="grid grid-cols-7 gap-1.5" role="group" aria-label="Změnit barvu TODO projektu">
               <button
                 type="button"
                 onClick={() => void handleChangeProjectColor(menuState.project, null)}

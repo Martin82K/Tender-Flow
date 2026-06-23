@@ -533,6 +533,16 @@ describe("TasksPage note preview", () => {
 
     const dayModeButton = within(calendar as HTMLElement).getByRole("button", { name: "Den" });
     expect(dayModeButton).toHaveAttribute("data-active", "true");
+    expect(dayModeButton).toHaveClass("bg-orange-500");
+    expect(dayModeButton).toHaveClass("border-orange-600");
+    expect(dayModeButton).toHaveClass("text-white");
+
+    const threeDayModeButton = within(calendar as HTMLElement).getByRole("button", { name: "3 dny" });
+    fireEvent.click(threeDayModeButton);
+    expect(threeDayModeButton).toHaveAttribute("data-active", "true");
+    expect(threeDayModeButton).toHaveClass("bg-orange-500");
+    expect(threeDayModeButton).toHaveClass("text-white");
+    expect(dayModeButton).toHaveAttribute("data-active", "false");
 
     fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: /Dnes/i }));
 
@@ -759,11 +769,14 @@ describe("TasksPage note preview", () => {
     const card = container.querySelector('[data-help-id="todo-calendar-task"]');
 
     expect(card).not.toBeNull();
-    fireEvent.click(
-      within(card as HTMLElement).getByRole("checkbox", {
-        name: "Označit úkol Klášterec nad Ohří jako hotový",
-      }),
-    );
+    const completeCheckbox = within(card as HTMLElement).getByRole("checkbox", {
+      name: "Označit úkol Klášterec nad Ohří jako hotový",
+    });
+    expect(completeCheckbox).toHaveClass("absolute");
+    expect(completeCheckbox).toHaveClass("right-1.5");
+    expect(completeCheckbox).toHaveClass("top-1.5");
+
+    fireEvent.click(completeCheckbox);
 
     expect(taskState.toggleTask).toHaveBeenCalledWith({ id: "calendar-complete", completed: true });
     expect(screen.queryByRole("dialog", { name: "Detail úkolu" })).not.toBeInTheDocument();
@@ -949,11 +962,16 @@ describe("TasksPage note preview", () => {
     const { container } = render(<TasksPage />);
 
     const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+    const action = card?.querySelector('[data-help-id="todo-calendar-task-action"]');
     const heading = card?.querySelector('[data-help-id="todo-calendar-task-heading"]');
     const chip = card?.querySelector('[data-help-id="todo-calendar-task-chip"]');
     const title = card?.querySelector('[data-help-id="todo-calendar-task-title"]');
 
     expect(card).not.toBeNull();
+    expect(action).toHaveClass("relative");
+    expect(action).toHaveClass("z-[1]");
+    expect(action).toHaveClass("bg-transparent");
+    expect(action).toHaveTextContent("Zkoušky betonu před novou betonáží");
     expect(heading).toHaveClass("block");
     expect(chip).toHaveTextContent("# Boučí");
     expect(title).toHaveTextContent("Zkoušky betonu před novou betonáží");

@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TodoProjectSection } from "@features/tasks/ui/TasksPage";
 import type { TodoProject } from "@features/tasks/types";
@@ -153,7 +153,10 @@ describe("TodoProjectSection", () => {
       clientX: 80,
       clientY: 120,
     });
-    expect(screen.getByRole("group", { name: "Změnit barvu TODO projektu" })).toBeInTheDocument();
+    const colorGroup = screen.getByRole("group", { name: "Změnit barvu TODO projektu" });
+    expect(colorGroup).toBeInTheDocument();
+    expect(within(colorGroup).getAllByRole("button")).toHaveLength(19);
+    expect(screen.getByRole("button", { name: "Změnit barvu projektu na #0ea5e9" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Změnit barvu projektu na #3b82f6" }));
 

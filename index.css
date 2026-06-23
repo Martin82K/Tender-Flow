@@ -2711,7 +2711,7 @@ html[data-skin="industrial"] .tf-project-overview-view button[class*="bg-slate-9
 }
 
 html[data-skin="industrial"] .tf-project-manager-view button:not([class*="from-"]):not([class*="text-white"]),
-html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]),
+html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]):not([data-help-id="todo-calendar-task-action"]),
 html[data-skin="industrial"] .tf-project-overview-view button:not([class*="text-white"]):not([class*="bg-slate-900"]) {
   background: color-mix(in srgb, var(--tf-skin-surface) 88%, transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
@@ -2723,6 +2723,13 @@ html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-project-item"][d
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%) !important;
   border-color: color-mix(in srgb, var(--tf-skin-orange) 48%, var(--tf-skin-line) 52%) !important;
   color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-mode"][data-active="true"] {
+  background: var(--tf-skin-orange) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 86%, var(--tf-skin-text) 14%) !important;
+  color: #fff8ed !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #ffffff 22%, transparent), 0 1px 2px color-mix(in srgb, var(--tf-skin-orange) 28%, transparent) !important;
 }
 
 @media (max-width: 767px) {
@@ -2776,7 +2783,7 @@ html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-actions"] button:hover,
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"] button:hover,
-html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]):hover,
+html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]):not([data-help-id="todo-calendar-task-action"]):hover,
 html[data-skin="industrial"] .tf-project-overview-view button:not([class*="text-white"]):not([class*="bg-slate-900"]):hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%) !important;
   border-color: color-mix(in srgb, var(--tf-skin-orange) 48%, var(--tf-skin-line) 52%) !important;
@@ -2843,9 +2850,17 @@ html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"][
   pointer-events: none;
 }
 
-html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] > span {
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] > :where([data-help-id="todo-calendar-task-action"], span) {
   position: relative;
   z-index: 1;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] > button[data-help-id="todo-calendar-task-action"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] > button[data-help-id="todo-calendar-task-action"]:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--todo-card-text) !important;
 }
 
 html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] :where(span, strong) {
