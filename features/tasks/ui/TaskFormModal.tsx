@@ -242,6 +242,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                 type="button"
                 className="ml-2 text-primary underline"
                 onClick={() => handleChange("relatedEntity", undefined)}
+                title="Odebrat vazbu úkolu na položku"
               >
                 odebrat
               </button>
@@ -258,16 +259,16 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         <div className="flex items-center justify-between pt-2">
           <div>
             {isEdit && (
-              <Button type="button" variant="danger" size="sm" onClick={handleDelete} disabled={submitting}>
+              <Button type="button" variant="danger" size="sm" onClick={handleDelete} disabled={submitting} title="Smazat tento úkol">
                 Smazat
               </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={submitting} title="Zavřít formulář bez uložení">
               Zrušit
             </Button>
-            <Button type="submit" variant="primary" isLoading={submitting}>
+            <Button type="submit" variant="primary" isLoading={submitting} title={isEdit ? "Uložit změny úkolu" : "Vytvořit nový úkol"}>
               {isEdit ? "Uložit" : "Vytvořit"}
             </Button>
           </div>

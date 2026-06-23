@@ -527,17 +527,20 @@ describe("TasksPage note preview", () => {
     const calendarButton = within(menu as HTMLElement).getByRole("button", { name: /Kalendář/i });
     expect(calendarButton).toHaveAttribute("data-active", "true");
     expect(calendarButton).toHaveAttribute("aria-current", "page");
+    expect(calendarButton).toHaveAttribute("title", "Kalendář: Měsíc, týden, 3 dny nebo den");
     expect(calendarButton).toHaveClass("bg-orange-50");
     expect(calendarButton).toHaveClass("text-orange-700");
     expect(calendarButton.querySelector('[data-help-id="tasks-menu-icon"]')).toHaveClass("fill");
 
     const dayModeButton = within(calendar as HTMLElement).getByRole("button", { name: "Den" });
     expect(dayModeButton).toHaveAttribute("data-active", "true");
+    expect(dayModeButton).toHaveAttribute("title", "Přepnout kalendář na zobrazení: Den");
     expect(dayModeButton).toHaveClass("bg-orange-500");
     expect(dayModeButton).toHaveClass("border-orange-600");
     expect(dayModeButton).toHaveClass("text-white");
 
     const threeDayModeButton = within(calendar as HTMLElement).getByRole("button", { name: "3 dny" });
+    expect(threeDayModeButton).toHaveAttribute("title", "Přepnout kalendář na zobrazení: 3 dny");
     fireEvent.click(threeDayModeButton);
     expect(threeDayModeButton).toHaveAttribute("data-active", "true");
     expect(threeDayModeButton).toHaveClass("bg-orange-500");
@@ -610,7 +613,7 @@ describe("TasksPage note preview", () => {
     expect(targetRow).not.toBeNull();
     expect(targetRow).not.toHaveAttribute("title");
     expect(dragHandle).toHaveClass("size-4");
-    expect(dragHandle).not.toHaveAttribute("title");
+    expect(dragHandle).toHaveAttribute("title", 'Přetáhnout úkol "Zkoušky betonu" na jiné místo');
 
     fireEvent.dragStart(dragHandle, { dataTransfer });
     fireEvent.dragOver(targetRow as HTMLElement, { dataTransfer });
@@ -729,6 +732,7 @@ describe("TasksPage note preview", () => {
     expect(closeDetailButton).toHaveClass("px-3");
     expect(closeDetailButton).toHaveClass("inline-flex");
     expect(closeDetailButton).toHaveClass("justify-center");
+    expect(closeDetailButton).toHaveAttribute("title", "Zavřít detail úkolu");
     expect(detailHeader).toContainElement(closeDetailButton);
     expect(closeDetailButton.querySelector(".material-symbols-outlined")).toHaveClass("pointer-events-none");
     expect(screen.getByDisplayValue("Boučí")).toBeInTheDocument();

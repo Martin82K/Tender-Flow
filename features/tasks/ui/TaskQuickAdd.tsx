@@ -55,6 +55,7 @@ export const TaskQuickAdd: React.FC<TaskQuickAddProps> = ({
           type="submit"
           className="cc-task-quickadd__submit"
           disabled={submitting}
+          title="Přidat nový úkol"
         >
           {submitting ? "…" : "Přidat"}
         </button>

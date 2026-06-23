@@ -38,6 +38,7 @@ export const TaskCreateButton: React.FC<TaskCreateButtonProps> = ({
         }
         onClick={() => setOpen(true)}
         aria-label="Vytvořit úkol"
+        title="Vytvořit nový úkol"
       >
         <span className="material-symbols-outlined text-sm">add_task</span>
         {children ?? "Úkol"}

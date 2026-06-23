@@ -146,6 +146,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
+        title={`${label}: otevřít výběr data a času`}
         onClick={() => setOpen((current) => !current)}
         className={`inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white text-left font-medium text-slate-700 shadow-sm transition hover:border-primary/40 hover:bg-orange-50/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 ${
           compact ? "h-8 px-2.5 text-xs" : "h-10 w-full px-3 text-sm"
@@ -181,6 +182,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                 className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-primary/40 hover:bg-orange-50 hover:text-primary dark:border-slate-700 dark:hover:bg-slate-900"
                 onClick={() => setCursorMonth((current) => addMonths(current, -1))}
                 aria-label="Předchozí měsíc"
+                title="Zobrazit předchozí měsíc"
               >
                 <span className="material-symbols-outlined text-[18px]" aria-hidden>
                   chevron_left
@@ -191,6 +193,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                 className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-primary/40 hover:bg-orange-50 hover:text-primary dark:border-slate-700 dark:hover:bg-slate-900"
                 onClick={() => setCursorMonth((current) => addMonths(current, 1))}
                 aria-label="Další měsíc"
+                title="Zobrazit další měsíc"
               >
                 <span className="material-symbols-outlined text-[18px]" aria-hidden>
                   chevron_right
@@ -217,6 +220,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                   data-selected={selected ? "true" : "false"}
                   data-today={current ? "true" : "false"}
                   onClick={() => onChange(getValueWithTime(day, parsedValue))}
+                  title={`Vybrat datum ${day.toLocaleDateString("cs-CZ")}`}
                   className={`inline-flex h-8 items-center justify-center rounded-lg border text-xs font-semibold transition ${
                     selected
                       ? "border-primary bg-primary text-white shadow-sm"
@@ -266,6 +270,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
               type="button"
               className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-slate-100"
               onClick={() => onChange("")}
+              title={`${label}: vymazat datum a čas`}
             >
               Vymazat
             </button>
@@ -274,6 +279,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                 type="button"
                 className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition hover:bg-orange-50 dark:hover:bg-orange-950/30"
                 onClick={setToday}
+                title={`${label}: nastavit dnešní datum a aktuální čas`}
               >
                 Dnes
               </button>
@@ -281,6 +287,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                 type="button"
                 className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90"
                 onClick={() => setOpen(false)}
+                title="Zavřít výběr data a času"
               >
                 Hotovo
               </button>

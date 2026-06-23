@@ -22,11 +22,14 @@ describe("TaskDateTimePicker", () => {
     expect(container.querySelector('input[type="datetime-local"]')).toBeNull();
     expect(screen.queryByRole("dialog", { name: "Termín kalendář" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Bez termínu/i }));
+    const pickerButton = screen.getByRole("button", { name: /Bez termínu/i });
+    expect(pickerButton).toHaveAttribute("title", "Termín: otevřít výběr data a času");
+
+    fireEvent.click(pickerButton);
 
     expect(screen.getByRole("dialog", { name: "Termín kalendář" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Předchozí měsíc" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Další měsíc" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Předchozí měsíc" })).toHaveAttribute("title", "Zobrazit předchozí měsíc");
+    expect(screen.getByRole("button", { name: "Další měsíc" })).toHaveAttribute("title", "Zobrazit další měsíc");
     expect(screen.getByLabelText("Termín hodina")).toBeInTheDocument();
     expect(screen.getByLabelText("Termín minuta")).toBeInTheDocument();
   });

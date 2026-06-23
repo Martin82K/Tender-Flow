@@ -376,6 +376,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
             onClick={onClose}
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             aria-label="Zavřít přidání podúkolu"
+            title="Zavřít okno pro přidání podúkolu"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
               close
@@ -413,6 +414,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(0)}
+            title="Nastavit termín podúkolu na dnešek"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Dnes
@@ -420,6 +422,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(1)}
+            title="Nastavit termín podúkolu na zítřek"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Zítra
@@ -427,6 +430,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(7)}
+            title="Nastavit termín podúkolu na příští týden"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Příští týden
@@ -463,6 +467,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
             type="button"
             onClick={() => setReminderFromDue(0)}
             disabled={!dueAt}
+            title="Nastavit upozornění přesně na termín podúkolu"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Upozornit v termínu
@@ -471,6 +476,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
             type="button"
             onClick={() => setReminderFromDue(60)}
             disabled={!dueAt}
+            title="Nastavit upozornění hodinu před termínem podúkolu"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             1 h před
@@ -505,10 +511,10 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
           </div>
         )}
         <div className="mt-4 flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose} title="Zrušit přidání podúkolu">
             Zrušit
           </Button>
-          <Button type="submit" size="sm" disabled={!title.trim()} isLoading={isPending}>
+          <Button type="submit" size="sm" disabled={!title.trim()} isLoading={isPending} title="Vytvořit nový podúkol">
             Přidat podúkol
           </Button>
         </div>
@@ -881,7 +887,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
           aria-label="Nový úkol"
         />
-        <Button type="submit" size="sm" disabled={!title.trim()} isLoading={createTask.isPending}>
+        <Button type="submit" size="sm" disabled={!title.trim()} isLoading={createTask.isPending} title="Rychle přidat úkol do osobního TODO">
           Přidat
         </Button>
       </form>
@@ -923,6 +929,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(0)}
+            title="Nastavit termín úkolu na dnešek"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Dnes
@@ -930,6 +937,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(1)}
+            title="Nastavit termín úkolu na zítřek"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Zítra
@@ -937,6 +945,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           <button
             type="button"
             onClick={() => setQuickDue(7)}
+            title="Nastavit termín úkolu na příští týden"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Příští týden
@@ -975,6 +984,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
             type="button"
             onClick={() => setReminderFromDue(0)}
             disabled={!dueAt}
+            title="Nastavit upozornění přesně na termín úkolu"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Upozornit v termínu
@@ -983,6 +993,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
             type="button"
             onClick={() => setReminderFromDue(60)}
             disabled={!dueAt}
+            title="Nastavit upozornění hodinu před termínem úkolu"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             1 h před
@@ -991,6 +1002,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
             type="button"
             onClick={() => setReminderFromDue(24 * 60)}
             disabled={!dueAt}
+            title="Nastavit upozornění den před termínem úkolu"
             className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Den před
@@ -1048,10 +1060,10 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           </span>
         </label>
 
-        <Button type="button" variant="secondary" size="sm" onClick={resetForm}>
+        <Button type="button" variant="secondary" size="sm" onClick={resetForm} title="Vyčistit rozpracovaný úkol a zavřít formulář">
           Zrušit
         </Button>
-        <Button type="submit" size="sm" disabled={!title.trim()} isLoading={createTask.isPending}>
+        <Button type="submit" size="sm" disabled={!title.trim()} isLoading={createTask.isPending} title="Přidat úkol do osobního TODO">
           Přidat úkol
         </Button>
       </div>
@@ -1233,6 +1245,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             onDragEnd={onDragEnd}
             className="mt-1 inline-flex size-4 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label={`Přesunout úkol ${item.task.title}`}
+            title={`Přetáhnout úkol "${item.task.title}" na jiné místo`}
           >
             <span className="material-symbols-outlined text-[12px]" aria-hidden>
               drag_indicator
@@ -1243,6 +1256,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             role="checkbox"
             aria-checked={item.task.completed}
             aria-label={item.task.completed ? "Znovu otevřít úkol" : "Označit úkol jako hotový"}
+            title={item.task.completed ? "Znovu otevřít tento úkol" : "Označit tento úkol jako hotový"}
             onClick={(event) => {
               event.stopPropagation();
               toggleTask.mutate({ id: item.task.id, completed: !item.task.completed });
@@ -1258,6 +1272,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           <button
             type="button"
             onClick={() => onSelect(item.task.id)}
+            title={`Vybrat úkol "${item.task.title}"`}
             className="min-w-0 flex-1 text-left"
           >
             <div className={`text-sm font-semibold ${item.task.completed ? "text-slate-400 line-through" : "text-slate-900 dark:text-slate-100"}`}>
@@ -1292,6 +1307,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 onClick={openSubtaskDialog}
                 className="inline-flex size-5 items-center justify-center rounded text-slate-500 transition hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/15"
                 aria-label={`Přidat podúkol k úkolu ${item.task.title}`}
+                title={`Přidat podúkol k úkolu "${item.task.title}"`}
               >
                 <span className="material-symbols-outlined text-[13px]" aria-hidden>
                   add_task
@@ -1303,6 +1319,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 className="inline-flex size-5 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
                 aria-expanded={expanded}
                 aria-label={expanded ? "Sbalit podúkoly" : "Rozbalit podúkoly"}
+                title={expanded ? "Sbalit seznam podúkolů" : "Rozbalit seznam podúkolů"}
               >
                 <span className={`material-symbols-outlined text-[14px] transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden>
                   expand_more
@@ -1315,6 +1332,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               onClick={openSubtaskDialog}
               className="mt-7 inline-flex size-5 shrink-0 items-center justify-center rounded text-slate-500 transition hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/15"
               aria-label={`Přidat podúkol k úkolu ${item.task.title}`}
+              title={`Přidat podúkol k úkolu "${item.task.title}"`}
             >
               <span className="material-symbols-outlined text-[13px]" aria-hidden>
                 add_task
@@ -1347,12 +1365,14 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                       : "border-slate-300 hover:border-emerald-500 dark:border-slate-600"
                   }`}
                   aria-label={subtask.completed ? "Znovu otevřít podúkol" : "Označit podúkol jako hotový"}
+                  title={subtask.completed ? "Znovu otevřít tento podúkol" : "Označit tento podúkol jako hotový"}
                 >
                   <TaskCompletionMark completed={subtask.completed} />
                 </button>
                 <button
                   type="button"
                   onClick={() => onSelect(subtask.id)}
+                  title={`Vybrat podúkol "${subtask.title}"`}
                   className="min-w-0 flex-1 text-left"
                 >
                   <span
@@ -1396,6 +1416,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             type="button"
             role="menuitem"
             onClick={openDetailFromContextMenu}
+            title={menuState.isSubtask ? "Otevřít editační detail podúkolu" : "Otevřít editační detail úkolu"}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
@@ -1407,6 +1428,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             type="button"
             role="menuitem"
             onClick={requestDelete}
+            title={menuState.isSubtask ? "Smazat vybraný podúkol" : "Smazat vybraný úkol"}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
             disabled={deleteTask.isPending}
           >
@@ -1642,6 +1664,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
               data-help-id="todo-calendar-mode"
               data-active={mode === item ? "true" : "false"}
               onClick={() => onModeChange(item)}
+              title={`Přepnout kalendář na zobrazení: ${CALENDAR_MODE_LABELS[item]}`}
               className={`h-7 rounded-md border px-2 text-xs font-semibold transition ${
                 mode === item
                   ? "border-orange-600 bg-orange-500 text-white shadow-sm hover:bg-orange-600 hover:text-white dark:border-orange-500 dark:bg-orange-500 dark:text-white"
@@ -1658,6 +1681,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
             onClick={() => onCursorChange(shiftCalendarCursor(mode, cursorDate, -1))}
             className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             aria-label="Předchozí období"
+            title="Přejít na předchozí období kalendáře"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
               chevron_left
@@ -1666,6 +1690,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
           <button
             type="button"
             onClick={() => onCursorChange(new Date())}
+            title="Přejít v kalendáři na dnešní datum"
             className="h-8 rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Dnes
@@ -1675,6 +1700,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
             onClick={() => onCursorChange(shiftCalendarCursor(mode, cursorDate, 1))}
             className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             aria-label="Další období"
+            title="Přejít na další období kalendáře"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
               chevron_right
@@ -1791,6 +1817,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                         role="checkbox"
                         aria-checked={task.completed}
                         aria-label={task.completed ? `Znovu otevřít úkol ${task.title}` : `Označit úkol ${task.title} jako hotový`}
+                        title={task.completed ? `Znovu otevřít úkol "${task.title}"` : `Označit úkol "${task.title}" jako hotový`}
                         draggable={false}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -1810,6 +1837,7 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                         data-help-id="todo-calendar-task-action"
                         onClick={() => onSelectTask(task.id)}
                         onDoubleClick={() => onOpenTaskEditor(task.id)}
+                        title={`Vybrat úkol "${task.title}". Dvojklik otevře detail.`}
                         className="relative z-[1] block w-full min-w-0 overflow-hidden rounded-md bg-transparent text-left outline-none focus:ring-2 focus:ring-white/80"
                         style={{ color: "var(--todo-card-text)" }}
                       >
@@ -1996,6 +2024,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                     role="checkbox"
                     aria-checked={task.completed}
                     aria-label={task.completed ? "Znovu otevřít úkol" : "Označit úkol jako hotový"}
+                    title={task.completed ? "Znovu otevřít tento úkol" : "Označit tento úkol jako hotový"}
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleTask.mutate({ id: task.id, completed: !task.completed });
@@ -2016,6 +2045,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                       event.preventDefault();
                       onOpenTaskEditor(task.id);
                     }}
+                    title={`Vybrat úkol "${task.title}". Dvojklik otevře detail.`}
                     className="min-w-0 flex-1 self-stretch rounded-md bg-transparent text-left outline-none focus:outline-none focus-visible:outline-none"
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -2052,6 +2082,7 @@ const TodoAgendaView: React.FC<TodoAgendaViewProps> = ({
                     }}
                     className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white/70 text-slate-500 shadow-sm transition hover:border-primary/40 hover:bg-white hover:text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900"
                     aria-label={`Přidat podúkol k úkolu ${rootTask.title}`}
+                    title={`Přidat podúkol k úkolu "${rootTask.title}"`}
                   >
                     <span className="material-symbols-outlined text-[16px]" aria-hidden>
                       add_task
@@ -2271,6 +2302,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                     className="inline-flex size-7 items-center justify-center rounded-md text-primary transition hover:bg-primary/10 disabled:opacity-40"
                     disabled={!editingName.trim() || updateProject.isPending}
                     aria-label="Uložit TODO projekt"
+                    title="Uložit název a barvu TODO projektu"
                   >
                     <span className="material-symbols-outlined text-[17px]" aria-hidden>
                       check
@@ -2281,6 +2313,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                     className="inline-flex size-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-200 dark:hover:bg-slate-800"
                     onClick={cancelEditingProject}
                     aria-label="Zrušit editaci TODO projektu"
+                    title="Zrušit editaci TODO projektu"
                   >
                     <span className="material-symbols-outlined text-[17px]" aria-hidden>
                       close
@@ -2298,6 +2331,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                     data-active={editingColor === null ? "true" : "false"}
                     className="inline-flex size-6 items-center justify-center rounded-md border border-slate-300 text-[11px] font-bold text-slate-500 transition data-[active=true]:ring-2 data-[active=true]:ring-primary dark:border-slate-600"
                     aria-label="Výchozí barva"
+                    title="Použít výchozí barvu TODO projektu"
                   >
                     ×
                   </button>
@@ -2310,6 +2344,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                       data-active={editingColor === color ? "true" : "false"}
                       className="inline-flex size-6 items-center justify-center rounded-md border border-slate-300 transition data-[active=true]:ring-2 data-[active=true]:ring-primary dark:border-slate-600"
                       aria-label={`Barva ${color}`}
+                      title={`Nastavit barvu TODO projektu na ${color}`}
                     >
                       <span
                         className="block size-3.5 rounded-full shadow-sm"
@@ -2342,7 +2377,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                   ? "border-orange-300 bg-orange-50 text-orange-700 shadow-sm dark:border-orange-900/70 dark:bg-orange-950/30 dark:text-orange-200"
                   : "border-transparent hover:border-primary/30 hover:bg-slate-50 dark:hover:bg-slate-800/70"
               }`}
-              title="Pravým tlačítkem otevřete akce projektu"
+              title={`Zobrazit TODO projekt "${project.name}". Pravým tlačítkem otevřete akce projektu.`}
             >
               <span
                 className={`text-primary ${active ? "font-black" : ""}`}
@@ -2371,6 +2406,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
             type="button"
             role="menuitem"
             onClick={() => startEditingProject(menuState.project)}
+            title="Upravit název nebo barvu TODO projektu"
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
@@ -2393,6 +2429,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                 data-active={!menuState.project.color ? "true" : "false"}
                 className="inline-flex size-7 items-center justify-center rounded-md border border-slate-300 text-[12px] font-bold text-slate-500 transition hover:bg-slate-50 data-[active=true]:ring-2 data-[active=true]:ring-primary dark:border-slate-600 dark:hover:bg-slate-800"
                 aria-label="Výchozí barva projektu"
+                title="Nastavit výchozí barvu projektu"
                 disabled={updateProject.isPending}
               >
                 ×
@@ -2406,6 +2443,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
                   data-active={menuState.project.color === color ? "true" : "false"}
                   className="inline-flex size-7 items-center justify-center rounded-md border border-slate-300 transition hover:bg-slate-50 data-[active=true]:ring-2 data-[active=true]:ring-primary dark:border-slate-600 dark:hover:bg-slate-800"
                   aria-label={`Změnit barvu projektu na ${color}`}
+                  title={`Změnit barvu projektu na ${color}`}
                   disabled={updateProject.isPending}
                 >
                   <span
@@ -2424,6 +2462,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
               setDeleteTarget(menuState.project);
               setMenuState(null);
             }}
+            title="Smazat TODO projekt"
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
@@ -2442,7 +2481,7 @@ export const TodoProjectSection: React.FC<TodoProjectSectionProps> = ({
           className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           aria-label="Nový TODO projekt"
         />
-        <Button type="submit" size="sm" variant="outline" disabled={!name.trim()} isLoading={createProject.isPending}>
+        <Button type="submit" size="sm" variant="outline" disabled={!name.trim()} isLoading={createProject.isPending} title="Přidat nový TODO projekt">
           Přidat
         </Button>
       </form>
@@ -2763,7 +2802,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             {selectedTask.archivedAt && (
-              <Button type="button" variant="outline" size="sm" onClick={handleRestoreFromArchive}>
+              <Button type="button" variant="outline" size="sm" onClick={handleRestoreFromArchive} title="Vrátit archivovaný úkol zpět do Hotovo">
                 Vrátit do Hotovo
               </Button>
             )}
@@ -2772,6 +2811,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                 type="button"
                 data-help-id="tasks-mobile-detail-close"
                 onClick={requestCloseDetail}
+                title="Zavřít detail úkolu"
                 className={`relative z-10 inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-input bg-background px-3 text-xs font-medium text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-100/50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/50 dark:hover:text-slate-100 ${
                   isModal ? "" : "lg:hidden"
                 }`}
@@ -2848,6 +2888,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               size="sm"
               onClick={() => setDetailReminderFromDue(0)}
               disabled={!dueAt}
+              title="Nastavit upozornění přesně na termín úkolu"
             >
               V termínu
             </Button>
@@ -2857,6 +2898,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               size="sm"
               onClick={() => setDetailReminderFromDue(60)}
               disabled={!dueAt}
+              title="Nastavit upozornění hodinu před termínem úkolu"
             >
               1 h před
             </Button>
@@ -2866,6 +2908,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               size="sm"
               onClick={() => setDetailReminderFromDue(24 * 60)}
               disabled={!dueAt}
+              title="Nastavit upozornění den před termínem úkolu"
             >
               Den před
             </Button>
@@ -2875,6 +2918,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               size="sm"
               onClick={() => setReminderAt("")}
               disabled={!reminderAt}
+              title="Vypnout upozornění u úkolu"
             >
               Vypnout
             </Button>
@@ -2939,10 +2983,11 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             size="sm"
             onClick={() => requestDelete(selectedTask, isSubtask)}
             disabled={isSaving}
+            title={isSubtask ? "Smazat tento podúkol" : "Smazat tento úkol"}
           >
             {isSubtask ? "Smazat podúkol" : "Smazat"}
           </Button>
-          <Button type="submit" size="sm" isLoading={isSaving}>
+          <Button type="submit" size="sm" isLoading={isSaving} title="Uložit změny v detailu úkolu">
             Uložit změny
           </Button>
         </div>
@@ -2956,7 +3001,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               <span className="text-xs text-slate-500">
                 {getSubtaskProgress(item.subtasks).done}/{item.subtasks.length}
               </span>
-              <Button type="button" size="sm" onClick={openSubtaskDialog}>
+              <Button type="button" size="sm" onClick={openSubtaskDialog} title="Přidat nový podúkol k tomuto úkolu">
                 Přidat podúkol
               </Button>
             </div>
@@ -2982,6 +3027,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                         : "border-slate-300 hover:border-emerald-500 dark:border-slate-600"
                     }`}
                     aria-label={subtask.completed ? "Znovu otevřít podúkol" : "Označit podúkol jako hotový"}
+                    title={subtask.completed ? "Znovu otevřít tento podúkol" : "Označit tento podúkol jako hotový"}
                   >
                     <TaskCompletionMark completed={subtask.completed} />
                   </button>
@@ -3003,6 +3049,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                     className="inline-flex size-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 disabled:opacity-30 dark:hover:bg-slate-800"
                     onClick={() => onSelectTask(subtask.id)}
                     aria-label="Otevřít detail podúkolu"
+                    title="Otevřít detail podúkolu"
                   >
                     <span className="material-symbols-outlined text-[18px]">edit_note</span>
                   </button>
@@ -3012,6 +3059,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                     onClick={() => moveSubtask(subtask, -1)}
                     disabled={index === 0}
                     aria-label="Posunout podúkol nahoru"
+                    title="Posunout podúkol nahoru"
                   >
                     <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
                   </button>
@@ -3021,6 +3069,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                     onClick={() => moveSubtask(subtask, 1)}
                     disabled={index === item.subtasks.length - 1}
                     aria-label="Posunout podúkol dolů"
+                    title="Posunout podúkol dolů"
                   >
                     <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
                   </button>
@@ -3029,6 +3078,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                   className="inline-flex size-7 items-center justify-center rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
                   onClick={() => requestDelete(subtask, true)}
                   aria-label="Smazat podúkol"
+                  title="Smazat podúkol"
                 >
                   <span className="material-symbols-outlined text-[18px]">delete</span>
                   </button>
@@ -3082,13 +3132,13 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               Detail obsahuje změny. Chcete je před zavřením uložit, nebo je zahodit?
             </p>
             <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setIsCloseConfirmOpen(false)}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIsCloseConfirmOpen(false)} title="Vrátit se zpět do editace detailu">
                 Pokračovat v editaci
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={handleDiscardAndClose}>
+              <Button type="button" variant="outline" size="sm" onClick={handleDiscardAndClose} title="Zahodit neuložené změny a zavřít detail">
                 Zahodit změny
               </Button>
-              <Button type="button" size="sm" onClick={handleSaveAndClose} isLoading={updateTask.isPending}>
+              <Button type="button" size="sm" onClick={handleSaveAndClose} isLoading={updateTask.isPending} title="Uložit změny a zavřít detail">
                 Uložit změny
               </Button>
             </div>
@@ -3382,6 +3432,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           aria-controls="tasks-menu-panel"
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((open) => !open)}
+          title={isMobileMenuOpen ? "Sbalit TODO menu" : "Rozbalit TODO menu"}
           className="flex min-w-0 self-start items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
         >
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden>
@@ -3416,6 +3467,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
                 data-help-id="tasks-menu-item"
                 aria-current={active ? "page" : undefined}
                 onClick={() => handleSelectView(item)}
+                title={`${meta.label}: ${meta.hint}`}
                 className={`${TASK_MENU_ITEM_BASE} ${active ? TASK_MENU_ITEM_ACTIVE : TASK_MENU_ITEM_INACTIVE}`}
               >
                 <span
