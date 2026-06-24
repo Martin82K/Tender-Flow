@@ -80,10 +80,12 @@ publish:
   repo: desktop
 ```
 
-Pro publikování release:
-```bash
-GH_TOKEN=xxx npm run desktop:build
-```
+Build aplikace musí zůstat bez publikování přes lokální GitHub token. Artefakty se
+vytváří lokálně pomocí `npm run desktop:build`, což v kořenovém `package.json`
+spouští `electron-builder --publish never`. Release artefakty nahrajte ručně přes
+GitHub webové rozhraní, nebo přes schválenou CI/GitHub App integraci s omezenými
+oprávněními. Nepoužívejte lokální user PAT ani proměnné prostředí s GitHub tokenem
+pro desktop build nebo upload.
 
 ## Prerekvizity
 

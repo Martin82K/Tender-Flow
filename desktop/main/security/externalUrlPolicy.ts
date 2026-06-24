@@ -1,7 +1,6 @@
 const ALLOWED_EXTERNAL_HOSTS = new Set([
     'accounts.google.com',
     'oauth2.googleapis.com',
-    'api.github.com',
     'github.com',
     'www.github.com',
     'tenderflow.cz',
