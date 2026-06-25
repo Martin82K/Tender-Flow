@@ -5,14 +5,16 @@ import {
   exportToXLSX as exportToXLSXLegacy,
 } from "@infra/export/exportService";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
+import type { TenderSelectionExportMeta } from "@infra/export/exportService";
 
 export const projectExportApi = {
   exportToXLSX(
     category: DemandCategory,
     bids: Bid[],
     project: ProjectDetails,
-  ): void {
-    exportToXLSXLegacy(category, bids, project);
+    meta?: TenderSelectionExportMeta,
+  ): Promise<void> {
+    return exportToXLSXLegacy(category, bids, project, meta);
   },
 
   exportToMarkdown(
@@ -27,8 +29,9 @@ export const projectExportApi = {
     category: DemandCategory,
     bids: Bid[],
     project: ProjectDetails,
-  ): void {
-    exportToPDFLegacy(category, bids, project);
+    meta?: TenderSelectionExportMeta,
+  ): Promise<void> {
+    return exportToPDFLegacy(category, bids, project, meta);
   },
 
   exportSupplierAnalysisToPDF(

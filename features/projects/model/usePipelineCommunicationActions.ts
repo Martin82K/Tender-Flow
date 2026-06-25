@@ -244,7 +244,23 @@ export const usePipelineCommunicationActions = ({
     await generateInquiryFromTemplateKind(bid, "materialInquiry");
   };
 
-  const handleExport = (format: "xlsx" | "markdown" | "pdf") => {
+  const resolveExportMeta = async () => {
+    const organizationLogoUrl = currentUser?.organizationId
+      ? await organizationService
+          .getOrganizationLogoUrl(currentUser.organizationId, {
+            expiresInSeconds: 1800,
+          })
+          .catch(() => null)
+      : null;
+
+    return {
+      organizationName: currentUser?.organizationName,
+      organizationLogoUrl,
+      sourceLabel: "Výběrové řízení",
+    };
+  };
+
+  const handleExport = async (format: "xlsx" | "markdown" | "pdf") => {
     if (!activeCategory) return;
 
     const categoryBids = bids[activeCategory.id] || [];
@@ -252,13 +268,23 @@ export const usePipelineCommunicationActions = ({
     try {
       switch (format) {
         case "xlsx":
-          projectExportApi.exportToXLSX(activeCategory, categoryBids, projectDetails);
+          await projectExportApi.exportToXLSX(
+            activeCategory,
+            categoryBids,
+            projectDetails,
+            await resolveExportMeta(),
+          );
           break;
         case "markdown":
           projectExportApi.exportToMarkdown(activeCategory, categoryBids, projectDetails);
           break;
         case "pdf":
-          projectExportApi.exportToPDF(activeCategory, categoryBids, projectDetails);
+          await projectExportApi.exportToPDF(
+            activeCategory,
+            categoryBids,
+            projectDetails,
+            await resolveExportMeta(),
+          );
           break;
       }
       setIsExportMenuOpen(false);
