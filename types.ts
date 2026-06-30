@@ -8,7 +8,7 @@ export type View =
   | "project-overview"
   | "url-shortener";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map";
+export type ProjectTab = "overview" | "budget" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map";
 
 // Tender Plan Item
 export interface TenderPlanItem {

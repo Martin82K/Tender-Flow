@@ -25,4 +25,15 @@ describe("ownerless sensitive project data RLS", () => {
     expect(migration).toContain("ps.permission = 'edit'");
     expect(migration).toContain("public.user_has_feature('module_contracts')");
   });
+
+  it("chrání rozpočty projektu před přístupem přes ownerless sdílení", () => {
+    const migration = readMigration("20260630120000_project_budgets.sql");
+
+    expect(migration).toContain("ALTER TABLE public.project_budgets ENABLE ROW LEVEL SECURITY;");
+    expect(migration).toContain("ALTER TABLE public.project_budget_items ENABLE ROW LEVEL SECURITY;");
+    expect(migration).toContain("REFERENCES public.demand_categories(id) ON DELETE SET NULL");
+    expect(migration).toContain("FROM public.project_shares ps");
+    expect(migration).toContain("p.owner_id IS NOT NULL");
+    expect(migration).not.toContain("p.owner_id IS NULL");
+  });
 });

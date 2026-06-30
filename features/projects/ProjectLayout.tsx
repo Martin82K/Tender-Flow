@@ -21,6 +21,9 @@ import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
 import { geocodingService } from "@features/maps/services/geocodingService";
+import { ProjectBudgetTab } from "@features/budgets";
+import { useExistingProjectBudgetQuery } from "@features/budgets";
+import { summarizeBudgetByTender } from "@features/budgets/model/budgetSummary";
 import type { ThemeSkin } from "@/hooks/useTheme";
 // --- Main Layout Component ---
 
@@ -43,6 +46,27 @@ interface ProjectLayoutProps {
   skin?: ThemeSkin;
   currentUserId?: string;
 }
+
+const BudgetAwarePipeline: React.FC<React.ComponentProps<typeof Pipeline>> = (props) => {
+  const budgetQuery = useExistingProjectBudgetQuery(props.projectId);
+  const budgetTotalsByCategory = useMemo(() => {
+    if (!budgetQuery.data) return {};
+    return Object.fromEntries(
+      summarizeBudgetByTender(budgetQuery.data).map((summary) => [
+        summary.demandCategoryId,
+        summary.totalPrice,
+      ]),
+    );
+  }, [budgetQuery.data]);
+
+  return (
+    <Pipeline
+      {...props}
+      budgetTotalsByCategory={budgetTotalsByCategory}
+      projectBudget={budgetQuery.data ?? null}
+    />
+  );
+};
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   projectId,
@@ -91,6 +115,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     () =>
       [
         { id: "overview", label: "Přehled", icon: "dashboard" },
+        { id: "budget", label: "Rozpočet", icon: "calculate" },
         { id: "tender-plan", label: "Plán VŘ", icon: "calendar_today" },
         {
           id: "pipeline",
@@ -235,6 +260,9 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             skin={skin}
           />
         )}
+        {activeTab === "budget" && (
+          <ProjectBudgetTab projectId={projectId} project={project} />
+        )}
         {activeTab === "tender-plan" && (
           <TenderPlan
             projectId={projectId}
@@ -259,7 +287,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           />
         )}
         {activeTab === "pipeline" && (
-          <Pipeline
+          <BudgetAwarePipeline
             projectId={projectId}
             projectDetails={project}
             bids={project.bids || {}}
