@@ -3,6 +3,7 @@ import type {
   ProjectBudget,
   ProjectBudgetCategory,
   ProjectBudgetImportItemInput,
+  ProjectBudgetImportProgress,
   ProjectBudgetImportResult,
   ProjectBudgetItem,
   ProjectBudgetItemInput,
@@ -376,7 +377,27 @@ export const budgetRepository = {
   async importItems(input: {
     budgetId: string;
     items: ProjectBudgetImportItemInput[];
+    onProgress?: (progress: ProjectBudgetImportProgress) => void;
   }): Promise<ProjectBudgetImportResult> {
+    const emitProgress = (progress: Omit<ProjectBudgetImportProgress, "timestamp" | "totalItems">) => {
+      input.onProgress?.({
+        ...progress,
+        totalItems: input.items.length,
+        timestamp: Date.now(),
+      });
+    };
+
+    const sourceRowNumberOf = (item: ProjectBudgetImportItemInput): number | undefined => {
+      const maybeRow = (item as { sourceRowNumber?: unknown }).sourceRowNumber;
+      return typeof maybeRow === "number" ? maybeRow : undefined;
+    };
+
+    emitProgress({
+      phase: "preparing",
+      processedItems: 0,
+      message: "Načítám aktuální rozpočet před importem.",
+    });
+
     const current = await budgetRepository.getProjectBudgetById(input.budgetId);
     const sheetByName = new Map(current.sheets.map((sheet) => [sheet.name.trim().toLowerCase(), sheet]));
     const categoryBySheetAndName = new Map<string, ProjectBudgetCategory>();
@@ -408,10 +429,31 @@ export const budgetRepository = {
         continue;
       }
 
+      emitProgress({
+        phase: "item",
+        processedItems: itemsAdded,
+        currentItemName: itemName,
+        currentItemCode: item.code.trim() || undefined,
+        currentSheetName: item.sheetName.trim() || "Importované objekty",
+        currentCategoryName: item.categoryName.trim() || "Importované položky",
+        sourceRowNumber: sourceRowNumberOf(item),
+        message: `Ukládám položku ${itemsAdded + 1}/${input.items.length}.`,
+      });
+
       const sheetName = item.sheetName.trim() || "Importované objekty";
       const sheetKey = sheetName.toLowerCase();
       let sheet = sheetByName.get(sheetKey);
       if (!sheet) {
+        emitProgress({
+          phase: "sheet",
+          processedItems: itemsAdded,
+          currentItemName: itemName,
+          currentItemCode: item.code.trim() || undefined,
+          currentSheetName: sheetName,
+          currentCategoryName: item.categoryName.trim() || "Importované položky",
+          sourceRowNumber: sourceRowNumberOf(item),
+          message: `Zakládám objekt ${sheetName}.`,
+        });
         const sheetId = `pbs_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         const { error } = await dbAdapter.from("project_budget_sheets").insert({
           id: sheetId,
@@ -437,6 +479,16 @@ export const budgetRepository = {
       const categoryKey = `${sheet.id}:${categoryName.toLowerCase()}`;
       let category = categoryBySheetAndName.get(categoryKey);
       if (!category) {
+        emitProgress({
+          phase: "category",
+          processedItems: itemsAdded,
+          currentItemName: itemName,
+          currentItemCode: item.code.trim() || undefined,
+          currentSheetName: sheetName,
+          currentCategoryName: categoryName,
+          sourceRowNumber: sourceRowNumberOf(item),
+          message: `Zakládám kapitolu ${categoryName}.`,
+        });
         const categoryId = `pbc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
         const { error } = await dbAdapter.from("project_budget_categories").insert({
           id: categoryId,
@@ -484,6 +536,16 @@ export const budgetRepository = {
 
       const measurements = item.measurements ?? [];
       if (measurements.length > 0) {
+        emitProgress({
+          phase: "measurements",
+          processedItems: itemsAdded,
+          currentItemName: itemName,
+          currentItemCode: item.code.trim() || undefined,
+          currentSheetName: sheetName,
+          currentCategoryName: categoryName,
+          sourceRowNumber: sourceRowNumberOf(item),
+          message: `Ukládám ${measurements.length.toLocaleString("cs-CZ")} řádků výkazu výměr.`,
+        });
         const rows = measurements.map((measurement, index) => ({
           id: `pbm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}_${index}`,
           item_id: itemId,
@@ -496,7 +558,24 @@ export const budgetRepository = {
         if (measurementError) throw measurementError;
         measurementsAdded += rows.length;
       }
+
+      emitProgress({
+        phase: "item",
+        processedItems: itemsAdded,
+        currentItemName: itemName,
+        currentItemCode: item.code.trim() || undefined,
+        currentSheetName: sheetName,
+        currentCategoryName: categoryName,
+        sourceRowNumber: sourceRowNumberOf(item),
+        message: `Položka ${itemsAdded}/${input.items.length} je uložená.`,
+      });
     }
+
+    emitProgress({
+      phase: "completed",
+      processedItems: itemsAdded,
+      message: `Import dokončen: uloženo ${itemsAdded.toLocaleString("cs-CZ")} položek.`,
+    });
 
     return {
       sheetsAdded,

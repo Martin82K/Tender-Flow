@@ -39,10 +39,16 @@ import type {
 } from "../api";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { ProjectBudgetImportModal } from "./ProjectBudgetImportModal";
+import type {
+  ProjectBudgetImportRunEvent,
+  ProjectBudgetImportRunStatus,
+  ProjectBudgetImportRunView,
+} from "./ProjectBudgetImportModal";
 import { getTenderPlans } from "@/features/projects/api/tenderPlanApi";
 import type {
   ProjectBudget,
   ProjectBudgetCategory,
+  ProjectBudgetImportProgress,
   ProjectBudgetItem,
   ProjectBudgetVatRate,
 } from "../model/budgetTypes";
@@ -81,6 +87,14 @@ interface BudgetContextMenuState {
   y: number;
 }
 
+interface BudgetImportRunState {
+  status: Exclude<ProjectBudgetImportRunStatus, "stalled">;
+  progress: ProjectBudgetImportProgress | null;
+  startedAt: number;
+  updatedAt: number;
+  events: ProjectBudgetImportRunEvent[];
+}
+
 const initialForm: ItemFormState = {
   code: "",
   name: "",
@@ -114,6 +128,9 @@ const menuPanelClass =
 const contextMenuClass =
   "fixed z-50 overflow-hidden border border-[var(--tf-skin-line-2)] bg-[var(--tf-skin-card)] shadow-[0_18px_40px_rgba(0,0,0,0.24)]";
 
+const IMPORT_RUN_STALL_WARNING_MS = 15_000;
+const MAX_IMPORT_RUN_EVENTS = 8;
+
 const getBudgetLoadErrorText = (error: unknown): string => {
   if (error instanceof Error && error.message.includes("vypršelo")) {
     return "Načtení rozpočtu trvá příliš dlouho. Zkontrolujte připojení a zkuste to znovu.";
@@ -123,6 +140,22 @@ const getBudgetLoadErrorText = (error: unknown): string => {
 
 const getTenderTitle = (options: BudgetTenderOption[], id?: string | null) =>
   options.find((option) => option.id === id)?.title ?? "Bez řízení";
+
+const progressEventFrom = (progress: ProjectBudgetImportProgress): ProjectBudgetImportRunEvent => {
+  const detail = [
+    progress.currentSheetName,
+    progress.currentCategoryName,
+    progress.currentItemCode ? `kód ${progress.currentItemCode}` : null,
+    progress.sourceRowNumber ? `řádek ${progress.sourceRowNumber}` : null,
+  ].filter(Boolean).join(" · ");
+
+  return {
+    id: progress.timestamp,
+    label: progress.message,
+    detail: detail || undefined,
+    tone: progress.phase === "completed" ? "success" : "info",
+  };
+};
 
 const vatAmountFor = (item: ProjectBudgetItem) => item.totalPriceWithVat - item.totalPrice;
 
@@ -342,6 +375,8 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
   const [importPreview, setImportPreview] = useState<ParsedBudgetImport | null>(null);
   const [importColumnOverrides, setImportColumnOverrides] = useState<BudgetImportColumnOverrides>({});
   const [importPreviewError, setImportPreviewError] = useState<string | null>(null);
+  const [importRunState, setImportRunState] = useState<BudgetImportRunState | null>(null);
+  const [importRunTick, setImportRunTick] = useState(0);
   const insertMenuRef = useRef<HTMLDivElement>(null);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const tenderMenuRef = useRef<HTMLDivElement>(null);
@@ -366,6 +401,24 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
     () => new Map(tenderOptions.map((option) => [option.id, option])),
     [tenderOptions],
   );
+  const importRun = useMemo<ProjectBudgetImportRunView | null>(() => {
+    if (!importRunState) return null;
+
+    const now = Date.now();
+    const secondsSinceLastUpdate = Math.max(0, Math.floor((now - importRunState.updatedAt) / 1000));
+    const elapsedSeconds = Math.max(0, Math.floor((now - importRunState.startedAt) / 1000));
+    const status = importRunState.status === "running" && now - importRunState.updatedAt > IMPORT_RUN_STALL_WARNING_MS
+      ? "stalled"
+      : importRunState.status;
+
+    return {
+      status,
+      progress: importRunState.progress,
+      elapsedSeconds,
+      secondsSinceLastUpdate,
+      events: importRunState.events,
+    };
+  }, [importRunState, importRunTick]);
 
   const isDemoBudget = projectId.startsWith("demo-");
   const demoBudget = useMemo(() => createDemoBudget(projectId, project), [projectId, project]);
@@ -524,6 +577,14 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [budgetContextMenu, isInsertOpen, isTenderMenuOpen, isViewMenuOpen, openItemTenderMenuId, sheetContextMenu]);
+
+  useEffect(() => {
+    if (importRunState?.status !== "running") return undefined;
+    const timer = window.setInterval(() => {
+      setImportRunTick((value) => value + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [importRunState?.status]);
 
   useEffect(() => {
     if (!budget) return;
@@ -696,6 +757,7 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
     setImportPreview(null);
     setImportColumnOverrides({});
     setImportPreviewError(null);
+    setImportRunState(null);
   };
 
   const parseImportPreview = async (
@@ -734,6 +796,7 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
     setImportPreview(null);
     setImportColumnOverrides(initialOverrides);
     setImportPreviewError(null);
+    setImportRunState(null);
     setIsImportPreviewOpen(true);
     setMessage({ text: `Čtu import ${file.name}...`, tone: "info" });
     await parseImportPreview(file, initialOverrides);
@@ -756,23 +819,92 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
   const handleConfirmBudgetImport = async () => {
     if (!budget || !importPreview || importPreview.rows.length === 0) return;
 
+    const startedAt = Date.now();
+    const initialProgress: ProjectBudgetImportProgress = {
+      phase: "preparing",
+      processedItems: 0,
+      totalItems: importPreview.rows.length,
+      message: "Připravuji import položek do rozpočtu.",
+      timestamp: startedAt,
+    };
+    setImportRunTick(0);
+    setImportRunState({
+      status: "running",
+      progress: initialProgress,
+      startedAt,
+      updatedAt: startedAt,
+      events: [
+        {
+          id: startedAt,
+          label: `Spouštím import ${importPreview.rows.length.toLocaleString("cs-CZ")} položek.`,
+          tone: "info",
+        },
+      ],
+    });
     setMessage({ text: `Importuji ${importPreview.rows.length.toLocaleString("cs-CZ")} položek...`, tone: "info" });
     try {
       const result = await importBudgetItems.mutateAsync({
         budgetId: budget.id,
         items: importPreview.rows,
+        onProgress: (progress) => {
+          setImportRunState((prev) => {
+            const event = progressEventFrom(progress);
+            return {
+              status: "running",
+              progress,
+              startedAt: prev?.startedAt ?? startedAt,
+              updatedAt: progress.timestamp,
+              events: [event, ...(prev?.events ?? [])].slice(0, MAX_IMPORT_RUN_EVENTS),
+            };
+          });
+        },
       });
+      const completedAt = Date.now();
+      const completedProgress: ProjectBudgetImportProgress = {
+        phase: "completed",
+        processedItems: result.itemsAdded,
+        totalItems: importPreview.rows.length,
+        message: formatBudgetImportReport(importPreview, result),
+        timestamp: completedAt,
+      };
+      setImportRunState((prev) => ({
+        status: "success",
+        progress: completedProgress,
+        startedAt: prev?.startedAt ?? startedAt,
+        updatedAt: completedAt,
+        events: [
+          {
+            id: completedAt,
+            label: "Import dokončen.",
+            detail: formatBudgetImportReport(importPreview, result),
+            tone: "success",
+          },
+          ...(prev?.events ?? []),
+        ].slice(0, MAX_IMPORT_RUN_EVENTS),
+      }));
       setMessage({
         text: formatBudgetImportReport(importPreview, result),
         tone: "success",
       });
-      setIsImportPreviewOpen(false);
-      setImportFile(null);
-      setImportPreview(null);
-      setImportColumnOverrides({});
       setImportPreviewError(null);
     } catch (error) {
       const text = error instanceof Error ? error.message : "Import XLS se nepodařilo uložit.";
+      const failedAt = Date.now();
+      setImportRunState((prev) => ({
+        status: "error",
+        progress: prev?.progress ?? initialProgress,
+        startedAt: prev?.startedAt ?? startedAt,
+        updatedAt: failedAt,
+        events: [
+          {
+            id: failedAt,
+            label: "Import se zastavil chybou.",
+            detail: text,
+            tone: "error",
+          },
+          ...(prev?.events ?? []),
+        ].slice(0, MAX_IMPORT_RUN_EVENTS),
+      }));
       setImportPreviewError(text);
       setMessage({ text, tone: "error" });
     }
@@ -1686,6 +1818,7 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
         columnOverrides={importColumnOverrides}
         isParsing={isParsingImportPreview}
         isImporting={importBudgetItems.isPending}
+        importRun={importRun}
         error={importPreviewError}
         onRemapColumn={handleRemapImportColumn}
         onResetMapping={handleResetImportMapping}

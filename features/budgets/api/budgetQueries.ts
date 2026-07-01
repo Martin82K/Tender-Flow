@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PROJECT_DETAILS_KEYS } from "@/hooks/queries/useProjectDetailsQuery";
 import { withTimeout } from "@/utils/helpers";
 import { budgetRepository } from "./budgetRepository";
-import type { ProjectBudgetImportItemInput, ProjectBudgetItemInput } from "../model/budgetTypes";
+import type {
+  ProjectBudgetImportItemInput,
+  ProjectBudgetImportProgress,
+  ProjectBudgetItemInput,
+} from "../model/budgetTypes";
 
 export const PROJECT_BUDGET_KEYS = {
   all: ["projectBudgets"] as const,
@@ -92,7 +96,11 @@ export const useCreateBudgetCategoryMutation = (projectId: string) => {
 export const useImportBudgetItemsMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { budgetId: string; items: ProjectBudgetImportItemInput[] }) =>
+    mutationFn: (input: {
+      budgetId: string;
+      items: ProjectBudgetImportItemInput[];
+      onProgress?: (progress: ProjectBudgetImportProgress) => void;
+    }) =>
       budgetRepository.importItems(input),
     onSuccess: async () => {
       await Promise.all([

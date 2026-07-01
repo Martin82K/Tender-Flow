@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectBudgetImportModal } from "@/features/budgets/ui/ProjectBudgetImportModal";
+import type { ProjectBudgetImportRunView } from "@/features/budgets/ui/ProjectBudgetImportModal";
 import type { ParsedBudgetImport } from "@/features/budgets/api";
 
 const preview: ParsedBudgetImport = {
@@ -63,6 +64,7 @@ describe("ProjectBudgetImportModal", () => {
         columnOverrides={{}}
         isParsing={false}
         isImporting={false}
+        importRun={null}
         error={null}
         onRemapColumn={vi.fn()}
         onResetMapping={vi.fn()}
@@ -82,5 +84,59 @@ describe("ProjectBudgetImportModal", () => {
       .find((table) => table.textContent?.includes("Odstranění příkopů"));
     expect(previewTable).toBeInTheDocument();
     expect(previewTable?.className).toContain("min-w-[1180px]");
+  });
+
+  it("zobrazuje detailní průběh běžícího importu", () => {
+    const importRun: ProjectBudgetImportRunView = {
+      status: "running",
+      elapsedSeconds: 14,
+      secondsSinceLastUpdate: 2,
+      progress: {
+        phase: "item",
+        processedItems: 18,
+        totalItems: 77,
+        currentItemName: "Odstranění příkopů",
+        currentItemCode: "11328",
+        currentSheetName: "SO 01",
+        currentCategoryName: "1 - Zemní práce",
+        sourceRowNumber: 42,
+        message: "Ukládám položku 19/77.",
+        timestamp: 1000,
+      },
+      events: [
+        {
+          id: 1,
+          label: "Ukládám položku 19/77.",
+          detail: "SO 01 · 1 - Zemní práce · kód 11328 · řádek 42",
+          tone: "info",
+        },
+      ],
+    };
+
+    render(
+      <ProjectBudgetImportModal
+        isOpen
+        preview={preview}
+        columnOverrides={{}}
+        isParsing={false}
+        isImporting
+        importRun={importRun}
+        error={null}
+        onRemapColumn={vi.fn()}
+        onResetMapping={vi.fn()}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Průběh importu")).toBeInTheDocument();
+    expect(screen.getByText("Běží")).toBeInTheDocument();
+    expect(screen.getAllByText("Ukládám položku 19/77.").length).toBeGreaterThan(0);
+    expect(screen.getByText("18 / 77")).toBeInTheDocument();
+    expect(screen.getAllByText("Odstranění příkopů").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("SO 01 · 1 - Zemní práce · kód 11328 · řádek 42").length).toBeGreaterThan(0);
+    expect(screen.getByText("14s")).toBeInTheDocument();
+    expect(screen.getByText("2s")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Průběh importu položek" })).toHaveAttribute("aria-valuenow", "18");
   });
 });

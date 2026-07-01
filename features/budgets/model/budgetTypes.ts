@@ -103,6 +103,27 @@ export interface ProjectBudgetImportItemInput {
   measurements?: ProjectBudgetImportMeasurementInput[];
 }
 
+export type ProjectBudgetImportProgressPhase =
+  | "preparing"
+  | "sheet"
+  | "category"
+  | "item"
+  | "measurements"
+  | "completed";
+
+export interface ProjectBudgetImportProgress {
+  phase: ProjectBudgetImportProgressPhase;
+  processedItems: number;
+  totalItems: number;
+  currentItemName?: string;
+  currentItemCode?: string;
+  currentSheetName?: string;
+  currentCategoryName?: string;
+  sourceRowNumber?: number;
+  message: string;
+  timestamp: number;
+}
+
 export interface ProjectBudgetImportResult {
   sheetsAdded: number;
   categoriesAdded: number;
