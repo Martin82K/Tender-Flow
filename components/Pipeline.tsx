@@ -311,6 +311,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsExportMenuOpen,
     showAlert,
     runDocHubFallbackForCategory,
+    resolveDesktopTenderFolderPath,
   });
   const { handleOpenSupplierDocHub, handleOpenTenderDocHub } =
     usePipelineDocHubActions({
@@ -949,6 +950,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
       <CategoryFormModal
         isOpen={isAddModalOpen}
         mode="create"
+        isDesktop={!!platformAdapter.isDesktop}
+        isDocHubEnabled={isDocHubEnabled}
+        resolveDesktopTenderFolderPath={resolveDesktopTenderFolderPath}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleCreateCategoryFromModal}
       />
@@ -958,8 +962,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
         isOpen={isEditModalOpen}
         mode="edit"
         initialData={editingCategory || undefined}
-        existingDocuments={editingCategory?.documents}
         linkedTenderPlanDates={linkedTenderPlanDates}
+        isDesktop={!!platformAdapter.isDesktop}
+        isDocHubEnabled={isDocHubEnabled}
+        resolveDesktopTenderFolderPath={resolveDesktopTenderFolderPath}
         onClose={closeEditCategoryModal}
         onSubmit={handleEditCategoryFromModal}
       />

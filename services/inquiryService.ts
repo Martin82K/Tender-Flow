@@ -1,7 +1,46 @@
 import { DemandCategory, ProjectDetails, Bid } from '../types';
+import type { EmailAttachment } from './budgetAttachmentService';
 
 const stripCrLf = (value: string): string => value.replace(/[\r\n]+/g, ' ').trim();
 const sanitizeEmailRecipient = (value: string): string => value.replace(/[\r\n]+/g, '').trim();
+const sanitizeHeaderParameter = (value: string): string =>
+  value.replace(/[\r\n"]/g, '').replace(/[\\/:*?<>|]+/g, '_').trim() || 'priloha';
+const encodeHeaderParameter = (value: string): string =>
+  encodeURIComponent(value).replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+const foldBase64 = (value: string): string => value.replace(/.{1,76}/g, "$&\r\n").trimEnd();
+const encodeUtf8Base64 = (value: string): string =>
+  btoa(unescape(encodeURIComponent(value)));
+
+const buildAlternativePart = (boundary: string, htmlBody: string): string[] => [
+  `--${boundary}`,
+  "Content-Type: text/plain; charset=utf-8",
+  "Content-Transfer-Encoding: base64",
+  "",
+  encodeUtf8Base64(htmlBody.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, "")),
+  "",
+  `--${boundary}`,
+  "Content-Type: text/html; charset=utf-8",
+  "Content-Transfer-Encoding: base64",
+  "",
+  encodeUtf8Base64(htmlBody),
+  "",
+  `--${boundary}--`,
+];
+
+const buildAttachmentPart = (boundary: string, attachment: EmailAttachment): string[] => {
+  const safeFilename = sanitizeHeaderParameter(attachment.filename);
+  const encodedFilename = encodeHeaderParameter(attachment.filename.replace(/[\r\n]+/g, ' ').trim() || safeFilename);
+
+  return [
+    `--${boundary}`,
+    `Content-Type: ${attachment.contentType}; name="${safeFilename}"; name*=UTF-8''${encodedFilename}`,
+    "Content-Transfer-Encoding: base64",
+    `Content-Disposition: attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`,
+    "",
+    foldBase64(attachment.base64Content),
+    "",
+  ];
+};
 
 /**
  * Generate email inquiry from template
@@ -60,9 +99,12 @@ export function createMailtoLink(
 export function downloadEmlFile(
   to: string,
   subject: string,
-  htmlBody: string
+  htmlBody: string,
+  options?: {
+    attachments?: EmailAttachment[];
+  }
 ) {
-  const emlContent = generateEmlContent(to, subject, htmlBody);
+  const emlContent = generateEmlContent(to, subject, htmlBody, options);
 
   const blob = new Blob([emlContent], { type: "message/rfc822" });
   const url = URL.createObjectURL(blob);
@@ -85,34 +127,43 @@ export function generateEmlContent(
   htmlBody: string,
   options?: {
     bcc?: string;
+    attachments?: EmailAttachment[];
   }
 ): string {
   const safeTo = sanitizeEmailRecipient(to);
   const safeBcc = sanitizeEmailRecipient(options?.bcc || "");
   const safeSubject = stripCrLf(subject);
   const boundary = "boundary_string_123456789";
+  const attachments = options?.attachments || [];
+
+  const bodyLines =
+    attachments.length === 0
+      ? [
+          `Content-Type: multipart/alternative; boundary="${boundary}"`,
+          "",
+          ...buildAlternativePart(boundary, htmlBody),
+        ]
+      : [
+          `Content-Type: multipart/mixed; boundary="${boundary}_mixed"`,
+          "",
+          `--${boundary}_mixed`,
+          `Content-Type: multipart/alternative; boundary="${boundary}"`,
+          "",
+          ...buildAlternativePart(boundary, htmlBody),
+          "",
+          ...attachments.flatMap((attachment) =>
+            buildAttachmentPart(`${boundary}_mixed`, attachment),
+          ),
+          `--${boundary}_mixed--`,
+        ];
 
   const emlContent = [
     `To: ${safeTo}`,
     ...(safeBcc ? [`Bcc: ${safeBcc}`] : []),
-    `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(safeSubject)))}?=`,
+    `Subject: =?utf-8?B?${encodeUtf8Base64(safeSubject)}?=`,
     "X-Unsent: 1",
     "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=utf-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    btoa(unescape(encodeURIComponent(htmlBody.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, "")))),
-    "",
-    `--${boundary}`,
-    "Content-Type: text/html; charset=utf-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    btoa(unescape(encodeURIComponent(htmlBody))),
-    "",
-    `--${boundary}--`
+    ...bodyLines,
   ].join("\r\n");
 
   return emlContent;

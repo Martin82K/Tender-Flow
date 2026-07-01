@@ -3,6 +3,8 @@ import {
   downloadEmlFile,
   generateEmlContent,
 } from "@/services/inquiryService";
+import { loadBudgetAttachmentForEmail } from "@/services/budgetAttachmentService";
+import type { EmailAttachment } from "@/services/budgetAttachmentService";
 import { organizationService } from "@features/organization/api";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
@@ -55,6 +57,7 @@ interface UsePipelineCommunicationActionsInput {
     categoryId: string,
     reason: string,
   ) => Promise<void> | void;
+  resolveDesktopTenderFolderPath?: (categoryTitle: string) => Promise<string | null>;
 }
 
 export const usePipelineCommunicationActions = ({
@@ -68,6 +71,7 @@ export const usePipelineCommunicationActions = ({
   setIsExportMenuOpen,
   showAlert,
   runDocHubFallbackForCategory,
+  resolveDesktopTenderFolderPath,
 }: UsePipelineCommunicationActionsInput) => {
   const persistSentStatusForBid = async (bidId: string) => {
     if (!activeCategory) {
@@ -214,14 +218,48 @@ export const usePipelineCommunicationActions = ({
     }
 
     if (mode === "eml") {
+      let attachments: EmailAttachment[] = [];
+      if (
+        platformAdapter.isDesktop &&
+        activeCategory.budgetAttachment?.enabled &&
+        resolveDesktopTenderFolderPath
+      ) {
+        try {
+          const tenderFolderPath = await resolveDesktopTenderFolderPath(
+            activeCategory.title,
+          );
+          if (!tenderFolderPath) {
+            throw new Error("Nepodařilo se najít složku tohoto VŘ.");
+          }
+          attachments = [
+            await loadBudgetAttachmentForEmail(
+              tenderFolderPath,
+              activeCategory.budgetAttachment,
+            ),
+          ];
+        } catch (error) {
+          showAlert({
+            title: "Přílohu nelze vložit",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Rozpočtovou přílohu se nepodařilo načíst. Znovu ji prosím připojte v editaci poptávky.",
+            variant: "danger",
+          });
+          return;
+        }
+      }
+
       if (platformAdapter.isDesktop) {
-        const emlContent = generateEmlContent(bid.email || "", subject, htmlBody);
+        const emlContent = generateEmlContent(bid.email || "", subject, htmlBody, {
+          attachments,
+        });
         const filename =
           kind === "materialInquiry"
             ? `Materialova_poptavka_${Date.now()}.eml`
             : `Poptavka_${Date.now()}.eml`;
         console.log("[Pipeline] Opening EML on desktop:", filename);
-        platformAdapter.shell.openTempFile(emlContent, filename);
+        await platformAdapter.shell.openTempFile(emlContent, filename);
       } else {
         downloadEmlFile(bid.email || "", subject, htmlBody);
       }

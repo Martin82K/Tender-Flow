@@ -20,6 +20,10 @@ import type {
 
 export interface IpcContractMap {
   "fs:selectFolder": { args: []; result: FolderInfo | null };
+  "fs:selectFile": {
+    args: [options?: { title?: string; defaultPath?: string }];
+    result: FileInfo | null;
+  };
   "fs:listFiles": { args: [folderPath: string]; result: FileInfo[] };
   "fs:readFile": { args: [filePath: string]; result: Buffer };
   "fs:writeFile": { args: [filePath: string, data: Buffer | string]; result: void };

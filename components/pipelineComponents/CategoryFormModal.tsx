@@ -5,12 +5,13 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { DemandCategory, DemandDocument } from "../../types";
+import { BudgetAttachment, DemandCategory } from "../../types";
 import { formatDecimal, parseDecimal } from "../../utils/formatters";
 import { formatFileSize } from "../../services/documentService";
-import { uploadDocument } from "../../services/documentService";
 import { AlertModal } from "../AlertModal";
 import { NumericInput } from "@/shared/ui/NumericInput";
+import { openInExplorer } from "@infra/files/fileSystemService";
+import { selectBudgetAttachment } from "@/services/budgetAttachmentService";
 
 type PlanInputMode = "amount" | "percent";
 
@@ -20,6 +21,7 @@ export interface CategoryFormData {
   planBudget: string;
   description: string;
   workItems: string[];
+  budgetAttachment: BudgetAttachment | null;
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -29,10 +31,12 @@ interface CategoryFormModalProps {
   isOpen: boolean;
   mode: "create" | "edit";
   initialData?: Partial<DemandCategory>;
-  existingDocuments?: DemandDocument[];
   linkedTenderPlanDates?: { dateFrom: string; dateTo: string } | null; // Dates from linked VŘ plan
+  isDesktop?: boolean;
+  isDocHubEnabled?: boolean;
+  resolveDesktopTenderFolderPath?: (categoryTitle: string) => Promise<string | null>;
   onClose: () => void;
-  onSubmit: (formData: CategoryFormData, files: File[]) => Promise<void>;
+  onSubmit: (formData: CategoryFormData) => Promise<void>;
 }
 
 const initialFormState: CategoryFormData = {
@@ -41,6 +45,7 @@ const initialFormState: CategoryFormData = {
   planBudget: "",
   description: "",
   workItems: [],
+  budgetAttachment: null,
   deadline: "",
   realizationStart: "",
   realizationEnd: "",
@@ -50,15 +55,16 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   isOpen,
   mode,
   initialData,
-  existingDocuments = [],
   linkedTenderPlanDates,
+  isDesktop = false,
+  isDocHubEnabled = false,
+  resolveDesktopTenderFolderPath,
   onClose,
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<CategoryFormData>(initialFormState);
   const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
   const [planPercentDraft, setPlanPercentDraft] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -83,6 +89,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         workItems:
           initialData.workItems ||
           (initialData.description ? initialData.description.split("\n") : []),
+        budgetAttachment: initialData.budgetAttachment || null,
         deadline: initialData.deadline || "",
         realizationStart: initialData.realizationStart || "",
         realizationEnd: initialData.realizationEnd || "",
@@ -92,7 +99,6 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     }
     setPlanInputMode("amount");
     setPlanPercentDraft("");
-    setSelectedFiles([]);
   }, [isOpen, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,31 +110,10 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         ...formData,
         description: formData.workItems.join("\n"),
       };
-      await onSubmit(submissionData, selectedFiles);
+      await onSubmit(submissionData);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(
-        (f: File) => f.size <= 10 * 1024 * 1024,
-      );
-      if (newFiles.length < e.target.files.length) {
-        setAlertModal({
-          isOpen: true,
-          title: "Chyba nahrávání",
-          message: "Některé soubory překročily limit 10MB a nebyly přidány.",
-          variant: "danger",
-        });
-      }
-      setSelectedFiles((prev) => [...prev, ...newFiles]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const addWorkItem = () => {
@@ -212,6 +197,95 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   };
 
   const planBudgetPreview = getFormNumber(formData.planBudget);
+
+  const resolveTenderFolder = async (): Promise<string | null> => {
+    const categoryTitle = formData.title.trim();
+    if (!categoryTitle) {
+      setAlertModal({
+        isOpen: true,
+        title: "Chybí název VŘ",
+        message: "Nejdříve vyplňte název sekce/VŘ, aby bylo možné najít odpovídající složku.",
+        variant: "info",
+      });
+      return null;
+    }
+
+    if (!isDesktop) {
+      setAlertModal({
+        isOpen: true,
+        title: "Desktop funkce",
+        message:
+          "Mapování lokální rozpočtové přílohy je dostupné pouze v desktop aplikaci. Webový režim nemůže automaticky číst soubory z disku.",
+        variant: "info",
+      });
+      return null;
+    }
+
+    if (!isDocHubEnabled || !resolveDesktopTenderFolderPath) {
+      setAlertModal({
+        isOpen: true,
+        title: "DocHub není připojen",
+        message:
+          "Nejdříve připojte kořenovou složku DocHubu v záložce Dokumenty.",
+        variant: "danger",
+      });
+      return null;
+    }
+
+    const tenderFolder = await resolveDesktopTenderFolderPath(categoryTitle);
+    if (!tenderFolder) {
+      setAlertModal({
+        isOpen: true,
+        title: "Složka VŘ nenalezena",
+        message: "Nepodařilo se dopočítat složku pro toto VŘ.",
+        variant: "danger",
+      });
+      return null;
+    }
+
+    return tenderFolder;
+  };
+
+  const handleSelectBudgetAttachment = async () => {
+    try {
+      const tenderFolder = await resolveTenderFolder();
+      if (!tenderFolder) return;
+
+      const attachment = await selectBudgetAttachment(tenderFolder);
+      if (!attachment) return;
+
+      setFormData((prev) => ({ ...prev, budgetAttachment: attachment }));
+    } catch (error) {
+      setAlertModal({
+        isOpen: true,
+        title: "Přílohu nelze připojit",
+        message: error instanceof Error ? error.message : "Výběr přílohy selhal.",
+        variant: "danger",
+      });
+    }
+  };
+
+  const handleOpenTenderFolder = async () => {
+    try {
+      const tenderFolder = await resolveTenderFolder();
+      if (!tenderFolder) return;
+      const result = await openInExplorer(tenderFolder);
+      if (!result.success) {
+        throw new Error(result.error || "Složku se nepodařilo otevřít.");
+      }
+    } catch (error) {
+      setAlertModal({
+        isOpen: true,
+        title: "Složku nelze otevřít",
+        message: error instanceof Error ? error.message : "Otevření složky selhalo.",
+        variant: "danger",
+      });
+    }
+  };
+
+  const handleDetachBudgetAttachment = () => {
+    setFormData((prev) => ({ ...prev, budgetAttachment: null }));
+  };
 
   if (!isOpen) return null;
 
@@ -466,69 +540,79 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
               </p>
             </div>
 
-            {/* File upload - only for create mode */}
-            {mode === "create" && (
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                  Dokumenty
-                </label>
-                <div className="flex flex-col gap-3">
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="material-symbols-outlined text-slate-400 text-[28px] mb-1">
-                        upload_file
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                Rozpočtová příloha
+              </label>
+              <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 p-3">
+                {formData.budgetAttachment?.enabled ? (
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <span className="material-symbols-outlined text-slate-400 text-[20px]">
+                        attach_file
                       </span>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Klikněte pro výběr souborů
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        PDF, Word, Excel, obrázky (max 10MB)
-                      </p>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                          {formData.budgetAttachment.fileName}
+                        </p>
+                        <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                          {formData.budgetAttachment.relativePath}
+                        </p>
+                        {typeof formData.budgetAttachment.size === "number" && (
+                          <p className="mt-0.5 text-[10px] text-slate-400">
+                            {formatFileSize(formData.budgetAttachment.size)}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <input
-                      type="file"
-                      multiple
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.xlsx,.jpg,.jpeg,.png"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                  {selectedFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {selectedFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2"
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="material-symbols-outlined text-slate-400 text-[18px]">
-                              description
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {formatFileSize(file.size)}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFile(index)}
-                            className="text-slate-400 hover:text-red-500 transition-colors ml-2"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">
-                              close
-                            </span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={handleDetachBudgetAttachment}
+                      className="shrink-0 text-slate-400 hover:text-red-500 transition-colors"
+                      title="Odpojit přílohu"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        close
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="material-symbols-outlined text-[20px] text-slate-400">
+                      attach_file
+                    </span>
+                    <span>
+                      Není připojena žádná rozpočtová příloha pro e-mail poptávky.
+                    </span>
+                  </div>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectBudgetAttachment}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      upload_file
+                    </span>
+                    {formData.budgetAttachment?.enabled ? "Nahradit přílohu" : "Vybrat soubor"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenTenderFolder}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      folder_open
+                    </span>
+                    Otevřít složku VŘ
+                  </button>
                 </div>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  Obsah souboru se neukládá do Tender Flow. Ukládá se jen propojení na soubor ve složce VŘ.
+                </p>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="p-4 bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-700/40 flex justify-end gap-3 shrink-0">

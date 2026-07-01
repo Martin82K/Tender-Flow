@@ -71,6 +71,15 @@ export interface DemandDocument {
   uploadedAt: string;
 }
 
+export interface BudgetAttachment {
+  source: "dochub";
+  fileName: string;
+  relativePath: string;
+  size?: number;
+  selectedAt: string;
+  enabled: boolean;
+}
+
 export interface DemandCategory {
   id: string;
   title: string;
@@ -82,6 +91,7 @@ export interface DemandCategory {
   description: string;
   workItems?: string[]; // Dynamic list of work items for email templates
   documents?: DemandDocument[];
+  budgetAttachment?: BudgetAttachment | null;
   deadline?: string; // Termín pro podání nabídky (ISO date string)
   realizationStart?: string; // Termín realizace - začátek (ISO date string)
   realizationEnd?: string; // Termín realizace - konec (ISO date string)

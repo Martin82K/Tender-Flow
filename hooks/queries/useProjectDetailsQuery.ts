@@ -97,6 +97,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         realizationEnd: c.realization_end || undefined,
         createdAt: c.created_at || undefined,
         documents: c.documents || [], // assuming documents might be fetched or joined? useAppData didn't map documents here explicitly in the view I saw, but interface has it.
+        budgetAttachment: c.budget_attachment || undefined,
     }));
 
     const contractData = contractRes.data;

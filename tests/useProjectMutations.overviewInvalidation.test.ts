@@ -236,7 +236,16 @@ describe("useProjectMutations -> overview cache invalidation", () => {
 
   it("invaliduje overview cache po přidání kategorie", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValue(fromResult);
     const { result } = renderHook(() => useAddCategoryMutation(), { wrapper });
+    const budgetAttachment = {
+      source: "dochub" as const,
+      fileName: "rozpocet.xlsx",
+      relativePath: "rozpocet.xlsx",
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    };
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -250,16 +259,31 @@ describe("useProjectMutations -> overview cache invalidation", () => {
           status: "open",
           subcontractorCount: 0,
           description: "",
+          budgetAttachment,
         },
       });
     });
 
+    expect(fromResult.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        budget_attachment: budgetAttachment,
+      }),
+    );
     expectOverviewInvalidation(invalidateSpy);
   });
 
   it("invaliduje overview cache po úpravě kategorie", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValue(fromResult);
     const { result } = renderHook(() => useEditCategoryMutation(), { wrapper });
+    const budgetAttachment = {
+      source: "dochub" as const,
+      fileName: "rozpocet.xlsx",
+      relativePath: "rozpocet.xlsx",
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    };
 
     await act(async () => {
       await result.current.mutateAsync({
@@ -273,10 +297,16 @@ describe("useProjectMutations -> overview cache invalidation", () => {
           status: "open",
           subcontractorCount: 0,
           description: "",
+          budgetAttachment,
         },
       });
     });
 
+    expect(fromResult.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        budget_attachment: budgetAttachment,
+      }),
+    );
     expectOverviewInvalidation(invalidateSpy);
   });
 

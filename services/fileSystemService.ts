@@ -213,6 +213,84 @@ export async function pickFolder(): Promise<{ path?: string; cancelled?: boolean
 }
 
 /**
+ * Open a file picker dialog.
+ */
+export async function pickFile(options?: {
+    title?: string;
+    defaultPath?: string;
+}): Promise<{
+    path?: string;
+    name?: string;
+    size?: number;
+    cancelled?: boolean;
+    error?: string;
+}> {
+    if (isDesktop) {
+        try {
+            const result = await fileSystemAdapter.selectFile(options);
+            if (!result) {
+                return { cancelled: true };
+            }
+            return {
+                path: result.absolutePath,
+                name: result.name,
+                size: result.size,
+            };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            await logFileSystemIncident({
+                severity: "error",
+                code: "FS_PICK_FILE_FAILED",
+                message: `Výběr souboru selhal: ${message}`,
+                action: "pick_file",
+                operation: "file_system.select_file",
+                actionStatus: "error",
+                targetPath: options?.defaultPath,
+                reason: message,
+                stack: error instanceof Error ? error.stack : null,
+            });
+            return { cancelled: true, error: message };
+        }
+    }
+
+    const error = "Výběr souboru je dostupný pouze v desktop aplikaci.";
+    await logFileSystemIncident({
+        severity: "error",
+        code: "FS_PICK_FILE_UNAVAILABLE",
+        message: error,
+        action: "pick_file",
+        operation: "file_system.select_file",
+        actionStatus: "error",
+        reason: "desktop_only",
+    });
+    return { cancelled: true, error };
+}
+
+export async function readFile(filePath: string): Promise<Uint8Array> {
+    if (!isDesktop) {
+        throw new Error("Čtení lokálních souborů je dostupné pouze v desktop aplikaci.");
+    }
+
+    try {
+        return await fileSystemAdapter.readFile(filePath);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await logFileSystemIncident({
+            severity: "error",
+            code: "FS_READ_FILE_FAILED",
+            message: `Čtení souboru selhalo: ${message}`,
+            action: "read_file",
+            operation: "file_system.read_file",
+            actionStatus: "error",
+            targetPath: filePath,
+            reason: message,
+            stack: error instanceof Error ? error.stack : null,
+        });
+        throw error;
+    }
+}
+
+/**
  * Check if a folder exists
  */
 export async function folderExists(folderPath: string): Promise<boolean> {

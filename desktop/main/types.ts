@@ -58,6 +58,7 @@ export interface PlatformInfo {
 
 export interface FileSystemAPI {
     selectFolder: () => Promise<FolderInfo | null>;
+    selectFile: (options?: { title?: string; defaultPath?: string }) => Promise<FileInfo | null>;
     listFiles: (folderPath: string) => Promise<FileInfo[]>;
     readFile: (filePath: string) => Promise<Buffer>;
     writeFile: (filePath: string, data: Buffer | string) => Promise<void>;

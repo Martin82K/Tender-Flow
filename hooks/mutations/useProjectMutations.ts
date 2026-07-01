@@ -600,6 +600,7 @@ export const useAddCategoryMutation = () => {
                 realization_start: category.realizationStart || null,
                 realization_end: category.realizationEnd || null,
                 work_items: category.workItems || null,
+                budget_attachment: category.budgetAttachment || null,
             });
             if (error) throw error;
 
@@ -684,6 +685,7 @@ export const useEditCategoryMutation = () => {
                 realization_start: category.realizationStart || null,
                 realization_end: category.realizationEnd || null,
                 work_items: category.workItems || null,
+                budget_attachment: category.budgetAttachment || null,
             }).eq("id", category.id).eq("project_id", projectId);
 
             if (error) throw error;
