@@ -139,4 +139,62 @@ describe("ProjectBudgetImportModal", () => {
     expect(screen.getByText("2s")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Průběh importu položek" })).toHaveAttribute("aria-valuenow", "18");
   });
+
+  it("nevypisuje React varování při duplicitních timestamp klíčích importu", () => {
+    const duplicatePreview: ParsedBudgetImport = {
+      ...preview,
+      rows: [
+        preview.rows[0],
+        {
+          ...preview.rows[0],
+          name: "Duplicitní položka se stejným řádkem a kódem",
+        },
+      ],
+    };
+    const importRun: ProjectBudgetImportRunView = {
+      status: "running",
+      elapsedSeconds: 1,
+      secondsSinceLastUpdate: 0,
+      progress: null,
+      events: [
+        {
+          id: 1782943755259,
+          label: "Načítám položky",
+          tone: "info",
+        },
+        {
+          id: 1782943755259,
+          label: "Ukládám položky",
+          tone: "info",
+        },
+      ],
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    render(
+      <ProjectBudgetImportModal
+        isOpen
+        preview={duplicatePreview}
+        columnOverrides={{}}
+        isParsing={false}
+        isImporting
+        importRun={importRun}
+        error={null}
+        onRemapColumn={vi.fn()}
+        onResetMapping={vi.fn()}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const duplicateKeyWarnings = errorSpy.mock.calls.filter((call) =>
+      call.some((part) => String(part).includes("Encountered two children with the same key")),
+    );
+    errorSpy.mockRestore();
+
+    expect(duplicateKeyWarnings).toHaveLength(0);
+    expect(screen.getByText("Načítám položky")).toBeInTheDocument();
+    expect(screen.getByText("Ukládám položky")).toBeInTheDocument();
+    expect(screen.getByText("Duplicitní položka se stejným řádkem a kódem")).toBeInTheDocument();
+  });
 });

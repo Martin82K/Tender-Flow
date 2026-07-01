@@ -53,6 +53,15 @@ const skippedReasonSummary = (preview: ParsedBudgetImport | null): Array<{ reaso
   return Array.from(counts, ([reason, count]) => ({ reason, count }));
 };
 
+const importEventKey = (event: ProjectBudgetImportRunEvent, index: number): string =>
+  `${event.id}-${index}-${event.label}`;
+
+const importPreviewRowKey = (
+  row: ParsedBudgetImport["rows"][number],
+  index: number,
+): string =>
+  `${row.sheetName}-${row.sourceRowNumber ?? "bez-radku"}-${row.code || "bez-kodu"}-${index}`;
+
 export type ProjectBudgetImportRunStatus = "running" | "stalled" | "success" | "error";
 
 export interface ProjectBudgetImportRunEvent {
@@ -243,8 +252,8 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
               )}
               {importRun.events.length > 0 && (
                 <div className="max-h-32 overflow-auto border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)]">
-                  {importRun.events.map((event) => (
-                    <div key={event.id} className="border-b border-[var(--tf-skin-line)] px-2 py-1.5 last:border-b-0">
+                  {importRun.events.map((event, index) => (
+                    <div key={importEventKey(event, index)} className="border-b border-[var(--tf-skin-line)] px-2 py-1.5 last:border-b-0">
                       <div className={`text-[10px] font-black ${eventToneClass(event.tone)}`}>{event.label}</div>
                       {event.detail && <div className="mt-0.5 truncate font-mono text-[9px] text-[var(--tf-skin-muted)]">{event.detail}</div>}
                     </div>
@@ -407,8 +416,8 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.rows.slice(0, 40).map((row) => (
-                    <tr key={`${row.sheetName}-${row.sourceRowNumber}-${row.code}`} className="border-b border-[var(--tf-skin-line)]">
+                  {preview.rows.slice(0, 40).map((row, index) => (
+                    <tr key={importPreviewRowKey(row, index)} className="border-b border-[var(--tf-skin-line)]">
                       <td className="whitespace-nowrap px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.sourceRowNumber}</td>
                       <td className="max-w-24 truncate px-2 py-1.5">{row.sheetName}</td>
                       <td className="whitespace-nowrap px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.positionLabel || "-"}</td>
