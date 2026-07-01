@@ -6,6 +6,7 @@ import type {
 } from "../model/budgetTypes";
 const MAX_IMPORT_ROWS = 5000;
 const MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_SKIPPED_ROW_DETAILS = 200;
 const SUPPORTED_IMPORT_EXTENSIONS = new Set(["xlsx", "xlsm", "xlsb", "xls", "ods"]);
 
 type BudgetImportField =
@@ -354,7 +355,7 @@ const shouldSkipTypedNonItemRow = (
 ): boolean =>
   columns.rowType !== undefined
   && !!type
-  && !["p", "k", "m"].includes(type)
+  && !["p", "k", "m", "d", "sd", "dil", "oddil", "soubor"].includes(type)
   && detailKindFromRowType(type) === null;
 
 const detailText = (row: unknown[], columns: Partial<Record<BudgetImportField, number>>): string => {
@@ -499,6 +500,14 @@ const columnsToIndices = (
 const rowValuesForReport = (row: unknown[]): string[] =>
   row.map(rawText).filter(Boolean).slice(0, 8).map((value) => value.slice(0, 120));
 
+const pushSkippedRowDetail = (
+  target: ParsedBudgetImportSkippedRow[],
+  detail: ParsedBudgetImportSkippedRow,
+): void => {
+  if (target.length >= MAX_SKIPPED_ROW_DETAILS) return;
+  target.push(detail);
+};
+
 export const parseBudgetWorkbook = (
   workbook: XLSX.WorkBook,
   fileName = "import.xlsx",
@@ -600,6 +609,23 @@ export const parseBudgetWorkbook = (
 
       if (!name && !code) {
         skippedRows++;
+        pushSkippedRowDetail(skippedRowDetails, {
+          sheetName,
+          rowNumber: rowIndex + 1,
+          reason: "Řádek nemá kód ani název položky.",
+          values: rowValuesForReport(row),
+        });
+        continue;
+      }
+
+      if (shouldSkipTypedNonItemRow(type, columns)) {
+        skippedRows++;
+        pushSkippedRowDetail(skippedRowDetails, {
+          sheetName,
+          rowNumber: rowIndex + 1,
+          reason: `Typ řádku "${rawText(cellAt(row, columns.rowType)) || type}" není položka rozpočtu.`,
+          values: rowValuesForReport(row),
+        });
         continue;
       }
 
@@ -607,17 +633,18 @@ export const parseBudgetWorkbook = (
         const categoryRowName = categoryNameFromRow(row, columns) ?? name;
         currentCategory = budgetSectionFromLabel(categoryRowName) ?? categoryRowName;
         skippedRows++;
-        continue;
-      }
-
-      if (shouldSkipTypedNonItemRow(type, columns)) {
-        skippedRows++;
+        pushSkippedRowDetail(skippedRowDetails, {
+          sheetName,
+          rowNumber: rowIndex + 1,
+          reason: "Řádek je hlavička kapitoly, ne položka rozpočtu.",
+          values: rowValuesForReport(row),
+        });
         continue;
       }
 
       if (!name) {
         skippedRows++;
-        skippedRowDetails.push({
+        pushSkippedRowDetail(skippedRowDetails, {
           sheetName,
           rowNumber: rowIndex + 1,
           reason: "Chybí název položky v rozpoznaném sloupci názvu.",

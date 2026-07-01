@@ -36,6 +36,15 @@ const numberText = (value: number) =>
     maximumFractionDigits: 4,
   });
 
+const skippedReasonSummary = (preview: ParsedBudgetImport | null): Array<{ reason: string; count: number }> => {
+  if (!preview) return [];
+  const counts = new Map<string, number>();
+  preview.skippedRowDetails.forEach((row) => {
+    counts.set(row.reason, (counts.get(row.reason) ?? 0) + 1);
+  });
+  return Array.from(counts, ([reason, count]) => ({ reason, count }));
+};
+
 interface ProjectBudgetImportModalProps {
   isOpen: boolean;
   preview: ParsedBudgetImport | null;
@@ -63,6 +72,10 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
 }) => {
   const hasOverrides = Object.keys(columnOverrides).length > 0;
   const canImport = !!preview && preview.rows.length > 0 && !isParsing && !isImporting;
+  const skippedSummary = skippedReasonSummary(preview);
+  const skippedRowsWithoutDetail = preview
+    ? Math.max(0, preview.skippedRows - preview.skippedRowDetails.length)
+    : 0;
 
   return (
     <Modal
@@ -75,20 +88,20 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
     >
       <div className="space-y-4 text-[var(--tf-skin-text)]">
         {preview && (
-          <div className="grid grid-cols-4 gap-2">
-            <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+            <div className="min-w-0 border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">Soubor</div>
               <div className="mt-1 truncate text-xs font-black">{preview.fileName}</div>
             </div>
-            <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
+            <div className="min-w-0 border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">Položek</div>
               <div className="mt-1 font-mono text-sm font-black">{preview.rows.length.toLocaleString("cs-CZ")}</div>
             </div>
-            <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
+            <div className="min-w-0 border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">Listů</div>
               <div className="mt-1 font-mono text-sm font-black">{preview.sheetNames.length.toLocaleString("cs-CZ")}</div>
             </div>
-            <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
+            <div className="min-w-0 border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] p-3">
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">Přeskočeno</div>
               <div className="mt-1 font-mono text-sm font-black">{preview.skippedRows.toLocaleString("cs-CZ")}</div>
             </div>
@@ -159,37 +172,105 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
         )}
 
         {preview && (
+          <div className="border border-[var(--tf-skin-line)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] px-3 py-2">
+              <div className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">
+                Přehled neimportovaných řádků
+              </div>
+              <div className="font-mono text-[11px] font-black text-[var(--tf-skin-text)]">
+                {preview.skippedRows.toLocaleString("cs-CZ")} přeskočeno
+              </div>
+            </div>
+            {preview.skippedRows === 0 ? (
+              <div className="px-3 py-3 text-[11px] font-semibold text-[var(--tf-skin-muted)]">
+                V preview nejsou žádné přeskočené řádky.
+              </div>
+            ) : (
+              <div className="space-y-3 p-3">
+                {skippedSummary.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {skippedSummary.map((item) => (
+                      <div
+                        key={item.reason}
+                        className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-900"
+                      >
+                        {item.count.toLocaleString("cs-CZ")}x {item.reason}
+                      </div>
+                    ))}
+                    {skippedRowsWithoutDetail > 0 && (
+                      <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] px-2.5 py-1 text-[10px] font-bold text-[var(--tf-skin-muted)]">
+                        {skippedRowsWithoutDetail.toLocaleString("cs-CZ")}x bez detailu
+                      </div>
+                    )}
+                  </div>
+                )}
+                {preview.skippedRowDetails.length > 0 ? (
+                  <div className="max-h-44 overflow-auto border border-[var(--tf-skin-line)]">
+                    <table className="min-w-[900px] w-full text-left text-[10px]">
+                      <thead className="sticky top-0 bg-[var(--tf-skin-card)] text-[8px] uppercase tracking-[0.12em] text-[var(--tf-skin-muted)]">
+                        <tr>
+                          <th className="w-20 border-b border-[var(--tf-skin-line)] px-2 py-2">Řádek</th>
+                          <th className="w-28 border-b border-[var(--tf-skin-line)] px-2 py-2">List</th>
+                          <th className="w-72 border-b border-[var(--tf-skin-line)] px-2 py-2">Důvod</th>
+                          <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">Hodnoty v řádku</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preview.skippedRowDetails.map((row, index) => (
+                          <tr key={`${row.sheetName}-${row.rowNumber}-${index}`} className="border-b border-[var(--tf-skin-line)]">
+                            <td className="whitespace-nowrap px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.rowNumber}</td>
+                            <td className="max-w-28 truncate px-2 py-1.5 font-mono">{row.sheetName}</td>
+                            <td className="px-2 py-1.5 font-bold text-amber-900">{row.reason}</td>
+                            <td className="max-w-[420px] truncate px-2 py-1.5 font-mono text-[var(--tf-skin-text-2)]">
+                              {row.values.length > 0 ? row.values.join(" | ") : "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="border border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] px-3 py-2 text-[11px] font-semibold text-[var(--tf-skin-muted)]">
+                    Přeskočené řádky byly technické nebo prázdné a nemají další detail k zobrazení.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {preview && (
           <div className="overflow-hidden border border-[var(--tf-skin-line)]">
             <div className="border-b border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface)] px-3 py-2 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--tf-skin-muted)]">
               Náhled položek
             </div>
             <div className="max-h-72 overflow-auto">
-              <table className="w-full text-left text-[10px]">
+              <table className="min-w-[1180px] w-full text-left text-[10px]">
                 <thead className="sticky top-0 bg-[var(--tf-skin-card)] text-[8px] uppercase tracking-[0.12em] text-[var(--tf-skin-muted)]">
                   <tr>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">Řádek</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">List</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">P.č.</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">Kapitola</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">Kód</th>
+                    <th className="w-16 border-b border-[var(--tf-skin-line)] px-2 py-2">Řádek</th>
+                    <th className="w-24 border-b border-[var(--tf-skin-line)] px-2 py-2">List</th>
+                    <th className="w-16 border-b border-[var(--tf-skin-line)] px-2 py-2">P.č.</th>
+                    <th className="w-56 border-b border-[var(--tf-skin-line)] px-2 py-2">Kapitola</th>
+                    <th className="w-32 border-b border-[var(--tf-skin-line)] px-2 py-2">Kód</th>
                     <th className="border-b border-[var(--tf-skin-line)] px-2 py-2">Název</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">MJ</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">Množství</th>
-                    <th className="border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">J. cena</th>
+                    <th className="w-16 border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">MJ</th>
+                    <th className="w-28 border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">Množství</th>
+                    <th className="w-28 border-b border-[var(--tf-skin-line)] px-2 py-2 text-right">J. cena</th>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.rows.slice(0, 40).map((row) => (
                     <tr key={`${row.sheetName}-${row.sourceRowNumber}-${row.code}`} className="border-b border-[var(--tf-skin-line)]">
-                      <td className="px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.sourceRowNumber}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.sourceRowNumber}</td>
                       <td className="max-w-24 truncate px-2 py-1.5">{row.sheetName}</td>
-                      <td className="px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.positionLabel || "-"}</td>
-                      <td className="max-w-44 truncate px-2 py-1.5">{row.categoryName}</td>
-                      <td className="px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.code || "-"}</td>
-                      <td className="max-w-80 truncate px-2 py-1.5 font-bold">{row.name}</td>
-                      <td className="px-2 py-1.5 text-right font-mono font-black">{row.unit}</td>
-                      <td className="px-2 py-1.5 text-right font-mono text-[var(--tf-skin-green)]">{numberText(row.amount)}</td>
-                      <td className="px-2 py-1.5 text-right font-mono">{formatBudgetCurrency(row.unitPrice)}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.positionLabel || "-"}</td>
+                      <td className="max-w-56 truncate px-2 py-1.5">{row.categoryName}</td>
+                      <td className="max-w-32 truncate px-2 py-1.5 font-mono text-[var(--tf-skin-muted)]">{row.code || "-"}</td>
+                      <td className="max-w-[420px] truncate px-2 py-1.5 font-bold">{row.name}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono font-black">{row.unit}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono text-[var(--tf-skin-green)]">{numberText(row.amount)}</td>
+                      <td className="whitespace-nowrap px-2 py-1.5 text-right font-mono">{formatBudgetCurrency(row.unitPrice)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -208,24 +289,6 @@ export const ProjectBudgetImportModal: React.FC<ProjectBudgetImportModalProps> =
             {preview.warnings.slice(0, 4).map((warning, index) => (
               <p key={`${warning}-${index}`}>{warning}</p>
             ))}
-          </div>
-        ) : null}
-
-        {preview?.skippedRowDetails.length ? (
-          <div className="border border-red-200 bg-red-50 p-3 text-[11px] text-red-800">
-            <div className="mb-2 font-black uppercase tracking-[0.12em]">
-              Neimportované řádky: {preview.skippedRows.toLocaleString("cs-CZ")}
-            </div>
-            <div className="max-h-28 space-y-1 overflow-auto">
-              {preview.skippedRowDetails.slice(0, 8).map((row, index) => (
-                <div key={`${row.sheetName}-${row.rowNumber}-${index}`} className="border-t border-red-100 pt-1 first:border-t-0 first:pt-0">
-                  <p className="font-bold">
-                    {row.sheetName}, řádek {row.rowNumber}: {row.reason}
-                  </p>
-                  {row.values.length > 0 && <p className="truncate font-mono text-red-950/80">{row.values.join(" | ")}</p>}
-                </div>
-              ))}
-            </div>
           </div>
         ) : null}
 

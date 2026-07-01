@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PROJECT_DETAILS_KEYS } from "@/hooks/queries/useProjectDetailsQuery";
+import { withTimeout } from "@/utils/helpers";
 import { budgetRepository } from "./budgetRepository";
 import type { ProjectBudgetImportItemInput, ProjectBudgetItemInput } from "../model/budgetTypes";
 
@@ -9,21 +10,39 @@ export const PROJECT_BUDGET_KEYS = {
   existing: (projectId: string) => [...PROJECT_BUDGET_KEYS.all, "existing", projectId] as const,
 };
 
+export const PROJECT_BUDGET_LOAD_TIMEOUT_MS = 20_000;
+export const PROJECT_BUDGET_LOAD_TIMEOUT_MESSAGE = "Načtení rozpočtu vypršelo";
+
+export const loadProjectBudget = (projectId: string, projectTitle?: string) =>
+  withTimeout(
+    budgetRepository.getOrCreateProjectBudget(projectId, projectTitle),
+    PROJECT_BUDGET_LOAD_TIMEOUT_MS,
+    PROJECT_BUDGET_LOAD_TIMEOUT_MESSAGE,
+  );
+
+export const loadExistingProjectBudget = (projectId: string) =>
+  withTimeout(
+    budgetRepository.getProjectBudget(projectId),
+    PROJECT_BUDGET_LOAD_TIMEOUT_MS,
+    PROJECT_BUDGET_LOAD_TIMEOUT_MESSAGE,
+  );
+
 export const useProjectBudgetQuery = (
   projectId: string,
   projectTitle?: string,
 ) =>
   useQuery({
     queryKey: PROJECT_BUDGET_KEYS.detail(projectId),
-    queryFn: () => budgetRepository.getOrCreateProjectBudget(projectId, projectTitle),
+    queryFn: () => loadProjectBudget(projectId, projectTitle),
     enabled: !!projectId,
+    retry: false,
     staleTime: 60 * 1000,
   });
 
 export const useExistingProjectBudgetQuery = (projectId: string) =>
   useQuery({
     queryKey: PROJECT_BUDGET_KEYS.existing(projectId),
-    queryFn: () => budgetRepository.getProjectBudget(projectId),
+    queryFn: () => loadExistingProjectBudget(projectId),
     enabled: !!projectId,
     retry: false,
     staleTime: 60 * 1000,

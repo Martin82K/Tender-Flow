@@ -114,6 +114,13 @@ const menuPanelClass =
 const contextMenuClass =
   "fixed z-50 overflow-hidden border border-[var(--tf-skin-line-2)] bg-[var(--tf-skin-card)] shadow-[0_18px_40px_rgba(0,0,0,0.24)]";
 
+const getBudgetLoadErrorText = (error: unknown): string => {
+  if (error instanceof Error && error.message.includes("vypršelo")) {
+    return "Načtení rozpočtu trvá příliš dlouho. Zkontrolujte připojení a zkuste to znovu.";
+  }
+  return "Rozpočet se nepodařilo načíst.";
+};
+
 const getTenderTitle = (options: BudgetTenderOption[], id?: string | null) =>
   options.find((option) => option.id === id)?.title ?? "Bez řízení";
 
@@ -1114,8 +1121,27 @@ export const ProjectBudgetTab: React.FC<ProjectBudgetTabProps> = ({ projectId, p
 
   if ((budgetQuery.error && !isDemoBudget) || !budget || !summary) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-[var(--tf-skin-bg)] p-6 text-sm text-red-600">
-        Rozpočet se nepodařilo načíst.
+      <div className="flex flex-1 items-center justify-center bg-[var(--tf-skin-bg)] p-6">
+        <div className="flex max-w-md flex-col items-center gap-3 text-center">
+          <div className="text-sm font-bold text-red-600">
+            {getBudgetLoadErrorText(budgetQuery.error)}
+          </div>
+          {!isDemoBudget && (
+            <button
+              type="button"
+              onClick={() => void budgetQuery.refetch()}
+              disabled={budgetQuery.isFetching}
+              className={darkToolbarButtonClass}
+            >
+              {budgetQuery.isFetching ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCcw className="size-3.5" />
+              )}
+              Zkusit znovu
+            </button>
+          )}
+        </div>
       </div>
     );
   }

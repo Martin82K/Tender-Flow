@@ -1,6 +1,6 @@
 import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
-import { withRetry, withTimeout } from "../../utils/helpers";
+import { withTimeout } from "../../utils/helpers";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, Bid } from "../../types";
 import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
 
@@ -8,6 +8,11 @@ export const PROJECT_DETAILS_KEYS = {
     all: ["projectDetails"] as const,
     detail: (projectId: string) => [...PROJECT_DETAILS_KEYS.all, projectId] as const,
 };
+
+const PROJECT_DETAILS_LOAD_TIMEOUT_MS = 12000;
+
+const withProjectDetailsTimeout = <T,>(promise: PromiseLike<T>, label: string): Promise<T> =>
+    withTimeout(promise, PROJECT_DETAILS_LOAD_TIMEOUT_MS, `${label} vypršelo`);
 
 // Helper: Fetch details for a single project
 const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> => {
@@ -37,13 +42,34 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         internalAmendmentsRes,
         investorInvoicesRes,
     ] = await Promise.all([
-        withRetry<any>(async () => await dbAdapter.from("projects").select("*").eq("id", projectId).single()),
-        withRetry<any>(async () => await dbAdapter.from("demand_categories").select("*").eq("project_id", projectId)),
-        withRetry<any>(async () => await dbAdapter.from("project_contracts").select("*").eq("project_id", projectId).maybeSingle()),
-        withRetry<any>(async () => await dbAdapter.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle()),
-        withRetry<any>(async () => await dbAdapter.from("project_amendments").select("*").eq("project_id", projectId)),
-        withRetry<any>(async () => await dbAdapter.from("project_internal_amendments").select("*").eq("project_id", projectId)),
-        withRetry<any>(async () => await dbAdapter.from("project_investor_invoices").select("*").eq("project_id", projectId).order("due_date", { ascending: true })),
+        withProjectDetailsTimeout(
+            dbAdapter.from("projects").select("*").eq("id", projectId).single(),
+            "Načtení projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("demand_categories").select("*").eq("project_id", projectId),
+            "Načtení kategorií projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("project_contracts").select("*").eq("project_id", projectId).maybeSingle(),
+            "Načtení smlouvy projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle(),
+            "Načtení financí projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("project_amendments").select("*").eq("project_id", projectId),
+            "Načtení dodatků projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("project_internal_amendments").select("*").eq("project_id", projectId),
+            "Načtení interních dodatků projektu",
+        ),
+        withProjectDetailsTimeout(
+            dbAdapter.from("project_investor_invoices").select("*").eq("project_id", projectId).order("due_date", { ascending: true }),
+            "Načtení faktur projektu",
+        ),
     ]);
 
     if (projectRes.error) throw projectRes.error;
@@ -84,8 +110,9 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     let bidsRecord: Record<string, Bid[]> = {};
 
     if (categoryIds.length > 0) {
-        const bidsRes = await withRetry<any>(async () =>
-            await dbAdapter.from("bids").select("*").in("demand_category_id", categoryIds)
+        const bidsRes = await withProjectDetailsTimeout(
+            dbAdapter.from("bids").select("*").in("demand_category_id", categoryIds),
+            "Načtení nabídek projektu",
         );
 
         if (bidsRes.error) throw bidsRes.error;
@@ -206,6 +233,7 @@ export const useProjectDetailsQuery = (projectId: string | undefined, enabled = 
         queryKey: PROJECT_DETAILS_KEYS.detail(projectId!),
         queryFn: () => fetchProjectDetails(projectId!),
         enabled: !!projectId && enabled,
+        retry: false,
         staleTime: 5 * 60 * 1000,
     });
 };
@@ -215,6 +243,7 @@ export const useAllProjectDetailsQuery = (projects: Project[]) => {
         queries: projects.map((project) => ({
             queryKey: PROJECT_DETAILS_KEYS.detail(project.id),
             queryFn: () => fetchProjectDetails(project.id),
+            retry: false,
             staleTime: 5 * 60 * 1000,
         })),
         combine: (results) => {

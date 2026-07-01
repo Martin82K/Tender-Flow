@@ -346,6 +346,18 @@ describe("budget xlsx import", () => {
         result: 12.5,
       },
     ]);
+    expect(parsed.skippedRowDetails).toEqual([
+      expect.objectContaining({
+        sheetName: "SO 01",
+        rowNumber: 2,
+        reason: "Řádek je hlavička kapitoly, ne položka rozpočtu.",
+      }),
+      expect.objectContaining({
+        sheetName: "SO 01",
+        rowNumber: 6,
+        reason: 'Typ řádku "X" není položka rozpočtu.',
+      }),
+    ]);
   });
 
   it("neimportuje řádky KAPITOLA jako položky a zachová pořadí kapitol", () => {
@@ -372,6 +384,12 @@ describe("budget xlsx import", () => {
       "VŠEOBECNÉ KONSTRUKCE A PRÁCE",
       "1 - Zemní práce",
       "2 - Zakládání a zvláštní zakládání",
+    ]);
+    expect(parsed.skippedRows).toBe(3);
+    expect(parsed.skippedRowDetails.map((row) => row.reason)).toEqual([
+      "Řádek je hlavička kapitoly, ne položka rozpočtu.",
+      "Řádek je hlavička kapitoly, ne položka rozpočtu.",
+      "Řádek je hlavička kapitoly, ne položka rozpočtu.",
     ]);
   });
 
