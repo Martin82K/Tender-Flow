@@ -14,8 +14,10 @@ const PROJECT_TABS: {
   label: string;
   icon: string;
   feature?: FeatureKey;
+  badge?: string;
 }[] = [
   { id: "overview", label: "Přehled", icon: "dashboard" },
+  { id: "budget", label: "Rozpočet", icon: "calculate", badge: "ve vývoji" },
   { id: "tender-plan", label: "Plán VŘ", icon: "assignment" },
   {
     id: "pipeline",
@@ -403,7 +405,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
+                            className={`flex w-full items-center justify-start gap-1.5 px-2 py-1 text-left rounded-lg text-xs transition-colors ${
                               isTabActiveReal
                                 ? isIndustrialSkin
                                   ? "text-[#b03a05] border-l-2 border-[#ff8a33] bg-transparent rounded-none font-semibold"
@@ -415,11 +417,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           >
                             <span
                               data-help-id="project-sidebar-tab-icon"
-                              className={`material-symbols-outlined shrink-0 leading-none ${isIndustrialSkin ? "text-[13px] w-3.5" : "text-[16px]"}`}
+                              className={`material-symbols-outlined shrink-0 text-left leading-none ${isIndustrialSkin ? "text-[13px] w-3.5" : "text-[16px] w-4"}`}
                             >
                               {tab.icon}
                             </span>
-                            <span>{tab.label}</span>
+                            <span className="min-w-0 flex-1 truncate text-left">{tab.label}</span>
+                            {tab.badge && (
+                              <span
+                                className={`ml-auto shrink-0 rounded-[3px] border px-1 py-0.5 text-[8px] font-black leading-none tracking-[0.04em] ${
+                                  isIndustrialSkin
+                                    ? "border-[#ff8a33]/35 bg-[#ff8a33]/10 text-[#b03a05]"
+                                    : "border-primary/20 bg-primary/10 text-primary"
+                                }`}
+                              >
+                                {tab.badge}
+                              </span>
+                            )}
                           </button>
                         );
                       })}

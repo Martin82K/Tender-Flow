@@ -27,6 +27,7 @@ interface PipelineOverviewProps {
     onEditCategory: (category: DemandCategory) => void;
     onDeleteCategory: (categoryId: string) => void;
     onToggleCategoryComplete: (category: DemandCategory) => void;
+    budgetTotalsByCategory?: Record<string, number>;
 }
 
 export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
@@ -42,6 +43,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     onEditCategory,
     onDeleteCategory,
     onToggleCategoryComplete,
+    budgetTotalsByCategory = {},
 }) => {
     const rowClickTimeoutRef = useRef<number | null>(null);
 
@@ -268,7 +270,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                         category.realizationStart || category.realizationEnd
                                             ? `${category.realizationStart ? new Date(category.realizationStart).toLocaleDateString('cs-CZ') : '?'} – ${category.realizationEnd ? new Date(category.realizationEnd).toLocaleDateString('cs-CZ') : '?'}`
                                             : '—';
-                                    const priceValue = stats.winningPrice ?? category.sodBudget;
+                                    const budgetTotal = budgetTotalsByCategory[category.id];
+                                    const priceValue = stats.winningPrice ?? budgetTotal ?? category.sodBudget;
                                     const price = formatMoney(priceValue);
                                     return (
                                         <tr
@@ -349,7 +352,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                 <div data-help-id="pipeline-category-card" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredCategories.map((category) => {
                         const stats = getCategoryStats(category.id);
-                        const categoryWithPrice = { ...category, winningPrice: stats.winningPrice };
+                        const budgetTotal = budgetTotalsByCategory[category.id];
+                        const categoryWithPrice = { ...category, winningPrice: stats.winningPrice ?? budgetTotal };
                         return (
                             <CategoryCard
                                 key={category.id}

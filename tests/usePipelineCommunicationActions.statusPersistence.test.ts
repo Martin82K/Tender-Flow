@@ -11,6 +11,7 @@ const {
   mockCreateMailtoLink,
   mockGenerateEmlContent,
   mockDownloadEmlFile,
+  mockLoadBudgetAttachmentForEmail,
 } = vi.hoisted(() => ({
   mockPlatformAdapter: {
     isDesktop: false,
@@ -26,6 +27,7 @@ const {
   mockCreateMailtoLink: vi.fn(),
   mockGenerateEmlContent: vi.fn(),
   mockDownloadEmlFile: vi.fn(),
+  mockLoadBudgetAttachmentForEmail: vi.fn(),
 }));
 
 vi.mock("@infra/platform/platformAdapter", () => ({
@@ -46,6 +48,10 @@ vi.mock("../services/inquiryService", () => ({
   createMailtoLink: mockCreateMailtoLink,
   generateEmlContent: mockGenerateEmlContent,
   downloadEmlFile: mockDownloadEmlFile,
+}));
+
+vi.mock("../services/budgetAttachmentService", () => ({
+  loadBudgetAttachmentForEmail: mockLoadBudgetAttachmentForEmail,
 }));
 
 const createProjectDetails = (
@@ -98,6 +104,11 @@ describe("usePipelineCommunicationActions status persistence", () => {
     });
     mockCreateMailtoLink.mockReturnValue("mailto:test@example.com");
     mockGenerateEmlContent.mockReturnValue("EML");
+    mockLoadBudgetAttachmentForEmail.mockResolvedValue({
+      filename: "rozpocet.xlsx",
+      contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      base64Content: "YWJj",
+    });
     mockPersistBidStatusChange.mockResolvedValue({ error: null });
     mockUpdateBidStatusInMemory.mockImplementation((prev) => prev);
   });
@@ -182,6 +193,92 @@ describe("usePipelineCommunicationActions status persistence", () => {
     expect(updateBidsInternal).toHaveBeenCalledTimes(1);
   });
 
+  it("v desktop EML režimu připojí namapovanou rozpočtovou přílohu", async () => {
+    mockPlatformAdapter.isDesktop = true;
+
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachment: {
+        source: "dochub" as const,
+        fileName: "rozpocet.xlsx",
+        relativePath: "rozpocet.xlsx",
+        selectedAt: "2026-07-01T20:00:00.000Z",
+        enabled: true,
+      },
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert: vi.fn(),
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockLoadBudgetAttachmentForEmail).toHaveBeenCalledWith(
+      "/Projects/Stavba/Betony",
+      activeCategory.budgetAttachment,
+    );
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({
+            filename: "rozpocet.xlsx",
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("v mailto režimu negeneruje opakované upozornění kvůli lokální příloze", async () => {
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachment: {
+        source: "dochub" as const,
+        fileName: "rozpocet.xlsx",
+        relativePath: "rozpocet.xlsx",
+        selectedAt: "2026-07-01T20:00:00.000Z",
+        enabled: true,
+      },
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+    const showAlert = vi.fn();
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn(),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockLoadBudgetAttachmentForEmail).not.toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
+    expect(mockPlatformAdapter.shell.openExternal).toHaveBeenCalledWith(
+      "mailto:test@example.com",
+    );
+  });
+
   it("v EML režimu zachová HTML strukturu šablony a podpisu bez globálního br převodu", async () => {
     mockPlatformAdapter.isDesktop = true;
     mockGetDefaultTemplate.mockResolvedValue({
@@ -219,6 +316,9 @@ describe("usePipelineCommunicationActions status persistence", () => {
       bid.email,
       expect.any(String),
       expect.stringContaining("<p>Dobrý den,</p>"),
+      expect.objectContaining({
+        attachments: [],
+      }),
     );
     const [, , htmlBody] = mockGenerateEmlContent.mock.calls[0];
     expect(htmlBody).toContain("<p>posílám poptávku.</p>");

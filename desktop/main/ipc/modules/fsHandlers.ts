@@ -165,6 +165,50 @@ export const registerFsHandlers = ({
     };
   });
 
+  ipcMain.handle(
+    "fs:selectFile",
+    async (
+      event,
+      options?: { title?: string; defaultPath?: string },
+    ): Promise<FileInfo | null> => {
+      requireAuth(event.sender, "fs:selectFile");
+      await ensurePersistedRootsLoaded();
+
+      const dialogOptions: Electron.OpenDialogOptions = {
+        properties: ["openFile"],
+        title: options?.title || "Vybrat soubor",
+      };
+
+      if (options?.defaultPath) {
+        dialogOptions.defaultPath = await resolvePortableReadPath(options.defaultPath);
+      }
+
+      const result = await dialog.showOpenDialog(dialogOptions);
+      if (result.canceled || result.filePaths.length === 0) {
+        return null;
+      }
+
+      const filePath = result.filePaths[0];
+      const stats = await fs.stat(filePath);
+      if (!stats.isFile()) {
+        return null;
+      }
+
+      const parentFolder = path.dirname(filePath);
+      await addUserGrantedRootAndPersist(parentFolder);
+
+      return {
+        relativePath: path.basename(filePath),
+        absolutePath: filePath,
+        name: path.basename(filePath),
+        size: stats.size,
+        mtimeMs: stats.mtimeMs,
+        isDirectory: false,
+        extension: path.extname(filePath).toLowerCase(),
+      };
+    },
+  );
+
   ipcMain.handle("fs:listFiles", async (event, folderPath: string): Promise<FileInfo[]> => {
     requireAuth(event.sender, 'fs:listFiles');
     await ensurePersistedRootsLoaded();

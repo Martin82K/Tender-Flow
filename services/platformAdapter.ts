@@ -60,6 +60,27 @@ export const fileSystemAdapter = {
     },
 
     /**
+     * Select a single file using system dialog (desktop only)
+     */
+    async selectFile(options?: { title?: string; defaultPath?: string }): Promise<FileInfo | null> {
+        if (isDesktop && window.electronAPI?.fs?.selectFile) {
+            return window.electronAPI.fs.selectFile(options);
+        }
+        console.warn('File selection not available on web.');
+        return null;
+    },
+
+    /**
+     * Read a file from an already granted path (desktop only)
+     */
+    async readFile(filePath: string): Promise<Uint8Array> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.readFile(filePath) as unknown as Uint8Array;
+        }
+        throw new Error('File reading not available on web.');
+    },
+
+    /**
      * List files in a folder
      */
     async listFiles(folderPath: string): Promise<FileInfo[]> {
