@@ -25,11 +25,6 @@ export const findLinkedCategoryForPlan = (
   item: TenderPlanItem,
   categories: DemandCategory[],
 ): DemandCategory | undefined => {
-  if (item.categoryId) {
-    const byId = categories.find((category) => category.id === item.categoryId);
-    if (byId) return byId;
-  }
-
   return categories.find(
     (category) => category.title.toLowerCase() === item.name.toLowerCase(),
   );

@@ -37,8 +37,6 @@ import { usePipelineSubcontractorSelection } from "@/features/projects/model/use
 import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
-import { exportBudgetTenderToXlsx } from "@/features/budgets";
-import type { ProjectBudget } from "@/features/budgets/model/budgetTypes";
 import {
   Column,
   BidCard,
@@ -68,8 +66,6 @@ interface PipelineProps {
   searchQuery?: string;
   initialOpenCategoryId?: string;
   onCategoryNavigate?: (categoryId: string | null) => void;
-  budgetTotalsByCategory?: Record<string, number>;
-  projectBudget?: ProjectBudget | null;
 }
 
 type PipelineViewMode = "grid" | "table";
@@ -96,8 +92,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   searchQuery = "",
   initialOpenCategoryId,
   onCategoryNavigate,
-  budgetTotalsByCategory = {},
-  projectBudget = null,
 }) => {
   const { user } = useAuth();
   // ... (existing code omitted for brevity)
@@ -325,41 +319,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
       resolveDesktopTenderFolderPath,
     });
 
-  const handleExportBudgetTender = async () => {
-    if (!activeCategory || !projectBudget) {
-      showAlert({
-        title: "Rozpočet VŘ",
-        message: "Pro toto VŘ zatím nejsou dostupné rozpočtové položky.",
-        variant: "info",
-      });
-      return;
-    }
-
-    try {
-      const result = await exportBudgetTenderToXlsx({
-        budget: budgetQuery.data,
-        project: projectDetails,
-        tender: activeCategory,
-        preferDesktopFolder: true,
-      });
-      setIsExportMenuOpen(false);
-      showAlert({
-        title: "Export rozpočtu",
-        message:
-          result.mode === "desktop"
-            ? `Export uložen do složky VŘ: ${result.path}`
-            : `Export stažen jako ${result.filename}.`,
-        variant: "success",
-      });
-    } catch (error) {
-      showAlert({
-        title: "Export rozpočtu",
-        message: error instanceof Error ? error.message : "Export se nepodařilo vytvořit.",
-        variant: "danger",
-      });
-    }
-  };
-
   // Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -530,22 +489,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       </div>
                     </button>
                     <button
-                      onClick={() => void handleExportBudgetTender()}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
-                    >
-                      <span className="material-symbols-outlined text-orange-600 text-[20px]">
-                        calculate
-                      </span>
-                      <div>
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
-                          Rozpočet VŘ
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          Položky přiřazené k tomuto VŘ
-                        </div>
-                      </div>
-                    </button>
-                    <button
                       onClick={() => handleExport("markdown")}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
                     >
@@ -614,17 +557,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
               <span className="font-semibold text-slate-900 dark:text-white">
                 {formatMoney(activeCategory.planBudget ?? 0)}
               </span>
-              {activeCategory.id in budgetTotalsByCategory && (
-                <>
-                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                  <span className="font-medium text-slate-500 dark:text-slate-400">
-                    Položkový rozpočet:
-                  </span>
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {formatMoney(budgetTotalsByCategory[activeCategory.id] ?? 0)}
-                  </span>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -930,7 +862,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
       <PipelineOverview
         categories={projectData.categories}
         bids={bids}
-        budgetTotalsByCategory={budgetTotalsByCategory}
         searchQuery={searchQuery}
         demandFilter={demandFilter}
         viewMode={viewMode}

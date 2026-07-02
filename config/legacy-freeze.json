@@ -143,6 +143,7 @@
     "services/aiInsightsService.ts",
     "services/authSessionService.ts",
     "services/authService.ts",
+    "services/budgetAttachmentService.ts",
     "services/billingService.ts",
     "services/contactStatusService.ts",
     "services/contactsImportService.ts",
