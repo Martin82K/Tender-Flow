@@ -42,4 +42,21 @@ describe("inquiryService security", () => {
     expect(headers).toContain("Bcc: a@example.combcc:attacker@example.com");
     expect(headers).not.toContain("\nbcc:");
   });
+
+  it("vloží EML přílohu jako multipart/mixed bez injekce v názvu souboru", () => {
+    const eml = generateEmlContent("safe@example.com", "Poptávka", "<p>Body</p>", {
+      attachments: [
+        {
+          filename: "rozpocet.xlsx\r\nBcc: attacker@example.com",
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          base64Content: "YWJj",
+        },
+      ],
+    });
+
+    expect(eml).toContain('Content-Type: multipart/mixed; boundary="boundary_string_123456789_mixed"');
+    expect(eml).toContain("Content-Disposition: attachment");
+    expect(eml).toContain("rozpocet.xlsxBcc_ attacker@example.com");
+    expect(eml).not.toContain("\r\nBcc: attacker@example.com");
+  });
 });

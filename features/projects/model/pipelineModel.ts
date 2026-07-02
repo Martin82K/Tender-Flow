@@ -1,4 +1,4 @@
-import type { Bid, DemandCategory, DemandDocument, ProjectDetails } from "@/types";
+import type { Bid, BudgetAttachment, DemandCategory, DemandDocument, ProjectDetails } from "@/types";
 import { parseDecimal } from "@/utils/formatters";
 
 export type PipelineInquiryGenerationKind = "inquiry" | "materialInquiry";
@@ -8,6 +8,7 @@ export interface PipelineCategoryFormInput {
   sodBudget: string;
   planBudget: string;
   description: string;
+  budgetAttachment?: BudgetAttachment | null;
   deadline?: string;
   realizationStart?: string;
   realizationEnd?: string;
@@ -130,6 +131,7 @@ export const buildNewDemandCategory = (
     status: "open",
     subcontractorCount: 0,
     documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+    budgetAttachment: formData.budgetAttachment || undefined,
     deadline: formData.deadline || undefined,
     realizationStart: formData.realizationStart || undefined,
     realizationEnd: formData.realizationEnd || undefined,
@@ -151,6 +153,7 @@ export const buildUpdatedDemandCategory = (
     planBudget: parsePlanBudget(sod, formData.planBudget),
     description: formData.description,
     documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+    budgetAttachment: formData.budgetAttachment || undefined,
     deadline: formData.deadline || undefined,
     realizationStart: formData.realizationStart || undefined,
     realizationEnd: formData.realizationEnd || undefined,

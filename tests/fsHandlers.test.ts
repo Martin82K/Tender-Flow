@@ -196,6 +196,53 @@ describe("fsHandlers", () => {
     expect(JSON.parse(grantedRootsStorage.set.mock.calls[0][1])).toContain("/Users/tester/Projects/Tender");
   });
 
+  it("vybere soubor a ulozi jeho nadrazenou slozku do persistentniho uloziste", async () => {
+    const { dialog } = await import("electron");
+    const grantedRootsStorage = {
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async (targetPath: string) => ({
+      isDirectory: () => targetPath.endsWith("Betony"),
+      isFile: () => targetPath.endsWith("rozpocet.xlsx"),
+      size: 1234,
+      mtimeMs: 42,
+    }));
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({
+      canceled: false,
+      filePaths: ["/Users/tester/Projects/Tender/03_Vyberova_rizeni/Betony/rozpocet.xlsx"],
+    } as any);
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+      grantedRootsStorage,
+    });
+
+    await expect(
+      handlers.get("fs:selectFile")?.(
+        {},
+        { defaultPath: "/Users/tester/Projects/Tender/03_Vyberova_rizeni/Betony" },
+      ),
+    ).resolves.toEqual({
+      relativePath: "rozpocet.xlsx",
+      absolutePath: "/Users/tester/Projects/Tender/03_Vyberova_rizeni/Betony/rozpocet.xlsx",
+      name: "rozpocet.xlsx",
+      size: 1234,
+      mtimeMs: 42,
+      isDirectory: false,
+      extension: ".xlsx",
+    });
+
+    expect(grantedRootsStorage.set).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(grantedRootsStorage.set.mock.calls[0][1])).toContain(
+      "/Users/tester/Projects/Tender/03_Vyberova_rizeni/Betony",
+    );
+  });
+
   it("obnovi persistentni root a otevre podcestu bez dalsiho dialogu", async () => {
     const { dialog, shell } = await import("electron");
     const grantedRootsStorage = {

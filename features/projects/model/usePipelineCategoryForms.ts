@@ -1,7 +1,6 @@
 import { useState } from "react";
-import type { DemandCategory, DemandDocument } from "@/types";
+import type { BudgetAttachment, DemandCategory } from "@/types";
 import { fetchLinkedTenderPlanDates } from "@/features/projects/api";
-import { uploadDocument } from "@/services/documentService";
 import {
   buildNewDemandCategory,
   buildUpdatedDemandCategory,
@@ -13,6 +12,7 @@ interface PipelineCategoryFormData {
   planBudget: string;
   description: string;
   workItems: string[];
+  budgetAttachment?: BudgetAttachment | null;
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -49,62 +49,24 @@ export const usePipelineCategoryForms = ({
 
   const handleCreateCategoryFromModal = async (
     formData: PipelineCategoryFormData,
-    files: File[],
   ) => {
     if (!onAddCategory) return;
 
     const categoryId = `cat_${Date.now()}`;
-
-    let uploadedDocuments: DemandDocument[] = [];
-    if (files.length > 0) {
-      try {
-        uploadedDocuments = await Promise.all(
-          files.map((file) => uploadDocument(file, categoryId)),
-        );
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-    }
-
-    const newCategory = buildNewDemandCategory(formData, categoryId, uploadedDocuments);
+    const newCategory = buildNewDemandCategory(formData, categoryId, []);
     onAddCategory(newCategory);
     setIsAddModalOpen(false);
   };
 
   const handleEditCategoryFromModal = async (
     formData: PipelineCategoryFormData,
-    files: File[],
   ) => {
     if (!onEditCategory || !editingCategory) return;
-
-    let uploadedDocuments: DemandDocument[] = editingCategory.documents || [];
-    if (files.length > 0) {
-      try {
-        const newDocuments = await Promise.all(
-          files.map((file) => uploadDocument(file, editingCategory.id)),
-        );
-        uploadedDocuments = [...uploadedDocuments, ...newDocuments];
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-    }
 
     const updatedCategory = buildUpdatedDemandCategory(
       editingCategory,
       formData,
-      uploadedDocuments,
+      editingCategory.documents || [],
     );
 
     onEditCategory(updatedCategory);
