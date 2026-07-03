@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const inMemoryFiles = vi.hoisted(() => new Map<string, string>());
 const secureStore = vi.hoisted(() => new Map<string, string>());
+const electronAppMock = vi.hoisted(() => ({
+  isPackaged: false,
+  getPath: vi.fn((name: string) => {
+    if (name === 'userData') return '/Users/tester/user-data';
+    if (name === 'documents') return '/Users/tester/documents';
+    if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
+    return '/tmp';
+  }),
+}));
 
 const fsMock = vi.hoisted(() => ({
   mkdir: vi.fn(async () => undefined),
@@ -25,15 +34,7 @@ vi.mock('fs/promises', () => ({
 }));
 
 vi.mock('electron', () => ({
-  app: {
-    isPackaged: false,
-    getPath: vi.fn((name: string) => {
-      if (name === 'userData') return '/Users/tester/user-data';
-      if (name === 'documents') return '/Users/tester/documents';
-      if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
-      return '/tmp';
-    }),
-  },
+  app: electronAppMock,
 }));
 
 vi.mock('../desktop/main/services/secureStorage', () => ({
@@ -50,8 +51,15 @@ vi.mock('../desktop/main/services/secureStorage', () => ({
 
 describe('AutoBackupService security', () => {
   beforeEach(() => {
+    vi.resetModules();
     inMemoryFiles.clear();
     secureStore.clear();
+    electronAppMock.getPath.mockImplementation((name: string) => {
+      if (name === 'userData') return '/Users/tester/user-data';
+      if (name === 'documents') return '/Users/tester/documents';
+      if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
+      return '/tmp';
+    });
     fsMock.mkdir.mockClear();
     fsMock.writeFile.mockClear();
     fsMock.readFile.mockClear();
@@ -96,5 +104,26 @@ describe('AutoBackupService security', () => {
 
     await expect(service.readBackup('/etc/passwd.json')).rejects.toThrow('Invalid backup path');
     await expect(service.readBackup('../outside.json')).rejects.toThrow('Invalid backup path');
+  });
+
+  it('pouziva userData backup slozku a nezavisi na Documents ceste', async () => {
+    electronAppMock.getPath.mockImplementation((name: string) => {
+      if (name === 'documents') throw new Error("Failed to get 'documents' path");
+      if (name === 'userData') return '/Users/tester/user-data';
+      if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
+      return '/tmp';
+    });
+
+    const { AutoBackupService } = await import('../desktop/main/services/autoBackupService');
+    const service = new AutoBackupService();
+
+    expect(service.getBackupFolder()).toBe(path.join('/Users/tester/user-data', 'Backups'));
+    const settings = await service.getSettings();
+    expect(settings.backupFolderPath).toBe(path.join('/Users/tester/user-data', 'Backups'));
+    expect(electronAppMock.getPath).not.toHaveBeenCalledWith('documents');
+    expect(fsMock.mkdir).toHaveBeenCalledWith(
+      path.join('/Users/tester/user-data', 'Backups'),
+      { recursive: true },
+    );
   });
 });

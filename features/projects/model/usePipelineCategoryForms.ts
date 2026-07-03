@@ -5,6 +5,10 @@ import {
   buildNewDemandCategory,
   buildUpdatedDemandCategory,
 } from "./pipelineModel";
+import {
+  getLocalBudgetAttachment,
+  saveLocalBudgetAttachment,
+} from "./budgetAttachmentLocalStore";
 
 interface PipelineCategoryFormData {
   title: string;
@@ -54,6 +58,7 @@ export const usePipelineCategoryForms = ({
 
     const categoryId = `cat_${Date.now()}`;
     const newCategory = buildNewDemandCategory(formData, categoryId, []);
+    saveLocalBudgetAttachment(projectId, categoryId, formData.budgetAttachment);
     onAddCategory(newCategory);
     setIsAddModalOpen(false);
   };
@@ -69,13 +74,20 @@ export const usePipelineCategoryForms = ({
       editingCategory.documents || [],
     );
 
+    saveLocalBudgetAttachment(projectId, editingCategory.id, formData.budgetAttachment);
     onEditCategory(updatedCategory);
     setEditingCategory(null);
     setIsEditModalOpen(false);
   };
 
   const handleEditCategoryClick = async (category: DemandCategory) => {
-    setEditingCategory(category);
+    setEditingCategory({
+      ...category,
+      budgetAttachment:
+        getLocalBudgetAttachment(projectId, category.id) ||
+        category.budgetAttachment ||
+        undefined,
+    });
     setLinkedTenderPlanDates(null);
     setIsEditModalOpen(true);
 

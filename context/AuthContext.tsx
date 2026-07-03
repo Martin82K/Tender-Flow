@@ -60,6 +60,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const contextId = Math.floor(Math.random() * 100000);
+const LOGIN_TIMEOUT_MS = 10000;
+
+const withLoginTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(
+            new Error(
+              "Připojení k přihlašovací službě vypršelo. Zkontrolujte dostupnost Supabase projektu a zkuste to znovu.",
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
 
 const registerCurrentAuthDevice = async (): Promise<void> => {
   try {
@@ -653,31 +674,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     try {
       authSessionService.setRememberMePreference(rememberMe);
 
-      const timeoutMs = 10000;
-      const user = await Promise.race([
-        authService.login(email, password),
-        new Promise<User>((resolve) =>
-          setTimeout(() => {
-            console.warn(
-              `[AuthContext] login timed out (${timeoutMs}ms) - proceeding; auth event should hydrate`
-            );
-            resolve({
-              id: "pending",
-              name: "User",
-              email,
-              role: "user",
-              preferences: {
-                theme: "system",
-                skin: "industrial",
-                primaryColor: "#607AFB",
-                backgroundColor: "#f5f6f8",
-                uiScale: 1,
-              },
-            } as User);
-          }, timeoutMs)
-        ),
-      ]);
-      // If we got a real user (or fallback), allow navigation; auth events will refine user data.
+      const user = await withLoginTimeout(authService.login(email, password), LOGIN_TIMEOUT_MS);
+      // If we got a real user, allow navigation; auth events will refine user data.
       let activeSession: any = null;
       const { data } = await authSessionService.getSession();
       activeSession = data?.session ?? null;
@@ -697,7 +695,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (isDesktop) {
         await notifyDesktopAuthState(true, activeSession);
       }
-      if (user?.id !== "pending") setUser(user);
+      setUser(user);
       void registerCurrentAuthDevice();
 
       // Save session for biometric unlock (desktop only) - only if rememberMe is enabled

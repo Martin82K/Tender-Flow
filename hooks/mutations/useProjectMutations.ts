@@ -39,6 +39,24 @@ const syncDocHubCategory = async (
     }
 };
 
+const buildCategoryPersistencePayload = (
+    projectId: string,
+    category: DemandCategory,
+    includeProjectId: boolean,
+) => ({
+    ...(includeProjectId ? { project_id: projectId } : {}),
+    title: category.title,
+    budget_display: category.budget,
+    sod_budget: category.sodBudget,
+    plan_budget: category.planBudget,
+    status: category.status,
+    description: category.description,
+    deadline: category.deadline || null,
+    realization_start: category.realizationStart || null,
+    realization_end: category.realizationEnd || null,
+    work_items: category.workItems || null,
+});
+
 type ArchiveProjectMutationInput = {
     id: string;
     currentStatus: ProjectStatus;
@@ -587,21 +605,11 @@ export const useAddCategoryMutation = () => {
                 // update demo data
                 return;
             }
-            const { error } = await dbAdapter.from("demand_categories").insert({
+            const insertPayload = {
                 id: category.id,
-                project_id: projectId,
-                title: category.title,
-                budget_display: category.budget,
-                sod_budget: category.sodBudget,
-                plan_budget: category.planBudget,
-                status: category.status,
-                description: category.description,
-                deadline: category.deadline || null,
-                realization_start: category.realizationStart || null,
-                realization_end: category.realizationEnd || null,
-                work_items: category.workItems || null,
-                budget_attachment: category.budgetAttachment || null,
-            });
+                ...buildCategoryPersistencePayload(projectId, category, true),
+            };
+            const { error } = await dbAdapter.from("demand_categories").insert(insertPayload);
             if (error) throw error;
 
             // Sync DocHub (cloud providers only — skipped for local "onedrive")
@@ -674,19 +682,16 @@ export const useEditCategoryMutation = () => {
                 return;
             }
 
-            const { error } = await dbAdapter.from("demand_categories").update({
-                title: category.title,
-                budget_display: category.budget,
-                sod_budget: category.sodBudget,
-                plan_budget: category.planBudget,
-                status: category.status,
-                description: category.description,
-                deadline: category.deadline || null,
-                realization_start: category.realizationStart || null,
-                realization_end: category.realizationEnd || null,
-                work_items: category.workItems || null,
-                budget_attachment: category.budgetAttachment || null,
-            }).eq("id", category.id).eq("project_id", projectId);
+            const updatePayload = buildCategoryPersistencePayload(
+                projectId,
+                category,
+                false,
+            );
+            const { error } = await dbAdapter
+                .from("demand_categories")
+                .update(updatePayload)
+                .eq("id", category.id)
+                .eq("project_id", projectId);
 
             if (error) throw error;
 

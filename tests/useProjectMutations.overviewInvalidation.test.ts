@@ -55,7 +55,12 @@ vi.mock("../context/AuthContext", () => ({
   }),
 }));
 
-const createThenableChain = () => {
+const createThenableChain = (
+  response: { data: null; error: null | { code?: string; message?: string } } = {
+    data: null,
+    error: null,
+  },
+) => {
   const chain: any = {};
   chain.eq = vi.fn(() => chain);
   chain.in = vi.fn(() => chain);
@@ -64,14 +69,23 @@ const createThenableChain = () => {
   chain.order = vi.fn(() => chain);
   chain.maybeSingle = vi.fn(() => chain);
   chain.single = vi.fn(() => chain);
-  chain.then = (resolve: (value: { data: null; error: null }) => unknown) =>
-    Promise.resolve(resolve({ data: null, error: null }));
+  chain.then = (
+    resolve: (value: {
+      data: null;
+      error: null | { code?: string; message?: string };
+    }) => unknown,
+  ) => Promise.resolve(resolve(response));
   chain.catch = () => chain;
   return chain;
 };
 
-const createFromResult = () => {
-  const chain = createThenableChain();
+const createFromResult = (
+  response: { data: null; error: null | { code?: string; message?: string } } = {
+    data: null,
+    error: null,
+  },
+) => {
+  const chain = createThenableChain(response);
   return {
     insert: vi.fn(() => chain),
     update: vi.fn(() => chain),
@@ -234,7 +248,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
-  it("invaliduje overview cache po přidání kategorie", async () => {
+  it("invaliduje overview cache po přidání kategorie a neukládá lokální přílohu do Supabase", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const fromResult = createFromResult();
     mocks.fromMock.mockReturnValue(fromResult);
@@ -264,15 +278,12 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        budget_attachment: budgetAttachment,
-      }),
-    );
+    const [insertPayload] = fromResult.insert.mock.calls[0];
+    expect(insertPayload).not.toHaveProperty("budget_attachment");
     expectOverviewInvalidation(invalidateSpy);
   });
 
-  it("invaliduje overview cache po úpravě kategorie", async () => {
+  it("invaliduje overview cache po úpravě kategorie a neukládá lokální přílohu do Supabase", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const fromResult = createFromResult();
     mocks.fromMock.mockReturnValue(fromResult);
@@ -302,11 +313,8 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        budget_attachment: budgetAttachment,
-      }),
-    );
+    const [updatePayload] = fromResult.update.mock.calls[0];
+    expect(updatePayload).not.toHaveProperty("budget_attachment");
     expectOverviewInvalidation(invalidateSpy);
   });
 

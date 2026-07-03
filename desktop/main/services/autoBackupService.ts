@@ -30,10 +30,21 @@ const DEFAULT_SCHEDULED_TIME = '03:00';
 const SCHEDULED_TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 const SETTINGS_FILE_NAME = 'backup-settings.json';
 
+const getSafeAppPath = (name: 'userData' | 'exe'): string | null => {
+    try {
+        const appPath = app.getPath(name);
+        return appPath.trim().length > 0 ? appPath : null;
+    } catch (error) {
+        console.warn(`[AutoBackup] Failed to get '${name}' path:`, error);
+        return null;
+    }
+};
+
 /**
  * Auto-backup service for managing local backup files.
- * Stores JSON backup files in {Documents}/Tender Flow/Backups/ so that they
- * survive application updates and uninstalls. Retention is 7 days.
+ * Stores JSON backup files in {userData}/Backups/ so that they use the app's
+ * writable profile folder instead of depending on optional OS library paths.
+ * Retention is 7 days.
  * Settings (enabled flag, scheduled time, last-run metadata) are persisted to
  * {userData}/backup-settings.json so they survive restarts.
  */
@@ -41,6 +52,7 @@ export class AutoBackupService {
     private backupTimeout: NodeJS.Timeout | null = null;
     private backupFolderPath: string;
     private settingsFilePath: string;
+    private userDataPath: string;
     private enabled: boolean = false;
     private lastBackupAt: string | null = null;
     private lastBackupError: string | null = null;
@@ -50,11 +62,10 @@ export class AutoBackupService {
     private initPromise: Promise<void>;
 
     constructor() {
-        // Documents is stable across installs/updates/uninstalls — backups must not
-        // live in the install directory (wiped on update) or in userData (wiped on
-        // uninstall on some platforms).
-        this.backupFolderPath = path.join(app.getPath('documents'), 'Tender Flow', 'Backups');
-        this.settingsFilePath = path.join(app.getPath('userData'), SETTINGS_FILE_NAME);
+        const userDataPath = getSafeAppPath('userData') || path.join(process.cwd(), 'Tender Flow');
+        this.userDataPath = userDataPath;
+        this.backupFolderPath = path.join(userDataPath, 'Backups');
+        this.settingsFilePath = path.join(userDataPath, SETTINGS_FILE_NAME);
         this.secureStorage = new SecureStorageService();
         this.initPromise = this.initialize();
     }
@@ -390,15 +401,16 @@ export class AutoBackupService {
     }
 
     /**
-     * Move backup files from legacy locations (install dir, userData) into the
-     * Documents folder so that previously created backups survive the path change.
+     * Move backup files from legacy locations into the current backup folder
+     * so that previously created backups survive the path change.
      * Only runs when the new folder has no backups yet.
      */
     private async migrateLegacyBackupsIfNeeded(): Promise<void> {
-        const legacyPaths = [
-            path.join(app.getPath('userData'), BACKUP_DIR_NAME),
-            path.join(path.dirname(app.getPath('exe')), BACKUP_DIR_NAME),
-        ];
+        const legacyPaths = [path.join(this.userDataPath, BACKUP_DIR_NAME)];
+        const exePath = getSafeAppPath('exe');
+        if (exePath) {
+            legacyPaths.push(path.join(path.dirname(exePath), BACKUP_DIR_NAME));
+        }
 
         try {
             const existing = await fs.readdir(this.backupFolderPath);

@@ -3,6 +3,7 @@ import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, Bid } from "../../types";
 import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
+import { applyLocalBudgetAttachments } from "@/features/projects/model/budgetAttachmentLocalStore";
 
 export const PROJECT_DETAILS_KEYS = {
     all: ["projectDetails"] as const,
@@ -56,7 +57,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     if (investorInvoicesRes.error) throw investorInvoicesRes.error;
 
     const project = projectRes.data;
-    const categories: DemandCategory[] = (categoriesRes.data || []).map((c: any) => ({
+    const categories: DemandCategory[] = applyLocalBudgetAttachments(projectId, (categoriesRes.data || []).map((c: any) => ({
         id: c.id,
         title: c.title,
         budget: c.budget_display || "",
@@ -71,8 +72,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         realizationEnd: c.realization_end || undefined,
         createdAt: c.created_at || undefined,
         documents: c.documents || [], // assuming documents might be fetched or joined? useAppData didn't map documents here explicitly in the view I saw, but interface has it.
-        budgetAttachment: c.budget_attachment || undefined,
-    }));
+    })));
 
     const contractData = contractRes.data;
     const financialsData = financialsRes.data;

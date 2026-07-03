@@ -8,6 +8,7 @@ interface SetupOptions {
   isDesktop: boolean;
   credentials: SessionCredentials;
   biometricEnabled: boolean;
+  loginResult?: Promise<any>;
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
   getSessionResult?: { data: { session: any | null } };
@@ -21,6 +22,18 @@ const setup = async (options: SetupOptions) => {
 
   const mockState = {
     authListener: null as ((snapshot: { event: string; session: any }) => void) | null,
+    login: vi.fn().mockImplementation(() => options.loginResult ?? Promise.resolve({
+      id: "user-1",
+      name: "Test User",
+      email: "test@example.com",
+      role: "user",
+      subscriptionTier: "free",
+      preferences: {
+        theme: "system",
+        primaryColor: "#607AFB",
+        backgroundColor: "#f5f6f8",
+      },
+    })),
     getCurrentUser: vi.fn().mockResolvedValue(options.currentUser ?? null),
     getUserFromSession: vi.fn().mockResolvedValue({
       id: "user-1",
@@ -59,7 +72,7 @@ const setup = async (options: SetupOptions) => {
 
   vi.doMock("../services/authService", () => ({
     authService: {
-      login: vi.fn(),
+      login: mockState.login,
       register: vi.fn(),
       logout: vi.fn().mockResolvedValue(undefined),
       updateUserPreferences: vi.fn(),
@@ -160,11 +173,23 @@ const setup = async (options: SetupOptions) => {
   const { AuthProvider, useAuth } = await import("../context/AuthContext");
 
   const Probe: React.FC = () => {
-    const { isLoading, isAuthenticated, logout } = useAuth();
+    const { isLoading, isAuthenticated, login, logout } = useAuth();
+    const [loginError, setLoginError] = React.useState("");
     return (
       <div>
         <div data-testid="loading">{String(isLoading)}</div>
         <div data-testid="authenticated">{String(isAuthenticated)}</div>
+        <div data-testid="login-error">{loginError}</div>
+        <button
+          type="button"
+          onClick={() => {
+            void login("test@example.com", "password").catch((error) => {
+              setLoginError(error instanceof Error ? error.message : String(error));
+            });
+          }}
+        >
+          login
+        </button>
         <button type="button" onClick={() => void logout()}>
           logout
         </button>
@@ -182,6 +207,44 @@ const setup = async (options: SetupOptions) => {
 };
 
 describe("AuthContext auth recovery", () => {
+  it("login timeout nepokračuje s pending uživatelem ani session follow-upem", async () => {
+    const neverResolves = new Promise<any>(() => {});
+    const mockState = await setup({
+      isDesktop: false,
+      credentials: null,
+      biometricEnabled: false,
+      loginResult: neverResolves,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+    mockState.getSession.mockClear();
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        screen.getByRole("button", { name: "login" }).click();
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(10000);
+        await Promise.resolve();
+      });
+
+      expect(screen.getByTestId("login-error").textContent).toContain(
+        "Připojení k přihlašovací službě vypršelo",
+      );
+
+      expect(mockState.login).toHaveBeenCalledTimes(1);
+      expect(mockState.getSession).not.toHaveBeenCalled();
+      expect(screen.getByTestId("authenticated").textContent).toBe("false");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("při Invalid Refresh Token provede invalidaci a nespouští druhý refresh pokus", async () => {
     const mockState = await setup({
       isDesktop: true,
