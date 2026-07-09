@@ -254,12 +254,40 @@ export const registerFsHandlers = ({
     return files;
   });
 
-  ipcMain.handle("fs:readFile", async (event, filePath: string): Promise<Buffer> => {
-    requireAuth(event.sender, 'fs:readFile');
-    await ensurePersistedRootsLoaded();
-    const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
-    return fs.readFile(resolvedFilePath);
-  });
+  ipcMain.handle(
+    "fs:readFile",
+    async (
+      event,
+      filePath: string,
+      options?: { maxBytes?: number },
+    ): Promise<Buffer> => {
+      requireAuth(event.sender, 'fs:readFile');
+      await ensurePersistedRootsLoaded();
+      const resolvedFilePath = await ensurePathAllowed(
+        await resolvePortableReadPath(filePath),
+        "read",
+      );
+
+      if (options?.maxBytes !== undefined) {
+        if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes <= 0) {
+          throw new Error("Neplatný limit velikosti souboru.");
+        }
+
+        const stats = await fs.stat(resolvedFilePath);
+        if (!stats.isFile()) {
+          throw new Error("Vybraná cesta není soubor.");
+        }
+        if (stats.size > options.maxBytes) {
+          const maxMegabytes = options.maxBytes / 1024 / 1024;
+          throw new Error(
+            `Soubor je větší než povolený limit ${maxMegabytes.toLocaleString("cs-CZ")} MB.`,
+          );
+        }
+      }
+
+      return fs.readFile(resolvedFilePath);
+    },
+  );
 
   ipcMain.handle("fs:writeFile", async (event, filePath: string, data: Buffer | string): Promise<void> => {
     requireAuth(event.sender, 'fs:writeFile');

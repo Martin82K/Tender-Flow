@@ -12,6 +12,7 @@ import { AlertModal } from "../AlertModal";
 import { NumericInput } from "@/shared/ui/NumericInput";
 import { openInExplorer } from "@infra/files/fileSystemService";
 import { selectBudgetAttachment } from "@/services/budgetAttachmentService";
+import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
 
 type PlanInputMode = "amount" | "percent";
 
@@ -77,6 +78,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     message: "",
     variant: "info",
   });
+  const budgetAttachmentExceedsEmailLimit =
+    !!formData.budgetAttachment?.enabled &&
+    isBudgetAttachmentOverEmailLimit(formData.budgetAttachment);
 
   // Reset form when modal opens/closes or when switching between create/edit
   useEffect(() => {
@@ -552,9 +556,21 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                         attach_file
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                          {formData.budgetAttachment.fileName}
-                        </p>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                            {formData.budgetAttachment.fileName}
+                          </p>
+                          {budgetAttachmentExceedsEmailLimit && (
+                            <span
+                              role="img"
+                              aria-label="Příloha je větší než 10 MB a do EML se nevloží"
+                              title="Příloha je větší než 10 MB a do EML se nevloží. EML zpráva se vytvoří bez ní."
+                              className="material-symbols-outlined shrink-0 text-[18px] text-amber-500"
+                            >
+                              error
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-0.5 truncate text-[10px] text-slate-400">
                           {formData.budgetAttachment.relativePath}
                         </p>

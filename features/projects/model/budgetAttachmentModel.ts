@@ -1,6 +1,14 @@
 import type { BudgetAttachment } from "@/types";
 import { joinDocHubPath } from "@/shared/dochub/docHub";
 
+export const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+export const isBudgetAttachmentOverEmailLimit = (
+  attachment: Pick<BudgetAttachment, "size">,
+): boolean =>
+  typeof attachment.size === "number" &&
+  attachment.size > MAX_EMAIL_ATTACHMENT_BYTES;
+
 const normalizePath = (value: string): string =>
   value.trim().replace(/\\/g, "/").replace(/\/+/g, "/").replace(/\/$/g, "");
 

@@ -242,6 +242,105 @@ describe("usePipelineCommunicationActions status persistence", () => {
     );
   });
 
+  it("u známé nadlimitní přílohy vytvoří EML bez ní a bez dalšího modalu", async () => {
+    mockPlatformAdapter.isDesktop = true;
+
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachment: {
+        source: "dochub" as const,
+        fileName: "velky-rozpocet.xlsx",
+        relativePath: "velky-rozpocet.xlsx",
+        size: 10 * 1024 * 1024 + 1,
+        selectedAt: "2026-07-01T20:00:00.000Z",
+        enabled: true,
+      },
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+    const showAlert = vi.fn();
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockLoadBudgetAttachmentForEmail).not.toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ attachments: [] }),
+    );
+    expect(mockPlatformAdapter.shell.openTempFile).toHaveBeenCalledWith(
+      "EML",
+      expect.stringMatching(/^Poptavka_\d+\.eml$/),
+    );
+    expect(mockPersistBidStatusChange).toHaveBeenCalled();
+  });
+
+  it("při pozdější chybě přílohy upozorní uživatele, ale EML přesto vytvoří", async () => {
+    mockPlatformAdapter.isDesktop = true;
+    mockLoadBudgetAttachmentForEmail.mockRejectedValue(
+      new Error("Soubor je větší než povolený limit 10 MB."),
+    );
+
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachment: {
+        source: "dochub" as const,
+        fileName: "rozpocet.xlsx",
+        relativePath: "rozpocet.xlsx",
+        size: 1024,
+        selectedAt: "2026-07-01T20:00:00.000Z",
+        enabled: true,
+      },
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+    const showAlert = vi.fn();
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(showAlert).toHaveBeenCalledWith({
+      title: "Příloha nebyla vložena",
+      message:
+        "Soubor je větší než povolený limit 10 MB. EML zpráva bude vytvořena bez této přílohy.",
+      variant: "info",
+    });
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ attachments: [] }),
+    );
+    expect(mockPlatformAdapter.shell.openTempFile).toHaveBeenCalled();
+  });
+
   it("v mailto režimu negeneruje opakované upozornění kvůli lokální příloze", async () => {
     const activeCategory = {
       ...createCategory(),

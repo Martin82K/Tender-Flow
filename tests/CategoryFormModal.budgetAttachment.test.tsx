@@ -89,4 +89,41 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     expect(await screen.findByText("Desktop funkce")).toBeInTheDocument();
     expect(selectBudgetAttachmentMock).not.toHaveBeenCalled();
   });
+
+  it("označí přílohu nad 10 MB varovným vykřičníkem", async () => {
+    selectBudgetAttachmentMock.mockResolvedValue({
+      source: "dochub",
+      fileName: "velky-rozpocet.xlsx",
+      relativePath: "podklady/velky-rozpocet.xlsx",
+      size: 10 * 1024 * 1024 + 1,
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    });
+
+    render(
+      <CategoryFormModal
+        isOpen
+        mode="create"
+        isDesktop
+        isDocHubEnabled
+        resolveDesktopTenderFolderPath={vi.fn().mockResolvedValue("/Projects/Stavba/Betony")}
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Např. Klempířské konstrukce"), {
+      target: { value: "Betony" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Vybrat soubor/i }));
+
+    expect(
+      await screen.findByRole("img", {
+        name: "Příloha je větší než 10 MB a do EML se nevloží",
+      }),
+    ).toHaveAttribute(
+      "title",
+      "Příloha je větší než 10 MB a do EML se nevloží. EML zpráva se vytvoří bez ní.",
+    );
+  });
 });

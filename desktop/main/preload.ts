@@ -79,8 +79,8 @@ const electronAPI: ElectronAPI = {
         listFiles: (folderPath: string): Promise<FileInfo[]> =>
             invokeTyped('fs:listFiles', folderPath),
 
-        readFile: (filePath: string): Promise<Buffer> =>
-            invokeTyped('fs:readFile', filePath),
+        readFile: (filePath: string, options?: { maxBytes?: number }): Promise<Buffer> =>
+            invokeTyped('fs:readFile', filePath, options),
 
         writeFile: (filePath: string, data: Buffer | string): Promise<void> =>
             invokeTyped('fs:writeFile', filePath, data),

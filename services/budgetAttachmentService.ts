@@ -3,6 +3,7 @@ import { pickFile, readFile } from "@/services/fileSystemService";
 import {
   buildBudgetAttachmentMetadata,
   isPathInsideDirectory,
+  MAX_EMAIL_ATTACHMENT_BYTES,
   resolveBudgetAttachmentPath,
 } from "@/features/projects/model/budgetAttachmentModel";
 
@@ -11,8 +12,6 @@ export interface EmailAttachment {
   contentType: string;
   base64Content: string;
 }
-
-const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const extensionContentTypes: Record<string, string> = {
   pdf: "application/pdf",
@@ -77,7 +76,7 @@ export const loadBudgetAttachmentForEmail = async (
     throw new Error("Příloha není uvnitř složky tohoto VŘ.");
   }
 
-  const bytes = await readFile(filePath);
+  const bytes = await readFile(filePath, { maxBytes: MAX_EMAIL_ATTACHMENT_BYTES });
   if (bytes.byteLength > MAX_EMAIL_ATTACHMENT_BYTES) {
     throw new Error("Příloha je větší než povolený limit 10 MB.");
   }

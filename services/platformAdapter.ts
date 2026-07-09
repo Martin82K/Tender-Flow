@@ -73,9 +73,9 @@ export const fileSystemAdapter = {
     /**
      * Read a file from an already granted path (desktop only)
      */
-    async readFile(filePath: string): Promise<Uint8Array> {
+    async readFile(filePath: string, options?: { maxBytes?: number }): Promise<Uint8Array> {
         if (isDesktop && window.electronAPI) {
-            return window.electronAPI.fs.readFile(filePath) as unknown as Uint8Array;
+            return window.electronAPI.fs.readFile(filePath, options) as unknown as Uint8Array;
         }
         throw new Error('File reading not available on web.');
     },

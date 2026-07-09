@@ -5,6 +5,7 @@ import {
 } from "@/services/inquiryService";
 import { loadBudgetAttachmentForEmail } from "@/services/budgetAttachmentService";
 import type { EmailAttachment } from "@/services/budgetAttachmentService";
+import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
 import { organizationService } from "@features/organization/api";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
@@ -222,7 +223,8 @@ export const usePipelineCommunicationActions = ({
       if (
         platformAdapter.isDesktop &&
         activeCategory.budgetAttachment?.enabled &&
-        resolveDesktopTenderFolderPath
+        resolveDesktopTenderFolderPath &&
+        !isBudgetAttachmentOverEmailLimit(activeCategory.budgetAttachment)
       ) {
         try {
           const tenderFolderPath = await resolveDesktopTenderFolderPath(
@@ -239,14 +241,14 @@ export const usePipelineCommunicationActions = ({
           ];
         } catch (error) {
           showAlert({
-            title: "Přílohu nelze vložit",
-            message:
+            title: "Příloha nebyla vložena",
+            message: `${
               error instanceof Error
                 ? error.message
-                : "Rozpočtovou přílohu se nepodařilo načíst. Znovu ji prosím připojte v editaci poptávky.",
-            variant: "danger",
+                : "Rozpočtovou přílohu se nepodařilo načíst."
+            } EML zpráva bude vytvořena bez této přílohy.`,
+            variant: "info",
           });
-          return;
         }
       }
 

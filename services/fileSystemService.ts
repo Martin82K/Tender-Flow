@@ -266,13 +266,16 @@ export async function pickFile(options?: {
     return { cancelled: true, error };
 }
 
-export async function readFile(filePath: string): Promise<Uint8Array> {
+export async function readFile(
+    filePath: string,
+    options?: { maxBytes?: number },
+): Promise<Uint8Array> {
     if (!isDesktop) {
         throw new Error("Čtení lokálních souborů je dostupné pouze v desktop aplikaci.");
     }
 
     try {
-        return await fileSystemAdapter.readFile(filePath);
+        return await fileSystemAdapter.readFile(filePath, options);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         await logFileSystemIncident({

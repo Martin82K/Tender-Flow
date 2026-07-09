@@ -124,6 +124,31 @@ describe("fsHandlers", () => {
     );
   });
 
+  it("odmitne prilis velky soubor pred fs:readFile", async () => {
+    const maxBytes = 10 * 1024 * 1024;
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockResolvedValue({
+      isFile: () => true,
+      size: maxBytes + 1,
+    });
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+
+    const handler = handlers.get("fs:readFile");
+    await expect(
+      handler?.(
+        {},
+        "/Users/tester/Library/Application Support/TenderFlow/velky-rozpocet.xlsx",
+        { maxBytes },
+      ),
+    ).rejects.toThrow("Soubor je větší než povolený limit 10 MB.");
+    expect(fsMock.readFile).not.toHaveBeenCalled();
+  });
+
   it("odmitne fs:writeFile mimo povolene rooty", async () => {
     fsMock.realpath.mockImplementation(async (targetPath: string) => {
       if (targetPath === "/private/etc") return "/private/etc";

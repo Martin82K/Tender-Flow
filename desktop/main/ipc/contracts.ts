@@ -25,7 +25,10 @@ export interface IpcContractMap {
     result: FileInfo | null;
   };
   "fs:listFiles": { args: [folderPath: string]; result: FileInfo[] };
-  "fs:readFile": { args: [filePath: string]; result: Buffer };
+  "fs:readFile": {
+    args: [filePath: string, options?: { maxBytes?: number }];
+    result: Buffer;
+  };
   "fs:writeFile": { args: [filePath: string, data: Buffer | string]; result: void };
   "fs:openInExplorer": {
     args: [targetPath: string];
