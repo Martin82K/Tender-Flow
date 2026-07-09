@@ -154,6 +154,36 @@ describe("Contacts auto-fill regions", () => {
     });
   });
 
+  it("zpřístupní rychlé vložení jako modal a po Escape vrátí fokus", async () => {
+    render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={vi.fn()}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Vložit kontakt" });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    expect(
+      screen.getByRole("dialog", { name: "Rychlé vložení kontaktu" }),
+    ).toHaveAccessibleDescription(
+      "Vložte text z webu nebo podpisu. Návrh se před uložením otevře ve standardním formuláři.",
+    );
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Text kontaktu" })).toHaveFocus());
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: "Rychlé vložení kontaktu" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it("přeskočí placeholder region a zobrazí informaci, když AI vrátí jen pomlčku", async () => {
     render(
       <Contacts

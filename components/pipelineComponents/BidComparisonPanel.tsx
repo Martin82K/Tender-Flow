@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { trackFeatureUsage } from '../../services/featureUsageService';
 import { openInExplorer } from '../../services/fileSystemService';
 import platformAdapter from '../../services/platformAdapter';
@@ -8,11 +8,13 @@ import {
   toRuntimeBidComparisonAgentConfig,
 } from '../../shared/bidComparisonAgentSettings';
 import { navigate } from '../../shared/routing/router';
+import { useAccessibleDialog } from '../../shared/ui/useAccessibleDialog';
 import type {
   BidComparisonAgentConfig,
   BidComparisonAutoConfig,
   BidComparisonAutoStatus,
   BidComparisonDetectedFile,
+  BidComparisonJobState,
   BidComparisonJobStatus,
   BidComparisonRole,
 } from '../../shared/types/desktop';
@@ -32,7 +34,11 @@ interface BidComparisonPanelProps {
   supplierNames: string[];
 }
 
-const terminalStates = new Set(['success', 'error', 'cancelled']);
+const terminalStates: ReadonlySet<BidComparisonJobState> = new Set([
+  'success',
+  'error',
+  'cancelled',
+]);
 const OUTPUT_BASE_NAME = 'porovnani-nabidek';
 
 const normalizeSupplierList = (list: string[]): string[] =>
@@ -132,6 +138,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const trackedSuccessJobIdRef = useRef<string | null>(null);
   const autoDetectedPathRef = useRef<string | null>(null);
   const autoSyncTimerRef = useRef<number | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogTitleId = useId();
+  const dialogDescriptionId = useId();
   const folderStorageScopedKey = useMemo(
     () => `bid-comparison-folder:${projectId}:${categoryId}`,
     [projectId, categoryId],
@@ -361,11 +370,23 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     if (!isOpen || !jobId || !canUseDesktopApi) return;
 
     let cancelled = false;
+    let pollTimer: number | null = null;
+
+    const scheduleNextPoll = () => {
+      if (cancelled) return;
+      pollTimer = window.setTimeout(() => {
+        void poll();
+      }, 700);
+    };
+
     const poll = async () => {
+      let shouldContinue = true;
+
       try {
         const next = await platformAdapter.bidComparison.get(jobId);
         if (cancelled || !next) return;
         setJob(next);
+        shouldContinue = !terminalStates.has(next.status);
 
         if (next.status === 'success' && trackedSuccessJobIdRef.current !== next.id) {
           trackedSuccessJobIdRef.current = next.id;
@@ -376,17 +397,20 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         }
       } catch {
         // Polling musí být odolný, chybu zobrazíme jen v UI stavu jobu.
+      } finally {
+        if (shouldContinue) {
+          scheduleNextPoll();
+        }
       }
     };
 
     void poll();
-    const interval = window.setInterval(() => {
-      void poll();
-    }, 700);
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      if (pollTimer !== null) {
+        window.clearTimeout(pollTimer);
+      }
     };
   }, [canUseDesktopApi, isOpen, jobId]);
 
@@ -705,34 +729,56 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     ],
   );
 
-  if (!isOpen) return null;
-
   const jobIsRunning = !!job && !terminalStates.has(job.status);
+  const handleRequestClose = useCallback(async () => {
+    if (isClosing) return;
+
+    if (jobIsRunning) {
+      setIsClosing(true);
+      try {
+        await cancelJob();
+      } finally {
+        setIsClosing(false);
+        onClose();
+      }
+      return;
+    }
+
+    onClose();
+  }, [cancelJob, isClosing, jobIsRunning, onClose]);
+
+  useAccessibleDialog({
+    isOpen,
+    onClose: () => {
+      void handleRequestClose();
+    },
+    containerRef: dialogRef,
+  });
+
+  if (!isOpen) return null;
 
   return (
     <div data-help-id="pipeline-bid-comparison-modal" className="tf-modal-overlay fixed inset-0 z-[10001] bg-slate-100 dark:bg-slate-950 overflow-hidden">
-      <div className="tf-modal-panel tf-pipeline-modal-panel flex h-screen w-screen flex-col bg-white dark:bg-slate-900">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescriptionId}
+        tabIndex={-1}
+        className="tf-modal-panel tf-pipeline-modal-panel flex h-screen w-screen flex-col bg-white dark:bg-slate-900"
+      >
         <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Cenové studio</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <h2 id={dialogTitleId} className="text-lg font-bold text-slate-900 dark:text-white">Cenové studio</h2>
+            <p id={dialogDescriptionId} className="text-xs text-slate-500 dark:text-slate-400">
               Porovnání nabídek, rozpočtu a dodavatelských cen v jedné pracovní ploše.
             </p>
           </div>
           <button
             type="button"
-            onClick={async () => {
-              if (jobIsRunning) {
-                setIsClosing(true);
-                try {
-                  await cancelJob();
-                } finally {
-                  setIsClosing(false);
-                  onClose();
-                }
-                return;
-              }
-              onClose();
+            onClick={() => {
+              void handleRequestClose();
             }}
             className="px-3 py-2 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
             disabled={isClosing}

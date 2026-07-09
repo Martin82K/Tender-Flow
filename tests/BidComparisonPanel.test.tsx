@@ -91,11 +91,11 @@ const detectedFile = (
   analysisError: null,
 });
 
-const renderPanel = () =>
+const renderPanel = (onClose = vi.fn()) =>
   render(
     <BidComparisonPanel
       isOpen
-      onClose={vi.fn()}
+      onClose={onClose}
       projectId="project-1"
       categoryId="category-1"
       initialTenderFolderPath="/Tender/Vyberove-rizeni"
@@ -127,9 +127,30 @@ describe('BidComparisonPanel', () => {
     });
 
     const panel = container.querySelector('.tf-pipeline-modal-panel');
+    expect(screen.getByRole('dialog', { name: 'Cenové studio' })).toHaveAccessibleDescription(
+      'Porovnání nabídek, rozpočtu a dodavatelských cen v jedné pracovní ploše.',
+    );
     expect(panel).toHaveClass('h-screen');
     expect(panel).toHaveClass('w-screen');
     expect(panel).not.toHaveClass('max-w-6xl');
+  });
+
+  it('zavře dialog klávesou Escape a vrátí fokus', async () => {
+    platformMocks.detectInputs.mockResolvedValue(detectedResult([]));
+    const onClose = vi.fn();
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const { unmount } = renderPanel(onClose);
+    await screen.findByRole('dialog', { name: 'Cenové studio' });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(trigger).toHaveFocus();
+    trigger.remove();
   });
 
   it('otevře nastavení agenta v administraci místo nástrojů', async () => {
@@ -262,5 +283,12 @@ describe('BidComparisonPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('nejnižší')).toBeInTheDocument();
     });
+
+    await waitFor(() => {
+      expect(platformMocks.get).toHaveBeenCalledTimes(2);
+    });
+
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
+    expect(platformMocks.get).toHaveBeenCalledTimes(2);
   });
 });

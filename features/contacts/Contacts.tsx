@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -20,6 +20,7 @@ import {
     analyzeContactQuickPaste,
 } from '@features/contacts/model/contactQuickPaste';
 import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
+import { useAccessibleDialog } from '@/shared/ui/useAccessibleDialog';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
 
 interface ContactsProps {
@@ -61,6 +62,11 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const [quickPasteAnalysis, setQuickPasteAnalysis] = useState<ContactQuickPasteAnalysis | null>(null);
     const [quickPasteError, setQuickPasteError] = useState<string | null>(null);
     const [isQuickPasteAnalyzing, setIsQuickPasteAnalyzing] = useState(false);
+    const quickPasteDialogRef = useRef<HTMLDivElement>(null);
+    const quickPasteInputRef = useRef<HTMLTextAreaElement>(null);
+    const quickPasteTitleId = useId();
+    const quickPasteDescriptionId = useId();
+    const quickPasteInputId = useId();
 
     // Bulk Specialization Modal State
     const [isBulkSpecModalOpen, setIsBulkSpecModalOpen] = useState(false);
@@ -120,6 +126,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         setQuickPasteError(null);
         setIsQuickPasteModalOpen(true);
     }, []);
+
+    useAccessibleDialog({
+        isOpen: isQuickPasteModalOpen,
+        onClose: closeQuickPasteModal,
+        containerRef: quickPasteDialogRef,
+        initialFocusRef: quickPasteInputRef,
+    });
 
     const handleRegistryLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
         e.stopPropagation();
@@ -760,7 +773,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
                         title="Rychlé vložení kontaktu (Ctrl/Cmd+Shift+K)"
                     >
-                        <span className="material-symbols-outlined text-[20px]">content_paste_go</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">content_paste_go</span>
                         Vložit kontakt
                     </button>
                     <button
@@ -813,23 +826,38 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
             {isQuickPasteModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+                    <div
+                        ref={quickPasteDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={quickPasteTitleId}
+                        aria-describedby={quickPasteDescriptionId}
+                        tabIndex={-1}
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]"
+                    >
                         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Rychlé vložení kontaktu</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <h3 id={quickPasteTitleId} className="text-lg font-bold text-slate-900 dark:text-white">Rychlé vložení kontaktu</h3>
+                                <p id={quickPasteDescriptionId} className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                                     Vložte text z webu nebo podpisu. Návrh se před uložením otevře ve standardním formuláři.
                                 </p>
                             </div>
-                            <button onClick={closeQuickPasteModal} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                                <span className="material-symbols-outlined">close</span>
+                            <button
+                                type="button"
+                                aria-label="Zavřít rychlé vložení kontaktu"
+                                onClick={closeQuickPasteModal}
+                                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                            >
+                                <span aria-hidden="true" className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
                         <div className="p-6 overflow-y-auto flex-1 space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Text kontaktu</label>
+                                <label htmlFor={quickPasteInputId} className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Text kontaktu</label>
                                 <textarea
+                                    id={quickPasteInputId}
+                                    ref={quickPasteInputRef}
                                     value={quickPasteText}
                                     onChange={e => setQuickPasteText(e.target.value)}
                                     onKeyDown={(e) => e.stopPropagation()}
