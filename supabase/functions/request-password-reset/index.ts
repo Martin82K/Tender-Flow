@@ -6,10 +6,19 @@ import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_TEMPLATE_FORGOT_PASSWORD_ID = Deno.env.get("RESEND_TEMPLATE_FORGOT_PASSWORD_ID");
-const SITE_URL = Deno.env.get("SITE_URL") || "http://localhost:3000"; // Fallback for local dev
+const SITE_URL = Deno.env.get("SITE_URL")?.trim() || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+const isValidResetBaseUrl = (value: string): boolean => {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "https:" ||
+            (parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname));
+    } catch {
+        return false;
+    }
+};
 
 serve(async (req) => {
     if (req.method === "OPTIONS") {
@@ -17,9 +26,18 @@ serve(async (req) => {
     }
 
     try {
-        const { email } = await req.json();
+        if (!RESEND_API_KEY || !isValidResetBaseUrl(SITE_URL)) {
+            console.error("[request-password-reset] Email service configuration is incomplete.");
+            return new Response(JSON.stringify({ error: "Služba obnovy hesla je dočasně nedostupná." }), {
+                status: 503,
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+            });
+        }
 
-        if (!email) {
+        const payload = await req.json();
+        const email = typeof payload?.email === "string" ? payload.email.trim().toLowerCase() : "";
+
+        if (!email || email.length > 320) {
             return new Response(JSON.stringify({ error: "Email je povinný" }), {
                 status: 400,
                 headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
@@ -66,7 +84,12 @@ serve(async (req) => {
             .gte("created_at", oneHourAgo)
             .order("created_at", { ascending: false });
 
-        if (!rlError && recentTokens && recentTokens.length > 0) {
+        if (rlError) {
+            console.error("[request-password-reset] Failed to verify reset rate limit.");
+            throw new Error("Failed to verify reset rate limit");
+        }
+
+        if (recentTokens && recentTokens.length > 0) {
             // Enforce max 3 per hour
             if (recentTokens.length >= 3) {
                 // Return success to avoid user enumeration
@@ -112,16 +135,10 @@ serve(async (req) => {
         }
 
         // 4. Send Email via Resend
-        const resetLink = `${SITE_URL}/reset-password?token=${token}`; // We send the RAW token to user
+        const resetUrl = new URL("/reset-password", SITE_URL);
+        resetUrl.searchParams.set("token", token);
+        const resetLink = resetUrl.toString(); // We send the RAW token to user
         // The DB has the HASHED token.
-
-        if (!RESEND_API_KEY) {
-            console.warn("RESEND_API_KEY not set. Logging link:", resetLink);
-            return new Response(JSON.stringify({ success: true, message: "Mocked sending (no API key)" }), {
-                status: 200,
-                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
-            });
-        }
 
         // Styled HTML email matching Tender Flow branding
         const emailBody = {
@@ -191,18 +208,29 @@ serve(async (req) => {
             `
         };
 
-        const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify(emailBody),
-        });
+        try {
+            const res = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${RESEND_API_KEY}`,
+                },
+                body: JSON.stringify(emailBody),
+            });
 
-        if (!res.ok) {
-            console.error("Resend API error: status", res.status);
-            throw new Error("Failed to send email");
+            if (!res.ok) {
+                console.error("Resend API error: status", res.status);
+                throw new Error("Failed to send email");
+            }
+        } catch {
+            const { error: cleanupError } = await supabase
+                .from("password_reset_tokens")
+                .delete()
+                .eq("token_hash", tokenHashHex);
+            if (cleanupError) {
+                console.error("[request-password-reset] Failed to clean up an unsent reset token.");
+            }
+            throw new Error("Failed to send password reset email");
         }
 
         return new Response(JSON.stringify({ success: true }), {

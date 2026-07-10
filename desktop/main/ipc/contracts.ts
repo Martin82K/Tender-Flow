@@ -149,6 +149,19 @@ export interface IpcContractMap {
     args: [authenticated: boolean, session?: { accessToken?: string | null; expiresAt?: number | null }];
     result: void;
   };
+  "auth:invokePublicFunction": {
+    args: [
+      functionName: "request-password-reset" | "confirm-password-reset",
+      body: unknown,
+    ];
+    result: {
+      ok: boolean;
+      status: number;
+      statusText: string;
+      text: string;
+      headers: Record<string, string>;
+    };
+  };
   "app:setThemeSource": { args: [source: 'light' | 'dark' | 'system']; result: void };
 }
 

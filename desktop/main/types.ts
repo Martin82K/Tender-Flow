@@ -36,6 +36,16 @@ export interface AuthNotificationAPI {
         authenticated: boolean,
         session?: { accessToken?: string | null; expiresAt?: number | null },
     ) => Promise<void>;
+    invokePublicFunction: (
+        functionName: 'request-password-reset' | 'confirm-password-reset',
+        body: unknown,
+    ) => Promise<{
+        ok: boolean;
+        status: number;
+        statusText: string;
+        text: string;
+        headers: Record<string, string>;
+    }>;
 }
 
 export interface NotificationAPI {
