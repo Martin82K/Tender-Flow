@@ -41,7 +41,7 @@ import {
   formatOfferDate,
 } from "@/features/projects/model/projectOverviewModel";
 import { useProjectOverviewController } from "@/features/projects/model/useProjectOverviewController";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 
 interface ProjectOverviewProps {
   projects: Project[];

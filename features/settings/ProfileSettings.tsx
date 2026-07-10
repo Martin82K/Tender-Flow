@@ -18,7 +18,7 @@ import { formatOrgRequestStatus } from "@/shared/organization/organizationUtils"
 import { userProfileService } from "../../services/userProfileService";
 import { buildEmailSignature } from "@/shared/email/signature";
 import type { UserEmailSignatureProfile } from "@/types";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";

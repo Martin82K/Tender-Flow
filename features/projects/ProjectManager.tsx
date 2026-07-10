@@ -13,7 +13,7 @@ import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
 import { AlertModal } from '@/shared/ui/AlertModal';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { useFeatures } from '@/context/FeatureContext';
-import type { ThemeSkin } from '@/hooks/useTheme';
+import type { ThemeSkin } from '@/shared/types/theme';
 
 interface ProjectManagerProps {
     projects: Project[];
