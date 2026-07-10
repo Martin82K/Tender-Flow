@@ -1,5 +1,5 @@
 import type { Bid, BudgetAttachment, DemandCategory, DemandDocument, ProjectDetails } from "@/types";
-import { parseDecimal } from "@/utils/formatters";
+import { parseDecimal } from "@/shared/formatting/decimalFormatters";
 
 export type PipelineInquiryGenerationKind = "inquiry" | "materialInquiry";
 
