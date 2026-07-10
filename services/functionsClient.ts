@@ -11,6 +11,8 @@ type InvokeOptions = {
   idempotencyKey?: string;
 };
 
+type PublicFunctionName = "request-password-reset" | "confirm-password-reset";
+
 const DEFAULT_TIMEOUT_MS = 25_000;
 const DEFAULT_RETRIES = 0;
 
@@ -228,7 +230,7 @@ export const invokeAuthedFunction = async <TResponse>(
 };
 
 export const invokePublicFunction = async <TResponse>(
-  name: string,
+  name: PublicFunctionName,
   options: InvokeOptions = {}
 ): Promise<TResponse> => {
   const supabaseUrl = getRequiredEnv("VITE_SUPABASE_URL");
@@ -241,12 +243,11 @@ export const invokePublicFunction = async <TResponse>(
   const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
 
   if (isDesktop) {
-    // @ts-ignore
-    const res = await window.electronAPI.net.request(url, {
-      method,
-      headers: buildPublicHeaders(anonKey),
-      body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
-    });
+    if (method !== "POST") {
+      throw new Error("Desktop public auth functions support only POST requests");
+    }
+    // @ts-ignore - electronAPI is injected via preload
+    const res = await window.electronAPI.auth.invokePublicFunction(name, options.body ?? {});
 
     if (!res.ok) {
       let errorMsg = res.statusText || `HTTP ${res.status}`;

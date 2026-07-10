@@ -41,6 +41,8 @@ const PRE_AUTH_CHANNELS = new Set([
   'updater:getStatus',
   // Auth state management. Positive auth transitions are verified by main.
   'auth:setAuthenticated',
+  // Narrow pre-auth proxy limited to password reset Edge Functions.
+  'auth:invokePublicFunction',
 ]);
 
 type PathAccessMode = 'read' | 'write';

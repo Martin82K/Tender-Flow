@@ -126,6 +126,38 @@ describe("functionsClient", () => {
     );
   });
 
+  it("desktop reset hesla používá úzký pre-auth IPC kanál místo chráněného net proxy", async () => {
+    const invokePublicFunctionIpc = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: JSON.stringify({ success: true }),
+      headers: {},
+    });
+    const request = vi.fn();
+    (window as any).electronAPI = {
+      platform: { isDesktop: true },
+      auth: {
+        invokePublicFunction: invokePublicFunctionIpc,
+      },
+      net: { request },
+    };
+
+    const { invokePublicFunction } = await import("../services/functionsClient");
+
+    await expect(
+      invokePublicFunction("request-password-reset", {
+        body: { email: "user@example.com" },
+      }),
+    ).resolves.toEqual({ success: true });
+
+    expect(invokePublicFunctionIpc).toHaveBeenCalledWith(
+      "request-password-reset",
+      { email: "user@example.com" },
+    );
+    expect(request).not.toHaveBeenCalled();
+  });
+
   it("public funkce neposílá publishable key jako bearer token", async () => {
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "sb_publishable_test-key");
     const fetchMock = vi.fn().mockResolvedValue({

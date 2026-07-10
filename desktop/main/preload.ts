@@ -279,6 +279,10 @@ const electronAPI: ElectronAPI = {
             session?: { accessToken?: string | null; expiresAt?: number | null },
         ): Promise<void> =>
             ipcRenderer.invoke('auth:setAuthenticated', authenticated, session),
+        invokePublicFunction: (
+            functionName: 'request-password-reset' | 'confirm-password-reset',
+            body: unknown,
+        ) => invokeTyped('auth:invokePublicFunction', functionName, body),
     },
 
     backup: {

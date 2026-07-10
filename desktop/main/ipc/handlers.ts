@@ -15,10 +15,12 @@ import { registerSessionHandlers } from './modules/sessionHandlers';
 import { registerWatcherHandlers } from './modules/watcherHandlers';
 import { registerNotificationHandlers } from './modules/notificationHandlers';
 import { registerBackupHandlers } from './modules/backupHandlers';
+import { registerPublicAuthHandlers } from './modules/publicAuthHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
 import { ipcAuthGuard } from '../services/ipcAuthGuard';
 import { isAllowedExternalUrl, parseExternalUrl } from '../security/externalUrlPolicy';
+import { getSupabasePublicConfig } from '../services/publicEnv';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -187,6 +189,10 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         requireAuth,
     });
     registerNetHandlers({ isAllowedProxyUrl, requireAuth });
+    registerPublicAuthHandlers({
+        getSupabasePublicConfig,
+        isTrustedSender: (sender) => ipcAuthGuard.isTrustedSender(sender),
+    });
     registerNotificationHandlers();
     registerBackupHandlers({ requireAuth });
 
