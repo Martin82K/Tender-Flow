@@ -32,7 +32,7 @@ import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 
 interface SettingsProps {
   theme: "light" | "dark" | "system";

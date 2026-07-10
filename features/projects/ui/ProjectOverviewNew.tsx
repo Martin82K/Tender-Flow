@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
 import { NumericInput } from "@/shared/ui/NumericInput";
 import {

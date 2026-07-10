@@ -47,7 +47,7 @@ describe("Architecture Guardrails", () => {
       stdio: "pipe",
     });
     const report = JSON.parse(output) as {
-      dependencyFindings: Record<string, unknown[]>;
+      dependencyFindings: Record<string, Array<{ target: string }>>;
       sharedUi: {
         temporaryShims: Array<{ file: string; targets: string[] }>;
         primitives: Array<{ file: string }>;
@@ -68,6 +68,11 @@ describe("Architecture Guardrails", () => {
       "shared-to-components",
     ]);
     expect(report.dependencyFindings["features-to-legacy-utils"]).toHaveLength(0);
+    expect(
+      report.dependencyFindings["features-to-legacy-hooks"].filter(
+        (item) => item.target === "hooks/useTheme",
+      ),
+    ).toHaveLength(0);
     expect(report.sharedUi.temporaryShims.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.sharedUi.temporaryShims.every((item) => item.targets.every((target) => target.startsWith("components/")))).toBe(
       true,

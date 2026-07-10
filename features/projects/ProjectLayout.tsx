@@ -21,7 +21,7 @@ import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
 import { geocodingService } from "@features/maps/services/geocodingService";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {

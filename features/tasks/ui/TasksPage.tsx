@@ -6,7 +6,7 @@ import { Input } from "@shared/ui/Input";
 import { HelpButton } from "@features/help";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { useProjectsState } from "@features/projects/model/useProjectsState";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 import {
   buildTaskTree,
   filterTaskTreeByTodoProject,

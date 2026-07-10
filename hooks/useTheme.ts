@@ -5,11 +5,11 @@
 
 import { useState, useEffect } from "react";
 import { hexToRgb } from "../utils/helpers";
-import type { User } from "../types";
 import { appAdapter } from "../services/platformAdapter";
+import type { ThemeMode, ThemeSkin } from "../shared/types/theme";
+import type { User } from "../types";
 
-export type ThemeMode = 'light' | 'dark' | 'system';
-export type ThemeSkin = 'classic' | 'industrial';
+export type { ThemeMode, ThemeSkin } from "../shared/types/theme";
 
 export const DEFAULT_DARK_BACKGROUND = "#0f172a";
 const DEFAULT_LIGHT_BACKGROUND = "#f5f6f8";
