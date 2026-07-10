@@ -95,7 +95,9 @@ const getSupplierTotals = (
   rows: NonNullable<BidComparisonJobStatus['stats']>['matrix'],
   suppliers: string[],
 ): Record<string, number> => {
-  const totals = Object.fromEntries(suppliers.map((supplier) => [supplier, 0]));
+  const totals: Record<string, number> = Object.fromEntries(
+    suppliers.map((supplier) => [supplier, 0]),
+  );
   rows?.forEach((row) => {
     suppliers.forEach((supplier) => {
       const value = row.offers[supplier]?.celkem;
@@ -567,7 +569,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   );
 
   const lowestSupplierTotal = useMemo(() => {
-    const entries = Object.entries(supplierTotals).filter(([, total]) => total > 0);
+    const entries = Object.entries(supplierTotals).filter(
+      (entry): entry is [string, number] =>
+        typeof entry[1] === 'number' && entry[1] > 0,
+    );
     if (!entries.length) return null;
     return entries.reduce(
       (best, current) => (current[1] < best[1] ? current : best),

@@ -87,8 +87,8 @@ const createFromResult = (
 ) => {
   const chain = createThenableChain(response);
   return {
-    insert: vi.fn(() => chain),
-    update: vi.fn(() => chain),
+    insert: vi.fn((_payload: unknown) => chain),
+    update: vi.fn((_payload: unknown) => chain),
     delete: vi.fn(() => chain),
     upsert: vi.fn(() => chain),
     select: vi.fn(() => chain),

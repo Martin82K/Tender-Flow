@@ -1054,8 +1054,9 @@ describe("TasksPage note preview", () => {
     expect(card).not.toBeNull();
     expect(card).toHaveClass("max-h-36");
     expect(note).not.toBeNull();
-    expect(note?.style.WebkitLineClamp).toBe("4");
-    expect(note?.style.WebkitBoxOrient).toBe("vertical");
+    expect(note?.style.webkitLineClamp).toBe("4");
+    const vendorStyle = note?.style as (CSSStyleDeclaration & { WebkitBoxOrient?: string }) | undefined;
+    expect(vendorStyle?.WebkitBoxOrient).toBe("vertical");
   });
 
   it("v úzké kalendářové kartě oddělí projektový badge od zalamovaného názvu úkolu", () => {
@@ -1065,6 +1066,7 @@ describe("TasksPage note preview", () => {
         name: "Boučí",
         color: "#22c55e",
         sortOrder: 0,
+        createdBy: "user-1",
         createdAt: "2026-05-17T10:00:00Z",
         updatedAt: "2026-05-17T10:00:00Z",
       },

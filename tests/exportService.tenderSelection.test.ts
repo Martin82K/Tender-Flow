@@ -1,11 +1,12 @@
 import ExcelJS from "exceljs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
+import type { UserOptions } from "jspdf-autotable";
 
 const saveMock = vi.hoisted(() => vi.fn());
 const addImageMock = vi.hoisted(() => vi.fn());
 const textMock = vi.hoisted(() => vi.fn());
-const autoTableMock = vi.hoisted(() => vi.fn((doc: any) => {
+const autoTableMock = vi.hoisted(() => vi.fn((doc: { lastAutoTable?: { finalY: number } }, _options?: UserOptions) => {
   doc.lastAutoTable = { finalY: 80 };
 }));
 
@@ -69,6 +70,7 @@ const project: ProjectDetails = {
   location: "Aš",
   finishDate: "",
   siteManager: "",
+  categories: [],
 };
 
 const bids: Bid[] = [
@@ -179,8 +181,10 @@ describe("exportService tender selection exports", () => {
     expect(fetchMock).toHaveBeenCalledWith("/TF_ico.png");
     expect(fetchMock).toHaveBeenCalledWith("https://tenant.example/logo.png");
     expect(autoTableMock).toHaveBeenCalledTimes(1);
-    const tableOptions = autoTableMock.mock.calls[0][1];
+    const tableOptions = autoTableMock.mock.calls[0]?.[1];
 
+    expect(tableOptions).toBeDefined();
+    if (!tableOptions) throw new Error("Chybí options pro jspdf-autotable");
     expect(tableOptions.tableWidth).toBe(277);
     expect(tableOptions.head[0]).toContain("Poznámka");
     expect(tableOptions.body[0]).toContain("Budou účtovány dopravy.");
