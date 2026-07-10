@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "config/**/*.ts",
+    "config/**/*.tsx",
+    "context/**/*.ts",
+    "context/**/*.tsx",
+    "features/**/*.ts",
+    "features/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "infra/**/*.ts",
+    "infra/**/*.tsx",
+    "services/**/*.ts",
+    "services/**/*.tsx",
+    "shared/**/*.ts",
+    "shared/**/*.tsx",
+    "utils/**/*.ts",
+    "utils/**/*.tsx"
+  ],
+  "exclude": [
+    "desktop",
+    "server",
+    "server_py",
+    "supabase/functions"
+  ]
+}
