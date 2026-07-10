@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "audit:architecture": "node scripts/audit-architecture-debt.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:legacy-structure": "node scripts/check-legacy-structure.mjs",

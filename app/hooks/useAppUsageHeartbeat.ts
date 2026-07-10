@@ -48,13 +48,22 @@ const formatUuidFromBytes = (bytes: Uint8Array): string => {
 };
 
 export const createUsageSessionId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+  type RuntimeCrypto = {
+    getRandomValues?: Crypto["getRandomValues"];
+    randomUUID?: () => string;
+  };
+  const runtimeCrypto: RuntimeCrypto | undefined =
+    typeof globalThis.crypto === "undefined"
+      ? undefined
+      : globalThis.crypto;
+
+  if (typeof runtimeCrypto?.randomUUID === "function") {
+    return runtimeCrypto.randomUUID();
   }
 
   const bytes = new Uint8Array(16);
-  if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
-    crypto.getRandomValues(bytes);
+  if (typeof runtimeCrypto?.getRandomValues === "function") {
+    runtimeCrypto.getRandomValues(bytes);
   } else {
     for (let index = 0; index < bytes.length; index += 1) {
       bytes[index] = Math.floor(Math.random() * 256);

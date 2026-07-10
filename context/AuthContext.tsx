@@ -63,7 +63,7 @@ const contextId = Math.floor(Math.random() * 100000);
 const LOGIN_TIMEOUT_MS = 10000;
 
 const withLoginTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
-  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  let timeoutId: number | undefined;
   try {
     return await Promise.race([
       promise,
@@ -88,7 +88,7 @@ const registerCurrentAuthDevice = async (): Promise<void> => {
   } catch (error) {
     console.warn("[AuthContext] Failed to register current auth device:", error);
     void logIncident({
-      severity: "warning",
+      severity: "warn",
       source: "renderer",
       category: "auth",
       code: "AUTH_DEVICE_REGISTER_FAILED",

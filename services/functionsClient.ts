@@ -11,7 +11,10 @@ type InvokeOptions = {
   idempotencyKey?: string;
 };
 
-type PublicFunctionName = "request-password-reset" | "confirm-password-reset";
+type DesktopPublicFunctionName = "request-password-reset" | "confirm-password-reset";
+
+const isDesktopPublicFunctionName = (name: string): name is DesktopPublicFunctionName =>
+  name === "request-password-reset" || name === "confirm-password-reset";
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 const DEFAULT_RETRIES = 0;
@@ -230,7 +233,7 @@ export const invokeAuthedFunction = async <TResponse>(
 };
 
 export const invokePublicFunction = async <TResponse>(
-  name: PublicFunctionName,
+  name: string,
   options: InvokeOptions = {}
 ): Promise<TResponse> => {
   const supabaseUrl = getRequiredEnv("VITE_SUPABASE_URL");
@@ -245,6 +248,9 @@ export const invokePublicFunction = async <TResponse>(
   if (isDesktop) {
     if (method !== "POST") {
       throw new Error("Desktop public auth functions support only POST requests");
+    }
+    if (!isDesktopPublicFunctionName(name)) {
+      throw new Error(`Desktop public auth function is not allowed: ${name}`);
     }
     // @ts-ignore - electronAPI is injected via preload
     const res = await window.electronAPI.auth.invokePublicFunction(name, options.body ?? {});
