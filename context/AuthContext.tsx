@@ -29,6 +29,7 @@ import {
   type MfaStatus,
 } from "@infra/auth/mfaService";
 import { authDeviceService } from "@infra/auth/deviceService";
+import { AuthIdentityProvider } from "@shared/auth/AuthIdentityContext";
 
 export type AuthLoginResult =
   | { status: "authenticated" }
@@ -1046,7 +1047,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         refreshMfaStatus,
       }}
     >
-      {children}
+      <AuthIdentityProvider identity={user}>{children}</AuthIdentityProvider>
     </AuthContext.Provider>
   );
 };

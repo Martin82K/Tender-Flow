@@ -18,17 +18,21 @@ odběratelů a nezměnit uživatelské chování ani síťový kontrakt.
 | Viditelnost a mapování | `features/projects/model/projectVisibility.ts` | Čistá, deterministická O(n+m) funkce |
 | Databázový adaptér | `infra/db/dbAdapter.ts` | Izoluje feature od konkrétního klienta |
 | Retry a timeout | `shared/async/asyncControl.ts` | Sdílená technická politika bez doménové vazby |
+| Read-only auth identita | `shared/auth/AuthIdentityContext.tsx` | Pouze `id`, `email` a `role` ze stávajícího AuthProvideru |
 | Demo data | `features/projects/api/projectDemoDataApi.ts` | Feature API nad legacy úložištěm demo dat |
-| Legacy kompatibilita | `hooks/queries/useProjectsQuery.ts` | Pouze re-export, žádná druhá implementace |
+| Legacy kompatibilita | `hooks/queries/useProjectsQuery.ts` | Bezparametrový adaptér, žádná druhá query implementace |
 
-Přímá závislost nového hooku na legacy `AuthContext` je vědomý přechodový bod.
-Odstraní se až při samostatné migraci autentizačního rozhraní; tato změna ji
-nerozšiřuje do dalších souborů.
+Feature hook přijímá identitu explicitně a neimportuje legacy `AuthContext`.
+Feature odběratelé ve více nezávislých větvích UI používají úzký
+`AuthIdentityContext`; legacy `useAppData` zachovává bezparametrové API přes
+adaptér v legacy vrstvě.
 
 ## Veřejný kontrakt hooku
 
 - Query key je `[..., PROJECT_KEYS.list(), user.id]` a odděluje cache uživatelů.
 - Query je aktivní pouze tehdy, když existuje přihlášený uživatel.
+- Ručně vyvolaný query callback bez identity selže uzavřeně na prázdný seznam a
+  nevytvoří databázový request.
 - Demo uživatel nevolá databázi a dostane uložené demo projekty nebo výchozí
   `DEMO_PROJECT`.
 - Projekty se řadí v databázi podle `created_at` sestupně.
@@ -55,7 +59,9 @@ Bezpečnostní invarianty:
 3. Chybějící či chybová RPC data selžou uzavřeně pro sdílené projekty;
    transportní selhání nezobrazí částečný seznam.
 4. Frontend nepoužívá `service_role` ani jiný klíč obcházející RLS.
-5. Tato migrace nemění SQL, RPC, grants ani RLS politiky.
+5. Shared identity provider kopíruje pouze `id`, `email` a `role`; nadbytečná
+   runtime pole včetně tokenu přes hranici nepřenese.
+6. Tato migrace nemění SQL, RPC, grants ani RLS politiky.
 
 RPC `get_projects_metadata` je bezpečnostně citlivé. Jeho databázová definice
 musí dále filtrovat podle identity volajícího, mít omezená oprávnění a řízený
@@ -74,10 +80,14 @@ musí dále filtrovat podle identity volajícího, mít omezená oprávnění a 
 
 ### Kontrakt a kompatibilita
 
-- [x] Kanonický a legacy import exportují stejnou funkci hooku.
+- [x] Feature hook vyžaduje explicitní identitu a legacy import zachovává
+  bezparametrový adaptér.
 - [x] Query key, `enabled` a pětiminutový `staleTime` zůstanou stejné.
-- [x] Nepřihlášený stav je zakázaný a nevytváří falešnou identitu cache.
+- [x] Nepřihlášený stav je zakázaný, nevytváří falešnou identitu cache a
+  neprovede databázový request ani při ručním zavolání callbacku.
 - [x] Demo větev nevolá databázi a zachová fallback projekt.
+- [x] Shared provider stabilně zveřejní minimální projekci, `null` a selže
+  rychle mimo provider.
 
 ### Síť a chyby
 
@@ -110,10 +120,21 @@ Architektonický audit zůstal na 80 přechodových vazbách; vazby
 a thread-aware security review jsou povinnou vzdálenou bránou každého PR a
 jejich konkrétní výsledek zůstává v historii příslušného PR.
 
+Oddělení auth identity bylo test-first ověřeno třemi RED důkazy: konkrétním
+architektonickým nálezem, ignorovaným explicitním uživatelem a chybějícím
+shared providerem. Přesný lokální rozsah následně prošel 299 testovacích
+souborů a 1 409 testů; celý pracovní strom včetně nesouvisejícího updater testu
+prošel 300 souborů a 1 410 testů. Architektonický dluh klesl ze 76 na 75 vazeb,
+feature→legacy context nálezy na 44 a cílový nález zmizel. TypeScript,
+dokumentační odkazy, boundaries, legacy freeze, web build, desktop compile a
+dependency audit prošly. Autoritativní vzdálený výsledek zůstane v historii
+navazujícího PR.
+
 ## Rollout a návrat zpět
 
-Migrace je kompatibilní: staré importy pokračují přes re-export. Návrat zpět je
-možný revertováním jediného PR bez databázové migrace nebo změny uložených dat.
+Migrace je kompatibilní: staré importy pokračují přes bezparametrový adaptér.
+Návrat zpět je možný revertováním jediného PR bez databázové migrace nebo změny
+uložených dat.
 Po merge se sledují chyby načítání seznamu projektů a případné incident reference
 v existující diagnostice aplikace.
 

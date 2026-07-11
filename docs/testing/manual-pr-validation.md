@@ -22,6 +22,7 @@ potvrzen v cílovém prostředí.
 | [#173](https://github.com/Martin82K/Tender-Flow/pull/173) | Tenant overview | Přepnout tenant/project scope a ověřit, že organizace nevidí data jiného tenantu. | čeká |
 | [#174](https://github.com/Martin82K/Tender-Flow/pull/174) | Kontakty query | Otevřít Kontakty; ověřit seznam, řazení, specializace, osoby, geodata a hodnocení. Zopakovat v demo režimu bez sítě, po přidání/úpravě/smazání kontaktu a s více než 1 000 záznamy. | čeká |
 | [#175](https://github.com/Martin82K/Tender-Flow/pull/175) | Identita přehledu projektů | Po přihlášení otevřít Přehled projektů; přepnout tenant/project scope a ověřit projekty, dodavatele, kontaktní hodnocení a filtry. Ověřit také demo účet a admin debug banner s `?debugOverview=1`. | čeká |
+| [#176](https://github.com/Martin82K/Tender-Flow/pull/176) | Identita seznamu projektů | Ověřit vlastní a sdílené projekty v Projektovém řízení, Command Center a projektových volbách úkolů. Přepnout běžný/demo účet a odhlásit/přihlásit jiného uživatele; ověřit, že se cache ani projekty mezi identitami nepromíchají. | čeká |
 
 ## Jak mapu udržovat
 
