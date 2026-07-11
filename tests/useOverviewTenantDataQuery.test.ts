@@ -1,98 +1,175 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { OVERVIEW_TENANT_DATA_KEY, useOverviewTenantDataQuery } from "../hooks/queries/useOverviewTenantDataQuery";
+
+type QueryOptions = {
+  queryKey: readonly unknown[];
+  enabled: boolean;
+  queryFn: () => Promise<unknown>;
+  staleTime: number;
+};
 
 const mocks = vi.hoisted(() => ({
-  useQueryMock: vi.fn(),
-  rpcMock: vi.fn(),
-  useAuthMock: vi.fn(),
-  isDemoSessionMock: vi.fn(),
+  queryOptions: null as QueryOptions | null,
+  rpc: vi.fn(),
+  useAuth: vi.fn(),
+  isDemoSession: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: mocks.useQueryMock,
-}));
-
-vi.mock("../services/dbAdapter", () => ({
-  dbAdapter: {
-    rpc: mocks.rpcMock,
+  useQuery: (options: QueryOptions) => {
+    mocks.queryOptions = options;
+    return { data: undefined, isLoading: false, error: null };
   },
 }));
 
-vi.mock("../context/AuthContext", () => ({
-  useAuth: mocks.useAuthMock,
+vi.mock("@infra/db/dbAdapter", () => ({
+  dbAdapter: { rpc: mocks.rpc },
 }));
 
-vi.mock("../services/demoData", () => ({
-  isDemoSession: mocks.isDemoSessionMock,
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: mocks.useAuth,
 }));
 
-const getQueryOptions = () => {
-  expect(mocks.useQueryMock).toHaveBeenCalledTimes(1);
-  return mocks.useQueryMock.mock.calls[0][0] as {
-    queryKey: unknown[];
-    enabled: boolean;
-    queryFn: () => Promise<unknown>;
-  };
-};
+vi.mock("@/services/demoData", () => ({
+  isDemoSession: mocks.isDemoSession,
+}));
 
-describe("useOverviewTenantDataQuery", () => {
+import {
+  OVERVIEW_TENANT_DATA_KEY,
+  useOverviewTenantDataQuery,
+} from "@features/projects/hooks/useOverviewTenantDataQuery";
+import { normalizeOverviewTenantData } from "@features/projects/model/overviewTenantData";
+import {
+  OVERVIEW_TENANT_DATA_KEY as legacyOverviewTenantDataKey,
+  useOverviewTenantDataQuery as legacyUseOverviewTenantDataQuery,
+} from "@/hooks/queries/useOverviewTenantDataQuery";
+
+describe("useOverviewTenantDataQuery contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useQueryMock.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: null,
-    });
-    mocks.isDemoSessionMock.mockReturnValue(false);
-    mocks.useAuthMock.mockReturnValue({
-      user: { id: "user-1" },
-    });
-    mocks.rpcMock.mockResolvedValue({
+    mocks.queryOptions = null;
+    mocks.isDemoSession.mockReturnValue(false);
+    mocks.useAuth.mockReturnValue({ user: { id: "user-1" } });
+    mocks.rpc.mockResolvedValue({
       data: { projects: [], projectDetails: {} },
       error: null,
     });
   });
 
-  it("používá query key s user id pro izolaci cache", () => {
-    useOverviewTenantDataQuery();
-    const options = getQueryOptions();
+  it("preserves query key, enablement, and two-minute stale time", () => {
+    useOverviewTenantDataQuery({ userId: "user-1", isDemoSession: false });
 
-    expect(options.queryKey).toEqual([...OVERVIEW_TENANT_DATA_KEY, "user-1"]);
+    expect(mocks.queryOptions?.queryKey).toEqual([
+      ...OVERVIEW_TENANT_DATA_KEY,
+      "user-1",
+    ]);
+    expect(mocks.queryOptions?.enabled).toBe(true);
+    expect(mocks.queryOptions?.staleTime).toBe(2 * 60 * 1000);
   });
 
-  it("query je disabled bez přihlášeného uživatele", () => {
-    mocks.useAuthMock.mockReturnValue({ user: null });
+  it("stays disabled without a user and during demo sessions", () => {
+    useOverviewTenantDataQuery({ userId: undefined, isDemoSession: false });
+    expect(mocks.queryOptions?.queryKey).toEqual([
+      ...OVERVIEW_TENANT_DATA_KEY,
+      null,
+    ]);
+    expect(mocks.queryOptions?.enabled).toBe(false);
 
-    useOverviewTenantDataQuery();
-    const options = getQueryOptions();
-
-    expect(options.enabled).toBe(false);
-    expect(options.queryKey).toEqual([...OVERVIEW_TENANT_DATA_KEY, null]);
+    useOverviewTenantDataQuery({ userId: "user-1", isDemoSession: true });
+    expect(mocks.queryOptions?.enabled).toBe(false);
   });
 
-  it("query je disabled v demo session i s uživatelem", () => {
-    mocks.isDemoSessionMock.mockReturnValue(true);
+  it("keeps the legacy no-argument adapter behavior", () => {
+    legacyUseOverviewTenantDataQuery();
 
-    useOverviewTenantDataQuery();
-    const options = getQueryOptions();
+    expect(legacyOverviewTenantDataKey).toBe(OVERVIEW_TENANT_DATA_KEY);
+    expect(mocks.queryOptions?.queryKey).toEqual([
+      ...OVERVIEW_TENANT_DATA_KEY,
+      "user-1",
+    ]);
+    expect(mocks.queryOptions?.enabled).toBe(true);
 
-    expect(options.enabled).toBe(false);
+    mocks.isDemoSession.mockReturnValue(true);
+    legacyUseOverviewTenantDataQuery();
+    expect(mocks.queryOptions?.enabled).toBe(false);
   });
 
-  it("queryFn volá overview RPC a normalizuje data", async () => {
-    mocks.rpcMock.mockResolvedValueOnce({
-      data: { projects: [{ id: "p1" }], projectDetails: { p1: { id: "p1" } } },
+  it("calls the overview RPC and normalizes valid data", async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: {
+        projects: [{ id: "p1", name: "Projekt", location: "", status: "realization" }],
+        projectDetails: {
+          p1: {
+            id: "p1",
+            title: "Projekt",
+            location: "",
+            finishDate: "",
+            siteManager: "",
+            categories: [],
+          },
+        },
+      },
       error: null,
     });
 
-    useOverviewTenantDataQuery();
-    const options = getQueryOptions();
-    const result = await options.queryFn();
-
-    expect(mocks.rpcMock).toHaveBeenCalledWith("get_overview_tenant_data");
-    expect(result).toEqual({
-      projects: [{ id: "p1" }],
-      projectDetails: { p1: { id: "p1" } },
+    useOverviewTenantDataQuery({ userId: "user-1", isDemoSession: false });
+    await expect(mocks.queryOptions?.queryFn()).resolves.toEqual({
+      projects: [
+        { id: "p1", name: "Projekt", location: "", status: "realization" },
+      ],
+      projectDetails: {
+        p1: {
+          id: "p1",
+          title: "Projekt",
+          location: "",
+          finishDate: "",
+          siteManager: "",
+          categories: [],
+        },
+      },
     });
+    expect(mocks.rpc).toHaveBeenCalledWith("get_overview_tenant_data");
+  });
+
+  it("propagates the RPC error without returning partial data", async () => {
+    const rpcError = new Error("overview unavailable");
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: rpcError });
+
+    useOverviewTenantDataQuery({ userId: "user-1", isDemoSession: false });
+
+    await expect(mocks.queryOptions?.queryFn()).rejects.toBe(rpcError);
+  });
+});
+
+describe("normalizeOverviewTenantData", () => {
+  it("fails closed for malformed top-level collections", () => {
+    const firstEmptyResult = normalizeOverviewTenantData(null);
+    const secondEmptyResult = normalizeOverviewTenantData(null);
+
+    expect(firstEmptyResult).toEqual({
+      projects: [],
+      projectDetails: {},
+    });
+    expect(firstEmptyResult.projects).not.toBe(secondEmptyResult.projects);
+    expect(firstEmptyResult.projectDetails).not.toBe(
+      secondEmptyResult.projectDetails,
+    );
+    expect(
+      normalizeOverviewTenantData({
+        projects: "not-an-array",
+        projectDetails: [],
+      }),
+    ).toEqual({ projects: [], projectDetails: {} });
+  });
+
+  it("drops malformed collection entries without mutating valid entries", () => {
+    const project = { id: "p1", name: "Projekt" };
+    const details = { id: "p1", title: "Projekt", categories: [] };
+
+    expect(
+      normalizeOverviewTenantData({
+        projects: [project, null, "bad"],
+        projectDetails: { p1: details, invalid: null },
+      }),
+    ).toEqual({ projects: [project], projectDetails: { p1: details } });
   });
 });

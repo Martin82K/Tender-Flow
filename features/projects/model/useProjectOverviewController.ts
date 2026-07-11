@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useContactsQuery } from "@/hooks/queries/useContactsQuery";
-import { useOverviewTenantDataQuery } from "@/hooks/queries/useOverviewTenantDataQuery";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
+import { useOverviewTenantDataQuery } from "@features/projects/hooks/useOverviewTenantDataQuery";
 import type { Project, ProjectDetails } from "@/types";
 import { isUserAdmin } from "@/shared/auth/adminAccess";
 import { buildOverviewAnalytics } from "@/shared/overview/overviewAnalytics";
@@ -32,7 +33,10 @@ export const useProjectOverviewController = ({
     data: tenantData,
     isLoading: tenantLoading,
     error: tenantError,
-  } = useOverviewTenantDataQuery();
+  } = useOverviewTenantDataQuery({
+    userId: user?.id,
+    isDemoSession: projectDemoDataApi.isDemoSession(),
+  });
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<
