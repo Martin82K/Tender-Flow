@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const AUTH_SCAN_ROOTS = ["app", "hooks", "context", "infra"];
+const THEME_CONTRACT_SCAN_ROOTS = ["app", "components", "features", "shared"];
 const CODE_EXT = new Set([".ts", ".tsx"]);
 
 const collectFiles = (dir: string): string[] => {
@@ -109,5 +110,24 @@ describe("Architecture Guardrails", () => {
 
     expect(matches).toHaveLength(1);
     expect(matches[0]).toContain("infra/auth/authSessionStore.ts");
+  });
+
+  it("imports theme contracts from shared types instead of the runtime hook", () => {
+    const files = THEME_CONTRACT_SCAN_ROOTS.flatMap((dir) => collectFiles(dir));
+    const legacyTypeImports: string[] = [];
+    const importPattern = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["']@\/hooks\/useTheme["'];?/g;
+
+    for (const file of files) {
+      const rel = path.relative(ROOT, file).replace(/\\/g, "/");
+      const content = fs.readFileSync(file, "utf8");
+
+      for (const match of content.matchAll(importPattern)) {
+        if (/\bTheme(?:Mode|Skin)\b/.test(match[1] ?? "")) {
+          legacyTypeImports.push(rel);
+        }
+      }
+    }
+
+    expect(legacyTypeImports).toEqual([]);
   });
 });
