@@ -109,6 +109,11 @@ describe("Architecture Guardrails", () => {
           item.file === "features/tasks/hooks/useTaskProjectMutations.ts",
       ),
     ).toHaveLength(0);
+    expect(
+      report.dependencyFindings["features-to-legacy-context"].filter(
+        (item) => item.file === "features/notifications/hooks/useNotifications.ts",
+      ),
+    ).toHaveLength(0);
     expect(report.sharedUi.temporaryShims.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.sharedUi.temporaryShims.every((item) => item.targets.every((target) => target.startsWith("components/")))).toBe(
       true,
@@ -127,6 +132,14 @@ describe("Architecture Guardrails", () => {
     expect(report.rootFiles.moveCandidates).toHaveLength(0);
     expect(report.rootFiles.reviewCandidates.some((item) => item.file === "server.js")).toBe(true);
     expect(report.rootFiles.sensitiveTracked).toHaveLength(0);
+  });
+
+  it("routes notification UI mutations through the auth-aware hook", () => {
+    const notificationCenterSource = fs.readFileSync(
+      path.join(ROOT, "features/notifications/ui/NotificationCenter.tsx"),
+      "utf8",
+    );
+    expect(notificationCenterSource).not.toContain("../api/notificationApi");
   });
 
   it("has a single auth state listener in renderer + infra auth layer", () => {

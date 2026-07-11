@@ -10,7 +10,16 @@ export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const { notifications, isLoading, unreadCount, refresh } = useNotifications(true);
+  const {
+    notifications,
+    isLoading,
+    unreadCount,
+    refresh,
+    markRead,
+    markAllRead,
+    dismiss,
+    dismissAll,
+  } = useNotifications(true);
 
   const handleToggle = () => {
     const next = !isOpen;
@@ -59,7 +68,10 @@ export const NotificationBell: React.FC = () => {
         onClose={() => setIsOpen(false)}
         notifications={notifications}
         isLoading={isLoading}
-        onRefresh={refresh}
+        onMarkRead={markRead}
+        onMarkAllRead={markAllRead}
+        onDismiss={dismiss}
+        onDismissAll={dismissAll}
         unreadCount={unreadCount}
         anchor={anchor}
         anchorRef={buttonRef}

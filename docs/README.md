@@ -30,6 +30,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   explicitní identita, cache izolace a fail-closed read-only task dotazy.
 - [Task mutation auth hranice](architecture/task-mutation-auth-boundary.md) –
   create guardy, stabilní chybové kódy a přesné cache invalidace.
+- [Notifikační auth hranice](architecture/notification-auth-boundary.md) –
+  izolace identity pro polling, realtime, mutace a desktop notifikace.
 
 ## Bezpečnost
 
