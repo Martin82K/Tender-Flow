@@ -25,6 +25,18 @@ vi.mock("@/context/FeatureContext", () => ({
   }),
 }));
 
+vi.mock("@/features/notifications/hooks/useNotifications", () => ({
+  useNotifications: () => ({
+    notifications: [],
+    isLoading: false,
+    unreadCount: 0,
+    refresh: vi.fn().mockResolvedValue(undefined),
+    markRead: vi.fn().mockResolvedValue(undefined),
+    markAllRead: vi.fn().mockResolvedValue(undefined),
+    dismiss: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 vi.mock("@/services/projectService", () => ({
   projectService: {
     updateProject: mocks.updateProjectMock,
