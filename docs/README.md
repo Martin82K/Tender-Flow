@@ -22,6 +22,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   detailní příklad query hranice a bezpečného mapování.
 - [Načítání detailů projektů](architecture/project-details-query-boundary.md) –
   cache, paralelní dotazy, mapování a kompatibilní migrace detailového hooku.
+- [Tenant overview query](architecture/overview-tenant-query-boundary.md) –
+  RPC autorizace, normalizace payloadu a explicitní auth/demo vstupy.
 
 ## Bezpečnost
 

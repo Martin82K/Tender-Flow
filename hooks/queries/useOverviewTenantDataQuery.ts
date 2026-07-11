@@ -1,43 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { dbAdapter } from "../../services/dbAdapter";
-import { isDemoSession } from "../../services/demoData";
-import { useAuth } from "../../context/AuthContext";
-import type { Project, ProjectDetails } from "../../types";
+import { useAuth } from "@/context/AuthContext";
+import { isDemoSession } from "@/services/demoData";
+import {
+  useOverviewTenantDataQuery as useFeatureOverviewTenantDataQuery,
+} from "@features/projects/hooks/useOverviewTenantDataQuery";
 
-export interface OverviewTenantData {
-  projects: Project[];
-  projectDetails: Record<string, ProjectDetails>;
-}
-
-const normalizeOverviewTenantData = (payload: any): OverviewTenantData => {
-  if (!payload || typeof payload !== "object") {
-    return { projects: [], projectDetails: {} };
-  }
-
-  const projects = Array.isArray(payload.projects) ? payload.projects : [];
-  const projectDetails = payload.projectDetails && typeof payload.projectDetails === "object"
-    ? payload.projectDetails
-    : {};
-
-  return {
-    projects,
-    projectDetails,
-  };
-};
-
-export const OVERVIEW_TENANT_DATA_KEY = ["overviewTenantData"] as const;
+export {
+  OVERVIEW_TENANT_DATA_KEY,
+  type OverviewTenantData,
+} from "@features/projects/hooks/useOverviewTenantDataQuery";
 
 export const useOverviewTenantDataQuery = () => {
   const { user } = useAuth();
 
-  return useQuery({
-    queryKey: [...OVERVIEW_TENANT_DATA_KEY, user?.id ?? null],
-    enabled: !!user && !isDemoSession(),
-    queryFn: async () => {
-      const { data, error } = await dbAdapter.rpc("get_overview_tenant_data");
-      if (error) throw error;
-      return normalizeOverviewTenantData(data);
-    },
-    staleTime: 2 * 60 * 1000,
+  return useFeatureOverviewTenantDataQuery({
+    userId: user?.id,
+    isDemoSession: isDemoSession(),
   });
 };
