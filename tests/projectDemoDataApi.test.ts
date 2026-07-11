@@ -8,7 +8,14 @@ const demoDataServiceMock = vi.hoisted(() => ({
     status: "realization",
     isDemo: true,
   },
+  DEMO_PROJECT_DETAILS: {
+    id: "demo-fallback",
+    title: "Demo fallback",
+    categories: [],
+    bids: {},
+  },
   getDemoData: vi.fn(),
+  isDemoSession: vi.fn(),
   saveDemoData: vi.fn(),
 }));
 
@@ -37,5 +44,26 @@ describe("projectDemoDataApi", () => {
     expect(projectDemoDataApi.getProjects()).toEqual([
       demoDataServiceMock.DEMO_PROJECT,
     ]);
+  });
+
+  it("vrací uložený detail projektu nebo stabilní fallback", () => {
+    const storedDetails = { id: "project-1", title: "Uložený detail" };
+    demoDataServiceMock.getDemoData.mockReturnValueOnce({
+      projectDetails: { "project-1": storedDetails },
+    });
+    demoDataServiceMock.getDemoData.mockReturnValueOnce({ projectDetails: {} });
+
+    expect(projectDemoDataApi.getProjectDetails("project-1")).toBe(storedDetails);
+    expect(projectDemoDataApi.getProjectDetails("missing")).toBe(
+      demoDataServiceMock.DEMO_PROJECT_DETAILS,
+    );
+  });
+
+  it("deleguje demo session a rozpozná kanonické demo ID", () => {
+    demoDataServiceMock.isDemoSession.mockReturnValue(true);
+
+    expect(projectDemoDataApi.isDemoSession()).toBe(true);
+    expect(projectDemoDataApi.isDemoProjectId("demo-fallback")).toBe(true);
+    expect(projectDemoDataApi.isDemoProjectId("project-1")).toBe(false);
   });
 });
