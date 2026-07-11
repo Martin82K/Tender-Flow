@@ -31,6 +31,12 @@ export const contractMutationsApi = {
     return contractService.updateContract(...args);
   },
 
+  updateVendorRating(
+    ...args: Parameters<typeof contractService.updateVendorRating>
+  ): ReturnType<typeof contractService.updateVendorRating> {
+    return contractService.updateVendorRating(...args);
+  },
+
   createInvoice(
     ...args: Parameters<typeof contractService.createInvoice>
   ): ReturnType<typeof contractService.createInvoice> {

@@ -114,6 +114,11 @@ describe("Architecture Guardrails", () => {
         (item) => item.file === "features/notifications/hooks/useNotifications.ts",
       ),
     ).toHaveLength(0);
+    expect(
+      report.dependencyFindings["features-to-legacy-context"].filter(
+        (item) => item.file === "features/projects/contracts/forms/VendorRatingDialog.tsx",
+      ),
+    ).toHaveLength(0);
     expect(report.sharedUi.temporaryShims.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.sharedUi.temporaryShims.every((item) => item.targets.every((target) => target.startsWith("components/")))).toBe(
       true,
