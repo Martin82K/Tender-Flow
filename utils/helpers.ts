@@ -7,6 +7,7 @@
  * Check if user email belongs to an admin
  */
 export { isUserAdmin } from "@/shared/auth/adminAccess";
+export { sleep, withRetry, withTimeout } from "@shared/async/asyncControl";
 
 /**
  * Convert hex color to RGB string for CSS variables
@@ -50,57 +51,4 @@ export const mixHexColors = (hexA: string, hexB: string, weightA = 0.5): string 
     const b = b1 * ratio + b2 * (1 - ratio);
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-/**
- * Sleep for specified milliseconds
- */
-export const sleep = (ms: number): Promise<void> =>
-    new Promise((resolve) => window.setTimeout(resolve, ms));
-
-/**
- * Wrap a promise with a timeout
- * @throws Error if promise doesn't resolve within timeout
- */
-export const withTimeout = async <T>(
-    promise: PromiseLike<T>,
-    ms: number,
-    message?: string
-): Promise<T> => {
-    let timeoutId: number | null = null;
-    try {
-        return await Promise.race([
-            Promise.resolve(promise),
-            new Promise<T>((_, reject) => {
-                timeoutId = window.setTimeout(() => {
-                    reject(new Error(message || `Timeout after ${ms}ms`));
-                }, ms);
-            }),
-        ]);
-    } finally {
-        if (timeoutId !== null) window.clearTimeout(timeoutId);
-    }
-};
-
-/**
- * Retry a function with exponential backoff
- */
-export const withRetry = async <T>(
-    fn: () => Promise<T>,
-    opts?: { retries?: number; baseDelayMs?: number }
-): Promise<T> => {
-    const retries = opts?.retries ?? 1;
-    const baseDelayMs = opts?.baseDelayMs ?? 300;
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-            return await fn();
-        } catch (err) {
-            lastError = err;
-            if (attempt >= retries) break;
-            await sleep(baseDelayMs * Math.pow(2, attempt));
-        }
-    }
-    throw lastError;
 };

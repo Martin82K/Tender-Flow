@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 const demoDataServiceMock = vi.hoisted(() => ({
+  DEMO_PROJECT: {
+    id: "demo-fallback",
+    name: "Demo fallback",
+    location: "",
+    status: "realization",
+    isDemo: true,
+  },
   getDemoData: vi.fn(),
   saveDemoData: vi.fn(),
 }));
@@ -19,5 +26,16 @@ describe("projectDemoDataApi", () => {
 
     expect(demoDataServiceMock.getDemoData).toHaveBeenCalledOnce();
     expect(demoDataServiceMock.saveDemoData).toHaveBeenCalledWith(demoData);
+  });
+
+  it("vrací uložené projekty nebo stabilní fallback pro query hook", () => {
+    const projects = [{ id: "demo-1" }];
+    demoDataServiceMock.getDemoData.mockReturnValueOnce({ projects });
+    demoDataServiceMock.getDemoData.mockReturnValueOnce({ projects: [] });
+
+    expect(projectDemoDataApi.getProjects()).toBe(projects);
+    expect(projectDemoDataApi.getProjects()).toEqual([
+      demoDataServiceMock.DEMO_PROJECT,
+    ]);
   });
 });

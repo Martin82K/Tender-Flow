@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useProjectsQuery } from "@/hooks/queries/useProjectsQuery";
+import { useProjectsQuery } from "@features/projects/hooks/useProjectsQuery";
 import type { Project } from "@/types";
 
 const EMPTY_PROJECTS: Project[] = [];
