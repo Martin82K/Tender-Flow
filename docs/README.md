@@ -1,23 +1,60 @@
 # Technická dokumentace Tender Flow
 
-Tento adresář obsahuje provozní, architektonické a integrační dokumenty, které
-doplňují pravidla repozitáře v `AGENTS.md`.
+Tento rozcestník popisuje aktuálně implementovaný stav aplikace. Zamýšlené nebo
+plánované funkce jsou vždy označené; nejsou vydávané za hotové chování.
+
+## Produkt
+
+- [Katalog funkcí](product/feature-catalog.md) – uživatelské oblasti, dostupnost
+  na webu/desktopu a vazba na feature flags.
 
 ## Architektura
 
+- [Systémový přehled](architecture/system-overview.md) – runtime povrchy,
+  vrstvy, hlavní datové toky a adresářová struktura.
+- [Frontend a routing](architecture/frontend.md) – start aplikace, providers,
+  routing, React Query, UI stav a feature registry.
+- [Data a serverové služby](architecture/data-and-services.md) – Supabase,
+  Edge Functions, MCP a pomocné backendy.
+- [Electron desktop](architecture/desktop.md) – main/preload/renderer, IPC,
+  souborový systém, secure storage, updater a platformní adaptér.
 - [Načítání a viditelnost projektů](architecture/project-query-boundary.md) –
-  vlastnictví query hooku, bezpečnostní hranice, výkonové invarianty, testovací
-  plán a postup migrace z legacy vrstvy.
+  detailní příklad query hranice a bezpečného mapování.
 
-## Provoz a integrace
+## Bezpečnost
 
-- [Politika konzolového výstupu testů](testing/console-output-policy.md) –
-  neočekávané `console.error`/`console.warn`, explicitní očekávání a CI důkaz.
+- [Bezpečnostní model](security/security-model.md) – identity, autorizace,
+  tajné hodnoty, IPC, CSP, incidenty a bezpečnostní omezení.
+
+## Vývoj
+
+- [Začínáme s vývojem](development/getting-started.md)
+- [Konfigurace a proměnné prostředí](development/configuration.md)
+- [Testovací strategie](development/testing.md)
+- [Politika konzolového výstupu testů](testing/console-output-policy.md)
+
+## Provoz
+
+- [Deployment a release](operations/deployment-and-release.md)
+- [Troubleshooting](operations/troubleshooting.md)
+- [Známá omezení](operations/known-limitations.md)
 - [Lokální statický deploy](local-static-deploy.md)
-- [Audit analytiky a telemetrie](analytics-telemetry-audit.md)
-- [Agent skills](agent-skills.md)
 - [Release dokumentace](releases/README.md)
 
-Dokumentace chování se aktualizuje ve stejném PR jako změna kódu. Testovací
-důkazy v PR popisují konkrétní spuštěné příkazy a výsledky; tento adresář drží
-dlouhodobě platné kontrakty a provozní rozhodnutí.
+## Integrace a referenční artefakty
+
+- [Přehled API kontraktů](api/contracts-summary.md)
+- [OpenAPI kontrakt](api/contracts-summary.openapi.json)
+- [Audit analytiky a telemetrie](analytics-telemetry-audit.md)
+- [Agent skills](agent-skills.md)
+- [Mapa workflow](workflow-map.html) a [zdrojová data](workflow-flows.json)
+- Uživatelský manuál: `todo-app-strategie-tender-flow.docx`; publikované statické
+  podklady jsou v `public/user-manual/`.
+
+## Údržba dokumentace
+
+- Dokumentace chování se mění ve stejném PR jako kód.
+- Relativní odkazy musí projít `npm run check:docs`.
+- Číselné výsledky testů se uvádějí pouze z čistého checkoutu nebo CI logu.
+- Tajné hodnoty, přístupové tokeny a obsah lokálních `.env*` souborů se nikdy
+  nekopírují do dokumentace.
