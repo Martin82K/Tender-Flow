@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 import {
   createTodoProject,
   deleteTodoProject,
@@ -10,6 +10,7 @@ import type {
   TodoProjectCreateInput,
   TodoProjectUpdateInput,
 } from "../types";
+import { requireTaskMutationUserId } from "../model/taskMutationAuth";
 import { TODO_PROJECT_KEYS } from "./useTaskProjectsQuery";
 import { TASK_KEYS } from "./useTasksQuery";
 
@@ -19,13 +20,11 @@ const invalidateTodoProjects = (queryClient: ReturnType<typeof useQueryClient>) 
 
 export const useCreateTodoProjectMutation = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const user = useAuthIdentity();
 
   return useMutation<TodoProject, Error, TodoProjectCreateInput>({
-    mutationFn: (input) => {
-      if (!user?.id) throw new Error("Uživatel není přihlášen");
-      return createTodoProject(user.id, input);
-    },
+    mutationFn: (input) =>
+      createTodoProject(requireTaskMutationUserId(user), input),
     onSuccess: () => invalidateTodoProjects(queryClient),
   });
 };

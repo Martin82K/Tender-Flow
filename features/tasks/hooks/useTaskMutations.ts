@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 import {
   createTask,
   deleteTask,
@@ -7,6 +7,7 @@ import {
   updateTask,
 } from "../api/tasksApi";
 import type { Task, TaskCreateInput, TaskUpdateInput } from "../types";
+import { requireTaskMutationUserId } from "../model/taskMutationAuth";
 import { TASK_KEYS } from "./useTasksQuery";
 
 const invalidateTaskLists = (queryClient: ReturnType<typeof useQueryClient>) => {
@@ -15,13 +16,10 @@ const invalidateTaskLists = (queryClient: ReturnType<typeof useQueryClient>) => 
 
 export const useCreateTaskMutation = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const user = useAuthIdentity();
 
   return useMutation<Task, Error, TaskCreateInput>({
-    mutationFn: (input) => {
-      if (!user?.id) throw new Error("Uživatel není přihlášen");
-      return createTask(user.id, input);
-    },
+    mutationFn: (input) => createTask(requireTaskMutationUserId(user), input),
     onSuccess: () => invalidateTaskLists(queryClient),
   });
 };
