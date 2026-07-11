@@ -1,6 +1,6 @@
 -- Migration: backfill_project_scoped_templates
 -- Date: 2026-06-05
--- Description: Copies existing user templates into each accessible project and falls back to master defaults.
+-- Description: Copies templates for project owners and editors and falls back to master defaults.
 
 WITH accessible_project_users AS (
   SELECT p.owner_id AS user_id, p.id AS project_id
@@ -12,6 +12,7 @@ WITH accessible_project_users AS (
   SELECT ps.user_id, ps.project_id
   FROM public.project_shares ps
   WHERE ps.user_id IS NOT NULL
+    AND ps.permission = 'edit'
 ),
 legacy_template_copies AS (
   INSERT INTO public.templates (
