@@ -20,6 +20,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   souborový systém, secure storage, updater a platformní adaptér.
 - [Načítání a viditelnost projektů](architecture/project-query-boundary.md) –
   detailní příklad query hranice a bezpečného mapování.
+- [Načítání detailů projektů](architecture/project-details-query-boundary.md) –
+  cache, paralelní dotazy, mapování a kompatibilní migrace detailového hooku.
 
 ## Bezpečnost
 

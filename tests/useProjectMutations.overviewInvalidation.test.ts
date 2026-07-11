@@ -48,7 +48,18 @@ vi.mock("../utils/docHub", () => ({
 }));
 
 vi.mock("../services/demoData", () => ({
+  DEMO_PROJECT: { id: "demo-project-1" },
+  DEMO_PROJECT_DETAILS: {
+    id: "demo-project-1",
+    title: "Demo",
+    location: "",
+    finishDate: "",
+    siteManager: "",
+    categories: [],
+    bids: {},
+  },
   getDemoData: mocks.getDemoDataMock,
+  isDemoSession: vi.fn(() => false),
   saveDemoData: mocks.saveDemoDataMock,
 }));
 

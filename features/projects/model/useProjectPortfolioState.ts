@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAllProjectDetailsQuery } from "@/hooks/queries/useProjectDetailsQuery";
+import { useAllProjectDetailsQuery } from "@features/projects/hooks/useProjectDetailsQuery";
 import { useProjectsState } from "./useProjectsState";
 import type { Project, ProjectDetails } from "@/types";
 
