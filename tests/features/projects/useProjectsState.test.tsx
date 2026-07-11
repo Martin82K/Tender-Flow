@@ -10,7 +10,7 @@ const projectsQueryMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/hooks/queries/useProjectsQuery", () => ({
+vi.mock("@features/projects/hooks/useProjectsQuery", () => ({
   useProjectsQuery: () => projectsQueryMock.value,
 }));
 

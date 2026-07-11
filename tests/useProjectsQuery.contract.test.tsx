@@ -9,6 +9,11 @@ type QueryOptions = {
   staleTime: number;
 };
 
+type RetryOptions = {
+  retries?: number;
+  baseDelayMs?: number;
+};
+
 const state = vi.hoisted(() => ({
   user: {
     id: "user-1",
@@ -18,7 +23,13 @@ const state = vi.hoisted(() => ({
   options: null as QueryOptions | null,
   from: vi.fn(),
   rpc: vi.fn(),
-  getDemoData: vi.fn(),
+  getDemoProjects: vi.fn(),
+  withRetry: vi.fn(
+    (operation: () => Promise<unknown>, _options?: RetryOptions) => operation(),
+  ),
+  withTimeout: vi.fn(
+    (operation: Promise<unknown>, _ms: number, _message?: string) => operation,
+  ),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -32,29 +43,26 @@ vi.mock("@/context/AuthContext", () => ({
   useAuth: () => ({ user: state.user }),
 }));
 
-vi.mock("@/services/dbAdapter", () => ({
+vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
     from: state.from,
     rpc: state.rpc,
   },
 }));
 
-vi.mock("@/utils/helpers", () => ({
-  withRetry: (operation: () => unknown) => operation(),
-  withTimeout: (operation: Promise<unknown>) => operation,
+vi.mock("@shared/async/asyncControl", () => ({
+  withRetry: state.withRetry,
+  withTimeout: state.withTimeout,
 }));
 
-vi.mock("@/services/demoData", () => ({
-  DEMO_PROJECT: {
-    id: "demo-fallback",
-    name: "Demo fallback",
-    location: "",
-    status: "tender",
+vi.mock("@features/projects/api/projectDemoDataApi", () => ({
+  projectDemoDataApi: {
+    getProjects: state.getDemoProjects,
   },
-  getDemoData: state.getDemoData,
 }));
 
-import { useProjectsQuery } from "@/hooks/queries/useProjectsQuery";
+import { useProjectsQuery } from "@features/projects/hooks/useProjectsQuery";
+import { useProjectsQuery as legacyUseProjectsQuery } from "@/hooks/queries/useProjectsQuery";
 
 describe("useProjectsQuery contract", () => {
   beforeEach(() => {
@@ -66,7 +74,13 @@ describe("useProjectsQuery contract", () => {
     };
     state.from.mockReset();
     state.rpc.mockReset();
-    state.getDemoData.mockReset();
+    state.getDemoProjects.mockReset();
+    state.withRetry.mockClear();
+    state.withTimeout.mockClear();
+  });
+
+  it("keeps the legacy import as the same compatibility export", () => {
+    expect(legacyUseProjectsQuery).toBe(useProjectsQuery);
   });
 
   it("keeps query identity, enablement, stale time, and mapped data contract", async () => {
@@ -120,6 +134,117 @@ describe("useProjectsQuery contract", () => {
     expect(select).toHaveBeenCalledWith("*");
     expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
     expect(state.rpc).toHaveBeenCalledWith("get_projects_metadata");
+    expect(state.withRetry).toHaveBeenCalledTimes(2);
+    expect(state.withRetry.mock.calls.map((call) => call[1])).toEqual([
+      { retries: 1 },
+      { retries: 1 },
+    ]);
+    expect(state.withTimeout.mock.calls.map((call) => call.slice(1))).toEqual([
+      [12000, "Načtení projektů vypršelo"],
+      [12000, "Načtení oprávnění vypršelo"],
+    ]);
+  });
+
+  it("keeps the query disabled and user-scoped when auth is missing", () => {
+    state.user = null;
+
+    renderHook(() => useProjectsQuery());
+
+    expect(state.options?.queryKey).toEqual([...PROJECT_KEYS.list(), undefined]);
+    expect(state.options?.enabled).toBe(false);
+    expect(state.from).not.toHaveBeenCalled();
+    expect(state.rpc).not.toHaveBeenCalled();
+  });
+
+  it("propagates the projects query error", async () => {
+    const projectsError = new Error("projects unavailable");
+    const order = vi.fn().mockResolvedValue({ data: null, error: projectsError });
+    state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    state.rpc.mockResolvedValue({ data: [], error: null });
+
+    renderHook(() => useProjectsQuery());
+
+    await expect(state.options?.queryFn()).rejects.toBe(projectsError);
+  });
+
+  it("starts projects and metadata requests before either request settles", async () => {
+    let resolveProjects: (
+      value: { data: unknown[]; error: null },
+    ) => void = () => undefined;
+    let resolveMetadata: (
+      value: { data: unknown[]; error: null },
+    ) => void = () => undefined;
+    const projectsPromise = new Promise<{ data: unknown[]; error: null }>(
+      (resolve) => {
+        resolveProjects = resolve;
+      },
+    );
+    const metadataPromise = new Promise<{ data: unknown[]; error: null }>(
+      (resolve) => {
+        resolveMetadata = resolve;
+      },
+    );
+    const order = vi.fn().mockReturnValue(projectsPromise);
+    state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    state.rpc.mockReturnValue(metadataPromise);
+
+    renderHook(() => useProjectsQuery());
+    const result = state.options?.queryFn();
+
+    expect(order).toHaveBeenCalledOnce();
+    expect(state.rpc).toHaveBeenCalledOnce();
+
+    resolveProjects({ data: [], error: null });
+    resolveMetadata({ data: [], error: null });
+    await expect(result).resolves.toEqual([]);
+  });
+
+  it("fails closed for shared projects when metadata fails", async () => {
+    const order = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "owned-project",
+          name: "Vlastní projekt",
+          location: "Praha",
+          status: "tender",
+          archived_original_status: null,
+          is_demo: false,
+          owner_id: "user-1",
+        },
+        {
+          id: "possibly-shared-project",
+          name: "Neověřené sdílení",
+          location: "Brno",
+          status: "realization",
+          archived_original_status: null,
+          is_demo: false,
+          owner_id: "user-2",
+        },
+      ],
+      error: null,
+    });
+    state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    state.rpc.mockResolvedValue({
+      data: null,
+      error: new Error("metadata unavailable"),
+    });
+
+    renderHook(() => useProjectsQuery());
+
+    await expect(state.options?.queryFn()).resolves.toEqual([
+      expect.objectContaining({ id: "owned-project" }),
+    ]);
+  });
+
+  it("propagates a rejected metadata operation after the retry policy", async () => {
+    const metadataError = new Error("metadata transport unavailable");
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    state.rpc.mockRejectedValue(metadataError);
+
+    renderHook(() => useProjectsQuery());
+
+    await expect(state.options?.queryFn()).rejects.toBe(metadataError);
   });
 
   it("keeps the demo branch isolated from database calls", async () => {
@@ -131,7 +256,7 @@ describe("useProjectsQuery contract", () => {
     const demoProjects = [
       { id: "demo-1", name: "Demo", location: "", status: "tender" },
     ];
-    state.getDemoData.mockReturnValue({ projects: demoProjects });
+    state.getDemoProjects.mockReturnValue(demoProjects);
 
     renderHook(() => useProjectsQuery());
     await expect(state.options?.queryFn()).resolves.toBe(demoProjects);
