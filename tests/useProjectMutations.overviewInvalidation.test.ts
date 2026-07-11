@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   ensureStructureMock: vi.fn(),
   getDemoDataMock: vi.fn(),
   saveDemoDataMock: vi.fn(),
+  emitCategoryStatusNotificationMock: vi.fn(),
+  emitProjectClonedNotificationMock: vi.fn(),
+  emitProjectArchivedNotificationMock: vi.fn(),
 }));
 
 vi.mock("../services/dbAdapter", () => ({
@@ -53,6 +56,12 @@ vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
     user: { id: "user-1", role: "user" },
   }),
+}));
+
+vi.mock("@features/notifications/api/notificationEmitter", () => ({
+  emitCategoryStatusNotification: mocks.emitCategoryStatusNotificationMock,
+  emitProjectClonedNotification: mocks.emitProjectClonedNotificationMock,
+  emitProjectArchivedNotification: mocks.emitProjectArchivedNotificationMock,
 }));
 
 const createThenableChain = (
@@ -129,6 +138,9 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
     mocks.ensureStructureMock.mockResolvedValue({ success: true });
     mocks.getDemoDataMock.mockReturnValue(null);
+    mocks.emitCategoryStatusNotificationMock.mockResolvedValue(null);
+    mocks.emitProjectClonedNotificationMock.mockResolvedValue(null);
+    mocks.emitProjectArchivedNotificationMock.mockResolvedValue(null);
   });
 
   it("invaliduje overview cache po vytvoření projektu", async () => {

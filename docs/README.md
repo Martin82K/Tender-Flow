@@ -11,6 +11,8 @@ doplňují pravidla repozitáře v `AGENTS.md`.
 
 ## Provoz a integrace
 
+- [Politika konzolového výstupu testů](testing/console-output-policy.md) –
+  neočekávané `console.error`/`console.warn`, explicitní očekávání a CI důkaz.
 - [Lokální statický deploy](local-static-deploy.md)
 - [Audit analytiky a telemetrie](analytics-telemetry-audit.md)
 - [Agent skills](agent-skills.md)

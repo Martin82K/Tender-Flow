@@ -102,7 +102,9 @@ musí dále filtrovat podle identity volajícího, mít omezená oprávnění a 
 - [x] TypeScript kontrola, web build a desktop compile.
 - [x] `check:boundaries`, `check:legacy-structure` a architektonický audit.
 
-Lokální ověření při migraci: 293 testovacích souborů a 1 369 testů prošlo.
+Čistý GitHub runner pro PR #169 ověřil 292 testovacích souborů a 1 368 testů.
+Vyšší lokální počet 293 / 1 369 zahrnoval nesouvisející necommitnutý test a
+není důkazem rozsahu PR.
 Architektonický audit zůstal na 80 přechodových vazbách; vazby
 `features-to-legacy-hooks` klesly ze čtyř na tři. GitHub Quality Checks, Vercel
 a thread-aware security review jsou povinnou vzdálenou bránou každého PR a

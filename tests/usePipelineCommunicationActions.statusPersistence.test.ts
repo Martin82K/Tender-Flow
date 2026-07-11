@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePipelineCommunicationActions } from "../features/projects/model/usePipelineCommunicationActions";
 import type { Bid, DemandCategory, ProjectDetails } from "../types";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 const {
   mockPlatformAdapter,
@@ -426,6 +427,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
   });
 
   it("při chybě persistence nenechá lokální stav falešně na sent", async () => {
+    expectConsoleError("Error persisting bid sent status after inquiry generation:");
     mockPersistBidStatusChange.mockResolvedValue({
       error: new Error("db failure"),
     });

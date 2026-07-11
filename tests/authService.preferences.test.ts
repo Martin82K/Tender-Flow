@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 const mockState = vi.hoisted(() => ({
   getStoredAuthSessionRaw: vi.fn(),
@@ -165,6 +166,7 @@ describe("authService.updateUserPreferences", () => {
   });
 
   it("throws when preference upsert fails", async () => {
+    expectConsoleError("[authService] updateUserPreferences: Failed to save preferences to DB:");
     failUpsert = true;
 
     await expect(

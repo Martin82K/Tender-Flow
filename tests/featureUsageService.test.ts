@@ -5,6 +5,7 @@ import {
   trackFeatureUsage,
 } from '../services/featureUsageService';
 import { clearCookieConsentDecision, setCookieConsentDecision } from '@/shared/privacy/cookieConsent';
+import { expectConsoleWarn } from './utils/consoleGuard';
 
 const supabaseMocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -44,6 +45,7 @@ describe('featureUsageService', () => {
   });
 
   it('trackFeatureUsage při chybě nepropaguje výjimku a vrátí false', async () => {
+    expectConsoleWarn('[featureUsageService] trackFeatureUsage failed:');
     setCookieConsentDecision('accepted_all');
     supabaseMocks.rpc.mockResolvedValue({ data: null, error: new Error('fail') });
 

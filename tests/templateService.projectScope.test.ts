@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expectConsoleError, expectConsoleWarn } from "./utils/consoleGuard";
 
 type QueryCall = {
   method: string;
@@ -264,6 +265,8 @@ describe("templateService project scope", () => {
   });
 
   it("vrátí vestavěné vzorové šablony, když nejsou legacy ani databázové defaulty", async () => {
+    expectConsoleWarn("No default templates found in database");
+    expectConsoleError("Error copying default templates:");
     supabaseMock.results.push(
       { data: [], error: null },
       { data: [], error: null },
