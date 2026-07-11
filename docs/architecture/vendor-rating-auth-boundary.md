@@ -1,6 +1,6 @@
 # Auth hranice hodnocení dodavatele
 
-Stav: implementováno a cíleně lokálně ověřeno, 11. července 2026
+Stav: implementováno, CI ověřeno a RPC nasazeno, 11. července 2026
 
 ## Kontext a rozsah
 
@@ -111,16 +111,29 @@ pracovní strom včetně nesouvisejícího updater testu prošel 308 souborů a 
 testů. Oba Vitest logy byly bez stderr a bez varování.
 
 TypeScript, dokumentační odkazy, boundaries, legacy freeze, web build, desktop
-compile a dependency audit také prošly. Build zachoval známá Vite upozornění na
-smíšené statické/dynamické importy a chunky nad 750 kB; tato změna je nezavedla.
-Vzdálené CI zůstane autoritativním výsledkem navazujícího PR.
+compile a dependency audit také prošly lokálně i v Quality CI PR #180. Build
+zachoval známá Vite upozornění na smíšené statické/dynamické importy a chunky
+nad 750 kB; tato změna je nezavedla.
 
 ## Deployment, rollback a manuální ověření
 
 Změna obsahuje migraci
 `20260711182852_secure_contract_vendor_rating.sql`. Repository test potvrzuje
-její textový kontrakt, nikoli stav nasazení v konkrétní databázi. V souladu s
-rozhodnutím projektu se zde nepřidává živý integrační RLS test.
+její textový kontrakt. Po merge PR #180 byl přesný obsah této jedné idempotentní
+migrace aplikován přímo na linked cloudovou databázi, protože standardní
+`db push` by současně zahrnul čtyři starší čekající migrace mimo rozsah změny.
+
+Read-only kontrola systémového katalogu po rollout potvrdila:
+
+- funkce existuje s `security_definer = false`,
+- role `authenticated` má execute,
+- role `anon` execute nemá.
+
+Přímé provedení záměrně neoznačilo migraci v remote migration history. Do jejího
+budoucího standardního rollout proto zůstává uvedená jako pending; opětovné
+provedení je idempotentní. Starší čekající migrace nebyly spuštěny ani označeny
+za aplikované. V souladu s rozhodnutím projektu se zde nepřidává živý integrační
+RLS test a manuální funkční scénář zůstává ve validační mapě ve stavu `čeká`.
 
 Po aplikaci migrace nestačí pro databázový rollback pouze vrátit Git commit.
 Je nutná nová dopředná migrace s
