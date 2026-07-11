@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useContactsQuery } from "@/hooks/queries/useContactsQuery";
+import { useContactsQuery } from "@features/contacts/hooks/useContactsQuery";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { useOverviewTenantDataQuery } from "@features/projects/hooks/useOverviewTenantDataQuery";
 import type { Project, ProjectDetails } from "@/types";
@@ -28,7 +28,10 @@ export const useProjectOverviewController = ({
   projectDetails,
 }: UseProjectOverviewControllerInput) => {
   const { user } = useAuth();
-  const { data: contacts = [] } = useContactsQuery();
+  const { data: contacts = [] } = useContactsQuery({
+    userId: user?.id,
+    userRole: user?.role,
+  });
   const {
     data: tenantData,
     isLoading: tenantLoading,
