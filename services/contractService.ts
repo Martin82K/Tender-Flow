@@ -476,6 +476,18 @@ export const contractService = {
     if (error) throw error;
   },
 
+  updateVendorRating: async (
+    id: string,
+    update: { rating: number | null; note: string | null },
+  ): Promise<void> => {
+    const { error } = await supabase.rpc('update_contract_vendor_rating', {
+      contract_id_input: id,
+      rating_input: update.rating,
+      note_input: update.note,
+    });
+    if (error) throw error;
+  },
+
   deleteContract: async (id: string): Promise<void> => {
     const { error } = await supabase.from('contracts').delete().eq('id', id);
     if (error) throw error;

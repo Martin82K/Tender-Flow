@@ -5,6 +5,7 @@ const contractServiceMock = vi.hoisted(() => ({
   updateAmendment: vi.fn(),
   createContract: vi.fn(),
   updateContract: vi.fn(),
+  updateVendorRating: vi.fn(),
   createInvoice: vi.fn(),
   updateInvoice: vi.fn(),
   createMarkdownVersion: vi.fn(),
@@ -30,6 +31,7 @@ describe("contractMutationsApi", () => {
     contractServiceMock.updateAmendment.mockResolvedValue({ id: "amendment-1" });
     contractServiceMock.createContract.mockResolvedValue({ id: "contract-1" });
     contractServiceMock.updateContract.mockResolvedValue({ id: "contract-1" });
+    contractServiceMock.updateVendorRating.mockResolvedValue(undefined);
     contractServiceMock.createInvoice.mockResolvedValue({ id: "invoice-1" });
     contractServiceMock.updateInvoice.mockResolvedValue({ id: "invoice-1" });
     contractServiceMock.createMarkdownVersion.mockResolvedValue({ id: "markdown-1" });
@@ -62,6 +64,10 @@ describe("contractMutationsApi", () => {
     await contractMutationsApi.updateAmendment("amendment-1", { reason: "Změna" });
     await contractMutationsApi.createContract(contractPayload);
     await contractMutationsApi.updateContract("contract-1", { title: "SOD 2" });
+    await contractMutationsApi.updateVendorRating("contract-1", {
+      rating: 4,
+      note: "Spolehlivý dodavatel",
+    });
     await contractMutationsApi.createInvoice(invoicePayload);
     await contractMutationsApi.updateInvoice("invoice-1", { amount: 200 });
     await contractMutationsApi.createMarkdownVersion({
@@ -79,6 +85,10 @@ describe("contractMutationsApi", () => {
     expect(contractServiceMock.updateAmendment).toHaveBeenCalledWith("amendment-1", { reason: "Změna" });
     expect(contractServiceMock.createContract).toHaveBeenCalledWith(contractPayload);
     expect(contractServiceMock.updateContract).toHaveBeenCalledWith("contract-1", { title: "SOD 2" });
+    expect(contractServiceMock.updateVendorRating).toHaveBeenCalledWith(
+      "contract-1",
+      { rating: 4, note: "Spolehlivý dodavatel" },
+    );
     expect(contractServiceMock.createInvoice).toHaveBeenCalledWith(invoicePayload);
     expect(contractServiceMock.updateInvoice).toHaveBeenCalledWith("invoice-1", { amount: 200 });
     expect(contractServiceMock.createMarkdownVersion).toHaveBeenCalledWith({

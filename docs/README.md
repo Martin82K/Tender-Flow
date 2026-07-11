@@ -32,6 +32,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   create guardy, stabilní chybové kódy a přesné cache invalidace.
 - [Notifikační auth hranice](architecture/notification-auth-boundary.md) –
   izolace identity pro polling, realtime, mutace a desktop notifikace.
+- [Auth hranice hodnocení dodavatele](architecture/vendor-rating-auth-boundary.md) –
+  fail-closed UI a serverově důvěryhodný autor hodnocení smlouvy.
 
 ## Bezpečnost
 
