@@ -16,7 +16,7 @@ import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
-import type { Project, ProjectDetails } from "@/types";
+import type { Project, ProjectDetails, User } from "@/types";
 import html2canvas from "html2canvas";
 import {
   Wallet,
@@ -46,12 +46,14 @@ import type { ThemeSkin } from "@/shared/types/theme";
 interface ProjectOverviewProps {
   projects: Project[];
   projectDetails: Record<string, ProjectDetails | undefined>;
+  user: Pick<User, "id" | "role" | "email"> | null;
   skin?: ThemeSkin;
 }
 
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projects,
   projectDetails,
+  user,
   skin = "classic",
 }) => {
   const {
@@ -88,7 +90,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     statusCounts,
     avgBudgetDeviation,
     resetSupplierFilters,
-  } = useProjectOverviewController({ projects, projectDetails });
+  } = useProjectOverviewController({ projects, projectDetails, user });
 
   const formatMillions = (value: number) =>
     `${formatDecimal(value / 1_000_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil.`;

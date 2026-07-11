@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { useContactsQuery } from "@features/contacts/hooks/useContactsQuery";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { useOverviewTenantDataQuery } from "@features/projects/hooks/useOverviewTenantDataQuery";
-import type { Project, ProjectDetails } from "@/types";
+import type { Project, ProjectDetails, User } from "@/types";
 import { isUserAdmin } from "@/shared/auth/adminAccess";
 import { buildOverviewAnalytics } from "@/shared/overview/overviewAnalytics";
 import { filterSuppliers } from "@/shared/overview/supplierFilters";
@@ -21,13 +20,14 @@ import {
 interface UseProjectOverviewControllerInput {
   projects: Project[];
   projectDetails: Record<string, ProjectDetails | undefined>;
+  user: Pick<User, "id" | "role" | "email"> | null;
 }
 
 export const useProjectOverviewController = ({
   projects,
   projectDetails,
+  user,
 }: UseProjectOverviewControllerInput) => {
-  const { user } = useAuth();
   const { data: contacts = [] } = useContactsQuery({
     userId: user?.id,
     userRole: user?.role,

@@ -475,6 +475,7 @@ export const AppContent: React.FC = () => {
             <ProjectOverview
               projects={state.projects}
               projectDetails={state.allProjectDetails}
+              user={user}
               skin={skin}
             />
           </RequireFeature>
