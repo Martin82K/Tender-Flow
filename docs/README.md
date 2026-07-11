@@ -34,6 +34,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   izolace identity pro polling, realtime, mutace a desktop notifikace.
 - [Auth hranice hodnocení dodavatele](architecture/vendor-rating-auth-boundary.md) –
   fail-closed UI a serverově důvěryhodný autor hodnocení smlouvy.
+- [Projektově omezené šablony](architecture/project-scoped-templates.md) – RLS,
+  feature gating, backfill, rollout a rollback projektových e-mailových šablon.
 
 ## Bezpečnost
 
