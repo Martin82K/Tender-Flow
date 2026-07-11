@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import {
   mapVisibleProjects,
@@ -9,16 +8,21 @@ import {
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { PROJECT_KEYS } from "@shared/queryKeys/projectKeys";
 import { withRetry, withTimeout } from "@shared/async/asyncControl";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 export { PROJECT_KEYS } from "@shared/queryKeys/projectKeys";
 
-export const useProjectsQuery = () => {
-  const { user } = useAuth();
+interface UseProjectsQueryInput {
+  user: AuthIdentity | null;
+}
 
+export const useProjectsQuery = ({ user }: UseProjectsQueryInput) => {
   return useQuery({
     queryKey: [...PROJECT_KEYS.list(), user?.id],
     enabled: !!user,
     queryFn: async () => {
+      if (!user) return [];
+
       if (user?.role === "demo") {
         return projectDemoDataApi.getProjects();
       }

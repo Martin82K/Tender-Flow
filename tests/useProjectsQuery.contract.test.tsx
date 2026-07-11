@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 type QueryOptions = {
   queryKey: readonly unknown[];
@@ -19,11 +20,12 @@ const state = vi.hoisted(() => ({
     id: "user-1",
     email: "user@example.com",
     role: "user",
-  } as { id: string; email: string; role: string } | null,
+  } as AuthIdentity | null,
   options: null as QueryOptions | null,
   from: vi.fn(),
   rpc: vi.fn(),
   getDemoProjects: vi.fn(),
+  legacyUseAuth: vi.fn(),
   withRetry: vi.fn(
     (operation: () => Promise<unknown>, _options?: RetryOptions) => operation(),
   ),
@@ -40,7 +42,7 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({ user: state.user }),
+  useAuth: state.legacyUseAuth,
 }));
 
 vi.mock("@infra/db/dbAdapter", () => ({
@@ -75,12 +77,35 @@ describe("useProjectsQuery contract", () => {
     state.from.mockReset();
     state.rpc.mockReset();
     state.getDemoProjects.mockReset();
+    state.legacyUseAuth.mockReset();
+    state.legacyUseAuth.mockImplementation(() => ({ user: state.user }));
     state.withRetry.mockClear();
     state.withTimeout.mockClear();
   });
 
-  it("keeps the legacy import as the same compatibility export", () => {
-    expect(legacyUseProjectsQuery).toBe(useProjectsQuery);
+  it("keeps the legacy no-argument adapter", () => {
+    renderHook(() => legacyUseProjectsQuery());
+
+    expect(state.options?.queryKey).toEqual([...PROJECT_KEYS.list(), "user-1"]);
+    expect(state.legacyUseAuth).toHaveBeenCalledOnce();
+  });
+
+  it("uses the explicitly supplied identity instead of the legacy context", () => {
+    renderHook(() =>
+      useProjectsQuery({
+        user: {
+          id: "explicit-user",
+          email: "explicit@example.com",
+          role: "admin",
+        },
+      }),
+    );
+
+    expect(state.options?.queryKey).toEqual([
+      ...PROJECT_KEYS.list(),
+      "explicit-user",
+    ]);
+    expect(state.legacyUseAuth).not.toHaveBeenCalled();
   });
 
   it("keeps query identity, enablement, stale time, and mapped data contract", async () => {
@@ -111,7 +136,7 @@ describe("useProjectsQuery contract", () => {
       error: null,
     });
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
     const options = state.options;
     expect(options).not.toBeNull();
     expect(options?.queryKey).toEqual([...PROJECT_KEYS.list(), "user-1"]);
@@ -145,13 +170,14 @@ describe("useProjectsQuery contract", () => {
     ]);
   });
 
-  it("keeps the query disabled and user-scoped when auth is missing", () => {
+  it("keeps the query disabled and fails closed when auth is missing", async () => {
     state.user = null;
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
 
     expect(state.options?.queryKey).toEqual([...PROJECT_KEYS.list(), undefined]);
     expect(state.options?.enabled).toBe(false);
+    await expect(state.options?.queryFn()).resolves.toEqual([]);
     expect(state.from).not.toHaveBeenCalled();
     expect(state.rpc).not.toHaveBeenCalled();
   });
@@ -162,7 +188,7 @@ describe("useProjectsQuery contract", () => {
     state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
     state.rpc.mockResolvedValue({ data: [], error: null });
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
 
     await expect(state.options?.queryFn()).rejects.toBe(projectsError);
   });
@@ -188,7 +214,7 @@ describe("useProjectsQuery contract", () => {
     state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
     state.rpc.mockReturnValue(metadataPromise);
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
     const result = state.options?.queryFn();
 
     expect(order).toHaveBeenCalledOnce();
@@ -229,7 +255,7 @@ describe("useProjectsQuery contract", () => {
       error: new Error("metadata unavailable"),
     });
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
 
     await expect(state.options?.queryFn()).resolves.toEqual([
       expect.objectContaining({ id: "owned-project" }),
@@ -242,7 +268,7 @@ describe("useProjectsQuery contract", () => {
     state.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
     state.rpc.mockRejectedValue(metadataError);
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
 
     await expect(state.options?.queryFn()).rejects.toBe(metadataError);
   });
@@ -258,7 +284,7 @@ describe("useProjectsQuery contract", () => {
     ];
     state.getDemoProjects.mockReturnValue(demoProjects);
 
-    renderHook(() => useProjectsQuery());
+    renderHook(() => useProjectsQuery({ user: state.user }));
     await expect(state.options?.queryFn()).resolves.toBe(demoProjects);
     expect(state.from).not.toHaveBeenCalled();
     expect(state.rpc).not.toHaveBeenCalled();

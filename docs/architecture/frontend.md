@@ -93,6 +93,8 @@ kompatibilní re-exporty v `hooks/queries/`.
 - Komponentový stav: formuláře, otevřené panely, lokální navigace.
 - React Query: vzdálená data a stav jejich načítání.
 - AuthContext: session, uživatel, MFA a právní acceptance.
+- AuthIdentityContext: read-only projekce `id`, `email`, `role` pro feature
+  query bez přístupu k tokenům nebo auth akcím; zdrojem zůstává AuthContext.
 - FeatureContext: tarif a capabilities.
 - UIContext: modály a sdílené UI akce.
 - ToastContext: krátkodobé informační zprávy.
