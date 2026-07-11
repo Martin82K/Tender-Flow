@@ -12,6 +12,7 @@ const mockState = vi.hoisted(() => ({
   acceptLegalDocuments: vi.fn(),
   updatePreferences: vi.fn(),
   logout: vi.fn(),
+  showUiModal: vi.fn(),
   navigate: vi.fn(),
   currentPlan: "pro",
   isDesktop: false,
@@ -50,7 +51,7 @@ vi.mock("@/context/AuthContext", () => ({
 
 vi.mock("@/context/UIContext", () => ({
   useUI: () => ({
-    showUiModal: vi.fn(),
+    showUiModal: mockState.showUiModal,
     uiModal: null,
     closeUiModal: vi.fn(),
   }),
@@ -73,6 +74,7 @@ vi.mock("@/hooks/useAppData", () => ({
       isDataLoading: false,
       appLoadProgress: 100,
       loadingError: null,
+      loadingErrorDiagnostic: null,
       selectedProjectId: null,
       projects: [],
       allProjectDetails: {},
@@ -168,6 +170,7 @@ vi.mock("@app/hooks/useStuckLoadingRecovery", () => ({
 
 vi.mock("@/services/incidentLogger", () => ({
   INCIDENT_FATAL_EVENT_NAME: "incident",
+  logIncident: vi.fn().mockResolvedValue({ incidentId: "INC-LOAD-1" }),
   setIncidentContext: vi.fn(),
 }));
 
@@ -301,5 +304,39 @@ describe("AppContent legal acceptance gate", () => {
       screen.queryByText(/Desktop aplikace je dostupná pouze pro Enterprise účty/i),
     ).not.toBeInTheDocument();
     expect(screen.getByText("todo")).toBeInTheDocument();
+  });
+
+  it("zobrazí technický kód i incident id u fatální chyby", async () => {
+    mockState.legalAcceptance = {
+      termsVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: "2026-06-02T10:00:00.000Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-06-02T10:00:00.000Z",
+    };
+    renderAppContent();
+
+    fireEvent(
+      window,
+      new CustomEvent("incident", {
+        detail: {
+          errorCode: "WINDOW_ERROR",
+          incidentId: "INC-FATAL-1",
+          message: "Internal detail",
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockState.showUiModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Došlo k chybě",
+          message: expect.stringContaining("Kód chyby: WINDOW_ERROR"),
+          confirmLabel: "Kopírovat referenci",
+        }),
+      );
+    });
+    expect(mockState.showUiModal.mock.calls.at(-1)?.[0].message).toContain(
+      "Kód incidentu: INC-FATAL-1",
+    );
   });
 });

@@ -157,4 +157,32 @@ describe("incidentLogger", () => {
     );
     expect(hasWindowError).toBe(true);
   });
+
+  it("propaguje technický kód i incident id do fatálního oznámení", async () => {
+    const { logger, rpc } = await setup();
+    rpc.mockResolvedValue({ data: "ok", error: null });
+    const noticePromise = new Promise<CustomEvent>((resolve) => {
+      window.addEventListener(
+        logger.INCIDENT_FATAL_EVENT_NAME,
+        (event) => resolve(event as CustomEvent),
+        { once: true },
+      );
+    });
+
+    const result = await logger.logIncident({
+      severity: "error",
+      source: "renderer",
+      category: "runtime",
+      code: "fatal_test_error",
+      message: "Fatal test error",
+      notifyUser: true,
+    });
+    const notice = await noticePromise;
+
+    expect(notice.detail).toEqual({
+      incidentId: result.incidentId,
+      errorCode: "FATAL_TEST_ERROR",
+      message: "Fatal test error",
+    });
+  });
 });

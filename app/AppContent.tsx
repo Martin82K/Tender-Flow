@@ -17,6 +17,7 @@ import { platformAdapter } from "@/services/platformAdapter";
 import { useDesktopMcpTokenSync } from "@app/hooks/useDesktopMcpTokenSync";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
+import { useCriticalLoadIncident } from "@app/hooks/useCriticalLoadIncident";
 import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
@@ -52,6 +53,8 @@ import { VoiceAssistantProvider } from "@/features/voice-assistant/context/Voice
 import { shouldEnableVoiceAssistantForRoute } from "@/features/voice-assistant/model/routeAvailability";
 import { VoiceAssistantLauncher } from "@/features/voice-assistant/ui/VoiceAssistantLauncher";
 import { VoiceAssistantPanel } from "@/features/voice-assistant/ui/VoiceAssistantPanel";
+import { APP_CORE_DATA_LOAD_ERROR_CODE } from "@/shared/errors/appLoadError";
+import { formatIncidentReference } from "@/shared/errors/incidentReference";
 
 export const AppContent: React.FC = () => {
   const {
@@ -68,6 +71,7 @@ export const AppContent: React.FC = () => {
   const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
 
   const { state, actions } = useAppData(showUiModal);
+  const criticalLoadIncident = useCriticalLoadIncident(state.loadingErrorDiagnostic);
   const isVoiceAssistantAdmin = user?.role === "admin";
   const projectIds = useMemo(() => state.projects.map((project) => project.id), [state.projects]);
   const { data: voiceContracts = [] } = useAllContractsQuery(
@@ -140,16 +144,20 @@ export const AppContent: React.FC = () => {
     const handleFatalIncident = async (event: Event) => {
       const detail = (event as CustomEvent<FatalIncidentNotice>).detail;
       if (!detail?.incidentId) return;
+      const reference = formatIncidentReference({
+        errorCode: detail.errorCode,
+        incidentId: detail.incidentId,
+      });
 
       showUiModal({
         title: "Došlo k chybě",
-        message: `Kód incidentu: ${detail.incidentId}\n\nProsím pošli tento kód podpoře.`,
+        message: `${reference}\n\nProsím pošli tuto referenci podpoře.`,
         variant: "danger",
-        confirmLabel: "Kopírovat kód",
+        confirmLabel: "Kopírovat referenci",
         cancelLabel: "Zavřít",
         onConfirm: () => {
           if (!navigator.clipboard?.writeText) return;
-          void navigator.clipboard.writeText(detail.incidentId).catch(() => undefined);
+          void navigator.clipboard.writeText(reference).catch(() => undefined);
         },
       });
     };
@@ -220,6 +228,8 @@ export const AppContent: React.FC = () => {
     return (
       <AppLoadErrorView
         error={state.loadingError}
+        errorCode={criticalLoadIncident?.errorCode ?? APP_CORE_DATA_LOAD_ERROR_CODE}
+        incidentId={criticalLoadIncident?.incidentId ?? null}
         onReload={() => window.location.reload()}
         onLogout={() => logout()}
       />

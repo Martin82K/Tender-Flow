@@ -50,5 +50,6 @@ export interface IncidentLogResult {
 
 export interface FatalIncidentNotice {
   incidentId: string;
+  errorCode: string;
   message: string;
 }

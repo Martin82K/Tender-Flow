@@ -33,6 +33,10 @@ import {
     getTenderPlans,
     linkTenderPlanToCategory,
 } from "@/features/projects/api";
+import {
+    APP_CORE_DATA_LOAD_ERROR_MESSAGE,
+    buildCoreDataLoadDiagnostic,
+} from "@/shared/errors/appLoadError";
 
 export const useAppData = (showUiModal: (props: any) => void) => {
     const queryClient = useQueryClient();
@@ -50,10 +54,14 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
     // Surface critical loading errors to the UI instead of silently swallowing them.
     // If all three core queries fail, it's likely a systemic issue (auth, network, etc.)
-    const criticalErrors = [projectsError, statusesError, contactsError].filter(Boolean);
     const appLoadProgress = null;
-    const loadingError = criticalErrors.length >= 2
-        ? `Nepodařilo se načíst data aplikace. Zkuste obnovit stránku nebo se znovu přihlásit. (${criticalErrors[0]?.message || 'Neznámá chyba'})`
+    const loadingErrorDiagnostic = buildCoreDataLoadDiagnostic([
+        { query: "projects", error: projectsError },
+        { query: "contact_statuses", error: statusesError },
+        { query: "contacts", error: contactsError },
+    ]);
+    const loadingError = loadingErrorDiagnostic
+        ? APP_CORE_DATA_LOAD_ERROR_MESSAGE
         : null;
     const isBackgroundLoading = false; // Could track mutation 'isPending'
 
@@ -269,6 +277,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
             contactStatuses,
             isDataLoading,
             loadingError,
+            loadingErrorDiagnostic,
             appLoadProgress,
             isBackgroundLoading,
             backgroundWarning,
