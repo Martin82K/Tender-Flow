@@ -48,7 +48,7 @@ describe("Architecture Guardrails", () => {
       stdio: "pipe",
     });
     const report = JSON.parse(output) as {
-      dependencyFindings: Record<string, Array<{ target: string }>>;
+      dependencyFindings: Record<string, Array<{ file: string; target: string }>>;
       sharedUi: {
         temporaryShims: Array<{ file: string; targets: string[] }>;
         primitives: Array<{ file: string }>;
@@ -85,6 +85,11 @@ describe("Architecture Guardrails", () => {
       ),
     ).toHaveLength(0);
     expect(report.dependencyFindings["features-to-legacy-hooks"]).toHaveLength(0);
+    expect(
+      report.dependencyFindings["features-to-legacy-context"].filter(
+        (item) => item.file === "features/projects/model/useProjectOverviewController.ts",
+      ),
+    ).toHaveLength(0);
     expect(report.sharedUi.temporaryShims.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.sharedUi.temporaryShims.every((item) => item.targets.every((target) => target.startsWith("components/")))).toBe(
       true,
