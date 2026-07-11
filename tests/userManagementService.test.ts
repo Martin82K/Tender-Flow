@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { userManagementService } from '../services/userManagementService';
+import { expectConsoleError } from './utils/consoleGuard';
 
 const supabaseMocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -64,6 +65,7 @@ describe('userManagementService.getAllUsers', () => {
   });
 
   it('při chybě propaguje message z RPC', async () => {
+    expectConsoleError('Error fetching users:');
     supabaseMocks.rpc.mockResolvedValue({
       data: null,
       error: { message: 'Access denied: Admin only' },

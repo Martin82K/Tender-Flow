@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 const mockState = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -38,6 +39,7 @@ describe("functionsClient", () => {
   });
 
   it("po vycerpani retry zaloguje selhani edge funkce", async () => {
+    expectConsoleError("[Function Error] Failed to fetch dochub-manage-folder");
     const fetchMock = vi.fn().mockRejectedValue(new Error("network down"));
     vi.stubGlobal("fetch", fetchMock);
 

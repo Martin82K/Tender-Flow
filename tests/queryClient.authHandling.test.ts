@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { expectConsoleError, expectConsoleWarn } from "./utils/consoleGuard";
 
 const loadQueryClient = async () => {
   vi.resetModules();
@@ -26,6 +27,8 @@ const loadQueryClient = async () => {
 
 describe("queryClient auth handling", () => {
   it("deleguje auth recovery do authSessionService bez přímé navigace", async () => {
+    expectConsoleWarn("[QueryClient] Auth error detected", 3);
+    expectConsoleError("[QueryClient] Too many auth errors, clearing session...");
     const { queryClient, invalidateAuthState, navigate } = await loadQueryClient();
     const retry = queryClient.getDefaultOptions().queries?.retry as (
       failureCount: number,
@@ -58,6 +61,8 @@ describe("queryClient auth handling", () => {
   });
 
   it("mutace při auth chybách také delegují recovery centrálně", async () => {
+    expectConsoleWarn("[QueryClient] Auth error detected", 3);
+    expectConsoleError("[QueryClient] Too many auth errors, clearing session...");
     const { queryClient, invalidateAuthState } = await loadQueryClient();
     const onError = queryClient.getDefaultOptions().mutations?.onError as (
       error: unknown,

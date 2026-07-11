@@ -35,6 +35,11 @@ vi.mock("@infra/db/dbAdapter", () => ({
   },
 }));
 
+vi.mock("@/services/incidentAdminService", () => ({
+  getAppIncidentsAdmin: vi.fn().mockResolvedValue([]),
+  purgeOldAppIncidentsAdmin: vi.fn().mockResolvedValue(0),
+}));
+
 describe("complianceAdminService", () => {
   beforeEach(() => {
     vi.resetModules();

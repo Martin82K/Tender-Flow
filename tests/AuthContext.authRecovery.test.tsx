@@ -1,6 +1,7 @@
 import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 type SessionCredentials = { refreshToken: string; email: string } | null;
 
@@ -208,6 +209,7 @@ const setup = async (options: SetupOptions) => {
 
 describe("AuthContext auth recovery", () => {
   it("login timeout nepokračuje s pending uživatelem ani session follow-upem", async () => {
+    expectConsoleError("Login failed Error: Připojení k přihlašovací službě vypršelo");
     const neverResolves = new Promise<any>(() => {});
     const mockState = await setup({
       isDesktop: false,
@@ -246,6 +248,7 @@ describe("AuthContext auth recovery", () => {
   });
 
   it("při Invalid Refresh Token provede invalidaci a nespouští druhý refresh pokus", async () => {
+    expectConsoleError("[AuthContext] Auto-login: Session refresh failed");
     const mockState = await setup({
       isDesktop: true,
       credentials: { refreshToken: "refresh-token-123456", email: "test@example.com" },
