@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 import { listTasks } from "../api/tasksApi";
 import type { TaskFilter } from "../types";
 
@@ -9,13 +9,19 @@ export const TASK_KEYS = {
     [...TASK_KEYS.all, "list", userId ?? "anon", filter ?? {}] as const,
 };
 
-export const useTasksQuery = (filter?: TaskFilter) => {
-  const { user } = useAuth();
+interface UseTasksQueryInput {
+  user: AuthIdentity | null;
+  filter?: TaskFilter;
+}
 
+export const useTasksQuery = ({ user, filter }: UseTasksQueryInput) => {
   return useQuery({
     queryKey: TASK_KEYS.list(user?.id, filter),
     enabled: !!user && user.role !== "demo",
-    queryFn: () => listTasks(user!.id, filter),
+    queryFn: () => {
+      if (!user || user.role === "demo") return Promise.resolve([]);
+      return listTasks(user.id, filter);
+    },
     staleTime: 60 * 1000,
   });
 };

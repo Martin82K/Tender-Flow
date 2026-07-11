@@ -26,6 +26,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   RPC autorizace, normalizace payloadu a explicitní auth/demo vstupy.
 - [Načítání kontaktů](architecture/contacts-query-boundary.md) – stránkování,
   mapování, ratings a kompatibilní migrace posledního legacy query hooku.
+- [Task query auth hranice](architecture/task-query-auth-boundary.md) –
+  explicitní identita, cache izolace a fail-closed read-only task dotazy.
 
 ## Bezpečnost
 
