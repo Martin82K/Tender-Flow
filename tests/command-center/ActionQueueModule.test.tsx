@@ -5,12 +5,22 @@ import { DEFAULT_FILTER_STATE } from "@features/command-center/types";
 import type { DerivedAction } from "@features/command-center/types";
 import type { Project } from "@/types";
 import type { Task } from "@features/tasks";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 const actionQueueState = vi.hoisted(() => ({
   derived: [] as DerivedAction[],
   tasks: [] as Task[],
   projects: [] as Project[],
   toggleTask: vi.fn(),
+  identity: {
+    id: "user-1",
+    email: "user@example.com",
+    role: "user",
+  } as AuthIdentity,
+  taskQueryInput: null as {
+    user: AuthIdentity | null;
+    filter?: { completed?: boolean };
+  } | null,
 }));
 
 vi.mock("@features/command-center/hooks/useDerivedActions", () => ({
@@ -23,15 +33,25 @@ vi.mock("@features/projects/model/useProjectPortfolioState", () => ({
   }),
 }));
 
+vi.mock("@shared/auth/AuthIdentityContext", () => ({
+  useAuthIdentity: () => actionQueueState.identity,
+}));
+
 vi.mock("@features/tasks", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@features/tasks")>();
   return {
     ...actual,
-    useTasksQuery: () => ({
-      data: actionQueueState.tasks,
-      isLoading: false,
-      isFetching: false,
-    }),
+    useTasksQuery: (input: {
+      user: AuthIdentity | null;
+      filter?: { completed?: boolean };
+    }) => {
+      actionQueueState.taskQueryInput = input;
+      return {
+        data: actionQueueState.tasks,
+        isLoading: false,
+        isFetching: false,
+      };
+    },
     useToggleTaskMutation: () => ({
       mutate: actionQueueState.toggleTask,
       isPending: false,
@@ -77,6 +97,7 @@ describe("ActionQueueModule", () => {
     actionQueueState.tasks = [];
     actionQueueState.projects = [];
     actionQueueState.toggleTask.mockReset();
+    actionQueueState.taskQueryInput = null;
   });
 
   afterEach(() => {
@@ -88,6 +109,10 @@ describe("ActionQueueModule", () => {
 
     expect(screen.queryByPlaceholderText("+ Přidat úkol…")).not.toBeInTheDocument();
     expect(screen.queryByText("+ Přidat úkol...")).not.toBeInTheDocument();
+    expect(actionQueueState.taskQueryInput).toEqual({
+      user: actionQueueState.identity,
+      filter: { completed: false },
+    });
   });
 
   it("zobrazí osobní úkol v čistém zarovnaném řádku s prioritou, stavbou a termínem", () => {

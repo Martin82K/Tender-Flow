@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import type { ModuleProps } from "@features/command-center/types";
 import { useDerivedActions } from "@features/command-center/hooks/useDerivedActions";
 import { navigate } from "@shared/routing/router";
+import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import {
   mergeActionQueue,
@@ -33,7 +34,8 @@ const getTaskPriorityLabel = (item: ActionQueueItem): string | null => {
 
 export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
   const derived = useDerivedActions(filterState);
-  const tasksQuery = useTasksQuery({ completed: false });
+  const user = useAuthIdentity();
+  const tasksQuery = useTasksQuery({ user, filter: { completed: false } });
   const toggleTask = useToggleTaskMutation();
   const { projects } = useProjectPortfolioState();
   const [editingTask, setEditingTask] = useState<Task | null>(null);

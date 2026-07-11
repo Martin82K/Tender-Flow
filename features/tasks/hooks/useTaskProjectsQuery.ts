@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/context/AuthContext";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 import { listTodoProjects } from "../api/taskProjectsApi";
 
 export const TODO_PROJECT_KEYS = {
@@ -7,13 +7,18 @@ export const TODO_PROJECT_KEYS = {
   list: (userId: string | undefined) => [...TODO_PROJECT_KEYS.all, "list", userId ?? "anon"] as const,
 };
 
-export const useTaskProjectsQuery = () => {
-  const { user } = useAuth();
+interface UseTaskProjectsQueryInput {
+  user: AuthIdentity | null;
+}
 
+export const useTaskProjectsQuery = ({ user }: UseTaskProjectsQueryInput) => {
   return useQuery({
     queryKey: TODO_PROJECT_KEYS.list(user?.id),
     enabled: !!user && user.role !== "demo",
-    queryFn: () => listTodoProjects(user!.id),
+    queryFn: () => {
+      if (!user || user.role === "demo") return Promise.resolve([]);
+      return listTodoProjects(user.id);
+    },
     staleTime: 60 * 1000,
   });
 };

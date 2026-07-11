@@ -6,6 +6,7 @@ import { Input } from "@shared/ui/Input";
 import { HelpButton } from "@features/help";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { useProjectsState } from "@features/projects/model/useProjectsState";
+import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 import type { ThemeSkin } from "@/shared/types/theme";
 import {
   buildTaskTree,
@@ -3168,8 +3169,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
   const [isDetailAutoSelectPaused, setIsDetailAutoSelectPaused] = useState(false);
   const isMobileLayout = useIsTasksMobileLayout();
-  const tasksQuery = useTasksQuery({ includeArchived: true });
-  const todoProjectsQuery = useTaskProjectsQuery();
+  const user = useAuthIdentity();
+  const tasksQuery = useTasksQuery({ user, filter: { includeArchived: true } });
+  const todoProjectsQuery = useTaskProjectsQuery({ user });
   const updateTask = useUpdateTaskMutation();
 
   const taskTree = useMemo(() => buildTaskTree(tasksQuery.data ?? []), [tasksQuery.data]);

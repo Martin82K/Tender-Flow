@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TasksPage, buildUpcomingAgendaGroups } from "@features/tasks/ui/TasksPage";
 import type { Task, TodoProject } from "@features/tasks/types";
+import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 const taskState = vi.hoisted(() => ({
   tasks: [] as Task[],
@@ -11,6 +12,16 @@ const taskState = vi.hoisted(() => ({
   createTask: vi.fn(),
   updateTask: vi.fn(),
   deleteTask: vi.fn(),
+  identity: {
+    id: "user-1",
+    email: "user@example.com",
+    role: "user",
+  } as AuthIdentity,
+  tasksQueryInput: null as {
+    user: AuthIdentity | null;
+    filter?: { includeArchived?: boolean };
+  } | null,
+  taskProjectsQueryInput: null as { user: AuthIdentity | null } | null,
 }));
 
 vi.mock("@shared/ui/Header", () => ({
@@ -66,20 +77,33 @@ vi.mock("@features/projects/model/useProjectsState", () => ({
   useProjectsState: () => ({ projects: [] }),
 }));
 
+vi.mock("@shared/auth/AuthIdentityContext", () => ({
+  useAuthIdentity: () => taskState.identity,
+}));
+
 vi.mock("@features/tasks/hooks/useTasksQuery", () => ({
-  useTasksQuery: () => ({
-    data: taskState.tasks,
-    isLoading: false,
-    isFetching: false,
-  }),
+  useTasksQuery: (input: {
+    user: AuthIdentity | null;
+    filter?: { includeArchived?: boolean };
+  }) => {
+    taskState.tasksQueryInput = input;
+    return {
+      data: taskState.tasks,
+      isLoading: false,
+      isFetching: false,
+    };
+  },
 }));
 
 vi.mock("@features/tasks/hooks/useTaskProjectsQuery", () => ({
-  useTaskProjectsQuery: () => ({
-    data: taskState.todoProjects,
-    isLoading: false,
-    isFetching: false,
-  }),
+  useTaskProjectsQuery: (input: { user: AuthIdentity | null }) => {
+    taskState.taskProjectsQueryInput = input;
+    return {
+      data: taskState.todoProjects,
+      isLoading: false,
+      isFetching: false,
+    };
+  },
 }));
 
 vi.mock("@features/tasks/hooks/useTaskMutations", () => ({
@@ -176,6 +200,20 @@ describe("TasksPage note preview", () => {
     taskState.createTask.mockReset();
     taskState.updateTask.mockReset();
     taskState.deleteTask.mockReset();
+    taskState.tasksQueryInput = null;
+    taskState.taskProjectsQueryInput = null;
+  });
+
+  it("předá stejnou identitu oběma read-only query", () => {
+    render(<TasksPage />);
+
+    expect(taskState.tasksQueryInput).toEqual({
+      user: taskState.identity,
+      filter: { includeArchived: true },
+    });
+    expect(taskState.taskProjectsQueryInput).toEqual({
+      user: taskState.identity,
+    });
   });
 
   it("zobrazí popis hlavního úkolu i podúkolu přímo v seznamu", () => {
