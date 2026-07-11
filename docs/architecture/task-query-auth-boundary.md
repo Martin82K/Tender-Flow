@@ -67,3 +67,6 @@ zůstane v historii navazujícího PR.
 Změna nevyžaduje migraci dat a lze ji vrátit jedním revertem. Ručně je potřeba
 ověřit Inbox/Kalendář úkolů, osobní TODO projekty, Akční frontu Command Center,
 demo účet a přepnutí dvou běžných účtů bez promíchání cache.
+
+Navazující create operace a jejich odlišný fail-closed kontrakt popisuje
+[Auth hranice create task mutací](task-mutation-auth-boundary.md).
