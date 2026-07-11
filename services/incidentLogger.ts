@@ -287,6 +287,7 @@ export const logIncident = async (input: IncidentEventInput): Promise<IncidentLo
   if (input.notifyUser && input.severity === "error") {
     notifyFatalIncident({
       incidentId: payload.incident_id,
+      errorCode: payload.code,
       message: payload.message,
     });
   }
