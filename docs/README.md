@@ -36,6 +36,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   fail-closed UI a serverově důvěryhodný autor hodnocení smlouvy.
 - [Projektově omezené šablony](architecture/project-scoped-templates.md) – RLS,
   feature gating, backfill, rollout a rollback projektových e-mailových šablon.
+- [Autorizační hranice kategorií poptávek](architecture/demand-categories-auth-boundary.md) –
+  projektové RLS, grants a ochrana rozpočtových příloh.
 
 ## Bezpečnost
 
