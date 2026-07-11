@@ -25,6 +25,7 @@ potvrzen v cílovém prostředí.
 | [#176](https://github.com/Martin82K/Tender-Flow/pull/176) | Identita seznamu projektů | Ověřit vlastní a sdílené projekty v Projektovém řízení, Command Center a projektových volbách úkolů. Přepnout běžný/demo účet a odhlásit/přihlásit jiného uživatele; ověřit, že se cache ani projekty mezi identitami nepromíchají. | čeká |
 | [#177](https://github.com/Martin82K/Tender-Flow/pull/177) | Identita task query | Ověřit Inbox, Kalendář, archiv/hotové filtry, osobní TODO projekty a Akční frontu Command Center. Zopakovat s demo účtem a po přepnutí dvou běžných účtů; úkoly ani cache se nesmějí mezi identitami promíchat. | čeká |
 | [#178](https://github.com/Martin82K/Tender-Flow/pull/178) | Identita create task mutací | Běžným účtem vytvořit úkol přes rychlé přidání i formulář, podúkol a osobní TODO projekt; ověřit okamžité obnovení seznamů a správného vlastníka po přepnutí účtů A/B. V demo režimu ověřit srozumitelné odmítnutí bez síťového zápisu. | čeká |
+| [#179](https://github.com/Martin82K/Tender-Flow/pull/179) | Identita notifikací | Pod účtem A otevřít notifikační centrum, označit jednu/všechny notifikace jako přečtené a jednu/všechny skrýt. Bez reloadu přepnout na B; badge ani obsah A se nesmí zobrazit a pozdní realtime událost A nesmí vyvolat desktopovou notifikaci. Po odhlášení a v demo režimu nesmí otevření ani čekání přes polling interval spustit notifikační RPC, realtime kanál nebo desktopovou notifikaci. | čeká |
 
 ## Jak mapu udržovat
 
