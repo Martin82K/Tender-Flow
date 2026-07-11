@@ -6,7 +6,7 @@ import { SIDEBAR_NAVIGATION, type NavItemConfig } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 
 import { APP_VERSION } from "../config/version";
 const PROJECT_TABS: {

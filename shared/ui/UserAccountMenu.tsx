@@ -11,9 +11,8 @@ import {
   UI_SCALE_MIN,
   UI_SCALE_STEP,
   normalizeUiScale,
-  type ThemeMode,
-  type ThemeSkin,
 } from "@/hooks/useTheme";
+import type { ThemeMode, ThemeSkin } from "@/shared/types/theme";
 import type { User } from "@/types";
 
 interface UserAccountMenuProps {

@@ -8,7 +8,7 @@ import { UserAccountMenu } from '@/shared/ui/UserAccountMenu';
 import { Project, View, User } from '../../types';
 import platformAdapter from '../../services/platformAdapter';
 import { normalizeUiScale } from '@/hooks/useTheme';
-import type { ThemeMode, ThemeSkin } from '@/hooks/useTheme';
+import type { ThemeMode, ThemeSkin } from '@/shared/types/theme';
 
 interface MainLayoutProps {
     children: React.ReactNode;

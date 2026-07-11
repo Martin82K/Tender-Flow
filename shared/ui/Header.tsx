@@ -3,7 +3,7 @@ import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
 import { HeaderGlobalSearch } from "@/shared/ui/GlobalSearch";
 import { useTopbarActions } from "@/shared/ui/TopbarActionsContext";
 import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
-import type { ThemeSkin } from "@/hooks/useTheme";
+import type { ThemeSkin } from "@/shared/types/theme";
 
 interface HeaderProps {
   title: string;
