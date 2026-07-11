@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { navigate } from "@shared/routing/router";
 import type { AppNotification, NotificationCategory } from "../types";
 import { NOTIFICATION_CATEGORY_LABELS } from "../types";
-import { notificationApi } from "../api/notificationApi";
 import { NotificationItem } from "./NotificationItem";
 
 const FILTER_TABS: Array<NotificationCategory | "all"> = [
@@ -41,7 +40,10 @@ interface NotificationCenterProps {
   onClose: () => void;
   notifications: AppNotification[];
   isLoading: boolean;
-  onRefresh: () => void;
+  onMarkRead: (id: string) => Promise<void>;
+  onMarkAllRead: () => Promise<void>;
+  onDismiss: (id: string) => Promise<void>;
+  onDismissAll: () => Promise<void>;
   unreadCount: number;
   anchor?: { top: number; right: number } | null;
   anchorRef?: React.RefObject<HTMLButtonElement | null>;
@@ -52,7 +54,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClose,
   notifications,
   isLoading,
-  onRefresh,
+  onMarkRead,
+  onMarkAllRead,
+  onDismiss,
+  onDismissAll,
   unreadCount,
   anchor,
   anchorRef,
@@ -94,38 +99,24 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
   const handleDismiss = useCallback(async (id: string) => {
-    try {
-      await notificationApi.dismiss(id);
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to dismiss notification:", error);
-    }
-  }, [onRefresh]);
+    await onDismiss(id);
+  }, [onDismiss]);
 
   const handleClick = useCallback(async (notification: AppNotification) => {
     // Mark as read
     if (!notification.read_at) {
-      try {
-        await notificationApi.markRead(notification.id);
-      } catch {
-        // silent
-      }
+      await onMarkRead(notification.id);
     }
     // Navigate to action URL
     if (notification.action_url) {
       onClose();
       navigate(notification.action_url);
     }
-  }, [onClose]);
+  }, [onClose, onMarkRead]);
 
   const handleMarkAllRead = useCallback(async () => {
-    try {
-      await notificationApi.markAllRead();
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to mark all read:", error);
-    }
-  }, [onRefresh]);
+    await onMarkAllRead();
+  }, [onMarkAllRead]);
 
   const clearConfirmResetTimer = useCallback(() => {
     if (confirmResetTimerRef.current) {
@@ -147,15 +138,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     clearConfirmResetTimer();
     setIsDismissingAll(true);
     try {
-      await notificationApi.dismissAll();
-      onRefresh();
-    } catch (error) {
-      console.error("Failed to dismiss all notifications:", error);
+      await onDismissAll();
     } finally {
       setIsDismissingAll(false);
       setConfirmDismissAll(false);
     }
-  }, [confirmDismissAll, clearConfirmResetTimer, onRefresh]);
+  }, [confirmDismissAll, clearConfirmResetTimer, onDismissAll]);
 
   // Reset confirm state when panel closes and cleanup timer on unmount
   useEffect(() => {

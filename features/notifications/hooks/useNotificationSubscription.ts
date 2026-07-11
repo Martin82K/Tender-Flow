@@ -5,7 +5,10 @@ import type { AppNotification } from "../types";
 interface UseNotificationSubscriptionOptions {
   userId: string | undefined;
   enabled: boolean;
-  onNewNotification: (notification: AppNotification) => void;
+  onNewNotification: (
+    notification: AppNotification,
+    sourceUserId: string,
+  ) => void;
 }
 
 /**
@@ -26,7 +29,7 @@ export const useNotificationSubscription = ({
     return notificationApi.subscribeToUserNotifications({
       userId,
       onNewNotification: (notification) => {
-        callbackRef.current(notification);
+        callbackRef.current(notification, userId);
       },
       onSubscriptionError: () => {
         console.warn("[notifications] Realtime subscription error, falling back to polling");
