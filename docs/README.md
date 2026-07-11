@@ -24,6 +24,8 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   cache, paralelní dotazy, mapování a kompatibilní migrace detailového hooku.
 - [Tenant overview query](architecture/overview-tenant-query-boundary.md) –
   RPC autorizace, normalizace payloadu a explicitní auth/demo vstupy.
+- [Načítání kontaktů](architecture/contacts-query-boundary.md) – stránkování,
+  mapování, ratings a kompatibilní migrace posledního legacy query hooku.
 
 ## Bezpečnost
 
@@ -36,6 +38,7 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
 - [Konfigurace a proměnné prostředí](development/configuration.md)
 - [Testovací strategie](development/testing.md)
 - [Politika konzolového výstupu testů](testing/console-output-policy.md)
+- [Manuální validační mapa PR](testing/manual-pr-validation.md)
 
 ## Provoz
 
