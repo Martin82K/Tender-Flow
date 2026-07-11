@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
-import { ActiveProjectStatus, Project } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { getDemoData, DEMO_PROJECT } from "../../services/demoData";
 import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
+import {
+    mapVisibleProjects,
+    type ProjectVisibilityMetadataRow,
+    type ProjectVisibilityRow,
+} from "@features/projects/model/projectVisibility";
 
 export { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 
@@ -49,43 +53,14 @@ export const useProjectsQuery = () => {
 
             if (projectsResponse.error) throw projectsResponse.error;
 
-            const projectsData = (projectsResponse.data || []) as any[];
-            const metadata =
-                (metadataResponse.data as { project_id: string; owner_email: string; shared_with_emails: string[] }[]) ||
-                [];
-
-            const metadataMap = new Map<string, { owner: string; shared: string[] }>();
-            metadata.forEach((m) => metadataMap.set(m.project_id, { owner: m.owner_email, shared: m.shared_with_emails || [] }));
-
-            const currentUserId = String(user?.id || "");
-            const currentUserEmail = String(user?.email || "").trim().toLowerCase();
-            const isVisibleToCurrentUser = (project: any): boolean => {
-                if (project?.is_demo === true) return true;
-                if (String(project?.owner_id || "") === currentUserId) return true;
-
-                const meta = metadataMap.get(project.id);
-                if (!meta?.shared?.length || !currentUserEmail) return false;
-                return meta.shared.some((email) => String(email || "").trim().toLowerCase() === currentUserEmail);
-            };
-
-            const loadedProjects: Project[] = projectsData
-                .filter(isVisibleToCurrentUser)
-                .map((p) => {
-                const meta = metadataMap.get(p.id);
-                return {
-                    id: p.id,
-                    name: p.name,
-                    location: p.location || "",
-                    status: p.status || "realization",
-                    archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
-                    isDemo: p.is_demo,
-                    ownerId: p.owner_id,
-                    ownerEmail: meta?.owner,
-                    sharedWith: meta?.shared,
-                };
-            });
-
-            return loadedProjects;
+            return mapVisibleProjects(
+                (projectsResponse.data || []) as ProjectVisibilityRow[],
+                (metadataResponse.data || []) as ProjectVisibilityMetadataRow[],
+                {
+                    userId: user?.id,
+                    userEmail: user?.email,
+                }
+            );
         },
         staleTime: 5 * 60 * 1000,
     });
