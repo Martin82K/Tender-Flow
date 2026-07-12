@@ -1,6 +1,8 @@
 import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater';
 import { BrowserWindow, ipcMain, app } from 'electron';
 
+import { applyNoCacheUpdateRequestHeaders } from './updateRequestHeaders';
+
 export interface UpdateStatus {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
     info?: UpdateInfo;
@@ -26,6 +28,7 @@ export class AutoUpdaterService {
     constructor() {
         autoUpdater.autoDownload = false;
         autoUpdater.autoInstallOnAppQuit = true;
+        applyNoCacheUpdateRequestHeaders(autoUpdater);
 
         // For development, allow local update config (dev-app-update.yml)
         if (this.isDevMode) {

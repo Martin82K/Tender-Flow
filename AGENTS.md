@@ -38,6 +38,11 @@
 - Release prep: `npm run release:prepare`
 - Version sync script: `npm run version:patch|minor|major`
 
+## Release Rules
+- Tender Flow release assets must always be uploaded from locally built artifacts.
+- Do not let GitHub Actions attach or overwrite files in GitHub Releases.
+- CI may build desktop artifacts for validation or downloadable workflow artifacts, but release drafts must receive `.exe`, `.dmg`, `.zip`, blockmap, and latest YAML files only from the local `dist-electron/` output after local verification.
+
 ## Supabase and Docker
 - Docker is not a project runtime or deployment requirement for Tender Flow.
 - Supabase CLI may mention Docker because it uses containers for local Supabase stack commands such as `supabase start`, local DB reset, or local function serving.
