@@ -11,6 +11,7 @@ export interface PipelineEmailRecipientSelection {
 }
 
 const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RECIPIENT_SEPARATOR_PATTERN = /[;,]/;
 
 export const normalizeEmailAddress = (email: string): string => email.trim();
 
@@ -20,6 +21,7 @@ export const isValidEmailAddress = (email: string): boolean => {
     normalized.length > 0 &&
     normalized.length <= 254 &&
     !/[\r\n]/.test(normalized) &&
+    !RECIPIENT_SEPARATOR_PATTERN.test(normalized) &&
     SIMPLE_EMAIL_PATTERN.test(normalized)
   );
 };

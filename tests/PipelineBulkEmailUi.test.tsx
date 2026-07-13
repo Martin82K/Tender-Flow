@@ -87,6 +87,40 @@ describe("PipelineBulkEmailMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
+
+  it("udrží nabídku uvnitř úzkého viewportu", () => {
+    const viewportSpy = vi
+      .spyOn(window, "innerWidth", "get")
+      .mockReturnValue(300);
+    render(
+      <PipelineBulkEmailMenu
+        inquiryRecipientCount={1}
+        loserRecipientCount={0}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Hromadný e-mail" });
+    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+      bottom: 48,
+      height: 40,
+      left: 12,
+      right: 100,
+      top: 8,
+      width: 88,
+      x: 12,
+      y: 8,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(trigger);
+
+    expect(screen.getByRole("menu")).toHaveStyle({ left: "8px" });
+    expect(screen.getByRole("menu")).toHaveClass(
+      "max-w-[calc(100vw-1rem)]",
+    );
+    viewportSpy.mockRestore();
+  });
 });
 
 describe("PipelineBulkEmailConfirmationModal", () => {

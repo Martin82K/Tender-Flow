@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getTemplateById: vi.fn(),
   getProfile: vi.fn(),
   getOrganizationEmailBranding: vi.fn(),
+  loadBudgetAttachmentForEmail: vi.fn(),
 }));
 
 vi.mock("@infra/platform/platformAdapter", () => ({
@@ -39,6 +40,10 @@ vi.mock("../services/inquiryService", () => ({
 vi.mock("../services/templateService", () => ({
   getDefaultTemplate: mocks.getDefaultTemplate,
   getTemplateById: mocks.getTemplateById,
+}));
+
+vi.mock("@/services/budgetAttachmentService", () => ({
+  loadBudgetAttachmentForEmail: mocks.loadBudgetAttachmentForEmail,
 }));
 
 vi.mock("../services/userProfileService", () => ({
@@ -137,6 +142,7 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
       signatureEmail: "sender@example.com",
     });
     mocks.getOrganizationEmailBranding.mockResolvedValue(null);
+    mocks.loadBudgetAttachmentForEmail.mockResolvedValue(null);
   });
 
   it("vytvoří jeden koncept s uživatelem v To a dodavateli v BCC", async () => {

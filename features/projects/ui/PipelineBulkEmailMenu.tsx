@@ -25,11 +25,14 @@ const toneClasses: Record<MenuItem["tone"], string> = {
   orange: "text-orange-600 dark:text-orange-400",
 };
 
+const MENU_MARGIN_PX = 8;
+const MENU_WIDTH_PX = 320;
+
 export const PipelineBulkEmailMenu: React.FC<
   PipelineBulkEmailMenuProps
 > = ({ inquiryRecipientCount, loserRecipientCount, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, right: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -96,9 +99,20 @@ export const PipelineBulkEmailMenu: React.FC<
   const openMenu = () => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = Math.min(
+      MENU_WIDTH_PX,
+      Math.max(0, window.innerWidth - MENU_MARGIN_PX * 2),
+    );
+    const maximumLeft = Math.max(
+      MENU_MARGIN_PX,
+      window.innerWidth - menuWidth - MENU_MARGIN_PX,
+    );
     setPosition({
-      top: rect.bottom + 8,
-      right: Math.max(8, window.innerWidth - rect.right),
+      top: rect.bottom + MENU_MARGIN_PX,
+      left: Math.min(
+        Math.max(MENU_MARGIN_PX, rect.right - menuWidth),
+        maximumLeft,
+      ),
     });
     setIsOpen(true);
   };
@@ -155,8 +169,8 @@ export const PipelineBulkEmailMenu: React.FC<
                 data-help-id="pipeline-bulk-email-menu"
                 role="menu"
                 aria-label="Hromadné e-maily"
-                className="tf-pipeline-popover fixed z-[9999] w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
-                style={{ top: position.top, right: position.right }}
+                className="tf-pipeline-popover fixed z-[9999] w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                style={{ top: position.top, left: position.left }}
                 onKeyDown={handleMenuKeyDown}
               >
                 {items.map((item, index) => (

@@ -31,11 +31,13 @@ describe("buildBccRecipientList", () => {
     );
   });
 
-  it("vynechá neplatné adresy a pokusy o vložení hlavičky", () => {
+  it("vynechá neplatné adresy, oddělovače příjemců a pokusy o vložení hlavičky", () => {
     expect(
       buildBccRecipientList([
         "valid@example.com",
         "invalid",
+        "junk;victim@example.com",
+        "junk,victim@example.com",
         "safe@example.com\r\nBcc: attacker@example.com",
       ]),
     ).toBe("valid@example.com");
@@ -93,9 +95,11 @@ describe("pipeline email recipient selection", () => {
     expect(selection.emails).toEqual(["offer@example.com"]);
   });
 
-  it("validuje adresu bez přijetí CRLF", () => {
+  it("validuje adresu bez přijetí CRLF a oddělovačů dalších příjemců", () => {
     expect(isValidEmailAddress("user@example.com")).toBe(true);
     expect(isValidEmailAddress("user@example.com\r\nBcc:x@example.com")).toBe(false);
+    expect(isValidEmailAddress("junk;victim@example.com")).toBe(false);
+    expect(isValidEmailAddress("junk,victim@example.com")).toBe(false);
     expect(isValidEmailAddress("invalid")).toBe(false);
   });
 });
