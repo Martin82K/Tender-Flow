@@ -189,31 +189,33 @@ describe("fsHandlers", () => {
     await addUserGrantedRoot("/Users/tester/Downloads");
     await addUserGrantedRoot("/Users/tester/Projects/Tender");
 
-    await expect(
-      handlers.get("fs:copyFile")?.(
-        {},
-        "/Users/tester/Downloads/rozpocet.xlsx",
-        "/Users/tester/Projects/Tender/Betony",
-      ),
-    ).resolves.toEqual({
+    const result = await handlers.get("fs:copyFile")?.(
+      {},
+      "/Users/tester/Downloads/rozpocet.xlsx",
+      "/Users/tester/Projects/Tender/Betony",
+    );
+
+    expect({
+      ...(result as Record<string, unknown>),
+      path: normalizePathForAssert((result as { path: string }).path),
+    }).toEqual({
       success: true,
       path: "/Users/tester/Projects/Tender/Betony/rozpocet (2).xlsx",
       name: "rozpocet (2).xlsx",
       size: 1234,
     });
 
-    expect(fsMock.copyFile).toHaveBeenNthCalledWith(
-      1,
+    expect(fsMock.copyFile).toHaveBeenCalledTimes(2);
+    expect(fsMock.copyFile.mock.calls[0].slice(0, 2).map(normalizePathForAssert)).toEqual([
       "/Users/tester/Downloads/rozpocet.xlsx",
       "/Users/tester/Projects/Tender/Betony/rozpocet.xlsx",
-      expect.any(Number),
-    );
-    expect(fsMock.copyFile).toHaveBeenNthCalledWith(
-      2,
+    ]);
+    expect(fsMock.copyFile.mock.calls[1].slice(0, 2).map(normalizePathForAssert)).toEqual([
       "/Users/tester/Downloads/rozpocet.xlsx",
       "/Users/tester/Projects/Tender/Betony/rozpocet (2).xlsx",
-      expect.any(Number),
-    );
+    ]);
+    expect(fsMock.copyFile.mock.calls[0][2]).toEqual(expect.any(Number));
+    expect(fsMock.copyFile.mock.calls[1][2]).toEqual(expect.any(Number));
   });
 
   it("odmitne kopirovani do cile mimo povolene rooty", async () => {
