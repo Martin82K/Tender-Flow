@@ -87,14 +87,14 @@ export const Header: React.FC<HeaderProps> = ({
     ? "ml-2 flex-1 bg-transparent border-none focus:ring-0 text-sm text-[#14110a] placeholder-[#9c9684]"
     : "flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2";
   const headerChildrenBelowClass = isIndustrialSkin
-    ? "tf-topbar whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-14 pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
-    : "tf-topbar whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-14 pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
+    ? "tf-topbar whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-[4.5rem] pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
+    : "tf-topbar whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-[4.5rem] pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
   const headerTitleBelowClass = isIndustrialSkin
-    ? "tf-topbar whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-14 pr-3 sm:pr-4 md:px-8 pt-3 pb-3 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
-    : "tf-topbar whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-14 pr-3 sm:pr-4 md:px-8 pt-3 pb-3 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
+    ? "tf-topbar whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-[4.5rem] pr-3 sm:pr-4 md:px-8 pt-3 pb-3 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
+    : "tf-topbar whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-[4.5rem] pr-3 sm:pr-4 md:px-8 pt-3 pb-3 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
   const headerDefaultClass = isIndustrialSkin
-    ? "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-14 pr-3 sm:pr-4 md:px-8 py-4 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
-    : "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-14 pr-3 sm:pr-4 md:px-8 py-4 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
+    ? "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-[4.5rem] pr-3 sm:pr-4 md:px-8 py-4 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
+    : "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-[4.5rem] pr-3 sm:pr-4 md:px-8 py-4 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
 
   const titleBlock = (
     <div className="flex min-w-0 flex-col gap-0.5">

@@ -38,6 +38,15 @@ import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidA
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
 import {
+  isValidEmailAddress,
+  normalizeEmailAddress,
+  selectBulkInquiryRecipients,
+  selectLoserEmailRecipients,
+  type PipelineBulkEmailKind,
+} from "@/features/projects/model/pipelineEmailModel";
+import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
+import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
+import {
   Column,
   BidCard,
   EditBidModal,
@@ -290,9 +299,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [bulkEmailKind, setBulkEmailKind] =
+    useState<PipelineBulkEmailKind | null>(null);
+  const [isBulkEmailSubmitting, setIsBulkEmailSubmitting] = useState(false);
   const {
     handleGenerateInquiry,
     handleGenerateMaterialInquiry,
+    handleGenerateBulkInquiry,
     handleExport,
     handleEmailLosers,
   } = usePipelineCommunicationActions({
@@ -308,6 +321,70 @@ export const Pipeline: React.FC<PipelineProps> = ({
     runDocHubFallbackForCategory,
     resolveDesktopTenderFolderPath,
   });
+
+  const openBulkEmailConfirmation = (kind: PipelineBulkEmailKind) => {
+    if (!activeCategory) return;
+
+    const currentUserEmail = normalizeEmailAddress(user?.email || "");
+    if (!isValidEmailAddress(currentUserEmail)) {
+      showAlert({
+        title: "Chybí email odesílatele",
+        message:
+          "Hromadný koncept nelze vytvořit, protože přihlášený uživatel nemá platný email.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    const categoryBids = bids[activeCategory.id] || [];
+    const selection =
+      kind === "losers"
+        ? selectLoserEmailRecipients(categoryBids)
+        : selectBulkInquiryRecipients(categoryBids);
+
+    if (selection.candidateBids.length === 0) {
+      showAlert({
+        title:
+          kind === "losers"
+            ? "Žádní nevybraní účastníci"
+            : "Žádní dodavatelé k oslovení",
+        message:
+          kind === "losers"
+            ? "Nejsou žádní nevybraní účastníci s cenovou nabídkou."
+            : "Ve sloupci Oslovení nejsou žádní dodavatelé.",
+        variant: "info",
+      });
+      return;
+    }
+
+    if (selection.emails.length === 0) {
+      showAlert({
+        title: "Chybí platné emaily",
+        message: "Žádný z vybraných dodavatelů nemá platnou emailovou adresu.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setBulkEmailKind(kind);
+  };
+
+  const confirmBulkEmail = async () => {
+    if (!bulkEmailKind) return;
+
+    setIsBulkEmailSubmitting(true);
+    try {
+      const wasCreated =
+        bulkEmailKind === "losers"
+          ? await handleEmailLosers()
+          : await handleGenerateBulkInquiry(bulkEmailKind);
+      if (wasCreated) {
+        setBulkEmailKind(null);
+      }
+    } finally {
+      setIsBulkEmailSubmitting(false);
+    }
+  };
   const { handleOpenSupplierDocHub, handleOpenTenderDocHub } =
     usePipelineDocHubActions({
       activeCategory,
@@ -373,6 +450,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
       platformAdapter.isDesktop;
     const categoryBids = bids[activeCategory.id] || [];
     const bidComparisonSuppliers = buildBidComparisonSuppliers(categoryBids);
+    const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
+    const loserEmailSelection = selectLoserEmailRecipients(categoryBids);
+    const selectedBulkEmailSelection =
+      bulkEmailKind === "losers"
+        ? loserEmailSelection
+        : bulkInquirySelection;
+    const currentUserEmail = normalizeEmailAddress(user?.email || "");
 
     // --- DETAIL VIEW (PIPELINE) ---
     return (
@@ -384,90 +468,111 @@ export const Pipeline: React.FC<PipelineProps> = ({
           showSearch={false}
           showAccountMenu={false}
         >
-          <button
-            onClick={() => {
-              setActiveCategory(null);
-              onCategoryNavigate?.(null);
-            }}
-            className="mr-auto flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors px-2"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-            <span className="text-sm font-medium">Zpět na přehled</span>
-          </button>
-          <button
-            data-help-id="kanban-add-supplier"
-            onClick={() => setIsSubcontractorModalOpen(true)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            <span>Přidat dodavatele</span>
-          </button>
-
-          {isDocHubEnabled && (
+          <div className="flex max-w-full min-w-0 items-center gap-3 overflow-x-auto pb-1 [&>button]:shrink-0 [&>div]:shrink-0">
             <button
-              onClick={() => void handleOpenTenderDocHub()}
-              className="flex items-center gap-2 bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-              title={`Otevřít složku: ${activeCategory.title}`}
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                folder_open
-              </span>
-              <span>Otevřít složku</span>
-            </button>
-          )}
-
-          {isDesktopMode && (
-            <button
-              onClick={() => void handleOpenBidComparisonPanel()}
-              className="flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-60"
-              disabled={isResolvingBidComparisonPath}
-              title="Otevřít panel porovnání cenových nabídek"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                table_chart
-              </span>
-              <span>
-                {isResolvingBidComparisonPath
-                  ? "Načítám složku..."
-                  : "Porovnání nabídek"}
-              </span>
-            </button>
-          )}
-
-          {/* Export Button with Dropdown */}
-          <div data-help-id="kanban-export" className="relative">
-            <button
-              ref={exportButtonRef}
               onClick={() => {
-                if (!isExportMenuOpen && exportButtonRef.current) {
-                  const rect = exportButtonRef.current.getBoundingClientRect();
-                  setMenuPosition({
-                    top: rect.bottom + 8,
-                    left: rect.right - 224, // w-56 = 14rem = 224px
-                  });
-                }
-                setIsExportMenuOpen(!isExportMenuOpen);
+                setActiveCategory(null);
+                onCategoryNavigate?.(null);
               }}
-              className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+              className="mr-auto flex items-center gap-2 px-2 text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+              title="Vrátit se na přehled výběrových řízení"
             >
-              <span className="material-symbols-outlined text-[20px]">
-                download
-              </span>
-              <span>Export</span>
-              <span className="material-symbols-outlined text-[16px]">
-                expand_more
-              </span>
+              <span className="material-symbols-outlined">arrow_back</span>
+              <span className="text-sm font-medium">Zpět na přehled</span>
+            </button>
+            <button
+              data-help-id="kanban-add-supplier"
+              onClick={() => setIsSubcontractorModalOpen(true)}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90"
+              title="Přidat dodavatele do tohoto výběrového řízení"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              <span>Přidat dodavatele</span>
             </button>
 
-            {isExportMenuOpen &&
-              createPortal(
+            {isDesktopMode && (
+              <button
+                onClick={() => void handleOpenBidComparisonPanel()}
+                className="flex items-center gap-2 rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-200 disabled:opacity-60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                disabled={isResolvingBidComparisonPath}
+                title="Otevřít panel porovnání cenových nabídek"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  table_chart
+                </span>
+                <span>
+                  {isResolvingBidComparisonPath
+                    ? "Načítám složku..."
+                    : "Porovnání nabídek"}
+                </span>
+              </button>
+            )}
+
+            <PipelineBulkEmailMenu
+              inquiryRecipientCount={bulkInquirySelection.emails.length}
+              loserRecipientCount={loserEmailSelection.emails.length}
+              onSelect={openBulkEmailConfirmation}
+            />
+
+            {isDocHubEnabled && (
+              <button
+                onClick={() => void handleOpenTenderDocHub()}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
+                aria-label={`Otevřít složku: ${activeCategory.title}`}
+                title={`Otevřít složku: ${activeCategory.title}`}
+              >
+                <span
+                  className="material-symbols-outlined text-[20px]"
+                  aria-hidden="true"
+                >
+                  folder_open
+                </span>
+              </button>
+            )}
+
+            {/* Export Button with Dropdown */}
+            <div data-help-id="kanban-export" className="relative">
+              <button
+                ref={exportButtonRef}
+                data-help-id="pipeline-export-trigger"
+                onClick={() => {
+                  if (!isExportMenuOpen && exportButtonRef.current) {
+                    const rect = exportButtonRef.current.getBoundingClientRect();
+                    setMenuPosition({
+                      top: rect.bottom + 8,
+                      left: rect.right - 224, // w-56 = 14rem = 224px
+                    });
+                  }
+                  setIsExportMenuOpen(!isExportMenuOpen);
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                aria-haspopup="menu"
+                aria-expanded={isExportMenuOpen}
+                aria-controls={isExportMenuOpen ? "pipeline-export-menu" : undefined}
+                aria-label="Otevřít nabídku exportních formátů"
+                title="Otevřít nabídku exportních formátů"
+              >
+                <span
+                  className="material-symbols-outlined text-[20px]"
+                  aria-hidden="true"
+                >
+                  download
+                </span>
+              </button>
+
+              {isExportMenuOpen &&
+                createPortal(
                 <>
                   <div
                     className="fixed inset-0 z-[9998] bg-transparent"
                     onClick={() => setIsExportMenuOpen(false)}
                   />
                   <div
-                    className="fixed w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-[9999]"
+                    id="pipeline-export-menu"
+                    data-help-id="pipeline-export-menu"
+                    role="menu"
+                    aria-label="Formáty exportu"
+                    className="tf-pipeline-popover fixed z-[9999] w-56 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
                     style={{
                       top: `${menuPosition.top}px`,
                       left: `${menuPosition.left}px`,
@@ -475,48 +580,38 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   >
                     <button
                       onClick={() => handleExport("xlsx")}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
+                      data-help-id="pipeline-popover-item"
+                      role="menuitem"
+                      className="tf-pipeline-popover-item flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700"
+                      title="Exportovat výběrové řízení do Excelu"
                     >
-                      <span className="material-symbols-outlined text-green-600 text-[20px]">
+                      <span className="tf-pipeline-popover-icon material-symbols-outlined text-[20px] text-green-600">
                         table_chart
                       </span>
                       <div>
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
+                        <div className="tf-pipeline-popover-label text-sm font-medium text-slate-900 dark:text-white">
                           Excel
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="tf-pipeline-popover-description text-xs text-slate-500 dark:text-slate-400">
                           .xlsx formát
                         </div>
                       </div>
                     </button>
                     <button
-                      onClick={() => handleExport("markdown")}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
-                    >
-                      <span className="material-symbols-outlined text-blue-600 text-[20px]">
-                        code
-                      </span>
-                      <div>
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
-                          Markdown
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          .md formát
-                        </div>
-                      </div>
-                    </button>
-                    <button
                       onClick={() => handleExport("pdf")}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
+                      data-help-id="pipeline-popover-item"
+                      role="menuitem"
+                      className="tf-pipeline-popover-item flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                      title="Exportovat výběrové řízení do PDF"
                     >
-                      <span className="material-symbols-outlined text-red-600 text-[20px]">
+                      <span className="tf-pipeline-popover-icon material-symbols-outlined text-[20px] text-red-600">
                         picture_as_pdf
                       </span>
                       <div>
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
+                        <div className="tf-pipeline-popover-label text-sm font-medium text-slate-900 dark:text-white">
                           PDF
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="tf-pipeline-popover-description text-xs text-slate-500 dark:text-slate-400">
                           .pdf formát
                         </div>
                       </div>
@@ -524,18 +619,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   </div>
                 </>,
                 document.body,
-              )}
+                )}
+            </div>
           </div>
-
-          {/* Email Losers Button */}
-          <button
-            onClick={handleEmailLosers}
-            className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-            title="Odeslat email nevybraným účastníkům s cenou"
-          >
-            <span className="material-symbols-outlined text-[20px]">mail</span>
-            <span>Email nevybraným</span>
-          </button>
         </Header>
 
         <div className="px-6 pt-4">
@@ -851,6 +937,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onCancel={closeConfirmModal}
           confirmLabel="Odstranit"
           variant="danger"
+        />
+
+        <PipelineBulkEmailConfirmationModal
+          isOpen={bulkEmailKind !== null}
+          kind={bulkEmailKind || "inquiry"}
+          userEmail={currentUserEmail}
+          selection={selectedBulkEmailSelection}
+          isSubmitting={isBulkEmailSubmitting}
+          onConfirm={confirmBulkEmail}
+          onCancel={() => setBulkEmailKind(null)}
         />
       </div>
     );

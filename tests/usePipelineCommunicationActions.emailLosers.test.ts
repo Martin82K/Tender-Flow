@@ -149,6 +149,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     );
     const decodedHtml = htmlPartBase64 ? decodeBase64Utf8(htmlPartBase64) : "";
     expect(filename).toMatch(/^Nevybrani_/);
+    expect(content).toContain("To: kalkus@baustav.cz");
     expect(content).toContain("Bcc: a@x.cz;b@x.cz");
     expect(decodedHtml).toContain("kalkus@baustav.cz");
     expect(decodedHtml).toContain("BAU-STAV a.s.");

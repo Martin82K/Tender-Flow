@@ -107,8 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? "text-[#9c9684] group-hover:text-[#14110a]"
     : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100";
   const sidebarClass = isIndustrialSkin
-    ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh]"
-    : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh]";
+    ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl"
+    : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl";
   const selectedProjectOverlayClass = isIndustrialSkin
     ? "absolute inset-y-1 left-0 w-0.5 bg-[#ff8a33]"
     : "absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary";
@@ -552,6 +552,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
+        id="app-sidebar"
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
         className={`${sidebarClass} ${
@@ -612,8 +613,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={onToggle}
                   className={`ml-auto p-1.5 rounded-lg transition-colors md:hidden flex items-center justify-center ${isIndustrialSkin ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"}`}
                   title="Zavřít"
+                  aria-label="Zavřít sidebar"
+                  aria-controls="app-sidebar"
                 >
-                  <span className="material-symbols-outlined">close</span>
+                  <span className="material-symbols-outlined" aria-hidden="true">close</span>
                 </button>
               </div>
 

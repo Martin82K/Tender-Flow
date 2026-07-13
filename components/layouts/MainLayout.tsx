@@ -138,6 +138,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onConfirm={uiModal.onConfirm ?? closeUiModal}
                 onCancel={uiModal.onCancel}
             />
+            {isSidebarOpen && (
+                <button
+                    type="button"
+                    className="fixed inset-y-0 right-0 left-[min(20rem,calc(100vw-3rem))] z-40 hidden bg-slate-950/35 backdrop-blur-[1px] max-md:block"
+                    onClick={() => setIsSidebarOpen(false)}
+                    aria-label="Zavřít navigační panel kliknutím mimo něj"
+                    title="Zavřít navigační panel"
+                />
+            )}
             <Sidebar
                 currentView={currentView}
                 onViewChange={handleViewChange}
@@ -191,14 +200,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         </div>
                     )}
 
-                    <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className={`fixed top-3 left-3 z-40 flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                        title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
-                        aria-label={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
-                    >
-                        <span className="material-symbols-outlined text-[22px]">menu</span>
-                    </button>
+                    {!isSidebarOpen && (
+                        <button
+                            type="button"
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="fixed left-2 top-2 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800/95 dark:text-slate-200 dark:hover:bg-slate-700 md:hidden"
+                            title="Zobrazit sidebar"
+                            aria-label="Zobrazit sidebar"
+                            aria-controls="app-sidebar"
+                            aria-expanded="false"
+                        >
+                            <span
+                                className="material-symbols-outlined text-[22px]"
+                                aria-hidden="true"
+                            >
+                                menu
+                            </span>
+                        </button>
+                    )}
 
                     {/* Toggle Button for Desktop when Sidebar is hidden */}
                     <button

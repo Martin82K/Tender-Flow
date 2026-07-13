@@ -126,6 +126,8 @@ V **Nastavení → Organizace** můžete spravovat členství v organizaci:
 
 V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.
 
+Na mobilním telefonu otevřete navigaci tlačítkem **Menu** vlevo nahoře. Navigace se zobrazí jako boční panel, takže část aktuální obrazovky zůstane viditelná. Panel zavřete křížkem v jeho hlavičce nebo klepnutím do stmavené oblasti mimo panel. Tlačítko Menu má v horní liště vyhrazené místo a nepřekrývá název projektu ani ostatní akce.
+
 - **📊 Dashboard** – přehled vybrané stavby a export.
 - **🏗️ Stavby** – seznam staveb (projekty).
 - **👥 Subdodavatelé** – databáze kontaktů.
@@ -218,9 +220,25 @@ Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete popt
 #### Další funkce pipeline
 
 - **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné).
-- **Export** do Excelu a PDF.
-- **Email nevybraným**: otevře výchozí emailový klient se zprávou pro všechny relevantní subdodavatele (BCC).
+- **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší.
+- **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší.
 - **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele.
+
+Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.
+
+### ✉️ Hromadný e-mail subdodavatelům
+
+Tlačítko **Hromadný e-mail** v hlavičce pipeline připraví jeden koncept pro více příjemců. Z nabídky lze zvolit:
+
+- **Standardní poptávka** – použije standardní šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
+- **Materiálová poptávka** – použije materiálovou šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
+- **Poděkování nevybraným** – zahrne účastníky s cenovou nabídkou kromě vítězů ve stavu **Jednání o SOD**.
+
+Před vytvořením konceptu se zobrazí potvrzení se seznamem zahrnutých a vyřazených kontaktů. Kontakty bez platné emailové adresy se neodešlou a duplicitní adresy se použijí pouze jednou.
+
+Z důvodu ochrany kontaktů je v poli **Komu (To)** uveden email přihlášeného uživatele a všechny adresy subdodavatelů jsou vloženy do **Skryté kopie (BCC)**. Jednotliví subdodavatelé proto nevidí adresy ostatních příjemců.
+
+Tender Flow zprávu přímo neodesílá. Připraví koncept ve zvoleném nebo výchozím emailovém klientu, kde jej uživatel před odesláním zkontroluje. Po úspěšném otevření hromadné poptávky se zahrnuté karty přesunou do sloupce **Odesláno**.
 
 ### 📜 Smlouvy
 
@@ -696,7 +714,7 @@ Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou 
 
 ### Neotevře se emailový klient
 
-Zkontrolujte výchozí emailový klient v systému. Funkce „Generovat poptávku" a „Email nevybraným" používají `mailto:`.
+Zkontrolujte výchozí emailový klient v systému a nastavení emailového klienta v Tender Flow. Funkce pro jednotlivé i hromadné poptávky připravují koncept zprávy; podle nastavení mohou použít systémový emailový odkaz nebo otevřít soubor konceptu EML.
 
 ### Některé volby nevidím
 

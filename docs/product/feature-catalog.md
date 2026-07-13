@@ -31,6 +31,11 @@ Projekt podporuje taby:
 - **Smlouvy** – kontrakty, dodatky, fakturace, retence a hodnocení dodavatelů.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
 
+Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální
+šířce 20 rem a ponechává viditelný okraj aktuálního obsahu. Panel lze zavřít
+explicitním tlačítkem nebo kliknutím na stmavené pozadí. Toggle má v topbaru
+rezervovaný prostor, aby nekolidoval s názvem obrazovky a globálními akcemi.
+
 ## Feature oblasti
 
 ### Autentizace
@@ -44,6 +49,21 @@ i Electron deep-link tok.
 Správa projektů, soutěž/realizace/archiv, klonování soutěže do realizace,
 sdílení, přehled, tender plan, pipeline, harmonogram, dokumenty, kontrakty a
 exporty. Viditelnost klienta je defense-in-depth; autoritativní přístup řídí DB.
+
+Pipeline podporuje individuální i hromadnou komunikaci. Hromadná standardní a
+materiálová poptávka vybírá pouze kontakty ve stavu `contacted`; poděkování
+nevybraným vybírá účastníky s cenovou nabídkou mimo stav `sod`. Koncept používá
+email přihlášeného uživatele v poli `To` a validní, deduplikované adresy
+subdodavatelů v `BCC`. UI před vytvořením konceptu zobrazí rekapitulaci včetně
+vyřazených neplatných adres. Aplikace zprávu sama neodesílá a stav karet mění až
+po úspěšném otevření konceptu v emailovém klientu.
+
+Portálová menu hromadné komunikace a exportu používají společný
+`tf-pipeline-popover` kontrakt. Classic skin využívá standardní Tailwind
+světlé/tmavé varianty; Industrial skin přepisuje povrch, linky, text, hover,
+focus, badge a stín přes globální `--tf-skin-*` tokeny. Proto se portál
+renderovaný pod `document.body` přizpůsobuje `html[data-skin]` a `html.dark`
+bez duplikace tématu v React state.
 
 ### Kontakty
 
