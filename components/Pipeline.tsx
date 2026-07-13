@@ -58,8 +58,8 @@ interface PipelineProps {
   bids: Record<string, Bid[]>;
   contacts: Subcontractor[];
   statuses?: StatusConfig[];
-  onAddCategory?: (category: DemandCategory) => void;
-  onEditCategory?: (category: DemandCategory) => void;
+  onAddCategory?: (category: DemandCategory) => Promise<void>;
+  onEditCategory?: (category: DemandCategory) => void | Promise<void>;
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (bids: Record<string, Bid[]>) => void;
   onUpdateContact?: (contact: Subcontractor) => void;
@@ -284,6 +284,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     projectId,
     onAddCategory,
     onEditCategory,
+    resolveDesktopTenderFolderPath,
     showAlert,
   });
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);

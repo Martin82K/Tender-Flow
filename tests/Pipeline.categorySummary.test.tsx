@@ -1,9 +1,15 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { Pipeline } from "../components/Pipeline";
 import { formatMoney } from "../utils/formatters";
 import type { Bid, DemandCategory, ProjectDetails } from "../types";
+
+const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [queryClient] = React.useState(() => new QueryClient());
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+};
 
 const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
   (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
@@ -131,6 +137,7 @@ const renderPipeline = (category: DemandCategory) =>
       contacts={[]}
       initialOpenCategoryId={category.id}
     />,
+    { wrapper: QueryWrapper },
   );
 
 const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =>
@@ -142,6 +149,7 @@ const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =
       contacts={[]}
       initialOpenCategoryId={category.id}
     />,
+    { wrapper: QueryWrapper },
   );
 
 describe("Pipeline category summary", () => {

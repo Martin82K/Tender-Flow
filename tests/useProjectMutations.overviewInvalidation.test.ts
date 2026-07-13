@@ -14,6 +14,7 @@ import {
   useUpdateProjectDetailsMutation,
 } from "../hooks/mutations/useProjectMutations";
 import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantDataQuery";
+import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -44,6 +45,7 @@ vi.mock("../services/fileSystemService", () => ({
 
 vi.mock("../utils/docHub", () => ({
   buildHierarchyTree: vi.fn(() => []),
+  ensureExtraHierarchy: vi.fn((value) => value || []),
   resolveDocHubStructureV1: vi.fn(() => ({ extraHierarchy: [] })),
 }));
 
@@ -127,7 +129,7 @@ const createWrapper = () => {
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 
-  return { wrapper, invalidateSpy };
+  return { queryClient, wrapper, invalidateSpy };
 };
 
 const expectOverviewInvalidation = (
@@ -304,6 +306,49 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     const [insertPayload] = fromResult.insert.mock.calls[0];
     expect(insertPayload).not.toHaveProperty("budget_attachment");
     expectOverviewInvalidation(invalidateSpy);
+  });
+
+  it("před dokončením vytvoření kategorie počká na lokální DocHub strukturu", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
+      id: "p-1",
+      title: "Projekt",
+      location: "",
+      categories: [],
+      docHubEnabled: true,
+      docHubProvider: "onedrive",
+      docHubRootLink: "/Projects/Stavba",
+    });
+    let finishEnsure: ((value: { success: boolean }) => void) | undefined;
+    mocks.ensureStructureMock.mockReturnValue(new Promise((resolve) => {
+      finishEnsure = resolve;
+    }));
+    const { result } = renderHook(() => useAddCategoryMutation(), { wrapper });
+    let mutationFinished = false;
+
+    await act(async () => {
+      const mutationPromise = result.current.mutateAsync({
+        projectId: "p-1",
+        category: {
+          id: "cat-1",
+          title: "Betony",
+          budget: "0 Kč",
+          sodBudget: 0,
+          planBudget: 0,
+          status: "open",
+          subcontractorCount: 0,
+          description: "",
+        },
+      }).then(() => {
+        mutationFinished = true;
+      });
+
+      await vi.waitFor(() => expect(mocks.ensureStructureMock).toHaveBeenCalled());
+      expect(mutationFinished).toBe(false);
+      finishEnsure?.({ success: true });
+      await mutationPromise;
+    });
+    expect(mutationFinished).toBe(true);
   });
 
   it("invaliduje overview cache po úpravě kategorie a neukládá lokální přílohu do Supabase", async () => {

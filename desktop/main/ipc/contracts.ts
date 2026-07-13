@@ -29,6 +29,10 @@ export interface IpcContractMap {
     args: [filePath: string, options?: { maxBytes?: number }];
     result: Buffer;
   };
+  "fs:copyFile": {
+    args: [sourcePath: string, destinationDirectory: string];
+    result: { success: boolean; path?: string; name?: string; size?: number; error?: string };
+  };
   "fs:writeFile": { args: [filePath: string, data: Buffer | string]; result: void };
   "fs:openInExplorer": {
     args: [targetPath: string];

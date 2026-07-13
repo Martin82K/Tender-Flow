@@ -11,7 +11,11 @@ import { formatFileSize } from "../../services/documentService";
 import { AlertModal } from "../AlertModal";
 import { NumericInput } from "@/shared/ui/NumericInput";
 import { openInExplorer } from "@infra/files/fileSystemService";
-import { selectBudgetAttachment } from "@/services/budgetAttachmentService";
+import {
+  selectBudgetAttachment,
+  selectPendingBudgetAttachment,
+} from "@/services/budgetAttachmentService";
+import type { PendingBudgetAttachment } from "@/services/budgetAttachmentService";
 import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
 
 type PlanInputMode = "amount" | "percent";
@@ -23,6 +27,7 @@ export interface CategoryFormData {
   description: string;
   workItems: string[];
   budgetAttachment: BudgetAttachment | null;
+  pendingBudgetAttachment: PendingBudgetAttachment | null;
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -47,6 +52,7 @@ const initialFormState: CategoryFormData = {
   description: "",
   workItems: [],
   budgetAttachment: null,
+  pendingBudgetAttachment: null,
   deadline: "",
   realizationStart: "",
   realizationEnd: "",
@@ -78,9 +84,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     message: "",
     variant: "info",
   });
+  const displayedBudgetAttachment =
+    formData.pendingBudgetAttachment || formData.budgetAttachment;
   const budgetAttachmentExceedsEmailLimit =
-    !!formData.budgetAttachment?.enabled &&
-    isBudgetAttachmentOverEmailLimit(formData.budgetAttachment);
+    !!displayedBudgetAttachment &&
+    isBudgetAttachmentOverEmailLimit(displayedBudgetAttachment);
 
   // Reset form when modal opens/closes or when switching between create/edit
   useEffect(() => {
@@ -94,6 +102,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
           initialData.workItems ||
           (initialData.description ? initialData.description.split("\n") : []),
         budgetAttachment: initialData.budgetAttachment || null,
+        pendingBudgetAttachment: null,
         deadline: initialData.deadline || "",
         realizationStart: initialData.realizationStart || "",
         realizationEnd: initialData.realizationEnd || "",
@@ -252,13 +261,48 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   const handleSelectBudgetAttachment = async () => {
     try {
+      if (!isDesktop) {
+        setAlertModal({
+          isOpen: true,
+          title: "Desktop funkce",
+          message:
+            "Mapování lokální rozpočtové přílohy je dostupné pouze v desktop aplikaci. Webový režim nemůže automaticky číst soubory z disku.",
+          variant: "info",
+        });
+        return;
+      }
+      if (!isDocHubEnabled) {
+        setAlertModal({
+          isOpen: true,
+          title: "DocHub není připojen",
+          message: "Nejdříve připojte kořenovou složku DocHubu v záložce Dokumenty.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      if (mode === "create") {
+        const pendingAttachment = await selectPendingBudgetAttachment();
+        if (!pendingAttachment) return;
+        setFormData((prev) => ({
+          ...prev,
+          budgetAttachment: null,
+          pendingBudgetAttachment: pendingAttachment,
+        }));
+        return;
+      }
+
       const tenderFolder = await resolveTenderFolder();
       if (!tenderFolder) return;
 
       const attachment = await selectBudgetAttachment(tenderFolder);
       if (!attachment) return;
 
-      setFormData((prev) => ({ ...prev, budgetAttachment: attachment }));
+      setFormData((prev) => ({
+        ...prev,
+        budgetAttachment: attachment,
+        pendingBudgetAttachment: null,
+      }));
     } catch (error) {
       setAlertModal({
         isOpen: true,
@@ -288,7 +332,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   };
 
   const handleDetachBudgetAttachment = () => {
-    setFormData((prev) => ({ ...prev, budgetAttachment: null }));
+    setFormData((prev) => ({
+      ...prev,
+      budgetAttachment: null,
+      pendingBudgetAttachment: null,
+    }));
   };
 
   if (!isOpen) return null;
@@ -549,7 +597,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 Rozpočtová příloha
               </label>
               <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 p-3">
-                {formData.budgetAttachment?.enabled ? (
+                {displayedBudgetAttachment ? (
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-2">
                       <span className="material-symbols-outlined text-slate-400 text-[20px]">
@@ -558,7 +606,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                            {formData.budgetAttachment.fileName}
+                            {displayedBudgetAttachment.fileName}
                           </p>
                           {budgetAttachmentExceedsEmailLimit && (
                             <span
@@ -572,11 +620,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                           )}
                         </div>
                         <p className="mt-0.5 truncate text-[10px] text-slate-400">
-                          {formData.budgetAttachment.relativePath}
+                          {formData.pendingBudgetAttachment
+                            ? "Soubor bude zkopírován při vytvoření VŘ"
+                            : formData.budgetAttachment?.relativePath}
                         </p>
-                        {typeof formData.budgetAttachment.size === "number" && (
+                        {typeof displayedBudgetAttachment.size === "number" && (
                           <p className="mt-0.5 text-[10px] text-slate-400">
-                            {formatFileSize(formData.budgetAttachment.size)}
+                            {formatFileSize(displayedBudgetAttachment.size)}
                           </p>
                         )}
                       </div>
@@ -611,18 +661,20 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                     <span className="material-symbols-outlined text-[16px]">
                       upload_file
                     </span>
-                    {formData.budgetAttachment?.enabled ? "Nahradit přílohu" : "Vybrat soubor"}
+                    {displayedBudgetAttachment ? "Nahradit přílohu" : "Vybrat soubor"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenTenderFolder}
-                    className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">
-                      folder_open
-                    </span>
-                    Otevřít složku VŘ
-                  </button>
+                  {mode === "edit" ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenTenderFolder}
+                      className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        folder_open
+                      </span>
+                      Otevřít složku VŘ
+                    </button>
+                  ) : null}
                 </div>
                 <p className="mt-2 text-[10px] text-slate-400">
                   Obsah souboru se neukládá do Tender Flow. Ukládá se jen propojení na soubor ve složce VŘ.

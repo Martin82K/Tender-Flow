@@ -1,6 +1,13 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { BudgetAttachment, DemandCategory } from "@/types";
+import type { ProjectDetails } from "@/types";
 import { fetchLinkedTenderPlanDates } from "@/features/projects/api";
+import { PROJECT_DETAILS_KEYS } from "@features/projects/hooks/useProjectDetailsQuery";
+import {
+  copyPendingBudgetAttachment,
+  type PendingBudgetAttachment,
+} from "@/services/budgetAttachmentService";
 import {
   buildNewDemandCategory,
   buildUpdatedDemandCategory,
@@ -17,6 +24,7 @@ interface PipelineCategoryFormData {
   description: string;
   workItems: string[];
   budgetAttachment?: BudgetAttachment | null;
+  pendingBudgetAttachment?: PendingBudgetAttachment | null;
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -30,8 +38,9 @@ interface ShowAlertArgs {
 
 interface UsePipelineCategoryFormsInput {
   projectId: string;
-  onAddCategory?: (category: DemandCategory) => void;
-  onEditCategory?: (category: DemandCategory) => void;
+  onAddCategory?: (category: DemandCategory) => Promise<void>;
+  onEditCategory?: (category: DemandCategory) => void | Promise<void>;
+  resolveDesktopTenderFolderPath?: (categoryTitle: string) => Promise<string | null>;
   showAlert: (args: ShowAlertArgs) => void;
 }
 
@@ -39,8 +48,10 @@ export const usePipelineCategoryForms = ({
   projectId,
   onAddCategory,
   onEditCategory,
+  resolveDesktopTenderFolderPath,
   showAlert,
 }: UsePipelineCategoryFormsInput) => {
+  const queryClient = useQueryClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<DemandCategory | null>(
@@ -57,10 +68,62 @@ export const usePipelineCategoryForms = ({
     if (!onAddCategory) return;
 
     const categoryId = `cat_${Date.now()}`;
-    const newCategory = buildNewDemandCategory(formData, categoryId, []);
-    saveLocalBudgetAttachment(projectId, categoryId, formData.budgetAttachment);
-    onAddCategory(newCategory);
-    setIsAddModalOpen(false);
+    const newCategory = buildNewDemandCategory(
+      { ...formData, budgetAttachment: null },
+      categoryId,
+      [],
+    );
+    let categoryCreated = false;
+
+    try {
+      await onAddCategory(newCategory);
+      categoryCreated = true;
+
+      let attachment = formData.budgetAttachment || null;
+      if (formData.pendingBudgetAttachment) {
+        if (!resolveDesktopTenderFolderPath) {
+          throw new Error("Nelze určit složku nového VŘ.");
+        }
+        const tenderFolderPath = await resolveDesktopTenderFolderPath(newCategory.title);
+        if (!tenderFolderPath) {
+          throw new Error("Složka nového VŘ nebyla vytvořena.");
+        }
+        attachment = await copyPendingBudgetAttachment(
+          tenderFolderPath,
+          formData.pendingBudgetAttachment,
+        );
+      }
+
+      saveLocalBudgetAttachment(projectId, categoryId, attachment);
+      if (attachment) {
+        queryClient.setQueryData<ProjectDetails>(
+          PROJECT_DETAILS_KEYS.detail(projectId),
+          (current) => current
+            ? {
+                ...current,
+                categories: current.categories.map((category) =>
+                  category.id === categoryId
+                    ? { ...category, budgetAttachment: attachment }
+                    : category,
+                ),
+              }
+            : current,
+        );
+      }
+      setIsAddModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Neznámá chyba";
+      showAlert({
+        title: categoryCreated
+          ? "VŘ vytvořeno bez přílohy"
+          : "VŘ se nepodařilo vytvořit",
+        message: categoryCreated
+          ? `Výběrové řízení bylo vytvořeno, ale přílohu se nepodařilo připojit: ${message}`
+          : message,
+        variant: "danger",
+      });
+      if (categoryCreated) setIsAddModalOpen(false);
+    }
   };
 
   const handleEditCategoryFromModal = async (

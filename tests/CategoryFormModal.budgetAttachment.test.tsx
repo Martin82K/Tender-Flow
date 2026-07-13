@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CategoryFormModal } from "@/components/pipelineComponents/CategoryFormModal";
 
 const selectBudgetAttachmentMock = vi.hoisted(() => vi.fn());
+const selectPendingBudgetAttachmentMock = vi.hoisted(() => vi.fn());
 const openInExplorerMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/budgetAttachmentService", () => ({
   selectBudgetAttachment: selectBudgetAttachmentMock,
+  selectPendingBudgetAttachment: selectPendingBudgetAttachmentMock,
 }));
 
 vi.mock("@infra/files/fileSystemService", () => ({
@@ -23,6 +25,11 @@ describe("CategoryFormModal rozpočtová příloha", () => {
       size: 2048,
       selectedAt: "2026-07-01T20:00:00.000Z",
       enabled: true,
+    });
+    selectPendingBudgetAttachmentMock.mockResolvedValue({
+      sourcePath: "/Users/tester/Downloads/rozpocet libovolny.xlsx",
+      fileName: "rozpocet libovolny.xlsx",
+      size: 2048,
     });
     openInExplorerMock.mockResolvedValue({ success: true });
   });
@@ -61,9 +68,9 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          budgetAttachment: expect.objectContaining({
+          pendingBudgetAttachment: expect.objectContaining({
             fileName: "rozpocet libovolny.xlsx",
-            relativePath: "podklady/rozpocet libovolny.xlsx",
+            sourcePath: "/Users/tester/Downloads/rozpocet libovolny.xlsx",
           }),
         }),
       );
@@ -88,16 +95,14 @@ describe("CategoryFormModal rozpočtová příloha", () => {
 
     expect(await screen.findByText("Desktop funkce")).toBeInTheDocument();
     expect(selectBudgetAttachmentMock).not.toHaveBeenCalled();
+    expect(selectPendingBudgetAttachmentMock).not.toHaveBeenCalled();
   });
 
   it("označí přílohu nad 10 MB varovným vykřičníkem", async () => {
-    selectBudgetAttachmentMock.mockResolvedValue({
-      source: "dochub",
+    selectPendingBudgetAttachmentMock.mockResolvedValue({
+      sourcePath: "/Users/tester/Downloads/velky-rozpocet.xlsx",
       fileName: "velky-rozpocet.xlsx",
-      relativePath: "podklady/velky-rozpocet.xlsx",
       size: 10 * 1024 * 1024 + 1,
-      selectedAt: "2026-07-01T20:00:00.000Z",
-      enabled: true,
     });
 
     render(

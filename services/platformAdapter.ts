@@ -80,6 +80,19 @@ export const fileSystemAdapter = {
         throw new Error('File reading not available on web.');
     },
 
+    async copyFile(sourcePath: string, destinationDirectory: string): Promise<{
+        success: boolean;
+        path?: string;
+        name?: string;
+        size?: number;
+        error?: string;
+    }> {
+        if (isDesktop && window.electronAPI?.fs?.copyFile) {
+            return window.electronAPI.fs.copyFile(sourcePath, destinationDirectory);
+        }
+        return { success: false, error: 'File copying not available on web.' };
+    },
+
     /**
      * List files in a folder
      */

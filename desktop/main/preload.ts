@@ -82,6 +82,9 @@ const electronAPI: ElectronAPI = {
         readFile: (filePath: string, options?: { maxBytes?: number }): Promise<Buffer> =>
             invokeTyped('fs:readFile', filePath, options),
 
+        copyFile: (sourcePath: string, destinationDirectory: string) =>
+            invokeTyped('fs:copyFile', sourcePath, destinationDirectory),
+
         writeFile: (filePath: string, data: Buffer | string): Promise<void> =>
             invokeTyped('fs:writeFile', filePath, data),
 
