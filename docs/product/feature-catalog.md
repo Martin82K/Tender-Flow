@@ -104,7 +104,7 @@ flag a používají serverový proxy přístup.
 
 ### Nástroje
 
-URL zkracovač, Excel Unlocker, Excel Merger, Excel Indexer, bid comparison agent,
+URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ, bid comparison agent,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 

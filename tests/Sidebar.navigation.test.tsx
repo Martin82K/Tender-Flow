@@ -105,8 +105,11 @@ describe('Sidebar navigation', () => {
     fireEvent.click(screen.getByText('Nástroje'));
 
     expect(screen.queryByRole('button', { name: /Porovnání nabídek/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel – odemčení/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel Spojení listů/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel Indexace VŘ/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Excel Unlocker PRO/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Excel – odemčení/i }));
 
     expect(onViewChange).toHaveBeenCalledWith('settings', {
       settingsTab: 'tools',

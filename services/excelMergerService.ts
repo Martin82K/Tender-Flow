@@ -1,5 +1,5 @@
 /**
- * Excel Merger Pro Service
+ * Excel Spojení listů service
  * Native implementation for merging Excel sheets with formatting preservation
  * Originally from: https://github.com/Martin82K/ExcelMerger-Pro
  */

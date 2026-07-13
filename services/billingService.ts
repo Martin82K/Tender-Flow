@@ -92,7 +92,7 @@ export const PRICING_CONFIG = {
             "Modul subdodavatelé",
             "Export do Excel",
             "Export do PDF",
-            "Excel Unlocker",
+            "Excel – odemčení",
         ],
         cta: {
             label: "Zaregistrovat se",
@@ -114,7 +114,7 @@ export const PRICING_CONFIG = {
             "Importy VŘ",
             "Harmonogram měs/týden/den",
             "Modul Smlouvy",
-            "Excel Merger - spojování listů excelu",
+            "Excel Spojení listů",
             "Archivace projektů",
             "Sdílení projektů"
         ],
@@ -136,7 +136,7 @@ export const PRICING_CONFIG = {
             "Hodnocení dodavatelů",
             "Detailní reporty nad daty",
             "Onboarding asistence",
-            "Excel Indexer - auto tvoření podkladů pro VŘ",
+            "Excel Indexace VŘ",
             "Okamžitý přístup k novinkám",
             "Geokódování kontaktů",
             "Integrace mapy s kontakty"

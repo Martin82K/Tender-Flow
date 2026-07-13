@@ -1,5 +1,5 @@
 /**
- * Excel Indexer Service
+ * Excel Indexace VŘ service
  * Manages index entries (code → description mappings) in the database
  * Per-tenant: entries are filtered by organization_id
  * RLS handles access control

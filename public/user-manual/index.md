@@ -388,28 +388,29 @@ Tender Flow nabízí sadu nástrojů dostupných v sidebaru pod položkou **Nás
 
 ### 📊 Excel nástroje
 
-#### Excel Unlocker PRO
+#### Excel – odemčení
 
 Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
 
 **Použití:**
-1. Otevřete **Nastavení → Excel Unlocker PRO**
+1. Otevřete **Nastavení → Excel – odemčení**
 2. Klikněte "Vybrat soubor" a nahrajte chráněný Excel
 3. Klikněte "Odemknout"
 4. Stáhněte odemčený soubor
 
-**Umístění:** Nastavení → Excel Unlocker PRO (PRO+)
+**Umístění:** Nastavení → Excel – odemčení (PRO+)
 
-#### Excel Merger PRO
+#### Excel Spojení listů
 
 Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.
 
-- **Desktop verze**: nativní zpracování pomocí lokálních Python skriptů (rychlejší, bez omezení velikosti).
-- **Web verze**: externí aplikace v iframe (vyžaduje konfiguraci adminem).
+- **Desktop verze**: nativní lokální zpracování.
+- **Web verze**: zpracování přes zabezpečené serverové API.
+- Výstup se stáhne jako `<původní název>_spojeno.xlsx`.
 
-**Umístění:** Nastavení → Excel Merger PRO (PRO+)
+**Umístění:** Nastavení → Excel Spojení listů (PRO+)
 
-#### Excel Indexer
+#### Excel Indexace VŘ
 
 Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve **dvou fázích**.
 
@@ -436,11 +437,11 @@ Pokročilý nástroj pro automatické indexování a zpracování velkých Excel
 4. Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci.
 5. Stáhněte finální soubor.
 
-**Umístění:** Nastavení → Excel Indexer (PRO+)
+**Umístění:** Nastavení → Excel Indexace VŘ (PRO+)
 
 #### Index Matcher
 
-Zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
+Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle indexu.
 
 - **Import indexu**: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně).
 - **Automatické párování**: doplnění popisů do sloupce B podle kódů ve sloupci F.
@@ -450,7 +451,7 @@ Zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
 2. Nahrajte rozpočet s kódy ve sloupci F.
 3. Klikněte "Zpracovat rozpočet" a stáhněte výsledek.
 
-> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.
+> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ.
 
 **Umístění:** Nastavení → Index Matcher (PRO+)
 
@@ -720,9 +721,9 @@ Zkontrolujte výchozí emailový klient v systému a nastavení emailového klie
 
 Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle předplatného. Podívejte se do tabulky tarifů v sekci **Organizace a předplatné**.
 
-### Excel Merger PRO píše „Funkce není dostupná"
+### Excel Spojení listů píše „Funkce není dostupná"
 
-Excel Merger PRO ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
+Excel Spojení listů ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
 
 ### Kde si mohu stáhnout desktop aplikaci?
 
@@ -838,7 +839,7 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 
 ### v0.9.6
 
-- AI Key Policy (server-only), Excel Indexer, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.
+- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.
 
 ### v0.9.5
 

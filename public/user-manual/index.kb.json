@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T19:42:19.634Z",
+  "generatedAt": "2026-07-13T20:42:54.542Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -577,24 +577,24 @@
     {
       "slug": "excel-nastroje",
       "title": "📊 Excel nástroje",
-      "content": "#### Excel Unlocker PRO Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá. **Použití:** 1. Otevřete **Nastavení → Excel Unlocker PRO** 2. Klikněte \"Vybrat soubor\" a nahrajte chráněný Excel 3. Klikněte \"Odemknout\" 4. Stáhněte odemčený soubor **Umístění:** Nastavení → Excel Unlocker PRO (PRO+) #### Excel Merger PRO Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru. - **Desktop verze**: nativní zpracování pomocí lokálních Python skriptů (rychlejší, bez omezení velikosti). - **Web verze**: externí aplikace v iframe (vyžaduje konfiguraci adminem). **Umístění:** Nastavení → Excel Merger PRO (PRO+) #### Excel Indexer Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve **dvou fázích**. **Fáze 1: Vložení sloupce Oddíly** 1. Hledá značky \"D\" ve sloupci F (markerColumn). 2. Přečte oddíl ze sloupce G (sectionColumn). 3. Vloží nový sloupec B s názvem \"Oddíly\". 4. Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky. **Fáze 2: Doplnění popisů** 1. Používá výstup z Fáze 1. 2. Hledá kódy položek ve sloupci G (po posunu). 3. Páruje kódy s indexem položek (nahrán z Excelu). 4. Doplňuje popisy do sloupce C. **Volitelné:** Vytvoření rekapitulačního listu s přehledy. **Jak použít:** 1. Připravte Excel soubor s indexem (2 sloupce: Kód, Popis) a nahrajte jej. 2. Nahrajte Excel rozpočet. 3. Spusťte Fázi 1 (Oddíly) – zkontrolujte nastavení sloupců. 4. Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci. 5. Stáhněte finální soubor. **Umístění:** Nastavení → Excel Indexer (PRO+) #### Index Matcher Zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu. - **Import indexu**: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně). - **Automatické párování**: doplnění popisů do sloupce B podle kódů ve sloupci F. **Jak použít:** 1. Nahrajte index (jednou) – soubor s 2 sloupci: Kód | Popis. 2. Nahrajte rozpočet s kódy ve sloupci F. 3. Klikněte \"Zpracovat rozpočet\" a stáhněte výsledek. > 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer. **Umístění:** Nastavení → Index Matcher (PRO+)",
+      "content": "#### Excel – odemčení Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá. **Použití:** 1. Otevřete **Nastavení → Excel – odemčení** 2. Klikněte \"Vybrat soubor\" a nahrajte chráněný Excel 3. Klikněte \"Odemknout\" 4. Stáhněte odemčený soubor **Umístění:** Nastavení → Excel – odemčení (PRO+) #### Excel Spojení listů Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru. - **Desktop verze**: nativní lokální zpracování. - **Web verze**: zpracování přes zabezpečené serverové API. - Výstup se stáhne jako ` _spojeno.xlsx`. **Umístění:** Nastavení → Excel Spojení listů (PRO+) #### Excel Indexace VŘ Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve **dvou fázích**. **Fáze 1: Vložení sloupce Oddíly** 1. Hledá značky \"D\" ve sloupci F (markerColumn). 2. Přečte oddíl ze sloupce G (sectionColumn). 3. Vloží nový sloupec B s názvem \"Oddíly\". 4. Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky. **Fáze 2: Doplnění popisů** 1. Používá výstup z Fáze 1. 2. Hledá kódy položek ve sloupci G (po posunu). 3. Páruje kódy s indexem položek (nahrán z Excelu). 4. Doplňuje popisy do sloupce C. **Volitelné:** Vytvoření rekapitulačního listu s přehledy. **Jak použít:** 1. Připravte Excel soubor s indexem (2 sloupce: Kód, Popis) a nahrajte jej. 2. Nahrajte Excel rozpočet. 3. Spusťte Fázi 1 (Oddíly) – zkontrolujte nastavení sloupců. 4. Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci. 5. Stáhněte finální soubor. **Umístění:** Nastavení → Excel Indexace VŘ (PRO+) #### Index Matcher Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle indexu. - **Import indexu**: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně). - **Automatické párování**: doplnění popisů do sloupce B podle kódů ve sloupci F. **Jak použít:** 1. Nahrajte index (jednou) – soubor s 2 sloupci: Kód | Popis. 2. Nahrajte rozpočet s kódy ve sloupci F. 3. Klikněte \"Zpracovat rozpočet\" a stáhněte výsledek. > 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ. **Umístění:** Nastavení → Index Matcher (PRO+)",
       "keywords": [
         "excel",
         "soubor",
+        "odem",
         "odd",
-        "unlocker",
         "stroj",
-        "nastaven",
-        "sloupce",
-        "lok",
         "pou",
-        "klikn",
-        "merger",
-        "verze",
+        "nastaven",
+        "list",
         "zpracov",
-        "vlo",
-        "hled",
-        "zna"
+        "sloupce",
+        "xlsx",
+        "lok",
+        "klikn",
+        "spojen",
+        "verze",
+        "stup"
       ],
       "source_anchor": "#excel-nastroje",
       "level": 3,
@@ -1231,12 +1231,13 @@
       "parentTitle": "❓ Časté otázky"
     },
     {
-      "slug": "excel-merger-pro-pise-funkce-neni-dostupna",
-      "title": "Excel Merger PRO píše „Funkce není dostupná\"",
-      "content": "Excel Merger PRO ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.",
+      "slug": "excel-spojeni-listu-pise-funkce-neni-dostupna",
+      "title": "Excel Spojení listů píše „Funkce není dostupná\"",
+      "content": "Excel Spojení listů ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.",
       "keywords": [
         "excel",
-        "merger",
+        "spojen",
+        "list",
         "funkce",
         "nen",
         "dostupn",
@@ -1249,10 +1250,9 @@
         "extern",
         "aplikace",
         "nastaven",
-        "administrace",
-        "registrace"
+        "administrace"
       ],
-      "source_anchor": "#excel-merger-pro-pise-funkce-neni-dostupna",
+      "source_anchor": "#excel-spojeni-listu-pise-funkce-neni-dostupna",
       "level": 3,
       "parentTitle": "❓ Časté otázky"
     },
@@ -1756,14 +1756,14 @@
     {
       "slug": "v0-9-6",
       "title": "v0.9.6",
-      "content": "- AI Key Policy (server-only), Excel Indexer, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.",
+      "content": "- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.",
       "keywords": [
         "key",
         "policy",
         "server",
         "only",
         "excel",
-        "indexer",
+        "indexace",
         "index",
         "matcher",
         "url",
