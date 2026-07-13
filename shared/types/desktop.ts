@@ -71,6 +71,13 @@ export interface FileSystemAPI {
     selectFile: (options?: { title?: string; defaultPath?: string }) => Promise<FileInfo | null>;
     listFiles: (folderPath: string) => Promise<FileInfo[]>;
     readFile: (filePath: string, options?: { maxBytes?: number }) => Promise<Buffer>;
+    copyFile: (sourcePath: string, destinationDirectory: string) => Promise<{
+        success: boolean;
+        path?: string;
+        name?: string;
+        size?: number;
+        error?: string;
+    }>;
     writeFile: (filePath: string, data: Buffer | string) => Promise<void>;
     openInExplorer: (path: string) => Promise<FileSystemOpenResult>;
     openFile: (filePath: string) => Promise<FileSystemOpenResult>;
