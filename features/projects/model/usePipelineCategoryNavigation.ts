@@ -8,7 +8,7 @@ import {
   joinDocHubPath,
   slugifyDocHubSegmentStrict,
 } from "@/shared/dochub/docHub";
-import { sanitizeFolderSegment } from "./pipelineModel";
+import { sanitizeSubcontractorCompanyName } from "@/shared/dochub/subcontractorNameRules";
 
 interface UsePipelineCategoryNavigationInput {
   projectId: string;
@@ -70,10 +70,11 @@ export const usePipelineCategoryNavigation = ({
     if (!docHubRoot) return null;
 
     const tendersFolder = getTendersFolderName(docHubStructureV1);
-    const cleanedTitle = sanitizeFolderSegment(categoryTitle);
-    if (!cleanedTitle) return null;
+    const filesystemTitle = sanitizeSubcontractorCompanyName(
+      categoryTitle,
+    ).sanitized;
 
-    const rawPath = joinDocHubPath(docHubRoot, tendersFolder, cleanedTitle);
+    const rawPath = joinDocHubPath(docHubRoot, tendersFolder, filesystemTitle);
     if (await folderExists(rawPath)) {
       return rawPath;
     }
