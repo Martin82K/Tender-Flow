@@ -635,15 +635,16 @@ export const useAddCategoryMutation = () => {
                     [category.id]: [],
                 };
 
-                ensureStructure({
+                const localDocHubResult = await ensureStructure({
                     rootPath: projectDetails.docHubRootLink,
                     structure,
                     categories: [{ id: category.id, title: category.title }],
                     suppliers,
                     hierarchy: hierarchyTree,
-                }).catch(err => {
-                    console.error("Local DocHub auto-create failed:", err);
                 });
+                if (!localDocHubResult.success) {
+                    console.error("Local DocHub auto-create failed:", localDocHubResult.error);
+                }
             }
         },
         onMutate: async ({ projectId, category }) => {

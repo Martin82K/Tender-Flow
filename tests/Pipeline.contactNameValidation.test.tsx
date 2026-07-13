@@ -1,8 +1,14 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Pipeline } from "../components/Pipeline";
 import type { Bid, DemandCategory, ProjectDetails, Subcontractor } from "../types";
+
+const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [queryClient] = React.useState(() => new QueryClient());
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+};
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -149,6 +155,7 @@ const renderPipeline = () =>
       contacts={[]}
       initialOpenCategoryId="cat-1"
     />,
+    { wrapper: QueryWrapper },
   );
 
 describe("Pipeline contact name validation", () => {

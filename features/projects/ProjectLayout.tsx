@@ -28,8 +28,8 @@ interface ProjectLayoutProps {
   projectId: string;
   projectDetails?: ProjectDetails;
   onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
-  onAddCategory: (category: DemandCategory) => void;
-  onEditCategory?: (category: DemandCategory) => void;
+  onAddCategory: (category: DemandCategory) => Promise<void>;
+  onEditCategory?: (category: DemandCategory) => void | Promise<void>;
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (projectId: string, bids: Record<string, Bid[]>) => void;
   activeTab: ProjectTab;
@@ -254,7 +254,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
                 description: "",
                 deadline: dateTo || "", // VŘ dateTo → deadline (termín nabídky)
               };
-              onAddCategory(newCategory);
+              await onAddCategory(newCategory);
             }}
           />
         )}
