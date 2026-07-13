@@ -33,7 +33,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excelunlocker-pro',
-      label: 'Excel Unlocker PRO',
+      label: 'Excel – odemčení',
       icon: 'lock_open',
       view: 'settings',
       feature: FEATURES.EXCEL_UNLOCKER,
@@ -42,7 +42,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excelmerger-pro',
-      label: 'Excel Merger PRO',
+      label: 'Excel Spojení listů',
       icon: 'table_view',
       view: 'settings',
       feature: FEATURES.EXCEL_MERGER,
@@ -51,7 +51,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excel-indexer',
-      label: 'Excel Indexer',
+      label: 'Excel Indexace VŘ',
       icon: 'join_inner',
       view: 'settings',
       feature: FEATURES.EXCEL_INDEXER,

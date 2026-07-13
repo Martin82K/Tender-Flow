@@ -61,6 +61,19 @@ const renderSidebar = (
 };
 
 describe('Sidebar navigation', () => {
+  it('používá na mobilu omezenou šířku off-canvas panelu', () => {
+    const { container } = renderSidebar();
+    const sidebar = container.querySelector('#app-sidebar');
+
+    expect(sidebar).toHaveClass(
+      'max-md:!w-[min(20rem,calc(100vw-3rem))]',
+      'max-md:shadow-2xl',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Zavřít sidebar' }),
+    ).toHaveAttribute('aria-controls', 'app-sidebar');
+  });
+
   it('zobrazuje TODO Osobní jako první hlavní položku sidebaru', () => {
     const { container } = renderSidebar();
 
@@ -92,8 +105,11 @@ describe('Sidebar navigation', () => {
     fireEvent.click(screen.getByText('Nástroje'));
 
     expect(screen.queryByRole('button', { name: /Porovnání nabídek/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel – odemčení/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel Spojení listů/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Excel Indexace VŘ/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Excel Unlocker PRO/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Excel – odemčení/i }));
 
     expect(onViewChange).toHaveBeenCalledWith('settings', {
       settingsTab: 'tools',

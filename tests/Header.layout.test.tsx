@@ -23,6 +23,7 @@ describe("Header layout", () => {
     const nav = screen.getByRole("navigation", { name: "Projektové sekce" });
 
     expect(header).toContainElement(title);
+    expect(header).toHaveClass("pl-[4.5rem]", "md:px-6");
     expect(header).toContainElement(nav);
     expect(title.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole("button", { name: "Avatar" })).toBeInTheDocument();

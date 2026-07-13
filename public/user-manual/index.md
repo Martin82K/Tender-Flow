@@ -126,6 +126,8 @@ V **Nastavení → Organizace** můžete spravovat členství v organizaci:
 
 V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.
 
+Na mobilním telefonu otevřete navigaci tlačítkem **Menu** vlevo nahoře. Navigace se zobrazí jako boční panel, takže část aktuální obrazovky zůstane viditelná. Panel zavřete křížkem v jeho hlavičce nebo klepnutím do stmavené oblasti mimo panel. Tlačítko Menu má v horní liště vyhrazené místo a nepřekrývá název projektu ani ostatní akce.
+
 - **📊 Dashboard** – přehled vybrané stavby a export.
 - **🏗️ Stavby** – seznam staveb (projekty).
 - **👥 Subdodavatelé** – databáze kontaktů.
@@ -218,9 +220,25 @@ Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete popt
 #### Další funkce pipeline
 
 - **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné).
-- **Export** do Excelu a PDF.
-- **Email nevybraným**: otevře výchozí emailový klient se zprávou pro všechny relevantní subdodavatele (BCC).
+- **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší.
+- **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší.
 - **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele.
+
+Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.
+
+### ✉️ Hromadný e-mail subdodavatelům
+
+Tlačítko **Hromadný e-mail** v hlavičce pipeline připraví jeden koncept pro více příjemců. Z nabídky lze zvolit:
+
+- **Standardní poptávka** – použije standardní šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
+- **Materiálová poptávka** – použije materiálovou šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
+- **Poděkování nevybraným** – zahrne účastníky s cenovou nabídkou kromě vítězů ve stavu **Jednání o SOD**.
+
+Před vytvořením konceptu se zobrazí potvrzení se seznamem zahrnutých a vyřazených kontaktů. Kontakty bez platné emailové adresy se neodešlou a duplicitní adresy se použijí pouze jednou.
+
+Z důvodu ochrany kontaktů je v poli **Komu (To)** uveden email přihlášeného uživatele a všechny adresy subdodavatelů jsou vloženy do **Skryté kopie (BCC)**. Jednotliví subdodavatelé proto nevidí adresy ostatních příjemců.
+
+Tender Flow zprávu přímo neodesílá. Připraví koncept ve zvoleném nebo výchozím emailovém klientu, kde jej uživatel před odesláním zkontroluje. Po úspěšném otevření hromadné poptávky se zahrnuté karty přesunou do sloupce **Odesláno**.
 
 ### 📜 Smlouvy
 
@@ -370,28 +388,29 @@ Tender Flow nabízí sadu nástrojů dostupných v sidebaru pod položkou **Nás
 
 ### 📊 Excel nástroje
 
-#### Excel Unlocker PRO
+#### Excel – odemčení
 
 Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
 
 **Použití:**
-1. Otevřete **Nastavení → Excel Unlocker PRO**
+1. Otevřete **Nastavení → Excel – odemčení**
 2. Klikněte "Vybrat soubor" a nahrajte chráněný Excel
 3. Klikněte "Odemknout"
 4. Stáhněte odemčený soubor
 
-**Umístění:** Nastavení → Excel Unlocker PRO (PRO+)
+**Umístění:** Nastavení → Excel – odemčení (PRO+)
 
-#### Excel Merger PRO
+#### Excel Spojení listů
 
 Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.
 
-- **Desktop verze**: nativní zpracování pomocí lokálních Python skriptů (rychlejší, bez omezení velikosti).
-- **Web verze**: externí aplikace v iframe (vyžaduje konfiguraci adminem).
+- **Desktop verze**: nativní lokální zpracování.
+- **Web verze**: zpracování přes zabezpečené serverové API.
+- Výstup se stáhne jako `<původní název>_spojeno.xlsx`.
 
-**Umístění:** Nastavení → Excel Merger PRO (PRO+)
+**Umístění:** Nastavení → Excel Spojení listů (PRO+)
 
-#### Excel Indexer
+#### Excel Indexace VŘ
 
 Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve **dvou fázích**.
 
@@ -418,11 +437,11 @@ Pokročilý nástroj pro automatické indexování a zpracování velkých Excel
 4. Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci.
 5. Stáhněte finální soubor.
 
-**Umístění:** Nastavení → Excel Indexer (PRO+)
+**Umístění:** Nastavení → Excel Indexace VŘ (PRO+)
 
 #### Index Matcher
 
-Zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
+Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle indexu.
 
 - **Import indexu**: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně).
 - **Automatické párování**: doplnění popisů do sloupce B podle kódů ve sloupci F.
@@ -432,7 +451,7 @@ Zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
 2. Nahrajte rozpočet s kódy ve sloupci F.
 3. Klikněte "Zpracovat rozpočet" a stáhněte výsledek.
 
-> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.
+> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ.
 
 **Umístění:** Nastavení → Index Matcher (PRO+)
 
@@ -696,15 +715,15 @@ Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou 
 
 ### Neotevře se emailový klient
 
-Zkontrolujte výchozí emailový klient v systému. Funkce „Generovat poptávku" a „Email nevybraným" používají `mailto:`.
+Zkontrolujte výchozí emailový klient v systému a nastavení emailového klienta v Tender Flow. Funkce pro jednotlivé i hromadné poptávky připravují koncept zprávy; podle nastavení mohou použít systémový emailový odkaz nebo otevřít soubor konceptu EML.
 
 ### Některé volby nevidím
 
 Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle předplatného. Podívejte se do tabulky tarifů v sekci **Organizace a předplatné**.
 
-### Excel Merger PRO píše „Funkce není dostupná"
+### Excel Spojení listů píše „Funkce není dostupná"
 
-Excel Merger PRO ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
+Excel Spojení listů ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
 
 ### Kde si mohu stáhnout desktop aplikaci?
 
@@ -820,7 +839,7 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 
 ### v0.9.6
 
-- AI Key Policy (server-only), Excel Indexer, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.
+- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.
 
 ### v0.9.5
 

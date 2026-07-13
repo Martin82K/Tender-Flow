@@ -24,8 +24,10 @@ import type { PipelineInquiryGenerationKind } from "./pipelineModel";
 import {
   buildBccRecipientList,
   buildDefaultLosersEmailDraft,
-  getLoserBidsWithPrice,
-  getLoserEmails,
+  isValidEmailAddress,
+  normalizeEmailAddress,
+  selectBulkInquiryRecipients,
+  selectLoserEmailRecipients,
 } from "./pipelineEmailModel";
 import {
   getTemplateLinksForInquiryKindModel,
@@ -74,41 +76,66 @@ export const usePipelineCommunicationActions = ({
   runDocHubFallbackForCategory,
   resolveDesktopTenderFolderPath,
 }: UsePipelineCommunicationActionsInput) => {
-  const persistSentStatusForBid = async (bidId: string) => {
+  const persistSentStatusesForBids = async (bidIds: string[]) => {
     if (!activeCategory) {
       return false;
     }
 
-    const { error } = await persistBidStatusChange({
-      bidId,
-      targetStatus: "sent",
-      userRole,
-      projectDataId: projectDetails.id,
-      bidsByCategory: bids,
-      activeCategoryId: activeCategory.id,
-    });
-
-    if (error) {
-      console.error("Error persisting bid sent status after inquiry generation:", {
+    const uniqueBidIds = Array.from(new Set(bidIds));
+    const persistenceResults = await Promise.all(
+      uniqueBidIds.map(async (bidId) => ({
         bidId,
+        result: await persistBidStatusChange({
+          bidId,
+          targetStatus: "sent",
+          userRole,
+          projectDataId: projectDetails.id,
+          bidsByCategory: bids,
+          activeCategoryId: activeCategory.id,
+        }),
+      })),
+    );
+    const successfulBidIds = persistenceResults
+      .filter(({ result }) => !result.error)
+      .map(({ bidId }) => bidId);
+    const failedResults = persistenceResults.filter(({ result }) => result.error);
+
+    if (successfulBidIds.length > 0) {
+      updateBidsInternal((prev) =>
+        successfulBidIds.reduce(
+          (next, bidId) =>
+            updateBidStatusInMemory(next, activeCategory.id, bidId, "sent"),
+          prev,
+        ),
+      );
+      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
+    }
+
+    if (failedResults.length > 0) {
+      console.error("Error persisting sent statuses after inquiry generation:", {
+        bidIds: failedResults.map(({ bidId }) => bidId),
         categoryId: activeCategory.id,
-        message: error instanceof Error ? error.message : String(error),
+        messages: failedResults.map(({ result }) =>
+          result.error instanceof Error
+            ? result.error.message
+            : String(result.error),
+        ),
       });
       showAlert({
         title: "Chyba uložení stavu",
         message:
-          "Email se otevřel, ale nepodařilo se uložit stav jako odesláno. Obnovte prosím data a zkuste akci znovu.",
+          failedResults.length === 1
+            ? "Email se otevřel, ale nepodařilo se uložit stav jako odesláno. Obnovte prosím data a zkuste akci znovu."
+            : `Email se otevřel, ale u ${failedResults.length} dodavatelů se nepodařilo uložit stav jako odesláno. Obnovte prosím data a změny zkontrolujte.`,
         variant: "danger",
       });
-      return false;
     }
 
-    updateBidsInternal((prev) =>
-      updateBidStatusInMemory(prev, activeCategory.id, bidId, "sent"),
-    );
-    void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
-    return true;
+    return failedResults.length === 0;
   };
+
+  const persistSentStatusForBid = async (bidId: string) =>
+    persistSentStatusesForBids([bidId]);
 
   const getEmailSignature = async () => {
     if (!currentUser?.id) {
@@ -146,15 +173,7 @@ export const usePipelineCommunicationActions = ({
     return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333333;">${normalizedBody}</body></html>`;
   };
 
-  const generateInquiryFromTemplateKind = async (
-    bid: Bid,
-    kind: PipelineInquiryGenerationKind,
-  ) => {
-    if (!activeCategory) return;
-
-    const userPreferredMode = emailClientMode || "mailto";
-    const mode = platformAdapter.isDesktop ? "eml" : userPreferredMode;
-
+  const loadInquiryTemplate = async (kind: PipelineInquiryGenerationKind) => {
     let template;
     const templateLinks = getTemplateLinksForInquiryKindModel(projectDetails, kind);
 
@@ -176,84 +195,106 @@ export const usePipelineCommunicationActions = ({
           "Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.",
         variant: "danger",
       });
-      return;
+      return null;
     }
 
-    const subject = processTemplate(
-      template.subject,
+    return template;
+  };
+
+  const buildInquiryDraft = async (
+    kind: PipelineInquiryGenerationKind,
+    format: "html" | "text",
+  ) => {
+    if (!activeCategory) return null;
+
+    const template = await loadInquiryTemplate(kind);
+    if (!template) return null;
+
+    const signature = await getEmailSignature();
+    const contentWithSignaturePlaceholder = appendSignatureToTemplate(
+      template.content,
+      "{PODPIS_UZIVATELE}",
+      { format },
+    );
+    const processedBody = processTemplate(
+      contentWithSignaturePlaceholder,
       projectDetails,
       activeCategory,
+      format,
+      format === "html" ? signature.html : signature.text,
     );
-    const signature = await getEmailSignature();
-    let body = "";
-    let htmlBody = "";
 
-    if (mode === "eml") {
-      const contentWithSignaturePlaceholder = appendSignatureToTemplate(
-        template.content,
-        "{PODPIS_UZIVATELE}",
-        { format: "html" },
-      );
-      const rawBody = processTemplate(
-        contentWithSignaturePlaceholder,
+    return {
+      subject: processTemplate(
+        template.subject,
         projectDetails,
         activeCategory,
-        "html",
-        signature.html,
-      );
-      htmlBody = wrapHtmlEmailBody(rawBody);
-    } else {
-      const contentWithSignaturePlaceholder = appendSignatureToTemplate(
-        template.content,
-        "{PODPIS_UZIVATELE}",
-        { format: "text" },
-      );
-      const processedBody = processTemplate(
-        contentWithSignaturePlaceholder,
-        projectDetails,
-        activeCategory,
-        "text",
-        signature.text,
-      );
-      body = htmlToPlainText(processedBody);
+      ),
+      body:
+        format === "html"
+          ? wrapHtmlEmailBody(processedBody)
+          : htmlToPlainText(processedBody),
+    };
+  };
+
+  const loadInquiryAttachments = async (): Promise<EmailAttachment[]> => {
+    if (
+      !activeCategory ||
+      !platformAdapter.isDesktop ||
+      !activeCategory.budgetAttachment?.enabled ||
+      !resolveDesktopTenderFolderPath ||
+      isBudgetAttachmentOverEmailLimit(activeCategory.budgetAttachment)
+    ) {
+      return [];
     }
 
-    if (mode === "eml") {
-      let attachments: EmailAttachment[] = [];
-      if (
-        platformAdapter.isDesktop &&
-        activeCategory.budgetAttachment?.enabled &&
-        resolveDesktopTenderFolderPath &&
-        !isBudgetAttachmentOverEmailLimit(activeCategory.budgetAttachment)
-      ) {
-        try {
-          const tenderFolderPath = await resolveDesktopTenderFolderPath(
-            activeCategory.title,
-          );
-          if (!tenderFolderPath) {
-            throw new Error("Nepodařilo se najít složku tohoto VŘ.");
-          }
-          attachments = [
-            await loadBudgetAttachmentForEmail(
-              tenderFolderPath,
-              activeCategory.budgetAttachment,
-            ),
-          ];
-        } catch (error) {
-          showAlert({
-            title: "Příloha nebyla vložena",
-            message: `${
-              error instanceof Error
-                ? error.message
-                : "Rozpočtovou přílohu se nepodařilo načíst."
-            } EML zpráva bude vytvořena bez této přílohy.`,
-            variant: "info",
-          });
-        }
+    try {
+      const tenderFolderPath = await resolveDesktopTenderFolderPath(
+        activeCategory.title,
+      );
+      if (!tenderFolderPath) {
+        throw new Error("Nepodařilo se najít složku tohoto VŘ.");
       }
+      return [
+        await loadBudgetAttachmentForEmail(
+          tenderFolderPath,
+          activeCategory.budgetAttachment,
+        ),
+      ];
+    } catch (error) {
+      showAlert({
+        title: "Příloha nebyla vložena",
+        message: `${
+          error instanceof Error
+            ? error.message
+            : "Rozpočtovou přílohu se nepodařilo načíst."
+        } EML zpráva bude vytvořena bez této přílohy.`,
+        variant: "info",
+      });
+      return [];
+    }
+  };
+
+  const generateInquiryFromTemplateKind = async (
+    bid: Bid,
+    kind: PipelineInquiryGenerationKind,
+  ) => {
+    if (!activeCategory) return;
+
+    const userPreferredMode = emailClientMode || "mailto";
+    const mode = platformAdapter.isDesktop ? "eml" : userPreferredMode;
+
+    const draft = await buildInquiryDraft(
+      kind,
+      mode === "eml" ? "html" : "text",
+    );
+    if (!draft) return;
+
+    if (mode === "eml") {
+      const attachments = await loadInquiryAttachments();
 
       if (platformAdapter.isDesktop) {
-        const emlContent = generateEmlContent(bid.email || "", subject, htmlBody, {
+        const emlContent = generateEmlContent(bid.email || "", draft.subject, draft.body, {
           attachments,
         });
         const filename =
@@ -263,13 +304,13 @@ export const usePipelineCommunicationActions = ({
         console.log("[Pipeline] Opening EML on desktop:", filename);
         await platformAdapter.shell.openTempFile(emlContent, filename);
       } else {
-        downloadEmlFile(bid.email || "", subject, htmlBody);
+        downloadEmlFile(bid.email || "", draft.subject, draft.body);
       }
       await persistSentStatusForBid(bid.id);
       return;
     }
 
-    const mailtoLink = createMailtoLink(bid.email || "", subject, body);
+    const mailtoLink = createMailtoLink(bid.email || "", draft.subject, draft.body);
     console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
     platformAdapter.shell.openExternal(mailtoLink);
 
@@ -282,6 +323,81 @@ export const usePipelineCommunicationActions = ({
 
   const handleGenerateMaterialInquiry = async (bid: Bid) => {
     await generateInquiryFromTemplateKind(bid, "materialInquiry");
+  };
+
+  const getCurrentUserEmail = (): string | null => {
+    const email = normalizeEmailAddress(currentUser?.email || "");
+    if (isValidEmailAddress(email)) return email;
+
+    showAlert({
+      title: "Chybí email odesílatele",
+      message:
+        "Hromadný koncept nelze vytvořit, protože přihlášený uživatel nemá platný email.",
+      variant: "danger",
+    });
+    return null;
+  };
+
+  const handleGenerateBulkInquiry = async (
+    kind: PipelineInquiryGenerationKind,
+  ) => {
+    if (!activeCategory) return false;
+
+    const userEmail = getCurrentUserEmail();
+    if (!userEmail) return false;
+
+    const selection = selectBulkInquiryRecipients(
+      bids[activeCategory.id] || [],
+    );
+    if (selection.candidateBids.length === 0) {
+      showAlert({
+        title: "Žádní dodavatelé k oslovení",
+        message: "Ve sloupci Oslovení nejsou žádní dodavatelé.",
+        variant: "info",
+      });
+      return false;
+    }
+    if (selection.emails.length === 0) {
+      showAlert({
+        title: "Chybí platné emaily",
+        message:
+          "Žádný dodavatel ve sloupci Oslovení nemá platnou emailovou adresu.",
+        variant: "info",
+      });
+      return false;
+    }
+
+    const draft = await buildInquiryDraft(kind, "html");
+    if (!draft) return false;
+    const attachments = await loadInquiryAttachments();
+    const emlContent = generateEmlContent(userEmail, draft.subject, draft.body, {
+      bcc: buildBccRecipientList(selection.emails),
+      attachments,
+    });
+    const filename =
+      kind === "materialInquiry"
+        ? `Materialova_poptavka_hromadne_${Date.now()}.eml`
+        : `Poptavka_hromadne_${Date.now()}.eml`;
+
+    try {
+      await platformAdapter.shell.openTempFile(emlContent, filename);
+    } catch (error) {
+      console.error("Failed to open bulk inquiry draft:", {
+        categoryId: activeCategory.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      showAlert({
+        title: "Koncept se nepodařilo vytvořit",
+        message: "Emailový koncept se nepodařilo otevřít. Stavy dodavatelů nebyly změněny.",
+        variant: "danger",
+      });
+      return false;
+    }
+
+    await persistSentStatusesForBids(
+      selection.recipientBids.map((bid) => bid.id),
+    );
+    return true;
   };
 
   const resolveExportMeta = async () => {
@@ -300,7 +416,7 @@ export const usePipelineCommunicationActions = ({
     };
   };
 
-  const handleExport = async (format: "xlsx" | "markdown" | "pdf") => {
+  const handleExport = async (format: "xlsx" | "pdf") => {
     if (!activeCategory) return;
 
     const categoryBids = bids[activeCategory.id] || [];
@@ -314,9 +430,6 @@ export const usePipelineCommunicationActions = ({
             projectDetails,
             await resolveExportMeta(),
           );
-          break;
-        case "markdown":
-          projectExportApi.exportToMarkdown(activeCategory, categoryBids, projectDetails);
           break;
         case "pdf":
           await projectExportApi.exportToPDF(
@@ -339,29 +452,30 @@ export const usePipelineCommunicationActions = ({
   };
 
   const handleEmailLosers = async () => {
-    if (!activeCategory) return;
+    if (!activeCategory) return false;
+
+    const userEmail = getCurrentUserEmail();
+    if (!userEmail) return false;
 
     const categoryBids = bids[activeCategory.id] || [];
-    const loserBids = getLoserBidsWithPrice(categoryBids);
+    const selection = selectLoserEmailRecipients(categoryBids);
 
-    if (loserBids.length === 0) {
+    if (selection.candidateBids.length === 0) {
       showAlert({
         title: "Info",
         message: "Nejsou žádní nevybráni účastníci s cenou.",
         variant: "info",
       });
-      return;
+      return false;
     }
 
-    const emails = getLoserEmails(loserBids);
-
-    if (emails.length === 0) {
+    if (selection.emails.length === 0) {
       showAlert({
         title: "Info",
         message: "Žádný z nevybraných účastníků nemá uvedený email.",
         variant: "info",
       });
-      return;
+      return false;
     }
 
     const draft = buildDefaultLosersEmailDraft(
@@ -398,7 +512,7 @@ export const usePipelineCommunicationActions = ({
       }
     }
 
-    const bccList = buildBccRecipientList(emails);
+    const bccList = buildBccRecipientList(selection.emails);
     const processedHtmlBody = processTemplate(
       appendSignatureToTemplate(htmlBody, "{PODPIS_UZIVATELE}", {
         format: "html",
@@ -410,26 +524,31 @@ export const usePipelineCommunicationActions = ({
     );
     const wrappedHtmlBody = wrapHtmlEmailBody(processedHtmlBody);
 
-    if (platformAdapter.isDesktop) {
-      const emlContent = generateEmlContent("", subject, wrappedHtmlBody, {
-        bcc: bccList,
-      });
-      const filename = `Nevybrani_${Date.now()}.eml`;
-      console.log("[Pipeline] Opening losers EML on desktop:", filename);
-      platformAdapter.shell.openTempFile(emlContent, filename);
-      return;
-    }
-
-    const emlContent = generateEmlContent("", subject, wrappedHtmlBody, {
+    const emlContent = generateEmlContent(userEmail, subject, wrappedHtmlBody, {
       bcc: bccList,
     });
     const filename = `Nevybrani_${Date.now()}.eml`;
-    platformAdapter.shell.openTempFile(emlContent, filename);
+    try {
+      await platformAdapter.shell.openTempFile(emlContent, filename);
+      return true;
+    } catch (error) {
+      console.error("Failed to open losers email draft:", {
+        categoryId: activeCategory.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      showAlert({
+        title: "Koncept se nepodařilo vytvořit",
+        message: "Emailový koncept se nepodařilo otevřít. Zkuste akci znovu.",
+        variant: "danger",
+      });
+      return false;
+    }
   };
 
   return {
     handleGenerateInquiry,
     handleGenerateMaterialInquiry,
+    handleGenerateBulkInquiry,
     handleExport,
     handleEmailLosers,
   };

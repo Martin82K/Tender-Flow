@@ -427,7 +427,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
   });
 
   it("při chybě persistence nenechá lokální stav falešně na sent", async () => {
-    expectConsoleError("Error persisting bid sent status after inquiry generation:");
+    expectConsoleError("Error persisting sent statuses after inquiry generation:");
     mockPersistBidStatusChange.mockResolvedValue({
       error: new Error("db failure"),
     });

@@ -774,7 +774,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">lock_open</span>
-                      Excel Unlocker PRO
+                      Excel – odemčení
                     </div>
                   </button>
                 )}
@@ -789,7 +789,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">table_view</span>
-                      Excel Merger PRO
+                      Excel Spojení listů
                     </div>
                   </button>
                 )}
@@ -804,7 +804,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">join_inner</span>
-                      Excel Indexer
+                      Excel Indexace VŘ
                     </div>
                   </button>
                 )}

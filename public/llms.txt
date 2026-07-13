@@ -25,7 +25,7 @@
 | Ztráta termínů u rozpracovaných nabídek a milníků stavby | Notifikace, deadliny v Ganttově harmonogramu |
 | Ruční přepisování IČ z rejstříků při zakládání dodavatele | Auto-doplnění z veřejných českých rejstříků (ARES) |
 | Nekonzistentní struktura projektových složek mezi stavbami | Složkomat — automaticky generovaná standardizovaná struktura složek |
-| Listy v Excelu od subdodavatelů jsou zamčené | Excel Unlocker — odemknutí v jednom kliku |
+| Listy v Excelu od subdodavatelů jsou zamčené | Excel – odemčení v jednom kliku |
 | Roztříštěná evidence smluv a dodatků | Modul Smlouvy s extrakcí parametrů z PDF |
 
 ## Funkce
@@ -46,9 +46,9 @@ Centralizovaná správa projektové dokumentace s automaticky generovanou standa
 Ganttův diagram s milníky, závislostmi mezi úkoly a týmovou kolaborací v reálném čase. Pohledy: měsíc / týden / den.
 
 ### Excel nástroje
-- **Excel Merger** — spojení více listů z různých sešitů do jednoho souboru.
-- **Excel Unlocker** — odemknutí ochrany listů zaslaných od subdodavatelů.
-- **Excel Indexer** (Enterprise) — automatická tvorba podkladů pro VŘ.
+- **Excel Spojení listů** — spojení více listů z různých sešitů do jednoho souboru.
+- **Excel – odemčení** — odemknutí ochrany listů zaslaných od subdodavatelů.
+- **Excel Indexace VŘ** (Enterprise) — automatická tvorba podkladů pro VŘ.
 
 ### Plán výběrových řízení
 Strukturovaný plán s milníky pro každé výběrové řízení od poptávky až po vyhodnocení nabídek.
@@ -69,9 +69,9 @@ Sdílení vybraných projektů s externími účastníky (subdodavatelé, invest
 
 | Tarif | Měsíčně | Ročně (sleva 20 %) | Komu |
 |-------|---------|---------------------|------|
-| **Starter** | 399 Kč | 319 Kč/měs. (3 830 Kč/rok) | Jednotlivci a malé týmy. Neomezené projekty, základní přehledy, modul subdodavatelé, export Excel/PDF, Excel Unlocker. |
-| **Pro** | 499 Kč | 399 Kč/měs. (4 790 Kč/rok) | Profesionální stavební firmy. Vše ze Starter + desktop aplikace, Složkomat, plán VŘ, importy VŘ, harmonogram, modul Smlouvy, Excel Merger, archivace a sdílení projektů. **14 dní zdarma bez karty.** |
-| **Enterprise** | Na míru | Na míru | Velké organizace. Vše z Pro + OCR dokumenty, automatické aktualizace, pokročilé integrace, hodnocení dodavatelů, detailní reporty, onboarding asistence, Excel Indexer, geokódování, mapa kontaktů. Kontakt: info@tenderflow.cz. |
+| **Starter** | 399 Kč | 319 Kč/měs. (3 830 Kč/rok) | Jednotlivci a malé týmy. Neomezené projekty, základní přehledy, modul subdodavatelé, export Excel/PDF, Excel – odemčení. |
+| **Pro** | 499 Kč | 399 Kč/měs. (4 790 Kč/rok) | Profesionální stavební firmy. Vše ze Starter + desktop aplikace, Složkomat, plán VŘ, importy VŘ, harmonogram, modul Smlouvy, Excel Spojení listů, archivace a sdílení projektů. **14 dní zdarma bez karty.** |
+| **Enterprise** | Na míru | Na míru | Velké organizace. Vše z Pro + OCR dokumenty, automatické aktualizace, pokročilé integrace, hodnocení dodavatelů, detailní reporty, onboarding asistence, Excel Indexace VŘ, geokódování, mapa kontaktů. Kontakt: info@tenderflow.cz. |
 
 Platby: Stripe. Zrušení kdykoliv. Bez závazku.
 

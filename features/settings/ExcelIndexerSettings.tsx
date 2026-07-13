@@ -526,7 +526,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                 join_inner
               </span>
             </div>
-            Excel Indexer
+            Excel Indexace VŘ
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Stvořitel výběrových řízení na základě porovnání dat a indexu

@@ -9,6 +9,7 @@ const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const pipelineBulkEmailMenuSource = readFileSync(join(process.cwd(), "features/projects/ui/PipelineBulkEmailMenu.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
 const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
 const docsLinkSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/DocsLinkSection.tsx"), "utf8");
@@ -100,6 +101,17 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('html[data-skin="industrial"] [data-help-id="notification-item"]');
     expect(css).toContain("width: min(26rem, calc(100vw - 1rem)) !important");
     expect(css).toContain("box-shadow: inset 0 -1px 0 var(--tf-skin-orange) !important");
+  });
+
+  it("industrial pipeline menu používají skin tokeny i mimo topbar portál", () => {
+    expect(pipelineBulkEmailMenuSource).toContain('data-help-id="pipeline-bulk-email-menu"');
+    expect(pipelineBulkEmailMenuSource).toContain("tf-pipeline-popover");
+    expect(pipelineSource).toContain('data-help-id="pipeline-export-menu"');
+    expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-popover');
+    expect(css).toContain('html.dark[data-skin="industrial"] .tf-pipeline-popover');
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface) 97%, transparent) !important");
+    expect(css).toContain("box-shadow: inset 2px 0 0 var(--tf-skin-orange) !important");
+    expect(css).toContain("color: var(--tf-skin-muted) !important");
   });
 
   it("skin Smluv má KPI strip, list a detailový rail jako samostatnou vrstvu", () => {
