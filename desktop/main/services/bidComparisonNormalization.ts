@@ -129,8 +129,8 @@ const parseCsvOffer = async (filePath: string, purpose: 'offer' | 'reference'): 
   if (headerIndex < 0) throw new Error(purpose === 'reference' ? 'V CSV poptávce nebyla nalezena hlavička s popisem položky.' : 'V CSV nabídce nebyla nalezena hlavička s popisem a cenou.');
   const headers = rows[headerIndex].map(normalizeHeader);
   const indexes = Object.fromEntries(Object.entries(HEADER_ALIASES).map(([key, aliases]) => [key, headers.findIndex((header) => aliases.includes(header))])) as Record<string, number>;
-  return rows.slice(headerIndex + 1).map((row, index) => normalizeItem({
-    pc: indexes.pc >= 0 ? row[indexes.pc] : String(index + 1), kod: indexes.kod >= 0 ? row[indexes.kod] : null,
+  return rows.slice(headerIndex + 1).map((row) => normalizeItem({
+    pc: indexes.pc >= 0 ? row[indexes.pc] : null, kod: indexes.kod >= 0 ? row[indexes.kod] : null,
     popis: indexes.popis >= 0 ? row[indexes.popis] : null, mj: indexes.mj >= 0 ? row[indexes.mj] : null,
     mnozstvi: indexes.mnozstvi >= 0 ? row[indexes.mnozstvi] : null, jcena: indexes.jcena >= 0 ? row[indexes.jcena] : null,
     celkem: indexes.celkem >= 0 ? row[indexes.celkem] : null, confidence: 1,
@@ -218,7 +218,7 @@ const persistNormalization = async (rootPath: string, supplierName: string, resu
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Normalizovaná nabídka');
   sheet.addRow(['PČ', 'Typ', 'Kód', 'Popis', 'MJ', 'Množství', 'J.cena [CZK]', 'Cena celkem [CZK]', 'Confidence', 'Kontrola']);
-  result.items.forEach((item, index) => sheet.addRow([item.pc || String(index + 1), item.reviewRequired ? 'N' : 'K', item.kod || '', item.popis, item.mj || '', item.mnozstvi, item.jcena, item.celkem, item.confidence, item.reviewRequired ? 'ANO' : 'NE']));
+  result.items.forEach((item) => sheet.addRow([item.pc || '', item.reviewRequired ? 'N' : 'K', item.kod || '', item.popis, item.mj || '', item.mnozstvi, item.jcena, item.celkem, item.confidence, item.reviewRequired ? 'ANO' : 'NE']));
   const workbookBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
   const writeAtomic = async (target: string, data: Buffer | string) => {
     const temporary = `${target}.tmp-${crypto.randomUUID()}`;

@@ -10,7 +10,9 @@ import {
 import {
   atomicWriteWorkspaceFile,
   BID_COMPARISON_CONFIG_FILE,
+  BID_COMPARISON_RESULT_FILE,
   loadBidComparisonConfig,
+  loadBidComparisonResult,
   saveBidComparisonConfig,
 } from '../desktop/main/services/bidComparisonWorkspace';
 import type { BidComparisonMatrixItem } from '../desktop/main/types';
@@ -45,6 +47,44 @@ describe('souborové porovnávání nabídek', () => {
     expect(() => validateBidComparisonConfig(config)).toThrow('Součet vah');
   });
 
+  it('odmítne konfiguraci bez všech vah a neplatné kalendářní datum', () => {
+    const missingWeight = createDefaultBidComparisonConfig() as unknown as Record<string, unknown>;
+    missingWeight.weights = { price: 100 };
+    expect(() => validateBidComparisonConfig(missingWeight as never)).toThrow('všech pět');
+
+    const invalidDate = createDefaultBidComparisonConfig();
+    invalidDate.suppliers.Alfa = {
+      realizationDate: '2026-99-99', warrantyMonths: 12, maturityDays: 30,
+      scopeConfirmed: true, supplierRating: 4, note: '',
+    };
+    expect(() => validateBidComparisonConfig(invalidDate)).toThrow('Neplatný termín');
+  });
+
+  it('nezapočítá neúplný součet do cenového skóre', () => {
+    const rows: BidComparisonMatrixItem[] = [
+      {
+        ...matrix[0],
+        offers: {
+          Alfa: { ...matrix[0].offers.Alfa, celkem: 50 },
+          Beta: { ...matrix[0].offers.Beta, celkem: 100 },
+        },
+      },
+      {
+        pc: '2', kod: 'B', popis: 'Druhá položka', mj: 'ks', mnozstvi: 1, radek: 6,
+        offers: {
+          Alfa: { ...matrix[0].offers.Alfa, jcena: null, celkem: null, matched: false },
+          Beta: { ...matrix[0].offers.Beta, jcena: 100, celkem: 100, matched: true },
+        },
+      },
+    ];
+    const evaluation = evaluateBidComparison(rows, createDefaultBidComparisonConfig());
+    expect(evaluation.scores.find((score) => score.supplierName === 'Alfa')).toMatchObject({
+      totalPrice: null,
+      scores: { price: 0, completeness: 50 },
+    });
+    expect(evaluation.scores[0].supplierName).toBe('Beta');
+  });
+
   it('ukládá a načítá konfiguraci atomicky ve složce VŘ', async () => {
     const folder = await tempFolder();
     const config = createDefaultBidComparisonConfig();
@@ -64,6 +104,27 @@ describe('souborové porovnávání nabídek', () => {
     await symlink(outside, path.join(folder, 'porovnani-nabidek.config.json'));
     await expect(atomicWriteWorkspaceFile(folder, 'porovnani-nabidek.config.json', '{}')).rejects.toThrow('symbolický odkaz');
     await expect(atomicWriteWorkspaceFile(folder, '../outside.json', '{}')).rejects.toThrow('Neplatný název');
+  });
+
+  it('odmítne poškozenou strukturu uloženého výsledku', async () => {
+    const folder = await tempFolder();
+    await writeFile(path.join(folder, BID_COMPARISON_RESULT_FILE), JSON.stringify({
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      requestId: 'request-1',
+      algorithmVersion: '1.0.0',
+      inputFingerprints: [],
+      evaluation: {
+        algorithmVersion: '1.0.0',
+        requestedWeights: createDefaultBidComparisonConfig().weights,
+        effectiveWeights: createDefaultBidComparisonConfig().weights,
+        warnings: [],
+        scores: 'poškozeno',
+        anomalies: [],
+      },
+      agentRecommendation: null,
+    }));
+    await expect(loadBidComparisonResult(folder)).rejects.toThrow('poškozená');
   });
 
   it('porovnávací moduly nemají databázové ani incidentní závislosti', async () => {

@@ -82,10 +82,10 @@ const normalizeConfig = (config: BidComparisonAutoConfig): NormalizedAutoConfig 
   suppliers: Array.isArray(config.suppliers) ? config.suppliers : [],
   selectedFiles: Array.isArray(config.selectedFiles) ? config.selectedFiles : [],
   outputBaseName: (config.outputBaseName || DEFAULT_OUTPUT_BASE_NAME).trim() || DEFAULT_OUTPUT_BASE_NAME,
-  agent: config.agent ?? {
+  agent: config.agent ? { ...config.agent, bearerToken: undefined } : {
     enabled: false,
     baseUrl: '',
-    bearerToken: '',
+    bearerToken: undefined,
   },
   evaluationConfig: config.evaluationConfig ?? createDefaultBidComparisonConfig(),
   debounceMs: Number.isFinite(config.debounceMs)
@@ -559,6 +559,9 @@ export class BidComparisonAutoRunner {
       Object.entries(parsed).forEach(([key, value]) => {
         output[key] = normalizeConfig(value);
       });
+      if (Object.values(parsed).some((value) => Boolean(value?.agent?.bearerToken))) {
+        await this.savePersistedMap(output);
+      }
       return output;
     } catch {
       return {};

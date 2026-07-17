@@ -18,6 +18,14 @@ class InMemoryStorage {
   async set(key: string, value: string): Promise<void> {
     this.map.set(key, value);
   }
+
+  seed(key: string, value: string): void {
+    this.map.set(key, value);
+  }
+
+  read(key: string): string | null {
+    return this.map.get(key) ?? null;
+  }
 }
 
 class FakeRunner {
@@ -110,6 +118,26 @@ const waitFor = async (
 };
 
 describe('BidComparisonAutoRunner', () => {
+  it('odstraní legacy token z uložené auto konfigurace i obnoveného běhu', async () => {
+    const storage = new InMemoryStorage();
+    storage.seed('bidComparison:autoConfigs:v1', JSON.stringify({
+      'p-token::c-token': {
+        projectId: 'p-token', categoryId: 'c-token', tenderFolderPath: '/tmp/tender',
+        suppliers: [{ name: 'Drywall' }], selectedFiles: [], enabled: false,
+        outputBaseName: 'porovnani-nabidek',
+        agent: { enabled: true, baseUrl: 'https://agent.kalmatech.cz', bearerToken: 'legacy-secret' },
+      },
+    }));
+    const runner = new FakeRunner(() => []);
+    const autoRunner = new BidComparisonAutoRunner(storage, runner as any, () => ({
+      start: async () => {}, stop: async () => {},
+    }));
+
+    await autoRunner.autoStatus({ projectId: 'p-token', categoryId: 'c-token' });
+
+    expect(storage.read('bidComparison:autoConfigs:v1')).not.toContain('legacy-secret');
+  });
+
   it('spustí auto běh a uloží status success', async () => {
     const storage = new InMemoryStorage();
     const runner = new FakeRunner(() => [
