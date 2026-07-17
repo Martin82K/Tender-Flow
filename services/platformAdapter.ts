@@ -13,6 +13,8 @@ import type {
     BidComparisonAgentConfig,
     BidComparisonAgentTestResult,
     BidComparisonDetectionResult,
+    BidComparisonFileConfig,
+    BidComparisonWorkspaceState,
     BidComparisonStartInput,
     BidComparisonStartResult,
     BidComparisonJobStatus,
@@ -508,6 +510,34 @@ export const bidComparisonAdapter = {
             status: null,
             error: 'Test Hermes agenta je dostupný pouze v desktop aplikaci.',
         };
+    },
+
+    async loadWorkspace(tenderFolderPath: string): Promise<BidComparisonWorkspaceState> {
+        if (isDesktop && window.electronAPI?.bidComparison?.loadWorkspace) return window.electronAPI.bidComparison.loadWorkspace(tenderFolderPath);
+        return {
+            config: { version: 1, weights: { price: 45, completeness: 20, commercialTerms: 15, supplierHistory: 10, priceRisk: 10 }, suppliers: {} },
+            result: null,
+            hasAgentSecret: false,
+        };
+    },
+
+    async saveConfig(tenderFolderPath: string, config: BidComparisonFileConfig): Promise<BidComparisonFileConfig> {
+        if (isDesktop && window.electronAPI?.bidComparison?.saveConfig) return window.electronAPI.bidComparison.saveConfig(tenderFolderPath, config);
+        return config;
+    },
+
+    async saveAgentSecret(secret: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.bidComparison?.saveAgentSecret) return window.electronAPI.bidComparison.saveAgentSecret(secret);
+        throw new Error('Bezpečné uložení tokenu je dostupné pouze v desktop aplikaci.');
+    },
+
+    async hasAgentSecret(): Promise<boolean> {
+        if (isDesktop && window.electronAPI?.bidComparison?.hasAgentSecret) return window.electronAPI.bidComparison.hasAgentSecret();
+        return false;
+    },
+
+    async clearAgentSecret(): Promise<void> {
+        if (isDesktop && window.electronAPI?.bidComparison?.clearAgentSecret) return window.electronAPI.bidComparison.clearAgentSecret();
     },
 
     async autoStart(config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> {

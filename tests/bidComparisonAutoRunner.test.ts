@@ -82,14 +82,18 @@ const makeDetectedFile = (
   suggestedRole: args.suggestedRole ?? 'ignore',
   suggestedSupplierName: args.suggestedSupplierName ?? null,
   suggestedRound: args.suggestedRound ?? 0,
-  analysis: args.analysis ?? {
-    headerRow: 3,
-    kRows: 5,
-    pricedKRows: 5,
-    columnMap: { typ: 2, kod: 3, jcena: 7 },
-    isValidTemplate: true,
-  },
+  analysis: Object.prototype.hasOwnProperty.call(args, 'analysis')
+    ? args.analysis ?? null
+    : {
+        headerRow: 3,
+        kRows: 5,
+        pricedKRows: 5,
+        columnMap: { typ: 2, kod: 3, jcena: 7 },
+        isValidTemplate: true,
+      },
   analysisError: args.analysisError ?? null,
+  sourceFormat: args.sourceFormat ?? 'xlsx',
+  requiresNormalization: args.requiresNormalization ?? false,
 });
 
 const waitFor = async (
@@ -248,6 +252,37 @@ describe('BidComparisonAutoRunner', () => {
     expect(runner.startCalls).toBe(0);
   });
 
+  it('zablokuje nenamapovaný dokumentový vstup, ale respektuje explicitní ignorování', async () => {
+    const storage = new InMemoryStorage();
+    const documentFile = makeDetectedFile({
+      path: '/tmp/tender/neznamy.pdf',
+      fileName: 'neznamy.pdf',
+      suggestedRole: 'ignore',
+      analysis: null,
+      sourceFormat: 'pdf',
+      requiresNormalization: true,
+    });
+    const runner = new FakeRunner(() => [
+      documentFile,
+      makeDetectedFile({ path: '/tmp/tender/offer.xlsx', fileName: 'offer.xlsx', suggestedRole: 'offer', suggestedSupplierName: 'Drywall' }),
+    ]);
+    const autoRunner = new BidComparisonAutoRunner(storage, runner as any, () => ({ start: async () => {}, stop: async () => {} }));
+    const baseConfig: BidComparisonAutoConfig = {
+      projectId: 'p-doc', categoryId: 'c-doc', tenderFolderPath: '/tmp/tender', suppliers: [{ name: 'Drywall' }],
+      selectedFiles: [], enabled: true, outputBaseName: 'porovnani-nabidek',
+    };
+
+    await autoRunner.autoStart(baseConfig);
+    await waitFor(async () => (await autoRunner.autoStatus({ projectId: 'p-doc', categoryId: 'c-doc' }))?.lastRunResult === 'blocked');
+    expect(runner.startCalls).toBe(0);
+
+    await autoRunner.autoStart({
+      ...baseConfig,
+      selectedFiles: [{ path: documentFile.path, role: 'ignore' }],
+    });
+    await waitFor(() => runner.startCalls === 1);
+  });
+
   it('debounce sloučí více file-change eventů do jednoho běhu', async () => {
     const storage = new InMemoryStorage();
     const runner = new FakeRunner(() => [
@@ -298,6 +333,10 @@ describe('BidComparisonAutoRunner', () => {
     watcherCallback('modified', '/tmp/tender/new-offer.xlsx');
 
     await waitFor(() => runner.startCalls === 2, 2500);
+    expect(runner.startCalls).toBe(2);
+
+    watcherCallback('created', '/tmp/tender/porovnani-normalized/Drywall-abc.xlsx');
+    await new Promise((resolve) => setTimeout(resolve, 250));
     expect(runner.startCalls).toBe(2);
   });
 });

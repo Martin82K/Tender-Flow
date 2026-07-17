@@ -2,7 +2,7 @@ import type { BidComparisonAgentConfig } from './types/desktop';
 
 export const BID_COMPARISON_AGENT_SETTINGS_KEY = 'bidComparisonAgentSettings:v1';
 export const DEFAULT_BID_COMPARISON_AGENT_BASE_URL = 'https://agent.kalmatech.cz';
-export const DEFAULT_BID_COMPARISON_AGENT_TIMEOUT_MS = 45_000;
+export const DEFAULT_BID_COMPARISON_AGENT_TIMEOUT_MS = 60_000;
 
 const MIN_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 120_000;
@@ -49,8 +49,7 @@ export const isBidComparisonAgentRunnable = (
   config: BidComparisonAgentConfig,
 ): boolean =>
   config.enabled &&
-  config.baseUrl.trim().length > 0 &&
-  config.bearerToken.trim().length > 0;
+  config.baseUrl.trim().length > 0;
 
 export const toRuntimeBidComparisonAgentConfig = (
   config: BidComparisonAgentConfig,

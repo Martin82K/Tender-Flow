@@ -163,6 +163,26 @@ describe('bidComparisonEngine', () => {
     expect(bestTotalFill.fgColor?.argb).toBe('FFC6EFCE');
   });
 
+  it('páruje normalizovanou nabídku přes přesný popis a MJ, pokud kód nesouhlasí', async () => {
+    const tempDir = await createTempDir();
+    const zadaniPath = path.join(tempDir, 'zadani.xlsx');
+    const offerPath = path.join(tempDir, 'normalizovana.xlsx');
+    await writeWorkbook(zadaniPath, buildRows('', ''));
+    const offerRows = buildRows(321, '');
+    offerRows[4][2] = 'JINY-KOD';
+    offerRows[4][3] = '  POLOŽKA   A ';
+    offerRows[4][4] = 'M²';
+    await writeWorkbook(offerPath, offerRows);
+
+    const result = await buildComparisonWorkbook({
+      zadaniPath,
+      offers: [{ supplierName: 'Drywall', displayLabel: 'Drywall (K1 v1)', filePath: offerPath, round: 1, variant: 1 }],
+    });
+
+    expect(result.matrix[0].offers['Drywall (K1 v1)']?.matched).toBe(true);
+    expect(result.matrix[0].offers['Drywall (K1 v1)']?.jcena).toBe(321);
+  });
+
   it('buildComparisonWorkbook vytvoří porovnání pouze z nabídek bez zadání', async () => {
     const tempDir = await createTempDir();
     const offerDrywallPath = path.join(tempDir, 'drywall.xlsx');

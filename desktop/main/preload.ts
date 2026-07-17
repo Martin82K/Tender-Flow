@@ -11,6 +11,8 @@ import type {
     BidComparisonAgentTestResult,
     BidComparisonSupplierOption,
     BidComparisonDetectionResult,
+    BidComparisonFileConfig,
+    BidComparisonWorkspaceState,
     BidComparisonStartInput,
     BidComparisonStartResult,
     BidComparisonJobStatus,
@@ -335,6 +337,21 @@ const electronAPI: ElectronAPI = {
 
         testAgent: (config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> =>
             invokeTyped('bid-comparison:test-agent', config),
+
+        loadWorkspace: (tenderFolderPath: string): Promise<BidComparisonWorkspaceState> =>
+            invokeTyped('bid-comparison:load-workspace', tenderFolderPath),
+
+        saveConfig: (tenderFolderPath: string, config: BidComparisonFileConfig): Promise<BidComparisonFileConfig> =>
+            invokeTyped('bid-comparison:save-config', tenderFolderPath, config),
+
+        saveAgentSecret: (secret: string): Promise<void> =>
+            invokeTyped('bid-comparison:save-agent-secret', secret),
+
+        hasAgentSecret: (): Promise<boolean> =>
+            invokeTyped('bid-comparison:has-agent-secret'),
+
+        clearAgentSecret: (): Promise<void> =>
+            invokeTyped('bid-comparison:clear-agent-secret'),
 
         autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
             invokeTyped('bid-comparison:auto-start', config),

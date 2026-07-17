@@ -91,7 +91,7 @@ const detectedFile = (
   analysisError: null,
 });
 
-const renderPanel = (onClose = vi.fn()) =>
+const renderPanel = (onClose = vi.fn(), mappedBudgetAttachment: React.ComponentProps<typeof BidComparisonPanel>['mappedBudgetAttachment'] = null) =>
   render(
     <BidComparisonPanel
       isOpen
@@ -100,6 +100,7 @@ const renderPanel = (onClose = vi.fn()) =>
       categoryId="category-1"
       initialTenderFolderPath="/Tender/Vyberove-rizeni"
       supplierNames={['Kamenolom Číhaná', 'Doprava']}
+      mappedBudgetAttachment={mappedBudgetAttachment}
     />,
   );
 
@@ -123,16 +124,36 @@ describe('BidComparisonPanel', () => {
     const { container } = renderPanel();
 
     await waitFor(() => {
-      expect(screen.getByText('Cenové studio')).toBeInTheDocument();
+      expect(screen.getByText('Porovnání nabídek')).toBeInTheDocument();
     });
 
     const panel = container.querySelector('.tf-pipeline-modal-panel');
-    expect(screen.getByRole('dialog', { name: 'Cenové studio' })).toHaveAccessibleDescription(
-      'Porovnání nabídek, rozpočtu a dodavatelských cen v jedné pracovní ploše.',
+    expect(screen.getByRole('dialog', { name: 'Porovnání nabídek' })).toHaveAccessibleDescription(
+      'Zkontrolujte podklady, spusťte porovnání a otevřete hotový Excel.',
     );
     expect(panel).toHaveClass('h-screen');
     expect(panel).toHaveClass('w-screen');
     expect(panel).not.toHaveClass('max-w-6xl');
+  });
+
+  it('upřednostní mapovanou rozpočtovou přílohu jako základní poptávku', async () => {
+    platformMocks.detectInputs.mockResolvedValue(
+      detectedResult([
+        detectedFile('automaticke-zadani.xlsx', '00 Zadání/automaticke-zadani.xlsx', 'zadani', null),
+        detectedFile('zakladni-poptavka.pdf', 'Dokumentace/zakladni-poptavka.pdf', 'ignore', null),
+        detectedFile('nabidka-kamenolom.xlsx', '01 Kamenolom Číhaná/nabidka-kamenolom.xlsx', 'offer', 'Kamenolom Číhaná'),
+      ].map((file) => file.fileName.endsWith('.pdf') ? { ...file, sourceFormat: 'pdf' as const, requiresNormalization: true, analysis: null } : file)),
+    );
+
+    renderPanel(vi.fn(), {
+      source: 'dochub', fileName: 'zakladni-poptavka.pdf', relativePath: 'Dokumentace/zakladni-poptavka.pdf',
+      selectedAt: '2026-07-16T00:00:00.000Z', enabled: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: 'Typ souboru zakladni-poptavka.pdf' })).toHaveValue('zadani');
+      expect(screen.getByRole('combobox', { name: 'Typ souboru automaticke-zadani.xlsx' })).toHaveValue('ignore');
+    });
   });
 
   it('zavře dialog klávesou Escape a vrátí fokus', async () => {
@@ -143,7 +164,7 @@ describe('BidComparisonPanel', () => {
     trigger.focus();
 
     const { unmount } = renderPanel(onClose);
-    await screen.findByRole('dialog', { name: 'Cenové studio' });
+    await screen.findByRole('dialog', { name: 'Porovnání nabídek' });
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -162,18 +183,19 @@ describe('BidComparisonPanel', () => {
       expect(platformMocks.detectInputs).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nastavení agenta' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pokročilé nastavení' }));
 
     expect(navigate).toHaveBeenCalledWith('/app/settings?tab=admin&subTab=bidComparison');
   });
 
   it('zobrazí alternativní porovnání, když složka nemá soubor zadání', async () => {
-    platformMocks.detectInputs.mockResolvedValue(
-      detectedResult([
+    platformMocks.detectInputs.mockResolvedValue({
+      ...detectedResult([
         detectedFile('nabidka-kamenolom.xlsx', '01 Kamenolom Číhaná/nabidka-kamenolom.xlsx', 'offer', 'Kamenolom Číhaná'),
         detectedFile('nabidka-doprava.xlsx', '02 Doprava/nabidka-doprava.xlsx', 'offer', 'Doprava'),
       ]),
-    );
+      warnings: ['Nebyl nalezen vhodný soubor zadání. Porovnání bude možné spustit pouze z dodaných nabídek.'],
+    });
 
     renderPanel();
 
@@ -183,7 +205,7 @@ describe('BidComparisonPanel', () => {
 
     expect(screen.getByText('Rozpočet chybí')).toBeInTheDocument();
     expect(screen.getByText('Rozpočet chybí, porovnání se vytvoří z dodavatelských nabídek.')).toBeInTheDocument();
-    expect(screen.getByText('Vstupy')).toBeInTheDocument();
+    expect(screen.queryByText(/Nebyl nalezen vhodný soubor zadání/)).not.toBeInTheDocument();
     expect(screen.getByText('Cenová matice')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Kamenolom Číhaná' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Doprava' })).toBeInTheDocument();
@@ -203,7 +225,7 @@ describe('BidComparisonPanel', () => {
       expect(screen.getByText('Každá nabídka musí mít přiřazeného dodavatele.')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: 'Vytvořit porovnání' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Porovnat nabídky' })).toBeDisabled();
   });
 
   it('po dokončeném jobu označí nejnižší cenu v náhledu výstupu', async () => {
@@ -275,10 +297,10 @@ describe('BidComparisonPanel', () => {
     renderPanel();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Vytvořit porovnání' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Porovnat nabídky' })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Vytvořit porovnání' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Porovnat nabídky' }));
 
     await waitFor(() => {
       expect(screen.getByText('nejnižší')).toBeInTheDocument();

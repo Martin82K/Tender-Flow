@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import type { BidComparisonEvaluation, BidComparisonInputFingerprint } from '../types';
 
 export type HeaderColumnKey =
   | 'pc'
@@ -59,6 +60,9 @@ export interface BuildComparisonInput {
   zadaniPath?: string;
   offers: BidOfferInput[];
   agentRecommendation?: BidComparisonAgentRecommendation | null;
+  evaluation?: BidComparisonEvaluation | null;
+  requestId?: string;
+  inputFingerprints?: BidComparisonInputFingerprint[];
   onProgress?: (percent: number, step: string) => void;
   isCancelled?: () => boolean;
 }
@@ -369,13 +373,30 @@ const colLetter = (column: number): string => {
 const createLookup = (items: BidComparisonItem[]) => {
   const byKod = new Map<string, BidComparisonItem>();
   const byPc = new Map<string, BidComparisonItem>();
+  const byDescriptionUnit = new Map<string, BidComparisonItem>();
+  const ambiguousDescriptionUnits = new Set<string>();
+
+  const descriptionUnitKey = (item: Pick<BidComparisonItem, 'popis' | 'mj'>): string | null => {
+    const description = item.popis?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const unit = item.mj?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '').trim();
+    return description && unit ? `${description}::${unit}` : null;
+  };
 
   items.forEach((item) => {
     if (item.kod) byKod.set(item.kod.trim(), item);
     if (item.pc) byPc.set(item.pc.trim(), item);
+    const key = descriptionUnitKey(item);
+    if (key && !ambiguousDescriptionUnits.has(key)) {
+      if (byDescriptionUnit.has(key)) {
+        byDescriptionUnit.delete(key);
+        ambiguousDescriptionUnits.add(key);
+      } else {
+        byDescriptionUnit.set(key, item);
+      }
+    }
   });
 
-  return { byKod, byPc };
+  return { byKod, byPc, byDescriptionUnit, descriptionUnitKey };
 };
 
 const calculateTotal = (item: BidComparisonItem, quantity: number | null): number | null => {
@@ -583,10 +604,68 @@ const writeAgentRecommendationSheet = (
   });
 };
 
+const writeEvaluationSheet = (
+  workbook: ExcelJS.Workbook,
+  evaluation: BidComparisonEvaluation,
+  requestId?: string,
+  inputFingerprints: BidComparisonInputFingerprint[] = [],
+): void => {
+  const existing = workbook.getWorksheet('Vyhodnocení');
+  if (existing) workbook.removeWorksheet(existing.id);
+  const sheet = workbook.addWorksheet('Vyhodnocení');
+  sheet.addRow(['Poradní vyhodnocení nabídek']);
+  sheet.addRow(['Request ID', requestId || '']);
+  sheet.addRow(['Verze algoritmu', evaluation.algorithmVersion]);
+  sheet.addRow(['Váhy', 'Cena', 'Úplnost', 'Obchodní podmínky', 'Historie', 'Cenová rizika']);
+  sheet.addRow(['Požadované %', evaluation.requestedWeights.price, evaluation.requestedWeights.completeness, evaluation.requestedWeights.commercialTerms, evaluation.requestedWeights.supplierHistory, evaluation.requestedWeights.priceRisk]);
+  sheet.addRow(['Efektivní %', evaluation.effectiveWeights.price, evaluation.effectiveWeights.completeness, evaluation.effectiveWeights.commercialTerms, evaluation.effectiveWeights.supplierHistory, evaluation.effectiveWeights.priceRisk]);
+  sheet.addRow([]);
+  sheet.addRow(['Pořadí', 'Dodavatel', 'Varianta', 'Cena celkem', 'Skóre', 'Cena', 'Úplnost', 'Obchodní podmínky', 'Historie', 'Cenová rizika', 'Chybějící údaje']);
+  evaluation.scores.forEach((score) => {
+    const row = sheet.addRow([
+      score.rank,
+      score.supplierName,
+      score.displayLabel,
+      score.totalPrice,
+      null,
+      score.scores.price,
+      score.scores.completeness,
+      score.scores.commercialTerms,
+      score.scores.supplierHistory,
+      score.scores.priceRisk,
+      score.missingCriteria.join(', '),
+    ]);
+    row.getCell(5).value = {
+      formula: `ROUND(F${row.number}*$B$6/100+G${row.number}*$C$6/100+H${row.number}*$D$6/100+I${row.number}*$E$6/100+J${row.number}*$F$6/100,2)`,
+      result: score.totalScore,
+    };
+  });
+  if (evaluation.warnings.length) {
+    sheet.addRow([]);
+    sheet.addRow(['Varování']);
+    evaluation.warnings.forEach((warning) => sheet.addRow([warning]));
+  }
+  if (evaluation.anomalies.length) {
+    sheet.addRow([]);
+    sheet.addRow(['Cenové anomálie']);
+    sheet.addRow(['Položka', 'Dodavatel', 'Varianta', 'Cena', 'Medián', 'Odchylka %', 'Směr']);
+    evaluation.anomalies.forEach((anomaly) => sheet.addRow([anomaly.itemKey, anomaly.supplierName, anomaly.displayLabel, anomaly.price, anomaly.median, anomaly.deviationPercent, anomaly.direction === 'low' ? 'nízká' : 'vysoká']));
+  }
+  if (inputFingerprints.length) {
+    sheet.addRow([]);
+    sheet.addRow(['Otisky vstupních souborů']);
+    sheet.addRow(['Soubor', 'SHA-256']);
+    inputFingerprints.forEach((fingerprint) => sheet.addRow([fingerprint.fileName, fingerprint.sha256]));
+  }
+  sheet.getRow(1).font = { bold: true, size: 14 };
+  sheet.getRow(8).font = { bold: true };
+  sheet.columns.forEach((column) => { column.width = Math.min(48, Math.max(14, column.width || 14)); });
+};
+
 export const buildComparisonWorkbook = async (
   input: BuildComparisonInput,
 ): Promise<BuildComparisonResult> => {
-  const { zadaniPath, offers, agentRecommendation, onProgress, isCancelled } = input;
+  const { zadaniPath, offers, agentRecommendation, evaluation, requestId, inputFingerprints, onProgress, isCancelled } = input;
 
   if (offers.length === 0) {
     throw new Error('Nebyla vybrána žádná nabídka k porovnání.');
@@ -727,6 +806,10 @@ export const buildComparisonWorkbook = async (
       if (!offerItem && zadaniItem.pc) {
         offerItem = lookup.byPc.get(zadaniItem.pc.trim());
       }
+      if (!offerItem) {
+        const descriptionKey = lookup.descriptionUnitKey(zadaniItem);
+        if (descriptionKey) offerItem = lookup.byDescriptionUnit.get(descriptionKey);
+      }
 
       if (!offerItem || offerItem.jcena == null) {
         unmatched.push(zadaniItem.kod || zadaniItem.pc || `řádek ${zadaniItem.radek}`);
@@ -814,6 +897,11 @@ export const buildComparisonWorkbook = async (
 
   if (isCancelled?.()) {
     throw new Error('Porovnání bylo zrušeno.');
+  }
+
+  if (evaluation) {
+    onProgress?.(95, 'Zapisuji bodové vyhodnocení...');
+    writeEvaluationSheet(zadaniWorkbook, evaluation, requestId, inputFingerprints);
   }
 
   if (agentRecommendation) {
