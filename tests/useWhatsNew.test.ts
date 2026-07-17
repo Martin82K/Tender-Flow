@@ -17,6 +17,7 @@ describe("shouldShowWhatsNew", () => {
 
   it("nezobrazí stabilní novinky v prerelease buildu", () => {
     expect(shouldShowWhatsNew("1.9.0-beta.1", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.0-beta.2", null)).toBe(false);
   });
 });
 
