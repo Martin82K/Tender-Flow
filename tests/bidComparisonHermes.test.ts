@@ -87,8 +87,30 @@ describe('bidComparisonHermes', () => {
     });
 
     expect(result.referenceWorkbookPath).toContain('porovnani-normalized');
+    expect(result.referenceNormalization?.result.items).toHaveLength(1);
     expect(result.offers[0].result.items[0]).toMatchObject({ kod: 'R-1', jcena: 500, celkem: 5000, reviewRequired: false });
     expect(result.recommendation).toMatchObject({ summary: 'Nabídka je úplná.', recommendedSupplier: null });
+  });
+
+  it('odmítne neúplnou matici a explicitní jinou měnu než CZK', async () => {
+    const fixture = await createFixture();
+    const incomplete = responsePayload('req-incomplete');
+    incomplete.matrix[0].offers = [];
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(incomplete), { status: 200 })));
+    await expect(analyzeBidComparisonWithHermes({
+      rootPath: fixture.root,
+      offers: [{ path: fixture.offer, role: 'offer', supplierName: 'Dodavatel A', round: 1, variant: 1 }],
+      baseUrl: 'https://agent.kalmatech.cz', secret: 'secret', requestId: 'req-incomplete',
+    })).rejects.toThrow('úplnou matici');
+
+    const foreignCurrency = responsePayload('req-eur');
+    foreignCurrency.matrix[0].offers[0].currency = 'EUR';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(foreignCurrency), { status: 200 })));
+    await expect(analyzeBidComparisonWithHermes({
+      rootPath: fixture.root,
+      offers: [{ path: fixture.offer, role: 'offer', supplierName: 'Dodavatel A', round: 1, variant: 1 }],
+      baseUrl: 'https://agent.kalmatech.cz', secret: 'secret', requestId: 'req-eur',
+    })).rejects.toThrow('měnu');
   });
 
   it('odmítne změnu lokálního skóre a agentní výběr vítěze', async () => {

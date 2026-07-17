@@ -448,15 +448,24 @@ export class BidComparisonRunner {
             secret,
             requestId: crypto.randomUUID(),
           });
-          zadaniPath = batch.referenceWorkbookPath;
+          if (referenceNeedsNormalization) zadaniPath = batch.referenceWorkbookPath;
           hermesRecommendation = batch.recommendation;
           batch.offers.forEach((offer) => {
             const reviewCount = offer.result.items.filter((item) => item.reviewRequired).length;
             normalizations.push({ supplierName: offer.supplierName, purpose: 'offer', sourceFileName: offer.result.sourceFileName, sourceFormat: offer.result.sourceFormat, extractor: offer.result.extractor, itemCount: offer.result.items.length, reviewCount, warnings: offer.result.warnings });
             offerEntries.push({ supplierName: offer.supplierName, round: offer.round, variant: offer.variant, displayLabel: `${offer.supplierName} (K${offer.round} v${offer.variant})`, filePath: offer.workbookPath });
           });
-          if (zadani[0] && batch.referenceWorkbookPath) {
-            normalizations.push({ supplierName: 'Základní poptávka', purpose: 'reference', sourceFileName: path.relative(job.tenderFolderPath, zadani[0].path).replace(/\\/g, '/'), sourceFormat: getBidComparisonSourceFormat(zadani[0].path)!, extractor: 'remote-api', itemCount: 0, reviewCount: 0, warnings: [] });
+          if (zadani[0] && batch.referenceNormalization) {
+            const referenceResult = batch.referenceNormalization.result;
+            normalizations.push({
+              supplierName: 'Základní poptávka', purpose: 'reference',
+              sourceFileName: referenceResult.sourceFileName,
+              sourceFormat: referenceResult.sourceFormat,
+              extractor: referenceResult.extractor,
+              itemCount: referenceResult.items.length,
+              reviewCount: referenceResult.items.filter((item) => item.reviewRequired).length,
+              warnings: referenceResult.warnings,
+            });
           }
         } catch (error) {
           const canIgnoreMappedReference = Boolean(zadani[0]?.referenceSource === 'mapped_budget_attachment') && !preparedOffers.some((offer) => offer.needsNormalization && getBidComparisonSourceFormat(offer.path) !== 'csv');

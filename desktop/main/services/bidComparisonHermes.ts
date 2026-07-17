@@ -77,6 +77,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(v
 const isNullableString = (value: unknown): value is string | null => value === null || typeof value === 'string';
 const isNullableNumber = (value: unknown): value is number | null => value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0);
 const boundedText = (value: string, max = 1_000): string => value.replace(/[\u0000-\u001F]/g, '').trim().slice(0, max);
+const isSupportedCurrency = (value: string | null, hasPrice: boolean): boolean => {
+  if (value === null) return !hasPrice;
+  return ['CZK', 'KČ', 'KC'].includes(value.trim().toUpperCase());
+};
 
 const assertNoAgentDecisionFields = (value: unknown, parentKey = ''): void => {
   if (Array.isArray(value)) {
@@ -156,10 +160,13 @@ const validateResponse = (value: unknown, requestId: string, expectedSuppliers: 
     const rowSupplierIds = new Set<string>();
     for (const offer of row.offers) {
       if (!isRecord(offer) || typeof offer.supplierId !== 'string' || !expectedSuppliers.has(offer.supplierId) || !isNullableString(offer.offerItemDescription) || !isNullableNumber(offer.quantity) || !isNullableNumber(offer.unitPrice) || !isNullableNumber(offer.totalPrice) || !isNullableString(offer.currency) || !['matched', 'uncertain', 'unmatched'].includes(String(offer.matchStatus)) || !isNullableString(offer.uncertainty)) throw new Error('Hermes API vrátilo neplatné párování nabídky.');
+      if (!isSupportedCurrency(offer.currency, offer.unitPrice !== null || offer.totalPrice !== null)) throw new Error(`Hermes API vrátilo nepodporovanou měnu ${offer.currency || 'bez označení'}; před porovnáním je nutný explicitní převod do CZK.`);
       if (rowSupplierIds.has(offer.supplierId)) throw new Error('Hermes API vrátilo duplicitní nabídku v řádku matice.');
       rowSupplierIds.add(offer.supplierId);
     }
+    if (rowSupplierIds.size !== expectedSuppliers.size) throw new Error('Hermes API nevrátilo úplnou matici nabídek.');
   }
+  if (matrixIds.size !== referenceIds.size) throw new Error('Hermes API nevrátilo úplnou matici referenčních položek.');
   for (const finding of value.findings) {
     if (!isRecord(finding) || !['info', 'warning', 'risk'].includes(String(finding.severity)) || typeof finding.code !== 'string' || typeof finding.message !== 'string' || !isNullableString(finding.supplierId) || !isNullableString(finding.referenceItemId) || (finding.supplierId !== null && !expectedSuppliers.has(finding.supplierId)) || (finding.referenceItemId !== null && !referenceIds.has(finding.referenceItemId))) throw new Error('Hermes API vrátilo neplatné zjištění.');
   }
@@ -190,7 +197,12 @@ export const analyzeBidComparisonWithHermes = async (args: {
   baseUrl: string;
   secret: string;
   requestId: string;
-}): Promise<{ offers: HermesNormalizedOffer[]; referenceWorkbookPath?: string; recommendation: BidComparisonAgentRecommendation }> => {
+}): Promise<{
+  offers: HermesNormalizedOffer[];
+  referenceWorkbookPath?: string;
+  referenceNormalization?: Awaited<ReturnType<typeof persistBidComparisonNormalization>>;
+  recommendation: BidComparisonAgentRecommendation;
+}> => {
   if (!args.secret.trim()) throw new Error('Pro zpracování dokumentových nabídek chybí bezpečně uložený API token.');
   if (!args.offers.length || args.offers.length + (args.reference ? 1 : 0) > MAX_FILES) throw new Error('Hermes zpracuje nejvýše 20 souborů v jednom porovnání.');
   const preparedOffers = await Promise.all(args.offers.map(async (offer, index) => ({ offer, source: await secureSource(args.rootPath, offer.path), supplierId: `offer_${index + 1}` })));
@@ -229,6 +241,7 @@ export const analyzeBidComparisonWithHermes = async (args: {
   const payload = validateResponse(parsed, args.requestId, expected);
   const references = new Map(payload.referenceItems.map((item) => [item.referenceItemId, item]));
   let referenceWorkbookPath: string | undefined;
+  let referenceNormalization: Awaited<ReturnType<typeof persistBidComparisonNormalization>> | undefined;
   if (args.reference && payload.referenceItems.length) {
     const persisted = await persistBidComparisonNormalization({
       rootPath: args.rootPath,
@@ -237,6 +250,7 @@ export const analyzeBidComparisonWithHermes = async (args: {
       purpose: 'reference',
       items: payload.referenceItems.map((item): BidComparisonNormalizedItem => ({ pc: item.referenceItemId, kod: item.referenceItemId, popis: boundedText(item.description), mj: item.unit ? boundedText(item.unit, 80) : null, mnozstvi: item.quantity, jcena: null, celkem: null, confidence: item.uncertainty ? 0.6 : 1, reviewRequired: Boolean(item.uncertainty) })),
     });
+    referenceNormalization = persisted;
     referenceWorkbookPath = persisted.workbookPath;
   }
   const normalizedOffers: HermesNormalizedOffer[] = [];
@@ -265,6 +279,7 @@ export const analyzeBidComparisonWithHermes = async (args: {
   return {
     offers: normalizedOffers,
     referenceWorkbookPath,
+    referenceNormalization,
     recommendation: {
       summary: boundedText(payload.summary, 4_000),
       recommendedSupplier: null,

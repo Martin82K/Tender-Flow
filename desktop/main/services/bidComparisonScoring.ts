@@ -32,6 +32,17 @@ export const createDefaultBidComparisonConfig = (): BidComparisonFileConfig => (
 
 const roundScore = (value: number): number => Math.round(Math.max(0, Math.min(100, value)) * 100) / 100;
 
+const WEIGHT_KEYS: Array<keyof BidComparisonWeights> = [
+  'price', 'completeness', 'commercialTerms', 'supplierHistory', 'priceRisk',
+];
+
+const isValidIsoDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+
 const median = (values: number[]): number => {
   const ordered = [...values].sort((a, b) => a - b);
   const middle = Math.floor(ordered.length / 2);
@@ -114,7 +125,12 @@ const normalizedWeights = (
 export const validateBidComparisonConfig = (config: BidComparisonFileConfig): BidComparisonFileConfig => {
   if (!config || config.version !== 1) throw new Error('Nepodporovaná verze konfigurace porovnání.');
   const weights = config.weights;
-  if (!weights || Object.values(weights).some((value) => !Number.isFinite(value) || value < 0 || value > 100)) {
+  if (!weights || typeof weights !== 'object' || Array.isArray(weights) ||
+      Object.keys(weights).length !== WEIGHT_KEYS.length ||
+      WEIGHT_KEYS.some((key) => !Object.prototype.hasOwnProperty.call(weights, key))) {
+    throw new Error('Konfigurace musí obsahovat všech pět známých vah porovnání.');
+  }
+  if (Object.values(weights).some((value) => !Number.isFinite(value) || value < 0 || value > 100)) {
     throw new Error('Váhy porovnání musí být čísla od 0 do 100.');
   }
   const total = Object.values(weights).reduce((sum, value) => sum + value, 0);
@@ -133,7 +149,7 @@ export const validateBidComparisonConfig = (config: BidComparisonFileConfig): Bi
       supplierRating: value.supplierRating == null ? null : Number(value.supplierRating),
       note: String(value.note || '').trim().slice(0, 1_000),
     };
-    if (criteria.realizationDate && !/^\d{4}-\d{2}-\d{2}$/.test(criteria.realizationDate)) throw new Error(`Neplatný termín dodavatele ${safeName}.`);
+    if (criteria.realizationDate && !isValidIsoDate(criteria.realizationDate)) throw new Error(`Neplatný termín dodavatele ${safeName}.`);
     if (criteria.warrantyMonths != null && (!Number.isFinite(criteria.warrantyMonths) || criteria.warrantyMonths < 0 || criteria.warrantyMonths > 240)) throw new Error(`Neplatná záruka dodavatele ${safeName}.`);
     if (criteria.maturityDays != null && (!Number.isFinite(criteria.maturityDays) || criteria.maturityDays < 0 || criteria.maturityDays > 365)) throw new Error(`Neplatná splatnost dodavatele ${safeName}.`);
     if (criteria.supplierRating != null && (!Number.isFinite(criteria.supplierRating) || criteria.supplierRating < 1 || criteria.supplierRating > 5)) throw new Error(`Neplatné hodnocení dodavatele ${safeName}.`);
@@ -164,12 +180,13 @@ export const evaluateBidComparison = (
   const totals = new Map<string, number | null>();
   offers.forEach((offer) => {
     let total = 0;
-    let count = 0;
-    matrix.forEach((item) => {
-      const value = item.offers[offer.displayLabel]?.celkem;
-      if (value != null && Number.isFinite(value)) { total += value; count += 1; }
+    const comparable = matrix.length > 0 && matrix.every((item) => {
+      const matchedOffer = item.offers[offer.displayLabel];
+      if (!matchedOffer?.matched || matchedOffer.celkem == null || !Number.isFinite(matchedOffer.celkem) || matchedOffer.celkem < 0) return false;
+      total += matchedOffer.celkem;
+      return true;
     });
-    totals.set(offer.displayLabel, count > 0 ? total : null);
+    totals.set(offer.displayLabel, comparable ? total : null);
   });
   const validTotals = [...totals.values()].filter((value): value is number => value != null && value > 0);
   const lowestTotal = validTotals.length ? Math.min(...validTotals) : null;
@@ -198,6 +215,7 @@ export const evaluateBidComparison = (
     const missingCriteria: string[] = [];
     if (!hasCommercialTerms(supplierCriteria)) missingCriteria.push('obchodní podmínky');
     if (supplierCriteria.supplierRating == null) missingCriteria.push('hodnocení dodavatele');
+    if (totalPrice == null) missingCriteria.push('úplná srovnatelná cena');
     return { ...offer, rank: 0, totalPrice, totalScore, scores, missingCriteria };
   });
   rawScores.sort((a, b) => b.totalScore - a.totalScore || (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity) || a.displayLabel.localeCompare(b.displayLabel, 'cs'));

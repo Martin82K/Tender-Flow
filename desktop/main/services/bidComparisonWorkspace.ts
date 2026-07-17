@@ -8,6 +8,57 @@ export const BID_COMPARISON_CONFIG_FILE = 'porovnani-nabidek.config.json';
 export const BID_COMPARISON_RESULT_FILE = 'porovnani-nabidek-latest.result.json';
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const isWeights = (value: unknown): boolean => {
+  if (!isRecord(value)) return false;
+  const keys = ['price', 'completeness', 'commercialTerms', 'supplierHistory', 'priceRisk'];
+  return Object.keys(value).length === keys.length && keys.every((key) => isFiniteNumber(value[key]));
+};
+
+const isStoredResult = (value: unknown): value is BidComparisonStoredResult => {
+  if (!isRecord(value) || value.version !== 1 || value.algorithmVersion !== '1.0.0' ||
+      typeof value.generatedAt !== 'string' || typeof value.requestId !== 'string' || !value.requestId ||
+      !Array.isArray(value.inputFingerprints) || !isRecord(value.evaluation)) return false;
+  if (!value.inputFingerprints.every((item) => isRecord(item) && typeof item.fileName === 'string' &&
+      typeof item.sha256 === 'string' && /^[a-f0-9]{64}$/.test(item.sha256))) return false;
+
+  const evaluation = value.evaluation;
+  if (evaluation.algorithmVersion !== '1.0.0' || !isWeights(evaluation.requestedWeights) ||
+      !isWeights(evaluation.effectiveWeights) || !Array.isArray(evaluation.warnings) ||
+      !evaluation.warnings.every((item) => typeof item === 'string') || !Array.isArray(evaluation.scores) ||
+      !Array.isArray(evaluation.anomalies)) return false;
+  if (!evaluation.scores.every((score) => isRecord(score) && typeof score.supplierName === 'string' &&
+      typeof score.displayLabel === 'string' && isFiniteNumber(score.rank) &&
+      (score.totalPrice === null || isFiniteNumber(score.totalPrice)) && isFiniteNumber(score.totalScore) &&
+      isRecord(score.scores) && isFiniteNumber(score.scores.price) && isFiniteNumber(score.scores.completeness) &&
+      (score.scores.commercialTerms === null || isFiniteNumber(score.scores.commercialTerms)) &&
+      (score.scores.supplierHistory === null || isFiniteNumber(score.scores.supplierHistory)) &&
+      isFiniteNumber(score.scores.priceRisk) && Array.isArray(score.missingCriteria) &&
+      score.missingCriteria.every((item) => typeof item === 'string'))) return false;
+  if (!evaluation.anomalies.every((item) => isRecord(item) && typeof item.itemKey === 'string' &&
+      typeof item.supplierName === 'string' && typeof item.displayLabel === 'string' &&
+      isFiniteNumber(item.price) && isFiniteNumber(item.median) && isFiniteNumber(item.deviationPercent) &&
+      (item.direction === 'low' || item.direction === 'high'))) return false;
+
+  const recommendation = value.agentRecommendation;
+  if (recommendation !== null && (!isRecord(recommendation) || typeof recommendation.summary !== 'string' ||
+      !Array.isArray(recommendation.nextSteps) || !recommendation.nextSteps.every((item) => typeof item === 'string') ||
+      !Array.isArray(recommendation.risks) || !recommendation.risks.every((risk) => isRecord(risk) &&
+        ['low', 'medium', 'high'].includes(String(risk.severity)) && typeof risk.title === 'string' && typeof risk.detail === 'string'))) return false;
+  if (value.normalizations !== undefined && (!Array.isArray(value.normalizations) ||
+      !value.normalizations.every((item) => isRecord(item) && typeof item.supplierName === 'string' &&
+        (item.purpose === 'offer' || item.purpose === 'reference') && typeof item.sourceFileName === 'string' &&
+        typeof item.sourceFormat === 'string' && (item.extractor === 'local-csv' || item.extractor === 'remote-api') &&
+        isFiniteNumber(item.itemCount) && isFiniteNumber(item.reviewCount) && Array.isArray(item.warnings) &&
+        item.warnings.every((warning) => typeof warning === 'string')))) return false;
+  return true;
+};
+
 const resolveSafeRoot = async (rootPath: string): Promise<string> => {
   const resolved = path.resolve(rootPath);
   const stat = await fs.lstat(resolved);
@@ -69,11 +120,10 @@ export const saveBidComparisonConfig = async (rootPath: string, config: BidCompa
 export const loadBidComparisonResult = async (rootPath: string): Promise<BidComparisonStoredResult | null> => {
   const raw = await readJson(rootPath, BID_COMPARISON_RESULT_FILE);
   if (raw == null) return null;
-  const result = raw as Partial<BidComparisonStoredResult>;
-  if (result.version !== 1 || result.algorithmVersion !== '1.0.0' || !result.evaluation || !result.requestId) {
+  if (!isStoredResult(raw)) {
     throw new Error('Nepodporovaná nebo poškozená verze výsledku porovnání.');
   }
-  return result as BidComparisonStoredResult;
+  return raw;
 };
 
 export const saveBidComparisonResult = async (rootPath: string, result: BidComparisonStoredResult): Promise<string> =>

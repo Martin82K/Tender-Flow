@@ -228,6 +228,68 @@ describe('BidComparisonRunner.start', () => {
     expect(scoreFormula.formula).toContain('$B$6/100');
   });
 
+  it('zachová nabídku obsahující pouze celkovou cenu', async () => {
+    const tempDir = await createTempDir();
+    const zadaniPath = path.join(tempDir, 'zadani.xlsx');
+    const csvPath = path.join(tempDir, 'Drywall.csv');
+    await writeWorkbook(zadaniPath, buildRows(''));
+    await writeFile(csvPath, 'Kód;Popis;MJ;Množství;Celkem\nA-001;Položka A;m2;2;250\n', 'utf8');
+
+    const runner = new BidComparisonRunner();
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles: [
+        { path: zadaniPath, role: 'zadani' },
+        { path: csvPath, role: 'offer', supplierName: 'Drywall', round: 1 },
+      ],
+    });
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.stats?.matrix?.[0].offers['Drywall (K1 v1)']).toMatchObject({
+      jcena: null, celkem: 250, matched: true,
+    });
+  });
+
+  it('při Hermes dávce zachová validní XLSX zadání a skutečný stav jeho kontroly', async () => {
+    const tempDir = await createTempDir();
+    const zadaniPath = path.join(tempDir, 'zadani.xlsx');
+    const pdfPath = path.join(tempDir, 'nabidka.pdf');
+    await writeWorkbook(zadaniPath, buildRows(''));
+    const referenceWorkbook = new ExcelJS.Workbook();
+    await referenceWorkbook.xlsx.readFile(zadaniPath);
+    referenceWorkbook.addWorksheet('Původní metadata').getCell('A1').value = 'zachovat';
+    await referenceWorkbook.xlsx.writeFile(zadaniPath);
+    await writeFile(pdfPath, Buffer.from('%PDF-1.7'));
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => new Response(JSON.stringify({
+      schemaVersion: 1,
+      requestId: String((init.body as FormData).get('requestId')),
+      referenceItems: [{ referenceItemId: 'A-001', description: 'Položka A', quantity: 2, unit: 'm2', sourceText: 'Položka A', uncertainty: 'ověřit množství' }],
+      suppliers: [{ supplierId: 'offer_1', supplierName: 'Drywall', round: '1', localScore: null }],
+      matrix: [{ referenceItemId: 'A-001', offers: [{ supplierId: 'offer_1', offerItemDescription: 'Položka A', quantity: 2, unitPrice: 125, totalPrice: 250, currency: 'CZK', matchStatus: 'matched', uncertainty: null }] }],
+      findings: [], summary: 'Zkontrolovat zadání.', risks: [], recommendedChecks: [],
+    }), { status: 200 })));
+
+    const runner = new BidComparisonRunner();
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles: [
+        { path: zadaniPath, role: 'zadani' },
+        { path: pdfPath, role: 'offer', supplierName: 'Drywall', round: 1 },
+      ],
+      agent: { enabled: true, baseUrl: 'https://agent.kalmatech.cz', bearerToken: 'test-token' },
+    });
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.stats?.normalizations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ purpose: 'reference', itemCount: 1, reviewCount: 1 }),
+    ]));
+    const output = new ExcelJS.Workbook();
+    await output.xlsx.readFile(job.outputLatestPath as string);
+    expect(output.getWorksheet('Původní metadata')?.getCell('A1').value).toBe('zachovat');
+  });
+
   it('u ručně zvoleného dokumentového zadání vyžádá API token', async () => {
     const tempDir = await createTempDir();
     const pdfPath = path.join(tempDir, 'zadani.pdf');
@@ -373,6 +435,28 @@ describe('BidComparisonRunner.start', () => {
     expect(job.stats?.sourceMode).toBe('offers_only');
     expect(job.stats?.matrix).toHaveLength(1);
     await expect(access(path.join(tempDir, 'porovnani-nabidek-latest.xlsx'))).resolves.toBeUndefined();
+  });
+
+  it('nesloučí nesouvisející CSV položky bez PČ v režimu bez zadání', async () => {
+    const tempDir = await createTempDir();
+    const firstPath = path.join(tempDir, 'Alfa.csv');
+    const secondPath = path.join(tempDir, 'Beta.csv');
+    await writeFile(firstPath, 'Popis;MJ;Celkem\nBeton;ks;100\n', 'utf8');
+    await writeFile(secondPath, 'Popis;MJ;Celkem\nOkno;m2;200\n', 'utf8');
+    const runner = new BidComparisonRunner();
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles: [
+        { path: firstPath, role: 'offer', supplierName: 'Alfa', round: 1 },
+        { path: secondPath, role: 'offer', supplierName: 'Beta', round: 1 },
+      ],
+    });
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.stats?.matrix).toHaveLength(2);
+    expect(job.stats?.matrix?.find((item) => item.popis === 'Beton')?.offers['Beta (K1 v1)']?.matched).toBe(false);
+    expect(job.stats?.matrix?.find((item) => item.popis === 'Okno')?.offers['Alfa (K1 v1)']?.matched).toBe(false);
   });
 
   it('při chybě Hermes agenta dokončí workbook bez agentního listu', async () => {

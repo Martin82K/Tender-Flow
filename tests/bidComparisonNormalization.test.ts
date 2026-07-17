@@ -69,6 +69,20 @@ describe('bidComparisonNormalization', () => {
     expect(workbook.getWorksheet('Normalizovaná nabídka')?.getCell('B2').value).toBe('K');
   });
 
+  it('nevytváří pořadové PČ u CSV bez identifikátoru', async () => {
+    const root = await createTempDir();
+    const sourcePath = path.join(root, 'bez-id.csv');
+    await writeFile(sourcePath, 'Popis;MJ;Celkem\nOdlišná položka;ks;500\n', 'utf8');
+    const normalized = await normalizeBidComparisonOffer({
+      rootPath: root, filePath: sourcePath, supplierName: 'Dodavatel',
+      baseUrl: 'https://agent.kalmatech.cz', secret: '', requestId: 'csv-without-id',
+    });
+    expect(normalized.result.items[0].pc).toBeNull();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(normalized.workbookPath);
+    expect(workbook.getWorksheet('Normalizovaná nabídka')?.getCell('A2').value).toBe('');
+  });
+
   it('odesílá PDF přes verzovaný HTTPS kontrakt a nejistý řádek označí ke kontrole', async () => {
     const root = await createTempDir();
     const sourcePath = path.join(root, 'nabidka.pdf');

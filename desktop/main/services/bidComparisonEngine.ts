@@ -811,7 +811,7 @@ export const buildComparisonWorkbook = async (
         if (descriptionKey) offerItem = lookup.byDescriptionUnit.get(descriptionKey);
       }
 
-      if (!offerItem || offerItem.jcena == null) {
+      if (!offerItem || (offerItem.jcena == null && offerItem.celkem == null)) {
         unmatched.push(zadaniItem.kod || zadaniItem.pc || `řádek ${zadaniItem.radek}`);
         matrix[itemIndex].offers[entry.offer.displayLabel] = {
           supplierName: entry.offer.supplierName,
@@ -845,16 +845,16 @@ export const buildComparisonWorkbook = async (
       };
 
       const jcCell = zadaniSheet.getCell(zadaniItem.radek, colJcena);
-      jcCell.value = offerItem.jcena;
+      jcCell.value = offerItem.jcena ?? '-';
       jcCell.font = { name: 'Arial', size: 10 };
       jcCell.numFmt = NUMBER_FORMAT;
       jcCell.fill = headerFill;
       jcCell.border = BORDER_THIN;
 
       const celCell = zadaniSheet.getCell(zadaniItem.radek, colCelkem);
-      celCell.value = {
-        formula: `${letterJcena}${zadaniItem.radek}*${colLetter(quantityCol)}${zadaniItem.radek}`,
-      } as ExcelJS.CellFormulaValue;
+      celCell.value = offerItem.jcena != null
+        ? { formula: `${letterJcena}${zadaniItem.radek}*${colLetter(quantityCol)}${zadaniItem.radek}` } as ExcelJS.CellFormulaValue
+        : offerItem.celkem;
       celCell.font = { name: 'Arial', size: 10 };
       celCell.numFmt = NUMBER_FORMAT;
       celCell.fill = headerFill;
