@@ -14,6 +14,10 @@ describe("shouldShowWhatsNew", () => {
     expect(shouldShowWhatsNew("1.7.1", "1.7.0")).toBe(true);
     expect(shouldShowWhatsNew("1.7.1", "1.7.1")).toBe(false);
   });
+
+  it("nezobrazí stabilní novinky v prerelease buildu", () => {
+    expect(shouldShowWhatsNew("1.9.0-beta.1", null)).toBe(false);
+  });
 });
 
 describe("useWhatsNew", () => {
