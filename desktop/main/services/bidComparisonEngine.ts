@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { BidComparisonEvaluation, BidComparisonInputFingerprint } from '../types';
+import type { BidComparisonEvaluation, BidComparisonInputFingerprint, BidComparisonNormalizedItem } from '../types';
 
 export type HeaderColumnKey =
   | 'pc'
@@ -63,6 +63,7 @@ export interface BuildComparisonInput {
   evaluation?: BidComparisonEvaluation | null;
   requestId?: string;
   inputFingerprints?: BidComparisonInputFingerprint[];
+  referenceItemIdsByRow?: Record<number, string>;
   onProgress?: (percent: number, step: string) => void;
   isCancelled?: () => boolean;
 }
@@ -296,6 +297,80 @@ const parseWorksheet = (worksheet: ExcelJS.Worksheet): ParsedSheetResult => {
     columnMap,
     kRows,
   };
+};
+
+const normalizedMatchText = (value: string | null | undefined): string =>
+  (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+const normalizedQuantity = (value: number | null): string =>
+  value == null ? '' : String(Math.round(value * 1_000_000) / 1_000_000);
+
+export const mapReferenceItemsToWorkbookRows = async (
+  filePath: string,
+  referenceItems: BidComparisonNormalizedItem[],
+): Promise<Record<number, string>> => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) throw new Error('Soubor zadání neobsahuje žádný list.');
+  const originalItems = parseWorksheet(worksheet);
+  const unresolvedOriginals = new Set(originalItems.items.map((_, index) => index));
+  const unresolvedReferences = new Set(referenceItems.map((_, index) => index));
+  const output: Record<number, string> = {};
+
+  const referenceId = (item: BidComparisonNormalizedItem): string => item.kod?.trim() || item.pc?.trim() || '';
+  const assign = (referenceIndex: number, originalIndex: number): void => {
+    const id = referenceId(referenceItems[referenceIndex]);
+    if (!id) throw new Error('Hermes vrátil referenční položku bez identifikátoru.');
+    output[originalItems.items[originalIndex].radek] = id;
+    unresolvedReferences.delete(referenceIndex);
+    unresolvedOriginals.delete(originalIndex);
+  };
+
+  referenceItems.forEach((reference, referenceIndex) => {
+    const id = referenceId(reference);
+    if (!id) return;
+    const candidates = [...unresolvedOriginals].filter((originalIndex) => {
+      const original = originalItems.items[originalIndex];
+      return original.kod?.trim() === id || original.pc?.trim() === id;
+    });
+    if (candidates.length === 1) assign(referenceIndex, candidates[0]);
+  });
+
+  const pairByKey = (
+    referenceKey: (item: BidComparisonNormalizedItem) => string,
+    originalKey: (item: BidComparisonItem) => string,
+  ): void => {
+    const referenceGroups = new Map<string, number[]>();
+    [...unresolvedReferences].forEach((index) => {
+      const key = referenceKey(referenceItems[index]);
+      if (key) referenceGroups.set(key, [...(referenceGroups.get(key) || []), index]);
+    });
+    const originalGroups = new Map<string, number[]>();
+    [...unresolvedOriginals].forEach((index) => {
+      const key = originalKey(originalItems.items[index]);
+      if (key) originalGroups.set(key, [...(originalGroups.get(key) || []), index]);
+    });
+    referenceGroups.forEach((referenceIndexes, key) => {
+      const originalIndexes = originalGroups.get(key);
+      if (!originalIndexes || originalIndexes.length !== 1 || referenceIndexes.length !== 1) return;
+      assign(referenceIndexes[0], originalIndexes[0]);
+    });
+  };
+
+  pairByKey(
+    (item) => `${normalizedMatchText(item.popis)}::${normalizedMatchText(item.mj)}::${normalizedQuantity(item.mnozstvi)}`,
+    (item) => `${normalizedMatchText(item.popis)}::${normalizedMatchText(item.mj)}::${normalizedQuantity(item.mnozstvi)}`,
+  );
+  pairByKey(
+    (item) => `${normalizedMatchText(item.popis)}::${normalizedMatchText(item.mj)}`,
+    (item) => `${normalizedMatchText(item.popis)}::${normalizedMatchText(item.mj)}`,
+  );
+
+  if (unresolvedReferences.size || unresolvedOriginals.size) {
+    throw new Error('Hermes referenceItemId nelze jednoznačně namapovat na původní řádky XLSX zadání.');
+  }
+  return output;
 };
 
 export const analyzeWorkbookFile = async (filePath: string): Promise<DetectionAnalysis> => {
@@ -665,7 +740,7 @@ const writeEvaluationSheet = (
 export const buildComparisonWorkbook = async (
   input: BuildComparisonInput,
 ): Promise<BuildComparisonResult> => {
-  const { zadaniPath, offers, agentRecommendation, evaluation, requestId, inputFingerprints, onProgress, isCancelled } = input;
+  const { zadaniPath, offers, agentRecommendation, evaluation, requestId, inputFingerprints, referenceItemIdsByRow, onProgress, isCancelled } = input;
 
   if (offers.length === 0) {
     throw new Error('Nebyla vybrána žádná nabídka k porovnání.');
@@ -800,8 +875,12 @@ export const buildComparisonWorkbook = async (
       }
 
       let offerItem: BidComparisonItem | undefined;
+      const referenceItemId = referenceItemIdsByRow?.[zadaniItem.radek];
+      if (referenceItemId) {
+        offerItem = lookup.byKod.get(referenceItemId) || lookup.byPc.get(referenceItemId);
+      }
       if (zadaniItem.kod) {
-        offerItem = lookup.byKod.get(zadaniItem.kod.trim());
+        offerItem ||= lookup.byKod.get(zadaniItem.kod.trim());
       }
       if (!offerItem && zadaniItem.pc) {
         offerItem = lookup.byPc.get(zadaniItem.pc.trim());

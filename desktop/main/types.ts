@@ -317,6 +317,8 @@ export interface BidComparisonSupplierScore {
     missingCriteria: string[];
 }
 
+export type BidComparisonAlgorithmVersion = '1.0.0' | '1.1.0';
+
 export interface BidComparisonPriceAnomaly {
     itemKey: string;
     supplierName: string;
@@ -328,7 +330,7 @@ export interface BidComparisonPriceAnomaly {
 }
 
 export interface BidComparisonEvaluation {
-    algorithmVersion: '1.0.0';
+    algorithmVersion: BidComparisonAlgorithmVersion;
     requestedWeights: BidComparisonWeights;
     effectiveWeights: BidComparisonWeights;
     warnings: string[];
@@ -345,7 +347,7 @@ export interface BidComparisonStoredResult {
     version: 1;
     generatedAt: string;
     requestId: string;
-    algorithmVersion: '1.0.0';
+    algorithmVersion: BidComparisonAlgorithmVersion;
     inputFingerprints: BidComparisonInputFingerprint[];
     evaluation: BidComparisonEvaluation;
     agentRecommendation: BidComparisonAgentRecommendation | null;

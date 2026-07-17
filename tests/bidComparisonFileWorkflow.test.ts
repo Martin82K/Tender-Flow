@@ -33,6 +33,7 @@ const matrix: BidComparisonMatrixItem[] = [
 describe('souborové porovnávání nabídek', () => {
   it('počítá transparentní pořadí a cenové anomálie bez databáze', () => {
     const evaluation = evaluateBidComparison(matrix, createDefaultBidComparisonConfig());
+    expect(evaluation.algorithmVersion).toBe('1.1.0');
     expect(evaluation.scores[0]).toMatchObject({ supplierName: 'Alfa', rank: 1, totalPrice: 50 });
     expect(evaluation.anomalies).toEqual(expect.arrayContaining([
       expect.objectContaining({ supplierName: 'Alfa', direction: 'low' }),
@@ -125,6 +126,25 @@ describe('souborové porovnávání nabídek', () => {
       agentRecommendation: null,
     }));
     await expect(loadBidComparisonResult(folder)).rejects.toThrow('poškozená');
+  });
+
+  it('načte historický výsledek algoritmu 1.0.0', async () => {
+    const folder = await tempFolder();
+    const evaluation = evaluateBidComparison(matrix, createDefaultBidComparisonConfig());
+    const legacyEvaluation = { ...evaluation, algorithmVersion: '1.0.0' as const };
+    await writeFile(path.join(folder, BID_COMPARISON_RESULT_FILE), JSON.stringify({
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      requestId: 'legacy-request',
+      algorithmVersion: '1.0.0',
+      inputFingerprints: [],
+      evaluation: legacyEvaluation,
+      agentRecommendation: null,
+    }));
+    await expect(loadBidComparisonResult(folder)).resolves.toMatchObject({
+      algorithmVersion: '1.0.0',
+      evaluation: { algorithmVersion: '1.0.0' },
+    });
   });
 
   it('porovnávací moduly nemají databázové ani incidentní závislosti', async () => {

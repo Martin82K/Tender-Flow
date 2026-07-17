@@ -114,6 +114,7 @@ const HEADER_ALIASES: Record<keyof Omit<BidComparisonNormalizedItem, 'confidence
 
 const parseCsvOffer = async (filePath: string, purpose: 'offer' | 'reference'): Promise<BidComparisonNormalizedItem[]> => {
   const source = await fs.readFile(filePath);
+  const syntheticIdPrefix = crypto.createHash('sha256').update(source).digest('hex').slice(0, 12);
   const utf8 = source.toString('utf8');
   const decoded = utf8.includes('\uFFFD') ? new TextDecoder('windows-1250').decode(source) : utf8;
   const text = decoded.replace(/^\uFEFF/, '');
@@ -129,8 +130,8 @@ const parseCsvOffer = async (filePath: string, purpose: 'offer' | 'reference'): 
   if (headerIndex < 0) throw new Error(purpose === 'reference' ? 'V CSV poptávce nebyla nalezena hlavička s popisem položky.' : 'V CSV nabídce nebyla nalezena hlavička s popisem a cenou.');
   const headers = rows[headerIndex].map(normalizeHeader);
   const indexes = Object.fromEntries(Object.entries(HEADER_ALIASES).map(([key, aliases]) => [key, headers.findIndex((header) => aliases.includes(header))])) as Record<string, number>;
-  return rows.slice(headerIndex + 1).map((row) => normalizeItem({
-    pc: indexes.pc >= 0 ? row[indexes.pc] : null, kod: indexes.kod >= 0 ? row[indexes.kod] : null,
+  return rows.slice(headerIndex + 1).map((row, index) => normalizeItem({
+    pc: indexes.pc >= 0 ? row[indexes.pc] : `csv-${syntheticIdPrefix}-${index + 1}`, kod: indexes.kod >= 0 ? row[indexes.kod] : null,
     popis: indexes.popis >= 0 ? row[indexes.popis] : null, mj: indexes.mj >= 0 ? row[indexes.mj] : null,
     mnozstvi: indexes.mnozstvi >= 0 ? row[indexes.mnozstvi] : null, jcena: indexes.jcena >= 0 ? row[indexes.jcena] : null,
     celkem: indexes.celkem >= 0 ? row[indexes.celkem] : null, confidence: 1,
