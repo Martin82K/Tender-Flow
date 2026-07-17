@@ -8,10 +8,12 @@ import type {
   BidComparisonAutoStartResult,
   BidComparisonAutoStatus,
   BidComparisonDetectionResult,
+  BidComparisonFileConfig,
   BidComparisonJobStatus,
   BidComparisonStartInput,
   BidComparisonStartResult,
   BidComparisonSupplierOption,
+  BidComparisonWorkspaceState,
   FileInfo,
   FolderInfo,
   FolderSnapshot,
@@ -126,6 +128,11 @@ export interface IpcContractMap {
     args: [config: BidComparisonAgentConfig];
     result: BidComparisonAgentTestResult;
   };
+  "bid-comparison:load-workspace": { args: [tenderFolderPath: string]; result: BidComparisonWorkspaceState };
+  "bid-comparison:save-config": { args: [tenderFolderPath: string, config: BidComparisonFileConfig]; result: BidComparisonFileConfig };
+  "bid-comparison:save-agent-secret": { args: [secret: string]; result: void };
+  "bid-comparison:has-agent-secret": { args: []; result: boolean };
+  "bid-comparison:clear-agent-secret": { args: []; result: void };
   "bid-comparison:auto-start": {
     args: [config: BidComparisonAutoConfig];
     result: BidComparisonAutoStartResult;

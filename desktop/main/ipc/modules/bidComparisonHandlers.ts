@@ -1,6 +1,8 @@
 import { ipcMain } from "electron";
-import { testBidComparisonAgentConnection } from "../../services/bidComparisonAgent";
+import { testBidComparisonHermesConnection } from "../../services/bidComparisonHermes";
 import { getBidComparisonRunner } from "../../services/bidComparisonRunner";
+import { SecureStorageService } from "../../services/secureStorage";
+import { loadBidComparisonConfig, loadBidComparisonResult, saveBidComparisonConfig } from "../../services/bidComparisonWorkspace";
 import type {
   BidComparisonAgentConfig,
   BidComparisonAgentTestResult,
@@ -9,12 +11,16 @@ import type {
   BidComparisonAutoStartResult,
   BidComparisonAutoStatus,
   BidComparisonDetectionResult,
+  BidComparisonFileConfig,
   BidComparisonJobStatus,
   BidComparisonSelectedFileInput,
   BidComparisonStartInput,
   BidComparisonStartResult,
   BidComparisonSupplierOption,
+  BidComparisonWorkspaceState,
 } from "../../types";
+
+export const BID_COMPARISON_AGENT_SECRET_KEY = 'bid_comparison_agent_secret_v1';
 
 interface BidComparisonAutoRunnerLike {
   autoStart: (config: BidComparisonAutoConfig) => Promise<BidComparisonAutoStartResult>;
@@ -34,6 +40,7 @@ export const registerBidComparisonHandlers = ({
   bidComparisonAutoRunner,
   requireAuth,
 }: BidComparisonHandlerDependencies): void => {
+  const secureStorage = new SecureStorageService();
   ipcMain.handle(
     "bid-comparison:detect-inputs",
     async (
@@ -90,9 +97,45 @@ export const registerBidComparisonHandlers = ({
     "bid-comparison:test-agent",
     async (event, config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> => {
       requireAuth(event.sender, 'bid-comparison:test-agent');
-      return testBidComparisonAgentConnection(config);
+      const transientSecret = config.bearerToken?.trim();
+      const secret = transientSecret || await secureStorage.get(BID_COMPARISON_AGENT_SECRET_KEY) || '';
+      return testBidComparisonHermesConnection({ ...config, bearerToken: undefined }, secret);
     },
   );
+
+  ipcMain.handle('bid-comparison:load-workspace', async (event, tenderFolderPath: string): Promise<BidComparisonWorkspaceState> => {
+    requireAuth(event.sender, 'bid-comparison:load-workspace');
+    const resolved = await resolvePortableReadPath(tenderFolderPath);
+    const [config, result, secret] = await Promise.all([
+      loadBidComparisonConfig(resolved),
+      loadBidComparisonResult(resolved),
+      secureStorage.get(BID_COMPARISON_AGENT_SECRET_KEY),
+    ]);
+    return { config, result, hasAgentSecret: Boolean(secret) };
+  });
+
+  ipcMain.handle('bid-comparison:save-config', async (event, tenderFolderPath: string, config: BidComparisonFileConfig): Promise<BidComparisonFileConfig> => {
+    requireAuth(event.sender, 'bid-comparison:save-config');
+    const resolved = await resolvePortableReadPath(tenderFolderPath);
+    return saveBidComparisonConfig(resolved, config);
+  });
+
+  ipcMain.handle('bid-comparison:save-agent-secret', async (event, secret: string): Promise<void> => {
+    requireAuth(event.sender, 'bid-comparison:save-agent-secret');
+    const normalized = String(secret || '').trim();
+    if (normalized.length < 16 || normalized.length > 4096) throw new Error('API token musí mít 16 až 4096 znaků.');
+    await secureStorage.set(BID_COMPARISON_AGENT_SECRET_KEY, normalized);
+  });
+
+  ipcMain.handle('bid-comparison:has-agent-secret', async (event): Promise<boolean> => {
+    requireAuth(event.sender, 'bid-comparison:has-agent-secret');
+    return Boolean(await secureStorage.get(BID_COMPARISON_AGENT_SECRET_KEY));
+  });
+
+  ipcMain.handle('bid-comparison:clear-agent-secret', async (event): Promise<void> => {
+    requireAuth(event.sender, 'bid-comparison:clear-agent-secret');
+    await secureStorage.delete(BID_COMPARISON_AGENT_SECRET_KEY);
+  });
 
   ipcMain.handle(
     "bid-comparison:auto-start",

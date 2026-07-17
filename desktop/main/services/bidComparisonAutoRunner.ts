@@ -12,6 +12,8 @@ import type {
   BidComparisonSelectedFileInput,
   BidComparisonStartInput,
 } from '../types';
+import { createDefaultBidComparisonConfig } from './bidComparisonScoring';
+import { isSupportedBidComparisonSource } from './bidComparisonNormalization';
 
 const STORAGE_KEY = 'bidComparison:autoConfigs:v1';
 const DEFAULT_DEBOUNCE_MS = 10_000;
@@ -74,8 +76,6 @@ const normalizeScope = (config: BidComparisonAutoConfig): BidComparisonAutoScope
 
 const toIsoNow = (): string => new Date().toISOString();
 
-const isXlsxPath = (filePath: string): boolean => filePath.toLowerCase().endsWith('.xlsx');
-
 const normalizeConfig = (config: BidComparisonAutoConfig): NormalizedAutoConfig => ({
   ...config,
   tenderFolderPath: path.resolve(config.tenderFolderPath),
@@ -87,6 +87,7 @@ const normalizeConfig = (config: BidComparisonAutoConfig): NormalizedAutoConfig 
     baseUrl: '',
     bearerToken: '',
   },
+  evaluationConfig: config.evaluationConfig ?? createDefaultBidComparisonConfig(),
   debounceMs: Number.isFinite(config.debounceMs)
     ? Math.max(1_000, Math.floor(config.debounceMs as number))
     : DEFAULT_DEBOUNCE_MS,
@@ -129,7 +130,8 @@ const isGeneratedOutput = (filePath: string, outputBaseName: string): boolean =>
 const shouldReactToFileChange = (filePath: string, outputBaseName: string): boolean => {
   const base = path.basename(filePath);
   if (base.startsWith('~$')) return false;
-  if (!isXlsxPath(filePath)) return false;
+  if (filePath.split(path.sep).includes('porovnani-normalized')) return false;
+  if (!isSupportedBidComparisonSource(filePath)) return false;
   if (isGeneratedOutput(filePath, outputBaseName)) return false;
   return true;
 };
@@ -161,6 +163,7 @@ const mergeSelectedFiles = (
       role,
       supplierName,
       round,
+      referenceSource: selected?.referenceSource,
     };
   });
 };
@@ -172,14 +175,16 @@ const extractStartInput = (
       role: BidComparisonRole;
       supplierName: string | null;
       round: number;
+      referenceSource?: 'mapped_budget_attachment';
     }
   >,
 ) => {
+  const explicitlyMappedPaths = new Set(config.selectedFiles.map((file) => path.resolve(file.path)));
   const unresolvedFiles = files.filter((file) => {
-    if (!file.analysis?.isValidTemplate) return false;
+    if (!file.analysis?.isValidTemplate && !file.requiresNormalization) return false;
     if (file.role !== 'ignore') return false;
     if (isGeneratedOutput(file.path, config.outputBaseName)) return false;
-    return true;
+    return !explicitlyMappedPaths.has(path.resolve(file.path));
   });
 
   const selectedFiles = files
@@ -190,15 +195,22 @@ const extractStartInput = (
       supplierName: file.role === 'offer' ? file.supplierName : null,
       round: file.role === 'offer' ? file.round : undefined,
       mtimeMs: file.mtimeMs,
+      referenceSource: file.referenceSource,
     }));
 
   const zadaniCount = selectedFiles.filter((file) => file.role === 'zadani').length;
+  const invalidZadani = files.some(
+    (file) => file.role === 'zadani' && !file.analysis?.isValidTemplate && !file.requiresNormalization,
+  );
   const offers = selectedFiles.filter((file) => file.role === 'offer');
   const offersMissingSupplier = offers.some((offer) => !(offer.supplierName || '').trim());
 
   const blockingReasons: string[] = [];
   if (zadaniCount > 1) {
     blockingReasons.push('Může být vybrán nejvýše jeden soubor zadání.');
+  }
+  if (invalidZadani) {
+    blockingReasons.push('Zadání musí být podporovaný dokument nebo validní XLSX.');
   }
   if (offers.length < 1) {
     blockingReasons.push('Musí být alespoň jedna nabídka dodavatele.');
@@ -224,6 +236,7 @@ const extractStartInput = (
     tenderFolderPath: config.tenderFolderPath,
     outputBaseName: config.outputBaseName,
     agent: config.agent.enabled ? config.agent : undefined,
+    evaluationConfig: config.evaluationConfig,
     selectedFiles,
   };
 

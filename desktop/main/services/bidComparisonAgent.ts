@@ -1,4 +1,5 @@
-import type { BidComparisonAgentConfig } from '../types';
+import * as crypto from 'crypto';
+import type { BidComparisonAgentConfig, BidComparisonEvaluation, BidComparisonFileConfig } from '../types';
 import type {
   BidComparisonAgentRecommendation,
   BidComparisonAgentRisk,
@@ -7,10 +8,16 @@ import type {
 } from './bidComparisonEngine';
 
 export interface BidComparisonAgentPayload {
-  version: 1;
+  version: 2;
+  requestId: string;
   source: 'tender-flow';
   mode: 'analysis' | 'connection_test';
   generatedAt: string;
+  policy: {
+    inputTrust: 'untrusted-business-data';
+    numericAuthority: 'tender-flow-local';
+    allowedTask: 'explain-and-flag-only';
+  };
   tender: {
     projectId: string | null;
     categoryId: string | null;
@@ -20,6 +27,8 @@ export interface BidComparisonAgentPayload {
     pocetPolozek: number;
     suppliers: BuildComparisonResult['suppliers'];
     matrix: BidComparisonMatrixItem[];
+    evaluation: BidComparisonEvaluation | null;
+    criteria: BidComparisonFileConfig['suppliers'];
   };
 }
 
@@ -31,6 +40,9 @@ export interface BidComparisonAgentRequestInput {
   pocetPolozek: number;
   suppliers: BuildComparisonResult['suppliers'];
   matrix: BidComparisonMatrixItem[];
+  requestId: string;
+  evaluation: BidComparisonEvaluation;
+  criteria: BidComparisonFileConfig['suppliers'];
 }
 
 export interface BidComparisonAgentTestResult {
@@ -41,12 +53,14 @@ export interface BidComparisonAgentTestResult {
 }
 
 const AGENT_ENDPOINT_PATH = '/v1/tender-flow/bid-analysis';
-const DEFAULT_AGENT_TIMEOUT_MS = 45_000;
+const DEFAULT_AGENT_TIMEOUT_MS = 60_000;
 const MIN_AGENT_TIMEOUT_MS = 5_000;
 const MAX_AGENT_TIMEOUT_MS = 120_000;
 const MAX_TEXT_LENGTH = 6_000;
 const MAX_STEP_LENGTH = 1_000;
 const MAX_RISK_LENGTH = 1_500;
+const MAX_RESPONSE_BYTES = 512 * 1024;
+const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 
 const clampTimeout = (timeoutMs: number | undefined): number => {
   if (!Number.isFinite(timeoutMs)) return DEFAULT_AGENT_TIMEOUT_MS;
@@ -76,8 +90,9 @@ export const resolveBidComparisonAgentEndpoint = (config: BidComparisonAgentConf
     throw new Error('URL Hermes agenta není platná.');
   }
 
-  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error('Hermes agent musí používat HTTP nebo HTTPS URL.');
+  const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLocal)) {
+    throw new Error('Hermes agent musí používat HTTPS URL (HTTP je povoleno jen pro localhost).');
   }
 
   const normalizedPath = parsed.pathname.replace(/\/+$/, '');
@@ -94,19 +109,22 @@ const assertUsableAgentConfig = (config: BidComparisonAgentConfig): void => {
   if (!config.enabled) {
     throw new Error('Agentní porovnání je vypnuté.');
   }
-  if (!(config.bearerToken || '').trim()) {
-    throw new Error('Chybí API token pro Hermes agenta.');
-  }
 };
 
 const createPayload = (
   input: BidComparisonAgentRequestInput,
   mode: BidComparisonAgentPayload['mode'],
 ): BidComparisonAgentPayload => ({
-  version: 1,
+  version: 2,
+  requestId: input.requestId,
   source: 'tender-flow',
   mode,
   generatedAt: new Date().toISOString(),
+  policy: {
+    inputTrust: 'untrusted-business-data',
+    numericAuthority: 'tender-flow-local',
+    allowedTask: 'explain-and-flag-only',
+  },
   tender: {
     projectId: input.projectId,
     categoryId: input.categoryId,
@@ -116,6 +134,8 @@ const createPayload = (
     pocetPolozek: input.pocetPolozek,
     suppliers: input.suppliers,
     matrix: input.matrix,
+    evaluation: input.evaluation,
+    criteria: input.criteria,
   },
 });
 
@@ -181,33 +201,61 @@ export const normalizeAgentRecommendation = (raw: unknown): BidComparisonAgentRe
 const postToAgent = async (
   config: BidComparisonAgentConfig,
   payload: BidComparisonAgentPayload,
+  secret: string,
 ): Promise<{ status: number; json: unknown }> => {
   assertUsableAgentConfig(config);
   const endpoint = resolveBidComparisonAgentEndpoint(config);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), clampTimeout(config.timeoutMs));
 
+  const requestBody = JSON.stringify(payload);
+  if (Buffer.byteLength(requestBody, 'utf8') > MAX_REQUEST_BYTES) throw new Error('Data pro Hermes agenta překračují povolený limit.');
+  if (!secret.trim()) throw new Error('Chybí bezpečně uložený API token pro Hermes agenta.');
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        authorization: `Bearer ${(config.bearerToken || '').trim()}`,
+        authorization: `Bearer ${secret.trim()}`,
         'content-type': 'application/json',
+        'x-request-id': payload.requestId,
+        'idempotency-key': payload.requestId,
       },
-      body: JSON.stringify(payload),
+      body: requestBody,
       signal: controller.signal,
     });
 
-    const text = await response.text();
+    const declaredLength = Number(response.headers.get('content-length') || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) throw new Error('Hermes agent vrátil příliš velkou odpověď.');
+    const reader = response.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > MAX_RESPONSE_BYTES) {
+          await reader.cancel();
+          throw new Error('Hermes agent vrátil příliš velkou odpověď.');
+        }
+        chunks.push(value);
+      }
+    }
+    const text = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString('utf8');
     if (!response.ok) {
       throw new Error(`Hermes agent vrátil HTTP ${response.status}.`);
     }
 
+    let json: unknown;
     try {
-      return { status: response.status, json: text ? JSON.parse(text) : {} };
+      json = text ? JSON.parse(text) : {};
     } catch {
       throw new Error('Hermes agent vrátil odpověď, která není platné JSON.');
     }
+    if (!json || typeof json !== 'object' || (json as Record<string, unknown>).version !== 2) {
+      throw new Error('Hermes agent vrátil nepodporovanou verzi odpovědi.');
+    }
+    return { status: response.status, json };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Hermes agent neodpověděl v nastaveném timeoutu.');
@@ -220,23 +268,39 @@ const postToAgent = async (
 
 export const requestBidComparisonAgentRecommendation = async (
   input: BidComparisonAgentRequestInput,
+  secret: string,
 ): Promise<BidComparisonAgentRecommendation> => {
   const payload = createPayload(input, 'analysis');
-  const response = await postToAgent(input.config, payload);
-  return normalizeAgentRecommendation(response.json);
+  const response = await postToAgent(input.config, payload, secret);
+  const recommendation = normalizeAgentRecommendation(response.json);
+  const knownSuppliers = new Set(input.evaluation.scores.map((score) => score.supplierName));
+  if (recommendation.recommendedSupplier && !knownSuppliers.has(recommendation.recommendedSupplier)) {
+    throw new Error('Hermes agent odkázal na neznámého dodavatele.');
+  }
+  recommendation.risks.forEach((risk) => {
+    if (risk.supplierName && !knownSuppliers.has(risk.supplierName)) throw new Error('Hermes agent vrátil riziko pro neznámého dodavatele.');
+  });
+  return recommendation;
 };
 
 export const testBidComparisonAgentConnection = async (
   config: BidComparisonAgentConfig,
+  secret: string,
 ): Promise<BidComparisonAgentTestResult> => {
   let endpoint: string | null = null;
   try {
     endpoint = resolveBidComparisonAgentEndpoint(config);
     const response = await postToAgent(config, {
-      version: 1,
+      version: 2,
+      requestId: crypto.randomUUID(),
       source: 'tender-flow',
       mode: 'connection_test',
       generatedAt: new Date().toISOString(),
+      policy: {
+        inputTrust: 'untrusted-business-data',
+        numericAuthority: 'tender-flow-local',
+        allowedTask: 'explain-and-flag-only',
+      },
       tender: {
         projectId: null,
         categoryId: null,
@@ -246,8 +310,10 @@ export const testBidComparisonAgentConnection = async (
         pocetPolozek: 0,
         suppliers: {},
         matrix: [],
+        evaluation: null,
+        criteria: {},
       },
-    });
+    }, secret);
 
     return {
       success: true,

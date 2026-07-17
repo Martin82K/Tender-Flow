@@ -884,6 +884,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           categoryId={activeCategory.id}
           initialTenderFolderPath={bidComparisonTenderPath}
           supplierNames={bidComparisonSuppliers}
+          mappedBudgetAttachment={activeCategory.budgetAttachment}
         />
 
         <SubcontractorSelectorModal

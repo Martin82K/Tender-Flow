@@ -212,6 +212,45 @@ export interface BidComparisonDetectedFile {
     suggestedRound: number;
     analysis: BidComparisonDetectionAnalysis | null;
     analysisError: string | null;
+    sourceFormat?: 'xlsx' | 'xls' | 'xlsm' | 'csv' | 'pdf' | 'doc' | 'docx' | 'image';
+    requiresNormalization?: boolean;
+}
+
+export interface BidComparisonNormalizedItem {
+    pc: string | null;
+    kod: string | null;
+    popis: string;
+    mj: string | null;
+    mnozstvi: number | null;
+    jcena: number | null;
+    celkem: number | null;
+    confidence: number;
+    reviewRequired: boolean;
+}
+
+export interface BidComparisonNormalizationResult {
+    version: 1;
+    sourceFileName: string;
+    sourceSha256: string;
+    sourceFormat: BidComparisonDetectedFile['sourceFormat'];
+    supplierName: string;
+    purpose: 'offer' | 'reference';
+    generatedAt: string;
+    extractor: 'local-csv' | 'remote-api';
+    items: BidComparisonNormalizedItem[];
+    warnings: string[];
+    reviewRequired: boolean;
+}
+
+export interface BidComparisonNormalizationSummary {
+    supplierName: string;
+    purpose: BidComparisonNormalizationResult['purpose'];
+    sourceFileName: string;
+    sourceFormat: BidComparisonDetectedFile['sourceFormat'];
+    extractor: BidComparisonNormalizationResult['extractor'];
+    itemCount: number;
+    reviewCount: number;
+    warnings: string[];
 }
 
 export interface BidComparisonDetectionResult {
@@ -226,13 +265,97 @@ export interface BidComparisonSelectedFileInput {
     supplierName?: string | null;
     round?: number;
     mtimeMs?: number;
+    referenceSource?: 'mapped_budget_attachment';
 }
 
 export interface BidComparisonAgentConfig {
     enabled: boolean;
     baseUrl: string;
-    bearerToken: string;
+    /** Transient renderer input only. Never persisted in the tender folder. */
+    bearerToken?: string;
     timeoutMs?: number;
+}
+
+export interface BidComparisonWeights {
+    price: number;
+    completeness: number;
+    commercialTerms: number;
+    supplierHistory: number;
+    priceRisk: number;
+}
+
+export interface BidComparisonSupplierCriteria {
+    realizationDate: string | null;
+    warrantyMonths: number | null;
+    maturityDays: number | null;
+    scopeConfirmed: boolean | null;
+    supplierRating: number | null;
+    note: string;
+}
+
+export interface BidComparisonFileConfig {
+    version: 1;
+    weights: BidComparisonWeights;
+    suppliers: Record<string, BidComparisonSupplierCriteria>;
+}
+
+export interface BidComparisonCriterionScores {
+    price: number;
+    completeness: number;
+    commercialTerms: number | null;
+    supplierHistory: number | null;
+    priceRisk: number;
+}
+
+export interface BidComparisonSupplierScore {
+    supplierName: string;
+    displayLabel: string;
+    rank: number;
+    totalPrice: number | null;
+    totalScore: number;
+    scores: BidComparisonCriterionScores;
+    missingCriteria: string[];
+}
+
+export interface BidComparisonPriceAnomaly {
+    itemKey: string;
+    supplierName: string;
+    displayLabel: string;
+    price: number;
+    median: number;
+    deviationPercent: number;
+    direction: 'low' | 'high';
+}
+
+export interface BidComparisonEvaluation {
+    algorithmVersion: '1.0.0';
+    requestedWeights: BidComparisonWeights;
+    effectiveWeights: BidComparisonWeights;
+    warnings: string[];
+    scores: BidComparisonSupplierScore[];
+    anomalies: BidComparisonPriceAnomaly[];
+}
+
+export interface BidComparisonInputFingerprint {
+    fileName: string;
+    sha256: string;
+}
+
+export interface BidComparisonStoredResult {
+    version: 1;
+    generatedAt: string;
+    requestId: string;
+    algorithmVersion: '1.0.0';
+    inputFingerprints: BidComparisonInputFingerprint[];
+    evaluation: BidComparisonEvaluation;
+    agentRecommendation: BidComparisonAgentRecommendation | null;
+    normalizations?: BidComparisonNormalizationSummary[];
+}
+
+export interface BidComparisonWorkspaceState {
+    config: BidComparisonFileConfig;
+    result: BidComparisonStoredResult | null;
+    hasAgentSecret: boolean;
 }
 
 export interface BidComparisonAgentTestResult {
@@ -283,6 +406,7 @@ export interface BidComparisonStartInput {
     selectedFiles: BidComparisonSelectedFileInput[];
     outputBaseName?: string;
     agent?: BidComparisonAgentConfig;
+    evaluationConfig?: BidComparisonFileConfig;
 }
 
 export interface BidComparisonStartResult {
@@ -313,6 +437,7 @@ export interface BidComparisonAutoConfig extends BidComparisonAutoScope {
     fallbackIntervalMinutes?: number;
     outputBaseName?: string;
     agent?: BidComparisonAgentConfig;
+    evaluationConfig?: BidComparisonFileConfig;
 }
 
 export interface BidComparisonAutoStatus extends BidComparisonAutoScope {
@@ -341,6 +466,10 @@ export interface BidComparisonJobResult {
     sourceMode?: 'zadani' | 'offers_only';
     matrix?: BidComparisonMatrixItem[];
     agentRecommendation?: BidComparisonAgentRecommendation | null;
+    evaluation?: BidComparisonEvaluation;
+    requestId?: string;
+    inputFingerprints?: BidComparisonInputFingerprint[];
+    normalizations?: BidComparisonNormalizationSummary[];
     suppliers: Record<string, {
         sparovano: number;
         nesparovano: string[];
@@ -381,6 +510,11 @@ export interface BidComparisonAPI {
     list: (filter?: { projectId?: string; categoryId?: string }) => Promise<BidComparisonJobStatus[]>;
     cancel: (jobId: string) => Promise<{ success: boolean }>;
     testAgent: (config: BidComparisonAgentConfig) => Promise<BidComparisonAgentTestResult>;
+    loadWorkspace: (tenderFolderPath: string) => Promise<BidComparisonWorkspaceState>;
+    saveConfig: (tenderFolderPath: string, config: BidComparisonFileConfig) => Promise<BidComparisonFileConfig>;
+    saveAgentSecret: (secret: string) => Promise<void>;
+    hasAgentSecret: () => Promise<boolean>;
+    clearAgentSecret: () => Promise<void>;
     autoStart: (config: BidComparisonAutoConfig) => Promise<BidComparisonAutoStartResult>;
     autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
     autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;

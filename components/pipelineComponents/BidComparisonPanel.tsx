@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { trackFeatureUsage } from '../../services/featureUsageService';
 import { openInExplorer } from '../../services/fileSystemService';
 import platformAdapter from '../../services/platformAdapter';
 import {
@@ -14,15 +13,20 @@ import type {
   BidComparisonAutoConfig,
   BidComparisonAutoStatus,
   BidComparisonDetectedFile,
+  BidComparisonFileConfig,
   BidComparisonJobState,
   BidComparisonJobStatus,
   BidComparisonRole,
+  BidComparisonStoredResult,
+  BidComparisonSupplierCriteria,
 } from '../../shared/types/desktop';
+import type { BudgetAttachment } from '../../types';
 
 interface EditableDetectedFile extends BidComparisonDetectedFile {
   role: BidComparisonRole;
   supplierName: string | null;
   round: number;
+  referenceSource?: 'mapped_budget_attachment';
 }
 
 interface BidComparisonPanelProps {
@@ -32,6 +36,7 @@ interface BidComparisonPanelProps {
   categoryId: string;
   initialTenderFolderPath: string | null;
   supplierNames: string[];
+  mappedBudgetAttachment?: BudgetAttachment | null;
 }
 
 const terminalStates: ReadonlySet<BidComparisonJobState> = new Set([
@@ -40,6 +45,20 @@ const terminalStates: ReadonlySet<BidComparisonJobState> = new Set([
   'cancelled',
 ]);
 const OUTPUT_BASE_NAME = 'porovnani-nabidek';
+const WEIGHT_KEYS = ['price', 'completeness', 'commercialTerms', 'supplierHistory', 'priceRisk'] as const;
+const DEFAULT_FILE_CONFIG: BidComparisonFileConfig = {
+  version: 1,
+  weights: { price: 45, completeness: 20, commercialTerms: 15, supplierHistory: 10, priceRisk: 10 },
+  suppliers: {},
+};
+const EMPTY_CRITERIA: BidComparisonSupplierCriteria = {
+  realizationDate: null,
+  warrantyMonths: null,
+  maturityDays: null,
+  scopeConfirmed: null,
+  supplierRating: null,
+  note: '',
+};
 
 const normalizeSupplierList = (list: string[]): string[] =>
   Array.from(new Set(list.map((value) => value.trim()).filter(Boolean))).sort((a, b) =>
@@ -66,6 +85,9 @@ const getRoleLabel = (role: BidComparisonRole): string => {
   if (role === 'offer') return 'Nabídka';
   return 'Ignorovat';
 };
+
+const canBeReferenceFile = (file: BidComparisonDetectedFile): boolean =>
+  file.analysis?.isValidTemplate === true || file.requiresNormalization === true;
 
 const getStatusTone = (tone: 'ok' | 'warn' | 'idle'): string => {
   if (tone === 'ok') {
@@ -116,6 +138,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   categoryId,
   initialTenderFolderPath,
   supplierNames,
+  mappedBudgetAttachment,
 }) => {
   const [tenderFolderPath, setTenderFolderPath] = useState<string>(
     initialTenderFolderPath || '',
@@ -136,8 +159,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [agentConfig, setAgentConfig] = useState<BidComparisonAgentConfig>(
     parseBidComparisonAgentSettings(null),
   );
+  const [fileConfig, setFileConfig] = useState<BidComparisonFileConfig>(DEFAULT_FILE_CONFIG);
+  const [storedResult, setStoredResult] = useState<BidComparisonStoredResult | null>(null);
+  const [hasAgentSecret, setHasAgentSecret] = useState(false);
 
-  const trackedSuccessJobIdRef = useRef<string | null>(null);
   const autoDetectedPathRef = useRef<string | null>(null);
   const autoSyncTimerRef = useRef<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -169,7 +194,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     setAutoError(null);
     setAutoStatus(null);
     setAgentConfig(parseBidComparisonAgentSettings(null));
-    trackedSuccessJobIdRef.current = null;
+    setFileConfig(DEFAULT_FILE_CONFIG);
+    setStoredResult(null);
+    setHasAgentSecret(false);
     autoDetectedPathRef.current = null;
   }, [
     folderStorageProjectKey,
@@ -194,7 +221,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     () => toRuntimeBidComparisonAgentConfig(agentConfig),
     [agentConfig],
   );
-  const agentIsRunnable = runtimeAgentConfig.enabled;
+  const agentIsRunnable = runtimeAgentConfig.enabled && hasAgentSecret;
 
   const buildAutoConfig = useCallback(
     (enabled: boolean): BidComparisonAutoConfig => ({
@@ -208,14 +235,16 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         supplierName: file.role === 'offer' ? file.supplierName : null,
         round: file.role === 'offer' ? file.round : undefined,
         mtimeMs: file.mtimeMs,
+        referenceSource: file.referenceSource,
       })),
       enabled,
       debounceMs: 10_000,
       fallbackIntervalMinutes: 15,
       outputBaseName: OUTPUT_BASE_NAME,
-      agent: runtimeAgentConfig,
+      agent: { ...runtimeAgentConfig, enabled: agentIsRunnable, bearerToken: undefined },
+      evaluationConfig: fileConfig,
     }),
-    [categoryId, files, projectId, runtimeAgentConfig, supplierOptions, tenderFolderPath],
+    [agentIsRunnable, categoryId, fileConfig, files, projectId, runtimeAgentConfig, supplierOptions, tenderFolderPath],
   );
 
   useEffect(() => {
@@ -259,21 +288,49 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
       setDetectError(null);
 
       try {
-        const result = await platformAdapter.bidComparison.detectInputs({
-          tenderFolderPath: folderPath,
-          suppliers: supplierOptions.length
-            ? supplierOptions.map((name) => ({ name }))
-            : [],
-        });
+        const workspacePromise = typeof platformAdapter.bidComparison.loadWorkspace === 'function'
+          ? platformAdapter.bidComparison.loadWorkspace(folderPath)
+          : Promise.resolve({ config: DEFAULT_FILE_CONFIG, result: null, hasAgentSecret: false });
+        const [result, workspace] = await Promise.all([
+          platformAdapter.bidComparison.detectInputs({
+            tenderFolderPath: folderPath,
+            suppliers: supplierOptions.length ? supplierOptions.map((name) => ({ name })) : [],
+          }),
+          workspacePromise,
+        ]);
 
         setTenderFolderPath(result.tenderFolderPath);
-        setWarnings(result.warnings || []);
-        const mappedFiles = result.files.map((file) => ({
-          ...file,
-          role: file.suggestedRole,
-          supplierName: file.suggestedSupplierName,
-          round: Number.isFinite(file.suggestedRound) ? Math.max(0, file.suggestedRound) : 0,
-        }));
+        setFileConfig(workspace.config);
+        setStoredResult(workspace.result);
+        setHasAgentSecret(workspace.hasAgentSecret);
+        const attachmentRelativePath = mappedBudgetAttachment?.enabled
+          ? mappedBudgetAttachment.relativePath.replace(/\\/g, '/').replace(/^\/+/, '')
+          : null;
+        const hasMappedReference = Boolean(attachmentRelativePath && result.files.some(
+          (file) => file.relativePath.replace(/\\/g, '/') === attachmentRelativePath,
+        ));
+        setWarnings([
+          ...(result.warnings || []).filter((warning) => !warning.includes('Nebyl nalezen vhodný soubor zadání')),
+          ...(attachmentRelativePath && !hasMappedReference
+            ? [`Mapovaná základní poptávka „${mappedBudgetAttachment?.fileName || attachmentRelativePath}“ nebyla ve složce VŘ nalezena nebo nemá podporovaný formát.`]
+            : []),
+        ]);
+        const mappedFiles = result.files.map((file) => {
+          const isMappedReference = hasMappedReference && file.relativePath.replace(/\\/g, '/') === attachmentRelativePath;
+          const displacedAutomaticReference = hasMappedReference && file.suggestedRole === 'zadani' && !isMappedReference;
+          const role = isMappedReference
+            ? 'zadani' as const
+            : displacedAutomaticReference
+              ? (file.suggestedSupplierName ? 'offer' as const : 'ignore' as const)
+              : file.suggestedRole;
+          return {
+            ...file,
+            role,
+            supplierName: role === 'offer' ? file.suggestedSupplierName : null,
+            round: Number.isFinite(file.suggestedRound) ? Math.max(0, file.suggestedRound) : 0,
+            referenceSource: isMappedReference ? 'mapped_budget_attachment' as const : undefined,
+          };
+        });
         setFiles(mappedFiles);
       } catch (error) {
         setDetectError(error instanceof Error ? error.message : String(error));
@@ -281,7 +338,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         setIsDetecting(false);
       }
     },
-    [canUseDesktopApi, supplierOptions, tenderFolderPath],
+    [canUseDesktopApi, mappedBudgetAttachment, supplierOptions, tenderFolderPath],
   );
 
   const refreshAutoStatus = useCallback(async () => {
@@ -390,13 +447,6 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         setJob(next);
         shouldContinue = !terminalStates.has(next.status);
 
-        if (next.status === 'success' && trackedSuccessJobIdRef.current !== next.id) {
-          trackedSuccessJobIdRef.current = next.id;
-          void trackFeatureUsage('bid_comparison', {
-            suppliersCount: Object.keys(next.stats?.suppliers || {}).length,
-            pocetPolozek: next.stats?.pocetPolozek || 0,
-          });
-        }
       } catch {
         // Polling musí být odolný, chybu zobrazíme jen v UI stavu jobu.
       } finally {
@@ -458,14 +508,20 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     if (roleSummary.zadaniCount > 1) {
       reasons.push('Může být vybrán nejvýše jeden soubor zadání.');
     }
+    if (files.some((file) => file.role === 'zadani' && !canBeReferenceFile(file))) {
+      reasons.push('Zadání musí být podporovaný dokument nebo validní XLSX.');
+    }
     if (roleSummary.offerCount < 1) {
       reasons.push('Musí být alespoň jedna nabídka dodavatele.');
     }
     if (offerFiles.some((file) => !(file.supplierName || '').trim())) {
       reasons.push('Každá nabídka musí mít přiřazeného dodavatele.');
     }
+    if (files.some((file) => file.role !== 'ignore' && file.requiresNormalization && file.sourceFormat !== 'csv' && file.referenceSource !== 'mapped_budget_attachment') && !hasAgentSecret) {
+      reasons.push('Pro dokumenty a skeny je nutné uložit API token v nastavení porovnávání.');
+    }
     return reasons;
-  }, [files.length, offerFiles, roleSummary.offerCount, roleSummary.zadaniCount]);
+  }, [files, hasAgentSecret, offerFiles, roleSummary.offerCount, roleSummary.zadaniCount]);
 
   const supplierReadiness = useMemo(
     () =>
@@ -617,14 +673,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   );
 
   const canStart = useMemo(() => {
-    if (!files.length) return false;
-    if (roleSummary.zadaniCount > 1) return false;
-    if (roleSummary.offerCount < 1) return false;
-
-    return files
-      .filter((file) => file.role === 'offer')
-      .every((file) => !!(file.supplierName || '').trim());
-  }, [files, roleSummary.offerCount, roleSummary.zadaniCount]);
+    return blockingReasons.length === 0;
+  }, [blockingReasons]);
 
   const startComparison = useCallback(async () => {
     if (!canUseDesktopApi || !canStart) return;
@@ -638,16 +688,21 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         categoryId,
         tenderFolderPath,
         outputBaseName: OUTPUT_BASE_NAME,
-        agent: runtimeAgentConfig,
+        agent: { ...runtimeAgentConfig, enabled: agentIsRunnable, bearerToken: undefined },
+        evaluationConfig: fileConfig,
         selectedFiles: files.map((file) => ({
           path: file.path,
           role: file.role,
           supplierName: file.role === 'offer' ? file.supplierName : null,
           round: file.role === 'offer' ? file.round : undefined,
           mtimeMs: file.mtimeMs,
+          referenceSource: file.referenceSource,
         })),
       };
 
+      if (typeof platformAdapter.bidComparison.saveConfig === 'function') {
+        await platformAdapter.bidComparison.saveConfig(tenderFolderPath, fileConfig);
+      }
       const result = await platformAdapter.bidComparison.start(payload);
       setJobId(result.jobId);
       const initial = await platformAdapter.bidComparison.get(result.jobId);
@@ -657,7 +712,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     } finally {
       setIsStarting(false);
     }
-  }, [canStart, canUseDesktopApi, categoryId, files, projectId, runtimeAgentConfig, tenderFolderPath]);
+  }, [agentIsRunnable, canStart, canUseDesktopApi, categoryId, fileConfig, files, projectId, runtimeAgentConfig, tenderFolderPath]);
 
   const cancelJob = useCallback(async () => {
     if (!canUseDesktopApi || !jobId) return;
@@ -709,6 +764,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             setAutoError('Pro zapnutí auto režimu zadejte složku VŘ.');
             return;
           }
+          if (blockingReasons.length > 0) {
+            setAutoError(blockingReasons.join(' '));
+            return;
+          }
           await syncAutoConfig(true);
           return;
         }
@@ -726,6 +785,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     },
     [
       canUseDesktopApi,
+      blockingReasons,
       categoryId,
       projectId,
       refreshAutoStatus,
@@ -735,6 +795,17 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   );
 
   const jobIsRunning = !!job && !terminalStates.has(job.status);
+  const visibleEvaluation = job?.stats?.evaluation || storedResult?.evaluation || null;
+  const weightTotal = WEIGHT_KEYS.reduce((sum, key) => sum + fileConfig.weights[key], 0);
+  const updateSupplierCriteria = useCallback((supplierName: string, patch: Partial<BidComparisonSupplierCriteria>) => {
+    setFileConfig((current) => ({
+      ...current,
+      suppliers: {
+        ...current.suppliers,
+        [supplierName]: { ...(current.suppliers[supplierName] || EMPTY_CRITERIA), ...patch },
+      },
+    }));
+  }, []);
   const handleRequestClose = useCallback(async () => {
     if (isClosing) return;
 
@@ -773,11 +844,11 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         tabIndex={-1}
         className="tf-modal-panel tf-pipeline-modal-panel flex h-screen w-screen flex-col bg-white dark:bg-slate-900"
       >
-        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="shrink-0 flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 id={dialogTitleId} className="text-lg font-bold text-slate-900 dark:text-white">Cenové studio</h2>
+            <h2 id={dialogTitleId} className="text-lg font-bold text-slate-900 dark:text-white">Porovnání nabídek</h2>
             <p id={dialogDescriptionId} className="text-xs text-slate-500 dark:text-slate-400">
-              Porovnání nabídek, rozpočtu a dodavatelských cen v jedné pracovní ploše.
+              Zkontrolujte podklady, spusťte porovnání a otevřete hotový Excel.
             </p>
           </div>
           <button
@@ -799,7 +870,22 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             </div>
           )}
 
-          <section className="shrink-0 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3">
+          <section className="shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
+            <ol className="grid gap-2 sm:grid-cols-3" aria-label="Postup porovnání nabídek">
+              {[
+                { number: 1, label: 'Podklady', helper: files.length ? `${files.length} souborů načteno` : 'Vyberte složku VŘ', active: files.length > 0 },
+                { number: 2, label: 'Kontrola', helper: blockingReasons.length ? `${blockingReasons.length} věcí k vyřešení` : 'Připraveno ke spuštění', active: files.length > 0 && blockingReasons.length === 0 },
+                { number: 3, label: 'Výsledek', helper: job?.status === 'success' ? 'Excel je připravený' : jobIsRunning ? 'Porovnání probíhá' : 'Vznikne po spuštění', active: job?.status === 'success' },
+              ].map((step) => (
+                <li key={step.number} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${step.active ? 'border-primary/30 bg-primary/5' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/40'}`}>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step.active ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>{step.number}</span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">{step.label}</span>
+                    <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{step.helper}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
               <label className="flex-1 space-y-1">
                 <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Složka výběrového řízení</span>
@@ -842,29 +928,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
               </div>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2">
-                <p className="px-2 pb-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Režim výstupu</p>
-                <div className="grid grid-cols-2 gap-1 text-xs font-semibold">
-                  <div
-                    className={`rounded-md px-3 py-2 ${
-                      outputModeLabel === 'Rozpočet + nabídky'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300'
-                    }`}
-                  >
-                    Rozpočet + nabídky
-                  </div>
-                  <div
-                    className={`rounded-md px-3 py-2 ${
-                      outputModeLabel === 'Alternativní ocenění'
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300'
-                    }`}
-                  >
-                    Alternativní ocenění
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Stav podkladů</p>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{outputModeLabel}</span>
               </div>
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {inputHealthItems.map((item) => (
@@ -901,8 +968,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             </div>
           )}
 
-          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
-            <aside className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <aside className="hidden min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Vstupy</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Rozpočet, dodavatelé a soubory ke kontrole.</p>
@@ -1061,8 +1128,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
             <aside className="min-h-0 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
               <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Doporučení</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Rizika, připravenost a další krok.</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Výsledek a další krok</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Připravenost, rizika a otevření hotového Excelu.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1098,10 +1165,30 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                     <p>Zobrazí se po vytvoření matice.</p>
                   </div>
                 )}
-                {job?.stats?.agentRecommendation?.summary && (
+                {(job?.stats?.agentRecommendation || storedResult?.agentRecommendation)?.summary && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                     <p className="font-semibold">Agent</p>
-                    <p>{job.stats.agentRecommendation.summary}</p>
+                    <p>{(job?.stats?.agentRecommendation || storedResult?.agentRecommendation)?.summary}</p>
+                  </div>
+                )}
+                {visibleEvaluation?.scores?.length ? (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    <p className="font-semibold">Poradní pořadí</p>
+                    {visibleEvaluation.scores.slice(0, 3).map((score) => (
+                      <p key={score.displayLabel}>{score.rank}. {score.displayLabel} · {score.totalScore.toLocaleString('cs-CZ')} bodů</p>
+                    ))}
+                  </div>
+                ) : null}
+                {(job?.stats?.normalizations || storedResult?.normalizations)?.some((item) => item.reviewCount > 0) && (
+                  <div className={`rounded-lg border px-3 py-2 ${getStatusTone('warn')}`}>
+                    <p className="font-semibold">Normalizované vstupy ke kontrole</p>
+                    {(job?.stats?.normalizations || storedResult?.normalizations || [])
+                      .filter((item) => item.reviewCount > 0)
+                      .map((item) => (
+                        <p key={`${item.supplierName}-${item.sourceFileName}`}>
+                          {item.supplierName}: {item.reviewCount} z {item.itemCount} položek
+                        </p>
+                      ))}
                   </div>
                 )}
                 {roleSummary.zadaniCount === 0 && files.length > 0 && (
@@ -1143,20 +1230,80 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
               )}
 
               <div className="space-y-2">
+                {(job?.outputLatestPath || job?.outputPath) && job.status === 'success' && (
+                  <button
+                    type="button"
+                    onClick={() => void openOutputFile()}
+                    className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-primary/90"
+                  >
+                    Otevřít hotové porovnání
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void startComparison()}
-                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
-                  disabled={!canStart || isStarting || jobIsRunning}
+                  className="w-full px-4 py-3 rounded-lg text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!canStart || isStarting || jobIsRunning || Math.abs(weightTotal - 100) > 0.001}
                 >
-                  {isStarting ? 'Spouštím...' : 'Vytvořit porovnání'}
+                  {isStarting ? 'Spouštím porovnání...' : job?.status === 'success' ? 'Přepočítat nabídky' : 'Porovnat nabídky'}
                 </button>
+                <details className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Kritéria a váhy ({weightTotal.toLocaleString('cs-CZ')} %)
+                  </summary>
+                  <div className="space-y-3 border-t border-slate-200 dark:border-slate-700 p-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        ['price', 'Cena'],
+                        ['completeness', 'Úplnost'],
+                        ['commercialTerms', 'Podmínky'],
+                        ['supplierHistory', 'Historie'],
+                        ['priceRisk', 'Cenová rizika'],
+                      ] as const).map(([key, label]) => (
+                        <label key={key} className="text-xs text-slate-600 dark:text-slate-300">
+                          {label} %
+                          <input
+                            aria-label={`${label} váha`}
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={fileConfig.weights[key]}
+                            onChange={(event) => setFileConfig((current) => ({
+                              ...current,
+                              weights: { ...current.weights, [key]: Number(event.target.value) },
+                            }))}
+                            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 dark:border-slate-600 dark:bg-slate-900"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    {Math.abs(weightTotal - 100) > 0.001 ? (
+                      <p className="text-xs font-semibold text-rose-600">Součet vah musí být 100 %.</p>
+                    ) : null}
+                    {supplierOptions.map((supplier) => {
+                      const criteria = fileConfig.suppliers[supplier] || EMPTY_CRITERIA;
+                      return (
+                        <details key={supplier} className="rounded border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                          <summary className="cursor-pointer px-2 py-1.5 text-xs font-semibold">{supplier}</summary>
+                          <div className="grid grid-cols-2 gap-2 border-t border-slate-200 p-2 text-xs dark:border-slate-700">
+                            <label>Termín<input aria-label={`${supplier} termín`} type="date" value={criteria.realizationDate || ''} onChange={(event) => updateSupplierCriteria(supplier, { realizationDate: event.target.value || null })} className="mt-1 w-full rounded border px-1 py-1 dark:bg-slate-950" /></label>
+                            <label>Záruka měs.<input aria-label={`${supplier} záruka`} type="number" min={0} max={240} value={criteria.warrantyMonths ?? ''} onChange={(event) => updateSupplierCriteria(supplier, { warrantyMonths: event.target.value === '' ? null : Number(event.target.value) })} className="mt-1 w-full rounded border px-1 py-1 dark:bg-slate-950" /></label>
+                            <label>Splatnost dnů<input aria-label={`${supplier} splatnost`} type="number" min={0} max={365} value={criteria.maturityDays ?? ''} onChange={(event) => updateSupplierCriteria(supplier, { maturityDays: event.target.value === '' ? null : Number(event.target.value) })} className="mt-1 w-full rounded border px-1 py-1 dark:bg-slate-950" /></label>
+                            <label>Rating 1–5<input aria-label={`${supplier} rating`} type="number" min={1} max={5} step={0.1} value={criteria.supplierRating ?? ''} onChange={(event) => updateSupplierCriteria(supplier, { supplierRating: event.target.value === '' ? null : Number(event.target.value) })} className="mt-1 w-full rounded border px-1 py-1 dark:bg-slate-950" /></label>
+                            <label className="col-span-2 flex items-center gap-2"><input type="checkbox" checked={criteria.scopeConfirmed === true} onChange={(event) => updateSupplierCriteria(supplier, { scopeConfirmed: event.target.checked })} /> Rozsah nabídky potvrzen</label>
+                            <label className="col-span-2">Poznámka<textarea aria-label={`${supplier} poznámka`} maxLength={1000} value={criteria.note} onChange={(event) => updateSupplierCriteria(supplier, { note: event.target.value })} className="mt-1 w-full rounded border px-2 py-1 dark:bg-slate-950" /></label>
+                          </div>
+                        </details>
+                      );
+                    })}
+                  </div>
+                </details>
                 <button
                   type="button"
                   onClick={openAgentSettings}
-                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  className="w-full px-4 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                 >
-                  Nastavení agenta
+                  Pokročilé nastavení
                 </button>
                 {jobIsRunning && (
                   <button
@@ -1237,6 +1384,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                             <td className="px-3 py-2">
                               <p className="font-medium text-slate-800 dark:text-slate-100">{file.relativePath}</p>
                               <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.sizeBytes)}</p>
+                              {file.referenceSource === 'mapped_budget_attachment' && (
+                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-300">Mapovaná základní poptávka</p>
+                              )}
                             </td>
                             <td className="px-3 py-2">
                               <select
@@ -1261,7 +1411,12 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                                 }}
                                 className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-sm"
                               >
-                                <option value="zadani">Zadání</option>
+                                <option
+                                  value="zadani"
+                                  disabled={!canBeReferenceFile(file)}
+                                >
+                                  Zadání
+                                </option>
                                 <option value="offer">Nabídka</option>
                                 <option value="ignore">Příloha / ignorovat</option>
                               </select>
@@ -1320,6 +1475,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                             <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                               {file.analysisError ? (
                                 <span className="text-rose-600">{file.analysisError}</span>
+                              ) : file.requiresNormalization ? (
+                                <span>
+                                  {getRoleLabel(file.role)} · {file.sourceFormat?.toUpperCase() || 'dokument'} · bude normalizováno {file.sourceFormat === 'csv' ? 'lokálně' : 'přes API'}
+                                </span>
                               ) : file.analysis ? (
                                 <span>
                                   {getRoleLabel(file.role)} · K řádky {file.analysis.kRows}, oceněné {file.analysis.pricedKRows}

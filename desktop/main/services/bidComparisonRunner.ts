@@ -7,6 +7,8 @@ import type {
   BidComparisonDetectedFile,
   BidComparisonJobResult,
   BidComparisonJobStatus,
+  BidComparisonNormalizationSummary,
+  BidComparisonStoredResult,
   BidComparisonSelectedFileInput,
   BidComparisonStartInput,
   BidComparisonStartResult,
@@ -19,8 +21,30 @@ import {
   type DetectionAnalysis,
 } from './bidComparisonEngine';
 import { requestBidComparisonAgentRecommendation } from './bidComparisonAgent';
+import { analyzeBidComparisonWithHermes } from './bidComparisonHermes';
+import { getBidComparisonSourceFormat, isSupportedBidComparisonSource, normalizeBidComparisonOffer } from './bidComparisonNormalization';
+import { evaluateBidComparison } from './bidComparisonScoring';
+import { SecureStorageService } from './secureStorage';
+import {
+  atomicWriteWorkspaceFile,
+  fingerprintFile,
+  loadBidComparisonConfig,
+  saveBidComparisonConfig,
+  saveBidComparisonResult,
+} from './bidComparisonWorkspace';
 
-const IGNORE_DIRS = new Set(['.git', 'node_modules', 'dist', 'dist-electron']);
+const BID_COMPARISON_AGENT_SECRET_KEY = 'bid_comparison_agent_secret_v1';
+
+const loadBidComparisonSecret = async (transientSecret?: string): Promise<string> => {
+  if (transientSecret?.trim()) return transientSecret.trim();
+  try {
+    return await new SecureStorageService().get(BID_COMPARISON_AGENT_SECRET_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+
+const IGNORE_DIRS = new Set(['.git', 'node_modules', 'dist', 'dist-electron', 'porovnani-normalized']);
 
 const normalizeText = (value: string): string =>
   value
@@ -136,7 +160,7 @@ const ensurePathWithinRoot = (rootPath: string, targetPath: string): string => {
   throw new Error('Neplatná cílová cesta výstupu.');
 };
 
-const collectExcelFiles = async (root: string): Promise<Array<{ absolutePath: string; relativePath: string; size: number; mtimeMs: number }>> => {
+const collectOfferSourceFiles = async (root: string): Promise<Array<{ absolutePath: string; relativePath: string; size: number; mtimeMs: number }>> => {
   const output: Array<{ absolutePath: string; relativePath: string; size: number; mtimeMs: number }> = [];
 
   const walk = async (currentPath: string): Promise<void> => {
@@ -150,7 +174,7 @@ const collectExcelFiles = async (root: string): Promise<Array<{ absolutePath: st
       }
 
       if (!entry.isFile()) continue;
-      if (!entry.name.toLowerCase().endsWith('.xlsx')) continue;
+      if (!isSupportedBidComparisonSource(entry.name)) continue;
       if (entry.name.startsWith('~$')) continue;
 
       const stat = await fs.stat(absolutePath);
@@ -176,17 +200,20 @@ export class BidComparisonRunner {
     suppliers: BidComparisonSupplierOption[];
   }): Promise<BidComparisonDetectionResult> {
     const resolvedRoot = path.resolve(args.tenderFolderPath);
-    const files = await collectExcelFiles(resolvedRoot);
+    const files = await collectOfferSourceFiles(resolvedRoot);
 
     const detected: BidComparisonDetectedFile[] = [];
     for (const file of files) {
       let analysisError: string | null = null;
       let analysis: DetectionAnalysis | null = null;
 
-      try {
-        analysis = await analyzeWorkbookFile(file.absolutePath);
-      } catch (error) {
-        analysisError = error instanceof Error ? error.message : String(error);
+      const sourceFormat = getBidComparisonSourceFormat(file.absolutePath);
+      if (sourceFormat === 'xlsx') {
+        try {
+          analysis = await analyzeWorkbookFile(file.absolutePath);
+        } catch (error) {
+          analysisError = error instanceof Error ? error.message : String(error);
+        }
       }
 
       const inferredSupplier = inferSupplier(file.relativePath, args.suppliers);
@@ -203,6 +230,8 @@ export class BidComparisonRunner {
         suggestedRound,
         analysis,
         analysisError,
+        sourceFormat: sourceFormat || undefined,
+        requiresNormalization: sourceFormat !== 'xlsx' || !analysis?.isValidTemplate,
       });
     }
 
@@ -228,11 +257,8 @@ export class BidComparisonRunner {
 
     detected.forEach((file) => {
       if (file.suggestedRole === 'zadani') return;
-      if (!file.analysis?.isValidTemplate) return;
-
-      file.suggestedRole = 'offer';
-      if (!file.suggestedSupplierName) {
-        file.suggestedRole = 'ignore';
+      if (file.analysis?.isValidTemplate || file.requiresNormalization) {
+        file.suggestedRole = file.suggestedSupplierName ? 'offer' : 'ignore';
       }
     });
 
@@ -376,28 +402,141 @@ export class BidComparisonRunner {
       });
 
       const offerEntries: BidOfferInput[] = [];
+      const normalizations: BidComparisonNormalizationSummary[] = [];
+      const normalizationBaseUrl = input.agent?.baseUrl || 'https://agent.kalmatech.cz';
+      let hermesRecommendation: BidComparisonAgentRecommendation | null = null;
+      const preparedOffers: Array<BidComparisonSelectedFileInput & { supplierName: string; round: number; variant: number; needsNormalization: boolean }> = [];
       for (const [groupKey, groupFiles] of offersByGroup.entries()) {
-        ensureNotCancelled();
-        const sorted = [...groupFiles].sort((a, b) => {
-          const aTime = Number(a.mtimeMs || 0);
-          const bTime = Number(b.mtimeMs || 0);
-          if (aTime !== bTime) return aTime - bTime;
-          return a.path.localeCompare(b.path, 'cs');
-        });
-
+        const sorted = [...groupFiles].sort((a, b) => Number(a.mtimeMs || 0) - Number(b.mtimeMs || 0) || a.path.localeCompare(b.path, 'cs'));
         const [supplierName, roundStr] = groupKey.split('__');
-        const round = Number(roundStr || '0');
+        for (let index = 0; index < sorted.length; index += 1) {
+          const entry = sorted[index];
+          let needsNormalization = path.extname(entry.path).toLowerCase() !== '.xlsx';
+          if (!needsNormalization) {
+            try { needsNormalization = !(await analyzeWorkbookFile(entry.path)).isValidTemplate; }
+            catch { needsNormalization = true; }
+          }
+          preparedOffers.push({ ...entry, supplierName, round: Number(roundStr || '0'), variant: index + 1, needsNormalization });
+        }
+      }
 
-        sorted.forEach((entry, index) => {
-          const variant = index + 1;
+      let zadaniPath: string | undefined;
+      let referenceNeedsNormalization = false;
+      if (zadani.length === 1) {
+        const reference = zadani[0];
+        const isValidXlsx = path.extname(reference.path).toLowerCase() === '.xlsx' &&
+          Boolean((await analyzeWorkbookFile(reference.path).catch(() => null))?.isValidTemplate);
+        if (isValidXlsx) {
+          zadaniPath = reference.path;
+        } else {
+          referenceNeedsNormalization = true;
+        }
+      }
+
+      const needsHermesBatch = preparedOffers.some((offer) => offer.needsNormalization && getBidComparisonSourceFormat(offer.path) !== 'csv') ||
+        (referenceNeedsNormalization && zadani[0] && getBidComparisonSourceFormat(zadani[0].path) !== 'csv');
+
+      if (needsHermesBatch) {
+        try {
+          setProgress(5, 'Odesílám různorodé podklady Hermes agentovi k extrakci a párování...');
+          const secret = await loadBidComparisonSecret(input.agent?.bearerToken);
+          const batch = await analyzeBidComparisonWithHermes({
+            rootPath: job.tenderFolderPath,
+            reference: zadani[0],
+            offers: preparedOffers,
+            baseUrl: normalizationBaseUrl,
+            secret,
+            requestId: crypto.randomUUID(),
+          });
+          zadaniPath = batch.referenceWorkbookPath;
+          hermesRecommendation = batch.recommendation;
+          batch.offers.forEach((offer) => {
+            const reviewCount = offer.result.items.filter((item) => item.reviewRequired).length;
+            normalizations.push({ supplierName: offer.supplierName, purpose: 'offer', sourceFileName: offer.result.sourceFileName, sourceFormat: offer.result.sourceFormat, extractor: offer.result.extractor, itemCount: offer.result.items.length, reviewCount, warnings: offer.result.warnings });
+            offerEntries.push({ supplierName: offer.supplierName, round: offer.round, variant: offer.variant, displayLabel: `${offer.supplierName} (K${offer.round} v${offer.variant})`, filePath: offer.workbookPath });
+          });
+          if (zadani[0] && batch.referenceWorkbookPath) {
+            normalizations.push({ supplierName: 'Základní poptávka', purpose: 'reference', sourceFileName: path.relative(job.tenderFolderPath, zadani[0].path).replace(/\\/g, '/'), sourceFormat: getBidComparisonSourceFormat(zadani[0].path)!, extractor: 'remote-api', itemCount: 0, reviewCount: 0, warnings: [] });
+          }
+        } catch (error) {
+          const canIgnoreMappedReference = Boolean(zadani[0]?.referenceSource === 'mapped_budget_attachment') && !preparedOffers.some((offer) => offer.needsNormalization && getBidComparisonSourceFormat(offer.path) !== 'csv');
+          if (!canIgnoreMappedReference) throw error;
+          job.logs.push(`Mapovanou základní poptávku se nepodařilo použít; pokračuji bez ní: ${error instanceof Error ? error.message : String(error)}`);
+          zadaniPath = undefined;
+          referenceNeedsNormalization = false;
+        }
+      }
+
+      if (!needsHermesBatch || offerEntries.length === 0) {
+        if (zadani.length === 1 && referenceNeedsNormalization) {
+          const reference = zadani[0];
+          try {
+            setProgress(5, `Normalizuji referenční poptávku: ${path.basename(reference.path)}`);
+            const sourceFormat = getBidComparisonSourceFormat(reference.path);
+            if (!sourceFormat) throw new Error('Referenční poptávka má nepodporovaný formát.');
+            const secret = sourceFormat === 'csv' ? '' : await loadBidComparisonSecret(input.agent?.bearerToken);
+            const normalized = await normalizeBidComparisonOffer({
+              rootPath: job.tenderFolderPath,
+              filePath: reference.path,
+              supplierName: 'Základní poptávka',
+              baseUrl: normalizationBaseUrl,
+              secret,
+              requestId: crypto.randomUUID(),
+              purpose: 'reference',
+            });
+            zadaniPath = normalized.workbookPath;
+            const reviewCount = normalized.result.items.filter((item) => item.reviewRequired).length;
+            normalizations.push({
+              supplierName: 'Základní poptávka', purpose: 'reference',
+              sourceFileName: normalized.result.sourceFileName, sourceFormat: normalized.result.sourceFormat,
+              extractor: normalized.result.extractor, itemCount: normalized.result.items.length,
+              reviewCount, warnings: normalized.result.warnings,
+            });
+          } catch (error) {
+            if (reference.referenceSource !== 'mapped_budget_attachment') throw error;
+            const message = error instanceof Error ? error.message : String(error);
+            job.logs.push(`Mapovanou základní poptávku se nepodařilo použít; pokračuji bez ní: ${message}`);
+            zadaniPath = undefined;
+          }
+        }
+        for (const entry of preparedOffers) {
+          ensureNotCancelled();
+          const { supplierName, round, variant } = entry;
+          let offerFilePath = entry.path;
+          if (entry.needsNormalization) {
+            setProgress(6, `Normalizuji nabídku: ${path.basename(entry.path)}`);
+            const sourceFormat = getBidComparisonSourceFormat(entry.path);
+            const normalizationSecret = sourceFormat === 'csv' ? '' : await loadBidComparisonSecret(input.agent?.bearerToken);
+            const normalized = await normalizeBidComparisonOffer({
+              rootPath: job.tenderFolderPath,
+              filePath: entry.path,
+              supplierName,
+              baseUrl: normalizationBaseUrl,
+              secret: normalizationSecret,
+              requestId: crypto.randomUUID(),
+            });
+            offerFilePath = normalized.workbookPath;
+            const reviewCount = normalized.result.items.filter((item) => item.reviewRequired).length;
+            normalizations.push({
+              supplierName,
+              purpose: 'offer',
+              sourceFileName: normalized.result.sourceFileName,
+              sourceFormat: normalized.result.sourceFormat,
+              extractor: normalized.result.extractor,
+              itemCount: normalized.result.items.length,
+              reviewCount,
+              warnings: normalized.result.warnings,
+            });
+            normalized.result.warnings.forEach((warning) => job.logs.push(`Normalizace ${supplierName}: ${warning}`));
+          }
           offerEntries.push({
             supplierName,
             round,
             variant,
             displayLabel: `${supplierName} (K${round} v${variant})`,
-            filePath: entry.path,
+            filePath: offerFilePath,
           });
-        });
+        }
       }
 
       offerEntries.sort((a, b) => {
@@ -408,8 +547,13 @@ export class BidComparisonRunner {
 
       setProgress(10, 'Spouštím porovnání nabídek...');
       const wantsAgentAnalysis = input.agent?.enabled === true;
+      const requestId = crypto.randomUUID();
+      const evaluationConfig = input.evaluationConfig
+        ? await saveBidComparisonConfig(job.tenderFolderPath, input.evaluationConfig)
+        : await loadBidComparisonConfig(job.tenderFolderPath);
+      const inputFingerprints = await Promise.all(selected.map((file) => fingerprintFile(job.tenderFolderPath, file.path)));
       const result = await buildComparisonWorkbook({
-        zadaniPath: zadani[0]?.path,
+        zadaniPath,
         offers: offerEntries,
         onProgress: createProgressMapper(setProgress, 10, wantsAgentAnalysis ? 78 : 95),
         isCancelled: () => job.cancelRequested === true,
@@ -417,41 +561,44 @@ export class BidComparisonRunner {
 
       ensureNotCancelled();
 
-      let finalResult = result;
+      const evaluation = evaluateBidComparison(result.matrix, evaluationConfig);
       let agentRecommendation: BidComparisonAgentRecommendation | null = null;
 
       if (wantsAgentAnalysis) {
+        if (hermesRecommendation) {
+          agentRecommendation = hermesRecommendation;
+          job.agentAnalysisStatus = 'success';
+          job.agentAnalysisError = null;
+          job.agentRecommendationWrittenAt = new Date().toISOString();
+        } else {
         try {
           setProgress(82, 'Odesílám položkovou matici Hermes agentovi...');
+          const secret = await loadBidComparisonSecret(input.agent?.bearerToken);
           agentRecommendation = await requestBidComparisonAgentRecommendation({
-            config: input.agent!,
+            config: { ...input.agent!, bearerToken: undefined },
             projectId: job.projectId,
             categoryId: job.categoryId,
             tenderFolderName: path.basename(job.tenderFolderPath),
             pocetPolozek: result.pocetPolozek,
             suppliers: result.suppliers,
             matrix: result.matrix,
-          });
+            requestId,
+            evaluation,
+            criteria: evaluationConfig.suppliers,
+          }, secret);
           ensureNotCancelled();
 
           job.agentAnalysisStatus = 'success';
           job.agentAnalysisError = null;
           job.agentRecommendationWrittenAt = new Date().toISOString();
 
-          setProgress(90, 'Zapisuji doporučení agenta do workbooku...');
-          finalResult = await buildComparisonWorkbook({
-            zadaniPath: zadani[0]?.path,
-            offers: offerEntries,
-            agentRecommendation,
-            onProgress: createProgressMapper(setProgress, 90, 98),
-            isCancelled: () => job.cancelRequested === true,
-          });
         } catch (agentError) {
           const message = agentError instanceof Error ? agentError.message : String(agentError);
           job.agentAnalysisStatus = 'error';
           job.agentAnalysisError = message;
           job.agentRecommendationWrittenAt = null;
           job.logs.push(`Agentní analýza přeskočena: ${message}`);
+        }
         }
       } else {
         job.agentAnalysisStatus = 'disabled';
@@ -460,27 +607,47 @@ export class BidComparisonRunner {
       }
 
       ensureNotCancelled();
+      setProgress(90, 'Zapisuji vyhodnocení do workbooku...');
+      const finalResult = await buildComparisonWorkbook({
+        zadaniPath,
+        offers: offerEntries,
+        evaluation,
+        requestId,
+        inputFingerprints,
+        agentRecommendation,
+        onProgress: createProgressMapper(setProgress, 90, 98),
+        isCancelled: () => job.cancelRequested === true,
+      });
 
       const outputBase = sanitizeOutputBaseName(input.outputBaseName);
       const archiveFileName = `${outputBase}-${toTimestamp()}.xlsx`;
       const latestFileName = `${outputBase}-latest.xlsx`;
-      const outputPath = ensurePathWithinRoot(
-        job.tenderFolderPath,
-        path.join(job.tenderFolderPath, archiveFileName),
-      );
-      const latestPath = ensurePathWithinRoot(
-        job.tenderFolderPath,
-        path.join(job.tenderFolderPath, latestFileName),
-      );
+      await atomicWriteWorkspaceFile(job.tenderFolderPath, archiveFileName, finalResult.outputBuffer);
+      await atomicWriteWorkspaceFile(job.tenderFolderPath, latestFileName, finalResult.outputBuffer);
+      const outputPath = ensurePathWithinRoot(job.tenderFolderPath, path.join(job.tenderFolderPath, archiveFileName));
+      const latestPath = ensurePathWithinRoot(job.tenderFolderPath, path.join(job.tenderFolderPath, latestFileName));
 
-      await fs.writeFile(outputPath, finalResult.outputBuffer);
-      await fs.writeFile(latestPath, finalResult.outputBuffer);
+      const storedResult: BidComparisonStoredResult = {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        requestId,
+        algorithmVersion: evaluation.algorithmVersion,
+        inputFingerprints,
+        evaluation,
+        agentRecommendation,
+        normalizations,
+      };
+      await saveBidComparisonResult(job.tenderFolderPath, storedResult);
 
       const stats: BidComparisonJobResult = {
         pocetPolozek: finalResult.pocetPolozek,
         sourceMode: finalResult.sourceMode,
         matrix: finalResult.matrix,
         agentRecommendation,
+        evaluation,
+        requestId,
+        inputFingerprints,
+        normalizations,
         suppliers: finalResult.suppliers,
       };
 

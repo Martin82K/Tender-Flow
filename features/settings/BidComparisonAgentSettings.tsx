@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   BID_COMPARISON_AGENT_SETTINGS_KEY,
+  DEFAULT_BID_COMPARISON_AGENT_BASE_URL,
   DEFAULT_BID_COMPARISON_AGENT_TIMEOUT_MS,
   normalizeBidComparisonAgentConfig,
   parseBidComparisonAgentSettings,
@@ -10,13 +11,15 @@ import type { BidComparisonAgentConfig } from "@/shared/types/desktop";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type TestState = "idle" | "testing" | "success" | "error";
+const MASKED_SAVED_TOKEN = "••••••••••••••••";
 
 export const BidComparisonAgentSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
-  const [baseUrl, setBaseUrl] = useState("https://agent.kalmatech.cz");
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_BID_COMPARISON_AGENT_BASE_URL);
   const [timeoutMs, setTimeoutMs] = useState(DEFAULT_BID_COMPARISON_AGENT_TIMEOUT_MS);
-  const [savedBearerToken, setSavedBearerToken] = useState("");
+  const [hasSavedBearerToken, setHasSavedBearerToken] = useState(false);
   const [bearerTokenInput, setBearerTokenInput] = useState("");
+  const [isEditingToken, setIsEditingToken] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [testState, setTestState] = useState<TestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -26,13 +29,21 @@ export const BidComparisonAgentSettings: React.FC = () => {
 
     const loadSettings = async () => {
       const raw = await platformAdapter.storage.get(BID_COMPARISON_AGENT_SETTINGS_KEY);
-      if (cancelled) return;
       const parsed = parseBidComparisonAgentSettings(raw);
+      if (parsed.bearerToken) {
+        await platformAdapter.bidComparison.saveAgentSecret(parsed.bearerToken);
+        await platformAdapter.storage.set(
+          BID_COMPARISON_AGENT_SETTINGS_KEY,
+          JSON.stringify({ ...parsed, bearerToken: undefined }),
+        );
+      }
+      if (cancelled) return;
       setEnabled(parsed.enabled);
       setBaseUrl(parsed.baseUrl);
       setTimeoutMs(parsed.timeoutMs ?? DEFAULT_BID_COMPARISON_AGENT_TIMEOUT_MS);
-      setSavedBearerToken(parsed.bearerToken);
+      setHasSavedBearerToken(await platformAdapter.bidComparison.hasAgentSecret());
       setBearerTokenInput("");
+      setIsEditingToken(false);
     };
 
     void loadSettings().catch((error) => {
@@ -51,11 +62,11 @@ export const BidComparisonAgentSettings: React.FC = () => {
       enabled,
       baseUrl,
       timeoutMs,
-      bearerToken: bearerTokenInput.trim() || savedBearerToken,
+      bearerToken: bearerTokenInput.trim(),
     })
-  ), [baseUrl, bearerTokenInput, enabled, savedBearerToken, timeoutMs]);
+  ), [baseUrl, bearerTokenInput, enabled, timeoutMs]);
 
-  const hasToken = effectiveConfig.bearerToken.length > 0;
+  const hasToken = bearerTokenInput.trim().length > 0 || hasSavedBearerToken;
 
   const saveSettings = async () => {
     setSaveState("saving");
@@ -68,12 +79,16 @@ export const BidComparisonAgentSettings: React.FC = () => {
     }
 
     try {
+      if (bearerTokenInput.trim()) {
+        await platformAdapter.bidComparison.saveAgentSecret(bearerTokenInput.trim());
+        setHasSavedBearerToken(true);
+      }
       await platformAdapter.storage.set(
         BID_COMPARISON_AGENT_SETTINGS_KEY,
-        JSON.stringify(effectiveConfig),
+        JSON.stringify({ ...effectiveConfig, bearerToken: undefined }),
       );
-      setSavedBearerToken(effectiveConfig.bearerToken);
       setBearerTokenInput("");
+      setIsEditingToken(false);
       setSaveState("saved");
       setMessage("Nastavení agenta bylo uloženo.");
     } catch (error) {
@@ -124,8 +139,10 @@ export const BidComparisonAgentSettings: React.FC = () => {
       JSON.stringify(nextConfig),
     );
     setEnabled(false);
-    setSavedBearerToken("");
+    await platformAdapter.bidComparison.clearAgentSecret();
+    setHasSavedBearerToken(false);
     setBearerTokenInput("");
+    setIsEditingToken(false);
     setSaveState("saved");
     setMessage("Token byl odstraněn a agent vypnut.");
   };
@@ -137,14 +154,14 @@ export const BidComparisonAgentSettings: React.FC = () => {
           <span className="material-symbols-outlined text-emerald-500">compare_arrows</span>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Porovnání nabídek</h2>
         </div>
-        <p className="text-sm text-slate-500">Hermes agent pro položkové vyhodnocení jednotkových cen</p>
+        <p className="text-sm text-slate-500">Hermes pro extrakci dokumentových nabídek a poradní vysvětlení výsledku</p>
       </div>
 
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6 space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Agentní analýza</h3>
-            <p className="text-sm text-slate-500">Doporučení se zapisuje do listu Agent doporučení v latest XLSX.</p>
+            <p className="text-sm text-slate-500">Dokumenty a skeny se přes API normalizují; doporučení se zapisuje do listu Agent doporučení.</p>
           </div>
           <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
             <input
@@ -169,7 +186,7 @@ export const BidComparisonAgentSettings: React.FC = () => {
           </label>
 
           <label className="space-y-1">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Timeout</span>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Timeout komentáře (ms)</span>
             <input
               type="number"
               min={5000}
@@ -185,16 +202,29 @@ export const BidComparisonAgentSettings: React.FC = () => {
         <label className="space-y-1 block">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">API token</span>
           <input
-            value={bearerTokenInput}
-            onChange={(event) => setBearerTokenInput(event.target.value)}
+            aria-label="API token"
+            value={isEditingToken ? bearerTokenInput : hasSavedBearerToken ? MASKED_SAVED_TOKEN : bearerTokenInput}
+            onFocus={() => {
+              if (hasSavedBearerToken && !bearerTokenInput) setIsEditingToken(true);
+            }}
+            onBlur={() => {
+              if (hasSavedBearerToken && !bearerTokenInput) setIsEditingToken(false);
+            }}
+            onChange={(event) => {
+              setIsEditingToken(true);
+              setBearerTokenInput(event.target.value);
+            }}
             type="password"
             autoComplete="off"
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-            placeholder={savedBearerToken ? "Uložený token zůstane zachován" : "Bearer token"}
+            placeholder="Účelový Tender Flow token (bez slova Bearer)"
           />
-          <span className="text-xs text-slate-500">
-            Stav tokenu: {hasToken ? "uložený nebo připravený k uložení" : "není nastavený"}
-          </span>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span>Token vložte bez předpony „Bearer“. Ukládá se pouze do chráněného systémového úložiště Electronu.</span>
+            <span className={`rounded-full px-2 py-0.5 font-semibold ${hasToken ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+              {hasToken ? "Token je uložený" : "Token není nastavený"}
+            </span>
+          </div>
         </label>
 
         {message && (
