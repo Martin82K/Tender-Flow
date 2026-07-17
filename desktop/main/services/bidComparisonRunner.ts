@@ -17,6 +17,7 @@ import type {
 import {
   analyzeWorkbookFile,
   buildComparisonWorkbook,
+  mapReferenceItemsToWorkbookRows,
   type BidOfferInput,
   type DetectionAnalysis,
 } from './bidComparisonEngine';
@@ -421,6 +422,7 @@ export class BidComparisonRunner {
       }
 
       let zadaniPath: string | undefined;
+      let referenceItemIdsByRow: Record<number, string> | undefined;
       let referenceNeedsNormalization = false;
       if (zadani.length === 1) {
         const reference = zadani[0];
@@ -449,6 +451,12 @@ export class BidComparisonRunner {
             requestId: crypto.randomUUID(),
           });
           if (referenceNeedsNormalization) zadaniPath = batch.referenceWorkbookPath;
+          if (!referenceNeedsNormalization && zadaniPath && batch.referenceNormalization) {
+            referenceItemIdsByRow = await mapReferenceItemsToWorkbookRows(
+              zadaniPath,
+              batch.referenceNormalization.result.items,
+            );
+          }
           hermesRecommendation = batch.recommendation;
           batch.offers.forEach((offer) => {
             const reviewCount = offer.result.items.filter((item) => item.reviewRequired).length;
@@ -564,6 +572,7 @@ export class BidComparisonRunner {
       const result = await buildComparisonWorkbook({
         zadaniPath,
         offers: offerEntries,
+        referenceItemIdsByRow,
         onProgress: createProgressMapper(setProgress, 10, wantsAgentAnalysis ? 78 : 95),
         isCancelled: () => job.cancelRequested === true,
       });
@@ -620,6 +629,7 @@ export class BidComparisonRunner {
       const finalResult = await buildComparisonWorkbook({
         zadaniPath,
         offers: offerEntries,
+        referenceItemIdsByRow,
         evaluation,
         requestId,
         inputFingerprints,

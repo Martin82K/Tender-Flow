@@ -220,5 +220,5 @@ export const evaluateBidComparison = (
   });
   rawScores.sort((a, b) => b.totalScore - a.totalScore || (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity) || a.displayLabel.localeCompare(b.displayLabel, 'cs'));
   rawScores.forEach((score, index) => { score.rank = index + 1; });
-  return { algorithmVersion: '1.0.0', requestedWeights: config.weights, effectiveWeights, warnings, scores: rawScores, anomalies };
+  return { algorithmVersion: '1.1.0', requestedWeights: config.weights, effectiveWeights, warnings, scores: rawScores, anomalies };
 };

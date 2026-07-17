@@ -14,6 +14,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+const isAlgorithmVersion = (value: unknown): value is BidComparisonStoredResult['algorithmVersion'] =>
+  value === '1.0.0' || value === '1.1.0';
+
 const isWeights = (value: unknown): boolean => {
   if (!isRecord(value)) return false;
   const keys = ['price', 'completeness', 'commercialTerms', 'supplierHistory', 'priceRisk'];
@@ -21,14 +24,14 @@ const isWeights = (value: unknown): boolean => {
 };
 
 const isStoredResult = (value: unknown): value is BidComparisonStoredResult => {
-  if (!isRecord(value) || value.version !== 1 || value.algorithmVersion !== '1.0.0' ||
+  if (!isRecord(value) || value.version !== 1 || !isAlgorithmVersion(value.algorithmVersion) ||
       typeof value.generatedAt !== 'string' || typeof value.requestId !== 'string' || !value.requestId ||
       !Array.isArray(value.inputFingerprints) || !isRecord(value.evaluation)) return false;
   if (!value.inputFingerprints.every((item) => isRecord(item) && typeof item.fileName === 'string' &&
       typeof item.sha256 === 'string' && /^[a-f0-9]{64}$/.test(item.sha256))) return false;
 
   const evaluation = value.evaluation;
-  if (evaluation.algorithmVersion !== '1.0.0' || !isWeights(evaluation.requestedWeights) ||
+  if (!isAlgorithmVersion(evaluation.algorithmVersion) || evaluation.algorithmVersion !== value.algorithmVersion || !isWeights(evaluation.requestedWeights) ||
       !isWeights(evaluation.effectiveWeights) || !Array.isArray(evaluation.warnings) ||
       !evaluation.warnings.every((item) => typeof item === 'string') || !Array.isArray(evaluation.scores) ||
       !Array.isArray(evaluation.anomalies)) return false;
