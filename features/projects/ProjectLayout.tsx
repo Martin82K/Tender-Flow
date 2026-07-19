@@ -122,7 +122,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   );
 
   const visibleTabs = useMemo(
-    () => allTabs.filter((tab) => !tab.feature || hasFeature(tab.feature)),
+    () => allTabs.filter((tab) => !("feature" in tab) || hasFeature(tab.feature)),
     [allTabs, hasFeature],
   );
 

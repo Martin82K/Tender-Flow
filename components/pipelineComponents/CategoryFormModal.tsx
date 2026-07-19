@@ -711,7 +711,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         onClose={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
         title={alertModal.title}
         message={alertModal.message}
-        variant={alertModal.variant}
+        variant={alertModal.variant === "danger" ? "error" : alertModal.variant}
       />
     </div>
   );

@@ -435,6 +435,7 @@ export const DEMO_USER = {
   role: 'demo' as const,
   avatarUrl: 'https://ui-avatars.com/api/?name=Demo&background=f97316&color=fff',
   preferences: {
+    theme: 'dark' as const,
     darkMode: true,
     primaryColor: '#607AFB',
     backgroundColor: '#f5f6f8',
