@@ -28,8 +28,8 @@ Migrace probíhá po malých testovaných smyčkách; plošný přesun by byl ri
 
 ## Bundle
 
-Vite hlásí některé chunky větší než 750 kB a některé moduly se importují
-staticky i dynamicky. Build funguje, ale jde o evidovaný výkonový dluh.
+Vite 8 s Rolldownem stále hlásí `exceljs` chunk větší než 750 kB. Build funguje,
+ale lazy-loading Excel/export funkcí zůstává evidovaným výkonovým dluhem.
 
 ## Platformní rozdíly
 

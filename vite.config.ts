@@ -39,18 +39,38 @@ export default defineConfig(() => {
     },
     build: {
       chunkSizeWarningLimit: 750,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-            'vendor-excel': ['xlsx'],
-            'vendor-charts': ['recharts'],
-            'vendor-utils': ['dompurify', 'html2canvas'],
-          }
-        }
-      }
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vendor-react',
+                test: /node_modules[\\/](?:react|react-dom)(?:[\\/]|$)/,
+              },
+              {
+                name: 'vendor-supabase',
+                test: /node_modules[\\/]@supabase[\\/]supabase-js(?:[\\/]|$)/,
+              },
+              {
+                name: 'vendor-pdf',
+                test: /node_modules[\\/](?:jspdf|jspdf-autotable)(?:[\\/]|$)/,
+              },
+              {
+                name: 'vendor-excel',
+                test: /node_modules[\\/](?:xlsx|@e965[\\/]xlsx)(?:[\\/]|$)/,
+              },
+              {
+                name: 'vendor-charts',
+                test: /node_modules[\\/]recharts(?:[\\/]|$)/,
+              },
+              {
+                name: 'vendor-utils',
+                test: /node_modules[\\/](?:dompurify|html2canvas)(?:[\\/]|$)/,
+              },
+            ],
+          },
+        },
+      },
     },
     envPrefix: 'VITE_',
     test: {

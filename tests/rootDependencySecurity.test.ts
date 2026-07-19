@@ -23,13 +23,13 @@ describe("root dependency security versions", () => {
   it("pins patched direct dependencies", () => {
     expect(manifest.dependencies?.dompurify).toBe("3.4.11");
     expect(manifest.dependencies?.["posthog-js"]).toBe("1.379.1");
-    expect(manifest.devDependencies?.vite).toBe("6.4.3");
+    expect(manifest.devDependencies?.["@vitejs/plugin-react"]).toBe("6.0.3");
+    expect(manifest.devDependencies?.vite).toBe("8.1.3");
     expect(manifest.devDependencies?.vitest).toBe("4.1.0");
   });
 
   it("pins patched transitive dependencies", () => {
     expect(manifest.overrides).toEqual({
-      "@babel/core": "7.29.7",
       "brace-expansion": "5.0.6",
       concurrently: {
         "shell-quote": "1.8.4",
@@ -53,7 +53,7 @@ describe("root dependency security versions", () => {
   });
 
   it.each([
-    ["node_modules/@babel/core", "7.29.7"],
+    ["node_modules/@vitejs/plugin-react", "6.0.3"],
     ["node_modules/brace-expansion", "5.0.6"],
     ["node_modules/dompurify", "3.4.11"],
     ["node_modules/vitest/node_modules/es-module-lexer", "2.1.0"],
@@ -68,10 +68,14 @@ describe("root dependency security versions", () => {
     ["node_modules/tar", "7.5.16"],
     ["node_modules/tmp", "0.2.7"],
     ["node_modules/uuid", "11.1.1"],
-    ["node_modules/vite", "6.4.3"],
+    ["node_modules/vite", "8.1.3"],
     ["node_modules/vitest", "4.1.0"],
     ["node_modules/ws", "8.21.0"],
   ])("resolves %s to patched version %s", (packagePath, expectedVersion) => {
     expect(lockfile.packages?.[packagePath]?.version).toBe(expectedVersion);
+  });
+
+  it("does not retain the removed Babel-based React transform", () => {
+    expect(lockfile.packages?.["node_modules/@babel/core"]).toBeUndefined();
   });
 });

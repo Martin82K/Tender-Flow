@@ -6,7 +6,7 @@
 - Testing Library
 - jsdom
 - TypeScript typecheck
-- Vite produkční build
+- Vite 8.1 produkční build (Rolldown/Oxc)
 - Electron TypeScript compile
 - vlastní architektonické a dokumentační guardy
 
@@ -51,6 +51,14 @@ test v
 `tests/typescriptStrictnessConfig.test.ts`. Data načtená z dynamických hranic,
 například JSON z demo úložiště, musí před vstupem do query a mutační vrstvy
 dostat explicitní doménový kontrakt, aby se `any` nešířilo aplikací.
+
+Webový build používá přesně připnutou a supply-chain prověřenou řadu Vite 8.1
+s React pluginem 6. Produkční chunking se konfiguruje přes
+`build.rolldownOptions.output.codeSplitting`; odstraněný objektový
+`rollupOptions.output.manualChunks` se nesmí vrátit. Tento kontrakt chrání
+`tests/viteToolchainConfig.test.ts`, skutečnou kompatibilitu Rolldown/Oxc,
+CommonJS balíčků, CSS minifikace a chunk pořadí však vždy potvrzuje až web build
+a runtime smoke test webu i Electron rendereru.
 
 ### Runtime smoke test aplikace
 
