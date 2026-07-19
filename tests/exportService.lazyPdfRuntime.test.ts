@@ -51,6 +51,12 @@ vi.mock("../fonts/roboto-regular", () => {
   return { RobotoRegularBase64: "AA==" };
 });
 
+vi.mock("@features/organization/api", () => ({ organizationService: {} }));
+vi.mock("@features/projects/contracts/api", () => ({
+  contractQueriesApi: {},
+}));
+vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: {} }));
+
 describe("exportService lazy PDF runtime", () => {
   beforeEach(() => {
     vi.resetModules();
