@@ -27,6 +27,12 @@ const loadExcelJS = async () => {
   return module.default;
 };
 
+type BrowserCompatibleXlsxLoader = {
+  load(
+    buffer: Buffer<ArrayBuffer> | Uint8Array<ArrayBuffer>,
+  ): Promise<unknown>;
+};
+
 const registerRobotoFont = (doc: jsPDF): void => {
   doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegularBase64);
   doc.addFont("Roboto-Regular.ttf", "Roboto", "normal", "Identity-H");
@@ -39,7 +45,9 @@ const toArrayBuffer = (value: unknown): ArrayBuffer => {
 
   if (ArrayBuffer.isView(value)) {
     const view = value as ArrayBufferView;
-    return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+    const copy = new Uint8Array(view.byteLength);
+    copy.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength));
+    return copy.buffer;
   }
 
   throw new Error("Nepodařilo se převést výstup šablony na ArrayBuffer.");
@@ -262,7 +270,11 @@ export const generateContractProtocol = async (
 
   const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBuffer);
+  // ExcelJS accepts Uint8Array in browsers, although its declaration only
+  // exposes the Node Buffer overload.
+  await (workbook.xlsx as unknown as BrowserCompatibleXlsxLoader).load(
+    templateBuffer,
+  );
 
   const worksheet = workbook.worksheets[0];
   if (!worksheet) {

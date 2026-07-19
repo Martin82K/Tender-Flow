@@ -286,13 +286,13 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
     ipcMain.handle('python:isAvailable', async (event): Promise<{ available: boolean; version?: string }> => {
         requireAuth(event.sender, 'python:isAvailable');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().isPythonAvailable();
     });
 
     ipcMain.handle('python:checkDependencies', async (event): Promise<{ installed: boolean; missing: string[] }> => {
         requireAuth(event.sender, 'python:checkDependencies');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().checkDependencies();
     });
 
@@ -303,7 +303,7 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         outputFile?: string;
     }> => {
         requireAuth(event.sender, 'python:runTool');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().runTool(options as any);
     });
 
@@ -314,19 +314,19 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         outputFile?: string;
     }> => {
         requireAuth(event.sender, 'python:mergeExcel');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().mergeExcel(inputFile, outputFile);
     });
 
     // --- BIOMETRIC AUTH ---
 
     ipcMain.handle('biometric:isAvailable', async (): Promise<boolean> => {
-        const { getBiometricAuthService } = await import('../services/biometricAuth');
+        const { getBiometricAuthService } = await import('../services/biometricAuth.js');
         return getBiometricAuthService().isAvailable();
     });
 
     ipcMain.handle('biometric:prompt', async (event, reason: string): Promise<boolean> => {
-        const { getBiometricAuthService } = await import('../services/biometricAuth');
+        const { getBiometricAuthService } = await import('../services/biometricAuth.js');
         const win = BrowserWindow.fromWebContents(event.sender);
         const windowHandle = win?.getNativeWindowHandle();
         return getBiometricAuthService().prompt(reason, windowHandle);
