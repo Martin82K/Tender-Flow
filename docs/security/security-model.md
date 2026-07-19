@@ -87,6 +87,22 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
 - secure storage pro credentials,
 - generické síťové/filesystem operace nejsou volně vystavené rendereru.
 
+## Webová CSP
+
+- Vynucená webová politika zatím zachovává kompatibilní
+  `frame-ancestors 'self'`.
+- Rozšířená politika pro `script-src`, `connect-src`, `object-src`, `base-uri`
+  a `form-action` se nejprve doručuje hlavičkou
+  `Content-Security-Policy-Report-Only`.
+- Report-only politika nepovoluje `unsafe-inline`, `unsafe-eval`, obecné
+  `https:` ani wildcard zdroj. Síťový allowlist pokrývá Supabase, Mapy.com,
+  ARES a výchozí EU PostHog endpointy.
+- Pilot nemá veřejný reportovací endpoint. Porušení se ověřují v browserové
+  konzoli při runtime smoke testech, aby nevznikl nechráněný ingest pro URL,
+  DOM nebo formulářová metadata.
+- Přechod na vynucení je samostatné rozhodnutí až po ověření webových toků a
+  vyřešení legitimních reportů. Široké zdroje se nepřidávají jako rychlá oprava.
+
 ## Logy a incidenty
 
 - `summarizeErrorForLog`/sanitizační utility odstraňují tokeny a PII.

@@ -15,6 +15,7 @@ handlers:
     http_headers:
       Access-Control-Allow-Origin: "https://tenderflow.cz"
       Content-Security-Policy: "frame-ancestors 'self'"
+      Content-Security-Policy-Report-Only: "script-src 'self'; script-src-elem 'self'; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.mapy.com https://ares.gov.cz https://eu.i.posthog.com https://eu.posthog.com; object-src 'none'; base-uri 'self'; form-action 'self'"
       Vary: "Origin"
 
   # Serve favicon

@@ -80,7 +80,12 @@ Potom ověřit:
 
 ## CSP nebo externí odkaz
 
-- Produkční CSP záměrně blokuje nepovolené originy/eval.
+- Desktopová produkční CSP záměrně blokuje nepovolené originy/eval. Webová
+  rozšířená politika je během pilotu report-only; vynucený zůstává
+  `frame-ancestors`.
+- V konzoli rozlišit `Content-Security-Policy-Report-Only` warning od skutečně
+  zablokovaného requestu. U reportu zaznamenat direktivu, přesný origin a tok,
+  který jej vyvolal; nekopírovat tokeny ani celé citlivé URL.
 - Externí URL musí projít external URL policy.
 - Nepřidávat široké `https:*`, `unsafe-eval` nebo vypnutí `webSecurity` jako
   rychlou opravu.
