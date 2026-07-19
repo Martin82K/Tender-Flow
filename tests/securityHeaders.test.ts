@@ -11,7 +11,7 @@ import {
 const expectedWebReportOnlyCsp = [
   "script-src 'self'",
   "script-src-elem 'self'",
-  "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.mapy.com https://ares.gov.cz https://eu.i.posthog.com https://eu.posthog.com",
+  "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.mapy.com https://ares.gov.cz https://api.openai.com https://eu.i.posthog.com https://eu.posthog.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -57,6 +57,7 @@ describe('securityHeaders config', () => {
     expect(policy).not.toContain("'unsafe-eval'");
     expect(policy).not.toMatch(/(?:^|\s)https:(?:\s|;|$)/);
     expect(policy).not.toMatch(/(?:^|\s)\*(?:\s|;|$)/);
+    expect(policy).not.toContain('localhost');
   });
 
   it('posílá report-only CSP z Node middleware', () => {

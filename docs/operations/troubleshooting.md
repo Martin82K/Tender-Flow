@@ -86,6 +86,9 @@ Potom ověřit:
 - V konzoli rozlišit `Content-Security-Policy-Report-Only` warning od skutečně
   zablokovaného requestu. U reportu zaznamenat direktivu, přesný origin a tok,
   který jej vyvolal; nekopírovat tokeny ani celé citlivé URL.
+- U dynamických URL importů nebo konfigurovatelného Excel provideru nejdříve
+  ověřit konkrétní origin a provozní potřebu. Nepovolovat kvůli nim obecné
+  `https:` ani `localhost` v produkční politice.
 - Externí URL musí projít external URL policy.
 - Nepřidávat široké `https:*`, `unsafe-eval` nebo vypnutí `webSecurity` jako
   rychlou opravu.

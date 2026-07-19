@@ -8,6 +8,7 @@ const WEB_REPORT_ONLY_CONNECT_SOURCES = [
   'wss://*.supabase.in',
   'https://api.mapy.com',
   'https://ares.gov.cz',
+  'https://api.openai.com',
   'https://eu.i.posthog.com',
   'https://eu.posthog.com',
 ];

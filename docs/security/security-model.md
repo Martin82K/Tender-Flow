@@ -96,7 +96,11 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
   `Content-Security-Policy-Report-Only`.
 - Report-only politika nepovoluje `unsafe-inline`, `unsafe-eval`, obecné
   `https:` ani wildcard zdroj. Síťový allowlist pokrývá Supabase, Mapy.com,
-  ARES a výchozí EU PostHog endpointy.
+  ARES, OpenAI Realtime a výchozí EU PostHog endpointy.
+- Dynamické cíle importu kontaktů a konfigurovatelný Excel tools provider se
+  nepovolují obecným `https:` ani produkčním `localhost` pravidlem. Jejich
+  legitimní reporty jsou vstupem pro samostatný návrh explicitní konfigurace
+  před případným vynucením politiky.
 - Pilot nemá veřejný reportovací endpoint. Porušení se ověřují v browserové
   konzoli při runtime smoke testech, aby nevznikl nechráněný ingest pro URL,
   DOM nebo formulářová metadata.
