@@ -14,10 +14,10 @@ export type SupplierRow = OverviewAnalytics["suppliers"][number] & {
 
 const normalize = (value: string) => value.toLowerCase().trim();
 
-export const filterSuppliers = (
-  suppliers: SupplierRow[],
+export const filterSuppliers = <T extends SupplierRow>(
+  suppliers: T[],
   { query, specialization }: SupplierFilterOptions,
-): SupplierRow[] => {
+): T[] => {
   const normalizedQuery = normalize(query);
   const normalizedSpec = normalize(specialization);
 

@@ -12,7 +12,7 @@ interface DocHubLinksProps {
 }
 
 export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) => {
-    const { docHubProjectLinks, structureDraft } = state;
+    const { links: docHubProjectLinks, structureDraft } = state;
 
     if (!docHubProjectLinks) return null;
 

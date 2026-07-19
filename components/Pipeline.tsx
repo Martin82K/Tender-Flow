@@ -161,7 +161,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       isOpen={alertModal.isOpen}
       title={alertModal.title}
       message={alertModal.message}
-      variant={alertModal.variant}
+      variant={alertModal.variant === "danger" ? "error" : alertModal.variant}
       copyableText={alertModal.copyableText}
       onClose={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
     />
@@ -270,7 +270,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     userRole: user?.role,
     projectDataId: projectData.id,
     projectName: projectData.title,
-    projectDataDocHubProviderLegacy: projectData.dochub_provider || undefined,
+    projectDataDocHubProviderLegacy: projectData.docHubProvider || undefined,
     projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
     isDocHubEnabled,
     docHubRoot,

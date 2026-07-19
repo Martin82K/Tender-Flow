@@ -217,11 +217,11 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
         settingsRoute.subTab === "compliance" ||
-        settingsRoute.subTab === "bidComparison" ||
-        settingsRoute.subTab === "organization"
+        settingsRoute.subTab === "bidComparison"
       ) {
         return settingsRoute.subTab;
       }
+      if (settingsRoute.subTab === "organization") return "organizations";
       return "registration";
     },
   );
@@ -315,8 +315,9 @@ export const Settings: React.FC<SettingsProps> = ({
 
     if (settingsRoute.tab === "admin") {
       if (isAdmin && activeTab !== "admin") setActiveTab("admin");
-      const normalizedAdminSubTab =
-        (settingsRoute.subTab as AdminSubTab) || "registration";
+      const normalizedAdminSubTab = settingsRoute.subTab === "organization"
+        ? "organizations"
+        : (settingsRoute.subTab as AdminSubTab) || "registration";
       if (normalizedAdminSubTab !== activeAdminSubTab)
         setActiveAdminSubTab(normalizedAdminSubTab);
       return;

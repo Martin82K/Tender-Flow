@@ -6,7 +6,16 @@
 - Plan and discuss the plan before starting build or implementation work.
 - Write tests for behavior changes and verify code quality with the relevant project commands.
 - Review solutions from a cybersecurity perspective and avoid unsafe designs.
-- Never install packages that are younger than 14 days, to reduce supply-chain attack risk.
+- Before installing a new package, verify its registry integrity, signatures/provenance when available, repository and maintainer history, release history, known vulnerabilities, and reported compromise incidents. Re-run dependency audit and signature verification after installation; package age alone is not an approval or rejection criterion.
+
+## Autonomous Development Loop
+- Before each problem, report what is planned, why it matters, the proposed change, and the tests and risks that will be checked. Wait for user approval before starting the next problem loop.
+- Before implementation, check open pull requests, new cybersecurity reviews, unresolved review threads, and failing CI checks. Record unavailable or disabled security signals as residual risk.
+- For each problem: inspect current behavior and root cause; write a test plan; add a focused regression test and capture the expected RED result; implement the smallest safe fix; preserve legacy behavior unless removal was explicitly approved; review cybersecurity, permissions, tenant isolation, secrets, and supply-chain risks; update technical, operational, and user documentation as applicable.
+- Run focused tests and inspect their logs. Then run the full test suite, typecheck, web build, desktop compile when applicable, documentation checks, boundary checks, and legacy-structure checks. Verify test counts, skipped/todo tests, stderr, warnings, and scenario relevance instead of relying only on a green status icon.
+- When local validation is clean, create an isolated `codex/` branch, commit only in-scope files, push it, and open a ready pull request. Wait for GitHub Actions, Vercel, security review, and review threads; fix the concrete root cause of failures and repeat validation. Merge only after demonstrably green checks.
+- After merge, verify the pull request state, synchronize `main`, and preserve unrelated local changes. Close the loop with a summary of the PR, manual user checks, passed tests, and remaining risks; then stop and request approval for the next loop.
+- For database changes, additionally audit migrations; run preflight and dry-run; verify RLS, grants, indexes, foreign keys, backfills, and expected counts; deploy only versioned migrations; verify catalog and data state after deploy; run security and performance advisors; and require a final dry-run that reports the database is current.
 
 ## Snapshot
 - Product: Tender Flow (full-stack CRM for construction tenders).

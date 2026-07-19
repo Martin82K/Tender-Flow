@@ -107,7 +107,10 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
 - lockfiles se commitují,
 - CI používá `npm ci`,
 - závislosti se pravidelně auditují,
-- nový balíček nesmí být mladší než 14 dní,
+- nové balíčky se před instalací prověřují podle integrity, podpisu/provenance,
+  zdrojového repozitáře, maintainerů, historie vydání, známých zranitelností a
+  oznámených incidentů; stáří verze je rizikový signál, ne pevný zákaz,
+- po změně lockfile se spouští `npm audit` a `npm audit signatures`,
 - release build vychází z ověřeného zdroje a lokálních artefaktů.
 
 ## Povinné kontroly před merge
@@ -121,6 +124,7 @@ npm run check:boundaries
 npm run check:legacy-structure
 npm run check:docs
 npm audit --audit-level=high
+npm audit signatures
 ```
 
 Podle rozsahu se přidávají cílené security testy, kontrola migrací, Electron IPC

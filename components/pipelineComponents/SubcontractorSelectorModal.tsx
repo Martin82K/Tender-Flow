@@ -36,7 +36,6 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
     onAddContact,
     onEditContact,
     projectPosition,
-    className, // Just in case, though not in original interface but good practice
 }) => {
     if (!isOpen) return null;
 

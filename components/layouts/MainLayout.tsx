@@ -46,7 +46,10 @@ interface MainLayoutProps {
     onResetUiScale: () => void;
     onLogout: () => void | Promise<void>;
     isBackgroundLoading: boolean;
-    backgroundWarning: string | null;
+    backgroundWarning: {
+        message: string;
+        type: "warning" | "error" | "info";
+    } | null;
     onReloadData: (force: boolean) => void;
     onHideBackgroundWarning: () => void;
 }
@@ -177,7 +180,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                                 </div>
                                 {backgroundWarning && (
                                     <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 break-words">
-                                        {backgroundWarning}
+                                        {backgroundWarning.message}
                                     </div>
                                 )}
                             </div>

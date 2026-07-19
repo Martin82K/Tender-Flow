@@ -203,7 +203,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         <SupplierTable
           suppliers={displaySuppliers}
-          onSupplierClick={onSupplierClick}
+          onSupplierClick={
+            onSupplierClick
+              ? (supplier) => {
+                  const selected = displaySuppliers.find((item) => item.id === supplier.id);
+                  if (selected) onSupplierClick(selected);
+                }
+              : undefined
+          }
           selectedSupplierId={selectedSupplierId}
         />
       </div>
