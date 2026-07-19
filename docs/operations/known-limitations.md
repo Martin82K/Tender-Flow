@@ -34,6 +34,8 @@ ale první použití těžkého Excel exportu zůstává evidovaným výkonovým
 PDF runtime (`jspdf`, `jspdf-autotable`), Markdown parser a vložený Roboto font
 se rovněž načítají až při prvním PDF exportu. První export proto může podle sítě
 krátce čekat na dynamické chunky; další exporty používají cacheovaný runtime.
+Pokud se dynamický chunk nepodaří načíst, aplikace zobrazí bezpečnou výzvu k
+opakování exportu nebo obnovení aplikace namísto tichého selhání.
 
 ## Platformní rozdíly
 

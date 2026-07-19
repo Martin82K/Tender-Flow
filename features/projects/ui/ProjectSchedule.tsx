@@ -11,8 +11,10 @@ import {
   exportScheduleToXLSX,
   exportScheduleWithTimelineToXLSX,
 } from "@/features/projects/api/projectScheduleExportApi";
+import { runPdfExportSafely } from "@/shared/pdf/pdfExportError";
 
 export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: string; categories: DemandCategory[] }> = ({ projectId, projectTitle, categories }) => {
+  const [exportError, setExportError] = React.useState<string | null>(null);
   const {
     isLoading,
     includeRealization,
@@ -158,7 +160,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   </button>
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       setShowExportMenu(false);
                       const exportRows = rows.map((r) => ({
                         label: r.label,
@@ -167,12 +169,15 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      await exportScheduleToPDF(
-                        exportRows,
-                        projectTitle || 'Harmonogram',
-                        rangeStart,
-                        rangeEnd,
-                        includeRealization ? 'realization' : 'tender'
+                      void runPdfExportSafely(
+                        () => exportScheduleToPDF(
+                          exportRows,
+                          projectTitle || 'Harmonogram',
+                          rangeStart,
+                          rangeEnd,
+                          includeRealization ? 'realization' : 'tender'
+                        ),
+                        setExportError,
                       );
                     }}
                     className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
@@ -211,6 +216,12 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
             </div>
           </div>
         </div>
+
+        {exportError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+            {exportError}
+          </div>
+        )}
 
         {isEditMode && (
           <div className="px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-200 text-xs font-semibold">

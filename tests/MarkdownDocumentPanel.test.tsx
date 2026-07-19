@@ -144,6 +144,31 @@ describe('MarkdownDocumentPanel', () => {
     );
   });
 
+  it('zobrazi bezpecnou chybu pri selhani PDF exportu', async () => {
+    serviceMocks.getMarkdownVersions.mockResolvedValue(versionsFixture);
+    exportMocks.exportMarkdownToPdf.mockRejectedValue(
+      new Error('Failed to fetch dynamically imported module'),
+    );
+
+    render(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+      />,
+    );
+
+    await screen.findByText('Druha verze');
+    fireEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
+
+    expect(
+      await screen.findByText(
+        'PDF se nepodařilo exportovat. Zkuste to znovu nebo obnovte aplikaci.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/dynamically imported module/i)).not.toBeInTheDocument();
+  });
+
   it('v editable modu ulozi novou verzi', async () => {
     serviceMocks.getMarkdownVersions
       .mockResolvedValueOnce(versionsFixture)
