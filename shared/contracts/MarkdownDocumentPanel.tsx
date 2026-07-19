@@ -10,6 +10,7 @@ import {
   exportMarkdownToFile,
   exportMarkdownToPdf,
 } from "../../services/exportService";
+import { runPdfExportSafely } from "../pdf/pdfExportError";
 import { renderMarkdownToSafeHtml } from "./markdownRender";
 
 interface MarkdownDocumentPanelProps {
@@ -339,10 +340,13 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         accessSource: "panel",
       })
       .catch(() => undefined);
-    exportMarkdownToPdf(
-      getExportBase(entityLabel, selectedVersion.versionNo),
-      selectedVersion.contentMd,
-      `${entityLabel} (v${selectedVersion.versionNo})`,
+    void runPdfExportSafely(
+      () => exportMarkdownToPdf(
+        getExportBase(entityLabel, selectedVersion.versionNo),
+        selectedVersion.contentMd,
+        `${entityLabel} (v${selectedVersion.versionNo})`,
+      ),
+      setError,
     );
   };
 

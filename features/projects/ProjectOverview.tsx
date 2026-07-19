@@ -15,6 +15,7 @@ import {
 import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
+import { runPdfExportSafely } from "@/shared/pdf/pdfExportError";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
 import type { Project, ProjectDetails, User } from "@/types";
 import html2canvas from "html2canvas";
@@ -96,6 +97,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     `${formatDecimal(value / 1_000_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil.`;
 
   const chartRef = useRef<HTMLDivElement | null>(null);
+  const [exportError, setExportError] = React.useState<string | null>(null);
 
   const handleSupplierExport = () => {
     if (!selectedSupplier) return;
@@ -106,7 +108,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
     const exportWithChart = async () => {
       if (!chartRef.current) {
-        projectExportApi.exportSupplierAnalysisToPDF(
+        await projectExportApi.exportSupplierAnalysisToPDF(
           selectedSupplier.name,
           selectedSupplierSummary,
           selectedSupplierOffers,
@@ -121,7 +123,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       });
       const dataUrl = canvas.toDataURL("image/png");
 
-      projectExportApi.exportSupplierAnalysisToPDF(
+      await projectExportApi.exportSupplierAnalysisToPDF(
         selectedSupplier.name,
         selectedSupplierSummary,
         selectedSupplierOffers,
@@ -134,7 +136,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       );
     };
 
-    void exportWithChart();
+    void runPdfExportSafely(exportWithChart, setExportError);
   };
 
   const formatPercent = (value: number) =>
@@ -157,6 +159,12 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       </div>
 
       <div className="flex-1 space-y-6 p-6">
+        {exportError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+            {exportError}
+          </div>
+        )}
+
         {/* Debug Banner */}
         {showDebugBanner ? (
           <div className="rounded-2xl border border-amber-300/70 bg-amber-50/90 text-amber-900 px-4 py-3 text-sm">

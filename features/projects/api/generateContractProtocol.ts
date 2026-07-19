@@ -1,11 +1,10 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import type jsPDF from "jspdf";
 
-import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
 import { organizationService } from "@features/organization/api";
 import { contractQueriesApi } from "@features/projects/contracts/api";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import type { ProjectDetails } from "@/types";
+import { loadPdfRuntime, registerRobotoFont } from "@/shared/pdf/pdfRuntime";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";
 import type {
@@ -31,11 +30,6 @@ type BrowserCompatibleXlsxLoader = {
   load(
     buffer: Buffer<ArrayBuffer> | Uint8Array<ArrayBuffer>,
   ): Promise<unknown>;
-};
-
-const registerRobotoFont = (doc: jsPDF): void => {
-  doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegularBase64);
-  doc.addFont("Roboto-Regular.ttf", "Roboto", "normal", "Identity-H");
 };
 
 const toArrayBuffer = (value: unknown): ArrayBuffer => {
@@ -303,9 +297,10 @@ export const generateContractProtocolPdf = async (
 
   const { definition, draft, context, contract } =
     await prepareContractProtocol(input);
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
 
   const doc = new jsPDF({ orientation: "portrait", format: "a4" });
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
   doc.setFont("Roboto", "normal");
 
   const pageWidth = doc.internal.pageSize.getWidth();

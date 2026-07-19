@@ -60,6 +60,14 @@ s React pluginem 6. Produkční chunking se konfiguruje přes
 CommonJS balíčků, CSS minifikace a chunk pořadí však vždy potvrzuje až web build
 a runtime smoke test webu i Electron rendereru.
 
+Těžké exportní runtime závislosti nesmí být statickým importem startovního
+rendereru. `tests/desktopCsp.test.ts` hlídá zdrojové importy a zakazuje vynucenou
+`vendor-pdf` skupinu, která by dynamické PDF moduly vrátila do úvodního grafu.
+`tests/exportService.lazyPdfRuntime.test.ts` navíc ověřuje, že PDF knihovny,
+Markdown parser i Roboto font se inicializují teprve při PDF akci. Po změně
+chunkingu je stále nutné zkontrolovat produkční manifest: `index.html` nesmí mít
+PDF nebo font mezi statickými `imports` a příslušné moduly musí být dynamické.
+
 ### Runtime smoke test aplikace
 
 Každá vývojová smyčka musí kromě automatických testů ověřit také skutečně

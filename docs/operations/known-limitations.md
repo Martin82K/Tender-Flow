@@ -28,8 +28,14 @@ Migrace probíhá po malých testovaných smyčkách; plošný přesun by byl ri
 
 ## Bundle
 
-Vite 8 s Rolldownem stále hlásí `exceljs` chunk větší než 750 kB. Build funguje,
-ale lazy-loading Excel/export funkcí zůstává evidovaným výkonovým dluhem.
+Vite 8 s Rolldownem stále hlásí dynamický `exceljs` chunk větší než 750 kB.
+ExcelJS se načítá až při odpovídajícím exportu, takže nezatěžuje start aplikace,
+ale první použití těžkého Excel exportu zůstává evidovaným výkonovým dluhem.
+PDF runtime (`jspdf`, `jspdf-autotable`), Markdown parser a vložený Roboto font
+se rovněž načítají až při prvním PDF exportu. První export proto může podle sítě
+krátce čekat na dynamické chunky; další exporty používají cacheovaný runtime.
+Pokud se dynamický chunk nepodaří načíst, aplikace zobrazí bezpečnou výzvu k
+opakování exportu nebo obnovení aplikace namísto tichého selhání.
 
 ## Platformní rozdíly
 
