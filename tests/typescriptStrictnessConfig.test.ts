@@ -30,6 +30,7 @@ describe("TypeScript strictness configuration", () => {
 
     expect(config.compilerOptions).toMatchObject({
       alwaysStrict: true,
+      noImplicitAny: true,
       noImplicitThis: true,
       strictBindCallApply: true,
       strictFunctionTypes: true,

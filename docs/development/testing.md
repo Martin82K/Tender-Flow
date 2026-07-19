@@ -38,6 +38,13 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - legacy structure brání růstu frozen kořenů,
 - docs checker ověřuje interní odkazy.
 
+Root webová konfigurace zapíná postupně přijaté strict kontroly včetně
+`strictNullChecks` a `noImplicitAny`; desktopová konfigurace nesmí
+`noImplicitAny` oslabovat. Změna těchto pojistek musí mít konfigurační regresní
+test v `tests/typescriptStrictnessConfig.test.ts`. Data načtená z dynamických
+hranic, například JSON z demo úložiště, musí před vstupem do query a mutační
+vrstvy dostat explicitní doménový kontrakt, aby se `any` nešířilo aplikací.
+
 ### Runtime smoke test aplikace
 
 Každá vývojová smyčka musí kromě automatických testů ověřit také skutečně

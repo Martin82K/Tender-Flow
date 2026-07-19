@@ -1,4 +1,11 @@
-import { Subcontractor, Project, ProjectDetails, DemandCategory, Bid, StatusConfig } from '../types';
+import type { Subcontractor, Project, ProjectDetails, DemandCategory, Bid, StatusConfig } from '../types';
+
+export interface DemoData {
+  projects: Project[];
+  projectDetails: Record<string, ProjectDetails>;
+  contacts: Subcontractor[];
+  statuses: StatusConfig[];
+}
 
 // Demo mode constants
 export const DEMO_SESSION_KEY = 'demo_session';
@@ -411,11 +418,11 @@ export const _testSetDemoActive = (active: boolean): void => {
   _demoSessionActive = active;
 };
 
-export const getDemoData = () => {
+export const getDemoData = (): DemoData | null => {
   const stored = localStorage.getItem(DEMO_DATA_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      return JSON.parse(stored) as DemoData;
     } catch {
       return null;
     }
@@ -423,7 +430,7 @@ export const getDemoData = () => {
   return null;
 };
 
-export const saveDemoData = (data: any): void => {
+export const saveDemoData = (data: DemoData): void => {
   localStorage.setItem(DEMO_DATA_KEY, JSON.stringify(data));
 };
 
