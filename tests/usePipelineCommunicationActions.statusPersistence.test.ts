@@ -125,6 +125,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -169,6 +170,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -213,6 +215,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -264,6 +267,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -315,6 +319,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -360,6 +365,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",
@@ -398,6 +404,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails({
         siteManager:
           "<div class=\"signature\"><p>S pozdravem</p><p><strong>Vedouci</strong></p></div>",
@@ -442,6 +449,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       emailClientMode: "mailto",
       userRole: "admin",

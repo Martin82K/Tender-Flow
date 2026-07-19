@@ -33,6 +33,7 @@ describe("TypeScript strictness configuration", () => {
       noImplicitThis: true,
       strictBindCallApply: true,
       strictFunctionTypes: true,
+      strictNullChecks: true,
       useUnknownInCatchVariables: true,
     });
   });

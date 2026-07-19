@@ -1,4 +1,5 @@
 import { getStoredAuthSessionRaw, supabase } from './supabase';
+import type { Session } from '@supabase/supabase-js';
 import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
@@ -763,12 +764,12 @@ export const authService = {
             return authService.getUserFromSession(cachedSession, { skipUserCache, onBackgroundRefresh });
         }
 
-        let session = null;
+        let session: Session | null = null;
         try {
             // `getSession()` may refresh tokens over network; keep timeout lenient to avoid
             // false negatives during cold starts / slow connections.
             const timeoutMs = 5000;
-            const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
+            const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check');
             session = data?.session || null;
             console.debug('[authService] getCurrentUser: Session loaded', session?.user?.id);
         } catch (e) {

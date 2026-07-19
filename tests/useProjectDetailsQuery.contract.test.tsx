@@ -151,6 +151,18 @@ describe("useProjectDetailsQuery contract", () => {
     expect(state.from).not.toHaveBeenCalled();
   });
 
+  it("fails closed with an actionable error when the project row is missing", async () => {
+    mockDatabaseResponses({
+      projects: { data: null, error: null },
+    });
+
+    renderHook(() => useProjectDetailsQuery("project-1"));
+
+    await expect(state.queryOptions?.queryFn()).rejects.toThrow(
+      "Projekt nebyl při načítání detailu nalezen.",
+    );
+  });
+
   it("starts all independent project metadata requests in parallel", async () => {
     const pendingResolvers = new Map<
       string,

@@ -124,7 +124,7 @@ export const useDocHubIntegration = (
         }));
 
         // Always normalize hierarchy: ensure all items have id and depth properties
-        let hierarchyToUse: DocHubHierarchyItem[];
+        let hierarchyToUse: DocHubHierarchyItem[] = normalizeItems(DEFAULT_DOCHUB_HIERARCHY);
         if (Array.isArray(rawHierarchy) && rawHierarchy.length > 0) {
             hierarchyToUse = normalizeItems(rawHierarchy);
             console.log('[DocHub] Loaded and normalized hierarchy:', hierarchyToUse.length, 'items');

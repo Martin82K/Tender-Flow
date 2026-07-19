@@ -109,6 +109,7 @@ const createActions = (
   const actions = usePipelineCommunicationActions({
     activeCategory: category,
     bids,
+    projectId: "project-1",
     projectDetails,
     currentUser: overrides.currentUser || currentUser,
     userRole: "user",
@@ -197,6 +198,7 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory: category,
       bids,
+      projectId: "project-1",
       projectDetails: details,
       currentUser,
       userRole: "user",

@@ -17,12 +17,13 @@ import { SubscriptionFeature } from "@/types";
 
 type FlagKey = `${SubscriptionTierId}:${string}`;
 type GroupId = "AI" | "Export" | "Kontakty" | "Moduly" | "Tools" | "Ostatní";
-type FeatureSeed = Required<
-  Pick<
-    SubscriptionFeature,
-    "key" | "name" | "description" | "category" | "sortOrder"
-  >
->;
+type FeatureSeed = {
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  sortOrder: number;
+};
 type FeatureViewModel = SubscriptionFeature & {
   group: GroupId | string;
   isSystem: boolean;

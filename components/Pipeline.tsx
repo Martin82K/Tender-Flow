@@ -227,7 +227,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     bids,
     updateBidsInternal,
     userRole: user?.role,
-    projectDataId: projectData.id,
+    projectDataId: projectId,
     projectDataDocHubProvider: projectData.docHubProvider || undefined,
     projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
     isDocHubEnabled,
@@ -248,7 +248,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   } = usePipelineContactsController({
     externalContacts,
     userRole: user?.role,
-    projectDataId: projectData.id,
+    projectDataId: projectId,
     showAlert,
     onContactSaved: (contact) => {
       setSelectedSubcontractorIds((prev) => new Set(prev).add(contact.id));
@@ -268,7 +268,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     updateBidsInternal,
     userId: user?.id,
     userRole: user?.role,
-    projectDataId: projectData.id,
+    projectDataId: projectId,
     projectName: projectData.title,
     projectDataDocHubProviderLegacy: projectData.docHubProvider || undefined,
     projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
@@ -311,6 +311,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   } = usePipelineCommunicationActions({
     activeCategory,
     bids,
+    projectId,
     projectDetails,
     emailClientMode: user?.preferences?.emailClientMode,
     userRole: user?.role,
@@ -880,7 +881,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         <BidComparisonPanel
           isOpen={isBidComparisonPanelOpen}
           onClose={() => setIsBidComparisonPanelOpen(false)}
-          projectId={projectData.id}
+          projectId={projectId}
           categoryId={activeCategory.id}
           initialTenderFolderPath={bidComparisonTenderPath}
           supplierNames={bidComparisonSuppliers}

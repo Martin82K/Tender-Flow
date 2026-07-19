@@ -9,6 +9,7 @@ import type { ProjectDetails } from "@/types";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";
 import type {
+  ContractProtocolContext,
   ContractProtocolGenerationMode,
   ContractProtocolDraft,
   GenerateContractProtocolInput,
@@ -100,11 +101,7 @@ const resolveMode = (
 interface PreparedContractProtocol {
   definition: ReturnType<typeof getContractProtocolDefinition>;
   draft: ContractProtocolDraft;
-  context: {
-    contract: Awaited<ReturnType<typeof contractQueriesApi.getContractById>>;
-    projectDetails: ProjectDetails;
-    today: Date;
-  };
+  context: ContractProtocolContext;
   contract: NonNullable<Awaited<ReturnType<typeof contractQueriesApi.getContractById>>>;
 }
 

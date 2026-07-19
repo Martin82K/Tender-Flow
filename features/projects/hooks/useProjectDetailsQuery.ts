@@ -15,7 +15,7 @@ import type {
 } from "@/types";
 
 interface QueryResponse<T> {
-  data: T;
+  data: T | null;
   error: unknown;
 }
 
@@ -202,6 +202,9 @@ const fetchProjectDetails = async (
   if (amendmentsRes.error) throw amendmentsRes.error;
   if (internalAmendmentsRes.error) throw internalAmendmentsRes.error;
   if (investorInvoicesRes.error) throw investorInvoicesRes.error;
+  if (!projectRes.data) {
+    throw new Error("Projekt nebyl při načítání detailu nalezen.");
+  }
 
   const project = projectRes.data;
   const categories: DemandCategory[] = applyLocalBudgetAttachments(
@@ -255,7 +258,7 @@ const fetchProjectDetails = async (
         email: bid.email,
         phone: bid.phone,
         price:
-          bid.price_display || (bid.price ? bid.price.toString() : null),
+          bid.price_display || (bid.price != null ? bid.price.toString() : undefined),
         priceHistory: bid.price_history || undefined,
         notes: bid.notes,
         tags: bid.tags,
