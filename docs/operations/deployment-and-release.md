@@ -16,6 +16,13 @@ npm run verify:web-dist
 
 Vercel používá standardní webový build a vytváří preview pro PR.
 
+Webové delivery konfigurace (`vercel.json`, `public/_headers`, `app.yaml` a
+Node middleware) musí držet stejnou `Content-Security-Policy-Report-Only`.
+Po deployi se na HTML odpovědi kontroluje přítomnost vynuceného
+`frame-ancestors` i report-only politiky. Pilot nemá centrální report endpoint;
+legitimní CSP porušení se zachycují při smoke testu v konzoli a před vynucením
+se řeší po jednotlivých origin/feature tocích.
+
 ## Node/static server
 
 ```bash

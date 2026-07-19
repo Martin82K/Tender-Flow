@@ -1,5 +1,27 @@
 const DEFAULT_ALLOWED_METHODS = 'GET, POST, PUT, DELETE, OPTIONS';
 const DEFAULT_ALLOWED_HEADERS = 'Content-Type, Authorization';
+const WEB_REPORT_ONLY_CONNECT_SOURCES = [
+  "'self'",
+  'https://*.supabase.co',
+  'https://*.supabase.in',
+  'wss://*.supabase.co',
+  'wss://*.supabase.in',
+  'https://api.mapy.com',
+  'https://ares.gov.cz',
+  'https://api.openai.com',
+  'https://eu.i.posthog.com',
+  'https://eu.posthog.com',
+];
+
+export const buildWebReportOnlyCsp = () =>
+  [
+    "script-src 'self'",
+    "script-src-elem 'self'",
+    `connect-src ${WEB_REPORT_ONLY_CONNECT_SOURCES.join(' ')}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
 
 const parseCsv = (value) => {
   if (!value) return [];
@@ -55,6 +77,7 @@ export const createSecurityHeadersMiddleware = (config = createSecurityHeadersCo
 
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Content-Security-Policy', `frame-ancestors ${config.frameAncestors}`);
+    res.setHeader('Content-Security-Policy-Report-Only', buildWebReportOnlyCsp());
     res.setHeader('Access-Control-Allow-Methods', config.allowedMethods);
     res.setHeader('Access-Control-Allow-Headers', config.allowedHeaders);
 
