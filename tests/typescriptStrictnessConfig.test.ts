@@ -29,12 +29,14 @@ describe("TypeScript strictness configuration", () => {
     const config = readJson<TypeScriptConfig>(resolve(root, "tsconfig.json"));
 
     expect(config.compilerOptions).toMatchObject({
+      strict: true,
       alwaysStrict: true,
       noImplicitAny: true,
       noImplicitThis: true,
       strictBindCallApply: true,
       strictFunctionTypes: true,
       strictNullChecks: true,
+      strictPropertyInitialization: true,
       useUnknownInCatchVariables: true,
     });
   });

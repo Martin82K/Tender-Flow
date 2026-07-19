@@ -38,12 +38,14 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    "strict": true,
     "alwaysStrict": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
+    "strictPropertyInitialization": true,
     "useUnknownInCatchVariables": true
   },
   "exclude": [
