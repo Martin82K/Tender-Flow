@@ -95,13 +95,26 @@ Typické artefakty:
 PR a push do `main/master` spouští:
 
 - `npm ci`,
+- root dependency audit pro high/critical zranitelnosti,
+- ověření registry podpisů root závislostí,
 - kompletní Vitest,
 - TypeScript,
 - dokumentační odkazy,
 - import boundaries,
 - legacy freeze,
 - web smoke build,
-- desktop smoke compile.
+- fail-fast instalaci desktop závislostí z commitnutého lockfile přes `npm ci`,
+- desktop smoke compile,
+- desktop dependency audit pro high/critical zranitelnosti,
+- ověření registry podpisů desktop závislostí.
+
+Auditní kroky jsou fail-closed. Nedostupnost npm registry, neplatný podpis nebo
+high/critical advisory proto workflow zastaví; nepřidává se
+`continue-on-error`. Desktop dependency strom se před kompilací instaluje přes
+`npm ci --prefix desktop --ignore-scripts`, aby neshoda mezi
+`desktop/package.json` a commitnutým `desktop/package-lock.json` selhala dříve,
+než ji může lokální `desktop:install` dorovnat. Podpisy se ověřují až po desktop
+compile nad tímto nainstalovaným stromem.
 
 Před merge se kontroluje celý log a thread-aware review, ne pouze zelená ikona.
 

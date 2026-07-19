@@ -131,6 +131,10 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
   zdrojového repozitáře, maintainerů, historie vydání, známých zranitelností a
   oznámených incidentů; stáří verze je rizikový signál, ne pevný zákaz,
 - po změně lockfile se spouští `npm audit` a `npm audit signatures`,
+- Quality CI fail-closed ověřuje high/critical advisory a registry podpisy pro
+  root i samostatný desktop dependency strom,
+- desktop CI nejdříve používá `npm ci --ignore-scripts`, aby audit vycházel z
+  commitnutého lockfile a ne z automaticky dorovnaného dependency stromu,
 - release build vychází z ověřeného zdroje a lokálních artefaktů.
 
 ## Povinné kontroly před merge

@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit root dependencies
+        run: npm audit --audit-level=high
+
+      - name: Verify root registry signatures
+        run: npm audit signatures
+
       - name: Run test suite
         run: npm run test:run
 
@@ -46,5 +52,14 @@ jobs:
       - name: Smoke build (web)
         run: npm run build
 
+      - name: Install desktop dependencies from lockfile
+        run: npm ci --prefix desktop --ignore-scripts
+
       - name: Smoke compile (desktop)
         run: npm run desktop:compile
+
+      - name: Audit desktop dependencies
+        run: npm audit --prefix desktop --audit-level=high
+
+      - name: Verify desktop registry signatures
+        run: npm audit signatures --prefix desktop

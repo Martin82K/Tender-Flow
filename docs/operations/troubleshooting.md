@@ -64,6 +64,20 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - zkontrolovat limity velikosti a podporovaný formát,
 - neinstalovat nový balíček bez supply-chain kontroly.
 
+## CI dependency audit
+
+- `npm audit --audit-level=high` blokuje high a critical advisory; výstup
+  obsahuje i nižší nálezy, které je nutné posoudit samostatně.
+- `npm audit signatures` ověřuje nainstalovaný dependency strom proti npm
+  registry podpisům. Root a `desktop/` mají samostatné kontroly.
+- Selhání kroku `Install desktop dependencies from lockfile` obvykle znamená
+  neshodu `desktop/package.json` a `desktop/package-lock.json`; lockfile se musí
+  opravit a znovu zkontrolovat v samostatné dependency změně.
+- Při síťové chybě nejdříve ověřit dostupnost npm registry a opakovat job. Bránu
+  neobcházet přes `continue-on-error` ani vypnutím podpisové kontroly.
+- Při skutečném advisory nebo neplatném podpisu zastavit merge, dohledat přesný
+  balíček a verzi a provést běžnou supply-chain triage před aktualizací.
+
 ## Electron nejde spustit
 
 ```bash
