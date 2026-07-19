@@ -38,11 +38,16 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - legacy structure brání růstu frozen kořenů,
 - docs checker ověřuje interní odkazy.
 
-Root webová konfigurace používá `strict: true` a současně explicitně uvádí
-jednotlivé strict kontroly včetně `strictNullChecks`, `noImplicitAny` a
-`strictPropertyInitialization`, aby byl baseline auditovatelný při upgradech
-TypeScriptu. Desktopová konfigurace nesmí `noImplicitAny` oslabovat. Změna
-těchto pojistek musí mít konfigurační regresní test v
+Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
+`strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
+`strictNullChecks`, `noImplicitAny` a `strictPropertyInitialization`, aby byl
+baseline auditovatelný při upgradech TypeScriptu. Aliasové `paths` jsou
+explicitně relativní vůči `tsconfig.json`; deprecated `baseUrl` se nepoužívá.
+Desktopová konfigurace nesmí `noImplicitAny` oslabovat. Desktop main proces
+používá spárované `module` a `moduleResolution` v režimu `Node16`, který
+zachovává jeho CommonJS package scope bez legacy `node10` resolution. Změna
+těchto pojistek nebo podporované řady kompilátoru musí mít konfigurační regresní
+test v
 `tests/typescriptStrictnessConfig.test.ts`. Data načtená z dynamických hranic,
 například JSON z demo úložiště, musí před vstupem do query a mutační vrstvy
 dostat explicitní doménový kontrakt, aby se `any` nešířilo aplikací.
