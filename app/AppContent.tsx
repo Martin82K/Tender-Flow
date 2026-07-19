@@ -542,7 +542,7 @@ export const AppContent: React.FC = () => {
             setIsSidebarOpen={setIsSidebarOpen}
             currentView={currentView}
             projects={state.projects}
-            selectedProjectId={state.selectedProjectId}
+            selectedProjectId={state.selectedProjectId ?? ""}
             onProjectSelect={handleNavigateToProject}
             activeProjectTab={activeProjectTab}
             user={user}

@@ -132,6 +132,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
@@ -186,6 +187,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails({
         losersEmailTemplateLink: "template:tpl-1",
       }),
@@ -235,6 +237,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),

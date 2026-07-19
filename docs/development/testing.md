@@ -38,6 +38,21 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - legacy structure brání růstu frozen kořenů,
 - docs checker ověřuje interní odkazy.
 
+### Runtime smoke test aplikace
+
+Každá vývojová smyčka musí kromě automatických testů ověřit také skutečně
+spuštěnou sestavenou aplikaci. Minimální webový smoke test zahrnuje:
+
+- načtení aplikace bez prázdné stránky nebo chybového překryvu,
+- jeden smysluplný hlavní uživatelský tok a navigaci,
+- kontrolu výsledné URL a viditelného stavu,
+- kontrolu neočekávaných chyb a warningů v konzoli a selhaných síťových požadavků,
+- vizuální kontrolu výsledku pomocí screenshotu.
+
+U změn specifických pro Electron se navíc spustí odpovídající desktopový tok,
+pokud jsou v testovacím prostředí dostupná potřebná OS oprávnění. Samotný webový
+smoke test nenahrazuje ověření IPC, filesystemu, biometriky ani notifikací.
+
 ## Příkazy
 
 ```bash
@@ -61,7 +76,8 @@ Pro změnu chování:
 3. doložit relevantní RED příčinu,
 4. implementovat,
 5. spustit cílený GREEN běh,
-6. spustit úplnou sadu a přečíst log.
+6. spustit úplnou sadu a přečíst log,
+7. spustit sestavenou aplikaci a provést runtime smoke test.
 
 Test, který byl zelený před implementací bez dobrého důvodu, nemusí dokazovat
 požadovanou změnu.

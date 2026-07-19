@@ -47,6 +47,7 @@ interface ShowAlertArgs {
 interface UsePipelineCommunicationActionsInput {
   activeCategory: DemandCategory | null;
   bids: Record<string, Bid[]>;
+  projectId: string;
   projectDetails: ProjectDetails;
   emailClientMode?: string;
   userRole?: string;
@@ -66,6 +67,7 @@ interface UsePipelineCommunicationActionsInput {
 export const usePipelineCommunicationActions = ({
   activeCategory,
   bids,
+  projectId,
   projectDetails,
   emailClientMode,
   userRole,
@@ -89,7 +91,7 @@ export const usePipelineCommunicationActions = ({
           bidId,
           targetStatus: "sent",
           userRole,
-          projectDataId: projectDetails.id,
+          projectDataId: projectId,
           bidsByCategory: bids,
           activeCategoryId: activeCategory.id,
         }),

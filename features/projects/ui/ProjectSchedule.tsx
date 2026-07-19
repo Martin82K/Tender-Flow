@@ -312,9 +312,11 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                     </div>
 
                     {rows.map((row) => {
-                      const hasRange = !!row.start && !!row.end;
-                      const fromX = hasRange ? diffDaysUtc(rangeStart, row.start!) * dayWidth : 0;
-                      const toX = hasRange ? diffDaysUtc(rangeStart, row.end!) * dayWidth : 0;
+                      const rowStart = row.start;
+                      const rowEnd = row.end;
+                      const hasRange = rowStart !== null && rowEnd !== null;
+                      const fromX = hasRange ? diffDaysUtc(rangeStart, rowStart) * dayWidth : 0;
+                      const toX = hasRange ? diffDaysUtc(rangeStart, rowEnd) * dayWidth : 0;
                       const left = Math.min(fromX, toX);
                       const width = Math.max(2, Math.abs(toX - fromX) + dayWidth);
                       const colorClass =
@@ -326,9 +328,9 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
 
                       const labelText = row.label;
                       const metaText = row.subLabel
-                        ? `${row.subLabel}: ${hasRange ? formatRangeLabel(row.start!, row.end!) : "—"}`
+                        ? `${row.subLabel}: ${hasRange ? formatRangeLabel(rowStart, rowEnd) : "—"}`
                         : hasRange
-                          ? formatRangeLabel(row.start!, row.end!)
+                          ? formatRangeLabel(rowStart, rowEnd)
                           : "—";
                       const editable = isRowEditable(row);
 
@@ -360,7 +362,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                                 <div
                                   className="absolute top-1/2 -translate-y-1/2 size-3 rotate-45 bg-blue-500/80 border border-blue-200/50 shadow-sm"
                                   style={{ left: left + dayWidth / 2 }}
-                                  title={formatDayLabel(row.start)}
+                                  title={formatDayLabel(rowStart)}
                                 />
                               ) : row.kind === "bar" && hasRange ? (
                                 <button
@@ -372,7 +374,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                                   className={`absolute top-1/2 -translate-y-1/2 h-3 rounded-full border ${colorClass} shadow-sm ${editable ? "cursor-pointer hover:brightness-110" : "cursor-default"
                                     }`}
                                   style={{ left, width }}
-                                  title={`${formatDayLabel(row.start)} – ${formatDayLabel(row.end)}${editable ? " (klikněte pro úpravu)" : ""}`}
+                                  title={`${formatDayLabel(rowStart)} – ${formatDayLabel(rowEnd)}${editable ? " (klikněte pro úpravu)" : ""}`}
                                 />
                               ) : editable ? (
                                 <button

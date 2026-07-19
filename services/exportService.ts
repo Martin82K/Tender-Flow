@@ -430,7 +430,7 @@ export function exportToMarkdown(
 
   // Winner comparison
   const winnerBid = bids.find(b => b.status === 'sod');
-  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
+  const winnerPrice = winnerBid ? parseMoney(winnerBid.price ?? "") : 0;
 
   if (winnerBid && winnerPrice > 0) {
     const sodDiff = winnerPrice - category.sodBudget;

@@ -319,8 +319,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
     });
   };
 
-  const hasDocsLink =
-    project.documentationLink && project.documentationLink.trim() !== "";
+  const hasDocsLink = Boolean(
+    project.documentationLink && project.documentationLink.trim() !== "",
+  );
 
   return (
     <div className="tf-documents-view p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
