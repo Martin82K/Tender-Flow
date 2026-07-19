@@ -1,7 +1,4 @@
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { marked } from 'marked';
 import {
   DemandCategory,
   Bid,
@@ -13,7 +10,6 @@ import {
 } from '../types';
 import type { SupplierOfferRef } from '../shared/overview/overviewAnalytics';
 import { getOfferStatusMeta } from '../shared/offers/offerStatus';
-import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 import {
   formatContractSummaryMoney,
   formatContractSummaryPaymentTerms,
@@ -22,6 +18,7 @@ import {
   formatContractSummaryWarranty,
   getContractSummaryStatusLabel,
 } from '@/shared/contracts/contractSummary';
+import { loadPdfRuntime, registerRobotoFont } from '@/shared/pdf/pdfRuntime';
 
 /**
  * Format money for display
@@ -55,14 +52,6 @@ function getStatusLabel(status: string): string {
     rejected: 'Zamítnuto'
   };
   return labels[status] || status;
-}
-
-/**
- * Register Roboto font with jsPDF for Czech diacritics support
- */
-function registerRobotoFont(doc: jsPDF): void {
-  doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegularBase64);
-  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal', 'Identity-H');
 }
 
 /**
@@ -473,14 +462,16 @@ export function exportMarkdownToFile(filenameBase: string, contentMd: string): v
   URL.revokeObjectURL(url);
 }
 
-export function exportMarkdownToPdf(
+export async function exportMarkdownToPdf(
   filenameBase: string,
   contentMd: string,
   title?: string,
-): void {
+): Promise<void> {
+  const [{ RobotoRegularBase64, autoTable, jsPDF }, { marked }] =
+    await Promise.all([loadPdfRuntime(), import('marked')]);
   const safeBase = filenameBase.trim().replace(/[\\/:*?"<>|]/g, '_') || 'document';
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
   doc.setFont('Roboto', 'normal');
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -608,11 +599,12 @@ export async function exportToPDF(
   project: ProjectDetails,
   meta: TenderSelectionExportMeta = {},
 ): Promise<void> {
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
   // Create PDF in landscape orientation
   const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
 
   // Register Roboto font for Czech diacritics support
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -742,16 +734,17 @@ export async function exportToPDF(
 /**
  * Export supplier analysis to PDF
  */
-export function exportSupplierAnalysisToPDF(
+export async function exportSupplierAnalysisToPDF(
   supplierName: string,
   summary: SupplierAnalysisSummary,
   offers: SupplierOfferRef[],
   appUrl: string,
   chartImage?: ChartImage,
-): void {
+): Promise<void> {
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
 
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
 
   doc.setFontSize(18);
   doc.setFont('Roboto', 'normal');
@@ -1224,16 +1217,17 @@ export interface DashboardData {
   };
 }
 
-export function exportDashboardToPDF(
+export async function exportDashboardToPDF(
   data: DashboardData,
   appUrl: string,
   logoDataUrl?: string,
-): void {
+): Promise<void> {
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
   const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
   
   const successRate = data.totals.offerCount > 0 
     ? (data.totals.sodCount / data.totals.offerCount) * 100 
@@ -1585,8 +1579,9 @@ export async function exportContractSummariesToPdf(
   contracts: ContractSummaryDto[],
   meta: ContractSummaryExportMeta,
 ): Promise<void> {
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
   const doc = new jsPDF();
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
   doc.setFont('Roboto', 'normal');
 
   const pageWidth = doc.internal.pageSize.getWidth();

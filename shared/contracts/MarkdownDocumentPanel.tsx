@@ -330,7 +330,7 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
     );
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!selectedVersion) return;
     contractService
       .logMarkdownAccess({
@@ -339,7 +339,7 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         accessSource: "panel",
       })
       .catch(() => undefined);
-    exportMarkdownToPdf(
+    await exportMarkdownToPdf(
       getExportBase(entityLabel, selectedVersion.versionNo),
       selectedVersion.contentMd,
       `${entityLabel} (v${selectedVersion.versionNo})`,

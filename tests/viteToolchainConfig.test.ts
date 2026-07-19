@@ -41,12 +41,13 @@ describe("Vite toolchain configuration", () => {
     for (const groupName of [
       "vendor-react",
       "vendor-supabase",
-      "vendor-pdf",
       "vendor-excel",
       "vendor-charts",
       "vendor-utils",
     ]) {
       expect(source).toContain(`name: '${groupName}'`);
     }
+
+    expect(source).not.toContain("name: 'vendor-pdf'");
   });
 });

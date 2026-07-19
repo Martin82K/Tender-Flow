@@ -106,7 +106,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
     const exportWithChart = async () => {
       if (!chartRef.current) {
-        projectExportApi.exportSupplierAnalysisToPDF(
+        await projectExportApi.exportSupplierAnalysisToPDF(
           selectedSupplier.name,
           selectedSupplierSummary,
           selectedSupplierOffers,
@@ -121,7 +121,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       });
       const dataUrl = canvas.toDataURL("image/png");
 
-      projectExportApi.exportSupplierAnalysisToPDF(
+      await projectExportApi.exportSupplierAnalysisToPDF(
         selectedSupplier.name,
         selectedSupplierSummary,
         selectedSupplierOffers,

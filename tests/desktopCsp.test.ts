@@ -47,6 +47,28 @@ describe("desktop CSP", () => {
     }
   });
 
+  it("keeps the PDF runtime out of statically loaded renderer modules", () => {
+    const rendererPdfModules = [
+      "services/exportService.ts",
+      "features/projects/api/projectScheduleExportApi.ts",
+      "features/projects/api/generateContractProtocol.ts",
+    ];
+
+    for (const modulePath of rendererPdfModules) {
+      const source = readFileSync(resolve(root, modulePath), "utf8");
+
+      expect(source).not.toMatch(
+        /^\s*import\s+(?!type\b)[^\n]*\sfrom\s+["'](?:jspdf|jspdf-autotable|@\/fonts\/roboto-regular|\.\.\/fonts\/roboto-regular)["'];?\s*$/m,
+      );
+    }
+  });
+
+  it("does not force the on-demand PDF runtime into a shared startup chunk", () => {
+    const viteConfig = readFileSync(resolve(root, "vite.config.ts"), "utf8");
+
+    expect(viteConfig).not.toMatch(/name:\s*["']vendor-pdf["']/);
+  });
+
   it("injects desktop CSP only for app-owned renderer responses", () => {
     expect(shouldInjectDesktopCsp("http://localhost:3000/", true)).toBe(true);
     expect(shouldInjectDesktopCsp("http://127.0.0.1:3000/@vite/client", true)).toBe(true);

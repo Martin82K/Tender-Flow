@@ -158,7 +158,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setShowExportMenu(false);
                       const exportRows = rows.map((r) => ({
                         label: r.label,
@@ -167,7 +167,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      exportScheduleToPDF(
+                      await exportScheduleToPDF(
                         exportRows,
                         projectTitle || 'Harmonogram',
                         rangeStart,

@@ -52,10 +52,6 @@ export default defineConfig(() => {
                 test: /node_modules[\\/]@supabase[\\/]supabase-js(?:[\\/]|$)/,
               },
               {
-                name: 'vendor-pdf',
-                test: /node_modules[\\/](?:jspdf|jspdf-autotable)(?:[\\/]|$)/,
-              },
-              {
                 name: 'vendor-excel',
                 test: /node_modules[\\/](?:xlsx|@e965[\\/]xlsx)(?:[\\/]|$)/,
               },
