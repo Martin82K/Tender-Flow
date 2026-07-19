@@ -52,6 +52,9 @@ jobs:
       - name: Smoke build (web)
         run: npm run build
 
+      - name: Install desktop dependencies from lockfile
+        run: npm ci --prefix desktop --ignore-scripts
+
       - name: Smoke compile (desktop)
         run: npm run desktop:compile
 

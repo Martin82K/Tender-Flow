@@ -37,9 +37,16 @@ describe('Quality workflow supply-chain gates', () => {
   });
 
   it('audits installed desktop dependencies and signatures fail-closed', () => {
+    const lockfileInstall = getStep(
+      'Install desktop dependencies from lockfile',
+    );
     const vulnerabilityAudit = getStep('Audit desktop dependencies');
     const signatureAudit = getStep('Verify desktop registry signatures');
 
+    expect(lockfileInstall).toContain(
+      'run: npm ci --prefix desktop --ignore-scripts',
+    );
+    expect(lockfileInstall).not.toContain('continue-on-error: true');
     expect(vulnerabilityAudit).toContain(
       'run: npm audit --prefix desktop --audit-level=high',
     );
@@ -49,6 +56,9 @@ describe('Quality workflow supply-chain gates', () => {
     expect(vulnerabilityAudit).not.toContain('continue-on-error: true');
     expect(signatureAudit).not.toContain('continue-on-error: true');
 
+    expect(
+      workflow.indexOf('run: npm ci --prefix desktop --ignore-scripts'),
+    ).toBeLessThan(workflow.indexOf('run: npm run desktop:compile'));
     expect(workflow.indexOf('run: npm run desktop:compile')).toBeLessThan(
       workflow.indexOf('run: npm audit --prefix desktop --audit-level=high'),
     );
