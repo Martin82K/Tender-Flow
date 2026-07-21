@@ -43,6 +43,7 @@ describe("root dependency security versions", () => {
       exceljs: {
         uuid: "11.1.1",
       },
+      "fast-uri": "3.1.4",
       "form-data": "4.0.6",
       hono: "4.12.25",
       joi: "18.2.1",
@@ -64,6 +65,7 @@ describe("root dependency security versions", () => {
     ["node_modules/hono", "4.12.25"],
     ["node_modules/joi", "18.2.1"],
     ["node_modules/electron-builder", "26.15.3"],
+    ["node_modules/fast-uri", "3.1.4"],
     ["node_modules/js-yaml", "4.3.0"],
     ["node_modules/posthog-js", "1.379.1"],
     ["node_modules/qs", "6.15.2"],
