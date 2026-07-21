@@ -46,4 +46,44 @@ describe("public demo access migration", () => {
     );
     expect(sql).toContain("ON public.bids");
   });
+
+  it("restores pre-demo database behavior without breaking tenant-scoped bids", () => {
+    const migrationsDir = join(process.cwd(), "supabase", "migrations");
+    const migrationName = readdirSync(migrationsDir).find((name) =>
+      name.endsWith("_restore_pre_demo_database_access.sql"),
+    );
+
+    expect(migrationName).toBeDefined();
+
+    const sql = readFileSync(join(migrationsDir, migrationName!), "utf8");
+    const bidPolicies = sql
+      .split("CREATE POLICY")
+      .slice(1)
+      .filter((policy) => /^\s+"[^"]+"\s*\nON public\.bids/m.test(policy));
+
+    expect(sql).toContain(
+      'CREATE POLICY "Projects visible to owner, explicit shares, or public demo"',
+    );
+    expect(sql).toContain(
+      'CREATE POLICY "Demand categories visible through project"',
+    );
+    expect(sql).toContain("bids.demand_category_id");
+    expect(sql).not.toMatch(/bids\.category_id\b/);
+    expect(sql).not.toMatch(/USING\s*\(\s*true\s*\)/i);
+    expect(sql).not.toMatch(/WITH CHECK\s*\(\s*true\s*\)/i);
+    expect(bidPolicies).toHaveLength(4);
+    expect(
+      bidPolicies.map(
+        (policy) => policy.match(/FOR (SELECT|INSERT|UPDATE|DELETE)/)?.[1],
+      ),
+    ).toEqual(["SELECT", "INSERT", "UPDATE", "DELETE"]);
+    expect(bidPolicies[0]).toContain(
+      "public.is_project_shared_with_user(p.id, (SELECT auth.uid()))",
+    );
+    for (const policy of bidPolicies.slice(1)) {
+      expect(policy).toMatch(
+        /public\.has_project_share_permission\(\s*p\.id,\s*\(SELECT auth\.uid\(\)\),\s*'edit'\s*\)/,
+      );
+    }
+  });
 });
