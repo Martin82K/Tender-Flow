@@ -37,40 +37,61 @@ USING (
 DROP POLICY IF EXISTS "Bids inherit category->project access"
   ON public.bids;
 
-CREATE POLICY "Bids inherit category->project access"
-ON public.bids
-FOR ALL
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1
-    FROM public.demand_categories dc
-    JOIN public.projects p ON p.id = dc.project_id
-    WHERE dc.id::text = bids.category_id
-      AND (
-        p.owner_id = (SELECT auth.uid())
-        OR (
-          p.organization_id IS NOT NULL
-          AND public.is_org_member(p.organization_id)
-        )
+DO $$
+DECLARE
+  bid_category_column TEXT;
+BEGIN
+  SELECT column_name
+  INTO bid_category_column
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'bids'
+    AND column_name IN ('demand_category_id', 'category_id')
+  ORDER BY CASE column_name WHEN 'demand_category_id' THEN 0 ELSE 1 END
+  LIMIT 1;
+
+  IF bid_category_column IS NULL THEN
+    RAISE EXCEPTION 'Bid category column is missing on public.bids';
+  END IF;
+
+  EXECUTE format($policy$
+    CREATE POLICY "Bids inherit category->project access"
+    ON public.bids
+    FOR ALL
+    TO authenticated
+    USING (
+      EXISTS (
+        SELECT 1
+        FROM public.demand_categories dc
+        JOIN public.projects p ON p.id = dc.project_id
+        WHERE dc.id::text = bids.%1$I::text
+          AND (
+            p.owner_id = (SELECT auth.uid())
+            OR (
+              p.organization_id IS NOT NULL
+              AND public.is_org_member(p.organization_id)
+            )
+          )
       )
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1
-    FROM public.demand_categories dc
-    JOIN public.projects p ON p.id = dc.project_id
-    WHERE dc.id::text = bids.category_id
-      AND (
-        p.owner_id = (SELECT auth.uid())
-        OR (
-          p.organization_id IS NOT NULL
-          AND public.is_org_member(p.organization_id)
-        )
+    )
+    WITH CHECK (
+      EXISTS (
+        SELECT 1
+        FROM public.demand_categories dc
+        JOIN public.projects p ON p.id = dc.project_id
+        WHERE dc.id::text = bids.%1$I::text
+          AND (
+            p.owner_id = (SELECT auth.uid())
+            OR (
+              p.organization_id IS NOT NULL
+              AND public.is_org_member(p.organization_id)
+            )
+          )
       )
-  )
-);
+    )
+  $policy$, bid_category_column);
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.get_projects_metadata()
 RETURNS TABLE (

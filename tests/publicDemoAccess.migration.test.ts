@@ -2,6 +2,14 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const expectAdaptiveBidCategoryColumn = (sql: string) => {
+  expect(sql).toContain("FROM information_schema.columns");
+  expect(sql).toContain("column_name IN ('demand_category_id', 'category_id')");
+  expect(sql).toContain("WHEN 'demand_category_id' THEN 0");
+  expect(sql).toContain("Bid category column is missing");
+  expect(sql).toContain("bids.%1$I::text");
+};
+
 describe("public demo access migration", () => {
   it("removes demo RLS exceptions and anonymous metadata access", () => {
     const migrationsDir = join(process.cwd(), "supabase", "migrations");
@@ -23,6 +31,7 @@ describe("public demo access migration", () => {
     expect(sql).toContain(
       'CREATE POLICY "Bids inherit category->project access"',
     );
+    expectAdaptiveBidCategoryColumn(sql);
     expect(sql).toContain(
       "REVOKE ALL ON FUNCTION public.get_projects_metadata() FROM PUBLIC",
     );
@@ -59,7 +68,7 @@ describe("public demo access migration", () => {
     const bidPolicies = sql
       .split("CREATE POLICY")
       .slice(1)
-      .filter((policy) => /^\s+"[^"]+"\s*\nON public\.bids/m.test(policy));
+      .filter((policy) => /^\s+"[^"]+"\s*\n\s*ON public\.bids/m.test(policy));
 
     expect(sql).toContain(
       'CREATE POLICY "Projects visible to owner, explicit shares, or public demo"',
@@ -67,8 +76,8 @@ describe("public demo access migration", () => {
     expect(sql).toContain(
       'CREATE POLICY "Demand categories visible through project"',
     );
-    expect(sql).toContain("bids.demand_category_id");
-    expect(sql).not.toMatch(/bids\.category_id\b/);
+    expectAdaptiveBidCategoryColumn(sql);
+    expect(sql.match(/EXECUTE format\(\$policy\$/g)).toHaveLength(4);
     expect(sql).not.toMatch(/USING\s*\(\s*true\s*\)/i);
     expect(sql).not.toMatch(/WITH CHECK\s*\(\s*true\s*\)/i);
     expect(bidPolicies).toHaveLength(4);
