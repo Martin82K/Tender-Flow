@@ -28,7 +28,7 @@ export const RegisterPage: React.FC = () => {
   const { search } = useLocation();
   const termsUrl = getLegalDocumentUrl("/terms");
   const privacyUrl = getLegalDocumentUrl("/privacy");
-  const { register, loginAsDemo } = useAuth();
+  const { register } = useAuth();
   const nextPath = getNext(search);
   const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const [name, setName] = useState("");
@@ -69,11 +69,6 @@ export const RegisterPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemo = () => {
-    loginAsDemo();
-    navigate(nextPath, { replace: true });
   };
 
   return (

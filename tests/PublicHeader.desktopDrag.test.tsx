@@ -25,12 +25,6 @@ vi.mock("@/shared/routing/router", () => ({
   navigate: vi.fn(),
 }));
 
-vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({
-    loginAsDemo: vi.fn(),
-  }),
-}));
-
 describe("PublicHeader desktop drag region", () => {
   it("má drag region na headeru a no-drag na interaktivních prvcích", () => {
     const html = renderToStaticMarkup(<PublicHeader variant="auth" />);
@@ -38,6 +32,10 @@ describe("PublicHeader desktop drag region", () => {
     expect(html).toContain("-webkit-app-region:drag");
     expect(html).toContain("-webkit-app-region:no-drag");
     expect(html).toContain("Přihlásit se");
-    expect(html).toContain("Spustit demo");
+    expect(html).toContain("Vyžádat demo");
+    expect(html).toContain(
+      "mailto:martin@tenderflow.cz?subject=%C5%BD%C3%A1dost%20o%20demo%20TenderFlow",
+    );
+    expect(html).not.toContain("Spustit demo");
   });
 });
