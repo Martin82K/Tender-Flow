@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 type PackageManifest = {
-  overrides?: Record<string, Record<string, string>>;
+  overrides?: Record<string, string | Record<string, string>>;
 };
 
 type PackageLock = {
@@ -20,8 +20,9 @@ describe("desktop dependency security overrides", () => {
 
   it("pins patched transitive versions at their owning dependencies", () => {
     expect(manifest.overrides).toEqual({
+      "brace-expansion": "5.0.7",
       "electron-updater": {
-        "js-yaml": "4.2.0",
+        "js-yaml": "4.3.0",
       },
       exceljs: {
         tmp: "0.2.7",
@@ -31,7 +32,8 @@ describe("desktop dependency security overrides", () => {
   });
 
   it.each([
-    ["node_modules/js-yaml", "4.2.0"],
+    ["node_modules/brace-expansion", "5.0.7"],
+    ["node_modules/js-yaml", "4.3.0"],
     ["node_modules/tmp", "0.2.7"],
     ["node_modules/uuid", "11.1.1"],
   ])("resolves %s to patched version %s", (packagePath, expectedVersion) => {

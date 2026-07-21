@@ -11,9 +11,7 @@ import { LegalAcceptanceInput, User } from "../types";
 import { authService } from "../services/authService";
 import {
   isDemoSession,
-  DEMO_USER,
   endDemoSession,
-  startDemoSession,
 } from "../services/demoData";
 import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import {
@@ -49,7 +47,6 @@ interface AuthContextType {
   acceptLegalDocuments: (input: LegalAcceptanceInput) => Promise<void>;
   updatePreferences: (preferences: any) => Promise<void>;
   logout: () => Promise<void>;
-  loginAsDemo: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   canUseBiometric: boolean;
@@ -329,17 +326,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       } catch { /* ignore */ }
     }
 
-    // Priority 1: Demo session (runtime-only, not restorable from localStorage)
-    // Security: isDemoSession() is tracked in memory — manipulating localStorage
-    // cannot activate demo mode. Only loginAsDemo() sets the runtime flag.
-    if (isDemoSession()) {
-      console.debug("AuthContext: Active demo session detected");
-      setUser(DEMO_USER);
-      setIsLoading(false);
-      return;
-    }
-
-    // Clean up stale localStorage demo flag from previous sessions
+    // Public client-side demo access is disabled. Clean up stale flags left by
+    // older builds before continuing with a real authenticated session.
     if (window.localStorage.getItem('demo_session')) {
       console.debug('[AuthContext] Stale demo_session localStorage flag found on init. Cleaning up.');
       endDemoSession();
@@ -1020,13 +1008,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const loginAsDemo = () => {
-    setPendingMfaState(null);
-    pendingMfaContextRef.current = null;
-    startDemoSession();
-    setUser(DEMO_USER);
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -1037,7 +1018,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         acceptLegalDocuments,
         updatePreferences,
         logout,
-        loginAsDemo,
         isAuthenticated: !!user,
         isLoading,
         canUseBiometric,
