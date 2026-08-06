@@ -7,19 +7,6 @@ import type {
     UpdateStatus,
     BackupSettingsInfo,
     BackupFileEntry,
-    BidComparisonAgentConfig,
-    BidComparisonAgentTestResult,
-    BidComparisonSupplierOption,
-    BidComparisonDetectionResult,
-    BidComparisonFileConfig,
-    BidComparisonWorkspaceState,
-    BidComparisonStartInput,
-    BidComparisonStartResult,
-    BidComparisonJobStatus,
-    BidComparisonAutoConfig,
-    BidComparisonAutoStartResult,
-    BidComparisonAutoScope,
-    BidComparisonAutoStatus,
 } from './types';
 import type { IpcChannel, IpcContractMap } from './ipc/contracts';
 
@@ -319,52 +306,6 @@ const electronAPI: ElectronAPI = {
             invokeTyped('backup:clean'),
     },
 
-    bidComparison: {
-        detectInputs: (args: { tenderFolderPath: string; suppliers: BidComparisonSupplierOption[] }): Promise<BidComparisonDetectionResult> =>
-            invokeTyped('bid-comparison:detect-inputs', args),
-
-        start: (input: BidComparisonStartInput): Promise<BidComparisonStartResult> =>
-            invokeTyped('bid-comparison:start', input),
-
-        get: (jobId: string): Promise<BidComparisonJobStatus | null> =>
-            invokeTyped('bid-comparison:get', jobId),
-
-        list: (filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> =>
-            invokeTyped('bid-comparison:list', filter),
-
-        cancel: (jobId: string): Promise<{ success: boolean }> =>
-            invokeTyped('bid-comparison:cancel', jobId),
-
-        testAgent: (config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> =>
-            invokeTyped('bid-comparison:test-agent', config),
-
-        loadWorkspace: (tenderFolderPath: string): Promise<BidComparisonWorkspaceState> =>
-            invokeTyped('bid-comparison:load-workspace', tenderFolderPath),
-
-        saveConfig: (tenderFolderPath: string, config: BidComparisonFileConfig): Promise<BidComparisonFileConfig> =>
-            invokeTyped('bid-comparison:save-config', tenderFolderPath, config),
-
-        saveAgentSecret: (secret: string): Promise<void> =>
-            invokeTyped('bid-comparison:save-agent-secret', secret),
-
-        hasAgentSecret: (): Promise<boolean> =>
-            invokeTyped('bid-comparison:has-agent-secret'),
-
-        clearAgentSecret: (): Promise<void> =>
-            invokeTyped('bid-comparison:clear-agent-secret'),
-
-        autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
-            invokeTyped('bid-comparison:auto-start', config),
-
-        autoStop: (scope: BidComparisonAutoScope): Promise<{ success: boolean }> =>
-            invokeTyped('bid-comparison:auto-stop', scope),
-
-        autoStatus: (scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> =>
-            invokeTyped('bid-comparison:auto-status', scope),
-
-        autoList: (): Promise<BidComparisonAutoStatus[]> =>
-            invokeTyped('bid-comparison:auto-list'),
-    },
 };
 
 // Expose to renderer

@@ -4,9 +4,8 @@ import * as http from 'http';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import { SecureStorageService } from '../services/secureStorage';
-import { getBidComparisonAutoRunner } from '../services/bidComparisonAutoRunner';
+import { cleanupRetiredDesktopFeatureStorage } from '../services/retiredFeatureStorage';
 import { resolvePortablePath } from '../services/portablePathResolver';
-import { registerBidComparisonHandlers } from './modules/bidComparisonHandlers';
 import { registerFsHandlers } from './modules/fsHandlers';
 import { registerMcpHandlers } from './modules/mcpHandlers';
 import { registerNetHandlers } from './modules/netHandlers';
@@ -24,6 +23,9 @@ import { getSupabasePublicConfig } from '../services/publicEnv';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
+void cleanupRetiredDesktopFeatureStorage(storageService).catch((error) => {
+    console.warn('[RetiredFeatureCleanup] Failed to remove retired secure storage entries:', error);
+});
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 const base64UrlEncode = (input: Buffer | Uint8Array): string => {
@@ -147,8 +149,6 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         ipcAuthGuard.requireAuth(sender, channel);
     };
 
-    const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
-    void bidComparisonAutoRunner.restorePersistedSessions();
     const remapLogCache = new Set<string>();
 
     const resolvePortableReadPath = async (targetPath: string): Promise<string> =>
@@ -177,7 +177,6 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
     registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth, grantedRootsStorage: storageService });
     registerWatcherHandlers({ resolvePortableReadPath, requireAuth });
-    registerBidComparisonHandlers({ resolvePortableReadPath, bidComparisonAutoRunner, requireAuth });
     registerSessionHandlers({ storageService, requireAuth });
     registerMcpHandlers({ requireAuth });
     registerOAuthHandlers({

@@ -68,34 +68,6 @@ export const getSafeFallbackProjectId = (
   return routeId;
 };
 
-export const hasComparableOfferSignal = (bid: Bid): boolean => {
-  const hasPrice = !!(bid.price || "").trim() && bid.price !== "?" && bid.price !== "-";
-  const hasPriceHistory = !!(bid.priceHistory && Object.keys(bid.priceHistory).length > 0);
-  const hasOfferStatus =
-    bid.status === "offer" || bid.status === "shortlist" || bid.status === "sod";
-
-  return hasPrice || hasPriceHistory || hasOfferStatus;
-};
-
-export const buildBidComparisonSuppliers = (categoryBids: Bid[]): string[] => {
-  const relevantSupplierNames = categoryBids
-    .filter(hasComparableOfferSignal)
-    .map((bid) => bid.companyName?.trim() || "")
-    .filter(Boolean);
-
-  const fallbackSupplierNames = categoryBids
-    .map((bid) => bid.companyName?.trim() || "")
-    .filter(Boolean);
-
-  return Array.from(
-    new Set(
-      relevantSupplierNames.length > 0
-        ? relevantSupplierNames
-        : fallbackSupplierNames,
-    ),
-  ).sort((a, b) => a.localeCompare(b, "cs"));
-};
-
 export const htmlToPlainText = (html: string): string => {
   return html
     .replace(/<br\s*\/?>/gi, "\n")

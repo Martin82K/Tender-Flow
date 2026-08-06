@@ -8,12 +8,11 @@ Stav: návrh k iteraci
 
 Tento dokument navrhuje agentní vrstvu pro Tender Flow jako katalog malých, opakovatelných skillů. První verze cílí na interní použití přímo v Tender Flow UI, typicky přes tlačítko nebo panel u projektu, VŘ, nabídky, smlouvy nebo dokumentů.
 
-Discord, Hermes Agent a OpenClaw jsou v této fázi jen budoucí runtime alternativy. Nemají být přímou závislostí v první implementaci. Tender Flow má nejdřív získat vlastní skill kontrakt, bezpečnostní pravidla, auditovatelné joby a jasně oddělené cloudové a desktopové schopnosti.
+Externí agentní runtime je v této fázi jen budoucí alternativa. Nemá být přímou závislostí v první implementaci. Tender Flow má nejdřív získat vlastní skill kontrakt, bezpečnostní pravidla, auditovatelné joby a jasně oddělené cloudové a desktopové schopnosti.
 
 Navržený směr navazuje na aktuální architekturu:
 
 - remote MCP je cloud-safe vrstva nad Tender Flow daty, bez přístupu k lokálním souborům,
-- desktop porovnání nabídek už existuje jako lokální IPC/runner workflow,
 - lokální Excel, PDF a složkové operace patří do budoucí Desktop Companion vrstvy,
 - zápisy do Tender Flow musí používat návrh změny, potvrzení a audit.
 
@@ -49,11 +48,10 @@ Požadované vlastnosti:
 
 ### Desktop Companion skills
 
-Lokální skilly pro práci se soubory, které nelze bezpečně nebo pohodlně řešit v remote MCP. Patří sem Excel, PDF, složky, zamčené listy, velké rozpočty, lokální cesty a porovnání dodavatelských souborů.
+Lokální skilly pro práci se soubory, které nelze bezpečně nebo pohodlně řešit v remote MCP. Patří sem Excel, PDF, složky, zamčené listy, velké rozpočty a lokální cesty.
 
 Vhodné pro:
 
-- porovnání nabídek v lokální složce VŘ,
 - doplnění jednotkových cen do zdrojového rozpočtu,
 - odemčení nebo normalizaci Excelů,
 - čtení PDF nabídek a smluv z lokálních složek,
@@ -81,12 +79,7 @@ Nevhodné pro:
 
 ### External runtime adapter
 
-Hermes Agent a OpenClaw mohou být později použité jako orchestrace nebo komunikační runtime, ale nemají určovat interní model Tender Flow skillů.
-
-Kandidáti:
-
-- [Hermes Agent GitHub](https://github.com/NousResearch/hermes-agent)
-- [OpenClaw docs](https://openclawdoc.com/docs/getting-started/what-is-openclaw/)
+Externí agentní runtime může být později použitý pro orchestraci nebo komunikaci, ale nesmí určovat interní model Tender Flow skillů.
 
 Pravidlo integrace: externí runtime volá pouze omezené Tender Flow API/MCP nástroje. Skill logika, oprávnění, audit a potvrzování zůstávají na straně Tender Flow.
 
@@ -97,7 +90,7 @@ flowchart LR
   JOBS --> DATA["Tender Flow data + RLS"]
   JOBS --> AUDIT["Audit log"]
   JOBS --> DESKTOP["Desktop Companion"]
-  EXT["Hermes / OpenClaw / Discord"] --> MCP["Restricted MCP/API"]
+  EXT["External agent runtime"] --> MCP["Restricted MCP/API"]
   MCP --> SKILLS
   DESKTOP --> FILES["Local Excel/PDF/folders"]
 ```
@@ -159,18 +152,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 
 ## Prioritní Skill Katalog
 
-### 1. Porovnání nabídek a doplnění jednotkových cen
-
-- **Účel**: porovnat dodavatelské nabídky proti původnímu rozpočtu a doplnit do rozpočtu nové sloupce s jednotkovými cenami.
-- **Vstupy**: rozpočet projektu, vybrané nabídky dodavatelů, mapování položek, případně lokální složka VŘ.
-- **Výstupy**: Excel s doplněnými sloupci po dodavatelích, rozdíly vůči rozpočtu, přehled nejlevnějších položek a varování.
-- **Datové zdroje**: VŘ, nabídky, dodavatelé, lokální XLSX/PDF.
-- **Povolené akce**: vytvořit nový výstupní soubor a report; zápis výsledku do Tender Flow jen po potvrzení.
-- **Bezpečnostní rizika**: špatné spárování položek, přepsání původního rozpočtu, import škodlivého vzorce, únik cen.
-- **Lidské potvrzení**: povinné před uložením výsledků do projektu nebo změnou vítězné nabídky.
-- **Testovací scénáře**: shodné položky, odlišné názvy položek, chybějící položky, rozdílné MJ, nulové ceny, vzorce v buňkách, zamčený list.
-
-### 2. Normalizace rozpočtů od různých dodavatelů
+### 1. Normalizace rozpočtů od různých dodavatelů
 
 - **Účel**: převést různé formáty dodavatelských Excelů do jednotného interního tvaru.
 - **Vstupy**: nabídky ve více XLSX/PDF formátech, volitelné ruční mapování sloupců.
@@ -181,7 +163,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před použitím normalizovaných dat pro vyhodnocení.
 - **Testovací scénáře**: různé názvy sloupců, sloučené buňky, více listů, skryté řádky, měna bez DPH/s DPH.
 
-### 3. Kontrola chybějících položek a cenových odchylek
+### 2. Kontrola chybějících položek a cenových odchylek
 
 - **Účel**: odhalit, že dodavatel neocenil položku, změnil měrnou jednotku nebo má extrémní cenu.
 - **Vstupy**: referenční rozpočet a jedna nebo více nabídek.
@@ -192,7 +174,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před odesláním dotazů dodavateli.
 - **Testovací scénáře**: položka navíc, položka chybí, stejné položky v jiném pořadí, odchylka nad nastavený limit.
 
-### 4. Doporučení dodavatele
+### 3. Doporučení dodavatele
 
 - **Účel**: navrhnout preferovaného dodavatele podle ceny, úplnosti nabídky, termínu, historie a rizik.
 - **Vstupy**: nabídky, termíny, hodnocení dodavatelů, historie spolupráce, smluvní rizika.
@@ -203,7 +185,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před označením vítěze nebo vytvořením smluvního navazujícího kroku.
 - **Testovací scénáře**: nejlevnější neúplná nabídka, dražší spolehlivý dodavatel, chybějící hodnocení, shodná cena.
 
-### 5. Rekapitulace VŘ pro projektového manažera
+### 4. Rekapitulace VŘ pro projektového manažera
 
 - **Účel**: připravit krátký přehled stavu VŘ, nabídek, termínů, rizik a doporučených dalších kroků.
 - **Vstupy**: projekt, VŘ, nabídky, harmonogram, poznámky, dokumenty.
@@ -214,7 +196,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před vytvořením úkolů nebo sdílením mimo interní tým.
 - **Testovací scénáře**: VŘ bez nabídek, VŘ po termínu, více kol, neúplný tender plan.
 
-### 6. Příprava dotazů na dodavatele
+### 5. Příprava dotazů na dodavatele
 
 - **Účel**: vytvořit věcné dotazy k nejasným nebo chybějícím položkám v nabídce.
 - **Vstupy**: nabídka, referenční rozpočet, detekovaná rizika, kontaktní osoba dodavatele.
@@ -225,7 +207,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před odesláním nebo uložením jako oficiální komunikace.
 - **Testovací scénáře**: chybějící cena, nejasná MJ, rozpor v termínu, chybějící kontakt.
 
-### 7. Extrakce závazků ze smluv a porovnání proti nabídce
+### 6. Extrakce závazků ze smluv a porovnání proti nabídce
 
 - **Účel**: ověřit, zda smlouva odpovídá vybrané nabídce v ceně, termínu, sankcích, záruce a rozsahu.
 - **Vstupy**: smlouva, vybraná nabídka, VŘ, případně objednávka.
@@ -236,7 +218,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před uložením extrahovaných závazků jako závazných dat.
 - **Testovací scénáře**: cena bez DPH vs s DPH, odlišný termín, chybějící sankce, skenované PDF.
 
-### 8. Kontrola harmonogramu vůči termínům nabídek a smluv
+### 7. Kontrola harmonogramu vůči termínům nabídek a smluv
 
 - **Účel**: zkontrolovat, zda termíny VŘ, nabídky, smlouvy a harmonogram projektu nejsou v konfliktu.
 - **Vstupy**: tender plan, harmonogram, nabídky, smlouvy.
@@ -247,7 +229,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před změnou termínu nebo vytvořením notifikace pro externí účastníky.
 - **Testovací scénáře**: termín nabídky po plánovaném startu prací, smlouva bez termínu, posunutý milník.
 
-### 9. Doporučení subdodavatelů
+### 8. Doporučení subdodavatelů
 
 - **Účel**: doporučit vhodné subdodavatele podle specializace, regionu, historie spolupráce, účasti ve VŘ a kapacity.
 - **Vstupy**: poptávaná kategorie, lokalita projektu, databáze kontaktů, historie nabídek.
@@ -258,7 +240,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 - **Lidské potvrzení**: povinné před oslovením nebo přidáním do VŘ.
 - **Testovací scénáře**: žádný dodavatel v regionu, více specializací, chybějící hodnocení, duplicitní kontakt.
 
-### 10. Podklady pro koordinační poradu
+### 9. Podklady pro koordinační poradu
 
 - **Účel**: připravit přehled projektových rozhodnutí, otevřených VŘ, termínů a rizik pro interní poradu.
 - **Vstupy**: projekt, pipeline, harmonogram, smlouvy, poznámky, notifikace.
@@ -273,7 +255,7 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 
 1. Začít TF-native registry vrstvou, která umí zobrazit dostupné skilly podle kontextu UI.
 2. Každý skill spouštět jako job se stavem `queued`, `running`, `needs_confirmation`, `completed`, `failed` nebo `cancelled`.
-3. Pro desktop skilly použít existující platform adapter a IPC vzor podobný porovnání nabídek.
+3. Pro desktop skilly použít existující platform adapter a zabezpečené IPC kontrakty.
 4. Pro cloud skilly používat RLS-aware datové dotazy a žádné lokální cesty.
 5. Pro zápisy použít návrh změny s diffem, rizikem a potvrzovacím textem.
 6. Výstupy ukládat jako reporty u entity, ne jako skrytou automatickou změnu.
@@ -284,9 +266,6 @@ Každý nový skill v katalogu má používat stejnou šablonu:
 Minimální testy pro první implementační řez:
 
 - parsing Excelu a zachování významu čísel, měn, vzorců a prázdných řádků,
-- mapování položek podle kódu, názvu, MJ a fallback podobnosti,
-- detekce chybějících položek a položek navíc,
-- výpočet jednotkových a celkových rozdílů,
 - odmítnutí zápisu bez potvrzení,
 - auditní záznam pro úspěšný, chybový a zrušený job,
 - redakce velkých a citlivých payloadů v logu,
@@ -294,7 +273,7 @@ Minimální testy pro první implementační řez:
 - respektování oprávnění uživatele a organizace,
 - desktop-only skill není dostupný ve web-only runtime.
 
-Před prvním produkčním releasem agentních skillů ověřit existující testy kolem bid comparison runneru, desktop IPC guardů a MCP guardrails.
+Před prvním produkčním releasem agentních skillů ověřit desktop IPC guardy a MCP guardrails.
 
 ## Roadmap
 
@@ -312,7 +291,7 @@ Před prvním produkčním releasem agentních skillů ověřit existující tes
 
 ### 0.3 Desktop Companion
 
-- Převést porovnání nabídek do obecnějšího desktop skill runneru.
+- Implementovat vybraný lokální dokumentový workflow v obecném desktop skill runneru.
 - Přidat jednotné limity, progress, cancel a output artifact model.
 - Oddělit lokální filesystem od remote MCP.
 
@@ -320,7 +299,7 @@ Před prvním produkčním releasem agentních skillů ověřit existující tes
 
 - Vystavit vybrané read-only skilly přes MCP.
 - Povolit zápisové návrhy jen přes třífázový protokol.
-- Připravit adapter pro Hermes/OpenClaw/Discord bez přímého přístupu k interním datům nebo filesystemu.
+- Připravit adapter pro případný externí runtime bez přímého přístupu k interním datům nebo filesystemu.
 
 ## Otevřené Otázky
 
