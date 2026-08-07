@@ -114,4 +114,29 @@ describe("DocHub cloud connection fallback", () => {
       local: { rootName: "C:\\Users\\Owner\\Projekt" },
     }).local).toBeUndefined();
   });
+
+  it("nepoužije staré OneDrive ID pro nový Google fallback", () => {
+    const switchedFallbackProject = {
+      ...localProject,
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/new-google-root",
+      docHubSettings: {
+        gdrive: {
+          rootWebUrl: "https://drive.google.com/drive/folders/new-google-root",
+        },
+        onedrive_cloud: {
+          rootId: "old-onedrive-root",
+          driveId: "old-drive",
+          rootWebUrl: "https://contoso.sharepoint.com/sites/old",
+        },
+      },
+    } as ProjectDetails;
+
+    expect(getDocHubCloudConnection(switchedFallbackProject)).toBeNull();
+    expect(resolveCloudDocHubConnection({
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:connection-1",
+      dochub_root_web_url: switchedFallbackProject.docHubRootWebUrl,
+      dochub_settings: switchedFallbackProject.docHubSettings,
+    })).toBeNull();
+  });
 });

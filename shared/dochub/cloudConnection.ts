@@ -162,6 +162,14 @@ export const getDocHubCloudConnection = (
     return asCloudConnection("onedrive", activeSettings);
   }
 
+  const fallbackUrl = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || "");
+  if (fallbackUrl) {
+    const fallbackKey = getCloudSettingsKeyForUrl(fallbackUrl);
+    return fallbackKey === "gdrive"
+      ? asCloudConnection("gdrive", project.docHubSettings?.gdrive)
+      : asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud);
+  }
+
   return asCloudConnection("gdrive", project.docHubSettings?.gdrive) ||
     asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud);
 };
