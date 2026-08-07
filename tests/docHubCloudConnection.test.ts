@@ -86,6 +86,16 @@ describe("DocHub cloud connection fallback", () => {
     }).gdrive?.rootName).toBe("Projekt / etapa");
   });
 
+  it("zachová cloudový název začínající lomítkem", () => {
+    expect(sanitizeDocHubSettings({
+      gdrive: {
+        rootId: "cloud-root",
+        rootName: "/Projekt",
+        rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      },
+    }).gdrive?.rootName).toBe("/Projekt");
+  });
+
   it("při změně Google fallbacku zachová nezávislé OneDrive připojení", () => {
     expect(replaceDocHubCloudFallbackUrl({
       gdrive: {
@@ -137,6 +147,76 @@ describe("DocHub cloud connection fallback", () => {
       dochub_root_id: "local:connection-1",
       dochub_root_web_url: switchedFallbackProject.docHubRootWebUrl,
       dochub_settings: switchedFallbackProject.docHubSettings,
+    })).toBeNull();
+  });
+
+  it("nepoužije staré Google ID pro nový Google fallback", () => {
+    const currentFallbackUrl = "https://drive.google.com/drive/folders/new-google-root";
+    const staleSettings = {
+      gdrive: {
+        rootId: "old-google-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/old-google-root",
+      },
+    };
+    const switchedFallbackProject = {
+      ...localProject,
+      docHubRootWebUrl: currentFallbackUrl,
+      docHubSettings: staleSettings,
+    } as ProjectDetails;
+
+    expect(getDocHubCloudConnection(switchedFallbackProject)).toBeNull();
+    expect(resolveCloudDocHubConnection({
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:connection-1",
+      dochub_root_web_url: currentFallbackUrl,
+      dochub_settings: staleSettings,
+    })).toBeNull();
+  });
+
+  it("použije cloudové ID pouze při shodě celé normalizované fallback URL", () => {
+    const currentFallbackUrl = "https://drive.google.com/drive/folders/current-root";
+    const currentSettings = {
+      gdrive: {
+        rootId: "current-root",
+        rootWebUrl: currentFallbackUrl,
+      },
+    };
+    const currentProject = {
+      ...localProject,
+      docHubRootWebUrl: currentFallbackUrl,
+      docHubSettings: currentSettings,
+    } as ProjectDetails;
+
+    expect(getDocHubCloudConnection(currentProject)).toEqual({
+      provider: "gdrive",
+      rootId: "current-root",
+      driveId: null,
+      rootWebUrl: currentFallbackUrl,
+    });
+    expect(resolveCloudDocHubConnection({
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:connection-1",
+      dochub_root_web_url: currentFallbackUrl,
+      dochub_settings: currentSettings,
+    })).toEqual({
+      provider: "gdrive",
+      rootId: "current-root",
+      driveId: null,
+    });
+  });
+
+  it("odmítne historické cloudové ID při nepovolené fallback URL", () => {
+    const invalidFallbackProject = {
+      ...localProject,
+      docHubRootWebUrl: "https://evil.example/folder",
+    } as ProjectDetails;
+
+    expect(getDocHubCloudConnection(invalidFallbackProject)).toBeNull();
+    expect(resolveCloudDocHubConnection({
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:connection-1",
+      dochub_root_web_url: invalidFallbackProject.docHubRootWebUrl,
+      dochub_settings: localProject.docHubSettings,
     })).toBeNull();
   });
 });
