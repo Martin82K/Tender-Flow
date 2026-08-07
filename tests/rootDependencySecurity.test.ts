@@ -41,7 +41,6 @@ describe("root dependency security versions", () => {
       },
       "@hono/node-server": "2.1.0",
       axios: "1.19.0",
-      "brace-expansion": "5.0.9",
       "electron-builder": {
         "js-yaml": "4.3.1",
       },
@@ -71,6 +70,10 @@ describe("root dependency security versions", () => {
     ["node_modules/axios", "1.19.0"],
     ["node_modules/body-parser", "1.20.6"],
     ["node_modules/brace-expansion", "5.0.9"],
+    ["node_modules/@electron/universal/node_modules/brace-expansion", "2.1.4"],
+    ["node_modules/filelist/node_modules/brace-expansion", "2.1.4"],
+    ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
+    ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/builder-util-runtime", "9.7.0"],
     ["node_modules/dompurify", "3.4.13"],
     ["node_modules/electron", "43.3.0"],
