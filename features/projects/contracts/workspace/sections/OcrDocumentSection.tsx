@@ -64,6 +64,7 @@ const DocumentRow: React.FC<{
   actionLabel: string;
   documentUrl?: string | null;
   hasDocument?: boolean;
+  onOpenDocument?: () => Promise<void> | void;
 }> = ({
   title,
   subtitle,
@@ -76,6 +77,7 @@ const DocumentRow: React.FC<{
   actionLabel,
   documentUrl,
   hasDocument,
+  onOpenDocument,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -120,7 +122,15 @@ const DocumentRow: React.FC<{
             if (inputRef.current) inputRef.current.value = '';
           }}
         />
-        {documentUrl ? (
+        {onOpenDocument && hasDocument ? (
+          <button
+            type="button"
+            onClick={() => void onOpenDocument()}
+            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          >
+            Otevřít dokument
+          </button>
+        ) : documentUrl ? (
           <a
             href={documentUrl}
             target="_blank"
@@ -149,7 +159,7 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<Record<string, string>>({});
   const [markdownRefreshKey, setMarkdownRefreshKey] = useState(0);
-  const hasDocument = Boolean(contract.documentUrl);
+  const hasDocument = Boolean(contract.documentStoragePath || contract.documentUrl);
   const safeDocumentUrl = getSafeDocumentUrl(contract.documentUrl);
 
   const amendments = useMemo<ContractAmendment[]>(
@@ -164,6 +174,21 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
       else next[key] = msg;
       return next;
     });
+  };
+
+  const openContractDocument = async () => {
+    setErr('contract', null);
+    try {
+      const url = await contractQueriesApi.getContractDocumentUrl(contract);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (openError) {
+      setErr(
+        'contract',
+        openError instanceof Error
+          ? openError.message
+          : 'Dokument smlouvy se nepodařilo otevřít.',
+      );
+    }
   };
 
   const runContractOcr = async (file: File) => {
@@ -321,6 +346,7 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
           }
           documentUrl={safeDocumentUrl}
           hasDocument={hasDocument}
+          onOpenDocument={openContractDocument}
         />
 
         <div>

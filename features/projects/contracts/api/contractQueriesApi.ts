@@ -16,6 +16,12 @@ export const contractQueriesApi = {
     return contractService.getContractsByProject(projectId);
   },
 
+  getContractDocumentUrl(
+    ...args: Parameters<typeof contractService.getContractDocumentUrl>
+  ): ReturnType<typeof contractService.getContractDocumentUrl> {
+    return contractService.getContractDocumentUrl(...args);
+  },
+
   getMarkdownVersions(
     ...args: Parameters<typeof contractService.getMarkdownVersions>
   ): ReturnType<typeof contractService.getMarkdownVersions> {

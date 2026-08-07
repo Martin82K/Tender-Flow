@@ -26,6 +26,15 @@ unit/contract/build brána, nikoli cloud end-to-end test.
 Legacy kořeny stále existují a architektonický audit eviduje přechodové importy.
 Migrace probíhá po malých testovaných smyčkách; plošný přesun by byl rizikový.
 
+### JSON záloha dokumentů smluv a rozšířeného Investora
+
+JSON backup export díky `to_jsonb` obsahuje nová investorská pole, současná
+obnova manifestu `1.0` je však zatím explicitně nevkládá zpět. Binární PDF/DOCX
+objekty ve Storage nejsou součástí JSON zálohy vůbec. Obnova proto nevytváří
+nefunkční odkazy, ale čísla investorské smlouvy, období a snapshoty pozastávek
+je po obnově manifestu `1.0` nutné doplnit ručně. Plnohodnotná obnova vyžaduje
+novou verzi backup manifestu a export Storage objektů.
+
 ## Bundle
 
 Vite 8 s Rolldownem stále hlásí dynamický `exceljs` chunk větší než 750 kB.

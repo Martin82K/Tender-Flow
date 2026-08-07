@@ -5,6 +5,7 @@ import type {
   ProjectDetails,
 } from '@/types';
 import { computeRetention, sumProjectRetention } from '../utils/retention';
+import { computeInvestorInvoiceBreakdown } from '../investor/investorBillingModel';
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
@@ -99,7 +100,10 @@ export const computeContractsDashboardStats = (
     (sum, invoice) => sum + (invoice.amount || 0),
     0,
   );
-  const investorPaid = sumInvestorInvoicesByStatus(investorInvoices, 'paid');
+  const investorPaid = investorInvoices.reduce(
+    (sum, invoice) => sum + computeInvestorInvoiceBreakdown(invoice).paidAmount,
+    0,
+  );
   const investorApproved = sumInvestorInvoicesByStatus(investorInvoices, 'approved');
   const investorIssued = sumInvestorInvoicesByStatus(investorInvoices, 'issued');
   const investorOverdue = sumInvestorInvoicesByStatus(investorInvoices, 'overdue');

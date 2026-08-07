@@ -327,10 +327,10 @@ describe("useProjectDetailsQuery contract", () => {
           siteFacilities: 2,
           insurance: 1,
         },
-        investorFinancials: {
+        investorFinancials: expect.objectContaining({
           sodPrice: 1200000,
           amendments: [
-            { id: "amendment-1", label: "Dodatek 1", price: 100000 },
+            expect.objectContaining({ id: "amendment-1", label: "Dodatek 1", price: 100000 }),
           ],
           invoices: [
             expect.objectContaining({
@@ -339,7 +339,7 @@ describe("useProjectDetailsQuery contract", () => {
               amount: 250000,
             }),
           ],
-        },
+        }),
       }),
     );
     expect(details?.categories).toEqual([

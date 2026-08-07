@@ -28,7 +28,13 @@ Projekt podporuje taby:
 - **Pipeline** – poptávkové kategorie, dodavatelé, nabídky a komunikace.
 - **Harmonogram** – projektové termíny a exporty; dostupnost podle plánu.
 - **Dokumenty** – projektová dokumentace, šablony, DocHub a ceníky.
-- **Smlouvy** – kontrakty, dodatky, fakturace, retence a hodnocení dodavatelů.
+- **Smlouvy** – výchozí tabulkový přehled s nastavitelnými sloupci, kontrakty,
+  dodatky, fakturace, retence, hodnocení dodavatelů a privátní PDF/DOCX
+  dokumenty. Novou smlouvu lze předvyplnit přes OCR; originál se připojí pouze
+  po potvrzení uživatelem.
+- **Investor** – smlouva s objednatelem, číslované dodatky a faktury podle
+  období. Fakturace odděluje vystavenou částku, pozastávku do předání,
+  pozastávku po dobu záruky, čistou částku k úhradě a skutečnou úhradu.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
 
 Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální

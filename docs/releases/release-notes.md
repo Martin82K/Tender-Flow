@@ -1,3 +1,20 @@
+## Připravované změny
+
+### Smlouvy a Investor
+
+- **Výchozí tabulka smluv**: projektový modul Smlouvy se otevírá přímo v tabulkovém přehledu; přepínač Split/Tabulka a akce Nová smlouva jsou ihned pod hlavní navigací.
+- **Nastavitelné sloupce**: šířky sloupců lze měnit tažením, nastavení se lokálně obnoví při příštím otevření a dlouhá čísla i názvy smluv se zalamují.
+- **Originální dokument smlouvy**: PDF a DOCX lze při založení bezpečně připojit, následně otevřít ikonou přímo z tabulky a OCR zůstává volitelnou předvyplňovací vrstvou.
+- **OCR při založení**: formulář čeká na dokončení OCR, předvyplní validovaná pole a ponechá uživateli závěrečnou kontrolu před uložením.
+- **Investor**: doplněna evidence smlouvy s objednatelem a číslovaných dodatků, fakturační období a samostatné pozastávky do předání a po dobu záruky.
+- **Přesnější úhrady**: z vystavené částky se automaticky počítají obě pozastávky a čistá částka k úhradě; jako uhrazená se vykazuje až zaplacená čistá částka.
+
+### Bezpečnost
+
+- Dokumenty smluv jsou v privátním Supabase Storage bucketu s projektovým RLS, limitem 20 MB a omezením na ověřené PDF/DOCX. Při otevření vzniká pouze krátkodobý podepsaný odkaz.
+
+---
+
 ## Tender Flow v1.7.0
 
 ### Nové funkce

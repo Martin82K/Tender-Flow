@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { invokeAuthedFunction } from './functionsClient';
+import { validateContractDocument } from '@/shared/contracts/contractDocument';
 import {
   Contract,
   ContractAmendment,
@@ -57,6 +58,13 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   source: row.source as Contract['source'],
   sourceBidId: row.source_bid_id as string | undefined,
   documentUrl: row.document_url as string | undefined,
+  documentStoragePath: row.document_storage_path as string | undefined,
+  documentFileName: row.document_file_name as string | undefined,
+  documentMimeType: row.document_mime_type as string | undefined,
+  documentSize:
+    row.document_size === null || row.document_size === undefined
+      ? undefined
+      : Number(row.document_size),
   extractionConfidence: row.extraction_confidence as number | undefined,
   extractionJson: row.extraction_json as Record<string, unknown> | undefined,
   vendorRating:
@@ -400,6 +408,10 @@ export const contractService = {
         source: contract.source,
         source_bid_id: contract.sourceBidId || null,
         document_url: sanitizeDocumentUrl(contract.documentUrl),
+        document_storage_path: contract.documentStoragePath || null,
+        document_file_name: contract.documentFileName || null,
+        document_mime_type: contract.documentMimeType || null,
+        document_size: contract.documentSize ?? null,
         extraction_confidence: contract.extractionConfidence || null,
         extraction_json: contract.extractionJson || null,
         owner_id: user.id,
@@ -460,6 +472,10 @@ export const contractService = {
     if (updates.documentUrl !== undefined) {
       dbUpdates.document_url = sanitizeDocumentUrl(updates.documentUrl);
     }
+    if (updates.documentStoragePath !== undefined) dbUpdates.document_storage_path = updates.documentStoragePath || null;
+    if (updates.documentFileName !== undefined) dbUpdates.document_file_name = updates.documentFileName || null;
+    if (updates.documentMimeType !== undefined) dbUpdates.document_mime_type = updates.documentMimeType || null;
+    if (updates.documentSize !== undefined) dbUpdates.document_size = updates.documentSize || null;
     if (updates.extractionConfidence !== undefined) dbUpdates.extraction_confidence = updates.extractionConfidence;
     if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
     if (updates.vendorId !== undefined) dbUpdates.vendor_id = updates.vendorId;
@@ -762,6 +778,52 @@ export const contractService = {
       .update({ status: 'paid', paid_at: effectivePaidAt })
       .eq('id', id);
     if (error) throw error;
+  },
+
+  uploadContractDocument: async (
+    file: File,
+    projectId: string,
+  ): Promise<Pick<Contract, 'documentStoragePath' | 'documentFileName' | 'documentMimeType' | 'documentSize'>> => {
+    const metadata = await validateContractDocument(file);
+    const path = `projects/${projectId}/contracts/${crypto.randomUUID()}.${metadata.extension}`;
+    const { error } = await supabase.storage
+      .from('contract-documents')
+      .upload(path, file, {
+        cacheControl: '3600',
+        contentType: metadata.mimeType,
+        upsert: false,
+      });
+    if (error) {
+      console.error('Contract document upload failed:', error.message);
+      throw new Error('Dokument smlouvy se nepodařilo bezpečně uložit.');
+    }
+    return {
+      documentStoragePath: path,
+      documentFileName: metadata.fileName,
+      documentMimeType: metadata.mimeType,
+      documentSize: metadata.size,
+    };
+  },
+
+  deleteContractDocument: async (storagePath: string): Promise<void> => {
+    if (!storagePath.startsWith('projects/') || !storagePath.includes('/contracts/')) return;
+    const { error } = await supabase.storage.from('contract-documents').remove([storagePath]);
+    if (error) console.error('Contract document cleanup failed:', error.message);
+  },
+
+  getContractDocumentUrl: async (contract: Pick<Contract, 'documentStoragePath' | 'documentUrl'>): Promise<string> => {
+    if (contract.documentStoragePath) {
+      const { data, error } = await supabase.storage
+        .from('contract-documents')
+        .createSignedUrl(contract.documentStoragePath, 15 * 60);
+      if (error || !data?.signedUrl) {
+        throw new Error('Dokument smlouvy se nepodařilo otevřít.');
+      }
+      return data.signedUrl;
+    }
+    const legacyUrl = sanitizeDocumentUrl(contract.documentUrl);
+    if (!legacyUrl) throw new Error('Smlouva nemá platný dokument.');
+    return legacyUrl;
   },
 
   // ============== RETENTION HELPERS ==============
