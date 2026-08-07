@@ -23,9 +23,6 @@ import { getSupabasePublicConfig } from '../services/publicEnv';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
-void cleanupRetiredDesktopFeatureStorage(storageService).catch((error) => {
-    console.warn('[RetiredFeatureCleanup] Failed to remove retired secure storage entries:', error);
-});
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 const base64UrlEncode = (input: Buffer | Uint8Array): string => {
@@ -127,7 +124,13 @@ const startLoopbackServer = (timeoutMs: number) => {
     });
 };
 
-export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
+export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<void> {
+    try {
+        await cleanupRetiredDesktopFeatureStorage(storageService);
+    } catch (error) {
+        console.warn('[RetiredFeatureCleanup] Failed to remove retired secure storage entries:', error);
+    }
+
     if (mainWindow) {
         ipcAuthGuard.setMainWindow(mainWindow);
     }

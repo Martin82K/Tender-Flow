@@ -209,11 +209,9 @@ function createWindow(): void {
     }
 }
 
-// Register IPC handlers
-registerIpcHandlers();
-
 // App lifecycle
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    await registerIpcHandlers();
     createWindow();
     startMcpServer()
         .then(({ sseUrl, close }) => {
@@ -230,6 +228,9 @@ app.whenReady().then(() => {
             createWindow();
         }
     });
+}).catch((error) => {
+    console.error('[App] Failed to initialize:', error);
+    app.quit();
 });
 
 app.on('window-all-closed', () => {
