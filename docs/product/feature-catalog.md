@@ -28,7 +28,13 @@ Projekt podporuje taby:
 - **Pipeline** – poptávkové kategorie, dodavatelé, nabídky a komunikace.
 - **Harmonogram** – projektové termíny a exporty; dostupnost podle plánu.
 - **Dokumenty** – projektová dokumentace, šablony, DocHub a ceníky.
-- **Smlouvy** – kontrakty, dodatky, fakturace, retence a hodnocení dodavatelů.
+- **Smlouvy** – výchozí tabulkový přehled s nastavitelnými sloupci, kontrakty,
+  dodatky, fakturace, retence, hodnocení dodavatelů a privátní PDF/DOCX
+  dokumenty. Novou smlouvu lze předvyplnit přes OCR; originál se připojí pouze
+  po potvrzení uživatelem.
+- **Investor** – smlouva s objednatelem, číslované dodatky a faktury podle
+  období. Fakturace odděluje vystavenou částku, pozastávku do předání,
+  pozastávku po dobu záruky, čistou částku k úhradě a skutečnou úhradu.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
 
 Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální
@@ -57,6 +63,11 @@ email přihlášeného uživatele v poli `To` a validní, deduplikované adresy
 subdodavatelů v `BCC`. UI před vytvořením konceptu zobrazí rekapitulaci včetně
 vyřazených neplatných adres. Aplikace zprávu sama neodesílá a stav karet mění až
 po úspěšném otevření konceptu v emailovém klientu.
+
+Vítězná nabídka ve stavu `sod` se páruje se smlouvou primárně přes ID nabídky.
+U historických záznamů se použije dodavatel pouze při jediné možné shodě. Ikona
+smlouvy pak otevře konkrétní kontrakt ve split detailu; při nejednoznačné shodě
+zůstane akce deaktivovaná, aby neotevřela nesprávný dokument.
 
 Portálová menu hromadné komunikace a exportu používají společný
 `tf-pipeline-popover` kontrakt. Classic skin využívá standardní Tailwind
@@ -104,7 +115,7 @@ flag a používají serverový proxy přístup.
 
 ### Nástroje
 
-URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ, bid comparison agent,
+URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 

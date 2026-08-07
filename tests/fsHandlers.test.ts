@@ -421,11 +421,11 @@ describe("fsHandlers", () => {
     });
 
     await expect(
-      handlers.get("fs:showItemInFolder")?.({}, "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx"),
+      handlers.get("fs:showItemInFolder")?.({}, "/Users/tester/Projects/Tender/vystup.xlsx"),
     ).resolves.toEqual({ success: true });
 
     expect(vi.mocked(shell.showItemInFolder)).toHaveBeenCalledWith(
-      "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx",
+      "/Users/tester/Projects/Tender/vystup.xlsx",
     );
     expect(vi.mocked(shell.openPath)).not.toHaveBeenCalled();
   });

@@ -1,6 +1,7 @@
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 import { getAccessTokenForUser } from "../_shared/tokens.ts";
+import { resolveCloudDocHubConnection } from "../_shared/dochub_connection.ts";
 import {
   findOrCreateGoogleFolder,
   findOrCreateMicrosoftFolder,
@@ -15,10 +16,13 @@ type LinkKind =
   | "contracts"
   | "realization"
   | "archive"
+  | "tender"
   | "tender_inquiries"
   | "supplier";
 
-const json = (status: number, body: unknown) =>
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
+const json = (req: Request, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
@@ -26,6 +30,7 @@ const json = (status: number, body: unknown) =>
 
 const upsertFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -36,9 +41,10 @@ const upsertFolder = async (args: {
   const service = createServiceClient();
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
+    root_id: args.rootId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -48,6 +54,7 @@ const upsertFolder = async (args: {
 
 const getStoredFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -57,13 +64,44 @@ const getStoredFolder = async (args: {
     .from("dochub_project_folders")
     .select("*")
     .eq("project_id", args.projectId)
+    .eq("root_id", args.rootId)
     .eq("provider", args.provider)
     .eq("kind", args.kind)
-    .eq("key", args.key)
+    .eq("key", normalizeFolderKey(args.key))
     .maybeSingle();
   return data as
     | { item_id: string; drive_id: string | null; web_url: string | null }
     | null;
+};
+
+const getCachedFolderForRequest = async (args: {
+  projectId: string;
+  rootId: string;
+  provider: Provider;
+  kind: LinkKind;
+  categoryId?: string;
+  supplierId?: string;
+}) => {
+  const { categoryId, supplierId } = args;
+  let key: string | null = null;
+  if (args.kind === "tender_inquiries") {
+    if (!categoryId) return null;
+    key = `${categoryId}:inquiries`;
+    const currentInquiry = await getStoredFolder({ ...args, key });
+    if (currentInquiry?.web_url) return currentInquiry;
+    const legacyInquiry = await getStoredFolder({
+      ...args,
+      key: categoryId,
+    });
+    return legacyInquiry;
+  } else if (args.kind === "tender") {
+    if (!categoryId) return null;
+    key = categoryId;
+  } else if (args.kind === "supplier") {
+    if (!categoryId || !supplierId) return null;
+    key = `${categoryId}:${supplierId}`;
+  }
+  return getStoredFolder({ ...args, key });
 };
 
 const ensureProjectFolder = async (args: {
@@ -77,6 +115,7 @@ const ensureProjectFolder = async (args: {
 }) => {
   const existing = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -96,6 +135,7 @@ const ensureProjectFolder = async (args: {
     });
     await upsertFolder({
       projectId: args.projectId,
+      rootId: args.rootId,
       provider: args.provider,
       kind: args.kind,
       key: null,
@@ -114,6 +154,7 @@ const ensureProjectFolder = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -138,6 +179,7 @@ const ensureTenderInquiries = async (args: {
   const tenderKey = args.categoryId;
   const tenderExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender",
     key: tenderKey,
@@ -147,21 +189,22 @@ const ensureTenderInquiries = async (args: {
   const tenderFolder =
     tenderExisting?.item_id && tenderExisting.web_url
       ? tenderExisting
-	          : args.provider === "gdrive"
-	        ? await (async () => {
-	            const folder = await findOrCreateGoogleFolder({
-	              accessToken: args.accessToken,
-	              parentId: args.tendersFolderId,
-	              name: tenderFolderName,
-	              appProperties: {
-	                dochubProjectId: args.projectId,
-	                dochubKind: "tender",
-	                dochubKey: tenderKey,
-	              },
-	            });
-	            await upsertFolder({
-	              projectId: args.projectId,
-	              provider: args.provider,
+      : args.provider === "gdrive"
+        ? await (async () => {
+            const folder = await findOrCreateGoogleFolder({
+              accessToken: args.accessToken,
+              parentId: args.tendersFolderId,
+              name: tenderFolderName,
+              appProperties: {
+                dochubProjectId: args.projectId,
+                dochubKind: "tender",
+                dochubKey: tenderKey,
+              },
+            });
+            await upsertFolder({
+              projectId: args.projectId,
+              rootId: args.rootId,
+              provider: args.provider,
               kind: "tender",
               key: tenderKey,
               itemId: folder.id,
@@ -179,6 +222,7 @@ const ensureTenderInquiries = async (args: {
             });
             await upsertFolder({
               projectId: args.projectId,
+              rootId: args.rootId,
               provider: args.provider,
               kind: "tender",
               key: tenderKey,
@@ -192,32 +236,39 @@ const ensureTenderInquiries = async (args: {
   const inquiriesKey = `${args.categoryId}:inquiries`;
   const inquiriesExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
   });
-  if (inquiriesExisting?.item_id && inquiriesExisting.web_url) return inquiriesExisting;
+  if (inquiriesExisting?.item_id && inquiriesExisting.web_url) {
+    return { tenderFolder, inquiriesFolder: inquiriesExisting };
+  }
 
-	  if (args.provider === "gdrive") {
-	    const folder = await findOrCreateGoogleFolder({
-	      accessToken: args.accessToken,
-	      parentId: tenderFolder.item_id,
-	      name: args.inquiriesName,
-	      appProperties: {
-	        dochubProjectId: args.projectId,
-	        dochubKind: "tender_inquiries",
-	        dochubKey: inquiriesKey,
-	      },
-	    });
-	    await upsertFolder({
-	      projectId: args.projectId,
-	      provider: args.provider,
+  if (args.provider === "gdrive") {
+    const folder = await findOrCreateGoogleFolder({
+      accessToken: args.accessToken,
+      parentId: tenderFolder.item_id,
+      name: args.inquiriesName,
+      appProperties: {
+        dochubProjectId: args.projectId,
+        dochubKind: "tender_inquiries",
+        dochubKey: inquiriesKey,
+      },
+    });
+    await upsertFolder({
+      projectId: args.projectId,
+      rootId: args.rootId,
+      provider: args.provider,
       kind: "tender_inquiries",
       key: inquiriesKey,
       itemId: folder.id,
       webUrl: folder.webViewLink,
     });
-    return { item_id: folder.id, drive_id: null, web_url: folder.webViewLink };
+    return {
+      tenderFolder,
+      inquiriesFolder: { item_id: folder.id, drive_id: null, web_url: folder.webViewLink },
+    };
   }
 
   if (!args.driveId) throw new Error("Missing driveId for OneDrive");
@@ -229,6 +280,7 @@ const ensureTenderInquiries = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
@@ -236,7 +288,10 @@ const ensureTenderInquiries = async (args: {
     driveId: args.driveId,
     webUrl: folder.webUrl,
   });
-  return { item_id: folder.id, drive_id: args.driveId, web_url: folder.webUrl };
+  return {
+    tenderFolder,
+    inquiriesFolder: { item_id: folder.id, drive_id: args.driveId, web_url: folder.webUrl },
+  };
 };
 
 Deno.serve(async (req) => {
@@ -246,7 +301,7 @@ Deno.serve(async (req) => {
   try {
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
-    if (userError || !userData.user) return json(401, { error: "Unauthorized" });
+    if (userError || !userData.user) return json(req, 401, { error: "Unauthorized" });
 
     const body = await req.json().catch(() => null);
     const projectId = (body?.projectId as string) || null;
@@ -256,7 +311,7 @@ Deno.serve(async (req) => {
     const supplierId = (body?.supplierId as string) || null;
     const supplierName = (body?.supplierName as string) || null;
 
-    if (!projectId) return json(400, { error: "Missing projectId" });
+    if (!projectId) return json(req, 400, { error: "Missing projectId" });
     if (
       !kind ||
       ![
@@ -265,31 +320,65 @@ Deno.serve(async (req) => {
         "contracts",
         "realization",
         "archive",
+        "tender",
         "tender_inquiries",
         "supplier",
       ].includes(kind)
     ) {
-      return json(400, { error: "Invalid kind" });
+      return json(req, 400, { error: "Invalid kind" });
     }
 
     // Read project config through RLS
     const { data: project, error: projectError } = await authed
       .from("projects")
       .select(
-        "id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status"
+        "id, owner_id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_root_web_url, dochub_structure_v1, dochub_enabled, dochub_status, dochub_settings",
       )
       .eq("id", projectId)
       .maybeSingle();
 
-    if (projectError || !project) return json(403, { error: "No access to project" });
+    if (projectError || !project) return json(req, 403, { error: "No access to project" });
     if (!project.dochub_enabled || project.dochub_status !== "connected") {
-      return json(400, { error: "DocHub not connected" });
+      return json(req, 400, { error: "DocHub not connected" });
     }
 
-    const provider = project.dochub_provider as Provider | null;
-    const rootId = project.dochub_root_id as string | null;
-    const driveId = (project.dochub_drive_id as string | null) || null;
-    if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
+    const cloudConnection = resolveCloudDocHubConnection(project as Record<string, unknown>);
+    if (!cloudConnection) return json(req, 404, { error: "Online folder link not available" });
+    const { provider, rootId, driveId } = cloudConnection;
+
+    const isProjectOwner = project.owner_id === userData.user.id;
+    let hasExplicitProjectShare = false;
+    if (!isProjectOwner) {
+      const { data: explicitShare, error: shareError } = await authed
+        .from("project_shares")
+        .select("project_id")
+        .eq("project_id", projectId)
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+      if (shareError || !explicitShare) {
+        return json(req, 404, { error: "Folder link not available" });
+      }
+      hasExplicitProjectShare = true;
+    }
+    if (!isProjectOwner && !hasExplicitProjectShare) {
+      return json(req, 404, { error: "Folder link not available" });
+    }
+
+    const cachedFolder = await getCachedFolderForRequest({
+      projectId,
+      rootId,
+      provider,
+      kind,
+      categoryId,
+      supplierId,
+    });
+    if (cachedFolder?.web_url) {
+      return json(req, 200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
+    }
+
+    if (!isProjectOwner) {
+      return json(req, 404, { error: "Folder link not available" });
+    }
 
     const structure = getStructure((project.dochub_structure_v1 as any) || null);
     const { accessToken } = await getAccessTokenForUser({
@@ -318,11 +407,11 @@ Deno.serve(async (req) => {
         kind: "pd",
         name: structure.pd,
       });
-      return json(200, { webUrl: pdFolder.web_url, itemId: pdFolder.item_id });
+      return json(req, 200, { webUrl: pdFolder.web_url, itemId: pdFolder.item_id });
     }
 
     if (kind === "tenders") {
-      return json(200, { webUrl: tendersFolder.web_url, itemId: tendersFolder.item_id });
+      return json(req, 200, { webUrl: tendersFolder.web_url, itemId: tendersFolder.item_id });
     }
 
     if (kind === "contracts") {
@@ -335,7 +424,7 @@ Deno.serve(async (req) => {
         kind: "contracts",
         name: structure.contracts,
       });
-      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
+      return json(req, 200, { webUrl: folder.web_url, itemId: folder.item_id });
     }
 
     if (kind === "realization") {
@@ -348,7 +437,7 @@ Deno.serve(async (req) => {
         kind: "realization",
         name: structure.realization,
       });
-      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
+      return json(req, 200, { webUrl: folder.web_url, itemId: folder.item_id });
     }
 
     if (kind === "archive") {
@@ -361,12 +450,12 @@ Deno.serve(async (req) => {
         kind: "archive",
         name: structure.archive,
       });
-      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
+      return json(req, 200, { webUrl: folder.web_url, itemId: folder.item_id });
     }
 
-    if (!categoryId || !categoryTitle) return json(400, { error: "Missing categoryId/categoryTitle" });
+    if (!categoryId || !categoryTitle) return json(req, 400, { error: "Missing categoryId/categoryTitle" });
 
-    const inquiriesFolder = await ensureTenderInquiries({
+    const { tenderFolder, inquiriesFolder } = await ensureTenderInquiries({
       provider,
       accessToken,
       projectId,
@@ -378,20 +467,25 @@ Deno.serve(async (req) => {
       inquiriesName: structure.tendersInquiries,
     });
 
-    if (kind === "tender_inquiries") {
-      return json(200, { webUrl: inquiriesFolder.web_url, itemId: inquiriesFolder.item_id });
+    if (kind === "tender") {
+      return json(req, 200, { webUrl: tenderFolder.web_url, itemId: tenderFolder.item_id });
     }
 
-    if (!supplierId || !supplierName) return json(400, { error: "Missing supplierId/supplierName" });
+    if (kind === "tender_inquiries") {
+      return json(req, 200, { webUrl: inquiriesFolder.web_url, itemId: inquiriesFolder.item_id });
+    }
+
+    if (!supplierId || !supplierName) return json(req, 400, { error: "Missing supplierId/supplierName" });
     const supplierKey = `${categoryId}:${supplierId}`;
     const supplierExisting = await getStoredFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,
     });
     if (supplierExisting?.item_id && supplierExisting.web_url) {
-      return json(200, { webUrl: supplierExisting.web_url, itemId: supplierExisting.item_id });
+      return json(req, 200, { webUrl: supplierExisting.web_url, itemId: supplierExisting.item_id });
     }
 
     const supplierFolderName = getTenderFolderName(supplierName);
@@ -408,13 +502,14 @@ Deno.serve(async (req) => {
 	      });
 	      await upsertFolder({
 	        projectId,
+	        rootId,
 	        provider,
         kind: "supplier",
         key: supplierKey,
         itemId: folder.id,
         webUrl: folder.webViewLink,
       });
-      return json(200, { webUrl: folder.webViewLink, itemId: folder.id });
+      return json(req, 200, { webUrl: folder.webViewLink, itemId: folder.id });
     }
 
     if (!driveId) throw new Error("Missing driveId for OneDrive");
@@ -426,6 +521,7 @@ Deno.serve(async (req) => {
     });
     await upsertFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,
@@ -433,8 +529,8 @@ Deno.serve(async (req) => {
       driveId,
       webUrl: folder.webUrl,
     });
-    return json(200, { webUrl: folder.webUrl, itemId: folder.id });
+    return json(req, 200, { webUrl: folder.webUrl, itemId: folder.id });
   } catch (e) {
-    return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
+    return json(req, 500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });

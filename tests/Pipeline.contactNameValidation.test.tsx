@@ -65,7 +65,6 @@ vi.mock("../components/pipelineComponents", () => {
     EditBidModal: dummy,
     CategoryCard: dummy,
     PipelineOverview: dummy,
-    BidComparisonPanel: dummy,
     CategoryFormModal: dummy,
     SubcontractorSelectorModal: ({
       onAddContact,

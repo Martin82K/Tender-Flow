@@ -8,6 +8,7 @@ import {
   Subcontractor,
   ProjectDetails,
   StatusConfig,
+  ContractWithDetails,
 } from "../types";
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -24,7 +25,6 @@ import {
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
-  buildBidComparisonSuppliers,
   getTemplateLinksForInquiryKindModel,
   type PipelineInquiryGenerationKind,
 } from "@/features/projects/model/pipelineModel";
@@ -37,6 +37,8 @@ import { usePipelineSubcontractorSelection } from "@/features/projects/model/use
 import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
+import { useEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { canOpenProjectDocHub } from "@shared/dochub/cloudConnection";
 import {
   isValidEmailAddress,
   normalizeEmailAddress,
@@ -46,6 +48,7 @@ import {
 } from "@/features/projects/model/pipelineEmailModel";
 import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
+import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
 import {
   Column,
   BidCard,
@@ -54,7 +57,6 @@ import {
   CreateContactModal,
   SubcontractorSelectorModal,
   PipelineOverview,
-  BidComparisonPanel,
   CategoryFormModal,
 } from "./pipelineComponents";
 
@@ -75,6 +77,10 @@ interface PipelineProps {
   searchQuery?: string;
   initialOpenCategoryId?: string;
   onCategoryNavigate?: (categoryId: string | null) => void;
+  contracts?: ContractWithDetails[];
+  onOpenContract?: (contractId: string) => void;
+  contractsLoading?: boolean;
+  contractsError?: string | null;
 }
 
 type PipelineViewMode = "grid" | "table";
@@ -86,6 +92,8 @@ export const getTemplateLinksForInquiryKind = (
 ): string[] => {
   return getTemplateLinksForInquiryKindModel(project, kind);
 };
+
+const noopOpenContract = () => undefined;
 
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
@@ -101,6 +109,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   searchQuery = "",
   initialOpenCategoryId,
   onCategoryNavigate,
+  contracts = [],
+  onOpenContract,
+  contractsLoading = false,
+  contractsError = null,
 }) => {
   const { user } = useAuth();
   // ... (existing code omitted for brevity)
@@ -108,9 +120,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // ... inside the render, look for EditBidModal ...
 
   const projectData = projectDetails;
-  const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
+  const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
+  const canOpenDocHub = canOpenProjectDocHub(projectDetails, docHubRoot);
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
@@ -188,12 +201,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const {
     activeCategory,
     setActiveCategory,
-    isBidComparisonPanelOpen,
-    setIsBidComparisonPanelOpen,
-    bidComparisonTenderPath,
-    isResolvingBidComparisonPath,
     resolveDesktopTenderFolderPath,
-    handleOpenBidComparisonPanel,
   } = usePipelineCategoryNavigation({
     projectId,
     initialOpenCategoryId,
@@ -393,7 +401,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       projectDetails,
       docHubRoot,
       docHubStructure,
-      isDocHubEnabled,
+      isDocHubEnabled: canOpenDocHub,
       showAlert,
       resolveDesktopTenderFolderPath,
     });
@@ -450,7 +458,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const isDesktopMode =
       platformAdapter.isDesktop;
     const categoryBids = bids[activeCategory.id] || [];
-    const bidComparisonSuppliers = buildBidComparisonSuppliers(categoryBids);
     const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
     const loserEmailSelection = selectLoserEmailRecipients(categoryBids);
     const selectedBulkEmailSelection =
@@ -491,31 +498,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
               <span>Přidat dodavatele</span>
             </button>
 
-            {isDesktopMode && (
-              <button
-                onClick={() => void handleOpenBidComparisonPanel()}
-                className="flex items-center gap-2 rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-200 disabled:opacity-60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
-                disabled={isResolvingBidComparisonPath}
-                title="Otevřít panel porovnání cenových nabídek"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  table_chart
-                </span>
-                <span>
-                  {isResolvingBidComparisonPath
-                    ? "Načítám složku..."
-                    : "Porovnání nabídek"}
-                </span>
-              </button>
-            )}
-
             <PipelineBulkEmailMenu
               inquiryRecipientCount={bulkInquirySelection.emails.length}
               loserRecipientCount={loserEmailSelection.emails.length}
               onSelect={openBulkEmailConfirmation}
             />
 
-            {isDocHubEnabled && (
+            {canOpenDocHub && (
               <button
                 onClick={() => void handleOpenTenderDocHub()}
                 className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
@@ -717,7 +706,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onGenerateInquiry={handleGenerateInquiry}
                   onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -746,7 +735,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -775,7 +764,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -798,7 +787,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -821,24 +810,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       trophy
                     </span>
                   </div>
-                  {/* Contract icon - clickable */}
-                  <button
-                    onClick={() => handleToggleContracted(bid)}
-                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${
-                      bid.contracted
-                        ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
-                        : "bg-slate-600 text-slate-300 hover:bg-slate-500"
-                    }`}
-                    title={
-                      bid.contracted
-                        ? "Zasmluvněno ✓"
-                        : "Označit jako zasmluvněno"
-                    }
-                  >
-                    <span className="material-symbols-outlined text-[16px] block">
-                      {bid.contracted ? "task_alt" : "description"}
-                    </span>
-                  </button>
+                  <WinnerContractButton
+                    bid={bid}
+                    contracts={contracts}
+                    onOpenContract={onOpenContract || noopOpenContract}
+                    onToggleContracted={handleToggleContracted}
+                    loading={contractsLoading}
+                    error={contractsError}
+                  />
                   <BidCard
                     bid={bid}
                     priceDisplayMode="detail"
@@ -847,7 +826,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
                     onOpenDocHubFolder={
-                      isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                      canOpenDocHub ? handleOpenSupplierDocHub : undefined
                     }
                   />
                 </div>
@@ -870,23 +849,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
             </Column>
           </div>
         </div>
-
-        <BidComparisonPanel
-          isOpen={isBidComparisonPanelOpen}
-          onClose={() => setIsBidComparisonPanelOpen(false)}
-          projectId={projectId}
-          categoryId={activeCategory.id}
-          initialTenderFolderPath={bidComparisonTenderPath}
-          supplierNames={bidComparisonSuppliers}
-          mappedBudgetAttachment={activeCategory.budgetAttachment}
-        />
 
         <SubcontractorSelectorModal
           isOpen={isSubcontractorModalOpen}

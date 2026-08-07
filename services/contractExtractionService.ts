@@ -231,21 +231,19 @@ async function extractTextFromDocument(
                   lastModified: Date.now() 
               });
 
-              console.log('Converted .doc to .docx:', uploadFile.name, uploadFile.size);
           } else {
               throw new Error('Pro zpracování .doc souborů použijte desktopovou aplikaci na macOS nebo soubor uložte jako .docx.');
           }
       }
 
     // 1. Upload to Supabase Storage
-    const timestamp = Date.now();
-    uploadPath = `temp/ocr/${timestamp}_${uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    uploadPath = `temp/ocr/${crypto.randomUUID()}_${uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
     onProgress?.('Nahrávám dokument...');
     const { error: uploadError } = await supabase.storage
       .from('demand-documents')
       .upload(uploadPath, uploadFile, {
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {
@@ -262,8 +260,6 @@ async function extractTextFromDocument(
     if (signError || !urlData?.signedUrl) {
       throw new Error('Nepodařilo se vygenerovat přístupový odkaz k souboru.');
     }
-
-    console.log('Sending to Mistral OCR:', urlData.signedUrl);
 
     // 3. Call AI Proxy with correct provider/model
     onProgress?.('Analyzuji obsah dokumentu pomocí AI...');

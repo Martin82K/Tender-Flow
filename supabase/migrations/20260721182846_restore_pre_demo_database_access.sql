@@ -84,126 +84,72 @@ BEGIN
 
   EXECUTE format($policy$
     CREATE POLICY "Bids visible through project"
-    ON public.bids
-    FOR SELECT
-    TO authenticated
-    USING (
-      EXISTS (
-        SELECT 1
-        FROM public.demand_categories dc
-        JOIN public.projects p ON p.id = dc.project_id
-        WHERE dc.id::text = bids.%1$I::text
-          AND (
-            p.owner_id = (SELECT auth.uid())
-            OR (
-              p.organization_id IS NOT NULL
-              AND public.is_org_member(p.organization_id)
-            )
-            OR public.is_project_shared_with_user(p.id, (SELECT auth.uid()))
-          )
-      )
-    )
+    ON public.bids FOR SELECT TO authenticated
+    USING (EXISTS (
+      SELECT 1 FROM public.demand_categories dc
+      JOIN public.projects p ON p.id = dc.project_id
+      WHERE dc.id::text = bids.%1$I::text
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR (p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id))
+          OR public.is_project_shared_with_user(p.id, (SELECT auth.uid()))
+        )
+    ))
   $policy$, bid_category_column);
 
   EXECUTE format($policy$
     CREATE POLICY "Bids insert for project editors"
-    ON public.bids
-    FOR INSERT
-    TO authenticated
-    WITH CHECK (
-      EXISTS (
-        SELECT 1
-        FROM public.demand_categories dc
-        JOIN public.projects p ON p.id = dc.project_id
-        WHERE dc.id::text = bids.%1$I::text
-          AND (
-            p.owner_id = (SELECT auth.uid())
-            OR (
-              p.organization_id IS NOT NULL
-              AND public.is_org_member(p.organization_id)
-            )
-            OR public.has_project_share_permission(
-              p.id,
-              (SELECT auth.uid()),
-              'edit'
-            )
-          )
-      )
-    )
+    ON public.bids FOR INSERT TO authenticated
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM public.demand_categories dc
+      JOIN public.projects p ON p.id = dc.project_id
+      WHERE dc.id::text = bids.%1$I::text
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR (p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id))
+          OR public.has_project_share_permission(p.id, (SELECT auth.uid()), 'edit')
+        )
+    ))
   $policy$, bid_category_column);
 
   EXECUTE format($policy$
     CREATE POLICY "Bids update for project editors"
-    ON public.bids
-    FOR UPDATE
-    TO authenticated
-    USING (
-      EXISTS (
-        SELECT 1
-        FROM public.demand_categories dc
-        JOIN public.projects p ON p.id = dc.project_id
-        WHERE dc.id::text = bids.%1$I::text
-          AND (
-            p.owner_id = (SELECT auth.uid())
-            OR (
-              p.organization_id IS NOT NULL
-              AND public.is_org_member(p.organization_id)
-            )
-            OR public.has_project_share_permission(
-              p.id,
-              (SELECT auth.uid()),
-              'edit'
-            )
-          )
-      )
-    )
-    WITH CHECK (
-      EXISTS (
-        SELECT 1
-        FROM public.demand_categories dc
-        JOIN public.projects p ON p.id = dc.project_id
-        WHERE dc.id::text = bids.%1$I::text
-          AND (
-            p.owner_id = (SELECT auth.uid())
-            OR (
-              p.organization_id IS NOT NULL
-              AND public.is_org_member(p.organization_id)
-            )
-            OR public.has_project_share_permission(
-              p.id,
-              (SELECT auth.uid()),
-              'edit'
-            )
-          )
-      )
-    )
+    ON public.bids FOR UPDATE TO authenticated
+    USING (EXISTS (
+      SELECT 1 FROM public.demand_categories dc
+      JOIN public.projects p ON p.id = dc.project_id
+      WHERE dc.id::text = bids.%1$I::text
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR (p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id))
+          OR public.has_project_share_permission(p.id, (SELECT auth.uid()), 'edit')
+        )
+    ))
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM public.demand_categories dc
+      JOIN public.projects p ON p.id = dc.project_id
+      WHERE dc.id::text = bids.%1$I::text
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR (p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id))
+          OR public.has_project_share_permission(p.id, (SELECT auth.uid()), 'edit')
+        )
+    ))
   $policy$, bid_category_column);
 
   EXECUTE format($policy$
     CREATE POLICY "Bids delete for project editors"
-    ON public.bids
-    FOR DELETE
-    TO authenticated
-    USING (
-      EXISTS (
-        SELECT 1
-        FROM public.demand_categories dc
-        JOIN public.projects p ON p.id = dc.project_id
-        WHERE dc.id::text = bids.%1$I::text
-          AND (
-            p.owner_id = (SELECT auth.uid())
-            OR (
-              p.organization_id IS NOT NULL
-              AND public.is_org_member(p.organization_id)
-            )
-            OR public.has_project_share_permission(
-              p.id,
-              (SELECT auth.uid()),
-              'edit'
-            )
-          )
-      )
-    )
+    ON public.bids FOR DELETE TO authenticated
+    USING (EXISTS (
+      SELECT 1 FROM public.demand_categories dc
+      JOIN public.projects p ON p.id = dc.project_id
+      WHERE dc.id::text = bids.%1$I::text
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR (p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id))
+          OR public.has_project_share_permission(p.id, (SELECT auth.uid()), 'edit')
+        )
+    ))
   $policy$, bid_category_column);
 END;
 $$;

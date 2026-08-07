@@ -55,6 +55,15 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - zkontrolovat state a callback URL,
 - lokální OneDrive desktop provider nepoužívá stejné cloud token workflow,
 - při sync chybě prověřit root folder vazbu a Edge log.
+- u sdíleného projektu je lokální cesta osobní pro konkrétního uživatele a zařízení;
+  cesta vlastníka se ostatním uživatelům nepřebírá,
+- sdílená lokální složka musí obsahovat marker `.tenderflow-project.json`, který
+  vytvoří vlastník při připojení složky; marker je svázaný s konkrétní generací
+  napojení projektu, takže po změně kořenové složky musí sdílený uživatel novou
+  synchronizovanou cestu znovu vybrat,
+- online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
+  samotná shoda e-mailu nezaručuje okamžitou synchronizaci — uživatel musí mít
+  cloudové oprávnění k úpravám a spuštěného synchronizačního klienta.
 
 ## Excel tools
 

@@ -14,6 +14,8 @@ import {
     sanitizeSubcontractorCompanyName,
     validateSubcontractorCompanyName,
 } from "../../shared/dochub/subcontractorNameRules";
+import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -151,8 +153,9 @@ export const useUpdateContactMutation = () => {
                 // Let's refactor slightly to access context
             }
         },
-        onSettled: (data, error, variables, context: any) => {
+        onSettled: async (data, error, variables, context: any) => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
+            if (error) return;
 
             // Moving logic to onSettled to ensure context access or just handle it here.
             // Actually, we can do it in onSuccess with 3rd arg.
@@ -168,10 +171,12 @@ export const useUpdateContactMutation = () => {
                     const oldName = oldContact.company;
 
                     // Get Project Details
-                    const project = queryClient.getQueryData<ProjectDetails>(['project', projectId]);
+                    const project = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
                     if (project && project.docHubEnabled && project.docHubStatus === 'connected') {
                         const provider = project.docHubProvider;
-                        const rootPath = project.docHubRootLink;
+                        const rootPath = provider === 'onedrive'
+                            ? await resolveEffectiveProjectDocHubRoot(project, user?.id ?? null)
+                            : project.docHubRootLink;
                         const structure = (project.docHubStructureV1 as any) || {};
                         const tendersName = structure.tenders || "01_VÝBĚROVÁ_ŘÍZENÍ";
 
@@ -188,8 +193,9 @@ export const useUpdateContactMutation = () => {
                                     if (category && rootPath) {
                                         // Tender Flow Desktop only for now
                                         if (provider === 'onedrive') {
-                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(oldName)}`;
-                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(newName)}`;
+                                            const categoryFolder = toDocHubFolderSegment(category.title);
+                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${categoryFolder}${sep}${toDocHubFolderSegment(oldName)}`;
+                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${categoryFolder}${sep}${toDocHubFolderSegment(newName)}`;
 
                                             // Trigger rename (fire and forget)
                                             renameFolder(oldPath, newPath, { provider, projectId }).catch((e) => {

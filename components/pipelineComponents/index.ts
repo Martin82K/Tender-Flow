@@ -24,5 +24,3 @@ export type { CategoryFormData } from './CategoryFormModal';
 export { SubcontractorSelectorModal } from './SubcontractorSelectorModal';
 
 export { PipelineOverview } from './PipelineOverview';
-
-export { BidComparisonPanel } from './BidComparisonPanel';

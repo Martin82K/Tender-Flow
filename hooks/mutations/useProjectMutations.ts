@@ -10,6 +10,8 @@ import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
+import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { sanitizeDocHubSettings } from "@shared/dochub/cloudConnection";
 import {
     emitCategoryStatusNotification,
     emitProjectClonedNotification,
@@ -448,6 +450,9 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.docHubAutoCreateEnabled !== undefined) projectUpdates.dochub_autocreate_enabled = normalizedUpdates.docHubAutoCreateEnabled;
             if (normalizedUpdates.docHubAutoCreateLastRunAt !== undefined) projectUpdates.dochub_autocreate_last_run_at = normalizedUpdates.docHubAutoCreateLastRunAt;
             if (normalizedUpdates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = normalizedUpdates.docHubAutoCreateLastError;
+            if (normalizedUpdates.docHubSettings !== undefined) {
+                projectUpdates.dochub_settings = sanitizeDocHubSettings(normalizedUpdates.docHubSettings);
+            }
 
             if (Object.keys(projectUpdates).length > 0) {
                 const { error } = await dbAdapter.from("projects").update(projectUpdates).eq("id", id);
@@ -499,6 +504,12 @@ export const useUpdateProjectDetailsMutation = () => {
                 const { error: financialsError } = await dbAdapter.from("project_investor_financials").upsert({
                     project_id: id,
                     sod_price: updates.investorFinancials.sodPrice,
+                    contract_number: updates.investorFinancials.contractNumber?.trim() || null,
+                    contract_title: updates.investorFinancials.contractTitle?.trim() || null,
+                    customer_name: updates.investorFinancials.customerName?.trim() || null,
+                    signed_at: updates.investorFinancials.signedAt || null,
+                    retention_a_percent: updates.investorFinancials.retentionAPercent || 0,
+                    retention_b_percent: updates.investorFinancials.retentionBPercent || 0,
                 });
                 assertNoDbError("Error updating investor financials:", financialsError);
 
@@ -511,6 +522,8 @@ export const useUpdateProjectDetailsMutation = () => {
                                 id: a.id,
                                 project_id: id,
                                 label: a.label,
+                                amendment_number: a.number?.trim() || null,
+                                signed_at: a.signedAt || null,
                                 price: a.price,
                             }))
                         );
@@ -529,12 +542,18 @@ export const useUpdateProjectDetailsMutation = () => {
                             invoicesToInsert.map((invoice) => ({
                                 id: invoice.id,
                                 project_id: id,
+                                period: invoice.period || invoice.issueDate.slice(0, 7),
                                 invoice_number: invoice.invoiceNumber.trim(),
                                 issue_date: invoice.issueDate,
                                 due_date: invoice.dueDate,
                                 amount: invoice.amount,
                                 currency: invoice.currency || "CZK",
                                 status: invoice.status,
+                                retention_a_percent: invoice.retentionAPercent || 0,
+                                retention_b_percent: invoice.retentionBPercent || 0,
+                                retention_a_amount: invoice.retentionAAmount || 0,
+                                retention_b_amount: invoice.retentionBAmount || 0,
+                                paid_amount: invoice.paidAmount || 0,
                                 paid_at: invoice.status === "paid" ? invoice.paidAt || null : null,
                                 note: invoice.note?.trim() || null,
                             })),
@@ -626,9 +645,13 @@ export const useAddCategoryMutation = () => {
             if (
                 projectDetails &&
                 projectDetails.docHubEnabled &&
-                projectDetails.docHubProvider === 'onedrive' &&
-                projectDetails.docHubRootLink
+                projectDetails.docHubProvider === 'onedrive'
             ) {
+                const localRootPath = await resolveEffectiveProjectDocHubRoot(
+                    projectDetails,
+                    user?.id ?? null,
+                );
+                if (!localRootPath) return;
                 const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
                 const hierarchyTree = buildHierarchyTree(ensureExtraHierarchy(structure.extraHierarchy));
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {
@@ -636,7 +659,7 @@ export const useAddCategoryMutation = () => {
                 };
 
                 const localDocHubResult = await ensureStructure({
-                    rootPath: projectDetails.docHubRootLink,
+                    rootPath: localRootPath,
                     structure,
                     categories: [{ id: category.id, title: category.title }],
                     suppliers,

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 type PackageManifest = {
+  dependencies?: Record<string, string>;
   overrides?: Record<string, string | Record<string, string>>;
 };
 
@@ -19,10 +20,11 @@ describe("desktop dependency security overrides", () => {
   const lockfile = readJson<PackageLock>(join(desktopRoot, "package-lock.json"));
 
   it("pins patched transitive versions at their owning dependencies", () => {
+    expect(manifest.dependencies?.["electron-updater"]).toBe("6.8.9");
     expect(manifest.overrides).toEqual({
-      "brace-expansion": "5.0.7",
+      "brace-expansion": "5.0.9",
       "electron-updater": {
-        "js-yaml": "4.3.0",
+        "js-yaml": "4.3.1",
       },
       exceljs: {
         tmp: "0.2.7",
@@ -32,8 +34,10 @@ describe("desktop dependency security overrides", () => {
   });
 
   it.each([
-    ["node_modules/brace-expansion", "5.0.7"],
-    ["node_modules/js-yaml", "4.3.0"],
+    ["node_modules/brace-expansion", "5.0.9"],
+    ["node_modules/builder-util-runtime", "9.7.0"],
+    ["node_modules/electron-updater", "6.8.9"],
+    ["node_modules/js-yaml", "4.3.1"],
     ["node_modules/tmp", "0.2.7"],
     ["node_modules/uuid", "11.1.1"],
   ])("resolves %s to patched version %s", (packagePath, expectedVersion) => {

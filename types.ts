@@ -158,23 +158,37 @@ export interface ContractDetails {
 export interface Amendment {
   id: string;
   label: string; // e.g. "Dodatek č.1"
+  number?: string;
+  signedAt?: string;
   price: number;
 }
 
 export interface InvestorFinancials {
   sodPrice: number; // Base contract price
+  contractNumber?: string;
+  contractTitle?: string;
+  customerName?: string;
+  signedAt?: string;
+  retentionAPercent?: number;
+  retentionBPercent?: number;
   amendments: Amendment[];
   invoices?: InvestorInvoice[];
 }
 
 export interface InvestorInvoice {
   id: string;
+  period?: string;
   invoiceNumber: string;
   issueDate: string;
   dueDate: string;
   amount: number;
   currency: string;
   status: ContractInvoiceStatus;
+  retentionAPercent?: number;
+  retentionBPercent?: number;
+  retentionAAmount?: number;
+  retentionBAmount?: number;
+  paidAmount?: number;
   paidAt?: string;
   note?: string;
 }
@@ -189,8 +203,18 @@ export interface DocumentLink {
   notes?: string;       // Optional notes
 }
 
+export interface DocHubProviderSettings {
+  rootLink?: string;
+  rootName?: string;
+  rootId?: string;
+  driveId?: string;
+  siteId?: string;
+  rootWebUrl?: string;
+}
+
 export interface ProjectDetails {
   id?: string; // Optional linkage
+  ownerId?: string;
   title: string;
   status?: ProjectStatus; // Added specific status field
   archivedOriginalStatus?: ActiveProjectStatus | null;
@@ -235,14 +259,7 @@ export interface ProjectDetails {
   docHubAutoCreateEnabled?: boolean; // Auto-create & reconcile folders on toggle
   docHubAutoCreateLastRunAt?: string | null; // ISO datetime of last auto-create run
   docHubAutoCreateLastError?: string | null; // last auto-create error
-  docHubSettings?: Record<string, {
-    rootLink?: string;
-    rootName?: string;
-    rootId?: string;
-    driveId?: string;
-    siteId?: string;
-    rootWebUrl?: string;
-  }> | null; // Settings per provider
+  docHubSettings?: Record<string, DocHubProviderSettings> | null; // Provider settings; local paths must never be persisted here
 
   categories: DemandCategory[];
   contract?: ContractDetails;
@@ -441,6 +458,10 @@ export interface Contract {
   sourceBidId?: string;
 
   documentUrl?: string;
+  documentStoragePath?: string;
+  documentFileName?: string;
+  documentMimeType?: string;
+  documentSize?: number;
   extractionConfidence?: number;
   extractionJson?: Record<string, unknown>;
 

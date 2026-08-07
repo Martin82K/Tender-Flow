@@ -317,6 +317,13 @@ DocHub je modul pro organizaci projektových složek v cloudovém nebo lokální
 3. Zadejte nebo vyberte kořenovou složku.
 4. Klikněte **Připojit složku** a poté **Synchronizovat**.
 
+**Kombinace online a lokální složky:**
+- Online připojení a lokální/síťovou složku lze používat současně.
+- Nejprve připojte cloudovou složku, potom zvolte **Tender Flow Desktop** a vyberte její lokálně synchronizovanou kopii.
+- Tender Flow ukládá lokální cestu pouze pro konkrétního uživatele a zařízení; ostatním uživatelům se cesta z vašeho počítače nesdílí.
+- Při otevření složky VŘ, poptávky nebo subdodavatele má přednost dostupná lokální složka. Pokud chybí nebo ji nelze otevřít, aplikace automaticky použije odpovídající online odkaz.
+- Jestliže online provider nemůže vrátit přesný odkaz na podsložku, otevře se bezpečný online kořen projektu.
+
 **DocHub v desktop verzi (lokální disk):**
 - Provider: **Tender Flow Desktop**
 - Podporuje libovolný disk (C:\, D:\, E:\, …) i síťové/sdílené disky

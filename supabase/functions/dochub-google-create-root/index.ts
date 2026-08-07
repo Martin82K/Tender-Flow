@@ -61,10 +61,13 @@ Deno.serve(async (req) => {
     // Verify user can access project via RLS
     const { data: projectRow, error: projectError } = await authed
       .from("projects")
-      .select("id, dochub_mode")
+      .select("id, owner_id, dochub_mode")
       .eq("id", projectId)
       .maybeSingle();
     if (projectError || !projectRow) return json(403, { error: "No access to project" });
+    if (!projectRow.owner_id || projectRow.owner_id !== userData.user.id) {
+      return json(403, { error: "Project owner permission required" });
+    }
 
     const { accessToken } = await getAccessTokenForUser({
       userId: userData.user.id,
@@ -100,4 +103,3 @@ Deno.serve(async (req) => {
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
-

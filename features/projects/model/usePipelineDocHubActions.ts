@@ -8,6 +8,9 @@ import {
   isProbablyUrl,
   slugifyDocHubSegmentStrict,
 } from "@/shared/dochub/docHub";
+import { getDocHubCloudConnection } from "@shared/dochub/cloudConnection";
+import { normalizeDocHubOnlineUrl } from "@shared/dochub/personalLocation";
+import { getDesktopTenderFolderPath } from "./usePipelineCategoryNavigation";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 
 interface ShowAlertArgs {
@@ -38,22 +41,22 @@ export const usePipelineDocHubActions = ({
   showAlert,
   resolveDesktopTenderFolderPath,
 }: UsePipelineDocHubActionsInput) => {
-  const canUseDocHubBackend =
-    !!projectDetails.docHubProvider &&
-    projectDetails.docHubProvider !== "onedrive" &&
-    !!projectDetails.docHubRootId &&
-    projectDetails.docHubStatus === "connected";
+  const canUseDocHubBackend = Boolean(
+    getDocHubCloudConnection(projectDetails) &&
+    projectDetails.docHubStatus !== "disconnected" &&
+    projectDetails.docHubStatus !== "error",
+  );
 
-  const openOrCopyDocHubPath = async (path: string) => {
+  const openDocHubPath = async (path: string): Promise<boolean> => {
     console.log("[DocHub] openOrCopyDocHubPath called with path:", path);
     if (!path) {
       console.warn("[DocHub] Empty path, returning");
-      return;
+      return false;
     }
     if (isProbablyUrl(path)) {
       console.log("[DocHub] Path is URL, opening in browser");
       window.open(path, "_blank", "noopener,noreferrer");
-      return;
+      return true;
     }
 
     console.log(
@@ -71,19 +74,19 @@ export const usePipelineDocHubActions = ({
           const result = await openInExplorer(path);
           if (result.success) {
             console.log("[DocHub] openInExplorer completed successfully");
-            return;
+            return true;
           }
           throw new Error(result.error || "Nepodařilo se otevřít cestu v průzkumníku.");
         }
 
       } catch (error) {
-        console.warn("[DocHub] Open failed, falling back to copy", error);
+        console.warn("[DocHub] Open failed, falling back online", error);
         void logIncident({
           severity: "warn",
           source: "renderer",
           category: "storage",
           code: "DOCHUB_OPEN_PATH_FALLBACK",
-          message: `Otevření DocHub cesty selhalo, přecházím na kopírování: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Otevření DocHub cesty selhalo, přecházím na online variantu: ${error instanceof Error ? error.message : String(error)}`,
           stack: error instanceof Error ? error.stack : null,
           context: {
             action: "open_doc_hub_path",
@@ -98,7 +101,10 @@ export const usePipelineDocHubActions = ({
         });
       }
     }
+    return false;
+  };
 
+  const copyDocHubPath = async (path: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(path);
       showAlert({
@@ -116,23 +122,15 @@ export const usePipelineDocHubActions = ({
     }
   };
 
-  const openDocHubBackendLink = async (payload: any) => {
-    if (
-      projectData.docHubProvider === "onedrive"
-    ) {
-      console.warn(
-        "[DocHub] Blocked backend call for Tender Flow Desktop provider",
-      );
-      return;
-    }
-
+  const openDocHubBackendLink = async (payload: Record<string, unknown>): Promise<boolean> => {
     try {
-      const data = await invokeAuthedFunction<any>("dochub-get-link", {
+      const data = await invokeAuthedFunction<{ webUrl?: string }>("dochub-get-link", {
         body: payload,
       });
-      const webUrl = (data as any)?.webUrl as string | undefined;
-      if (!webUrl) throw new Error("Backend nevrátil webUrl");
+      const webUrl = normalizeDocHubOnlineUrl(data?.webUrl || "");
+      if (!webUrl) throw new Error("Backend nevrátil bezpečný odkaz na podporované úložiště");
       window.open(webUrl, "_blank", "noopener,noreferrer");
+      return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Neznámá chyba";
       void logIncident({
@@ -153,11 +151,37 @@ export const usePipelineDocHubActions = ({
           action_status: "error",
         },
       });
-      showAlert({ title: "DocHub chyba", message, variant: "danger" });
+      return false;
     }
   };
 
-  const handleOpenSupplierDocHub = (bid: Bid) => {
+  const openOnlineRootFallback = (): boolean => {
+    if (
+      projectDetails.docHubStatus === "disconnected" ||
+      projectDetails.docHubStatus === "error" ||
+      !projectDetails.docHubProvider
+    ) {
+      return false;
+    }
+    const onlineRoot = normalizeDocHubOnlineUrl(
+      projectDetails.docHubRootWebUrl ||
+      getDocHubCloudConnection(projectDetails)?.rootWebUrl ||
+      "",
+    );
+    if (!onlineRoot) return false;
+    window.open(onlineRoot, "_blank", "noopener,noreferrer");
+    return true;
+  };
+
+  const showUnavailableFolder = () => {
+    showAlert({
+      title: "Složka není dostupná",
+      message: "Lokální složka není dostupná a online odkaz se nepodařilo otevřít.",
+      variant: "danger",
+    });
+  };
+
+  const handleOpenSupplierDocHub = async (bid: Bid): Promise<void> => {
     console.log("[DocHub] handleOpenSupplierDocHub called", {
       bid: bid.companyName,
       isDocHubEnabled,
@@ -177,10 +201,44 @@ export const usePipelineDocHubActions = ({
       return;
     }
 
-    const isLocalProvider = projectData.docHubProvider === "onedrive";
+    const isLocalProvider = projectData.docHubProvider === "onedrive" ||
+      projectData.docHubProvider === "local";
 
-    if (canUseDocHubBackend && projectData.id && !isLocalProvider) {
-      void openDocHubBackendLink({
+    const isDesktopMode = platformAdapter.isDesktop;
+    console.log("[DocHub] isDesktopMode:", isDesktopMode);
+    let localFallbackPath: string | null = null;
+
+    if (isDesktopMode && isLocalProvider && docHubRoot) {
+      const supplierPath = getDocHubTenderLinksDesktop(
+        docHubRoot,
+        activeCategory.title,
+        bid.companyName,
+        projectDetails.docHubStructureV1,
+      );
+      localFallbackPath = supplierPath;
+
+      if (await folderExists(supplierPath)) {
+        console.log("[DocHub] Found aligned folder:", supplierPath);
+        if (await openDocHubPath(supplierPath)) return;
+      }
+
+      const strictName = slugifyDocHubSegmentStrict(bid.companyName);
+      const strictPath = getDocHubTenderLinksDesktop(
+        docHubRoot,
+        activeCategory.title,
+        strictName,
+        projectDetails.docHubStructureV1,
+      );
+
+      if (await folderExists(strictPath)) {
+        console.log("[DocHub] Found strict (underscored) folder:", strictPath);
+        localFallbackPath = strictPath;
+        if (await openDocHubPath(strictPath)) return;
+      }
+    }
+
+    if (canUseDocHubBackend && projectData.id) {
+      const opened = await openDocHubBackendLink({
         projectId: projectData.id,
         kind: "supplier",
         categoryId: activeCategory.id,
@@ -188,55 +246,26 @@ export const usePipelineDocHubActions = ({
         supplierId: bid.subcontractorId,
         supplierName: bid.companyName,
       });
+      if (opened) return;
+    }
+
+    if (openOnlineRootFallback()) return;
+
+    if (!isLocalProvider && docHubRoot) {
+      const links = getDocHubTenderLinks(
+        docHubRoot,
+        activeCategory.title,
+        docHubStructure,
+      );
+      if (await openDocHubPath(links.supplierBase(bid.companyName))) return;
+    }
+
+    if (localFallbackPath) {
+      await copyDocHubPath(localFallbackPath);
       return;
     }
 
-    const isDesktopMode = platformAdapter.isDesktop;
-    console.log("[DocHub] isDesktopMode:", isDesktopMode);
-
-    if (isDesktopMode) {
-      const handleDesktopPath = async () => {
-        const supplierPath = getDocHubTenderLinksDesktop(
-          docHubRoot,
-          activeCategory.title,
-          bid.companyName,
-          projectDetails.docHubStructureV1,
-        );
-
-        if (await folderExists(supplierPath)) {
-          console.log("[DocHub] Found aligned folder:", supplierPath);
-          await openOrCopyDocHubPath(supplierPath);
-          return;
-        }
-
-        const strictName = slugifyDocHubSegmentStrict(bid.companyName);
-        const strictPath = getDocHubTenderLinksDesktop(
-          docHubRoot,
-          activeCategory.title,
-          strictName,
-          projectDetails.docHubStructureV1,
-        );
-
-        if (await folderExists(strictPath)) {
-          console.log("[DocHub] Found strict (underscored) folder:", strictPath);
-          await openOrCopyDocHubPath(strictPath);
-          return;
-        }
-
-        console.log("[DocHub] Folder not found, attempting standard:", supplierPath);
-        await openOrCopyDocHubPath(supplierPath);
-      };
-
-      void handleDesktopPath();
-      return;
-    }
-
-    const links = getDocHubTenderLinks(
-      docHubRoot,
-      activeCategory.title,
-      docHubStructure,
-    );
-    void openOrCopyDocHubPath(links.supplierBase(bid.companyName));
+    showUnavailableFolder();
   };
 
   const handleOpenTenderDocHub = async () => {
@@ -244,31 +273,49 @@ export const usePipelineDocHubActions = ({
 
     const isDesktopMode = platformAdapter.isDesktop;
 
-    if (canUseDocHubBackend && projectData.id && !isDesktopMode) {
-      await openDocHubBackendLink({
+    const isLocalProvider = projectData.docHubProvider === "onedrive" ||
+      projectData.docHubProvider === "local";
+    let localFallbackPath: string | null = null;
+    if (isDesktopMode && isLocalProvider && docHubRoot) {
+      const tenderPath = await resolveDesktopTenderFolderPath(activeCategory.title);
+      localFallbackPath = tenderPath || getDesktopTenderFolderPath(
+        docHubRoot,
+        activeCategory.title,
+        projectDetails.docHubStructureV1,
+      );
+      if (tenderPath) {
+        console.log("[DocHub] Opening tender folder:", tenderPath);
+        if (await openDocHubPath(tenderPath)) return;
+      }
+    }
+
+    if (canUseDocHubBackend && projectData.id) {
+      const opened = await openDocHubBackendLink({
         projectId: projectData.id,
         kind: "tender",
         categoryId: activeCategory.id,
         categoryTitle: activeCategory.title,
       });
+      if (opened) return;
+    }
+
+    if (openOnlineRootFallback()) return;
+
+    if (!isLocalProvider && docHubRoot) {
+      const links = getDocHubTenderLinks(
+        docHubRoot,
+        activeCategory.title,
+        docHubStructure,
+      );
+      if (await openDocHubPath(links.tenderBase)) return;
+    }
+
+    if (localFallbackPath) {
+      await copyDocHubPath(localFallbackPath);
       return;
     }
 
-    if (isDesktopMode) {
-      const tenderPath = await resolveDesktopTenderFolderPath(activeCategory.title);
-      if (tenderPath) {
-        console.log("[DocHub] Opening tender folder:", tenderPath);
-        await openOrCopyDocHubPath(tenderPath);
-      }
-      return;
-    }
-
-    const links = getDocHubTenderLinks(
-      docHubRoot,
-      activeCategory.title,
-      docHubStructure,
-    );
-    await openOrCopyDocHubPath(links.tenderBase);
+    showUnavailableFolder();
   };
 
   return {

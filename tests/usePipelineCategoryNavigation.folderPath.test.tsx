@@ -43,4 +43,20 @@ describe("usePipelineCategoryNavigation cesta složky VŘ", () => {
     expect(mocks.folderExists).toHaveBeenCalledTimes(1);
     expect(mocks.folderExists).toHaveBeenCalledWith(expectedPath);
   });
+
+  it("vrátí null, když lokální složka VŘ není dostupná", async () => {
+    mocks.folderExists.mockResolvedValue(false);
+
+    const { result } = renderHook(() =>
+      usePipelineCategoryNavigation({
+        projectId: "project-1",
+        categories: [],
+        docHubRoot: "D:\\Synchronizace\\Projekt",
+      }),
+    );
+
+    await expect(
+      result.current.resolveDesktopTenderFolderPath("Betony"),
+    ).resolves.toBeNull();
+  });
 });

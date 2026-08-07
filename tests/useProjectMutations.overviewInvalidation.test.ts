@@ -26,6 +26,11 @@ const mocks = vi.hoisted(() => ({
   emitCategoryStatusNotificationMock: vi.fn(),
   emitProjectClonedNotificationMock: vi.fn(),
   emitProjectArchivedNotificationMock: vi.fn(),
+  resolveEffectiveProjectDocHubRootMock: vi.fn(),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  resolveEffectiveProjectDocHubRoot: mocks.resolveEffectiveProjectDocHubRootMock,
 }));
 
 vi.mock("../services/dbAdapter", () => ({
@@ -154,6 +159,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     mocks.emitCategoryStatusNotificationMock.mockResolvedValue(null);
     mocks.emitProjectClonedNotificationMock.mockResolvedValue(null);
     mocks.emitProjectArchivedNotificationMock.mockResolvedValue(null);
+    mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("/Personal/Stavba");
   });
 
   it("invaliduje overview cache po vytvoření projektu", async () => {
@@ -273,6 +279,48 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
+  it("před uložením DocHub JSONB odstraní lokální cesty a identifikátory", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useUpdateProjectDetailsMutation(), {
+      wrapper,
+    });
+    const docHubSettings = {
+      gdrive: {
+        rootLink: "https://drive.google.com/drive/folders/cloud-root",
+        rootName: "Projekt",
+        rootId: "cloud-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      },
+      onedrive: {
+        rootName: "Projekt",
+      },
+      local: {
+        rootLink: "C:\\Users\\Owner\\Secret Project",
+        rootId: "local:secret",
+      },
+      onedrive_cloud: {
+        rootLink: "\\\\server\\private-share",
+        rootId: "local:legacy-cloud",
+      },
+    };
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-1",
+        updates: { docHubSettings },
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      dochub_settings: {
+        gdrive: docHubSettings.gdrive,
+        onedrive: docHubSettings.onedrive,
+      },
+    });
+  });
+
   it("invaliduje overview cache po přidání kategorie a neukládá lokální přílohu do Supabase", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const fromResult = createFromResult();
@@ -349,6 +397,9 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       await mutationPromise;
     });
     expect(mutationFinished).toBe(true);
+    expect(mocks.ensureStructureMock).toHaveBeenCalledWith(
+      expect.objectContaining({ rootPath: "/Personal/Stavba" }),
+    );
   });
 
   it("invaliduje overview cache po úpravě kategorie a neukládá lokální přílohu do Supabase", async () => {

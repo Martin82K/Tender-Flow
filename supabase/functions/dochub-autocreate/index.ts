@@ -9,6 +9,8 @@ import {
   type Provider,
 } from "../_shared/dochub_providers.ts";
 
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
 type AutoCreateResult = {
   provider: Provider;
   projectId: string;
@@ -28,6 +30,7 @@ const json = (status: number, body: unknown) =>
 
 const upsertFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -38,9 +41,10 @@ const upsertFolder = async (args: {
   const service = createServiceClient();
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
+    root_id: args.rootId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -52,6 +56,7 @@ const ensureFolder = async (args: {
   provider: Provider;
   accessToken: string;
   projectId: string;
+  rootId: string;
   driveId: string | null;
   parentId: string;
   kind: string;
@@ -74,9 +79,10 @@ const ensureFolder = async (args: {
     const created = folder.created;
     await upsertFolder({
       projectId: args.projectId,
+      rootId: args.rootId,
       provider: args.provider,
       kind: args.kind,
-      key: args.key,
+      key: normalizeFolderKey(args.key),
       itemId: folder.id,
       driveId: null,
       webUrl: folder.webViewLink,
@@ -95,9 +101,10 @@ const ensureFolder = async (args: {
   const created = folder.created;
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     itemId: folder.id,
     driveId: args.driveId,
     webUrl: folder.webUrl,
@@ -169,19 +176,8 @@ Deno.serve(async (req) => {
 
     if (projectError || !project) return json(403, { error: "No access to project" });
 
-    const isOwner = project.owner_id === userData.user.id;
-    if (!isOwner) {
-      const { data: editShare, error: shareError } = await authed
-        .from("project_shares")
-        .select("project_id")
-        .eq("project_id", projectId)
-        .eq("user_id", userData.user.id)
-        .eq("permission", "edit")
-        .maybeSingle();
-
-      if (shareError || !editShare) {
-        return json(403, { error: "Edit permission required" });
-      }
+    if (!project.owner_id || project.owner_id !== userData.user.id) {
+      return json(403, { error: "Project owner permission required" });
     }
 
     if (!project.dochub_enabled || project.dochub_status !== "connected") {
@@ -240,6 +236,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: rootId,
         kind,
@@ -302,6 +299,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: rootId,
         kind: "extra_top",
@@ -400,6 +398,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: tendersId,
         kind: "tender",
@@ -420,6 +419,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: tenderFolder.id,
         kind: "tender_inquiries",
@@ -451,6 +451,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: inquiriesFolder.id,
           kind: "supplier",
@@ -471,6 +472,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: supplierFolder.id,
           kind: "supplier_email",
@@ -491,6 +493,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: supplierFolder.id,
           kind: "supplier_offer",
@@ -512,6 +515,7 @@ Deno.serve(async (req) => {
             provider,
             accessToken,
             projectId,
+            rootId,
             driveId,
             parentId: supplierFolder.id,
             kind: "supplier_extra",

@@ -12,7 +12,7 @@ interface DocHubStatusCardProps {
 }
 
 export const DocHubStatusCard: React.FC<DocHubStatusCardProps> = ({ state, actions, setters, showModal }) => {
-    const { provider, mode, rootName, rootLink } = state;
+    const { provider, mode, rootName, rootLink, onlineRootLink, isSharedProject, hasPersonalLocalRoot } = state;
 
     return (
         <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
@@ -30,8 +30,13 @@ export const DocHubStatusCard: React.FC<DocHubStatusCardProps> = ({ state, actio
                         {rootName || "Hlavní složka projektu"}
                     </div>
                     <div className="text-xs text-slate-400 truncate mt-0.5">
-                        {rootLink}
+                        {rootLink || (isSharedProject ? "Na tomto zařízení není vybraná osobní cesta." : "")}
                     </div>
+                    {isSharedProject && provider === "onedrive" && (
+                        <div className="mt-2 text-xs text-slate-500">
+                            {hasPersonalLocalRoot ? "Používá se vaše osobní cesta." : "Vyberte lokálně synchronizovanou složku projektu."}
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-col sm:items-end gap-2">
                     {isProbablyUrl(rootLink) && (
@@ -41,6 +46,15 @@ export const DocHubStatusCard: React.FC<DocHubStatusCardProps> = ({ state, actio
                             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
                         >
                             Otevřít root
+                        </button>
+                    )}
+                    {isProbablyUrl(onlineRootLink) && onlineRootLink !== rootLink && (
+                        <button
+                            type="button"
+                            onClick={() => window.open(onlineRootLink, "_blank", "noopener,noreferrer")}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-colors"
+                        >
+                            Otevřít online
                         </button>
                     )}
                 </div>
