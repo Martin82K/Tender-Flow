@@ -320,6 +320,37 @@ describe('useDocHubIntegration', () => {
         delete (window as any).showDirectoryPicker;
     });
 
+    it('should restore global settings and invalidate a new web marker when marker writing fails', async () => {
+        const write = vi.fn()
+            .mockRejectedValueOnce(new Error('web marker write failed'))
+            .mockResolvedValueOnce(undefined);
+        const close = vi.fn().mockResolvedValue(undefined);
+        const abort = vi.fn().mockResolvedValue(undefined);
+        const createWritable = vi.fn().mockResolvedValue({ write, close, abort });
+        const getFileHandle = vi.fn()
+            .mockRejectedValueOnce(new DOMException('Missing marker', 'NotFoundError'))
+            .mockResolvedValue({ createWritable });
+        const picker = vi.fn().mockResolvedValue({ name: 'Owner Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(onUpdateMock).toHaveBeenCalledTimes(2);
+        expect(onUpdateMock.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+            docHubRootLink: '',
+            docHubRootId: null,
+        }));
+        expect(write).toHaveBeenLastCalledWith('{}\n');
+        expect(result.current.state.modalRequest?.message).toContain('web marker write failed');
+        delete (window as any).showDirectoryPicker;
+    });
+
     it('should not overwrite a web marker that belongs to another project', async () => {
         const createWritable = vi.fn();
         const getFileHandle = vi.fn().mockResolvedValue({

@@ -231,6 +231,24 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.modalRequest?.message).toContain("secure storage unavailable");
   });
 
+  it("invalidates a newly created marker when secure storage fails", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.storageSet.mockRejectedValueOnce(new Error("secure storage unavailable"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Owner\\New Project", name: "New Project" });
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(mocks.writeFile).toHaveBeenCalledTimes(2);
+    expect(mocks.writeFile.mock.calls[1]?.[1]).toBe("{}\n");
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+  });
+
   it("ignores a completed folder picker after switching to another project", async () => {
     let resolvePicker: ((value: { path: string; name: string }) => void) | undefined;
     mocks.storageGet.mockResolvedValue(null);

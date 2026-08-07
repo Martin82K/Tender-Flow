@@ -32,6 +32,7 @@ export interface DocHubModalRequest {
 
 
 const loadedScripts = new Map<string, Promise<void>>();
+const INVALIDATED_DOC_HUB_MARKER = "{}\n";
 const createLocalConnectionId = (): string => {
     const id = globalThis.crypto?.randomUUID?.();
     if (!id) throw new Error("V tomto prostředí nelze bezpečně vytvořit identifikátor připojení složky.");
@@ -741,9 +742,12 @@ export const useDocHubIntegration = (
                     rollbackFailures.push(rollbackError instanceof Error ? rollbackError.message : String(rollbackError));
                 }
             }
-            if (markerUpdated && previousMarkerContents !== null) {
+            if (markerUpdated) {
                 try {
-                    await fileSystemAdapter.writeFile(markerPath, previousMarkerContents);
+                    await fileSystemAdapter.writeFile(
+                        markerPath,
+                        previousMarkerContents ?? INVALIDATED_DOC_HUB_MARKER,
+                    );
                 } catch (rollbackError) {
                     rollbackFailures.push(rollbackError instanceof Error ? rollbackError.message : String(rollbackError));
                 }
@@ -982,37 +986,73 @@ export const useDocHubIntegration = (
                 const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
                 const folderName = dirHandle.name;
                 let existingMarker: ReturnType<typeof parseDocHubProjectMarkerValue> = null;
+                let existingMarkerContents: string | null = null;
                 try {
                     const existingMarkerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME);
                     const existingMarkerFile = await existingMarkerHandle.getFile();
-                    existingMarker = parseDocHubProjectMarkerValue(await existingMarkerFile.text());
+                    const markerContents = await existingMarkerFile.text();
+                    existingMarkerContents = markerContents;
+                    existingMarker = parseDocHubProjectMarkerValue(markerContents);
                 } catch (error) {
                     if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
                 }
+                assertCurrentProjectAction(actionIdentity);
                 if (isDocHubProjectMarkerForDifferentProject(existingMarker, selectedProjectId)) {
                     throw new Error("Vybraná složka je už propojená s jiným projektem Tender Flow.");
                 }
-                await onUpdate({
-                    docHubEnabled: true,
-                    docHubProvider: "onedrive",
-                    docHubStatus: "connected",
-                    docHubRootName: folderName,
-                    docHubRootLink: folderName,
-                    docHubRootWebUrl: null,
-                    docHubRootId: connectionId,
-                    docHubDriveId: null,
-                    docHubSiteId: null,
-                });
-                if (existingMarker?.projectId !== selectedProjectId || existingMarker.connectionId !== connectionId) {
-                    const markerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME, { create: true });
-                    const markerWriter = await markerHandle.createWritable();
-                    try {
-                        await markerWriter.write(createDocHubProjectMarker(selectedProjectId, connectionId));
-                        await markerWriter.close();
-                    } catch (error) {
-                        await markerWriter.abort?.().catch(() => undefined);
-                        throw error;
+                let globalUpdated = false;
+                let markerWriteStarted = false;
+                try {
+                    await onUpdate({
+                        docHubEnabled: true,
+                        docHubProvider: "onedrive",
+                        docHubStatus: "connected",
+                        docHubRootName: folderName,
+                        docHubRootLink: folderName,
+                        docHubRootWebUrl: null,
+                        docHubRootId: connectionId,
+                        docHubDriveId: null,
+                        docHubSiteId: null,
+                    });
+                    globalUpdated = true;
+                    assertCurrentProjectAction(actionIdentity);
+                    if (existingMarker?.projectId !== selectedProjectId || existingMarker.connectionId !== connectionId) {
+                        const markerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME, { create: true });
+                        const markerWriter = await markerHandle.createWritable();
+                        markerWriteStarted = true;
+                        try {
+                            await markerWriter.write(createDocHubProjectMarker(selectedProjectId, connectionId));
+                            await markerWriter.close();
+                        } catch (error) {
+                            await markerWriter.abort?.().catch(() => undefined);
+                            throw error;
+                        }
                     }
+                    assertCurrentProjectAction(actionIdentity);
+                } catch (error) {
+                    const rollbackFailures: string[] = [];
+                    if (markerWriteStarted) {
+                        try {
+                            const markerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME, { create: true });
+                            const markerWriter = await markerHandle.createWritable();
+                            await markerWriter.write(existingMarkerContents ?? INVALIDATED_DOC_HUB_MARKER);
+                            await markerWriter.close();
+                        } catch (rollbackError) {
+                            rollbackFailures.push(rollbackError instanceof Error ? rollbackError.message : String(rollbackError));
+                        }
+                    }
+                    if (globalUpdated) {
+                        try {
+                            await onUpdate(getDocHubConnectionSnapshot(project));
+                        } catch (rollbackError) {
+                            rollbackFailures.push(rollbackError instanceof Error ? rollbackError.message : String(rollbackError));
+                        }
+                    }
+                    if (rollbackFailures.length > 0) {
+                        const originalMessage = error instanceof Error ? error.message : String(error);
+                        throw new Error(`${originalMessage} Kompenzační návrat navíc selhal: ${rollbackFailures.join("; ")}`);
+                    }
+                    throw error;
                 }
                 // For local folders, we store the name as the "link" - actual path is not accessible from browser
                 // User will need to know the full path on their system
