@@ -19,8 +19,7 @@ const sanitizeCloudDisplayName = (value: string | undefined): string | undefined
     !trimmed ||
     /^[a-z]:[\\/]/i.test(trimmed) ||
     trimmed.startsWith("\\\\") ||
-    trimmed.startsWith("//") ||
-    trimmed.startsWith("/")
+    trimmed.startsWith("//")
   ) {
     return undefined;
   }
@@ -115,17 +114,21 @@ export const getDocHubCloudSettingsForUrl = (
 const asCloudConnection = (
   provider: DocHubCloudProvider,
   settings: DocHubProviderSettings | null | undefined,
+  expectedRootWebUrl?: string | null,
 ): DocHubCloudConnection | null => {
   const rootId = settings?.rootId?.trim();
   if (!rootId || rootId.startsWith("local:")) return null;
+
+  const rootWebUrl = normalizeDocHubOnlineUrl(
+    settings?.rootWebUrl || settings?.rootLink || "",
+  );
+  if (expectedRootWebUrl && rootWebUrl !== expectedRootWebUrl) return null;
 
   return {
     provider,
     rootId,
     driveId: settings?.driveId?.trim() || null,
-    rootWebUrl: normalizeDocHubOnlineUrl(
-      settings?.rootWebUrl || settings?.rootLink || "",
-    ),
+    rootWebUrl,
   };
 };
 
@@ -162,12 +165,14 @@ export const getDocHubCloudConnection = (
     return asCloudConnection("onedrive", activeSettings);
   }
 
-  const fallbackUrl = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || "");
+  const rawFallbackUrl = project.docHubRootWebUrl?.trim() || "";
+  const fallbackUrl = normalizeDocHubOnlineUrl(rawFallbackUrl);
+  if (rawFallbackUrl && !fallbackUrl) return null;
   if (fallbackUrl) {
     const fallbackKey = getCloudSettingsKeyForUrl(fallbackUrl);
     return fallbackKey === "gdrive"
-      ? asCloudConnection("gdrive", project.docHubSettings?.gdrive)
-      : asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud);
+      ? asCloudConnection("gdrive", project.docHubSettings?.gdrive, fallbackUrl)
+      : asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud, fallbackUrl);
   }
 
   return asCloudConnection("gdrive", project.docHubSettings?.gdrive) ||
