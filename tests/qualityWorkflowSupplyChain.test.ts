@@ -2,9 +2,14 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const workflow = readFileSync(
-  resolve(process.cwd(), '.github/workflows/quality.yml'),
-  'utf8',
+const normalizeWorkflowText = (content: string): string =>
+  content.replace(/\r\n?/g, '\n');
+
+const workflow = normalizeWorkflowText(
+  readFileSync(
+    resolve(process.cwd(), '.github/workflows/quality.yml'),
+    'utf8',
+  ),
 );
 
 const getStep = (name: string): string => {
@@ -17,6 +22,12 @@ const getStep = (name: string): string => {
 };
 
 describe('Quality workflow supply-chain gates', () => {
+  it('normalizes Windows CRLF line endings before matching steps', () => {
+    expect(normalizeWorkflowText('first\r\nsecond\r\n')).toBe(
+      'first\nsecond\n',
+    );
+  });
+
   it('audits root dependencies and signatures fail-closed before tests', () => {
     const vulnerabilityAudit = getStep('Audit root dependencies');
     const signatureAudit = getStep('Verify root registry signatures');
