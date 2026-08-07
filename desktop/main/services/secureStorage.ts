@@ -53,15 +53,31 @@ export class SecureStorageService {
         const encrypted = safeStorage.encryptString(value);
         data[key] = encrypted.toString('base64');
 
-        this.cache.set(key, value);
         await this.saveStorage(data);
+        this.cache.set(key, value);
     }
 
     async delete(key: string): Promise<void> {
+        await this.deleteMany([key]);
+    }
+
+    async deleteMany(keys: readonly string[]): Promise<void> {
         const data = await this.loadStorage();
-        delete data[key];
-        this.cache.delete(key);
-        await this.saveStorage(data);
+        let changed = false;
+
+        for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                delete data[key];
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            await this.saveStorage(data);
+        }
+        for (const key of keys) {
+            this.cache.delete(key);
+        }
     }
 
     private async loadStorage(
@@ -82,6 +98,17 @@ export class SecureStorageService {
     }
 
     private async saveStorage(data: Record<string, string>): Promise<void> {
-        await fs.writeFile(this.storagePath, JSON.stringify(data, null, 2), 'utf-8');
+        const temporaryPath = `${this.storagePath}.${process.pid}.tmp`;
+
+        try {
+            await fs.writeFile(temporaryPath, JSON.stringify(data, null, 2), {
+                encoding: 'utf-8',
+                mode: 0o600,
+            });
+            await fs.rename(temporaryPath, this.storagePath);
+        } catch (error) {
+            await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+            throw error;
+        }
     }
 }

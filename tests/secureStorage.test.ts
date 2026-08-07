@@ -39,6 +39,35 @@ describe("SecureStorageService", () => {
     await expect(readFile(storagePath, "utf8")).resolves.toBe(corruptedContent);
   });
 
+  it("nezapisuje storage, když mazaný klíč neexistuje", async () => {
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    const originalContent = '{"session":"encrypted-session"}';
+    await writeFile(storagePath, originalContent, "utf8");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await storage.delete("retired-key");
+
+    await expect(readFile(storagePath, "utf8")).resolves.toBe(originalContent);
+  });
+
+  it("odstraní více legacy klíčů jedním zápisem a zachová relaci", async () => {
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    await writeFile(storagePath, JSON.stringify({
+      session: "encrypted-session",
+      "retired-one": "secret-one",
+      "retired-two": "secret-two",
+    }), "utf8");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await storage.deleteMany(["retired-one", "retired-two", "already-absent"]);
+
+    await expect(readFile(storagePath, "utf8")).resolves.toBe(
+      '{\n  "session": "encrypted-session"\n}',
+    );
+  });
+
   it("umožní první bezpečný zápis, když storage soubor ještě neexistuje", async () => {
     const storagePath = join(electronMock.userDataPath, "secure-storage.json");
     const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
