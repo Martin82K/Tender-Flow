@@ -60,6 +60,9 @@ export const useDocHubIntegration = (
     const isProjectOwner = project.ownerId ? project.ownerId === userId : !userId;
     const isSharedProject = !!userId && !isProjectOwner;
     const canManageGlobal = isProjectOwner;
+    const personalLocationIdentity = isDesktop && project.docHubProvider === 'onedrive' && project.id && userId
+        ? JSON.stringify([project.id, project.ownerId ?? null, project.docHubRootLink ?? null, userId])
+        : null;
     const initialRootLink = project.docHubProvider === 'onedrive'
         ? resolveEffectiveLocalRoot({
             isProjectOwner,
@@ -78,6 +81,7 @@ export const useDocHubIntegration = (
     const [isEditingSetup, setIsEditingSetup] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const [hasPersonalLocalRoot, setHasPersonalLocalRoot] = useState(false);
+    const [validatedPersonalLocationIdentity, setValidatedPersonalLocationIdentity] = useState<string | null>(null);
     const [onlineRootLinkDraft, setOnlineRootLinkDraft] = useState(project.docHubRootWebUrl || '');
 
     const [newFolderName, setNewFolderName] = useState('');
@@ -130,8 +134,9 @@ export const useDocHubIntegration = (
 
     useEffect(() => {
         personalLocationLoadedRef.current = false;
-        if (!isDesktop || project.docHubProvider !== 'onedrive' || !project.id || !userId) {
+        if (!personalLocationIdentity) {
             setHasPersonalLocalRoot(false);
+            setValidatedPersonalLocationIdentity(null);
             return;
         }
 
@@ -149,20 +154,18 @@ export const useDocHubIntegration = (
             }));
             if (saved?.rootName) setRootName(saved.rootName);
             personalLocationLoadedRef.current = true;
+            setValidatedPersonalLocationIdentity(personalLocationIdentity);
         })().catch(() => {
             if (!cancelled) {
                 setHasPersonalLocalRoot(false);
-                setRootLink(resolveEffectiveLocalRoot({
-                    isProjectOwner,
-                    projectRootPath: project.docHubRootLink,
-                    personalRootPath: null,
-                }));
+                setRootLink("");
                 setRootName(project.docHubRootName || '');
                 personalLocationLoadedRef.current = true;
+                setValidatedPersonalLocationIdentity(personalLocationIdentity);
             }
         });
         return () => { cancelled = true; };
-    }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, isProjectOwner, userId]);
+    }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, isProjectOwner, personalLocationIdentity, userId]);
 
     // Sync from props
     useEffect(() => {
@@ -251,7 +254,16 @@ export const useDocHubIntegration = (
     // Derived State
     const isAuthed = enabled && status === "connected";
     const isLocalProvider = provider === "onedrive";
-    const isConnected = isAuthed && (isLocalProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
+    const effectiveRootLink = personalLocationIdentity && validatedPersonalLocationIdentity !== personalLocationIdentity
+        ? ""
+        : rootLink;
+    const effectiveRootName = personalLocationIdentity && validatedPersonalLocationIdentity !== personalLocationIdentity
+        ? project.docHubRootName || ""
+        : rootName;
+    const effectiveHasPersonalLocalRoot = personalLocationIdentity && validatedPersonalLocationIdentity !== personalLocationIdentity
+        ? false
+        : hasPersonalLocalRoot;
+    const isConnected = isAuthed && (isLocalProvider ? effectiveRootLink.trim() !== '' : !!project.docHubRootId && effectiveRootLink.trim() !== '');
     const setRootLinkDraft = useCallback((value: string) => {
         setRootLink(value);
         if (provider === 'onedrive') setHasPersonalLocalRoot(false);
@@ -283,7 +295,7 @@ export const useDocHubIntegration = (
         (async () => {
             try {
                 const kinds = ["pd", "tenders", "contracts", "realization", "archive"] as const;
-                const results = await Promise.all(
+                const results = await Promise.allSettled(
                     kinds.map(async (kind) => {
                         const res = await invokeAuthedFunction<{ webUrl?: string | null }>("dochub-get-link", {
                             body: { projectId: project.id, kind }
@@ -293,7 +305,9 @@ export const useDocHubIntegration = (
                 );
                 if (cancelled) return;
                 const next: any = {};
-                for (const [kind, url] of results) next[kind] = url;
+                results.forEach((result, index) => {
+                    next[kinds[index]] = result.status === 'fulfilled' ? result.value[1] : null;
+                });
                 setDocHubBaseLinks(next);
             } catch {
                 if (!cancelled) setDocHubBaseLinks(null);
@@ -303,7 +317,7 @@ export const useDocHubIntegration = (
     }, [isConnected, project.id, project.docHubStructureV1, isLocalProvider]);
 
     const fallbackLinks = isConnected && isLocalProvider
-        ? getDocHubProjectLinks(rootLink, effectiveStructure)
+        ? getDocHubProjectLinks(effectiveRootLink, effectiveStructure)
         : null;
     const links = isConnected ? {
         pd: docHubBaseLinks?.pd ?? fallbackLinks?.pd ?? null,
@@ -388,6 +402,21 @@ export const useDocHubIntegration = (
         });
         setIsEditingSetup(false);
     }, [canManageGlobal, onlineRootLinkDraft, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate, showMessage]);
+
+    const handleSaveOnlineLink = useCallback(() => {
+        if (!canManageGlobal) {
+            showMessage("Složkomat", "Sdílený uživatel nemůže měnit globální napojení projektu.", "info");
+            return;
+        }
+        const normalizedOnlineUrl = onlineRootLinkDraft.trim()
+            ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
+            : null;
+        if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
+            showMessage("Složkomat", "Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.", "danger");
+            return;
+        }
+        onUpdate({ docHubRootWebUrl: normalizedOnlineUrl });
+    }, [canManageGlobal, onlineRootLinkDraft, onUpdate, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
         if (!canManageGlobal && project.id && userId) {
@@ -628,6 +657,12 @@ export const useDocHubIntegration = (
         if (provider === 'onedrive') {
             try {
                 const path = rootLink.trim();
+                const normalizedOnlineUrl = onlineRootLinkDraft.trim()
+                    ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
+                    : null;
+                if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
+                    throw new Error("Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.");
+                }
                 // Grant access for paths outside default allowed roots (e.g. D:\, network shares)
                 if (isDesktop) {
                     const granted = await fileSystemAdapter.grantAccess(path);
@@ -650,12 +685,6 @@ export const useDocHubIntegration = (
                 */
 
                 const folderName = path.split(/[\\/]/).pop() || path;
-                const normalizedOnlineUrl = onlineRootLinkDraft.trim()
-                    ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
-                    : null;
-                if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
-                    throw new Error("Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.");
-                }
                 setResolveProgress(50);
 
                 await new Promise(r => setTimeout(r, 500)); // UI feel
@@ -1004,12 +1033,12 @@ export const useDocHubIntegration = (
 
     return {
         state: {
-            enabled, rootLink, rootName, provider, mode, status, isEditingSetup, isConnecting,
+            enabled, rootLink: effectiveRootLink, rootName: effectiveRootName, provider, mode, status, isEditingSetup, isConnecting,
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
             structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
             newFolderName, resolveProgress, links, isConnected, isLocalProvider,
-            onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot
+            onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot: effectiveHasPersonalLocalRoot
         },
         setters: {
             setEnabled, setRootLink: setRootLinkDraft, setRootName, setProvider, setMode, setStatus, setIsEditingSetup, setOnlineRootLinkDraft,
@@ -1018,10 +1047,11 @@ export const useDocHubIntegration = (
         },
         actions: {
             saveSetup: handleSaveSetup,
+            saveOnlineLink: handleSaveOnlineLink,
             disconnect: handleDisconnect,
             connect: handleConnect,
             openRoot: useCallback(async () => {
-                const link = rootLink?.trim();
+                const link = effectiveRootLink?.trim();
                 if (!link) return;
 
                 // Check if it's a web URL
@@ -1039,7 +1069,7 @@ export const useDocHubIntegration = (
                     // Uses openInExplorer which works for folders
                     await openInExplorer(link);
                 }
-            }, [rootLink, showMessage]),
+            }, [effectiveRootLink, showMessage]),
             runAutoCreate,
             loadHistory,
             saveStructure: handleSaveStructure,

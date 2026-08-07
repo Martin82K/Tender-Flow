@@ -15,6 +15,7 @@ import {
     validateSubcontractorCompanyName,
 } from "../../shared/dochub/subcontractorNameRules";
 import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -169,7 +170,7 @@ export const useUpdateContactMutation = () => {
                     const oldName = oldContact.company;
 
                     // Get Project Details
-                    const project = queryClient.getQueryData<ProjectDetails>(['project', projectId]);
+                    const project = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
                     if (project && project.docHubEnabled && project.docHubStatus === 'connected') {
                         const provider = project.docHubProvider;
                         const rootPath = provider === 'onedrive'

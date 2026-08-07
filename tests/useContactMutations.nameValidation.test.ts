@@ -12,6 +12,7 @@ import {
 import type { Subcontractor } from "../types";
 import { renameFolder } from "../services/fileSystemService";
 import { CONTACT_KEYS } from "../hooks/queries/useContactsQuery";
+import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock("../services/contactsImportService", () => ({
 
 vi.mock("../services/demoData", () => ({
   getDemoData: vi.fn(() => null),
+  isDemoSession: vi.fn(() => false),
   saveDemoData: vi.fn(),
 }));
 
@@ -217,7 +219,7 @@ describe("useContactMutations name validation", () => {
 
   it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {
     const { queryClient, wrapper } = createTestContext();
-    queryClient.setQueryData(["project", "p-1"], {
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
       id: "p-1",
       docHubEnabled: true,
       docHubStatus: "connected",

@@ -244,7 +244,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 />
                 <button
                   type="button"
-                  onClick={actions.saveSetup}
+                  onClick={actions.saveOnlineLink}
                   className="mt-2 rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500"
                 >
                   Uložit online odkaz
