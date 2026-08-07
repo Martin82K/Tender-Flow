@@ -9,19 +9,16 @@ import { buildMainWindowWebPreferences } from './services/windowSecurity';
 import { ipcAuthGuard } from './services/ipcAuthGuard';
 import { canOpenExternalUrl } from './security/externalUrlPolicy';
 import { getDesktopRendererPublicEnv } from './services/publicEnv';
+import { configureSingleInstance } from './services/singleInstance';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
-const hasSingleInstanceLock = app.requestSingleInstanceLock();
-if (!hasSingleInstanceLock) {
-    app.quit();
-}
-
 let mainWindow: BrowserWindow | null = null;
 let mcpServerStop: (() => Promise<void>) | null = null;
+const hasSingleInstanceLock = configureSingleInstance(app, () => mainWindow);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 const DESKTOP_BOOTSTRAP_ENV_KEYS = new Set([
@@ -216,15 +213,6 @@ function createWindow(): void {
 
 // App lifecycle
 if (hasSingleInstanceLock) {
-    app.on('second-instance', () => {
-        if (!mainWindow) return;
-
-        if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-        }
-        mainWindow.focus();
-    });
-
     app.whenReady().then(async () => {
         await registerIpcHandlers();
         createWindow();
