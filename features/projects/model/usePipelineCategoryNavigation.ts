@@ -70,7 +70,7 @@ export const usePipelineCategoryNavigation = ({
       return strictPath;
     }
 
-    return rawPath;
+    return null;
   };
 
   return {

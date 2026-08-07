@@ -181,6 +181,46 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.modalRequest?.message).toContain("network unavailable");
   });
 
+  it("zachová cloudové připojení při následném připojení lokální složky", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Google Drive\\Project", name: "Project" });
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const cloudProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootId: "cloud-root",
+    };
+    const { result } = renderHook(() => useDocHubIntegration(cloudProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    act(() => result.current.setters.setProvider("onedrive"));
+    await waitFor(() => expect(result.current.state.provider).toBe("onedrive"));
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      docHubProvider: "onedrive",
+      docHubRootLink: "D:\\Google Drive\\Project",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      docHubSettings: expect.objectContaining({
+        gdrive: expect.objectContaining({
+          rootId: "cloud-root",
+          rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+        }),
+        onedrive: {
+          rootName: "Project",
+          rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+        },
+      }),
+    }));
+    const persistedSettings = onUpdate.mock.calls[0]?.[0]?.docHubSettings;
+    expect(persistedSettings?.onedrive).not.toHaveProperty("rootLink");
+    expect(persistedSettings?.onedrive).not.toHaveProperty("rootId");
+  });
+
   it("restores the previous global root when marker persistence fails", async () => {
     mocks.storageGet.mockResolvedValue(null);
     mocks.readFile.mockRejectedValue(new Error("marker missing"));
