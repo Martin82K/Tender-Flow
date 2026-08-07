@@ -31,13 +31,13 @@ describe("InvestorBillingPage", () => {
 
     fireEvent.click(screen.getByText("+ Přidat fakturu"));
 
-    fireEvent.change(screen.getByPlaceholderText("Číslo faktury"), {
+    fireEvent.change(screen.getByLabelText("Číslo faktury 1"), {
       target: { value: "FV-001" },
     });
-    fireEvent.change(screen.getByDisplayValue("0"), {
+    fireEvent.change(screen.getByLabelText("Fakturovaná částka 1"), {
       target: { value: "250000" },
     });
-    fireEvent.change(screen.getByDisplayValue("Vystaveno"), {
+    fireEvent.change(screen.getByLabelText("Stav faktury 1"), {
       target: { value: "approved" },
     });
 
@@ -93,6 +93,44 @@ describe("InvestorBillingPage", () => {
     await waitFor(() => expect(onUpdateDetails).toHaveBeenCalledWith({
       investorFinancials: expect.objectContaining({
         invoices: [],
+      }),
+    }));
+  });
+
+  it("přenese výchozí pozastávky do faktury a uloží čistou uhrazenou částku", async () => {
+    const onUpdateDetails = vi.fn();
+    render(
+      <InvestorBillingPage
+        projectDetails={{
+          ...projectDetails,
+          investorFinancials: {
+            ...projectDetails.investorFinancials!,
+            retentionAPercent: 5,
+            retentionBPercent: 3,
+          },
+        }}
+        onUpdateDetails={onUpdateDetails}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("+ Přidat fakturu"));
+    fireEvent.change(screen.getByLabelText("Číslo faktury 1"), { target: { value: "FV-RET" } });
+    fireEvent.change(screen.getByLabelText("Fakturovaná částka 1"), { target: { value: "100000" } });
+    fireEvent.change(screen.getByLabelText("Stav faktury 1"), { target: { value: "paid" } });
+    fireEvent.click(screen.getByText("Uložit"));
+
+    await waitFor(() => expect(onUpdateDetails).toHaveBeenCalledWith({
+      investorFinancials: expect.objectContaining({
+        invoices: [
+          expect.objectContaining({
+            period: expect.stringMatching(/^\d{4}-\d{2}$/),
+            retentionAPercent: 5,
+            retentionBPercent: 3,
+            retentionAAmount: 5_000,
+            retentionBAmount: 3_000,
+            paidAmount: 92_000,
+          }),
+        ],
       }),
     }));
   });
@@ -155,7 +193,7 @@ describe("InvestorBillingPage", () => {
     );
 
     expect(container.querySelector("[data-help-id='contracts-investor-page']")).toBeInTheDocument();
-    expect(container.querySelectorAll("[data-help-id='contracts-investor-kpi-card']")).toHaveLength(4);
+    expect(container.querySelectorAll("[data-help-id='contracts-investor-kpi-card']")).toHaveLength(6);
     expect(container.querySelector("[data-help-id='contracts-investor-panel']")).toBeInTheDocument();
     expect(container.querySelector("[data-help-id='contracts-investor-empty']")).toBeInTheDocument();
     expect(screen.getByText("+ Přidat fakturu")).toHaveAttribute("data-help-id", "contracts-investor-add-invoice");

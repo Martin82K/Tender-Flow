@@ -63,6 +63,12 @@ describe('buildContractUpdateFromOcr', () => {
     });
   });
 
+  it('mapuje OCR retentionTotalPercent do kompatibilního pole celkové pozastávky', () => {
+    expect(
+      buildContractUpdateFromOcr(buildResult({ retentionTotalPercent: 10 })).updates,
+    ).toMatchObject({ retentionPercent: 10 });
+  });
+
   it('odmítne nevalidní čísla, datumy, měnu a IČ', () => {
     const result = buildContractUpdateFromOcr(
       buildResult({

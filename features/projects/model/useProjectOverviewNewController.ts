@@ -326,12 +326,16 @@ export const useProjectOverviewNewController = ({
         ...(prev.invoices || []),
         {
           id: `ii${Date.now()}`,
+          period: now.toISOString().slice(0, 7),
           invoiceNumber: "",
           issueDate: now.toISOString().slice(0, 10),
           dueDate: dueDate.toISOString().slice(0, 10),
           amount: 0,
           currency: "CZK",
           status: "issued",
+          retentionAPercent: prev.retentionAPercent || 0,
+          retentionBPercent: prev.retentionBPercent || 0,
+          paidAmount: 0,
         },
       ],
     }));

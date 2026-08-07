@@ -4,6 +4,7 @@ import { useContractsWithDetails } from './hooks/useContractsWithDetails';
 import { ContractsDashboard } from './dashboard/ContractsDashboard';
 import { ContractsListPage } from './list/ContractsListPage';
 import { InvestorBillingPage } from './investor/InvestorBillingPage';
+import type { ContractsViewMode } from './list/ContractsListPage';
 
 type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
@@ -19,6 +20,7 @@ export const ContractsModule: React.FC<Props> = ({
   onUpdateDetails,
 }) => {
   const [subView, setSubView] = useState<SubView>('smlouvy');
+  const [contractsViewMode, setContractsViewMode] = useState<ContractsViewMode>('table');
   const { contracts, loading, error, refresh } = useContractsWithDetails(projectId);
 
   if (loading) {
@@ -65,7 +67,10 @@ export const ContractsModule: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          onClick={() => setSubView('smlouvy')}
+          onClick={() => {
+            setSubView('smlouvy');
+            setContractsViewMode('table');
+          }}
           data-active={subView === 'smlouvy' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'smlouvy'
@@ -103,6 +108,8 @@ export const ContractsModule: React.FC<Props> = ({
           projectId={projectId}
           contracts={contracts}
           refresh={refresh}
+          viewMode={contractsViewMode}
+          onViewModeChange={setContractsViewMode}
         />
       )}
     </div>

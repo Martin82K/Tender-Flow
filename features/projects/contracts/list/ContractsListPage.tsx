@@ -5,20 +5,29 @@ import { ContractListPanel } from './ContractListPanel';
 import { ContractsTable } from './ContractsTable';
 import { ContractWorkspace } from '../workspace/ContractWorkspace';
 import { ContractEditDialog } from '../forms/ContractEditDialog';
+import { contractQueriesApi } from '../api';
 
-type ViewMode = 'split' | 'table';
+export type ContractsViewMode = 'split' | 'table';
 
 interface Props {
   projectId: string;
   contracts: ContractWithDetails[];
   refresh: () => Promise<void> | void;
+  viewMode: ContractsViewMode;
+  onViewModeChange: (mode: ContractsViewMode) => void;
 }
 
-export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refresh }) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+export const ContractsListPage: React.FC<Props> = ({
+  projectId,
+  contracts,
+  refresh,
+  viewMode,
+  onViewModeChange,
+}) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editContract, setEditContract] = useState<ContractWithDetails | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedId && contracts.length > 0) {
@@ -47,18 +56,36 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
 
   const handleTableSelect = (id: string) => {
     setSelectedId(id);
-    setViewMode('split');
+    onViewModeChange('split');
+  };
+
+  const openDocument = async (contract: ContractWithDetails) => {
+    setDocumentError(null);
+    try {
+      const url = await contractQueriesApi.getContractDocumentUrl(contract);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error ? error.message : 'Dokument smlouvy se nepodařilo otevřít.',
+      );
+    }
   };
 
   return (
     <div className="tf-contracts-list-page flex-1 flex flex-col min-h-0">
-      <ContractsHeadline contracts={contracts} />
-
       <div className="flex items-center gap-3 px-5 py-3">
+        <button
+          type="button"
+          onClick={openCreate}
+          data-help-id="contracts-create"
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary-dark transition"
+        >
+          + Nová smlouva
+        </button>
         <div data-help-id="contracts-view-toggle" className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-1">
           <button
             type="button"
-            onClick={() => setViewMode('split')}
+            onClick={() => onViewModeChange('split')}
             data-active={viewMode === 'split' ? 'true' : 'false'}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'split'
@@ -70,7 +97,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
           </button>
           <button
             type="button"
-            onClick={() => setViewMode('table')}
+            onClick={() => onViewModeChange('table')}
             data-active={viewMode === 'table' ? 'true' : 'false'}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'table'
@@ -81,16 +108,15 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
             ▦ Tabulka
           </button>
         </div>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={openCreate}
-          data-help-id="contracts-create"
-          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition"
-        >
-          + Nová smlouva
-        </button>
       </div>
+
+      <ContractsHeadline contracts={contracts} />
+
+      {documentError ? (
+        <div className="mx-5 mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+          {documentError}
+        </div>
+      ) : null}
 
       <div className="flex-1 min-h-0 px-5 pb-5">
         {contracts.length === 0 ? (
@@ -117,7 +143,11 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
             )}
           </div>
         ) : (
-          <ContractsTable contracts={contracts} onSelect={handleTableSelect} />
+          <ContractsTable
+            contracts={contracts}
+            onSelect={handleTableSelect}
+            onOpenDocument={openDocument}
+          />
         )}
       </div>
 

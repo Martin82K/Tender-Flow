@@ -88,22 +88,36 @@ interface ContractRow {
 
 interface FinancialsRow {
   sod_price?: number | null;
+  contract_number?: string | null;
+  contract_title?: string | null;
+  customer_name?: string | null;
+  signed_at?: string | null;
+  retention_a_percent?: number | null;
+  retention_b_percent?: number | null;
 }
 
 interface AmendmentRow {
   id: string;
   label: string;
+  amendment_number?: string | null;
+  signed_at?: string | null;
   price?: number | null;
 }
 
 interface InvestorInvoiceRow {
   id: string;
+  period?: string | null;
   invoice_number?: string | null;
   issue_date?: string | null;
   due_date?: string | null;
   amount?: number | null;
   currency?: string | null;
   status?: InvestorInvoice["status"] | null;
+  retention_a_percent?: number | null;
+  retention_b_percent?: number | null;
+  retention_a_amount?: number | null;
+  retention_b_amount?: number | null;
+  paid_amount?: number | null;
   paid_at?: string | null;
   note?: string | null;
 }
@@ -338,19 +352,33 @@ const fetchProjectDetails = async (
       financialsData || amendmentsData.length > 0 || investorInvoicesData.length > 0
         ? {
             sodPrice: financialsData?.sod_price || 0,
+            contractNumber: financialsData?.contract_number || undefined,
+            contractTitle: financialsData?.contract_title || undefined,
+            customerName: financialsData?.customer_name || undefined,
+            signedAt: financialsData?.signed_at || undefined,
+            retentionAPercent: financialsData?.retention_a_percent || 0,
+            retentionBPercent: financialsData?.retention_b_percent || 0,
             amendments: amendmentsData.map((amendment) => ({
               id: amendment.id,
               label: amendment.label,
+              number: amendment.amendment_number || undefined,
+              signedAt: amendment.signed_at || undefined,
               price: amendment.price || 0,
             })),
             invoices: investorInvoicesData.map((invoice) => ({
               id: invoice.id,
+              period: invoice.period || undefined,
               invoiceNumber: invoice.invoice_number || "",
               issueDate: invoice.issue_date || "",
               dueDate: invoice.due_date || "",
               amount: invoice.amount || 0,
               currency: invoice.currency || "CZK",
               status: invoice.status || "issued",
+              retentionAPercent: invoice.retention_a_percent || 0,
+              retentionBPercent: invoice.retention_b_percent || 0,
+              retentionAAmount: invoice.retention_a_amount || 0,
+              retentionBAmount: invoice.retention_b_amount || 0,
+              paidAmount: invoice.paid_amount || 0,
               paidAt: invoice.paid_at || undefined,
               note: invoice.note || undefined,
             })),
