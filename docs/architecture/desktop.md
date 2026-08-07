@@ -48,7 +48,6 @@ Vite/HMR na lokálních hostech.
 | `notificationHandlers` | nativní notifikace |
 | `watcherHandlers` | hlídání složek |
 | `mcpHandlers` | MCP lifecycle a konfigurace |
-| `bidComparisonHandlers` | bid comparison engine/agent |
 | `docxConversion` | lokální konverze dokumentů |
 
 Handler musí validovat typy, oprávnění, velikost vstupu a cestu. Renderer používá

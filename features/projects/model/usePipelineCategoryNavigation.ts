@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { DemandCategory, DocHubStructureV1 } from "@/types";
 import { folderExists } from "@infra/files/fileSystemService";
-import { logIncident } from "@infra/diagnostics/incidentLogger";
-import platformAdapter from "@infra/platform/platformAdapter";
 import {
   getTendersFolderName,
   joinDocHubPath,
@@ -28,14 +26,6 @@ export const usePipelineCategoryNavigation = ({
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null,
   );
-  const [isBidComparisonPanelOpen, setIsBidComparisonPanelOpen] =
-    useState(false);
-  const [bidComparisonTenderPath, setBidComparisonTenderPath] = useState<
-    string | null
-  >(null);
-  const [isResolvingBidComparisonPath, setIsResolvingBidComparisonPath] =
-    useState(false);
-
   const prevProjectIdRef = useRef<string | null>(null);
   const prevCategoryIdRef = useRef<string | null | undefined>(undefined);
 
@@ -58,12 +48,6 @@ export const usePipelineCategoryNavigation = ({
     }
   }, [projectId, initialOpenCategoryId, categories]);
 
-  useEffect(() => {
-    setIsBidComparisonPanelOpen(false);
-    setBidComparisonTenderPath(null);
-    setIsResolvingBidComparisonPath(false);
-  }, [activeCategory?.id]);
-
   const resolveDesktopTenderFolderPath = async (
     categoryTitle: string,
   ): Promise<string | null> => {
@@ -73,18 +57,15 @@ export const usePipelineCategoryNavigation = ({
     const filesystemTitle = sanitizeSubcontractorCompanyName(
       categoryTitle,
     ).sanitized;
-
     const rawPath = joinDocHubPath(docHubRoot, tendersFolder, filesystemTitle);
-    if (await folderExists(rawPath)) {
-      return rawPath;
-    }
+
+    if (await folderExists(rawPath)) return rawPath;
 
     const strictPath = joinDocHubPath(
       docHubRoot,
       tendersFolder,
       slugifyDocHubSegmentStrict(categoryTitle),
     );
-
     if (strictPath !== rawPath && (await folderExists(strictPath))) {
       return strictPath;
     }
@@ -92,52 +73,9 @@ export const usePipelineCategoryNavigation = ({
     return rawPath;
   };
 
-  const handleOpenBidComparisonPanel = async () => {
-    if (!activeCategory) return;
-
-    setIsBidComparisonPanelOpen(true);
-    setBidComparisonTenderPath(null);
-
-    if (!platformAdapter.isDesktop) return;
-
-    setIsResolvingBidComparisonPath(true);
-    try {
-      const resolvedPath = await resolveDesktopTenderFolderPath(
-        activeCategory.title,
-      );
-      setBidComparisonTenderPath(resolvedPath);
-    } catch (error) {
-      console.error("[BidComparison] Nelze dopočítat cestu složky VŘ:", error);
-      void logIncident({
-        severity: "error",
-        source: "renderer",
-        category: "storage",
-        code: "BID_COMPARISON_PATH_RESOLVE_FAILED",
-        message: `Nelze dopočítat cestu ke složce VŘ: ${error instanceof Error ? error.message : String(error)}`,
-        stack: error instanceof Error ? error.stack : null,
-        context: {
-          action: "resolve_bid_comparison_path",
-          operation: "pipeline.resolve_desktop_tender_folder_path",
-          project_id: projectId,
-          category_id: activeCategory.id,
-          reason: error instanceof Error ? error.message : String(error),
-          action_status: "error",
-        },
-      });
-      setBidComparisonTenderPath(null);
-    } finally {
-      setIsResolvingBidComparisonPath(false);
-    }
-  };
-
   return {
     activeCategory,
     setActiveCategory,
-    isBidComparisonPanelOpen,
-    setIsBidComparisonPanelOpen,
-    bidComparisonTenderPath,
-    isResolvingBidComparisonPath,
     resolveDesktopTenderFolderPath,
-    handleOpenBidComparisonPanel,
   };
 };

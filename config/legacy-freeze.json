@@ -53,7 +53,6 @@
     "components/overview/SupplierTable.tsx",
     "components/overview/index.ts",
     "components/pipelineComponents/BidCard.tsx",
-    "components/pipelineComponents/BidComparisonPanel.tsx",
     "components/pipelineComponents/CategoryCard.tsx",
     "components/pipelineComponents/CategoryFormModal.tsx",
     "components/pipelineComponents/Column.tsx",

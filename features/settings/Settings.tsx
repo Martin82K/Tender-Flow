@@ -19,7 +19,6 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
-import { BidComparisonAgentSettings } from "@/features/settings/BidComparisonAgentSettings";
 import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
 import type { OrgSubTab } from "@/features/organization/model/types";
 import { NotificationSettings } from "@/features/settings/NotificationSettings";
@@ -98,8 +97,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "usage"
     | "ai"
     | "incidents"
-    | "compliance"
-    | "bidComparison";
+    | "compliance";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -119,11 +117,6 @@ export const Settings: React.FC<SettingsProps> = ({
     // Legacy "tools" subTab under user → tools tab, excelUnlocker
     if (tab === "user" && subTabParam === "tools") {
       return { tab: "tools" as const, subTab: "excelUnlocker" };
-    }
-    if (tab === "tools" && subTabParam === "bidComparison") {
-      return isAdmin
-        ? { tab: "admin" as const, subTab: "bidComparison" }
-        : { tab: "tools" as const, subTab: "excelUnlocker" };
     }
     let subTab: string | null = null;
     if (tab === "user") {
@@ -157,8 +150,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "usage" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
-        subTabParam === "compliance" ||
-        subTabParam === "bidComparison"
+        subTabParam === "compliance"
           ? subTabParam
           : null;
     } else if (tab === "organization") {
@@ -216,8 +208,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "usage" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
-        settingsRoute.subTab === "compliance" ||
-        settingsRoute.subTab === "bidComparison"
+        settingsRoute.subTab === "compliance"
       ) {
         return settingsRoute.subTab;
       }
@@ -585,23 +576,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
-                <button
-                  onClick={() =>
-                    updateSettingsUrl({ tab: "admin", subTab: "bidComparison" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "bidComparison"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      compare_arrows
-                    </span>
-                    Porovnání nabídek
-                  </div>
-                </button>
                 </nav>
               </aside>
 
@@ -626,7 +600,6 @@ export const Settings: React.FC<SettingsProps> = ({
                 )}
                 {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
                 {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
-                {activeAdminSubTab === "bidComparison" && <BidComparisonAgentSettings />}
               </main>
             </div>
           </AdminMfaGuard>

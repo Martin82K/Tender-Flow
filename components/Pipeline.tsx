@@ -24,7 +24,6 @@ import {
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
-  buildBidComparisonSuppliers,
   getTemplateLinksForInquiryKindModel,
   type PipelineInquiryGenerationKind,
 } from "@/features/projects/model/pipelineModel";
@@ -54,7 +53,6 @@ import {
   CreateContactModal,
   SubcontractorSelectorModal,
   PipelineOverview,
-  BidComparisonPanel,
   CategoryFormModal,
 } from "./pipelineComponents";
 
@@ -188,12 +186,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const {
     activeCategory,
     setActiveCategory,
-    isBidComparisonPanelOpen,
-    setIsBidComparisonPanelOpen,
-    bidComparisonTenderPath,
-    isResolvingBidComparisonPath,
     resolveDesktopTenderFolderPath,
-    handleOpenBidComparisonPanel,
   } = usePipelineCategoryNavigation({
     projectId,
     initialOpenCategoryId,
@@ -450,7 +443,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const isDesktopMode =
       platformAdapter.isDesktop;
     const categoryBids = bids[activeCategory.id] || [];
-    const bidComparisonSuppliers = buildBidComparisonSuppliers(categoryBids);
     const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
     const loserEmailSelection = selectLoserEmailRecipients(categoryBids);
     const selectedBulkEmailSelection =
@@ -490,24 +482,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
               <span className="material-symbols-outlined text-[20px]">add</span>
               <span>Přidat dodavatele</span>
             </button>
-
-            {isDesktopMode && (
-              <button
-                onClick={() => void handleOpenBidComparisonPanel()}
-                className="flex items-center gap-2 rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-200 disabled:opacity-60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
-                disabled={isResolvingBidComparisonPath}
-                title="Otevřít panel porovnání cenových nabídek"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  table_chart
-                </span>
-                <span>
-                  {isResolvingBidComparisonPath
-                    ? "Načítám složku..."
-                    : "Porovnání nabídek"}
-                </span>
-              </button>
-            )}
 
             <PipelineBulkEmailMenu
               inquiryRecipientCount={bulkInquirySelection.emails.length}
@@ -877,16 +851,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
             </Column>
           </div>
         </div>
-
-        <BidComparisonPanel
-          isOpen={isBidComparisonPanelOpen}
-          onClose={() => setIsBidComparisonPanelOpen(false)}
-          projectId={projectId}
-          categoryId={activeCategory.id}
-          initialTenderFolderPath={bidComparisonTenderPath}
-          supplierNames={bidComparisonSuppliers}
-          mappedBudgetAttachment={activeCategory.budgetAttachment}
-        />
 
         <SubcontractorSelectorModal
           isOpen={isSubcontractorModalOpen}

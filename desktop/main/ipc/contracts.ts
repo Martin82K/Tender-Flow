@@ -1,19 +1,6 @@
 import type {
   BackupFileEntry,
   BackupSettingsInfo,
-  BidComparisonAgentConfig,
-  BidComparisonAgentTestResult,
-  BidComparisonAutoConfig,
-  BidComparisonAutoScope,
-  BidComparisonAutoStartResult,
-  BidComparisonAutoStatus,
-  BidComparisonDetectionResult,
-  BidComparisonFileConfig,
-  BidComparisonJobStatus,
-  BidComparisonStartInput,
-  BidComparisonStartResult,
-  BidComparisonSupplierOption,
-  BidComparisonWorkspaceState,
   FileInfo,
   FolderInfo,
   FolderSnapshot,
@@ -113,39 +100,6 @@ export interface IpcContractMap {
       headers: Record<string, string>;
     };
   };
-  "bid-comparison:detect-inputs": {
-    args: [args: { tenderFolderPath: string; suppliers?: BidComparisonSupplierOption[] }];
-    result: BidComparisonDetectionResult;
-  };
-  "bid-comparison:start": { args: [input: BidComparisonStartInput]; result: BidComparisonStartResult };
-  "bid-comparison:get": { args: [jobId: string]; result: BidComparisonJobStatus | null };
-  "bid-comparison:list": {
-    args: [filter?: { projectId?: string; categoryId?: string }];
-    result: BidComparisonJobStatus[];
-  };
-  "bid-comparison:cancel": { args: [jobId: string]; result: { success: boolean } };
-  "bid-comparison:test-agent": {
-    args: [config: BidComparisonAgentConfig];
-    result: BidComparisonAgentTestResult;
-  };
-  "bid-comparison:load-workspace": { args: [tenderFolderPath: string]; result: BidComparisonWorkspaceState };
-  "bid-comparison:save-config": { args: [tenderFolderPath: string, config: BidComparisonFileConfig]; result: BidComparisonFileConfig };
-  "bid-comparison:save-agent-secret": { args: [secret: string]; result: void };
-  "bid-comparison:has-agent-secret": { args: []; result: boolean };
-  "bid-comparison:clear-agent-secret": { args: []; result: void };
-  "bid-comparison:auto-start": {
-    args: [config: BidComparisonAutoConfig];
-    result: BidComparisonAutoStartResult;
-  };
-  "bid-comparison:auto-stop": {
-    args: [scope: BidComparisonAutoScope];
-    result: { success: boolean };
-  };
-  "bid-comparison:auto-status": {
-    args: [scope: BidComparisonAutoScope];
-    result: BidComparisonAutoStatus | null;
-  };
-  "bid-comparison:auto-list": { args: []; result: BidComparisonAutoStatus[] };
   "updater:getStatus": { args: []; result: UpdateStatus };
   "backup:getSettings": { args: []; result: BackupSettingsInfo };
   "backup:setEnabled": { args: [enabled: boolean]; result: void };

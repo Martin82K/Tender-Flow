@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { AppContent } from "@app/AppContent";
 import { CookieConsentBanner } from "@/features/public/ui/CookieConsentBanner";
@@ -7,8 +7,13 @@ import { ToastContainer } from "@features/notifications/ui/ToastContainer";
 import { HelpProvider } from "@features/help";
 import { HelpOverlay } from "@features/help/ui/HelpOverlay";
 import { SeoManager } from "@/shared/seo/SeoManager";
+import { cleanupRetiredFeatureStorage } from "@/shared/maintenance/retiredFeatureStorage";
 
 export const AppShell: React.FC = () => {
+  useEffect(() => {
+    cleanupRetiredFeatureStorage(window.localStorage);
+  }, []);
+
   return (
     <AppProviders>
       <SeoManager />
