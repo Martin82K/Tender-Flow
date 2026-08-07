@@ -11,6 +11,7 @@ import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { sanitizeDocHubSettings } from "@shared/dochub/cloudConnection";
 import {
     emitCategoryStatusNotification,
     emitProjectClonedNotification,
@@ -449,7 +450,9 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.docHubAutoCreateEnabled !== undefined) projectUpdates.dochub_autocreate_enabled = normalizedUpdates.docHubAutoCreateEnabled;
             if (normalizedUpdates.docHubAutoCreateLastRunAt !== undefined) projectUpdates.dochub_autocreate_last_run_at = normalizedUpdates.docHubAutoCreateLastRunAt;
             if (normalizedUpdates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = normalizedUpdates.docHubAutoCreateLastError;
-            if (normalizedUpdates.docHubSettings !== undefined) projectUpdates.dochub_settings = normalizedUpdates.docHubSettings;
+            if (normalizedUpdates.docHubSettings !== undefined) {
+                projectUpdates.dochub_settings = sanitizeDocHubSettings(normalizedUpdates.docHubSettings);
+            }
 
             if (Object.keys(projectUpdates).length > 0) {
                 const { error } = await dbAdapter.from("projects").update(projectUpdates).eq("id", id);

@@ -376,7 +376,7 @@ describe('useDocHubIntegration', () => {
         delete (window as any).showDirectoryPicker;
     });
 
-    it('should save only the normalized online URL from the dedicated action', async () => {
+    it('should save the normalized online URL and invalidate stale cloud IDs', async () => {
         const ownerProject = {
             ...mockProject,
             id: 'owner-project',
@@ -396,6 +396,12 @@ describe('useDocHubIntegration', () => {
 
         expect(onUpdateMock).toHaveBeenCalledWith({
             docHubRootWebUrl: 'https://drive.google.com/drive/folders/shared',
+            docHubSettings: {
+                gdrive: {
+                    rootLink: 'https://drive.google.com/drive/folders/shared',
+                    rootWebUrl: 'https://drive.google.com/drive/folders/shared',
+                },
+            },
         });
     });
 

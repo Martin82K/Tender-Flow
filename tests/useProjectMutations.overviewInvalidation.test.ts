@@ -279,7 +279,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
-  it("ukládá nastavení jednotlivých DocHub providerů do existujícího JSONB sloupce", async () => {
+  it("před uložením DocHub JSONB odstraní lokální cesty a identifikátory", async () => {
     const fromResult = createFromResult();
     mocks.fromMock.mockReturnValueOnce(fromResult);
     const { wrapper } = createWrapper();
@@ -296,6 +296,14 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       onedrive: {
         rootName: "Projekt",
       },
+      local: {
+        rootLink: "C:\\Users\\Owner\\Secret Project",
+        rootId: "local:secret",
+      },
+      onedrive_cloud: {
+        rootLink: "\\\\server\\private-share",
+        rootId: "local:legacy-cloud",
+      },
     };
 
     await act(async () => {
@@ -306,7 +314,10 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     });
 
     expect(fromResult.update).toHaveBeenCalledWith({
-      dochub_settings: docHubSettings,
+      dochub_settings: {
+        gdrive: docHubSettings.gdrive,
+        onedrive: docHubSettings.onedrive,
+      },
     });
   });
 

@@ -37,7 +37,7 @@ import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidA
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
 import { useEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
-import { hasDocHubOnlineFallback } from "@shared/dochub/cloudConnection";
+import { canOpenProjectDocHub } from "@shared/dochub/cloudConnection";
 import {
   isValidEmailAddress,
   normalizeEmailAddress,
@@ -111,10 +111,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
-  const canOpenDocHub = Boolean(
-    projectDetails.docHubEnabled &&
-    (docHubRoot.length > 0 || hasDocHubOnlineFallback(projectDetails)),
-  );
+  const canOpenDocHub = canOpenProjectDocHub(projectDetails, docHubRoot);
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );

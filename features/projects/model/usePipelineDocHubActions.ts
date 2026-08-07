@@ -10,6 +10,7 @@ import {
 } from "@/shared/dochub/docHub";
 import { getDocHubCloudConnection } from "@shared/dochub/cloudConnection";
 import { normalizeDocHubOnlineUrl } from "@shared/dochub/personalLocation";
+import { getDesktopTenderFolderPath } from "./usePipelineCategoryNavigation";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 
 interface ShowAlertArgs {
@@ -102,6 +103,24 @@ export const usePipelineDocHubActions = ({
     return false;
   };
 
+  const copyDocHubPath = async (path: string): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(path);
+      showAlert({
+        title: "Zkopírováno",
+        message: path,
+        variant: "success",
+      });
+    } catch {
+      showAlert({
+        title: "Kopírování selhalo",
+        message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+        variant: "info",
+        copyableText: path,
+      });
+    }
+  };
+
   const openDocHubBackendLink = async (payload: Record<string, unknown>): Promise<boolean> => {
     try {
       const data = await invokeAuthedFunction<{ webUrl?: string }>("dochub-get-link", {
@@ -136,6 +155,12 @@ export const usePipelineDocHubActions = ({
   };
 
   const openOnlineRootFallback = (): boolean => {
+    if (
+      projectDetails.docHubStatus !== "connected" ||
+      !projectDetails.docHubProvider
+    ) {
+      return false;
+    }
     const onlineRoot = normalizeDocHubOnlineUrl(
       projectDetails.docHubRootWebUrl ||
       getDocHubCloudConnection(projectDetails)?.rootWebUrl ||
@@ -179,6 +204,7 @@ export const usePipelineDocHubActions = ({
 
     const isDesktopMode = platformAdapter.isDesktop;
     console.log("[DocHub] isDesktopMode:", isDesktopMode);
+    let localFallbackPath: string | null = null;
 
     if (isDesktopMode && isLocalProvider && docHubRoot) {
       const supplierPath = getDocHubTenderLinksDesktop(
@@ -187,6 +213,7 @@ export const usePipelineDocHubActions = ({
         bid.companyName,
         projectDetails.docHubStructureV1,
       );
+      localFallbackPath = supplierPath;
 
       if (await folderExists(supplierPath)) {
         console.log("[DocHub] Found aligned folder:", supplierPath);
@@ -203,6 +230,7 @@ export const usePipelineDocHubActions = ({
 
       if (await folderExists(strictPath)) {
         console.log("[DocHub] Found strict (underscored) folder:", strictPath);
+        localFallbackPath = strictPath;
         if (await openDocHubPath(strictPath)) return;
       }
     }
@@ -230,6 +258,11 @@ export const usePipelineDocHubActions = ({
       if (await openDocHubPath(links.supplierBase(bid.companyName))) return;
     }
 
+    if (localFallbackPath) {
+      await copyDocHubPath(localFallbackPath);
+      return;
+    }
+
     showUnavailableFolder();
   };
 
@@ -240,8 +273,14 @@ export const usePipelineDocHubActions = ({
 
     const isLocalProvider = projectData.docHubProvider === "onedrive" ||
       projectData.docHubProvider === "local";
+    let localFallbackPath: string | null = null;
     if (isDesktopMode && isLocalProvider && docHubRoot) {
       const tenderPath = await resolveDesktopTenderFolderPath(activeCategory.title);
+      localFallbackPath = tenderPath || getDesktopTenderFolderPath(
+        docHubRoot,
+        activeCategory.title,
+        projectDetails.docHubStructureV1,
+      );
       if (tenderPath) {
         console.log("[DocHub] Opening tender folder:", tenderPath);
         if (await openDocHubPath(tenderPath)) return;
@@ -267,6 +306,11 @@ export const usePipelineDocHubActions = ({
         docHubStructure,
       );
       if (await openDocHubPath(links.tenderBase)) return;
+    }
+
+    if (localFallbackPath) {
+      await copyDocHubPath(localFallbackPath);
+      return;
     }
 
     showUnavailableFolder();

@@ -180,4 +180,68 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       "noopener,noreferrer",
     );
   });
+
+  it("po selhání lokálního i online otevření zkopíruje lokální cestu VŘ", async () => {
+    const localOnlyProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: null,
+      docHubSettings: null,
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: localOnlyProject,
+      projectDetails: localOnlyProject,
+      docHubRoot: localOnlyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(writeText).toHaveBeenCalledWith(
+      "D:\\Synchronizace\\Projekt\\03_Vyberova_rizeni\\Betony",
+    );
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Zkopírováno",
+      variant: "success",
+    }));
+  });
+
+  it("zkopíruje existující cestu i když její otevření selže a online záloha chybí", async () => {
+    expectConsoleWarn("[DocHub] Open failed, falling back online");
+    const localOnlyProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: null,
+      docHubSettings: null,
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const existingPath = "D:\\Synchronizace\\Projekt\\03_Vyberova_rizeni\\Betony";
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: localOnlyProject,
+      projectDetails: localOnlyProject,
+      docHubRoot: localOnlyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(existingPath),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(mocks.openInExplorer).toHaveBeenCalledWith(existingPath);
+    expect(writeText).toHaveBeenCalledWith(existingPath);
+  });
 });

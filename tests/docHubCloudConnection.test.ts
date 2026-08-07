@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getDocHubCloudConnection } from "@shared/dochub/cloudConnection";
+import {
+  canOpenProjectDocHub,
+  getDocHubCloudConnection,
+} from "@shared/dochub/cloudConnection";
 import { resolveCloudDocHubConnection } from "../supabase/functions/_shared/dochub_connection";
 import type { ProjectDetails } from "@/types";
 
@@ -49,5 +52,17 @@ describe("DocHub cloud connection fallback", () => {
       dochub_root_id: "local:connection-1",
       dochub_settings: { gdrive: { rootId: "local:spoofed" } },
     })).toBeNull();
+  });
+
+  it("nepovolí fallback po explicitním odpojení DocHubu", () => {
+    expect(canOpenProjectDocHub({
+      ...localProject,
+      docHubProvider: null,
+      docHubStatus: "disconnected",
+    }, "")).toBe(false);
+    expect(canOpenProjectDocHub({
+      ...localProject,
+      docHubStatus: "disconnected",
+    }, "D:\\Synchronizace\\Projekt")).toBe(false);
   });
 });
