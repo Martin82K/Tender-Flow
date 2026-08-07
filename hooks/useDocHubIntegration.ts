@@ -131,6 +131,7 @@ export const useDocHubIntegration = (
     // Track what we've loaded to prevent re-loading from stale project updates
     const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
     const personalLocationLoadedRef = useRef(false);
+    const personalLocationLoadSequenceRef = useRef(0);
 
     useEffect(() => {
         personalLocationLoadedRef.current = false;
@@ -141,10 +142,11 @@ export const useDocHubIntegration = (
         }
 
         let cancelled = false;
+        const loadSequence = ++personalLocationLoadSequenceRef.current;
         void (async () => {
             const personalState = await loadProjectDocHubPersonalLocationState(project, userId);
             const saved = personalState.location;
-            if (cancelled) return;
+            if (cancelled || loadSequence !== personalLocationLoadSequenceRef.current) return;
             setHasPersonalLocalRoot(!!saved);
             setRootLink(resolveValidatedEffectiveLocalRoot({
                 isProjectOwner,
@@ -156,7 +158,7 @@ export const useDocHubIntegration = (
             personalLocationLoadedRef.current = true;
             setValidatedPersonalLocationIdentity(personalLocationIdentity);
         })().catch(() => {
-            if (!cancelled) {
+            if (!cancelled && loadSequence === personalLocationLoadSequenceRef.current) {
                 setHasPersonalLocalRoot(false);
                 setRootLink("");
                 setRootName(project.docHubRootName || '');
@@ -640,9 +642,11 @@ export const useDocHubIntegration = (
             buildDocHubPersonalLocationKey(userId, project.id),
             JSON.stringify(location),
         );
+        personalLocationLoadSequenceRef.current += 1;
         notifyProjectDocHubPersonalRootChanged(project.id, userId);
         setHasPersonalLocalRoot(true);
-    }, [isProjectOwner, project.id, userId]);
+        setValidatedPersonalLocationIdentity(personalLocationIdentity);
+    }, [isProjectOwner, personalLocationIdentity, project.id, userId]);
 
     const resolveRoot = useCallback(async () => {
         if (!provider || !rootLink.trim()) return;
@@ -703,6 +707,13 @@ export const useDocHubIntegration = (
                         docHubDriveId: null,
                         docHubSiteId: null,
                     });
+                }
+                if (!isDesktop) {
+                    showMessage(
+                        "Dokončení v Desktopu",
+                        "Cesta byla uložena pro vlastníka. Aby ji mohli bezpečně připojit sdílení uživatelé, otevřete tuto složku jednou jako vlastník v Tender Flow Desktop; aplikace do ní vytvoří ověřovací marker.",
+                        "info",
+                    );
                 }
                 setResolveProgress(100);
             } catch (e: any) {
@@ -804,8 +815,32 @@ export const useDocHubIntegration = (
 
             // Web fallback: Check if File System Access API is supported
             if ('showDirectoryPicker' in window) {
-                const dirHandle = await (window as any).showDirectoryPicker({ mode: 'read' });
+                const selectedProjectId = project.id;
+                if (!selectedProjectId) throw new Error("Projekt nemá platný identifikátor.");
+                const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
                 const folderName = dirHandle.name;
+                let existingMarker: ReturnType<typeof parseDocHubProjectMarkerValue> = null;
+                try {
+                    const existingMarkerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME);
+                    const existingMarkerFile = await existingMarkerHandle.getFile();
+                    existingMarker = parseDocHubProjectMarkerValue(await existingMarkerFile.text());
+                } catch (error) {
+                    if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
+                }
+                if (isDocHubProjectMarkerForDifferentProject(existingMarker, selectedProjectId)) {
+                    throw new Error("Vybraná složka je už propojená s jiným projektem Tender Flow.");
+                }
+                if (existingMarker?.projectId !== selectedProjectId) {
+                    const markerHandle = await dirHandle.getFileHandle(DOC_HUB_PROJECT_MARKER_FILENAME, { create: true });
+                    const markerWriter = await markerHandle.createWritable();
+                    try {
+                        await markerWriter.write(createDocHubProjectMarker(selectedProjectId));
+                        await markerWriter.close();
+                    } catch (error) {
+                        await markerWriter.abort?.().catch(() => undefined);
+                        throw error;
+                    }
+                }
                 // For local folders, we store the name as the "link" - actual path is not accessible from browser
                 // User will need to know the full path on their system
                 setRootName(folderName);

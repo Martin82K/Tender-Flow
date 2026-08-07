@@ -8,6 +8,7 @@ import { useDocHubIntegration } from '../hooks/useDocHubIntegration';
 import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { storageAdapter } from '../services/platformAdapter';
+import { createDocHubProjectMarker } from '@shared/dochub/personalLocation';
 
 // Mock dependencies
 vi.mock('../services/supabase', () => ({
@@ -287,6 +288,62 @@ describe('useDocHubIntegration', () => {
             docHubRootLink: 'C:\\Shared\\Owner Project',
             docHubStatus: 'connected',
         }));
+        expect(result.current.state.modalRequest?.message).toContain('Desktop');
+    });
+
+    it('should create a project marker when an owner selects a local folder in the web app', async () => {
+        const write = vi.fn().mockResolvedValue(undefined);
+        const close = vi.fn().mockResolvedValue(undefined);
+        const getFileHandle = vi.fn()
+            .mockRejectedValueOnce(new DOMException('Missing marker', 'NotFoundError'))
+            .mockResolvedValueOnce({
+                createWritable: vi.fn().mockResolvedValue({ write, close }),
+            });
+        const picker = vi.fn().mockResolvedValue({ name: 'Owner Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(picker).toHaveBeenCalledWith({ mode: 'readwrite' });
+        expect(getFileHandle).toHaveBeenCalledWith('.tenderflow-project.json', { create: true });
+        expect(write).toHaveBeenCalledWith(expect.stringContaining('owner-project'));
+        expect(close).toHaveBeenCalled();
+        expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
+            docHubRootLink: 'Owner Project',
+            docHubStatus: 'connected',
+        }));
+        delete (window as any).showDirectoryPicker;
+    });
+
+    it('should not overwrite a web marker that belongs to another project', async () => {
+        const createWritable = vi.fn();
+        const getFileHandle = vi.fn().mockResolvedValue({
+            getFile: vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue(createDocHubProjectMarker('other-project')),
+            }),
+            createWritable,
+        });
+        const picker = vi.fn().mockResolvedValue({ name: 'Other Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(createWritable).not.toHaveBeenCalled();
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(result.current.state.modalRequest?.message).toContain('jiným projektem');
+        delete (window as any).showDirectoryPicker;
     });
 
     it('should save only the normalized online URL from the dedicated action', async () => {

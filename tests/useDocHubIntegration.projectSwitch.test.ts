@@ -126,4 +126,29 @@ describe("useDocHubIntegration project identity", () => {
     expect(mocks.writeFile).not.toHaveBeenCalled();
     expect(onUpdate).not.toHaveBeenCalled();
   });
+
+  it("does not let an older personal-root load overwrite a newly saved root", async () => {
+    let resolveOld: ((value: string) => void) | undefined;
+    mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-1")));
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), vi.fn(), {
+      userId: "shared-1",
+    }));
+
+    act(() => result.current.setters.setRootLink("D:\\Shared\\New Project"));
+    await act(async () => result.current.actions.resolveRoot());
+    expect(result.current.state.rootLink).toBe("D:\\Shared\\New Project");
+
+    resolveOld?.(JSON.stringify({
+      version: 1,
+      userId: "shared-1",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\Old Project",
+      rootName: "Old Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    await waitFor(() => expect(mocks.readFile).toHaveBeenCalled());
+
+    expect(result.current.state.rootLink).toBe("D:\\Shared\\New Project");
+  });
 });

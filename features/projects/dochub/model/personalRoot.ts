@@ -47,7 +47,9 @@ export const resolveEffectiveProjectDocHubRoot = async (
   userId: string | null,
 ): Promise<string> => {
   if (project.docHubProvider !== "onedrive") return project.docHubRootLink?.trim() || "";
-  if (!isDesktop) return "";
+  if (!isDesktop) {
+    return isProjectOwner(project, userId) ? project.docHubRootLink?.trim() || "" : "";
+  }
 
   try {
     const personalState = await loadProjectDocHubPersonalLocationState(project, userId);
