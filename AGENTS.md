@@ -6,7 +6,8 @@
 - Plan and discuss the plan before starting build or implementation work.
 - Write tests for behavior changes and verify code quality with the relevant project commands.
 - Review solutions from a cybersecurity perspective and avoid unsafe designs.
-- Before installing a new package, verify its registry integrity, signatures/provenance when available, repository and maintainer history, release history, known vulnerabilities, and reported compromise incidents. Re-run dependency audit and signature verification after installation; package age alone is not an approval or rejection criterion.
+- There is no minimum package age and no 14-day waiting rule. Package age alone must never be used to approve, reject, or postpone an installation.
+- Before installing or updating a package, perform a supply-chain security review: verify registry integrity, signatures/provenance when available, repository and maintainer history, release history and publication anomalies, known vulnerabilities, and reported compromise or malware incidents. After installation, verify the resolved lockfile diff, run dependency audits, verify registry signatures/provenance, and exercise the affected runtime path.
 
 ## Autonomous Development Loop
 - Before each problem, report what is planned, why it matters, the proposed change, and the tests and risks that will be checked. Wait for user approval before starting the next problem loop.
