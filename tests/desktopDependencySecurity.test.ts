@@ -22,7 +22,6 @@ describe("desktop dependency security overrides", () => {
   it("pins patched transitive versions at their owning dependencies", () => {
     expect(manifest.dependencies?.["electron-updater"]).toBe("6.8.9");
     expect(manifest.overrides).toEqual({
-      "brace-expansion": "5.0.9",
       "electron-updater": {
         "js-yaml": "4.3.1",
       },
@@ -34,7 +33,8 @@ describe("desktop dependency security overrides", () => {
   });
 
   it.each([
-    ["node_modules/brace-expansion", "5.0.9"],
+    ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
+    ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/builder-util-runtime", "9.7.0"],
     ["node_modules/electron-updater", "6.8.9"],
     ["node_modules/js-yaml", "4.3.1"],

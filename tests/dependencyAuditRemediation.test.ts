@@ -57,6 +57,10 @@ describe("dependency audit remediation", () => {
     ["node_modules/body-parser", "1.20.6"],
     ["node_modules/@modelcontextprotocol/sdk/node_modules/body-parser", "2.3.0"],
     ["node_modules/brace-expansion", "5.0.9"],
+    ["node_modules/@electron/universal/node_modules/brace-expansion", "2.1.4"],
+    ["node_modules/filelist/node_modules/brace-expansion", "2.1.4"],
+    ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
+    ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/fast-uri", "3.1.5"],
     ["node_modules/hono", "4.12.34"],
     ["node_modules/ip-address", "10.4.0"],
@@ -72,7 +76,8 @@ describe("dependency audit remediation", () => {
   it.each([
     ["node_modules/electron-updater", "6.8.9"],
     ["node_modules/builder-util-runtime", "9.7.0"],
-    ["node_modules/brace-expansion", "5.0.9"],
+    ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
+    ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/js-yaml", "4.3.1"],
   ])("resolves desktop %s outside the vulnerable range", (packagePath, minimum) => {
     expectPatchedVersion(desktopLockfile, packagePath, minimum);
