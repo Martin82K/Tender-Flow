@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ProjectDetails } from '@/types';
 import { useContractsWithDetails } from './hooks/useContractsWithDetails';
+import type { UseContractsWithDetailsResult } from './hooks/useContractsWithDetails';
 import { ContractsDashboard } from './dashboard/ContractsDashboard';
 import { ContractsListPage } from './list/ContractsListPage';
 import { InvestorBillingPage } from './investor/InvestorBillingPage';
@@ -10,18 +11,25 @@ type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
 interface Props {
   projectId: string;
+  initialContractId?: string;
+  contractsState?: UseContractsWithDetailsResult;
   projectDetails?: ProjectDetails;
   onUpdateDetails: (updates: Partial<ProjectDetails>) => void | Promise<void>;
 }
 
 export const ContractsModule: React.FC<Props> = ({
   projectId,
+  initialContractId,
+  contractsState,
   projectDetails,
   onUpdateDetails,
 }) => {
   const [subView, setSubView] = useState<SubView>('smlouvy');
-  const [contractsViewMode, setContractsViewMode] = useState<ContractsViewMode>('table');
-  const { contracts, loading, error, refresh } = useContractsWithDetails(projectId);
+  const [contractsViewMode, setContractsViewMode] = useState<ContractsViewMode>(
+    initialContractId ? 'split' : 'table',
+  );
+  const ownContractsState = useContractsWithDetails(projectId, !contractsState);
+  const { contracts, loading, error, refresh } = contractsState || ownContractsState;
 
   if (loading) {
     return (
@@ -110,6 +118,7 @@ export const ContractsModule: React.FC<Props> = ({
           refresh={refresh}
           viewMode={contractsViewMode}
           onViewModeChange={setContractsViewMode}
+          initialSelectedId={initialContractId}
         />
       )}
     </div>

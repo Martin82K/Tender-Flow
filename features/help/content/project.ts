@@ -222,7 +222,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "pipeline",
     label: "Sloupec: Jednání o SOD",
     description: "Finální fáze — vybraný dodavatel, se kterým jednáte o smlouvě o dílo. Ikona trofeje označuje vítěze.",
-    detail: "Na kartě v tomto sloupci se zobrazí: trofej (vítěz VŘ), tlačítko 'Zasmluvnit' (smlouva ikona) a tlačítko '+' pro vytvoření smlouvy v záložce Smlouvy. Po zasmluvnění se cena promítne do celkového přehledu projektu.",
+    detail: "Na kartě se zobrazuje trofej vítěze a ikona smlouvy. Bez navázané smlouvy ikona označí nabídku jako zasmluvněnou. Pokud už je smlouva jednoznačně propojená, stejná akce otevře přímo její detail v záložce Smlouvy. Po zasmluvnění se cena promítne do celkového přehledu projektu.",
     category: "data-flow",
     tourOrder: 9,
     dataFlow: [

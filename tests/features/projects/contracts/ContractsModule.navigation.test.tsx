@@ -39,7 +39,9 @@ vi.mock('@/features/projects/contracts/list/ContractListPanel', () => ({
   ContractListPanel: () => <div data-testid="list-panel" />,
 }));
 vi.mock('@/features/projects/contracts/workspace/ContractWorkspace', () => ({
-  ContractWorkspace: () => <div data-testid="workspace" />,
+  ContractWorkspace: ({ contract: selectedContract }: { contract: ContractWithDetails }) => (
+    <div data-testid="workspace">{selectedContract.id}</div>
+  ),
 }));
 vi.mock('@/features/projects/contracts/forms/ContractEditDialog', () => ({
   ContractEditDialog: () => <div />,
@@ -74,5 +76,18 @@ describe('ContractsModule navigation', () => {
     const create = screen.getByRole('button', { name: '+ Nová smlouva' });
     const toggle = document.querySelector('[data-help-id="contracts-view-toggle"]');
     expect(create.compareDocumentPosition(toggle!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('otevře deep-linkovanou smlouvu rovnou ve split detailu', () => {
+    render(
+      <ContractsModule
+        projectId="project-1"
+        initialContractId="contract-1"
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Split/ })).toHaveAttribute('data-active', 'true');
+    expect(screen.getByTestId('workspace')).toHaveTextContent('contract-1');
   });
 });

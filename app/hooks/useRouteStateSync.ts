@@ -9,10 +9,12 @@ interface UseRouteStateSyncParams {
   search: string;
   selectedProjectId: string | null;
   activePipelineCategoryId: string | null;
+  activeContractId: string | null;
   setSelectedProjectId: (id: string | null) => void;
   setCurrentView: (view: View) => void;
   setActiveProjectTab: (tab: string) => void;
   setActivePipelineCategoryId: (categoryId: string | null) => void;
+  setActiveContractId: (contractId: string | null) => void;
 }
 
 export const useRouteStateSync = ({
@@ -21,10 +23,12 @@ export const useRouteStateSync = ({
   search,
   selectedProjectId,
   activePipelineCategoryId,
+  activeContractId,
   setSelectedProjectId,
   setCurrentView,
   setActiveProjectTab,
   setActivePipelineCategoryId,
+  setActiveContractId,
 }: UseRouteStateSyncParams): void => {
   const lastNavigationRef = useRef<{ pathname: string; search: string } | null>(null);
 
@@ -56,11 +60,15 @@ export const useRouteStateSync = ({
         setActiveProjectTab(route.tab);
       }
       setActivePipelineCategoryId(route.categoryId ?? null);
+      setActiveContractId(route.contractId ?? null);
       return;
     }
 
     if (activePipelineCategoryId) {
       setActivePipelineCategoryId(null);
+    }
+    if (activeContractId) {
+      setActiveContractId(null);
     }
   }, [
     pathname,
@@ -68,9 +76,11 @@ export const useRouteStateSync = ({
     isAuthenticated,
     selectedProjectId,
     activePipelineCategoryId,
+    activeContractId,
     setSelectedProjectId,
     setCurrentView,
     setActiveProjectTab,
     setActivePipelineCategoryId,
+    setActiveContractId,
   ]);
 };

@@ -15,6 +15,7 @@ interface Props {
   refresh: () => Promise<void> | void;
   viewMode: ContractsViewMode;
   onViewModeChange: (mode: ContractsViewMode) => void;
+  initialSelectedId?: string;
 }
 
 export const ContractsListPage: React.FC<Props> = ({
@@ -23,6 +24,7 @@ export const ContractsListPage: React.FC<Props> = ({
   refresh,
   viewMode,
   onViewModeChange,
+  initialSelectedId,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -30,12 +32,15 @@ export const ContractsListPage: React.FC<Props> = ({
   const [documentError, setDocumentError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedId && contracts.length > 0) {
+    if (initialSelectedId && contracts.some((contract) => contract.id === initialSelectedId)) {
+      setSelectedId(initialSelectedId);
+      onViewModeChange('split');
+    } else if (!selectedId && contracts.length > 0) {
       setSelectedId(contracts[0].id);
     } else if (selectedId && !contracts.some((c) => c.id === selectedId)) {
       setSelectedId(contracts[0]?.id || null);
     }
-  }, [contracts, selectedId]);
+  }, [contracts, initialSelectedId, onViewModeChange, selectedId]);
 
   const selected = useMemo(
     () => contracts.find((c) => c.id === selectedId) || null,

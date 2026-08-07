@@ -8,6 +8,7 @@ import {
   Subcontractor,
   ProjectDetails,
   StatusConfig,
+  ContractWithDetails,
 } from "../types";
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
@@ -47,6 +48,7 @@ import {
 } from "@/features/projects/model/pipelineEmailModel";
 import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
+import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
 import {
   Column,
   BidCard,
@@ -75,6 +77,10 @@ interface PipelineProps {
   searchQuery?: string;
   initialOpenCategoryId?: string;
   onCategoryNavigate?: (categoryId: string | null) => void;
+  contracts?: ContractWithDetails[];
+  onOpenContract?: (contractId: string) => void;
+  contractsLoading?: boolean;
+  contractsError?: string | null;
 }
 
 type PipelineViewMode = "grid" | "table";
@@ -86,6 +92,8 @@ export const getTemplateLinksForInquiryKind = (
 ): string[] => {
   return getTemplateLinksForInquiryKindModel(project, kind);
 };
+
+const noopOpenContract = () => undefined;
 
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
@@ -101,6 +109,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   searchQuery = "",
   initialOpenCategoryId,
   onCategoryNavigate,
+  contracts = [],
+  onOpenContract,
+  contractsLoading = false,
+  contractsError = null,
 }) => {
   const { user } = useAuth();
   // ... (existing code omitted for brevity)
@@ -798,24 +810,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       trophy
                     </span>
                   </div>
-                  {/* Contract icon - clickable */}
-                  <button
-                    onClick={() => handleToggleContracted(bid)}
-                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${
-                      bid.contracted
-                        ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
-                        : "bg-slate-600 text-slate-300 hover:bg-slate-500"
-                    }`}
-                    title={
-                      bid.contracted
-                        ? "Zasmluvněno ✓"
-                        : "Označit jako zasmluvněno"
-                    }
-                  >
-                    <span className="material-symbols-outlined text-[16px] block">
-                      {bid.contracted ? "task_alt" : "description"}
-                    </span>
-                  </button>
+                  <WinnerContractButton
+                    bid={bid}
+                    contracts={contracts}
+                    onOpenContract={onOpenContract || noopOpenContract}
+                    onToggleContracted={handleToggleContracted}
+                    loading={contractsLoading}
+                    error={contractsError}
+                  />
                   <BidCard
                     bid={bid}
                     priceDisplayMode="detail"
