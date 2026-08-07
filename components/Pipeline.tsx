@@ -37,6 +37,7 @@ import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidA
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
 import { useEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { hasDocHubOnlineFallback } from "@shared/dochub/cloudConnection";
 import {
   isValidEmailAddress,
   normalizeEmailAddress,
@@ -110,6 +111,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
+  const canOpenDocHub = Boolean(
+    projectDetails.docHubEnabled &&
+    (docHubRoot.length > 0 || hasDocHubOnlineFallback(projectDetails)),
+  );
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
@@ -387,7 +392,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       projectDetails,
       docHubRoot,
       docHubStructure,
-      isDocHubEnabled,
+      isDocHubEnabled: canOpenDocHub,
       showAlert,
       resolveDesktopTenderFolderPath,
     });
@@ -490,7 +495,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
               onSelect={openBulkEmailConfirmation}
             />
 
-            {isDocHubEnabled && (
+            {canOpenDocHub && (
               <button
                 onClick={() => void handleOpenTenderDocHub()}
                 className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
@@ -692,7 +697,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onGenerateInquiry={handleGenerateInquiry}
                   onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -721,7 +726,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -750,7 +755,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -773,7 +778,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}
@@ -822,7 +827,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
                     onOpenDocHubFolder={
-                      isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                      canOpenDocHub ? handleOpenSupplierDocHub : undefined
                     }
                   />
                 </div>
@@ -845,7 +850,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
                   onOpenDocHubFolder={
-                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
                   }
                 />
               ))}

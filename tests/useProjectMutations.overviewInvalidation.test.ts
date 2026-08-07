@@ -279,6 +279,37 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
+  it("ukládá nastavení jednotlivých DocHub providerů do existujícího JSONB sloupce", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useUpdateProjectDetailsMutation(), {
+      wrapper,
+    });
+    const docHubSettings = {
+      gdrive: {
+        rootLink: "https://drive.google.com/drive/folders/cloud-root",
+        rootName: "Projekt",
+        rootId: "cloud-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      },
+      onedrive: {
+        rootName: "Projekt",
+      },
+    };
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-1",
+        updates: { docHubSettings },
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      dochub_settings: docHubSettings,
+    });
+  });
+
   it("invaliduje overview cache po přidání kategorie a neukládá lokální přílohu do Supabase", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const fromResult = createFromResult();

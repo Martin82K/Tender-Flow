@@ -51,7 +51,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
         {/* Step 1 */}
         <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            1) Provider
+            1) Primární způsob práce
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -89,7 +89,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
           </div>
           <div className="text-[11px] text-slate-500 flex justify-between items-center">
             <span>
-              Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku.
+              Obě varianty lze kombinovat: lokální složka má přednost, online připojení slouží jako automatická záloha.
             </span>
             {isConnectedStatus && (
               <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
@@ -233,7 +233,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             {isLocalProvider && canManageGlobal && (
               <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700/50">
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Online odkaz pro sdílené uživatele
+                  Online záloha a přístup pro sdílené uživatele
                 </label>
                 <input
                   type="url"
@@ -250,7 +250,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   Uložit online odkaz
                 </button>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Nepovinné. Uživatelé bez lokální synchronizace otevřou stejnou cloudovou složku v prohlížeči.
+                  Nepovinné. Když lokální složka není dostupná, Tender Flow otevře odpovídající VŘ, poptávku nebo složku subdodavatele online. Pokud přesný odkaz nelze získat, otevře kořenovou online složku projektu.
                 </p>
               </div>
             )}

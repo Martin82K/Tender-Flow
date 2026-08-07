@@ -22,6 +22,8 @@ import {
     loadProjectDocHubPersonalLocationState,
     notifyProjectDocHubPersonalRootChanged,
 } from '@features/projects/dochub/model/personalRoot';
+import { snapshotActiveCloudSettings } from '@shared/dochub/cloudConnection';
+import type { DocHubProviderSettings } from '../types';
 
 export interface DocHubModalRequest {
     title: string;
@@ -33,6 +35,27 @@ export interface DocHubModalRequest {
 
 const loadedScripts = new Map<string, Promise<void>>();
 const INVALIDATED_DOC_HUB_MARKER = "{}\n";
+const mergeDocHubProviderSettings = (
+    project: ProjectDetails,
+    provider: NonNullable<ProjectDetails["docHubProvider"]>,
+    settings: DocHubProviderSettings,
+): NonNullable<ProjectDetails["docHubSettings"]> => {
+    const next = { ...(project.docHubSettings || {}) };
+    const activeCloud = snapshotActiveCloudSettings(project);
+    if (activeCloud) next[activeCloud.key] = activeCloud.settings;
+
+    if (provider === "onedrive" || provider === "local") {
+        next.onedrive = {
+            rootName: settings.rootName,
+            rootWebUrl: settings.rootWebUrl,
+        };
+        return next;
+    }
+
+    next[provider] = settings;
+    return next;
+};
+
 const createLocalConnectionId = (): string => {
     const id = globalThis.crypto?.randomUUID?.();
     if (!id) throw new Error("V tomto prostředí nelze bezpečně vytvořit identifikátor připojení složky.");
@@ -407,22 +430,15 @@ export const useDocHubIntegration = (
             showMessage("Složkomat", "Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.", "danger");
             return;
         }
-        // Prepare new settings object
-        const currentSettings = project.docHubSettings || {};
-        const newSettings = {
-            ...currentSettings,
-            [provider!]: {
-                rootLink,
-                rootName,
-                // We could store IDs here too if we have them in state, currently we might only have them if we parsed them
-                // But for now, just name and link is enough for the UI restoration.
-                // If we want to store rootId, we need to ensure state has it. 
-                // State only has derived isAuthed etc.
-                // We actully need to store what we have.
-                // The main `project` update will store rootId etc in the main fields.
-                // We should also store them in settings.
-            }
-        };
+        if (!provider) return;
+        const newSettings = mergeDocHubProviderSettings(project, provider, {
+            rootLink: provider === "onedrive" ? undefined : rootLink,
+            rootName,
+            rootId: provider === "onedrive" ? undefined : project.docHubRootId || undefined,
+            driveId: provider === "onedrive" ? undefined : project.docHubDriveId || undefined,
+            siteId: provider === "onedrive" ? undefined : project.docHubSiteId || undefined,
+            rootWebUrl: normalizedOnlineUrl || undefined,
+        });
 
         // Always enable when user explicitly saves setup (they are connecting)
         const shouldBeConnected = !!(rootLink || project.docHubRootId);
@@ -661,6 +677,13 @@ export const useDocHubIntegration = (
                 docHubRootWebUrl: rWebUrl || null,
                 docHubRootId: (created as any)?.rootId || null,
                 docHubDriveId: (created as any)?.driveId || null,
+                docHubSettings: mergeDocHubProviderSettings(project, "gdrive", {
+                    rootLink: rWebUrl || rootLink,
+                    rootName: rName || undefined,
+                    rootId: (created as any)?.rootId || undefined,
+                    driveId: (created as any)?.driveId || undefined,
+                    rootWebUrl: rWebUrl || undefined,
+                }),
             });
             showMessage("Hotovo", "Složka vytvořena.", "success");
         } catch (e: any) {
@@ -826,6 +849,10 @@ export const useDocHubIntegration = (
                                     docHubRootId: connectionId,
                                     docHubDriveId: null,
                                     docHubSiteId: null,
+                                    docHubSettings: mergeDocHubProviderSettings(project, "onedrive", {
+                                        rootName: folderName,
+                                        rootWebUrl: normalizedOnlineUrl || undefined,
+                                    }),
                                 }),
                                 rollback: () => onUpdate(getDocHubConnectionSnapshot(project)),
                             }
@@ -861,6 +888,10 @@ export const useDocHubIntegration = (
                         docHubRootId: connectionId,
                         docHubDriveId: null,
                         docHubSiteId: null,
+                        docHubSettings: mergeDocHubProviderSettings(project, "onedrive", {
+                            rootName: folderName,
+                            rootWebUrl: normalizedOnlineUrl || undefined,
+                        }),
                     });
                 }
                 if (!isDesktop) {
@@ -901,6 +932,14 @@ export const useDocHubIntegration = (
                 docHubRootId: (resolved as any)?.rootId || null,
                 docHubDriveId: (resolved as any)?.driveId || null,
                 docHubSiteId: (resolved as any)?.siteId || null,
+                docHubSettings: mergeDocHubProviderSettings(project, provider, {
+                    rootLink: rWebUrl || rootLink.trim(),
+                    rootName: rName || undefined,
+                    rootId: (resolved as any)?.rootId || undefined,
+                    driveId: (resolved as any)?.driveId || undefined,
+                    siteId: (resolved as any)?.siteId || undefined,
+                    rootWebUrl: rWebUrl || undefined,
+                }),
             });
             setResolveProgress(100);
         } catch (e: any) {
@@ -961,6 +1000,10 @@ export const useDocHubIntegration = (
                                 docHubRootId: connectionId,
                                 docHubDriveId: null,
                                 docHubSiteId: null,
+                                docHubSettings: mergeDocHubProviderSettings(project, "onedrive", {
+                                    rootName: folderName,
+                                    rootWebUrl: normalizedOnlineUrl || undefined,
+                                }),
                             }),
                             rollback: () => onUpdate(getDocHubConnectionSnapshot(project)),
                         }
@@ -1018,6 +1061,9 @@ export const useDocHubIntegration = (
                         docHubRootId: connectionId,
                         docHubDriveId: null,
                         docHubSiteId: null,
+                        docHubSettings: mergeDocHubProviderSettings(project, "onedrive", {
+                            rootName: folderName,
+                        }),
                     });
                     globalUpdated = true;
                     assertCurrentProjectAction(actionIdentity);
@@ -1217,6 +1263,14 @@ export const useDocHubIntegration = (
                     docHubRootId: (resolved as any)?.rootId || null,
                     docHubDriveId: (resolved as any)?.driveId || null,
                     docHubSiteId: (resolved as any)?.siteId || null,
+                    docHubSettings: mergeDocHubProviderSettings(project, provider, {
+                        rootLink: rWebUrl || urlToResolve,
+                        rootName: rName || undefined,
+                        rootId: (resolved as any)?.rootId || undefined,
+                        driveId: (resolved as any)?.driveId || undefined,
+                        siteId: (resolved as any)?.siteId || undefined,
+                        rootWebUrl: rWebUrl || undefined,
+                    }),
                 });
                 setAutoCreateProgress(p => Math.max(p, 15));
             }
