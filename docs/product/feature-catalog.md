@@ -64,6 +64,11 @@ subdodavatelů v `BCC`. UI před vytvořením konceptu zobrazí rekapitulaci vč
 vyřazených neplatných adres. Aplikace zprávu sama neodesílá a stav karet mění až
 po úspěšném otevření konceptu v emailovém klientu.
 
+Vítězná nabídka ve stavu `sod` se páruje se smlouvou primárně přes ID nabídky.
+U historických záznamů se použije dodavatel pouze při jediné možné shodě. Ikona
+smlouvy pak otevře konkrétní kontrakt ve split detailu; při nejednoznačné shodě
+zůstane akce deaktivovaná, aby neotevřela nesprávný dokument.
+
 Portálová menu hromadné komunikace a exportu používají společný
 `tf-pipeline-popover` kontrakt. Classic skin využívá standardní Tailwind
 světlé/tmavé varianty; Industrial skin přepisuje povrch, linky, text, hover,

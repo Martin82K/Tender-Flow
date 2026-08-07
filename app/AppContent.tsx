@@ -96,6 +96,7 @@ export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
+  const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
   const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
 
@@ -107,10 +108,12 @@ export const AppContent: React.FC = () => {
     search,
     selectedProjectId: state.selectedProjectId,
     activePipelineCategoryId,
+    activeContractId,
     setSelectedProjectId: actions.setSelectedProjectId,
     setCurrentView,
     setActiveProjectTab,
     setActivePipelineCategoryId,
+    setActiveContractId,
   });
 
   const {
@@ -379,6 +382,7 @@ export const AppContent: React.FC = () => {
               activeTab={activeProjectTab}
               onTabChange={(tab: ProjectTab) => {
                 setActiveProjectTab(tab);
+                setActiveContractId(null);
                 if (tab !== "pipeline") {
                   setActivePipelineCategoryId(null);
                 }
@@ -396,10 +400,12 @@ export const AppContent: React.FC = () => {
               statuses={state.contactStatuses}
               onUpdateContact={actions.handleUpdateContact}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
+              initialContractId={activeContractId ?? undefined}
               currentUserId={user?.id}
               onNavigateToPipeline={(catId: string) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);
+                setActiveContractId(null);
                 navigate(
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId!,
@@ -415,6 +421,18 @@ export const AppContent: React.FC = () => {
                     projectId: state.selectedProjectId!,
                     tab: "pipeline",
                     categoryId: catId ?? undefined,
+                  }),
+                );
+              }}
+              onNavigateToContract={(contractId: string) => {
+                setActiveProjectTab("contracts");
+                setActivePipelineCategoryId(null);
+                setActiveContractId(contractId);
+                navigate(
+                  buildAppUrl("project", {
+                    projectId: state.selectedProjectId!,
+                    tab: "contracts",
+                    contractId,
                   }),
                 );
               }}

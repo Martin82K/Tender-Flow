@@ -8,6 +8,7 @@
 - **OCR při založení**: formulář čeká na dokončení OCR, předvyplní validovaná pole a ponechá uživateli závěrečnou kontrolu před uložením.
 - **Investor**: doplněna evidence smlouvy s objednatelem a číslovaných dodatků, fakturační období a samostatné pozastávky do předání a po dobu záruky.
 - **Přesnější úhrady**: z vystavené částky se automaticky počítají obě pozastávky a čistá částka k úhradě; jako uhrazená se vykazuje až zaplacená čistá částka.
+- **Vítěz VŘ → smlouva**: pokud je vítězná nabídka jednoznačně propojená se smlouvou, ikona na kartě vítěze otevře přímo její detail; deep-link lze bezpečně obnovit i přes historii prohlížeče.
 
 ### Bezpečnost
 

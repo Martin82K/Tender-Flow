@@ -17,6 +17,7 @@ import {
 } from "@/types";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
+import { useContractsWithDetails } from "@features/projects/contracts/hooks/useContractsWithDetails";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
@@ -40,6 +41,8 @@ interface ProjectLayoutProps {
   initialPipelineCategoryId?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
   onCategoryNavigate?: (categoryId: string | null) => void;
+  initialContractId?: string;
+  onNavigateToContract?: (contractId: string) => void;
   skin?: ThemeSkin;
   currentUserId?: string;
 }
@@ -60,12 +63,16 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   initialPipelineCategoryId,
   onNavigateToPipeline,
   onCategoryNavigate,
+  initialContractId,
+  onNavigateToContract,
   skin = "industrial",
   currentUserId,
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
   const { hasFeature } = useFeatures();
+  const contractsEnabled = hasFeature(FEATURES.MODULE_CONTRACTS);
+  const contractsState = useContractsWithDetails(projectId, contractsEnabled);
   const geocodeAbortRef = useRef<{ cancelled: boolean } | null>(null);
 
   const handleAddressChanged = useCallback((address: string, location: string) => {
@@ -273,6 +280,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             searchQuery={searchQuery}
             initialOpenCategoryId={initialPipelineCategoryId}
             onCategoryNavigate={onCategoryNavigate}
+            contracts={contractsState.contracts}
+            onOpenContract={onNavigateToContract}
+            contractsLoading={contractsState.loading}
+            contractsError={contractsState.error}
           />
         )}
         {activeTab === "schedule" && (
@@ -301,6 +312,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             projectId={projectId}
             projectDetails={project}
             onUpdateDetails={onUpdateDetails}
+            initialContractId={initialContractId}
+            contractsState={contractsState}
           />
         )}
       </div>
