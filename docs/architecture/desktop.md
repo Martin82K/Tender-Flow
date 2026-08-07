@@ -75,6 +75,12 @@ Desktop podporuje:
 Cesty se normalizují a kontrolují proti povolenému scope. Renderer nemá obecný
 Node filesystem přístup.
 
+DocHub u sdílených projektů ukládá mapování lokálního kořene do secure storage
+pod klíčem uživatele a projektu. Globální konfiguraci a strukturu mění pouze
+vlastník; sdílený uživatel vybírá vlastní synchronizovanou cestu ověřenou
+projektovým markerem. Cloudový provider zůstává zdrojem pravdy a jeho synchronizace
+je eventual-consistent, nikoli transakčně řízená aplikací Tender Flow.
+
 ## Session a secure storage
 
 Citlivé credentials ukládá main proces prostřednictvím secure storage.

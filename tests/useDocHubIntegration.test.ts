@@ -7,6 +7,8 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDocHubIntegration } from '../hooks/useDocHubIntegration';
 import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
+import { storageAdapter } from '../services/platformAdapter';
+import { createDocHubProjectMarker } from '@shared/dochub/personalLocation';
 
 // Mock dependencies
 vi.mock('../services/supabase', () => ({
@@ -79,7 +81,7 @@ describe('useDocHubIntegration', () => {
         });
     });
 
-    it('should handle disconnect action', () => {
+    it('should handle disconnect action', async () => {
         const connectedProject = {
             ...mockProject,
             docHubEnabled: true,
@@ -89,15 +91,328 @@ describe('useDocHubIntegration', () => {
         };
         const { result } = renderHook(() => useDocHubIntegration(connectedProject as any, onUpdateMock));
 
-        act(() => {
-            result.current.actions.disconnect();
-        });
+        await act(async () => result.current.actions.disconnect());
 
         expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
             docHubStatus: 'disconnected',
             docHubRootLink: '',
             docHubRootId: null
         }));
+    });
+
+    it('should not let a shared user disconnect global DocHub settings', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/root',
+            docHubProvider: 'gdrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.disconnect());
+
+        expect(result.current.state.canManageGlobal).toBe(false);
+        expect(result.current.state.isSharedProject).toBe(true);
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject structure synchronization by a shared user', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/root',
+            docHubProvider: 'gdrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.runAutoCreate());
+
+        expect(invokeAuthedFunction).not.toHaveBeenCalledWith('dochub-autocreate', expect.anything());
+        expect(result.current.state.modalRequest?.message).toContain('pouze vlastník');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should never restore the owner local path for a shared user', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+            docHubSettings: {
+                onedrive: { rootLink: 'C:\\Owner\\Project', rootName: 'Project' },
+            },
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(result.current.state.rootLink).toBe(''));
+        expect(result.current.state.isConnected).toBe(false);
+    });
+
+    it('should not synthesize cloud folder URLs when the link cache misses', async () => {
+        vi.mocked(invokeAuthedFunction).mockRejectedValue(new Error('Folder link not available'));
+        const cloudProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'gdrive',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/drive/folders/root-123',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            cloudProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(invokeAuthedFunction).toHaveBeenCalled());
+        expect(result.current.state.links?.pd).toBeNull();
+        expect(result.current.state.links?.tenders).toBeNull();
+    });
+
+    it('should preserve successful cloud links when another cache lookup misses', async () => {
+        vi.mocked(invokeAuthedFunction).mockImplementation(async (_name, options: any) => {
+            if (options.body.kind === 'pd') return { webUrl: 'https://drive.google.com/drive/folders/pd' };
+            throw new Error('Folder link not available');
+        });
+        const cloudProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'gdrive',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/drive/folders/root-123',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            cloudProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(result.current.state.links?.pd)
+            .toBe('https://drive.google.com/drive/folders/pd'));
+        expect(result.current.state.links?.archive).toBeNull();
+    });
+
+    it('should clear an unsaved shared web path without changing global settings', async () => {
+        const deleteSpy = vi.spyOn(storageAdapter, 'delete').mockRejectedValueOnce(new Error('storage unavailable'));
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+        act(() => result.current.setters.setRootLink('D:\\Shared\\Project'));
+
+        await act(async () => result.current.actions.disconnect());
+
+        expect(result.current.state.rootLink).toBe('');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(deleteSpy).not.toHaveBeenCalled();
+        deleteSpy.mockRestore();
+    });
+
+    it('should reject the browser folder fallback for a shared user', async () => {
+        const picker = vi.fn().mockResolvedValue({ name: 'Shared Project' });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(picker).not.toHaveBeenCalled();
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(result.current.state.modalRequest?.message).toContain('desktopové aplikaci');
+        delete (window as any).showDirectoryPicker;
+    });
+
+    it('should preserve manual local-path setup for a project owner in the web app', async () => {
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        act(() => result.current.setters.setRootLink('C:\\Shared\\Owner Project'));
+        await act(async () => result.current.actions.resolveRoot());
+
+        expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Shared\\Owner Project',
+            docHubStatus: 'connected',
+        }));
+        expect(result.current.state.modalRequest?.message).toContain('Desktop');
+    });
+
+    it('should create a project marker when an owner selects a local folder in the web app', async () => {
+        const write = vi.fn().mockResolvedValue(undefined);
+        const close = vi.fn().mockResolvedValue(undefined);
+        const getFileHandle = vi.fn()
+            .mockRejectedValueOnce(new DOMException('Missing marker', 'NotFoundError'))
+            .mockResolvedValueOnce({
+                createWritable: vi.fn().mockResolvedValue({ write, close }),
+            });
+        const picker = vi.fn().mockResolvedValue({ name: 'Owner Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(picker).toHaveBeenCalledWith({ mode: 'readwrite' });
+        expect(getFileHandle).toHaveBeenCalledWith('.tenderflow-project.json', { create: true });
+        expect(write).toHaveBeenCalledWith(expect.stringContaining('owner-project'));
+        expect(close).toHaveBeenCalled();
+        expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
+            docHubRootLink: 'Owner Project',
+            docHubStatus: 'connected',
+        }));
+        delete (window as any).showDirectoryPicker;
+    });
+
+    it('should restore global settings and invalidate a new web marker when marker writing fails', async () => {
+        const write = vi.fn()
+            .mockRejectedValueOnce(new Error('web marker write failed'))
+            .mockResolvedValueOnce(undefined);
+        const close = vi.fn().mockResolvedValue(undefined);
+        const abort = vi.fn().mockResolvedValue(undefined);
+        const createWritable = vi.fn().mockResolvedValue({ write, close, abort });
+        const getFileHandle = vi.fn()
+            .mockRejectedValueOnce(new DOMException('Missing marker', 'NotFoundError'))
+            .mockResolvedValue({ createWritable });
+        const picker = vi.fn().mockResolvedValue({ name: 'Owner Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(onUpdateMock).toHaveBeenCalledTimes(2);
+        expect(onUpdateMock.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+            docHubRootLink: '',
+            docHubRootId: null,
+        }));
+        expect(write).toHaveBeenLastCalledWith('{}\n');
+        expect(result.current.state.modalRequest?.message).toContain('web marker write failed');
+        delete (window as any).showDirectoryPicker;
+    });
+
+    it('should not overwrite a web marker that belongs to another project', async () => {
+        const createWritable = vi.fn();
+        const getFileHandle = vi.fn().mockResolvedValue({
+            getFile: vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue(createDocHubProjectMarker('other-project', 'other-connection')),
+            }),
+            createWritable,
+        });
+        const picker = vi.fn().mockResolvedValue({ name: 'Other Project', getFileHandle });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(createWritable).not.toHaveBeenCalled();
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(result.current.state.modalRequest?.message).toContain('jiným projektem');
+        delete (window as any).showDirectoryPicker;
+    });
+
+    it('should save only the normalized online URL from the dedicated action', async () => {
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+            docHubRootId: 'local:C:\\Owner\\Project',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        act(() => {
+            result.current.setters.setRootLink('C:\\Unverified\\Other Project');
+            result.current.setters.setOnlineRootLinkDraft('https://drive.google.com/drive/folders/shared');
+        });
+        await act(async () => result.current.actions.saveOnlineLink());
+
+        expect(onUpdateMock).toHaveBeenCalledWith({
+            docHubRootWebUrl: 'https://drive.google.com/drive/folders/shared',
+        });
+    });
+
+    it('should show an error when saving the online URL fails', async () => {
+        const onUpdate = vi.fn().mockRejectedValue(new Error('network unavailable'));
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdate));
+        act(() => result.current.setters.setOnlineRootLinkDraft('https://drive.google.com/drive/folders/shared'));
+
+        await act(async () => result.current.actions.saveOnlineLink());
+
+        expect(result.current.state.modalRequest?.variant).toBe('danger');
+        expect(result.current.state.modalRequest?.message).toContain('network unavailable');
     });
 
     it('should handle connect flow (auth url)', async () => {

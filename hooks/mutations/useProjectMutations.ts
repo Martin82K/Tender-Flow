@@ -10,6 +10,7 @@ import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
+import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
 import {
     emitCategoryStatusNotification,
     emitProjectClonedNotification,
@@ -626,9 +627,13 @@ export const useAddCategoryMutation = () => {
             if (
                 projectDetails &&
                 projectDetails.docHubEnabled &&
-                projectDetails.docHubProvider === 'onedrive' &&
-                projectDetails.docHubRootLink
+                projectDetails.docHubProvider === 'onedrive'
             ) {
+                const localRootPath = await resolveEffectiveProjectDocHubRoot(
+                    projectDetails,
+                    user?.id ?? null,
+                );
+                if (!localRootPath) return;
                 const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
                 const hierarchyTree = buildHierarchyTree(ensureExtraHierarchy(structure.extraHierarchy));
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {
@@ -636,7 +641,7 @@ export const useAddCategoryMutation = () => {
                 };
 
                 const localDocHubResult = await ensureStructure({
-                    rootPath: projectDetails.docHubRootLink,
+                    rootPath: localRootPath,
                     structure,
                     categories: [{ id: category.id, title: category.title }],
                     suppliers,

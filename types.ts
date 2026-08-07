@@ -191,6 +191,7 @@ export interface DocumentLink {
 
 export interface ProjectDetails {
   id?: string; // Optional linkage
+  ownerId?: string;
   title: string;
   status?: ProjectStatus; // Added specific status field
   archivedOriginalStatus?: ActiveProjectStatus | null;

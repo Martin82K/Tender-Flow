@@ -26,6 +26,11 @@ const mocks = vi.hoisted(() => ({
   emitCategoryStatusNotificationMock: vi.fn(),
   emitProjectClonedNotificationMock: vi.fn(),
   emitProjectArchivedNotificationMock: vi.fn(),
+  resolveEffectiveProjectDocHubRootMock: vi.fn(),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  resolveEffectiveProjectDocHubRoot: mocks.resolveEffectiveProjectDocHubRootMock,
 }));
 
 vi.mock("../services/dbAdapter", () => ({
@@ -154,6 +159,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     mocks.emitCategoryStatusNotificationMock.mockResolvedValue(null);
     mocks.emitProjectClonedNotificationMock.mockResolvedValue(null);
     mocks.emitProjectArchivedNotificationMock.mockResolvedValue(null);
+    mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("/Personal/Stavba");
   });
 
   it("invaliduje overview cache po vytvoření projektu", async () => {
@@ -349,6 +355,9 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       await mutationPromise;
     });
     expect(mutationFinished).toBe(true);
+    expect(mocks.ensureStructureMock).toHaveBeenCalledWith(
+      expect.objectContaining({ rootPath: "/Personal/Stavba" }),
+    );
   });
 
   it("invaliduje overview cache po úpravě kategorie a neukládá lokální přílohu do Supabase", async () => {

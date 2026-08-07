@@ -18,6 +18,8 @@ type LinkKind =
   | "tender_inquiries"
   | "supplier";
 
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -26,6 +28,7 @@ const json = (status: number, body: unknown) =>
 
 const upsertFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -36,9 +39,10 @@ const upsertFolder = async (args: {
   const service = createServiceClient();
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
+    root_id: args.rootId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -48,6 +52,7 @@ const upsertFolder = async (args: {
 
 const getStoredFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -57,13 +62,41 @@ const getStoredFolder = async (args: {
     .from("dochub_project_folders")
     .select("*")
     .eq("project_id", args.projectId)
+    .eq("root_id", args.rootId)
     .eq("provider", args.provider)
     .eq("kind", args.kind)
-    .eq("key", args.key)
+    .eq("key", normalizeFolderKey(args.key))
     .maybeSingle();
   return data as
     | { item_id: string; drive_id: string | null; web_url: string | null }
     | null;
+};
+
+const getCachedFolderForRequest = async (args: {
+  projectId: string;
+  rootId: string;
+  provider: Provider;
+  kind: LinkKind;
+  categoryId?: string;
+  supplierId?: string;
+}) => {
+  const { categoryId, supplierId } = args;
+  let key: string | null = null;
+  if (args.kind === "tender_inquiries") {
+    if (!categoryId) return null;
+    key = `${categoryId}:inquiries`;
+    const currentInquiry = await getStoredFolder({ ...args, key });
+    if (currentInquiry?.web_url) return currentInquiry;
+    const legacyInquiry = await getStoredFolder({
+      ...args,
+      key: categoryId,
+    });
+    return legacyInquiry;
+  } else if (args.kind === "supplier") {
+    if (!categoryId || !supplierId) return null;
+    key = `${categoryId}:${supplierId}`;
+  }
+  return getStoredFolder({ ...args, key });
 };
 
 const ensureProjectFolder = async (args: {
@@ -77,6 +110,7 @@ const ensureProjectFolder = async (args: {
 }) => {
   const existing = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -96,6 +130,7 @@ const ensureProjectFolder = async (args: {
     });
     await upsertFolder({
       projectId: args.projectId,
+      rootId: args.rootId,
       provider: args.provider,
       kind: args.kind,
       key: null,
@@ -114,6 +149,7 @@ const ensureProjectFolder = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -138,6 +174,7 @@ const ensureTenderInquiries = async (args: {
   const tenderKey = args.categoryId;
   const tenderExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender",
     key: tenderKey,
@@ -161,6 +198,7 @@ const ensureTenderInquiries = async (args: {
 	            });
 	            await upsertFolder({
 	              projectId: args.projectId,
+	              rootId: args.rootId,
 	              provider: args.provider,
               kind: "tender",
               key: tenderKey,
@@ -179,6 +217,7 @@ const ensureTenderInquiries = async (args: {
             });
             await upsertFolder({
               projectId: args.projectId,
+              rootId: args.rootId,
               provider: args.provider,
               kind: "tender",
               key: tenderKey,
@@ -192,6 +231,7 @@ const ensureTenderInquiries = async (args: {
   const inquiriesKey = `${args.categoryId}:inquiries`;
   const inquiriesExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
@@ -211,6 +251,7 @@ const ensureTenderInquiries = async (args: {
 	    });
 	    await upsertFolder({
 	      projectId: args.projectId,
+	      rootId: args.rootId,
 	      provider: args.provider,
       kind: "tender_inquiries",
       key: inquiriesKey,
@@ -229,6 +270,7 @@ const ensureTenderInquiries = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
@@ -276,7 +318,7 @@ Deno.serve(async (req) => {
     const { data: project, error: projectError } = await authed
       .from("projects")
       .select(
-        "id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status"
+        "id, owner_id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status"
       )
       .eq("id", projectId)
       .maybeSingle();
@@ -288,10 +330,44 @@ Deno.serve(async (req) => {
 
     const provider = project.dochub_provider as Provider | null;
     const rootId = project.dochub_root_id as string | null;
-    const driveId = (project.dochub_drive_id as string | null) || null;
-    if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
+     const driveId = (project.dochub_drive_id as string | null) || null;
+     if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
 
-    const structure = getStructure((project.dochub_structure_v1 as any) || null);
+     const isProjectOwner = project.owner_id === userData.user.id;
+     let hasExplicitProjectShare = false;
+     if (!isProjectOwner) {
+       const { data: explicitShare, error: shareError } = await authed
+         .from("project_shares")
+         .select("project_id")
+         .eq("project_id", projectId)
+         .eq("user_id", userData.user.id)
+         .maybeSingle();
+       if (shareError || !explicitShare) {
+         return json(404, { error: "Folder link not available" });
+       }
+       hasExplicitProjectShare = true;
+     }
+     if (!isProjectOwner && !hasExplicitProjectShare) {
+       return json(404, { error: "Folder link not available" });
+     }
+
+     const cachedFolder = await getCachedFolderForRequest({
+       projectId,
+       rootId,
+       provider,
+       kind,
+       categoryId,
+       supplierId,
+     });
+     if (cachedFolder?.web_url) {
+       return json(200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
+     }
+
+     if (!isProjectOwner) {
+       return json(404, { error: "Folder link not available" });
+     }
+
+     const structure = getStructure((project.dochub_structure_v1 as any) || null);
     const { accessToken } = await getAccessTokenForUser({
       userId: userData.user.id,
       provider,
@@ -386,6 +462,7 @@ Deno.serve(async (req) => {
     const supplierKey = `${categoryId}:${supplierId}`;
     const supplierExisting = await getStoredFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,
@@ -408,6 +485,7 @@ Deno.serve(async (req) => {
 	      });
 	      await upsertFolder({
 	        projectId,
+	        rootId,
 	        provider,
         kind: "supplier",
         key: supplierKey,
@@ -426,6 +504,7 @@ Deno.serve(async (req) => {
     });
     await upsertFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,
