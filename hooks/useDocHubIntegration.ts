@@ -465,6 +465,14 @@ export const useDocHubIntegration = (
             showMessage("Složkomat", "Sdílený uživatel nemůže měnit globální napojení projektu.", "info");
             return;
         }
+        if (provider !== project.docHubProvider) {
+            showMessage(
+                "Nejdřív uložte primární způsob práce",
+                "Online odkaz se uloží společně s novým nastavením Složkomatu.",
+                "info",
+            );
+            return;
+        }
         const normalizedOnlineUrl = onlineRootLinkDraft.trim()
             ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
             : null;
@@ -504,6 +512,7 @@ export const useDocHubIntegration = (
                 updates.docHubRootId = null;
                 updates.docHubDriveId = null;
                 updates.docHubSiteId = null;
+                updates.docHubStatus = "disconnected";
             }
             await onUpdate(updates);
         } catch (error) {
@@ -513,7 +522,7 @@ export const useDocHubIntegration = (
                 "danger",
             );
         }
-    }, [canManageGlobal, onlineRootLinkDraft, onUpdate, project.docHubProvider, project.docHubRootId, project.docHubRootLink, project.docHubRootWebUrl, project.docHubSettings, showMessage]);
+    }, [canManageGlobal, onlineRootLinkDraft, onUpdate, project.docHubProvider, project.docHubRootId, project.docHubRootLink, project.docHubRootWebUrl, project.docHubSettings, provider, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
         const actionIdentity = projectActionIdentityRef.current;

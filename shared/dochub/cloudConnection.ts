@@ -158,7 +158,8 @@ export const canOpenProjectDocHub = (
   effectiveRoot: string,
 ): boolean => Boolean(
   project.docHubEnabled &&
-  project.docHubStatus === "connected" &&
+  project.docHubStatus !== "disconnected" &&
+  project.docHubStatus !== "error" &&
   project.docHubProvider &&
   (effectiveRoot.trim() || hasDocHubOnlineFallback(project)),
 );

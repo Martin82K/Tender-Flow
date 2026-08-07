@@ -286,8 +286,38 @@ describe("useDocHubIntegration project identity", () => {
       docHubRootId: null,
       docHubDriveId: null,
       docHubSiteId: null,
+      docHubStatus: "disconnected",
     }));
     expect(onUpdate.mock.calls[0]?.[0]?.docHubSettings?.gdrive).not.toHaveProperty("rootId");
+  });
+
+  it("nepoškodí aktivní cloud při dosud neuloženém přepnutí na lokální provider", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const cloudProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootId: "cloud-root",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+    };
+    const { result } = renderHook(() => useDocHubIntegration(cloudProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    act(() => {
+      result.current.setters.setProvider("onedrive");
+      result.current.setters.setOnlineRootLinkDraft(
+        "https://drive.google.com/drive/folders/new-fallback",
+      );
+    });
+    await waitFor(() => expect(result.current.state.provider).toBe("onedrive"));
+    await act(async () => result.current.actions.saveOnlineLink());
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(result.current.state.modalRequest?.message).toContain(
+      "společně s novým nastavením",
+    );
   });
 
   it("odstraní historické lokální cesty ze všech ukládaných nastavení", async () => {

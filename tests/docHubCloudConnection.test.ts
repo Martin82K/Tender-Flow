@@ -65,4 +65,12 @@ describe("DocHub cloud connection fallback", () => {
       docHubStatus: "disconnected",
     }, "D:\\Synchronizace\\Projekt")).toBe(false);
   });
+
+  it("zachová otevření staršího připojeného projektu bez uloženého stavu", () => {
+    expect(canOpenProjectDocHub({
+      ...localProject,
+      docHubEnabled: true,
+      docHubStatus: undefined,
+    }, "D:\\Synchronizace\\Projekt")).toBe(true);
+  });
 });
