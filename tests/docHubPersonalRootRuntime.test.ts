@@ -32,20 +32,22 @@ const project = {
   categories: [],
   docHubProvider: "onedrive",
   docHubRootLink: "C:\\Owner\\Project",
+  docHubRootId: "root-generation-1",
 } as ProjectDetails;
 
 describe("DocHub effective personal root", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.folderExists.mockResolvedValue(true);
-    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-1")));
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-1", "root-generation-1")));
   });
 
   it("uses the validated personal root for a shared user", async () => {
     mocks.storageGet.mockResolvedValue(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "shared-1",
       projectId: "project-1",
+      connectionId: "root-generation-1",
       rootPath: "D:\\Shared\\Project",
       rootName: "Project",
       savedAt: "2026-08-07T12:00:00.000Z",
@@ -55,7 +57,40 @@ describe("DocHub effective personal root", () => {
       .resolves.toBe("D:\\Shared\\Project");
   });
 
-  it("fails closed when a stored marker belongs to another project", async () => {
+  it("rejects a formerly valid shared root after the owner changes the connection", async () => {
+    mocks.storageGet.mockResolvedValue(JSON.stringify({
+      version: 2,
+      userId: "shared-1",
+      projectId: "project-1",
+      connectionId: "root-generation-1",
+      rootPath: "D:\\Shared\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(
+      createDocHubProjectMarker("project-1", "root-generation-1"),
+    ));
+
+    await expect(resolveEffectiveProjectDocHubRoot({
+      ...project,
+      docHubRootId: "root-generation-2",
+    }, "shared-1")).resolves.toBe("");
+  });
+
+  it("fails closed for a shared user's legacy mapping without a connection generation", async () => {
+    mocks.storageGet.mockResolvedValue(JSON.stringify({
+      version: 1,
+      userId: "shared-1",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+
+    await expect(resolveEffectiveProjectDocHubRoot(project, "shared-1")).resolves.toBe("");
+  });
+
+  it("lets the owner reconnect a legacy mapping so its marker can be upgraded", async () => {
     mocks.storageGet.mockResolvedValue(JSON.stringify({
       version: 1,
       userId: "owner-1",
@@ -64,7 +99,22 @@ describe("DocHub effective personal root", () => {
       rootName: "Project",
       savedAt: "2026-08-07T12:00:00.000Z",
     }));
-    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-2")));
+
+    await expect(resolveEffectiveProjectDocHubRoot(project, "owner-1"))
+      .resolves.toBe("C:\\Owner\\Project");
+  });
+
+  it("fails closed when a stored marker belongs to another project", async () => {
+    mocks.storageGet.mockResolvedValue(JSON.stringify({
+      version: 2,
+      userId: "owner-1",
+      projectId: "project-1",
+      connectionId: "root-generation-1",
+      rootPath: "C:\\Owner\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-2", "root-generation-1")));
 
     await expect(resolveEffectiveProjectDocHubRoot(project, "owner-1")).resolves.toBe("");
   });
@@ -81,6 +131,7 @@ describe("DocHub effective personal root", () => {
       ...project,
       id: "project-2",
       docHubRootLink: "C:\\Owner\\Project 2",
+      docHubRootId: "root-generation-2",
     } as ProjectDetails;
     let resolveSecondLocation: ((value: string) => void) | undefined;
     const secondLocation = new Promise<string>((resolve) => {
@@ -89,9 +140,10 @@ describe("DocHub effective personal root", () => {
     mocks.storageGet.mockImplementation((key: string) => {
       if (key.endsWith(":project-2")) return secondLocation;
       return Promise.resolve(JSON.stringify({
-        version: 1,
+        version: 2,
         userId: "owner-1",
         projectId: "project-1",
+        connectionId: "root-generation-1",
         rootPath: "C:\\Owner\\Project 1",
         rootName: "Project 1",
         savedAt: "2026-08-07T12:00:00.000Z",
@@ -100,6 +152,7 @@ describe("DocHub effective personal root", () => {
     mocks.readFile.mockImplementation((markerPath: string) => Promise.resolve(
       new TextEncoder().encode(createDocHubProjectMarker(
         markerPath.includes("Project 2") ? "project-2" : "project-1",
+        markerPath.includes("Project 2") ? "root-generation-2" : "root-generation-1",
       )),
     ));
 
@@ -113,9 +166,10 @@ describe("DocHub effective personal root", () => {
     expect(result.current).toBe("");
 
     resolveSecondLocation?.(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "owner-1",
       projectId: "project-2",
+      connectionId: "root-generation-2",
       rootPath: "C:\\Owner\\Project 2",
       rootName: "Project 2",
       savedAt: "2026-08-07T12:05:00.000Z",
@@ -136,9 +190,10 @@ describe("DocHub effective personal root", () => {
     act(() => notifyProjectDocHubPersonalRootChanged("project-1", "owner-1"));
 
     resolveNew?.(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "owner-1",
       projectId: "project-1",
+      connectionId: "root-generation-1",
       rootPath: "C:\\Owner\\New Project",
       rootName: "New Project",
       savedAt: "2026-08-07T12:10:00.000Z",
@@ -146,9 +201,10 @@ describe("DocHub effective personal root", () => {
     await waitFor(() => expect(result.current).toBe("C:\\Owner\\New Project"));
 
     resolveOld?.(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "owner-1",
       projectId: "project-1",
+      connectionId: "root-generation-1",
       rootPath: "C:\\Owner\\Old Project",
       rootName: "Old Project",
       savedAt: "2026-08-07T12:00:00.000Z",

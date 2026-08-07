@@ -155,6 +155,7 @@ export const useUpdateContactMutation = () => {
         },
         onSettled: async (data, error, variables, context: any) => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
+            if (error) return;
 
             // Moving logic to onSettled to ensure context access or just handle it here.
             // Actually, we can do it in onSuccess with 3rd arg.
@@ -192,8 +193,9 @@ export const useUpdateContactMutation = () => {
                                     if (category && rootPath) {
                                         // Tender Flow Desktop only for now
                                         if (provider === 'onedrive') {
-                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(oldName)}`;
-                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(newName)}`;
+                                            const categoryFolder = toDocHubFolderSegment(category.title);
+                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${categoryFolder}${sep}${toDocHubFolderSegment(oldName)}`;
+                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${categoryFolder}${sep}${toDocHubFolderSegment(newName)}`;
 
                                             // Trigger rename (fire and forget)
                                             renameFolder(oldPath, newPath, { provider, projectId }).catch((e) => {

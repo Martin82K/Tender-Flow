@@ -16,6 +16,14 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  IF OLD.owner_id IS DISTINCT FROM NEW.owner_id
+    AND OLD.owner_id IS DISTINCT FROM auth.uid()
+    AND current_user <> 'postgres'
+  THEN
+    RAISE EXCEPTION 'Only the current project owner may transfer project ownership'
+      USING ERRCODE = '42501';
+  END IF;
+
   SELECT jsonb_object_agg(key, value)
   INTO old_dochub
   FROM jsonb_each(to_jsonb(OLD))

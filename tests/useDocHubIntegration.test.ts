@@ -324,7 +324,7 @@ describe('useDocHubIntegration', () => {
         const createWritable = vi.fn();
         const getFileHandle = vi.fn().mockResolvedValue({
             getFile: vi.fn().mockResolvedValue({
-                text: vi.fn().mockResolvedValue(createDocHubProjectMarker('other-project')),
+                text: vi.fn().mockResolvedValue(createDocHubProjectMarker('other-project', 'other-connection')),
             }),
             createWritable,
         });
@@ -366,6 +366,22 @@ describe('useDocHubIntegration', () => {
         expect(onUpdateMock).toHaveBeenCalledWith({
             docHubRootWebUrl: 'https://drive.google.com/drive/folders/shared',
         });
+    });
+
+    it('should show an error when saving the online URL fails', async () => {
+        const onUpdate = vi.fn().mockRejectedValue(new Error('network unavailable'));
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdate));
+        act(() => result.current.setters.setOnlineRootLinkDraft('https://drive.google.com/drive/folders/shared'));
+
+        await act(async () => result.current.actions.saveOnlineLink());
+
+        expect(result.current.state.modalRequest?.variant).toBe('danger');
+        expect(result.current.state.modalRequest?.message).toContain('network unavailable');
     });
 
     it('should handle connect flow (auth url)', async () => {

@@ -1,17 +1,19 @@
 export const DOC_HUB_PROJECT_MARKER_FILENAME = ".tenderflow-project.json";
 
 export interface DocHubPersonalLocation {
-  version: 1;
+  version: 2;
   userId: string;
   projectId: string;
+  connectionId: string;
   rootPath: string;
   rootName: string;
   savedAt: string;
 }
 
 export interface DocHubProjectMarker {
-  version: 1;
+  version: 2;
   projectId: string;
+  connectionId: string;
   createdAt: string;
 }
 
@@ -29,9 +31,11 @@ export const parseDocHubPersonalLocation = (
   try {
     const value = JSON.parse(serialized) as Partial<DocHubPersonalLocation>;
     if (
-      value.version !== 1 ||
+      value.version !== 2 ||
       value.userId !== expectedUserId ||
       value.projectId !== expectedProjectId ||
+      typeof value.connectionId !== "string" ||
+      !value.connectionId.trim() ||
       typeof value.rootPath !== "string" ||
       !value.rootPath.trim() ||
       typeof value.rootName !== "string" ||
@@ -70,15 +74,19 @@ export const resolveValidatedEffectiveLocalRoot = ({
 
 export const createDocHubProjectMarker = (
   projectId: string,
+  connectionId: string,
   createdAt = new Date().toISOString(),
-): string => JSON.stringify({ version: 1, projectId, createdAt } satisfies DocHubProjectMarker, null, 2);
+): string => JSON.stringify({ version: 2, projectId, connectionId, createdAt } satisfies DocHubProjectMarker, null, 2);
 
 export const parseDocHubProjectMarker = (
   serialized: string,
   expectedProjectId: string,
+  expectedConnectionId: string,
 ): DocHubProjectMarker | null => {
   const value = parseDocHubProjectMarkerValue(serialized);
-  return value?.projectId === expectedProjectId ? value : null;
+  return value?.projectId === expectedProjectId && value.connectionId === expectedConnectionId
+    ? value
+    : null;
 };
 
 export const parseDocHubProjectMarkerValue = (
@@ -87,9 +95,11 @@ export const parseDocHubProjectMarkerValue = (
   try {
     const value = JSON.parse(serialized) as Partial<DocHubProjectMarker>;
     if (
-      value.version !== 1 ||
+      value.version !== 2 ||
       typeof value.projectId !== "string" ||
       !value.projectId.trim() ||
+      typeof value.connectionId !== "string" ||
+      !value.connectionId.trim() ||
       typeof value.createdAt !== "string" ||
       !value.createdAt.trim()
     ) return null;
@@ -107,18 +117,26 @@ export const isDocHubProjectMarkerForDifferentProject = (
 export const validateDocHubPersonalLocation = async (
   location: DocHubPersonalLocation | null,
   expectedProjectId: string,
+  expectedConnectionId: string | null | undefined,
   dependencies: {
     folderExists: (rootPath: string) => Promise<boolean>;
     readMarker: (markerPath: string) => Promise<string>;
   },
 ): Promise<DocHubPersonalLocation | null> => {
-  if (!location || location.projectId !== expectedProjectId) return null;
+  if (
+    !location ||
+    location.projectId !== expectedProjectId ||
+    !expectedConnectionId ||
+    location.connectionId !== expectedConnectionId
+  ) return null;
   if (!(await dependencies.folderExists(location.rootPath))) return null;
 
   try {
     const markerPath = joinDocHubPath(location.rootPath, DOC_HUB_PROJECT_MARKER_FILENAME);
     const marker = parseDocHubProjectMarkerValue(await dependencies.readMarker(markerPath));
-    return marker?.projectId === expectedProjectId ? location : null;
+    return marker?.projectId === expectedProjectId && marker.connectionId === expectedConnectionId
+      ? location
+      : null;
   } catch {
     return null;
   }

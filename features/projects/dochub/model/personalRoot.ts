@@ -32,7 +32,10 @@ export const loadProjectDocHubPersonalLocationState = async (
   const serialized = await storageAdapter.get(buildDocHubPersonalLocationKey(userId, project.id));
   if (!serialized) return { location: null, hadStoredLocation: false };
   const parsed = parseDocHubPersonalLocation(serialized, userId, project.id);
-  const location = await validateDocHubPersonalLocation(parsed, project.id, {
+  if (!parsed) {
+    return { location: null, hadStoredLocation: !isProjectOwner(project, userId) };
+  }
+  const location = await validateDocHubPersonalLocation(parsed, project.id, project.docHubRootId, {
     folderExists: (rootPath) => fileSystemAdapter.folderExists(rootPath),
     readMarker: async (markerPath) => {
       const bytes = await fileSystemAdapter.readFile(markerPath, { maxBytes: 64 * 1024 });
@@ -83,6 +86,7 @@ export const useEffectiveProjectDocHubRoot = (
     project.ownerId ?? null,
     project.docHubProvider ?? null,
     project.docHubRootLink ?? null,
+    project.docHubRootId ?? null,
     userId,
   ]);
   const initialRoot = project.docHubProvider === "onedrive"
@@ -120,7 +124,7 @@ export const useEffectiveProjectDocHubRoot = (
       cancelled = true;
       window.removeEventListener(PERSONAL_ROOT_CHANGED_EVENT, handleChange);
     };
-  }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, rootIdentity, userId]);
+  }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, project.docHubRootId, rootIdentity, userId]);
 
   return rootState.identity === rootIdentity ? rootState.rootPath : initialRoot;
 };

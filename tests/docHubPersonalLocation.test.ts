@@ -24,9 +24,10 @@ describe("DocHub personal location", () => {
 
   it("rejects a saved location belonging to another user or project", () => {
     const serialized = JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "user-a",
       projectId: "project-1",
+      connectionId: "root-generation-1",
       rootPath: "C:\\Projects\\Project-1",
       rootName: "Project-1",
       savedAt: "2026-08-07T12:00:00.000Z",
@@ -70,40 +71,46 @@ describe("DocHub personal location", () => {
   });
 
   it("validates the project marker before accepting a synchronized folder", () => {
-    const marker = createDocHubProjectMarker("project-1", "2026-08-07T12:00:00.000Z");
+    const marker = createDocHubProjectMarker("project-1", "root-generation-1", "2026-08-07T12:00:00.000Z");
 
-    expect(parseDocHubProjectMarker(marker, "project-1")?.projectId).toBe("project-1");
-    expect(parseDocHubProjectMarker(marker, "project-2")).toBeNull();
-    expect(parseDocHubProjectMarker("not-json", "project-1")).toBeNull();
-    expect(parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2"))?.projectId)
+    expect(parseDocHubProjectMarker(marker, "project-1", "root-generation-1")?.projectId).toBe("project-1");
+    expect(parseDocHubProjectMarker(marker, "project-1", "root-generation-2")).toBeNull();
+    expect(parseDocHubProjectMarker(marker, "project-2", "root-generation-1")).toBeNull();
+    expect(parseDocHubProjectMarker("not-json", "project-1", "root-generation-1")).toBeNull();
+    expect(parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2", "root-generation-1"))?.projectId)
       .toBe("project-2");
     expect(isDocHubProjectMarkerForDifferentProject(
-      parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2")),
+      parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2", "root-generation-1")),
       "project-1",
     )).toBe(true);
   });
 
   it("rejects a stored personal location when its folder or project marker changed", async () => {
     const location = {
-      version: 1 as const,
+      version: 2 as const,
       userId: "user-a",
       projectId: "project-1",
       rootPath: "D:\\Shared\\Project",
       rootName: "Project",
       savedAt: "2026-08-07T12:00:00.000Z",
+      connectionId: "root-generation-1",
     };
 
-    await expect(validateDocHubPersonalLocation(location, "project-1", {
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
       folderExists: async () => true,
-      readMarker: async () => createDocHubProjectMarker("project-2"),
+      readMarker: async () => createDocHubProjectMarker("project-2", "root-generation-1"),
     })).resolves.toBeNull();
-    await expect(validateDocHubPersonalLocation(location, "project-1", {
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
       folderExists: async () => false,
-      readMarker: async () => createDocHubProjectMarker("project-1"),
+      readMarker: async () => createDocHubProjectMarker("project-1", "root-generation-1"),
     })).resolves.toBeNull();
-    await expect(validateDocHubPersonalLocation(location, "project-1", {
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
       folderExists: async () => true,
-      readMarker: async () => createDocHubProjectMarker("project-1"),
+      readMarker: async () => createDocHubProjectMarker("project-1", "root-generation-2"),
+    })).resolves.toBeNull();
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
+      folderExists: async () => true,
+      readMarker: async () => createDocHubProjectMarker("project-1", "root-generation-1"),
     })).resolves.toEqual(location);
   });
 

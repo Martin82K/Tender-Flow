@@ -61,7 +61,7 @@ const project = (id: string, ownerId = "owner-1"): ProjectDetails => ({
   docHubStatus: "connected",
   docHubProvider: "onedrive",
   docHubRootLink: `C:\\Owner\\${id}`,
-  docHubRootId: `local:C:\\Owner\\${id}`,
+  docHubRootId: `connection:${id}`,
 });
 
 describe("useDocHubIntegration project identity", () => {
@@ -70,7 +70,10 @@ describe("useDocHubIntegration project identity", () => {
     mocks.folderExists.mockResolvedValue(true);
     mocks.storageDelete.mockResolvedValue(undefined);
     mocks.readFile.mockImplementation(async (markerPath: string) => new TextEncoder().encode(
-      createDocHubProjectMarker(markerPath.includes("project-2") ? "project-2" : "project-1"),
+      createDocHubProjectMarker(
+        markerPath.includes("project-2") ? "project-2" : "project-1",
+        markerPath.includes("project-2") ? "connection:project-2" : "connection:project-1",
+      ),
     ));
   });
 
@@ -81,9 +84,10 @@ describe("useDocHubIntegration project identity", () => {
       const projectId = key.endsWith(":project-2") ? "project-2" : "project-1";
       if (projectId === "project-2") return pendingSecond;
       return Promise.resolve(JSON.stringify({
-        version: 1,
+        version: 2,
         userId: "shared-1",
         projectId,
+        connectionId: `connection:${projectId}`,
         rootPath: `D:\\Shared\\${projectId}`,
         rootName: projectId,
         savedAt: "2026-08-07T12:00:00.000Z",
@@ -102,9 +106,10 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.hasPersonalLocalRoot).toBe(false);
 
     resolveSecond?.(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "shared-1",
       projectId: "project-2",
+      connectionId: "connection:project-2",
       rootPath: "D:\\Shared\\project-2",
       rootName: "project-2",
       savedAt: "2026-08-07T12:05:00.000Z",
@@ -135,7 +140,7 @@ describe("useDocHubIntegration project identity", () => {
   it("does not let an older personal-root load overwrite a newly saved root", async () => {
     let resolveOld: ((value: string) => void) | undefined;
     mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));
-    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-1")));
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(createDocHubProjectMarker("project-1", "connection:project-1")));
     const { result } = renderHook(() => useDocHubIntegration(project("project-1"), vi.fn(), {
       userId: "shared-1",
     }));
@@ -145,9 +150,10 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.rootLink).toBe("D:\\Shared\\New Project");
 
     resolveOld?.(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "shared-1",
       projectId: "project-1",
+      connectionId: "connection:project-1",
       rootPath: "D:\\Shared\\Old Project",
       rootName: "Old Project",
       savedAt: "2026-08-07T12:00:00.000Z",
@@ -177,9 +183,10 @@ describe("useDocHubIntegration project identity", () => {
 
   it("removes an owner's personal mapping before disconnecting the global root", async () => {
     mocks.storageGet.mockResolvedValue(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "owner-1",
       projectId: "project-1",
+      connectionId: "connection:project-1",
       rootPath: "C:\\Owner\\project-1",
       rootName: "project-1",
       savedAt: "2026-08-07T12:00:00.000Z",
@@ -198,9 +205,10 @@ describe("useDocHubIntegration project identity", () => {
 
   it("preserves a personal root when secure-storage deletion fails", async () => {
     mocks.storageGet.mockResolvedValue(JSON.stringify({
-      version: 1,
+      version: 2,
       userId: "shared-1",
       projectId: "project-1",
+      connectionId: "connection:project-1",
       rootPath: "D:\\Shared\\project-1",
       rootName: "project-1",
       savedAt: "2026-08-07T12:00:00.000Z",
@@ -217,5 +225,29 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.rootLink).toBe("D:\\Shared\\project-1");
     expect(result.current.state.modalRequest?.message).toContain("storage unavailable");
     expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it("invalidates an older personal-root load after disconnect", async () => {
+    let resolveOld: ((value: string) => void) | undefined;
+    mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "owner-1",
+    }));
+
+    await act(async () => result.current.actions.disconnect());
+    resolveOld?.(JSON.stringify({
+      version: 2,
+      userId: "owner-1",
+      projectId: "project-1",
+      connectionId: "connection:project-1",
+      rootPath: "C:\\Owner\\stale",
+      rootName: "stale",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current.state.rootLink).toBe("");
+    expect(result.current.state.hasPersonalLocalRoot).toBe(false);
   });
 });
