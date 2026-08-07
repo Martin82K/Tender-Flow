@@ -21,6 +21,8 @@ describe("shouldShowWhatsNew", () => {
     expect(shouldShowWhatsNew("1.9.0-beta.3", null)).toBe(false);
     expect(shouldShowWhatsNew("1.9.0-beta.4", null)).toBe(false);
     expect(shouldShowWhatsNew("1.9.0-beta.5", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.0-beta.6", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.0-beta.7", null)).toBe(false);
   });
 });
 
