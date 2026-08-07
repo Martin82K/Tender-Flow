@@ -376,7 +376,7 @@ describe('useDocHubIntegration', () => {
         delete (window as any).showDirectoryPicker;
     });
 
-    it('should save only the normalized online URL from the dedicated action', async () => {
+    it('should save the normalized online URL and invalidate stale cloud IDs', async () => {
         const ownerProject = {
             ...mockProject,
             id: 'owner-project',
@@ -396,6 +396,57 @@ describe('useDocHubIntegration', () => {
 
         expect(onUpdateMock).toHaveBeenCalledWith({
             docHubRootWebUrl: 'https://drive.google.com/drive/folders/shared',
+            docHubSettings: {
+                gdrive: {
+                    rootLink: 'https://drive.google.com/drive/folders/shared',
+                    rootWebUrl: 'https://drive.google.com/drive/folders/shared',
+                },
+            },
+        });
+    });
+
+    it('should preserve the matching cloud connection when another provider is stale', async () => {
+        const googleUrl = 'https://drive.google.com/drive/folders/google-root';
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+            docHubRootId: 'local:C:\\Owner\\Project',
+            docHubRootWebUrl: googleUrl,
+            docHubSettings: {
+                gdrive: {
+                    rootId: 'google-root',
+                    rootName: 'Projekt / etapa',
+                    rootWebUrl: googleUrl,
+                },
+                onedrive_cloud: {
+                    rootId: 'old-onedrive-root',
+                    rootWebUrl: 'https://contoso.sharepoint.com/sites/old',
+                },
+            },
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.saveOnlineLink());
+
+        expect(onUpdateMock).toHaveBeenCalledWith({
+            docHubRootWebUrl: googleUrl,
+            docHubSettings: {
+                gdrive: {
+                    rootId: 'google-root',
+                    rootName: 'Projekt / etapa',
+                    rootWebUrl: googleUrl,
+                    rootLink: googleUrl,
+                },
+                onedrive_cloud: {
+                    rootId: 'old-onedrive-root',
+                    rootWebUrl: 'https://contoso.sharepoint.com/sites/old',
+                    rootLink: 'https://contoso.sharepoint.com/sites/old',
+                },
+            },
         });
     });
 

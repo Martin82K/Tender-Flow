@@ -160,6 +160,7 @@ describe("Pipeline category summary", () => {
       docHubEnabled: true,
       docHubRootLink: "https://drive.example.test/project",
       docHubProvider: "gdrive" as const,
+      docHubStatus: "connected" as const,
     };
 
     render(

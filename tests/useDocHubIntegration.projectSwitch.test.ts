@@ -221,6 +221,143 @@ describe("useDocHubIntegration project identity", () => {
     expect(persistedSettings?.onedrive).not.toHaveProperty("rootId");
   });
 
+  it("zneplatní staré cloudové ID při změně online kořene", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const currentProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubRootId: "local:connection-1",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/old-root",
+      docHubSettings: {
+        gdrive: {
+          rootId: "old-root",
+          rootLink: "https://drive.google.com/drive/folders/old-root",
+          rootWebUrl: "https://drive.google.com/drive/folders/old-root",
+        },
+      },
+    };
+    const { result } = renderHook(() => useDocHubIntegration(currentProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    act(() => result.current.setters.setOnlineRootLinkDraft(
+      "https://drive.google.com/drive/folders/new-root",
+    ));
+    await act(async () => result.current.actions.saveOnlineLink());
+
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/new-root",
+      docHubSettings: expect.objectContaining({
+        gdrive: {
+          rootLink: "https://drive.google.com/drive/folders/new-root",
+          rootWebUrl: "https://drive.google.com/drive/folders/new-root",
+        },
+      }),
+    }));
+    expect(onUpdate.mock.calls[0]?.[0]?.docHubSettings?.gdrive).not.toHaveProperty("rootId");
+  });
+
+  it("opraví i dříve uložený nesoulad URL a cloudového ID", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const currentProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/old-root",
+      docHubRootId: "old-root",
+      docHubDriveId: "old-drive",
+      docHubSiteId: "old-site",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/new-root",
+      docHubSettings: {
+        gdrive: {
+          rootId: "old-root",
+          rootLink: "https://drive.google.com/drive/folders/old-root",
+          rootWebUrl: "https://drive.google.com/drive/folders/old-root",
+        },
+      },
+    };
+    const { result } = renderHook(() => useDocHubIntegration(currentProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    await act(async () => result.current.actions.saveOnlineLink());
+
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      docHubRootId: null,
+      docHubDriveId: null,
+      docHubSiteId: null,
+      docHubStatus: "disconnected",
+    }));
+    expect(onUpdate.mock.calls[0]?.[0]?.docHubSettings?.gdrive).not.toHaveProperty("rootId");
+  });
+
+  it("nepoškodí aktivní cloud při dosud neuloženém přepnutí na lokální provider", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const cloudProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootId: "cloud-root",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+    };
+    const { result } = renderHook(() => useDocHubIntegration(cloudProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    act(() => {
+      result.current.setters.setProvider("onedrive");
+      result.current.setters.setOnlineRootLinkDraft(
+        "https://drive.google.com/drive/folders/new-fallback",
+      );
+    });
+    await waitFor(() => expect(result.current.state.provider).toBe("onedrive"));
+    await act(async () => result.current.actions.saveOnlineLink());
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(result.current.state.modalRequest?.message).toContain(
+      "společně s novým nastavením",
+    );
+  });
+
+  it("odstraní historické lokální cesty ze všech ukládaných nastavení", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Owner\\Clean Project", name: "Clean Project" });
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const currentProject: ProjectDetails = {
+      ...project("project-1"),
+      docHubSettings: {
+        gdrive: {
+          rootId: "cloud-root",
+          rootLink: "https://drive.google.com/drive/folders/cloud-root",
+          rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+        },
+        onedrive_cloud: {
+          rootId: "local:legacy-cloud-id",
+          rootLink: "C:\\Users\\Owner\\Secret Project",
+          rootName: "C:\\Users\\Owner\\Secret Project",
+        },
+        local: {
+          rootId: "local:legacy-id",
+          rootLink: "\\\\server\\private-share",
+          rootName: "\\\\server\\private-share",
+        },
+      },
+    };
+    const { result } = renderHook(() => useDocHubIntegration(currentProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    const persistedSettings = onUpdate.mock.calls[0]?.[0]?.docHubSettings;
+    expect(JSON.stringify(persistedSettings)).not.toContain("C:\\\\Users");
+    expect(JSON.stringify(persistedSettings)).not.toContain("server\\\\private-share");
+    expect(JSON.stringify(persistedSettings)).not.toContain("local:legacy");
+    expect(persistedSettings).not.toHaveProperty("local");
+  });
+
   it("restores the previous global root when marker persistence fails", async () => {
     mocks.storageGet.mockResolvedValue(null);
     mocks.readFile.mockRejectedValue(new Error("marker missing"));

@@ -10,6 +10,108 @@ export interface DocHubCloudConnection {
   rootWebUrl: string | null;
 }
 
+const CLOUD_SETTINGS_KEYS = ["gdrive", "onedrive_cloud"] as const;
+const LOCAL_SETTINGS_KEYS = ["onedrive", "local"] as const;
+
+const sanitizeCloudDisplayName = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  if (
+    !trimmed ||
+    /^[a-z]:[\\/]/i.test(trimmed) ||
+    trimmed.startsWith("\\\\") ||
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("/")
+  ) {
+    return undefined;
+  }
+  return trimmed || undefined;
+};
+
+const sanitizeLocalDisplayName = (value: string | undefined): string | undefined => {
+  const trimmed = sanitizeCloudDisplayName(value);
+  if (!trimmed || trimmed.includes("/") || trimmed.includes("\\")) return undefined;
+  return trimmed;
+};
+
+const getCloudSettingsKeyForUrl = (
+  onlineUrl: string,
+): (typeof CLOUD_SETTINGS_KEYS)[number] => {
+  const hostname = new URL(onlineUrl).hostname.toLowerCase();
+  return hostname === "drive.google.com" ? "gdrive" : "onedrive_cloud";
+};
+
+const sanitizeOpaqueId = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  if (
+    !trimmed ||
+    trimmed.startsWith("local:") ||
+    trimmed.includes("/") ||
+    trimmed.includes("\\")
+  ) {
+    return undefined;
+  }
+  return trimmed;
+};
+
+export const sanitizeDocHubSettings = (
+  settings: ProjectDetails["docHubSettings"],
+): NonNullable<ProjectDetails["docHubSettings"]> => {
+  const sanitized: NonNullable<ProjectDetails["docHubSettings"]> = {};
+
+  for (const key of CLOUD_SETTINGS_KEYS) {
+    const current = settings?.[key];
+    if (!current) continue;
+    const onlineUrl = normalizeDocHubOnlineUrl(
+      current.rootWebUrl || current.rootLink || "",
+    );
+    const next: DocHubProviderSettings = {
+      rootLink: onlineUrl || undefined,
+      rootName: sanitizeCloudDisplayName(current.rootName),
+      rootId: sanitizeOpaqueId(current.rootId),
+      driveId: sanitizeOpaqueId(current.driveId),
+      siteId: sanitizeOpaqueId(current.siteId),
+      rootWebUrl: onlineUrl || undefined,
+    };
+    if (Object.values(next).some(Boolean)) sanitized[key] = next;
+  }
+
+  for (const key of LOCAL_SETTINGS_KEYS) {
+    const current = settings?.[key];
+    if (!current) continue;
+    const next: DocHubProviderSettings = {
+      rootName: sanitizeLocalDisplayName(current.rootName),
+      rootWebUrl: normalizeDocHubOnlineUrl(current.rootWebUrl || "") || undefined,
+    };
+    if (Object.values(next).some(Boolean)) sanitized[key] = next;
+  }
+
+  return sanitized;
+};
+
+export const replaceDocHubCloudFallbackUrl = (
+  settings: ProjectDetails["docHubSettings"],
+  onlineUrl: string | null,
+): NonNullable<ProjectDetails["docHubSettings"]> => {
+  const next = sanitizeDocHubSettings(settings);
+  if (!onlineUrl) {
+    delete next.gdrive;
+    delete next.onedrive_cloud;
+    return next;
+  }
+  const key = getCloudSettingsKeyForUrl(onlineUrl);
+  next[key] = { rootLink: onlineUrl, rootWebUrl: onlineUrl };
+  return next;
+};
+
+export const getDocHubCloudSettingsForUrl = (
+  settings: ProjectDetails["docHubSettings"],
+  onlineUrl: string,
+): DocHubProviderSettings | undefined => {
+  const normalizedUrl = normalizeDocHubOnlineUrl(onlineUrl);
+  if (!normalizedUrl) return undefined;
+  return sanitizeDocHubSettings(settings)[getCloudSettingsKeyForUrl(normalizedUrl)];
+};
+
 const asCloudConnection = (
   provider: DocHubCloudProvider,
   settings: DocHubProviderSettings | null | undefined,
@@ -60,6 +162,14 @@ export const getDocHubCloudConnection = (
     return asCloudConnection("onedrive", activeSettings);
   }
 
+  const fallbackUrl = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || "");
+  if (fallbackUrl) {
+    const fallbackKey = getCloudSettingsKeyForUrl(fallbackUrl);
+    return fallbackKey === "gdrive"
+      ? asCloudConnection("gdrive", project.docHubSettings?.gdrive)
+      : asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud);
+  }
+
   return asCloudConnection("gdrive", project.docHubSettings?.gdrive) ||
     asCloudConnection("onedrive", project.docHubSettings?.onedrive_cloud);
 };
@@ -69,6 +179,27 @@ export const hasDocHubOnlineFallback = (
 ): boolean => Boolean(
   getDocHubCloudConnection(project) ||
   normalizeDocHubOnlineUrl(project.docHubRootWebUrl || ""),
+);
+
+export const canOpenProjectDocHub = (
+  project: Pick<
+    ProjectDetails,
+    | "docHubEnabled"
+    | "docHubStatus"
+    | "docHubProvider"
+    | "docHubRootWebUrl"
+    | "docHubSettings"
+    | "docHubRootId"
+    | "docHubRootLink"
+    | "docHubDriveId"
+  >,
+  effectiveRoot: string,
+): boolean => Boolean(
+  project.docHubEnabled &&
+  project.docHubStatus !== "disconnected" &&
+  project.docHubStatus !== "error" &&
+  project.docHubProvider &&
+  (effectiveRoot.trim() || hasDocHubOnlineFallback(project)),
 );
 
 export const snapshotActiveCloudSettings = (

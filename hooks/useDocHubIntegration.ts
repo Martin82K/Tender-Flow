@@ -22,7 +22,12 @@ import {
     loadProjectDocHubPersonalLocationState,
     notifyProjectDocHubPersonalRootChanged,
 } from '@features/projects/dochub/model/personalRoot';
-import { snapshotActiveCloudSettings } from '@shared/dochub/cloudConnection';
+import {
+    getDocHubCloudSettingsForUrl,
+    replaceDocHubCloudFallbackUrl,
+    sanitizeDocHubSettings,
+    snapshotActiveCloudSettings,
+} from '@shared/dochub/cloudConnection';
 import type { DocHubProviderSettings } from '../types';
 
 export interface DocHubModalRequest {
@@ -40,7 +45,7 @@ const mergeDocHubProviderSettings = (
     provider: NonNullable<ProjectDetails["docHubProvider"]>,
     settings: DocHubProviderSettings,
 ): NonNullable<ProjectDetails["docHubSettings"]> => {
-    const next = { ...(project.docHubSettings || {}) };
+    const next = sanitizeDocHubSettings(project.docHubSettings);
     const activeCloud = snapshotActiveCloudSettings(project);
     if (activeCloud) next[activeCloud.key] = activeCloud.settings;
 
@@ -49,11 +54,11 @@ const mergeDocHubProviderSettings = (
             rootName: settings.rootName,
             rootWebUrl: settings.rootWebUrl,
         };
-        return next;
+        return sanitizeDocHubSettings(next);
     }
 
     next[provider] = settings;
-    return next;
+    return sanitizeDocHubSettings(next);
 };
 
 const createLocalConnectionId = (): string => {
@@ -461,6 +466,14 @@ export const useDocHubIntegration = (
             showMessage("Složkomat", "Sdílený uživatel nemůže měnit globální napojení projektu.", "info");
             return;
         }
+        if (provider !== project.docHubProvider) {
+            showMessage(
+                "Nejdřív uložte primární způsob práce",
+                "Online odkaz se uloží společně s novým nastavením Složkomatu.",
+                "info",
+            );
+            return;
+        }
         const normalizedOnlineUrl = onlineRootLinkDraft.trim()
             ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
             : null;
@@ -469,7 +482,42 @@ export const useDocHubIntegration = (
             return;
         }
         try {
-            await onUpdate({ docHubRootWebUrl: normalizedOnlineUrl });
+            const currentOnlineUrl = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || '');
+            const onlineRootChanged = currentOnlineUrl !== normalizedOnlineUrl;
+            const sanitizedSettings = sanitizeDocHubSettings(project.docHubSettings);
+            const storedSettingsForOnlineUrl = normalizedOnlineUrl
+                ? getDocHubCloudSettingsForUrl(sanitizedSettings, normalizedOnlineUrl)
+                : undefined;
+            const storedCloudConnectionMismatch = Boolean(
+                storedSettingsForOnlineUrl?.rootId &&
+                normalizeDocHubOnlineUrl(
+                    storedSettingsForOnlineUrl.rootWebUrl || storedSettingsForOnlineUrl.rootLink || '',
+                ) !== normalizedOnlineUrl
+            );
+            const activeCloudConnectionMismatch = Boolean(
+                (project.docHubProvider === "gdrive" || project.docHubProvider === "onedrive_cloud") &&
+                project.docHubRootId &&
+                normalizeDocHubOnlineUrl(project.docHubRootLink || project.docHubRootWebUrl || '') !== normalizedOnlineUrl
+            );
+            const invalidateCloudConnection = onlineRootChanged ||
+                storedCloudConnectionMismatch ||
+                activeCloudConnectionMismatch;
+            const updates: Partial<ProjectDetails> = {
+                docHubRootWebUrl: normalizedOnlineUrl,
+                docHubSettings: invalidateCloudConnection
+                    ? replaceDocHubCloudFallbackUrl(project.docHubSettings, normalizedOnlineUrl)
+                    : sanitizedSettings,
+            };
+            if (
+                invalidateCloudConnection &&
+                (project.docHubProvider === "gdrive" || project.docHubProvider === "onedrive_cloud")
+            ) {
+                updates.docHubRootId = null;
+                updates.docHubDriveId = null;
+                updates.docHubSiteId = null;
+                updates.docHubStatus = "disconnected";
+            }
+            await onUpdate(updates);
         } catch (error) {
             showMessage(
                 "Online odkaz se nepodařilo uložit",
@@ -477,7 +525,7 @@ export const useDocHubIntegration = (
                 "danger",
             );
         }
-    }, [canManageGlobal, onlineRootLinkDraft, onUpdate, showMessage]);
+    }, [canManageGlobal, onlineRootLinkDraft, onUpdate, project.docHubProvider, project.docHubRootId, project.docHubRootLink, project.docHubRootWebUrl, project.docHubSettings, provider, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
         const actionIdentity = projectActionIdentityRef.current;

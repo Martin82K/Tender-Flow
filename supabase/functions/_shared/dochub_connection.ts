@@ -5,6 +5,26 @@ type StoredConnection = {
   driveId?: unknown;
 };
 
+const getFallbackProvider = (value: unknown): Provider | null => {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    if (hostname === "drive.google.com") return "gdrive";
+    if (
+      hostname === "onedrive.live.com" ||
+      hostname === "1drv.ms" ||
+      hostname.endsWith(".sharepoint.com")
+    ) {
+      return "onedrive";
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const resolveCloudDocHubConnection = (project: Record<string, unknown>): {
   provider: Provider;
   rootId: string;
@@ -31,10 +51,11 @@ export const resolveCloudDocHubConnection = (project: Record<string, unknown>): 
   const settings = project.dochub_settings && typeof project.dochub_settings === "object"
     ? project.dochub_settings as Record<string, StoredConnection>
     : {};
+  const fallbackProvider = getFallbackProvider(project.dochub_root_web_url);
   const candidates: Array<{ key: string; provider: Provider }> = [
     { key: "gdrive", provider: "gdrive" },
     { key: "onedrive_cloud", provider: "onedrive" },
-  ];
+  ].filter((candidate) => !fallbackProvider || candidate.provider === fallbackProvider);
   for (const candidate of candidates) {
     const stored = settings[candidate.key];
     const rootId = typeof stored?.rootId === "string" ? stored.rootId.trim() : "";

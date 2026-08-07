@@ -102,6 +102,35 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     );
   });
 
+  it("použije online fallback i u staršího projektu bez uloženého stavu", async () => {
+    const legacyProject: ProjectDetails = {
+      ...project,
+      docHubStatus: undefined,
+    };
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: legacyProject,
+      projectDetails: legacyProject,
+      docHubRoot: legacyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(mocks.invokeAuthedFunction).toHaveBeenCalledWith(
+      "dochub-get-link",
+      expect.anything(),
+    );
+    expect(window.open).toHaveBeenCalledWith(
+      "https://drive.google.com/drive/folders/resolved-folder",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   it("přejde online i když složka existovala, ale její otevření mezitím selhalo", async () => {
     expectConsoleWarn("[DocHub] Open failed, falling back online");
     mocks.folderExists.mockResolvedValue(true);
@@ -179,5 +208,69 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       "_blank",
       "noopener,noreferrer",
     );
+  });
+
+  it("po selhání lokálního i online otevření zkopíruje lokální cestu VŘ", async () => {
+    const localOnlyProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: null,
+      docHubSettings: null,
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: localOnlyProject,
+      projectDetails: localOnlyProject,
+      docHubRoot: localOnlyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(writeText).toHaveBeenCalledWith(
+      "D:\\Synchronizace\\Projekt\\03_Vyberova_rizeni\\Betony",
+    );
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Zkopírováno",
+      variant: "success",
+    }));
+  });
+
+  it("zkopíruje existující cestu i když její otevření selže a online záloha chybí", async () => {
+    expectConsoleWarn("[DocHub] Open failed, falling back online");
+    const localOnlyProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: null,
+      docHubSettings: null,
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const existingPath = "D:\\Synchronizace\\Projekt\\03_Vyberova_rizeni\\Betony";
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: localOnlyProject,
+      projectDetails: localOnlyProject,
+      docHubRoot: localOnlyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(existingPath),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(mocks.openInExplorer).toHaveBeenCalledWith(existingPath);
+    expect(writeText).toHaveBeenCalledWith(existingPath);
   });
 });

@@ -16,6 +16,18 @@ interface UsePipelineCategoryNavigationInput {
   docHubStructureV1?: Partial<DocHubStructureV1> | null;
 }
 
+export const getDesktopTenderFolderPath = (
+  docHubRoot: string,
+  categoryTitle: string,
+  docHubStructureV1?: Partial<DocHubStructureV1> | null,
+): string => {
+  const tendersFolder = getTendersFolderName(docHubStructureV1);
+  const filesystemTitle = sanitizeSubcontractorCompanyName(
+    categoryTitle,
+  ).sanitized;
+  return joinDocHubPath(docHubRoot, tendersFolder, filesystemTitle);
+};
+
 export const usePipelineCategoryNavigation = ({
   projectId,
   initialOpenCategoryId,
@@ -54,10 +66,11 @@ export const usePipelineCategoryNavigation = ({
     if (!docHubRoot) return null;
 
     const tendersFolder = getTendersFolderName(docHubStructureV1);
-    const filesystemTitle = sanitizeSubcontractorCompanyName(
+    const rawPath = getDesktopTenderFolderPath(
+      docHubRoot,
       categoryTitle,
-    ).sanitized;
-    const rawPath = joinDocHubPath(docHubRoot, tendersFolder, filesystemTitle);
+      docHubStructureV1,
+    );
 
     if (await folderExists(rawPath)) return rawPath;
 

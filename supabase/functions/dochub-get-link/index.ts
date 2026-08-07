@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
     const { data: project, error: projectError } = await authed
       .from("projects")
       .select(
-        "id, owner_id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status, dochub_settings",
+        "id, owner_id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_root_web_url, dochub_structure_v1, dochub_enabled, dochub_status, dochub_settings",
       )
       .eq("id", projectId)
       .maybeSingle();
