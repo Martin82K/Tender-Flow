@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = path.join(
   process.cwd(),
-  "supabase/migrations/20260807152300_allow_demo_bid_select.sql",
+  "supabase/migrations/20260807173635_allow_demo_bid_select.sql",
 );
 const restoredMigrationPath = path.join(
   process.cwd(),

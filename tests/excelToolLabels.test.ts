@@ -24,7 +24,7 @@ describe("excel tool labels", () => {
     const migration = fs.readFileSync(
       path.join(
         ROOT,
-        "supabase/migrations/20260713203534_rename_excel_tools.sql",
+        "supabase/migrations/20260807173543_20260713203534_rename_excel_tools.sql",
       ),
       "utf8",
     );

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = path.join(
   process.cwd(),
-  "supabase/migrations/20260807163000_protect_dochub_project_settings.sql",
+  "supabase/migrations/20260807173646_protect_dochub_project_settings.sql",
 );
 
 describe("DocHub project settings ownership boundary", () => {

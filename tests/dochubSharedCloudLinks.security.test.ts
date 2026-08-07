@@ -44,7 +44,7 @@ describe("DocHub shared cloud links", () => {
       "utf8",
     );
     const migration = fs.readFileSync(
-      path.join(repoRoot, "supabase/migrations/20260807155600_scope_dochub_folder_cache_root.sql"),
+      path.join(repoRoot, "supabase/migrations/20260807173642_scope_dochub_folder_cache_root.sql"),
       "utf8",
     );
 
