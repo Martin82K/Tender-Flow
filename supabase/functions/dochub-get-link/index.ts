@@ -18,6 +18,8 @@ type LinkKind =
   | "tender_inquiries"
   | "supplier";
 
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -38,7 +40,7 @@ const upsertFolder = async (args: {
     project_id: args.projectId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -59,12 +61,18 @@ const getStoredFolder = async (args: {
     .eq("project_id", args.projectId)
     .eq("provider", args.provider)
     .eq("kind", args.kind)
-    .eq("key", args.key)
+    .eq("key", normalizeFolderKey(args.key))
     .maybeSingle();
   return data as
     | { item_id: string; drive_id: string | null; web_url: string | null }
     | null;
 };
+
+const getCachedTopLevelFolder = async (args: {
+  projectId: string;
+  provider: Provider;
+  kind: LinkKind;
+}) => getStoredFolder({ ...args, key: null });
 
 const ensureProjectFolder = async (args: {
   provider: Provider;
@@ -288,10 +296,17 @@ Deno.serve(async (req) => {
 
     const provider = project.dochub_provider as Provider | null;
     const rootId = project.dochub_root_id as string | null;
-    const driveId = (project.dochub_drive_id as string | null) || null;
-    if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
+     const driveId = (project.dochub_drive_id as string | null) || null;
+     if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
 
-    const structure = getStructure((project.dochub_structure_v1 as any) || null);
+     if (["pd", "tenders", "contracts", "realization", "archive"].includes(kind)) {
+       const cachedTopLevelFolder = await getCachedTopLevelFolder({ projectId, provider, kind });
+       if (cachedTopLevelFolder?.web_url) {
+         return json(200, { webUrl: cachedTopLevelFolder.web_url, itemId: cachedTopLevelFolder.item_id });
+       }
+     }
+
+     const structure = getStructure((project.dochub_structure_v1 as any) || null);
     const { accessToken } = await getAccessTokenForUser({
       userId: userData.user.id,
       provider,

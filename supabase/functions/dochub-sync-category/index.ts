@@ -10,6 +10,8 @@ import {
   type Provider,
 } from "../_shared/dochub_providers.ts";
 
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
 type Action = "upsert" | "archive";
 
 const json = (status: number, body: unknown) =>
@@ -56,7 +58,7 @@ const upsertFolder = async (args: {
     project_id: args.projectId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -77,7 +79,7 @@ const getStoredFolder = async (args: {
     .eq("project_id", args.projectId)
     .eq("provider", args.provider)
     .eq("kind", args.kind)
-    .eq("key", args.key)
+    .eq("key", normalizeFolderKey(args.key))
     .maybeSingle();
   return data as
     | { item_id: string; drive_id: string | null; web_url: string | null }
@@ -319,10 +321,13 @@ Deno.serve(async (req) => {
 
     const { data: project, error: projectError } = await authed
       .from("projects")
-      .select("id, dochub_enabled, dochub_status, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1")
+      .select("id, owner_id, dochub_enabled, dochub_status, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1")
       .eq("id", projectId)
       .maybeSingle();
     if (projectError || !project) return json(403, { error: "No access to project" });
+    if (project.owner_id && project.owner_id !== userData.user.id) {
+      return json(403, { error: "Project owner permission required" });
+    }
     if (!project.dochub_enabled || project.dochub_status !== "connected") {
       return json(200, { ok: true, skipped: true, reason: "DocHub not connected" });
     }
@@ -456,4 +461,3 @@ Deno.serve(async (req) => {
     return json(500, { error: message });
   }
 });
-

@@ -100,6 +100,54 @@ describe('useDocHubIntegration', () => {
         }));
     });
 
+    it('should not let a shared user disconnect global DocHub settings', () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/root',
+            docHubProvider: 'gdrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        act(() => result.current.actions.disconnect());
+
+        expect(result.current.state.canManageGlobal).toBe(false);
+        expect(result.current.state.isSharedProject).toBe(true);
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject structure synchronization by a shared user', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/root',
+            docHubProvider: 'gdrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.runAutoCreate());
+
+        expect(invokeAuthedFunction).not.toHaveBeenCalledWith('dochub-autocreate', expect.anything());
+        expect(result.current.state.modalRequest?.message).toContain('pouze vlastník');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
     it('should handle connect flow (auth url)', async () => {
         const { result } = renderHook(() => useDocHubIntegration(mockProject as any, onUpdateMock));
 

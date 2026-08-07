@@ -9,6 +9,8 @@ import {
   type Provider,
 } from "../_shared/dochub_providers.ts";
 
+const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
+
 type AutoCreateResult = {
   provider: Provider;
   projectId: string;
@@ -40,7 +42,7 @@ const upsertFolder = async (args: {
     project_id: args.projectId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     item_id: args.itemId,
     drive_id: args.driveId || null,
     web_url: args.webUrl || null,
@@ -76,7 +78,7 @@ const ensureFolder = async (args: {
       projectId: args.projectId,
       provider: args.provider,
       kind: args.kind,
-      key: args.key,
+      key: normalizeFolderKey(args.key),
       itemId: folder.id,
       driveId: null,
       webUrl: folder.webViewLink,
@@ -97,7 +99,7 @@ const ensureFolder = async (args: {
     projectId: args.projectId,
     provider: args.provider,
     kind: args.kind,
-    key: args.key,
+    key: normalizeFolderKey(args.key),
     itemId: folder.id,
     driveId: args.driveId,
     webUrl: folder.webUrl,
@@ -169,19 +171,8 @@ Deno.serve(async (req) => {
 
     if (projectError || !project) return json(403, { error: "No access to project" });
 
-    const isOwner = project.owner_id === userData.user.id;
-    if (!isOwner) {
-      const { data: editShare, error: shareError } = await authed
-        .from("project_shares")
-        .select("project_id")
-        .eq("project_id", projectId)
-        .eq("user_id", userData.user.id)
-        .eq("permission", "edit")
-        .maybeSingle();
-
-      if (shareError || !editShare) {
-        return json(403, { error: "Edit permission required" });
-      }
+    if (project.owner_id && project.owner_id !== userData.user.id) {
+      return json(403, { error: "Project owner permission required" });
     }
 
     if (!project.dochub_enabled || project.dochub_status !== "connected") {

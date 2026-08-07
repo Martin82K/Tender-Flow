@@ -4,8 +4,19 @@ import { dbAdapter } from '../services/dbAdapter';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
 import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
-import { isDesktop, fileSystemAdapter, oauthAdapter } from '../services/platformAdapter';
-import { folderExists, openInExplorer } from '../services/fileSystemService';
+import { isDesktop, fileSystemAdapter, oauthAdapter, storageAdapter } from '../services/platformAdapter';
+import { openInExplorer } from '../services/fileSystemService';
+import {
+    DOC_HUB_PROJECT_MARKER_FILENAME,
+    buildDocHubPersonalLocationKey,
+    createDocHubProjectMarker,
+    joinDocHubPath,
+    normalizeDocHubOnlineUrl,
+    parseDocHubPersonalLocation,
+    parseDocHubProjectMarker,
+    resolveEffectiveLocalRoot,
+    type DocHubPersonalLocation,
+} from '@shared/dochub/personalLocation';
 
 export interface DocHubModalRequest {
     title: string;
@@ -37,18 +48,32 @@ const ensureScript = (src: string): Promise<void> => {
 
 export const useDocHubIntegration = (
     project: ProjectDetails,
-    onUpdate: (updates: Partial<ProjectDetails>) => void
+    onUpdate: (updates: Partial<ProjectDetails>) => void,
+    options: { userId?: string | null } = {},
 ) => {
+    const userId = options.userId ?? null;
+    const isProjectOwner = !project.ownerId || project.ownerId === userId;
+    const isSharedProject = !!project.ownerId && project.ownerId !== userId;
+    const canManageGlobal = isProjectOwner;
+    const initialRootLink = project.docHubProvider === 'onedrive'
+        ? resolveEffectiveLocalRoot({
+            isProjectOwner,
+            projectRootPath: project.docHubRootLink,
+            personalRootPath: null,
+        })
+        : project.docHubRootLink || '';
     const docHubStructureKey = JSON.stringify((project.docHubStructureV1 as any) || null);
     // Basic Settings
     const [enabled, setEnabled] = useState(!!project.docHubEnabled);
-    const [rootLink, setRootLink] = useState(project.docHubRootLink || '');
+    const [rootLink, setRootLink] = useState(initialRootLink);
     const [rootName, setRootName] = useState(project.docHubRootName || '');
     const [provider, setProvider] = useState<NonNullable<ProjectDetails["docHubProvider"]> | null>(project.docHubProvider ?? null);
     const [mode, setMode] = useState<"user" | "org" | null>(project.docHubMode ?? "user");
     const [status, setStatus] = useState<"disconnected" | "connected" | "error">(project.docHubStatus || "disconnected");
     const [isEditingSetup, setIsEditingSetup] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
+    const [hasPersonalLocalRoot, setHasPersonalLocalRoot] = useState(false);
+    const [onlineRootLinkDraft, setOnlineRootLinkDraft] = useState(project.docHubRootWebUrl || '');
 
     const [newFolderName, setNewFolderName] = useState('');
     const [resolveProgress, setResolveProgress] = useState(0);
@@ -96,15 +121,51 @@ export const useDocHubIntegration = (
     const autoCreatePollRef = useRef<number | null>(null);
     // Track what we've loaded to prevent re-loading from stale project updates
     const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
+    const personalLocationLoadedRef = useRef(false);
+
+    useEffect(() => {
+        personalLocationLoadedRef.current = false;
+        if (!isDesktop || project.docHubProvider !== 'onedrive' || !project.id || !userId) {
+            setHasPersonalLocalRoot(false);
+            return;
+        }
+
+        let cancelled = false;
+        void (async () => {
+            const key = buildDocHubPersonalLocationKey(userId, project.id!);
+            const saved = parseDocHubPersonalLocation(await storageAdapter.get(key), userId, project.id!);
+            if (cancelled) return;
+            setHasPersonalLocalRoot(!!saved);
+            setRootLink(resolveEffectiveLocalRoot({
+                isProjectOwner,
+                projectRootPath: project.docHubRootLink,
+                personalRootPath: saved?.rootPath,
+            }));
+            if (saved?.rootName) setRootName(saved.rootName);
+            personalLocationLoadedRef.current = true;
+        })().catch(() => {
+            if (!cancelled) personalLocationLoadedRef.current = true;
+        });
+        return () => { cancelled = true; };
+    }, [project.id, project.docHubProvider, project.docHubRootLink, isProjectOwner, userId]);
 
     // Sync from props
     useEffect(() => {
         setEnabled(!!project.docHubEnabled);
-        setRootLink(project.docHubRootLink || '');
+        if (project.docHubProvider !== 'onedrive') {
+            setRootLink(project.docHubRootLink || '');
+        } else if (!personalLocationLoadedRef.current) {
+            setRootLink(resolveEffectiveLocalRoot({
+                isProjectOwner,
+                projectRootPath: project.docHubRootLink,
+                personalRootPath: null,
+            }));
+        }
         setRootName(project.docHubRootName || '');
         setProvider(project.docHubProvider ?? null);
         setMode(project.docHubMode ?? "user");
         setStatus(project.docHubStatus || (project.docHubEnabled && (project.docHubRootLink || '').trim() ? "connected" : "disconnected"));
+        setOnlineRootLinkDraft(project.docHubRootWebUrl || '');
         setAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
 
         // Structure sync
@@ -165,14 +226,18 @@ export const useDocHubIntegration = (
         project.docHubProvider,
         project.docHubMode,
         project.docHubStatus,
+        project.docHubRootWebUrl,
         project.docHubAutoCreateEnabled,
         docHubStructureKey,
+        isProjectOwner,
     ]);
 
     // Derived State
     const isAuthed = enabled && status === "connected";
     const isLocalProvider = provider === "onedrive";
-    const isConnected = isAuthed && (isLocalProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
+    const isConnected = isAuthed && (isLocalProvider ? true : !!project.docHubRootId && rootLink.trim() !== '');
+    const onlineRootLink = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || '') ||
+        normalizeDocHubOnlineUrl(project.docHubRootLink || '') || '';
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
 
     // Cleanup timers
@@ -255,6 +320,17 @@ export const useDocHubIntegration = (
 
     // Actions
     const handleSaveSetup = useCallback(() => {
+        if (!canManageGlobal) {
+            showMessage("Složkomat", "Sdílený uživatel nemůže měnit globální napojení projektu.", "info");
+            return;
+        }
+        const normalizedOnlineUrl = onlineRootLinkDraft.trim()
+            ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
+            : null;
+        if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
+            showMessage("Složkomat", "Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.", "danger");
+            return;
+        }
         // Prepare new settings object
         const currentSettings = project.docHubSettings || {};
         const newSettings = {
@@ -281,15 +357,24 @@ export const useDocHubIntegration = (
             docHubProvider: provider,
             docHubMode: mode,
             docHubStatus: shouldBeConnected ? "connected" : "disconnected",
+            docHubRootWebUrl: normalizedOnlineUrl,
             docHubStructureVersion: project.docHubStructureVersion ?? 1,
             docHubSettings: newSettings,
             // Set rootId for local providers (needed for proper connection tracking)
             ...(provider === 'onedrive' && rootLink ? { docHubRootId: `local:${rootLink}` } : {}),
         });
         setIsEditingSetup(false);
-    }, [enabled, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate]);
+    }, [canManageGlobal, onlineRootLinkDraft, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate, showMessage]);
 
     const handleDisconnect = useCallback(() => {
+        if (!canManageGlobal && project.id && userId) {
+            void storageAdapter.delete(buildDocHubPersonalLocationKey(userId, project.id));
+            setRootLink("");
+            setRootName(project.docHubRootName || "");
+            setHasPersonalLocalRoot(false);
+            setIsEditingSetup(false);
+            return;
+        }
         setRootLink("");
         setRootName("");
         setProvider(null);
@@ -308,9 +393,13 @@ export const useDocHubIntegration = (
             docHubSiteId: null,
             docHubRootWebUrl: null,
         });
-    }, [onUpdate]);
+    }, [canManageGlobal, onUpdate, project.docHubRootName, project.id, userId]);
 
     const handleConnect = useCallback(async () => {
+        if (!canManageGlobal) {
+            showMessage("Složkomat", "Globální cloudové napojení může měnit pouze vlastník projektu.", "info");
+            return;
+        }
         if (!provider || !mode) {
             showMessage("DocHub", "Vyberte provider a režim.", "info");
             return;
@@ -393,7 +482,7 @@ export const useDocHubIntegration = (
             showMessage("Chyba připojení", e instanceof Error ? e.message : String(e), "danger");
             setIsConnecting(false);
         }
-    }, [provider, mode, project.id, showMessage]);
+    }, [canManageGlobal, provider, mode, project.id, showMessage]);
 
     const loadHistory = useCallback(async () => {
         if (!project.id) return;
@@ -414,6 +503,10 @@ export const useDocHubIntegration = (
 
 
     const createGoogleRoot = useCallback(async () => {
+        if (!canManageGlobal) {
+            showMessage("Složkomat", "Cloudovou složku může vytvořit pouze vlastník projektu.", "info");
+            return;
+        }
         if (provider !== "gdrive") { showMessage("DocHub", "Vyberte Google Drive.", "info"); return; }
         if (!project.id) { showMessage("DocHub", "Chybí ID projektu.", "danger"); return; }
         if (!newFolderName.trim()) { showMessage("DocHub", "Zadejte název.", "info"); return; }
@@ -442,10 +535,53 @@ export const useDocHubIntegration = (
         } finally {
             setIsConnecting(false);
         }
-    }, [provider, project.id, newFolderName, showMessage, rootLink, onUpdate]);
+    }, [canManageGlobal, provider, project.id, newFolderName, showMessage, rootLink, onUpdate]);
+
+    const savePersonalLocalRoot = useCallback(async (path: string, folderName: string) => {
+        if (!isDesktop || !project.id || !userId) {
+            throw new Error("Osobní cesta je dostupná pouze přihlášenému uživateli v desktopové aplikaci.");
+        }
+        if (!(await fileSystemAdapter.folderExists(path))) {
+            throw new Error("Vybraná složka neexistuje nebo k ní aplikace nemá přístup.");
+        }
+
+        const markerPath = joinDocHubPath(path, DOC_HUB_PROJECT_MARKER_FILENAME);
+        let validMarker = false;
+        try {
+            const bytes = await fileSystemAdapter.readFile(markerPath, { maxBytes: 64 * 1024 });
+            validMarker = !!parseDocHubProjectMarker(new TextDecoder().decode(bytes), project.id);
+        } catch {
+            validMarker = false;
+        }
+
+        if (!validMarker && !isProjectOwner) {
+            throw new Error("Vybraná složka nepatří k tomuto projektu. Vlastník ji musí nejprve připojit v Tender Flow.");
+        }
+        if (!validMarker) {
+            await fileSystemAdapter.writeFile(markerPath, createDocHubProjectMarker(project.id));
+        }
+
+        const location: DocHubPersonalLocation = {
+            version: 1,
+            userId,
+            projectId: project.id,
+            rootPath: path,
+            rootName: folderName,
+            savedAt: new Date().toISOString(),
+        };
+        await storageAdapter.set(
+            buildDocHubPersonalLocationKey(userId, project.id),
+            JSON.stringify(location),
+        );
+        setHasPersonalLocalRoot(true);
+    }, [isProjectOwner, project.id, userId]);
 
     const resolveRoot = useCallback(async () => {
         if (!provider || !rootLink.trim()) return;
+        if (!canManageGlobal && provider !== 'onedrive') {
+            showMessage("Složkomat", "Globální cloudové napojení může měnit pouze vlastník projektu.", "info");
+            return;
+        }
         setResolveProgress(10); // Fake start
         setIsConnecting(true); // Reuse connecting state
 
@@ -460,7 +596,7 @@ export const useDocHubIntegration = (
                         throw new Error("Přístup ke složce nebyl potvrzen. Vyberte prosím cílovou složku nebo její existující nadřazenou složku.");
                     }
                 }
-                const exists = await folderExists(path);
+                await savePersonalLocalRoot(path, path.split(/[\\/]/).pop() || path);
 
                 // For Desktop, we generally trust the user or the picker, but good to check
                 /* 
@@ -471,23 +607,31 @@ export const useDocHubIntegration = (
                 */
 
                 const folderName = path.split(/[\\/]/).pop() || path;
+                const normalizedOnlineUrl = onlineRootLinkDraft.trim()
+                    ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
+                    : null;
+                if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
+                    throw new Error("Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.");
+                }
                 setResolveProgress(50);
 
                 await new Promise(r => setTimeout(r, 500)); // UI feel
 
                 setRootName(folderName);
                 setStatus("connected");
-                onUpdate({
-                    docHubEnabled: true,
-                    docHubProvider: provider,
-                    docHubStatus: "connected",
-                    docHubRootName: folderName,
-                    docHubRootLink: path,
-                    docHubRootWebUrl: null,
-                    docHubRootId: `local:${path}`,
-                    docHubDriveId: null,
-                    docHubSiteId: null,
-                });
+                if (canManageGlobal) {
+                    onUpdate({
+                        docHubEnabled: true,
+                        docHubProvider: provider,
+                        docHubStatus: "connected",
+                        docHubRootName: folderName,
+                        docHubRootLink: path,
+                        docHubRootWebUrl: normalizedOnlineUrl,
+                        docHubRootId: `local:${path}`,
+                        docHubDriveId: null,
+                        docHubSiteId: null,
+                    });
+                }
                 setResolveProgress(100);
             } catch (e: any) {
                 showMessage("Chyba", e.message || "Nelze ověřit složku", "danger");
@@ -527,7 +671,7 @@ export const useDocHubIntegration = (
             // Keep loading state briefly for UI effect
             setTimeout(() => { setIsConnecting(false); setResolveProgress(0); }, 500);
         }
-    }, [provider, project.id, rootLink, showMessage, onUpdate]);
+    }, [canManageGlobal, onlineRootLinkDraft, provider, project.id, rootLink, savePersonalLocalRoot, showMessage, onUpdate]);
 
     const pickLocalFolder = useCallback(async () => {
         if (provider !== "onedrive") {
@@ -548,21 +692,31 @@ export const useDocHubIntegration = (
                 }
                 const folderPath = folderInfo.path;
                 const folderName = folderInfo.name;
+                const normalizedOnlineUrl = onlineRootLinkDraft.trim()
+                    ? normalizeDocHubOnlineUrl(onlineRootLinkDraft)
+                    : null;
+                if (onlineRootLinkDraft.trim() && !normalizedOnlineUrl) {
+                    throw new Error("Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.");
+                }
+
+                await savePersonalLocalRoot(folderPath, folderName);
 
                 setRootName(folderName);
                 setRootLink(folderPath);
                 setStatus("connected");
-                onUpdate({
-                    docHubEnabled: true,
-                    docHubProvider: "onedrive",
-                    docHubStatus: "connected",
-                    docHubRootName: folderName,
-                    docHubRootLink: folderPath,
-                    docHubRootWebUrl: null,
-                    docHubRootId: `local:${folderPath}`,
-                    docHubDriveId: null,
-                    docHubSiteId: null,
-                });
+                if (canManageGlobal) {
+                    onUpdate({
+                        docHubEnabled: true,
+                        docHubProvider: "onedrive",
+                        docHubStatus: "connected",
+                        docHubRootName: folderName,
+                        docHubRootLink: folderPath,
+                        docHubRootWebUrl: normalizedOnlineUrl,
+                        docHubRootId: `local:${folderPath}`,
+                        docHubDriveId: null,
+                        docHubSiteId: null,
+                    });
+                }
                 showMessage("Hotovo", `Složka "${folderName}" byla vybrána.`, "success");
                 return;
             }
@@ -605,9 +759,10 @@ export const useDocHubIntegration = (
         } finally {
             setIsConnecting(false);
         }
-    }, [provider, showMessage, onUpdate]);
+    }, [canManageGlobal, onlineRootLinkDraft, provider, savePersonalLocalRoot, showMessage, onUpdate]);
 
     const runAutoCreate = useCallback(async () => {
+        if (!canManageGlobal) { showMessage("Složkomat", "Strukturu složek může synchronizovat pouze vlastník projektu.", "info"); return; }
         if (!project.id) { showMessage("DocHub", "Chybí ID projektu.", "danger"); return; }
         if (status !== 'connected' && !project.docHubRootId && !rootLink) { showMessage("DocHub", "Nejdřív připojte DocHub.", "info"); return; }
         if (!provider) { showMessage("DocHub", "Chybí provider.", "danger"); return; }
@@ -775,9 +930,13 @@ export const useDocHubIntegration = (
                 setAutoCreateLogs([]);
             }, 2000);
         }
-    }, [project, status, provider, rootLink, showMessage, loadHistory, onUpdate]);
+    }, [canManageGlobal, project, status, provider, rootLink, showMessage, loadHistory, onUpdate]);
 
     const handleSaveStructure = useCallback(() => {
+        if (!canManageGlobal) {
+            showMessage("Složkomat", "Strukturu složek může měnit pouze vlastník projektu.", "info");
+            return;
+        }
         console.log('[DocHub] Saving structure with hierarchy:', hierarchyDraft);
         onUpdate({
             docHubStructureV1: {
@@ -789,7 +948,7 @@ export const useDocHubIntegration = (
             }
         });
         setIsEditingStructure(false);
-    }, [structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, project.docHubStructureV1, onUpdate]);
+    }, [canManageGlobal, structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, project.docHubStructureV1, onUpdate, showMessage]);
 
     return {
         state: {
@@ -797,10 +956,11 @@ export const useDocHubIntegration = (
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
             structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
-            newFolderName, resolveProgress, links, isConnected, isLocalProvider
+            newFolderName, resolveProgress, links, isConnected, isLocalProvider,
+            onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot
         },
         setters: {
-            setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup,
+            setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup, setOnlineRootLinkDraft,
             setIsResultModalOpen, setStructureDraft, setExtraTopLevelDraft, setExtraSupplierDraft, setHierarchyDraft, setIsEditingStructure,
             clearModalRequest, setNewFolderName, setResolveProgress, setAutoCreateResult
         },
@@ -816,14 +976,18 @@ export const useDocHubIntegration = (
                 const isWebUrl = /^https?:\/\//i.test(link);
 
                 if (isWebUrl) {
-                    // Open in default browser
-                    window.open(link, '_blank');
+                    const safeLink = normalizeDocHubOnlineUrl(link);
+                    if (!safeLink) {
+                        showMessage("Složkomat", "Odkaz nevede na podporované cloudové úložiště.", "danger");
+                        return;
+                    }
+                    window.open(safeLink, '_blank', 'noopener,noreferrer');
                 } else if (isDesktop) {
                     // Open local path via Platform Adapter (Electron)
                     // Uses openInExplorer which works for folders
                     await openInExplorer(link);
                 }
-            }, [rootLink]),
+            }, [rootLink, showMessage]),
             runAutoCreate,
             loadHistory,
             saveStructure: handleSaveStructure,

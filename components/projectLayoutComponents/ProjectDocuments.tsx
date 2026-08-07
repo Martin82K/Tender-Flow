@@ -24,6 +24,7 @@ import { useFeatures } from "../../context/FeatureContext";
 import { FEATURES } from "../../config/features";
 import { useLocation } from "../../shared/routing/router";
 import { isProbablyUrl } from "../../utils/docHub";
+import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -98,8 +99,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [docsLinkValue, setDocsLinkValue] = useState("");
   const [priceListLinkValue, setPriceListLinkValue] = useState("");
   const [letterLinkValue, setLetterLinkValue] = useState("");
+  const identity = useAuthIdentity();
   // DocHub Integration Hook
-  const docHub = useDocHubIntegration(project, onUpdate);
+  const docHub = useDocHubIntegration(project, onUpdate, { userId: identity?.id });
   const {
     isConnected: isDocHubConnected,
     links: docHubProjectLinks,
@@ -506,32 +508,36 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
 
                 {docHub.state.isConnected && !docHub.state.isEditingSetup && (
                   <>
-                    <div data-help-id="dochub-structure">
-                      <DocHubStructureEditor
-                        state={docHub.state}
-                        actions={docHub.actions}
-                        setters={docHub.setters}
-                        showModal={showModal}
-                      />
-                    </div>
+                    {docHub.state.canManageGlobal && (
+                      <div data-help-id="dochub-structure">
+                        <DocHubStructureEditor
+                          state={docHub.state}
+                          actions={docHub.actions}
+                          setters={docHub.setters}
+                          showModal={showModal}
+                        />
+                      </div>
+                    )}
 
                     <div data-help-id="dochub-links">
                       <DocHubLinks state={docHub.state} showModal={showModal} />
                     </div>
 
-                    <div data-help-id="dochub-autocreate">
-                      <DocHubAutoCreateStatus
-                      state={docHub.state}
-                      setters={docHub.setters}
-                      showModal={showModal}
-                      showLog={showDocHubRunLog}
-                      setShowLog={setShowDocHubRunLog}
-                      showOverview={showDocHubRunOverview}
-                      setShowOverview={setShowDocHubRunOverview}
-                      logRef={docHubRunLogRef}
-                      overviewRef={docHubRunOverviewRef}
-                    />
-                    </div>
+                    {docHub.state.canManageGlobal && (
+                      <div data-help-id="dochub-autocreate">
+                        <DocHubAutoCreateStatus
+                          state={docHub.state}
+                          setters={docHub.setters}
+                          showModal={showModal}
+                          showLog={showDocHubRunLog}
+                          setShowLog={setShowDocHubRunLog}
+                          showOverview={showDocHubRunOverview}
+                          setShowOverview={setShowDocHubRunOverview}
+                          logRef={docHubRunLogRef}
+                          overviewRef={docHubRunOverviewRef}
+                        />
+                      </div>
+                    )}
 
                     <div data-help-id="dochub-history">
                       <DocHubHistory

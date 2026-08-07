@@ -5,17 +5,16 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 
 describe("dochub desktop token permission hardening", () => {
-  it("vyžaduje owner nebo share s edit oprávněním pro update projektu", () => {
+  it("vyžaduje vlastníka pro update globálního nastavení projektu", () => {
     const source = fs.readFileSync(
       path.join(ROOT, "supabase/functions/dochub-google-desktop-token/index.ts"),
       "utf8",
     );
 
     expect(source).toContain('.select("id, owner_id")');
-    expect(source).toContain("let canUpdateProject = project.owner_id === null || project.owner_id === userData.user.id;");
-    expect(source).toContain('"has_project_share_permission"');
-    expect(source).toContain('required_permission: "edit"');
-    expect(source).toContain('if (!canUpdateProject) return json(403, { error: "No edit access to project" });');
+    expect(source).toContain("project.owner_id && project.owner_id !== userData.user.id");
+    expect(source).toContain('return json(403, { error: "Project owner permission required" });');
+    expect(source).not.toContain('"has_project_share_permission"');
   });
 
   it("overuje renderer-supplied Google token u provideru pred ulozenim", () => {

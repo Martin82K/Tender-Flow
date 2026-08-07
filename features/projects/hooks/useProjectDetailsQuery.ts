@@ -21,6 +21,7 @@ interface QueryResponse<T> {
 
 interface ProjectDetailsRow {
   id: string;
+  owner_id?: string | null;
   name: string;
   status?: ProjectDetails["status"] | null;
   archived_original_status?: ActiveProjectStatus | null;
@@ -276,6 +277,7 @@ const fetchProjectDetails = async (
 
   return {
     id: project.id,
+    ownerId: project.owner_id ?? undefined,
     title: project.name,
     status: project.status || "realization",
     archivedOriginalStatus:

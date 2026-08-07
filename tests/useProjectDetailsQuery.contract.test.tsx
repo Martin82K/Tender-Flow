@@ -223,6 +223,7 @@ describe("useProjectDetailsQuery contract", () => {
       projects: {
         data: {
           id: "project-1",
+          owner_id: "owner-1",
           name: "Projekt 1",
           status: "realization",
           address: "Karlovo náměstí 1",
@@ -307,6 +308,7 @@ describe("useProjectDetailsQuery contract", () => {
     expect(details).toEqual(
       expect.objectContaining({
         id: "project-1",
+        ownerId: "owner-1",
         title: "Projekt 1",
         address: "Karlovo náměstí 1",
         latitude: 50.0755,

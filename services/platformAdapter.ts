@@ -70,6 +70,13 @@ export const fileSystemAdapter = {
         throw new Error('File reading not available on web.');
     },
 
+    async writeFile(filePath: string, data: string): Promise<void> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.writeFile(filePath, data);
+        }
+        throw new Error('File writing not available on web.');
+    },
+
     async copyFile(sourcePath: string, destinationDirectory: string): Promise<{
         success: boolean;
         path?: string;

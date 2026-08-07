@@ -23,26 +23,28 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
   const {
     provider,
     mode,
-    rootName,
     rootLink,
     isConnecting,
     status,
     newFolderName,
-    resolveProgress,
     isEditingSetup,
     isLocalProvider,
+    isSharedProject,
+    canManageGlobal,
+    hasPersonalLocalRoot,
+    onlineRootLinkDraft,
   } = state;
 
-  // Derived state for local UI logic
-  const isAuthed =
-    status === "connected" || (state.enabled && !!state.rootLink); // Simplification, hook has robust 'isAuthed' but we need to match UI logic
-  // Actually hook has 'isAuthed' in derived but not exported directly in 'state' object unless we put it there.
-  // Let's use status check.
   const isConnectedStatus = status === "connected";
 
   return (
     <div className="bg-slate-100 dark:bg-slate-900/20 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
       <div className="flex flex-col gap-4">
+        {isSharedProject && (
+          <div className="rounded-xl border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-700/50 dark:bg-blue-950/30 dark:text-blue-100">
+            Globální napojení spravuje vlastník projektu. Zde si můžete nastavit pouze vlastní cestu k synchronizované složce; cesta vlastníka se na tomto zařízení nepoužije.
+          </div>
+        )}
         {/* Step 1 */}
         <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
@@ -52,6 +54,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             <button
               type="button"
               onClick={() => setters.setProvider("gdrive")}
+              disabled={!canManageGlobal}
               className={`p-3 rounded-xl border text-left transition-all ${provider === "gdrive"
                 ? "bg-violet-500/15 border-violet-500/40"
                 : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
@@ -67,6 +70,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             <button
               type="button"
               onClick={() => setters.setProvider("onedrive")}
+              disabled={!canManageGlobal}
               className={`p-3 rounded-xl border text-left transition-all ${provider === "onedrive"
                 ? "bg-violet-500/15 border-violet-500/40"
                 : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
@@ -151,6 +155,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   type="text"
                   value={rootLink}
                   onChange={(e) => setters.setRootLink(e.target.value)}
+                  disabled={isSharedProject && !isLocalProvider}
                   placeholder={
                     isLocalProvider
                       ? "Cesta ke složce (např. D:\\Projekty\\Stavba)"
@@ -190,7 +195,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             </div>
 
             {/* Create New Folder (Secondary) */}
-            {provider === "gdrive" && (
+            {provider === "gdrive" && canManageGlobal && (
               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
                 <div className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Nebo vytvořit novou</div>
                 <div className="flex gap-2">
@@ -222,17 +227,44 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 ? "Vyberte složku přes Procházet nebo zadejte cestu ručně."
                 : "Vložte URL adresu složky z Google Drive."}
             </div>
+            {isLocalProvider && canManageGlobal && (
+              <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700/50">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Online odkaz pro sdílené uživatele
+                </label>
+                <input
+                  type="url"
+                  value={onlineRootLinkDraft}
+                  onChange={(event) => setters.setOnlineRootLinkDraft(event.target.value)}
+                  placeholder="https://drive.google.com/... nebo https://...sharepoint.com/..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-violet-500/50 focus:outline-none dark:border-slate-700/50 dark:bg-slate-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={actions.saveSetup}
+                  className="mt-2 rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500"
+                >
+                  Uložit online odkaz
+                </button>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Nepovinné. Uživatelé bez lokální synchronizace otevřou stejnou cloudovou složku v prohlížeči.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
         <div className="flex items-center gap-2">
-          <button
+          {(canManageGlobal || (isLocalProvider && hasPersonalLocalRoot)) && <button
             type="button"
             onClick={() => {
               if (isConnectedStatus) {
-                if (window.confirm("Opravdu chcete odpojit tuto složku od projektu?")) {
+                const confirmation = isSharedProject
+                  ? "Opravdu chcete odebrat svou osobní cestu na tomto zařízení?"
+                  : "Opravdu chcete odpojit tuto složku od projektu?";
+                if (window.confirm(confirmation)) {
                   actions.disconnect();
                 }
               } else {
@@ -255,7 +287,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
               }`}
             title={
               isConnectedStatus
-                ? "Odpojí Složkomat účet pro tuto stavbu"
+                ? isSharedProject
+                  ? "Odebere pouze vaši osobní cestu na tomto zařízení"
+                  : "Odpojí Složkomat účet pro tuto stavbu"
                 : isLocalProvider
                   ? "Uloží nastavení lokální složky"
                   : "Spustí OAuth autorizaci"
@@ -263,13 +297,15 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
           >
             {isConnecting
               ? "Pracuji..."
+              : isSharedProject
+                ? "Odebrat moji cestu"
               : isConnectedStatus
                 ? "Odpojit"
                 : isLocalProvider
                   ? "Připojit složku"
                   : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"
                   }`}
-          </button>
+          </button>}
         </div>
         {isConnectedStatus || isEditingSetup ? (
           <button

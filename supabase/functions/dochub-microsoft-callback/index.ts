@@ -328,17 +328,8 @@ Deno.serve(async (req) => {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
-    if (project.owner_id !== stateRow.user_id) {
-      const { data: share } = await service
-        .from("project_shares")
-        .select("id")
-        .eq("project_id", stateRow.project_id)
-        .eq("user_id", stateRow.user_id)
-        .eq("permission", "edit")
-        .maybeSingle();
-      if (!share) {
-        return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
-      }
+    if (project.owner_id && project.owner_id !== stateRow.user_id) {
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
     const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
