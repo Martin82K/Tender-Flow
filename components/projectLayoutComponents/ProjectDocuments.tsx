@@ -68,7 +68,7 @@ const formatMoneyFull = (val: number): string => {
 
 export interface ProjectDocumentsProps {
   project: ProjectDetails;
-  onUpdate: (updates: Partial<ProjectDetails>) => void;
+  onUpdate: (updates: Partial<ProjectDetails>) => void | Promise<void>;
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({

@@ -81,7 +81,7 @@ describe('useDocHubIntegration', () => {
         });
     });
 
-    it('should handle disconnect action', () => {
+    it('should handle disconnect action', async () => {
         const connectedProject = {
             ...mockProject,
             docHubEnabled: true,
@@ -91,9 +91,7 @@ describe('useDocHubIntegration', () => {
         };
         const { result } = renderHook(() => useDocHubIntegration(connectedProject as any, onUpdateMock));
 
-        act(() => {
-            result.current.actions.disconnect();
-        });
+        await act(async () => result.current.actions.disconnect());
 
         expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
             docHubStatus: 'disconnected',
@@ -222,7 +220,7 @@ describe('useDocHubIntegration', () => {
         expect(result.current.state.links?.archive).toBeNull();
     });
 
-    it('should preserve a personal path when secure storage deletion fails', async () => {
+    it('should clear an unsaved shared web path without changing global settings', async () => {
         const deleteSpy = vi.spyOn(storageAdapter, 'delete').mockRejectedValueOnce(new Error('storage unavailable'));
         const sharedProject = {
             ...mockProject,
@@ -242,8 +240,9 @@ describe('useDocHubIntegration', () => {
 
         await act(async () => result.current.actions.disconnect());
 
-        expect(result.current.state.rootLink).toBe('D:\\Shared\\Project');
-        expect(result.current.state.modalRequest?.variant).toBe('danger');
+        expect(result.current.state.rootLink).toBe('');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(deleteSpy).not.toHaveBeenCalled();
         deleteSpy.mockRestore();
     });
 

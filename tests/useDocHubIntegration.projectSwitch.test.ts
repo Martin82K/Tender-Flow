@@ -7,6 +7,8 @@ import type { ProjectDetails } from "@/types";
 const mocks = vi.hoisted(() => ({
   storageGet: vi.fn(),
   storageSet: vi.fn(),
+  storageDelete: vi.fn(),
+  selectFolder: vi.fn(),
   folderExists: vi.fn(),
   readFile: vi.fn(),
   writeFile: vi.fn(),
@@ -21,12 +23,14 @@ vi.mock("../services/platformAdapter", async (importOriginal) => {
       ...actual.storageAdapter,
       get: mocks.storageGet,
       set: mocks.storageSet,
+      delete: mocks.storageDelete,
     },
     fileSystemAdapter: {
       ...actual.fileSystemAdapter,
       folderExists: mocks.folderExists,
       readFile: mocks.readFile,
       writeFile: mocks.writeFile,
+      selectFolder: mocks.selectFolder,
       grantAccess: vi.fn().mockResolvedValue(true),
     },
   };
@@ -64,6 +68,7 @@ describe("useDocHubIntegration project identity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.folderExists.mockResolvedValue(true);
+    mocks.storageDelete.mockResolvedValue(undefined);
     mocks.readFile.mockImplementation(async (markerPath: string) => new TextEncoder().encode(
       createDocHubProjectMarker(markerPath.includes("project-2") ? "project-2" : "project-1"),
     ));
@@ -150,5 +155,67 @@ describe("useDocHubIntegration project identity", () => {
     await waitFor(() => expect(mocks.readFile).toHaveBeenCalled());
 
     expect(result.current.state.rootLink).toBe("D:\\Shared\\New Project");
+  });
+
+  it("does not persist an owner's personal root when the global update fails", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Owner\\New Project", name: "New Project" });
+    const onUpdate = vi.fn().mockRejectedValue(new Error("network unavailable"));
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(onUpdate).toHaveBeenCalled();
+    expect(mocks.writeFile).not.toHaveBeenCalled();
+    expect(mocks.storageSet).not.toHaveBeenCalled();
+    expect(result.current.state.modalRequest?.message).toContain("network unavailable");
+  });
+
+  it("removes an owner's personal mapping before disconnecting the global root", async () => {
+    mocks.storageGet.mockResolvedValue(JSON.stringify({
+      version: 1,
+      userId: "owner-1",
+      projectId: "project-1",
+      rootPath: "C:\\Owner\\project-1",
+      rootName: "project-1",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.hasPersonalLocalRoot).toBe(true));
+
+    await act(async () => result.current.actions.disconnect());
+
+    expect(mocks.storageDelete).toHaveBeenCalledWith("dochub:personal-location:v1:owner-1:project-1");
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ docHubStatus: "disconnected" }));
+  });
+
+  it("preserves a personal root when secure-storage deletion fails", async () => {
+    mocks.storageGet.mockResolvedValue(JSON.stringify({
+      version: 1,
+      userId: "shared-1",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\project-1",
+      rootName: "project-1",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    mocks.storageDelete.mockRejectedValueOnce(new Error("storage unavailable"));
+    const onUpdate = vi.fn();
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "shared-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("D:\\Shared\\project-1"));
+
+    await act(async () => result.current.actions.disconnect());
+
+    expect(result.current.state.rootLink).toBe("D:\\Shared\\project-1");
+    expect(result.current.state.modalRequest?.message).toContain("storage unavailable");
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 });

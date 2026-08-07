@@ -53,7 +53,7 @@ const ensureScript = (src: string): Promise<void> => {
 
 export const useDocHubIntegration = (
     project: ProjectDetails,
-    onUpdate: (updates: Partial<ProjectDetails>) => void,
+    onUpdate: (updates: Partial<ProjectDetails>) => void | Promise<void>,
     options: { userId?: string | null } = {},
 ) => {
     const userId = options.userId ?? null;
@@ -421,21 +421,54 @@ export const useDocHubIntegration = (
     }, [canManageGlobal, onlineRootLinkDraft, onUpdate, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
-        if (!canManageGlobal && project.id && userId) {
+        const personalMappingIdentity = isDesktop && project.docHubProvider === "onedrive" && project.id && userId
+            ? { projectId: project.id, userId }
+            : null;
+        if (personalMappingIdentity) {
             try {
-                await storageAdapter.delete(buildDocHubPersonalLocationKey(userId, project.id));
-                notifyProjectDocHubPersonalRootChanged(project.id, userId);
-                setRootLink("");
-                setRootName(project.docHubRootName || "");
+                await storageAdapter.delete(buildDocHubPersonalLocationKey(
+                    personalMappingIdentity.userId,
+                    personalMappingIdentity.projectId,
+                ));
+                notifyProjectDocHubPersonalRootChanged(
+                    personalMappingIdentity.projectId,
+                    personalMappingIdentity.userId,
+                );
                 setHasPersonalLocalRoot(false);
-                setIsEditingSetup(false);
             } catch (error) {
                 showMessage(
                     "Nelze odebrat cestu",
                     error instanceof Error ? error.message : "Osobní cestu se nepodařilo bezpečně odebrat.",
                     "danger",
                 );
+                return;
             }
+        }
+        if (!canManageGlobal) {
+            setRootLink("");
+            setRootName(project.docHubRootName || "");
+            setIsEditingSetup(false);
+            return;
+        }
+        try {
+            await onUpdate({
+                docHubEnabled: true,
+                docHubRootLink: "",
+                docHubRootName: null,
+                docHubProvider: null,
+                docHubMode: null,
+                docHubStatus: "disconnected",
+                docHubRootId: null,
+                docHubDriveId: null,
+                docHubSiteId: null,
+                docHubRootWebUrl: null,
+            });
+        } catch (error) {
+            showMessage(
+                "Nelze odpojit Složkomat",
+                error instanceof Error ? error.message : "Globální napojení se nepodařilo odpojit.",
+                "danger",
+            );
             return;
         }
         setRootLink("");
@@ -444,19 +477,7 @@ export const useDocHubIntegration = (
         setMode(null);
         setStatus("disconnected");
         setIsEditingSetup(false);
-        onUpdate({
-            docHubEnabled: true,
-            docHubRootLink: "",
-            docHubRootName: null,
-            docHubProvider: null,
-            docHubMode: null,
-            docHubStatus: "disconnected",
-            docHubRootId: null,
-            docHubDriveId: null,
-            docHubSiteId: null,
-            docHubRootWebUrl: null,
-        });
-    }, [canManageGlobal, onUpdate, project.docHubRootName, project.id, showMessage, userId]);
+    }, [canManageGlobal, onUpdate, project.docHubProvider, project.docHubRootName, project.id, showMessage, userId]);
 
     const handleConnect = useCallback(async () => {
         if (!canManageGlobal) {
@@ -600,7 +621,11 @@ export const useDocHubIntegration = (
         }
     }, [canManageGlobal, provider, project.id, newFolderName, showMessage, rootLink, onUpdate]);
 
-    const savePersonalLocalRoot = useCallback(async (path: string, folderName: string) => {
+    const savePersonalLocalRoot = useCallback(async (
+        path: string,
+        folderName: string,
+        beforePersist?: () => void | Promise<void>,
+    ) => {
         if (!isDesktop || !project.id || !userId) {
             throw new Error("Osobní cesta je dostupná pouze přihlášenému uživateli v desktopové aplikaci.");
         }
@@ -626,6 +651,7 @@ export const useDocHubIntegration = (
         if (!validMarker && !isProjectOwner) {
             throw new Error("Vybraná složka nepatří k tomuto projektu. Vlastník ji musí nejprve připojit v Tender Flow.");
         }
+        await beforePersist?.();
         if (!validMarker) {
             await fileSystemAdapter.writeFile(markerPath, createDocHubProjectMarker(project.id));
         }
@@ -674,8 +700,25 @@ export const useDocHubIntegration = (
                         throw new Error("Přístup ke složce nebyl potvrzen. Vyberte prosím cílovou složku nebo její existující nadřazenou složku.");
                     }
                 }
+                const folderName = path.split(/[\\/]/).pop() || path;
                 if (isDesktop) {
-                    await savePersonalLocalRoot(path, path.split(/[\\/]/).pop() || path);
+                    await savePersonalLocalRoot(
+                        path,
+                        folderName,
+                        canManageGlobal
+                            ? () => onUpdate({
+                                docHubEnabled: true,
+                                docHubProvider: provider,
+                                docHubStatus: "connected",
+                                docHubRootName: folderName,
+                                docHubRootLink: path,
+                                docHubRootWebUrl: normalizedOnlineUrl,
+                                docHubRootId: `local:${path}`,
+                                docHubDriveId: null,
+                                docHubSiteId: null,
+                            })
+                            : undefined,
+                    );
                 } else if (!canManageGlobal) {
                     throw new Error("Osobní cesta sdíleného projektu je dostupná pouze v desktopové aplikaci.");
                 }
@@ -688,15 +731,14 @@ export const useDocHubIntegration = (
                 }
                 */
 
-                const folderName = path.split(/[\\/]/).pop() || path;
                 setResolveProgress(50);
 
                 await new Promise(r => setTimeout(r, 500)); // UI feel
 
                 setRootName(folderName);
                 setStatus("connected");
-                if (canManageGlobal) {
-                    onUpdate({
+                if (canManageGlobal && !isDesktop) {
+                    await onUpdate({
                         docHubEnabled: true,
                         docHubProvider: provider,
                         docHubStatus: "connected",
@@ -782,24 +824,27 @@ export const useDocHubIntegration = (
                     throw new Error("Online odkaz musí být bezpečná HTTPS adresa Google Drive, OneDrive nebo SharePoint.");
                 }
 
-                await savePersonalLocalRoot(folderPath, folderName);
+                await savePersonalLocalRoot(
+                    folderPath,
+                    folderName,
+                    canManageGlobal
+                        ? () => onUpdate({
+                            docHubEnabled: true,
+                            docHubProvider: "onedrive",
+                            docHubStatus: "connected",
+                            docHubRootName: folderName,
+                            docHubRootLink: folderPath,
+                            docHubRootWebUrl: normalizedOnlineUrl,
+                            docHubRootId: `local:${folderPath}`,
+                            docHubDriveId: null,
+                            docHubSiteId: null,
+                        })
+                        : undefined,
+                );
 
                 setRootName(folderName);
                 setRootLink(folderPath);
                 setStatus("connected");
-                if (canManageGlobal) {
-                    onUpdate({
-                        docHubEnabled: true,
-                        docHubProvider: "onedrive",
-                        docHubStatus: "connected",
-                        docHubRootName: folderName,
-                        docHubRootLink: folderPath,
-                        docHubRootWebUrl: normalizedOnlineUrl,
-                        docHubRootId: `local:${folderPath}`,
-                        docHubDriveId: null,
-                        docHubSiteId: null,
-                    });
-                }
                 showMessage("Hotovo", `Složka "${folderName}" byla vybrána.`, "success");
                 return;
             }
@@ -846,7 +891,7 @@ export const useDocHubIntegration = (
                 setRootName(folderName);
                 setRootLink(folderName);
                 setStatus("connected");
-                onUpdate({
+                await onUpdate({
                     docHubEnabled: true,
                     docHubProvider: "onedrive",
                     docHubStatus: "connected",
