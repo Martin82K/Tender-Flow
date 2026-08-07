@@ -34,8 +34,12 @@ BEGIN
   FROM jsonb_each(to_jsonb(NEW))
   WHERE key LIKE 'dochub\_%' ESCAPE '\';
 
+  -- SECURITY DEFINER maintenance/clone RPCs execute as postgres and perform
+  -- their own authorization before reaching this trigger. Direct PostgREST
+  -- updates run as authenticated and remain owner-only here.
   IF old_dochub IS DISTINCT FROM new_dochub
     AND OLD.owner_id IS DISTINCT FROM auth.uid()
+    AND current_user <> 'postgres'
   THEN
     RAISE EXCEPTION 'Only the project owner may change DocHub settings'
       USING ERRCODE = '42501';

@@ -17,6 +17,7 @@ describe("DocHub project settings ownership boundary", () => {
     expect(migration).toContain("OLD.owner_id IS DISTINCT FROM auth.uid()");
     expect(migration).toContain("OLD.owner_id IS DISTINCT FROM NEW.owner_id");
     expect(migration).toContain("current_user <> 'postgres'");
+    expect(migration.match(/current_user <> 'postgres'/g)).toHaveLength(2);
     expect(migration).toContain("BEFORE UPDATE ON public.projects");
   });
 });

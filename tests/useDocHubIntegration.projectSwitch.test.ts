@@ -181,6 +181,79 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.modalRequest?.message).toContain("network unavailable");
   });
 
+  it("restores the previous global root when marker persistence fails", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.writeFile.mockRejectedValueOnce(new Error("disk full"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Owner\\New Project", name: "New Project" });
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const currentProject = project("project-1");
+    const { result } = renderHook(() => useDocHubIntegration(currentProject, onUpdate, {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(onUpdate.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+      docHubRootLink: "D:\\Owner\\New Project",
+    }));
+    expect(onUpdate.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      docHubRootLink: "C:\\Owner\\project-1",
+      docHubRootId: "connection:project-1",
+    }));
+    expect(mocks.storageSet).not.toHaveBeenCalled();
+    expect(result.current.state.modalRequest?.message).toContain("disk full");
+  });
+
+  it("restores the previous marker and global root when secure storage fails", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    const previousMarker = createDocHubProjectMarker("project-1", "connection:project-1");
+    mocks.readFile.mockResolvedValue(new TextEncoder().encode(previousMarker));
+    mocks.storageSet.mockRejectedValueOnce(new Error("secure storage unavailable"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Owner\\New Project", name: "New Project" });
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(mocks.writeFile).toHaveBeenCalledTimes(2);
+    expect(mocks.writeFile.mock.calls[1]?.[1]).toBe(previousMarker);
+    expect(onUpdate.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      docHubRootLink: "C:\\Owner\\project-1",
+      docHubRootId: "connection:project-1",
+    }));
+    expect(result.current.state.modalRequest?.message).toContain("secure storage unavailable");
+  });
+
+  it("ignores a completed folder picker after switching to another project", async () => {
+    let resolvePicker: ((value: { path: string; name: string }) => void) | undefined;
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.selectFolder.mockReturnValueOnce(new Promise((resolve) => { resolvePicker = resolve; }));
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, onUpdate, { userId: "owner-1" }),
+      { initialProps: { currentProject: project("project-1") } },
+    );
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    let pickerPromise: Promise<void> | undefined;
+    act(() => { pickerPromise = result.current.actions.pickLocalFolder(); });
+    rerender({ currentProject: project("project-2") });
+    resolvePicker?.({ path: "D:\\Owner\\Project 1", name: "Project 1" });
+    await act(async () => pickerPromise);
+
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-2"));
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(mocks.writeFile).not.toHaveBeenCalled();
+    expect(mocks.storageSet).not.toHaveBeenCalled();
+  });
+
   it("removes an owner's personal mapping before disconnecting the global root", async () => {
     mocks.storageGet.mockResolvedValue(JSON.stringify({
       version: 2,
