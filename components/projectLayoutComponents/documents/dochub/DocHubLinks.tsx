@@ -1,8 +1,8 @@
 import React from 'react';
-import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
+import type { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
 import { openInExplorer } from '../../../../services/fileSystemService';
 import { isDesktop } from '../../../../services/platformAdapter';
-import { isProbablyUrl } from '../../../../utils/docHub';
+import { isProbablyUrl, resolveDocHubStructureV1 } from '../../../../utils/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
@@ -16,8 +16,7 @@ export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) =>
 
     if (!docHubProjectLinks) return null;
 
-    // Use structureDraft as effective structure (it is initialized from project)
-    const effectiveStructure = structureDraft;
+    const effectiveStructure = resolveDocHubStructureV1(structureDraft);
 
     const copyPath = (href: string) => {
         navigator.clipboard
