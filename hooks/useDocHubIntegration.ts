@@ -13,11 +13,15 @@ import {
     isDocHubProjectMarkerForDifferentProject,
     joinDocHubPath,
     normalizeDocHubOnlineUrl,
-    parseDocHubPersonalLocation,
     parseDocHubProjectMarkerValue,
     resolveEffectiveLocalRoot,
+    resolveValidatedEffectiveLocalRoot,
     type DocHubPersonalLocation,
 } from '@shared/dochub/personalLocation';
+import {
+    loadProjectDocHubPersonalLocationState,
+    notifyProjectDocHubPersonalRootChanged,
+} from '@features/projects/dochub/model/personalRoot';
 
 export interface DocHubModalRequest {
     title: string;
@@ -133,14 +137,15 @@ export const useDocHubIntegration = (
 
         let cancelled = false;
         void (async () => {
-            const key = buildDocHubPersonalLocationKey(userId, project.id!);
-            const saved = parseDocHubPersonalLocation(await storageAdapter.get(key), userId, project.id!);
+            const personalState = await loadProjectDocHubPersonalLocationState(project, userId);
+            const saved = personalState.location;
             if (cancelled) return;
             setHasPersonalLocalRoot(!!saved);
-            setRootLink(resolveEffectiveLocalRoot({
+            setRootLink(resolveValidatedEffectiveLocalRoot({
                 isProjectOwner,
                 projectRootPath: project.docHubRootLink,
                 personalRootPath: saved?.rootPath,
+                hadStoredLocation: personalState.hadStoredLocation,
             }));
             if (saved?.rootName) setRootName(saved.rootName);
             personalLocationLoadedRef.current = true;
@@ -157,7 +162,7 @@ export const useDocHubIntegration = (
             }
         });
         return () => { cancelled = true; };
-    }, [project.id, project.docHubProvider, project.docHubRootLink, isProjectOwner, userId]);
+    }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, isProjectOwner, userId]);
 
     // Sync from props
     useEffect(() => {
@@ -297,7 +302,9 @@ export const useDocHubIntegration = (
         return () => { cancelled = true; };
     }, [isConnected, project.id, project.docHubStructureV1, isLocalProvider]);
 
-    const fallbackLinks = isConnected ? getDocHubProjectLinks(rootLink, effectiveStructure) : null;
+    const fallbackLinks = isConnected && isLocalProvider
+        ? getDocHubProjectLinks(rootLink, effectiveStructure)
+        : null;
     const links = isConnected ? {
         pd: docHubBaseLinks?.pd ?? fallbackLinks?.pd ?? null,
         tenders: docHubBaseLinks?.tenders ?? fallbackLinks?.tenders ?? null,
@@ -386,6 +393,7 @@ export const useDocHubIntegration = (
         if (!canManageGlobal && project.id && userId) {
             try {
                 await storageAdapter.delete(buildDocHubPersonalLocationKey(userId, project.id));
+                notifyProjectDocHubPersonalRootChanged(project.id, userId);
                 setRootLink("");
                 setRootName(project.docHubRootName || "");
                 setHasPersonalLocalRoot(false);
@@ -603,6 +611,7 @@ export const useDocHubIntegration = (
             buildDocHubPersonalLocationKey(userId, project.id),
             JSON.stringify(location),
         );
+        notifyProjectDocHubPersonalRootChanged(project.id, userId);
         setHasPersonalLocalRoot(true);
     }, [isProjectOwner, project.id, userId]);
 

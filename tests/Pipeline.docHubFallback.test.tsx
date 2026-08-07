@@ -13,6 +13,11 @@ const mocks = vi.hoisted(() => ({
   runDocHubFallbackForCategory: vi.fn(),
   ensureStructure: vi.fn().mockResolvedValue({ success: true }),
   invokeAuthedFunction: vi.fn().mockResolvedValue({}),
+  useEffectiveProjectDocHubRoot: vi.fn(() => "/personal/dochub"),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  useEffectiveProjectDocHubRoot: mocks.useEffectiveProjectDocHubRoot,
 }));
 
 vi.mock("@/context/AuthContext", () => ({
@@ -160,6 +165,9 @@ describe("Pipeline DocHub fallback", () => {
     await waitFor(() => {
       expect(mocks.ensureStructure).toHaveBeenCalledTimes(1);
     });
+    expect(mocks.ensureStructure).toHaveBeenCalledWith(
+      expect.objectContaining({ rootPath: "/personal/dochub" }),
+    );
   });
 
   it("exposes runDocHubFallbackForCategory", async () => {

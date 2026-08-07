@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
   mergeContactsMock: vi.fn(),
   updateEqMock: vi.fn(),
   updateMock: vi.fn(),
+  resolveEffectiveProjectDocHubRootMock: vi.fn(),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  resolveEffectiveProjectDocHubRoot: mocks.resolveEffectiveProjectDocHubRootMock,
 }));
 
 vi.mock("../services/supabase", () => ({
@@ -110,6 +115,7 @@ beforeEach(() => {
   mocks.updateMock.mockImplementation(() => ({
     eq: mocks.updateEqMock,
   }));
+  mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("D:\\Personal\\Project");
 
   mocks.fromMock.mockImplementation(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
@@ -244,8 +250,8 @@ describe("useContactMutations name validation", () => {
       });
 
       expect(renameFolder).toHaveBeenCalledWith(
-        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny s.r.o",
-        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny a.s",
+        "D:\\Personal\\Project\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny s.r.o",
+        "D:\\Personal\\Project\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny a.s",
         { provider: "onedrive", projectId: "p-1" },
       );
     } finally {

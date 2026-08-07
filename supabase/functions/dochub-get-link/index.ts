@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
     const { data: project, error: projectError } = await authed
       .from("projects")
       .select(
-        "id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status"
+        "id, owner_id, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1, dochub_enabled, dochub_status"
       )
       .eq("id", projectId)
       .maybeSingle();
@@ -321,6 +321,10 @@ Deno.serve(async (req) => {
      });
      if (cachedFolder?.web_url) {
        return json(200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
+     }
+
+     if (!project.owner_id || project.owner_id !== userData.user.id) {
+       return json(404, { error: "Folder link not available" });
      }
 
      const structure = getStructure((project.dochub_structure_v1 as any) || null);

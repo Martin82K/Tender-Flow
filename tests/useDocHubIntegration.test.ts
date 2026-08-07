@@ -172,6 +172,29 @@ describe('useDocHubIntegration', () => {
         expect(result.current.state.isConnected).toBe(false);
     });
 
+    it('should not synthesize cloud folder URLs when the link cache misses', async () => {
+        vi.mocked(invokeAuthedFunction).mockRejectedValue(new Error('Folder link not available'));
+        const cloudProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'gdrive',
+            docHubRootId: 'root-123',
+            docHubRootLink: 'https://drive.google.com/drive/folders/root-123',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            cloudProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(invokeAuthedFunction).toHaveBeenCalled());
+        expect(result.current.state.links?.pd).toBeNull();
+        expect(result.current.state.links?.tenders).toBeNull();
+    });
+
     it('should preserve a personal path when secure storage deletion fails', async () => {
         const deleteSpy = vi.spyOn(storageAdapter, 'delete').mockRejectedValueOnce(new Error('storage unavailable'));
         const sharedProject = {

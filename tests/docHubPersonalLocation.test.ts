@@ -8,6 +8,8 @@ import {
   parseDocHubProjectMarkerValue,
   normalizeDocHubOnlineUrl,
   resolveEffectiveLocalRoot,
+  resolveValidatedEffectiveLocalRoot,
+  validateDocHubPersonalLocation,
 } from "@shared/dochub/personalLocation";
 
 describe("DocHub personal location", () => {
@@ -58,6 +60,15 @@ describe("DocHub personal location", () => {
     })).toBe("C:\\Owner\\Project-1");
   });
 
+  it("fails closed when a previously stored personal mapping is no longer valid", () => {
+    expect(resolveValidatedEffectiveLocalRoot({
+      isProjectOwner: true,
+      projectRootPath: "C:\\Owner\\Project-1",
+      personalRootPath: null,
+      hadStoredLocation: true,
+    })).toBe("");
+  });
+
   it("validates the project marker before accepting a synchronized folder", () => {
     const marker = createDocHubProjectMarker("project-1", "2026-08-07T12:00:00.000Z");
 
@@ -70,6 +81,30 @@ describe("DocHub personal location", () => {
       parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2")),
       "project-1",
     )).toBe(true);
+  });
+
+  it("rejects a stored personal location when its folder or project marker changed", async () => {
+    const location = {
+      version: 1 as const,
+      userId: "user-a",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    };
+
+    await expect(validateDocHubPersonalLocation(location, "project-1", {
+      folderExists: async () => true,
+      readMarker: async () => createDocHubProjectMarker("project-2"),
+    })).resolves.toBeNull();
+    await expect(validateDocHubPersonalLocation(location, "project-1", {
+      folderExists: async () => false,
+      readMarker: async () => createDocHubProjectMarker("project-1"),
+    })).resolves.toBeNull();
+    await expect(validateDocHubPersonalLocation(location, "project-1", {
+      folderExists: async () => true,
+      readMarker: async () => createDocHubProjectMarker("project-1"),
+    })).resolves.toEqual(location);
   });
 
   it("accepts only HTTPS links from supported cloud folder providers", () => {

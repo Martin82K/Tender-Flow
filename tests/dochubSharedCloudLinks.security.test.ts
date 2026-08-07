@@ -44,6 +44,22 @@ describe("DocHub shared cloud links", () => {
     expect(tokenIndex).toBeGreaterThan(nestedCacheIndex);
   });
 
+  it("allows cache hits but rejects shared cache misses before OAuth or folder creation", () => {
+    const source = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const cachedReturnIndex = source.indexOf("cachedFolder.web_url");
+    const ownerGuardIndex = source.indexOf("project.owner_id !== userData.user.id", cachedReturnIndex);
+    const tokenIndex = source.indexOf("await getAccessTokenForUser", cachedReturnIndex);
+    const ensureIndex = source.indexOf("await ensureProjectFolder", cachedReturnIndex);
+
+    expect(source).toContain("owner_id, dochub_provider");
+    expect(ownerGuardIndex).toBeGreaterThan(cachedReturnIndex);
+    expect(tokenIndex).toBeGreaterThan(ownerGuardIndex);
+    expect(ensureIndex).toBeGreaterThan(ownerGuardIndex);
+  });
+
   it("requires project ownership in every authenticated global mutation endpoint", () => {
     const endpoints = [
       "dochub-auth-url",

@@ -14,6 +14,7 @@ import {
     sanitizeSubcontractorCompanyName,
     validateSubcontractorCompanyName,
 } from "../../shared/dochub/subcontractorNameRules";
+import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -151,7 +152,7 @@ export const useUpdateContactMutation = () => {
                 // Let's refactor slightly to access context
             }
         },
-        onSettled: (data, error, variables, context: any) => {
+        onSettled: async (data, error, variables, context: any) => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
 
             // Moving logic to onSettled to ensure context access or just handle it here.
@@ -171,7 +172,9 @@ export const useUpdateContactMutation = () => {
                     const project = queryClient.getQueryData<ProjectDetails>(['project', projectId]);
                     if (project && project.docHubEnabled && project.docHubStatus === 'connected') {
                         const provider = project.docHubProvider;
-                        const rootPath = project.docHubRootLink;
+                        const rootPath = provider === 'onedrive'
+                            ? await resolveEffectiveProjectDocHubRoot(project, user?.id ?? null)
+                            : project.docHubRootLink;
                         const structure = (project.docHubStructureV1 as any) || {};
                         const tendersName = structure.tenders || "01_VÝBĚROVÁ_ŘÍZENÍ";
 

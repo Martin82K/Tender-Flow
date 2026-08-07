@@ -36,6 +36,7 @@ import { usePipelineSubcontractorSelection } from "@/features/projects/model/use
 import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
+import { useEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
 import {
   isValidEmailAddress,
   normalizeEmailAddress,
@@ -106,7 +107,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // ... inside the render, look for EditBidModal ...
 
   const projectData = projectDetails;
-  const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
+  const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
   const docHubStructure = resolveDocHubStructureV1(
