@@ -1,6 +1,7 @@
 const RETIRED_SECURE_STORAGE_KEYS = [
   "bid_comparison_agent_secret_v1",
   "bidComparison:autoConfigs:v1",
+  "bidComparisonAgentSettings:v1",
 ] as const;
 
 interface SecureStorageCleanupTarget {
@@ -10,7 +11,17 @@ interface SecureStorageCleanupTarget {
 export const cleanupRetiredDesktopFeatureStorage = async (
   storage: SecureStorageCleanupTarget,
 ): Promise<void> => {
-  await Promise.all(
-    RETIRED_SECURE_STORAGE_KEYS.map((key) => storage.delete(key)),
-  );
+  const errors: unknown[] = [];
+
+  for (const key of RETIRED_SECURE_STORAGE_KEYS) {
+    try {
+      await storage.delete(key);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw errors[0];
+  }
 };

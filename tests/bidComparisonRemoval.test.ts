@@ -53,4 +53,13 @@ describe("odstranění modulu porovnání nabídek", () => {
 
     expect(remainingReferences).toEqual([]);
   });
+
+  it("neinzeruje odstraněný modul v katalogu funkcí", () => {
+    const catalog = readFileSync(
+      join(root, "docs/product/feature-catalog.md"),
+      "utf8",
+    );
+
+    expect(catalog).not.toMatch(/bid comparison|porovnání nabídek/i);
+  });
 });
