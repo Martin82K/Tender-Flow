@@ -22,7 +22,7 @@ export class SecureStorageService {
             return this.cache.get(key) || null;
         }
 
-        const data = await this.loadStorage();
+        const data = await this.loadStorage({ tolerateUnreadable: true });
         const encryptedValue = data[key];
 
         if (!encryptedValue) return null;
@@ -64,13 +64,20 @@ export class SecureStorageService {
         await this.saveStorage(data);
     }
 
-    private async loadStorage(): Promise<Record<string, string>> {
+    private async loadStorage(
+        options: { tolerateUnreadable?: boolean } = {},
+    ): Promise<Record<string, string>> {
         try {
             const content = await fs.readFile(this.storagePath, 'utf-8');
             return JSON.parse(content);
         } catch (error) {
-            // File doesn't exist or is invalid
-            return {};
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+                return {};
+            }
+            if (options.tolerateUnreadable) {
+                return {};
+            }
+            throw error;
         }
     }
 
