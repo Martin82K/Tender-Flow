@@ -405,6 +405,51 @@ describe('useDocHubIntegration', () => {
         });
     });
 
+    it('should preserve the matching cloud connection when another provider is stale', async () => {
+        const googleUrl = 'https://drive.google.com/drive/folders/google-root';
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+            docHubRootId: 'local:C:\\Owner\\Project',
+            docHubRootWebUrl: googleUrl,
+            docHubSettings: {
+                gdrive: {
+                    rootId: 'google-root',
+                    rootName: 'Projekt / etapa',
+                    rootWebUrl: googleUrl,
+                },
+                onedrive_cloud: {
+                    rootId: 'old-onedrive-root',
+                    rootWebUrl: 'https://contoso.sharepoint.com/sites/old',
+                },
+            },
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        await act(async () => result.current.actions.saveOnlineLink());
+
+        expect(onUpdateMock).toHaveBeenCalledWith({
+            docHubRootWebUrl: googleUrl,
+            docHubSettings: {
+                gdrive: {
+                    rootId: 'google-root',
+                    rootName: 'Projekt / etapa',
+                    rootWebUrl: googleUrl,
+                    rootLink: googleUrl,
+                },
+                onedrive_cloud: {
+                    rootId: 'old-onedrive-root',
+                    rootWebUrl: 'https://contoso.sharepoint.com/sites/old',
+                    rootLink: 'https://contoso.sharepoint.com/sites/old',
+                },
+            },
+        });
+    });
+
     it('should show an error when saving the online URL fails', async () => {
         const onUpdate = vi.fn().mockRejectedValue(new Error('network unavailable'));
         const ownerProject = {

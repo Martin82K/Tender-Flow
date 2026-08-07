@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   canOpenProjectDocHub,
   getDocHubCloudConnection,
+  replaceDocHubCloudFallbackUrl,
+  sanitizeDocHubSettings,
 } from "@shared/dochub/cloudConnection";
 import { resolveCloudDocHubConnection } from "../supabase/functions/_shared/dochub_connection";
 import type { ProjectDetails } from "@/types";
@@ -72,5 +74,44 @@ describe("DocHub cloud connection fallback", () => {
       docHubEnabled: true,
       docHubStatus: undefined,
     }, "D:\\Synchronizace\\Projekt")).toBe(true);
+  });
+
+  it("zachová zobrazovaný název cloudové složky s lomítkem", () => {
+    expect(sanitizeDocHubSettings({
+      gdrive: {
+        rootId: "cloud-root",
+        rootName: "Projekt / etapa",
+        rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      },
+    }).gdrive?.rootName).toBe("Projekt / etapa");
+  });
+
+  it("při změně Google fallbacku zachová nezávislé OneDrive připojení", () => {
+    expect(replaceDocHubCloudFallbackUrl({
+      gdrive: {
+        rootId: "old-google-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/old-google-root",
+      },
+      onedrive_cloud: {
+        rootId: "onedrive-root",
+        rootWebUrl: "https://contoso.sharepoint.com/sites/project",
+      },
+    }, "https://drive.google.com/drive/folders/new-google-root")).toEqual({
+      gdrive: {
+        rootLink: "https://drive.google.com/drive/folders/new-google-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/new-google-root",
+      },
+      onedrive_cloud: {
+        rootId: "onedrive-root",
+        rootLink: "https://contoso.sharepoint.com/sites/project",
+        rootWebUrl: "https://contoso.sharepoint.com/sites/project",
+      },
+    });
+  });
+
+  it("neuloží lokální cestu vydávanou za zobrazovaný název", () => {
+    expect(sanitizeDocHubSettings({
+      local: { rootName: "C:\\Users\\Owner\\Projekt" },
+    }).local).toBeUndefined();
   });
 });

@@ -23,6 +23,7 @@ import {
     notifyProjectDocHubPersonalRootChanged,
 } from '@features/projects/dochub/model/personalRoot';
 import {
+    getDocHubCloudSettingsForUrl,
     replaceDocHubCloudFallbackUrl,
     sanitizeDocHubSettings,
     snapshotActiveCloudSettings,
@@ -484,13 +485,15 @@ export const useDocHubIntegration = (
             const currentOnlineUrl = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || '');
             const onlineRootChanged = currentOnlineUrl !== normalizedOnlineUrl;
             const sanitizedSettings = sanitizeDocHubSettings(project.docHubSettings);
-            const storedCloudConnectionMismatch = [
-                sanitizedSettings.gdrive,
-                sanitizedSettings.onedrive_cloud,
-            ].some((settings) => Boolean(
-                settings?.rootId &&
-                normalizeDocHubOnlineUrl(settings.rootWebUrl || settings.rootLink || '') !== normalizedOnlineUrl
-            ));
+            const storedSettingsForOnlineUrl = normalizedOnlineUrl
+                ? getDocHubCloudSettingsForUrl(sanitizedSettings, normalizedOnlineUrl)
+                : undefined;
+            const storedCloudConnectionMismatch = Boolean(
+                storedSettingsForOnlineUrl?.rootId &&
+                normalizeDocHubOnlineUrl(
+                    storedSettingsForOnlineUrl.rootWebUrl || storedSettingsForOnlineUrl.rootLink || '',
+                ) !== normalizedOnlineUrl
+            );
             const activeCloudConnectionMismatch = Boolean(
                 (project.docHubProvider === "gdrive" || project.docHubProvider === "onedrive_cloud") &&
                 project.docHubRootId &&

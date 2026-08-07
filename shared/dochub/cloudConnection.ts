@@ -13,10 +13,31 @@ export interface DocHubCloudConnection {
 const CLOUD_SETTINGS_KEYS = ["gdrive", "onedrive_cloud"] as const;
 const LOCAL_SETTINGS_KEYS = ["onedrive", "local"] as const;
 
-const sanitizeDisplayName = (value: string | undefined): string | undefined => {
+const sanitizeCloudDisplayName = (value: string | undefined): string | undefined => {
   const trimmed = value?.trim();
+  if (
+    !trimmed ||
+    /^[a-z]:[\\/]/i.test(trimmed) ||
+    trimmed.startsWith("\\\\") ||
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("/")
+  ) {
+    return undefined;
+  }
+  return trimmed || undefined;
+};
+
+const sanitizeLocalDisplayName = (value: string | undefined): string | undefined => {
+  const trimmed = sanitizeCloudDisplayName(value);
   if (!trimmed || trimmed.includes("/") || trimmed.includes("\\")) return undefined;
   return trimmed;
+};
+
+const getCloudSettingsKeyForUrl = (
+  onlineUrl: string,
+): (typeof CLOUD_SETTINGS_KEYS)[number] => {
+  const hostname = new URL(onlineUrl).hostname.toLowerCase();
+  return hostname === "drive.google.com" ? "gdrive" : "onedrive_cloud";
 };
 
 const sanitizeOpaqueId = (value: string | undefined): string | undefined => {
@@ -45,7 +66,7 @@ export const sanitizeDocHubSettings = (
     );
     const next: DocHubProviderSettings = {
       rootLink: onlineUrl || undefined,
-      rootName: sanitizeDisplayName(current.rootName),
+      rootName: sanitizeCloudDisplayName(current.rootName),
       rootId: sanitizeOpaqueId(current.rootId),
       driveId: sanitizeOpaqueId(current.driveId),
       siteId: sanitizeOpaqueId(current.siteId),
@@ -58,7 +79,7 @@ export const sanitizeDocHubSettings = (
     const current = settings?.[key];
     if (!current) continue;
     const next: DocHubProviderSettings = {
-      rootName: sanitizeDisplayName(current.rootName),
+      rootName: sanitizeLocalDisplayName(current.rootName),
       rootWebUrl: normalizeDocHubOnlineUrl(current.rootWebUrl || "") || undefined,
     };
     if (Object.values(next).some(Boolean)) sanitized[key] = next;
@@ -72,14 +93,23 @@ export const replaceDocHubCloudFallbackUrl = (
   onlineUrl: string | null,
 ): NonNullable<ProjectDetails["docHubSettings"]> => {
   const next = sanitizeDocHubSettings(settings);
-  delete next.gdrive;
-  delete next.onedrive_cloud;
-
-  if (!onlineUrl) return next;
-  const hostname = new URL(onlineUrl).hostname.toLowerCase();
-  const key = hostname === "drive.google.com" ? "gdrive" : "onedrive_cloud";
+  if (!onlineUrl) {
+    delete next.gdrive;
+    delete next.onedrive_cloud;
+    return next;
+  }
+  const key = getCloudSettingsKeyForUrl(onlineUrl);
   next[key] = { rootLink: onlineUrl, rootWebUrl: onlineUrl };
   return next;
+};
+
+export const getDocHubCloudSettingsForUrl = (
+  settings: ProjectDetails["docHubSettings"],
+  onlineUrl: string,
+): DocHubProviderSettings | undefined => {
+  const normalizedUrl = normalizeDocHubOnlineUrl(onlineUrl);
+  if (!normalizedUrl) return undefined;
+  return sanitizeDocHubSettings(settings)[getCloudSettingsKeyForUrl(normalizedUrl)];
 };
 
 const asCloudConnection = (

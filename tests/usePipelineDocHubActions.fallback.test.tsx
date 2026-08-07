@@ -102,6 +102,35 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     );
   });
 
+  it("použije online fallback i u staršího projektu bez uloženého stavu", async () => {
+    const legacyProject: ProjectDetails = {
+      ...project,
+      docHubStatus: undefined,
+    };
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: legacyProject,
+      projectDetails: legacyProject,
+      docHubRoot: legacyProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(mocks.invokeAuthedFunction).toHaveBeenCalledWith(
+      "dochub-get-link",
+      expect.anything(),
+    );
+    expect(window.open).toHaveBeenCalledWith(
+      "https://drive.google.com/drive/folders/resolved-folder",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   it("přejde online i když složka existovala, ale její otevření mezitím selhalo", async () => {
     expectConsoleWarn("[DocHub] Open failed, falling back online");
     mocks.folderExists.mockResolvedValue(true);

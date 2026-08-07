@@ -43,7 +43,8 @@ export const usePipelineDocHubActions = ({
 }: UsePipelineDocHubActionsInput) => {
   const canUseDocHubBackend = Boolean(
     getDocHubCloudConnection(projectDetails) &&
-    projectDetails.docHubStatus === "connected",
+    projectDetails.docHubStatus !== "disconnected" &&
+    projectDetails.docHubStatus !== "error",
   );
 
   const openDocHubPath = async (path: string): Promise<boolean> => {
@@ -156,7 +157,8 @@ export const usePipelineDocHubActions = ({
 
   const openOnlineRootFallback = (): boolean => {
     if (
-      projectDetails.docHubStatus !== "connected" ||
+      projectDetails.docHubStatus === "disconnected" ||
+      projectDetails.docHubStatus === "error" ||
       !projectDetails.docHubProvider
     ) {
       return false;
