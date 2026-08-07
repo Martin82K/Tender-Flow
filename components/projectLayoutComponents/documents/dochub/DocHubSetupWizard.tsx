@@ -36,6 +36,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
   } = state;
 
   const isConnectedStatus = status === "connected";
+  const shouldOpenCurrentRoot = isConnectedStatus &&
+    rootLink.trim() !== "" &&
+    (!isLocalProvider || hasPersonalLocalRoot);
 
   return (
     <div className="bg-slate-100 dark:bg-slate-900/20 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
@@ -163,11 +166,11 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   }
                   className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                 />
-                {(isConnectedStatus && rootLink === state.rootLink) || !isConnectedStatus ? (
+                {shouldOpenCurrentRoot || !isConnectedStatus || isLocalProvider ? (
                   <button
                     type="button"
                     onClick={() => {
-                      if (isConnectedStatus && rootLink === state.rootLink) {
+                      if (shouldOpenCurrentRoot) {
                         actions.openRoot();
                       } else {
                         actions.resolveRoot();
@@ -176,14 +179,14 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                     disabled={isConnecting || (!isConnectedStatus && !provider) || !rootLink.trim()}
                     className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${isConnecting || (!isConnectedStatus && !provider) || !rootLink.trim()
                       ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                      : isConnectedStatus && rootLink === state.rootLink
+                      : shouldOpenCurrentRoot
                         ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30 shadow-lg shadow-emerald-500/20"
                         : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
                       }`}
                   >
                     {isConnecting
                       ? "Ověřuji..."
-                      : isConnectedStatus && rootLink === state.rootLink
+                      : shouldOpenCurrentRoot
                         ? <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">folder_open</span>Otevřít složku</span>
                         : isLocalProvider
                           ? "Připojit složku"

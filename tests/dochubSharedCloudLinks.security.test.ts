@@ -11,8 +11,8 @@ describe("DocHub shared cloud links", () => {
       "utf8",
     );
 
-    const cachedLookupIndex = source.indexOf("getCachedTopLevelFolder");
-    const cachedReturnIndex = source.indexOf("cachedTopLevelFolder.web_url");
+    const cachedLookupIndex = source.indexOf("getCachedFolderForRequest");
+    const cachedReturnIndex = source.indexOf("cachedFolder.web_url");
     const tokenLookupIndex = source.indexOf("await getAccessTokenForUser", cachedReturnIndex);
 
     expect(cachedLookupIndex).toBeGreaterThan(-1);
@@ -28,6 +28,20 @@ describe("DocHub shared cloud links", () => {
 
     expect(source).toContain("key: normalizeFolderKey(args.key)");
     expect(source).toContain('.eq("key", normalizeFolderKey(args.key))');
+  });
+
+  it("returns cached inquiry and supplier links before requiring OAuth", () => {
+    const source = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const nestedCacheIndex = source.indexOf("getCachedFolderForRequest");
+    const tokenIndex = source.indexOf("await getAccessTokenForUser", nestedCacheIndex);
+
+    expect(source).toContain('`${categoryId}:inquiries`');
+    expect(source).toContain('`${categoryId}:${supplierId}`');
+    expect(nestedCacheIndex).toBeGreaterThan(-1);
+    expect(tokenIndex).toBeGreaterThan(nestedCacheIndex);
   });
 
   it("requires project ownership in every authenticated global mutation endpoint", () => {
@@ -57,7 +71,25 @@ describe("DocHub shared cloud links", () => {
         path.join(repoRoot, `supabase/functions/${endpoint}/index.ts`),
         "utf8",
       );
-      expect(source, endpoint).toContain("project.owner_id && project.owner_id !== stateRow.user_id");
+      expect(source, endpoint).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
+    }
+  });
+
+  it("fails closed for ownerless projects in global mutation endpoints", () => {
+    for (const endpoint of [
+      "dochub-auth-url",
+      "dochub-autocreate",
+      "dochub-google-create-root",
+      "dochub-google-desktop-token",
+      "dochub-manage-folder",
+      "dochub-resolve-root",
+      "dochub-sync-category",
+    ]) {
+      const source = fs.readFileSync(
+        path.join(repoRoot, `supabase/functions/${endpoint}/index.ts`),
+        "utf8",
+      );
+      expect(source, endpoint).toMatch(/!\w+\.owner_id \|\| \w+\.owner_id !== userData\.user\.id/);
     }
   });
 });

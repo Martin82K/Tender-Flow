@@ -68,11 +68,24 @@ const getStoredFolder = async (args: {
     | null;
 };
 
-const getCachedTopLevelFolder = async (args: {
+const getCachedFolderForRequest = async (args: {
   projectId: string;
   provider: Provider;
   kind: LinkKind;
-}) => getStoredFolder({ ...args, key: null });
+  categoryId?: string;
+  supplierId?: string;
+}) => {
+  const { categoryId, supplierId } = args;
+  let key: string | null = null;
+  if (args.kind === "tender_inquiries") {
+    if (!categoryId) return null;
+    key = `${categoryId}:inquiries`;
+  } else if (args.kind === "supplier") {
+    if (!categoryId || !supplierId) return null;
+    key = `${categoryId}:${supplierId}`;
+  }
+  return getStoredFolder({ ...args, key });
+};
 
 const ensureProjectFolder = async (args: {
   provider: Provider;
@@ -299,11 +312,15 @@ Deno.serve(async (req) => {
      const driveId = (project.dochub_drive_id as string | null) || null;
      if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
 
-     if (["pd", "tenders", "contracts", "realization", "archive"].includes(kind)) {
-       const cachedTopLevelFolder = await getCachedTopLevelFolder({ projectId, provider, kind });
-       if (cachedTopLevelFolder?.web_url) {
-         return json(200, { webUrl: cachedTopLevelFolder.web_url, itemId: cachedTopLevelFolder.item_id });
-       }
+     const cachedFolder = await getCachedFolderForRequest({
+       projectId,
+       provider,
+       kind,
+       categoryId,
+       supplierId,
+     });
+     if (cachedFolder?.web_url) {
+       return json(200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
      }
 
      const structure = getStructure((project.dochub_structure_v1 as any) || null);

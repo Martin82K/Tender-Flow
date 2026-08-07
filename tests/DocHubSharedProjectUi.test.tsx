@@ -81,4 +81,21 @@ describe("DocHub shared project UI", () => {
     );
     openSpy.mockRestore();
   });
+
+  it("validates a manually entered local path before opening it", () => {
+    actions.resolveRoot.mockClear();
+    actions.openRoot.mockClear();
+    render(
+      <DocHubSetupWizard
+        state={{ ...sharedState, hasPersonalLocalRoot: false } as any}
+        actions={actions as any}
+        setters={setters as any}
+        showModal={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Připojit složku" }));
+    expect(actions.resolveRoot).toHaveBeenCalledTimes(1);
+    expect(actions.openRoot).not.toHaveBeenCalled();
+  });
 });

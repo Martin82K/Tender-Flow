@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildDocHubPersonalLocationKey,
   createDocHubProjectMarker,
+  isDocHubProjectMarkerForDifferentProject,
   parseDocHubPersonalLocation,
   parseDocHubProjectMarker,
+  parseDocHubProjectMarkerValue,
   normalizeDocHubOnlineUrl,
   resolveEffectiveLocalRoot,
 } from "@shared/dochub/personalLocation";
@@ -62,6 +64,12 @@ describe("DocHub personal location", () => {
     expect(parseDocHubProjectMarker(marker, "project-1")?.projectId).toBe("project-1");
     expect(parseDocHubProjectMarker(marker, "project-2")).toBeNull();
     expect(parseDocHubProjectMarker("not-json", "project-1")).toBeNull();
+    expect(parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2"))?.projectId)
+      .toBe("project-2");
+    expect(isDocHubProjectMarkerForDifferentProject(
+      parseDocHubProjectMarkerValue(createDocHubProjectMarker("project-2")),
+      "project-1",
+    )).toBe(true);
   });
 
   it("accepts only HTTPS links from supported cloud folder providers", () => {

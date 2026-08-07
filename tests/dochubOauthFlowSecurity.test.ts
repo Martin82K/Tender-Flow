@@ -26,7 +26,7 @@ describe("dochub oauth flow project access hardening", () => {
 
     for (const source of [googleCallbackSource, microsoftCallbackSource]) {
       expect(source).toContain('.select("id, owner_id")');
-      expect(source).toContain("project.owner_id && project.owner_id !== stateRow.user_id");
+      expect(source).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
       expect(source).not.toContain('.from("project_shares")');
       expect(source).toContain('return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));');
     }

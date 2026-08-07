@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (projectError || !project) return json(403, { error: "No access to project" });
 
-    if (project.owner_id && project.owner_id !== userData.user.id) {
+    if (!project.owner_id || project.owner_id !== userData.user.id) {
       return json(403, { error: "Project owner permission required" });
     }
 

@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
     if (!project) {
       return json(403, { error: "Forbidden" });
     }
-    if (project.owner_id && project.owner_id !== userData.user.id) {
+    if (!project.owner_id || project.owner_id !== userData.user.id) {
       return json(403, { error: "Project owner permission required" });
     }
 

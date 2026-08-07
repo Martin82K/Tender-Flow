@@ -10,10 +10,11 @@ import {
     DOC_HUB_PROJECT_MARKER_FILENAME,
     buildDocHubPersonalLocationKey,
     createDocHubProjectMarker,
+    isDocHubProjectMarkerForDifferentProject,
     joinDocHubPath,
     normalizeDocHubOnlineUrl,
     parseDocHubPersonalLocation,
-    parseDocHubProjectMarker,
+    parseDocHubProjectMarkerValue,
     resolveEffectiveLocalRoot,
     type DocHubPersonalLocation,
 } from '@shared/dochub/personalLocation';
@@ -52,8 +53,8 @@ export const useDocHubIntegration = (
     options: { userId?: string | null } = {},
 ) => {
     const userId = options.userId ?? null;
-    const isProjectOwner = !project.ownerId || project.ownerId === userId;
-    const isSharedProject = !!project.ownerId && project.ownerId !== userId;
+    const isProjectOwner = project.ownerId ? project.ownerId === userId : !userId;
+    const isSharedProject = !!userId && !isProjectOwner;
     const canManageGlobal = isProjectOwner;
     const initialRootLink = project.docHubProvider === 'onedrive'
         ? resolveEffectiveLocalRoot({
@@ -144,7 +145,16 @@ export const useDocHubIntegration = (
             if (saved?.rootName) setRootName(saved.rootName);
             personalLocationLoadedRef.current = true;
         })().catch(() => {
-            if (!cancelled) personalLocationLoadedRef.current = true;
+            if (!cancelled) {
+                setHasPersonalLocalRoot(false);
+                setRootLink(resolveEffectiveLocalRoot({
+                    isProjectOwner,
+                    projectRootPath: project.docHubRootLink,
+                    personalRootPath: null,
+                }));
+                setRootName(project.docHubRootName || '');
+                personalLocationLoadedRef.current = true;
+            }
         });
         return () => { cancelled = true; };
     }, [project.id, project.docHubProvider, project.docHubRootLink, isProjectOwner, userId]);
@@ -154,7 +164,7 @@ export const useDocHubIntegration = (
         setEnabled(!!project.docHubEnabled);
         if (project.docHubProvider !== 'onedrive') {
             setRootLink(project.docHubRootLink || '');
-        } else if (!personalLocationLoadedRef.current) {
+        } else if (!isSharedProject && !personalLocationLoadedRef.current) {
             setRootLink(resolveEffectiveLocalRoot({
                 isProjectOwner,
                 projectRootPath: project.docHubRootLink,
@@ -230,12 +240,17 @@ export const useDocHubIntegration = (
         project.docHubAutoCreateEnabled,
         docHubStructureKey,
         isProjectOwner,
+        isSharedProject,
     ]);
 
     // Derived State
     const isAuthed = enabled && status === "connected";
     const isLocalProvider = provider === "onedrive";
-    const isConnected = isAuthed && (isLocalProvider ? true : !!project.docHubRootId && rootLink.trim() !== '');
+    const isConnected = isAuthed && (isLocalProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
+    const setRootLinkDraft = useCallback((value: string) => {
+        setRootLink(value);
+        if (provider === 'onedrive') setHasPersonalLocalRoot(false);
+    }, [provider]);
     const onlineRootLink = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || '') ||
         normalizeDocHubOnlineUrl(project.docHubRootLink || '') || '';
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
@@ -296,6 +311,7 @@ export const useDocHubIntegration = (
     // Load settings when provider changes
     useEffect(() => {
         if (!provider) return;
+        if (provider === 'onedrive' && isSharedProject) return;
 
         // If we have stored settings for this provider, load them
         const settings = project.docHubSettings?.[provider];
@@ -316,7 +332,7 @@ export const useDocHubIntegration = (
                 setRootName('');
             }
         }
-    }, [provider, project.docHubSettings, project.docHubProvider]);
+    }, [provider, project.docHubSettings, project.docHubProvider, isSharedProject]);
 
     // Actions
     const handleSaveSetup = useCallback(() => {
@@ -366,13 +382,21 @@ export const useDocHubIntegration = (
         setIsEditingSetup(false);
     }, [canManageGlobal, onlineRootLinkDraft, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate, showMessage]);
 
-    const handleDisconnect = useCallback(() => {
+    const handleDisconnect = useCallback(async () => {
         if (!canManageGlobal && project.id && userId) {
-            void storageAdapter.delete(buildDocHubPersonalLocationKey(userId, project.id));
-            setRootLink("");
-            setRootName(project.docHubRootName || "");
-            setHasPersonalLocalRoot(false);
-            setIsEditingSetup(false);
+            try {
+                await storageAdapter.delete(buildDocHubPersonalLocationKey(userId, project.id));
+                setRootLink("");
+                setRootName(project.docHubRootName || "");
+                setHasPersonalLocalRoot(false);
+                setIsEditingSetup(false);
+            } catch (error) {
+                showMessage(
+                    "Nelze odebrat cestu",
+                    error instanceof Error ? error.message : "Osobní cestu se nepodařilo bezpečně odebrat.",
+                    "danger",
+                );
+            }
             return;
         }
         setRootLink("");
@@ -393,7 +417,7 @@ export const useDocHubIntegration = (
             docHubSiteId: null,
             docHubRootWebUrl: null,
         });
-    }, [canManageGlobal, onUpdate, project.docHubRootName, project.id, userId]);
+    }, [canManageGlobal, onUpdate, project.docHubRootName, project.id, showMessage, userId]);
 
     const handleConnect = useCallback(async () => {
         if (!canManageGlobal) {
@@ -546,13 +570,19 @@ export const useDocHubIntegration = (
         }
 
         const markerPath = joinDocHubPath(path, DOC_HUB_PROJECT_MARKER_FILENAME);
-        let validMarker = false;
+        let marker: ReturnType<typeof parseDocHubProjectMarkerValue> = null;
         try {
             const bytes = await fileSystemAdapter.readFile(markerPath, { maxBytes: 64 * 1024 });
-            validMarker = !!parseDocHubProjectMarker(new TextDecoder().decode(bytes), project.id);
+            marker = parseDocHubProjectMarkerValue(new TextDecoder().decode(bytes));
         } catch {
-            validMarker = false;
+            marker = null;
         }
+
+        if (isDocHubProjectMarkerForDifferentProject(marker, project.id)) {
+            throw new Error("Vybraná složka je už propojená s jiným projektem Tender Flow.");
+        }
+
+        const validMarker = marker?.projectId === project.id;
 
         if (!validMarker && !isProjectOwner) {
             throw new Error("Vybraná složka nepatří k tomuto projektu. Vlastník ji musí nejprve připojit v Tender Flow.");
@@ -718,6 +748,15 @@ export const useDocHubIntegration = (
                     });
                 }
                 showMessage("Hotovo", `Složka "${folderName}" byla vybrána.`, "success");
+                return;
+            }
+
+            if (!canManageGlobal) {
+                showMessage(
+                    "Složkomat",
+                    "Osobní cesta sdíleného projektu je dostupná pouze v desktopové aplikaci.",
+                    "info",
+                );
                 return;
             }
 
@@ -960,7 +999,7 @@ export const useDocHubIntegration = (
             onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot
         },
         setters: {
-            setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup, setOnlineRootLinkDraft,
+            setEnabled, setRootLink: setRootLinkDraft, setRootName, setProvider, setMode, setStatus, setIsEditingSetup, setOnlineRootLinkDraft,
             setIsResultModalOpen, setStructureDraft, setExtraTopLevelDraft, setExtraSupplierDraft, setHierarchyDraft, setIsEditingStructure,
             clearModalRequest, setNewFolderName, setResolveProgress, setAutoCreateResult
         },

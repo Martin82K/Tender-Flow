@@ -9,7 +9,7 @@ export interface DocHubPersonalLocation {
   savedAt: string;
 }
 
-interface DocHubProjectMarker {
+export interface DocHubProjectMarker {
   version: 1;
   projectId: string;
   createdAt: string;
@@ -62,18 +62,32 @@ export const parseDocHubProjectMarker = (
   serialized: string,
   expectedProjectId: string,
 ): DocHubProjectMarker | null => {
+  const value = parseDocHubProjectMarkerValue(serialized);
+  return value?.projectId === expectedProjectId ? value : null;
+};
+
+export const parseDocHubProjectMarkerValue = (
+  serialized: string,
+): DocHubProjectMarker | null => {
   try {
     const value = JSON.parse(serialized) as Partial<DocHubProjectMarker>;
     if (
       value.version !== 1 ||
-      value.projectId !== expectedProjectId ||
-      typeof value.createdAt !== "string"
+      typeof value.projectId !== "string" ||
+      !value.projectId.trim() ||
+      typeof value.createdAt !== "string" ||
+      !value.createdAt.trim()
     ) return null;
     return value as DocHubProjectMarker;
   } catch {
     return null;
   }
 };
+
+export const isDocHubProjectMarkerForDifferentProject = (
+  marker: DocHubProjectMarker | null,
+  expectedProjectId: string,
+): boolean => marker !== null && marker.projectId !== expectedProjectId;
 
 export const joinDocHubPath = (rootPath: string, name: string): string => {
   const separator = rootPath.includes("\\") ? "\\" : "/";

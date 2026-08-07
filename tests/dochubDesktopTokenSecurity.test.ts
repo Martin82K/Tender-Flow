@@ -12,7 +12,7 @@ describe("dochub desktop token permission hardening", () => {
     );
 
     expect(source).toContain('.select("id, owner_id")');
-    expect(source).toContain("project.owner_id && project.owner_id !== userData.user.id");
+    expect(source).toContain("!project.owner_id || project.owner_id !== userData.user.id");
     expect(source).toContain('return json(403, { error: "Project owner permission required" });');
     expect(source).not.toContain('"has_project_share_permission"');
   });

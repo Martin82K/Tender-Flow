@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
-    if (project.owner_id && project.owner_id !== stateRow.user_id) {
+    if (!project.owner_id || project.owner_id !== stateRow.user_id) {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 

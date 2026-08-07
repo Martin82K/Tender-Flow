@@ -7,6 +7,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDocHubIntegration } from '../hooks/useDocHubIntegration';
 import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
+import { storageAdapter } from '../services/platformAdapter';
 
 // Mock dependencies
 vi.mock('../services/supabase', () => ({
@@ -100,7 +101,7 @@ describe('useDocHubIntegration', () => {
         }));
     });
 
-    it('should not let a shared user disconnect global DocHub settings', () => {
+    it('should not let a shared user disconnect global DocHub settings', async () => {
         const sharedProject = {
             ...mockProject,
             id: 'shared-project',
@@ -117,7 +118,7 @@ describe('useDocHubIntegration', () => {
             { userId: 'shared-user' },
         ));
 
-        act(() => result.current.actions.disconnect());
+        await act(async () => result.current.actions.disconnect());
 
         expect(result.current.state.canManageGlobal).toBe(false);
         expect(result.current.state.isSharedProject).toBe(true);
@@ -146,6 +147,79 @@ describe('useDocHubIntegration', () => {
         expect(invokeAuthedFunction).not.toHaveBeenCalledWith('dochub-autocreate', expect.anything());
         expect(result.current.state.modalRequest?.message).toContain('pouze vlastník');
         expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should never restore the owner local path for a shared user', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+            docHubSettings: {
+                onedrive: { rootLink: 'C:\\Owner\\Project', rootName: 'Project' },
+            },
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(result.current.state.rootLink).toBe(''));
+        expect(result.current.state.isConnected).toBe(false);
+    });
+
+    it('should preserve a personal path when secure storage deletion fails', async () => {
+        const deleteSpy = vi.spyOn(storageAdapter, 'delete').mockRejectedValueOnce(new Error('storage unavailable'));
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Owner\\Project',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+        act(() => result.current.setters.setRootLink('D:\\Shared\\Project'));
+
+        await act(async () => result.current.actions.disconnect());
+
+        expect(result.current.state.rootLink).toBe('D:\\Shared\\Project');
+        expect(result.current.state.modalRequest?.variant).toBe('danger');
+        deleteSpy.mockRestore();
+    });
+
+    it('should reject the browser folder fallback for a shared user', async () => {
+        const picker = vi.fn().mockResolvedValue({ name: 'Shared Project' });
+        Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.pickLocalFolder());
+
+        expect(picker).not.toHaveBeenCalled();
+        expect(onUpdateMock).not.toHaveBeenCalled();
+        expect(result.current.state.modalRequest?.message).toContain('desktopové aplikaci');
+        delete (window as any).showDirectoryPicker;
     });
 
     it('should handle connect flow (auth url)', async () => {
