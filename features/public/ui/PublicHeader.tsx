@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import logo from "@/assets/logo.svg";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
-import { useAuth } from "@/context/AuthContext";
+import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";
 
 const navItems = [
   { id: "top", label: "Home" },
-  { id: "demo", label: "Demo" },
   // { id: "solution", label: "Řešení" }, // HIDDEN - uncomment when section is restored
   { id: "features", label: "Funkce" },
   { id: "pricing", label: "Ceník" },
@@ -17,12 +16,6 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
 }) => {
   const { pathname } = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { loginAsDemo } = useAuth();
-
-  const handleDemo = () => {
-    loginAsDemo();
-    navigate("/app", { replace: true });
-  };
 
   const onAnchorClick = (id: string) => {
     if (pathname !== "/") {
@@ -130,13 +123,12 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
               </span>
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={handleDemo}
+          <a
+            href={DEMO_REQUEST_URL}
             className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 text-sm font-medium transition-colors"
           >
-            Spustit demo
-          </button>
+            Vyžádat demo
+          </a>
           <Link
             to="/login"
             className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 text-sm transition-colors"
@@ -167,16 +159,13 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
                 {item.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setMobileOpen(false);
-                handleDemo();
-              }}
+            <a
+              href={DEMO_REQUEST_URL}
+              onClick={() => setMobileOpen(false)}
               className="text-left px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-300 text-sm font-medium transition-colors"
             >
-              Spustit demo
-            </button>
+              Vyžádat demo
+            </a>
           </div>
         </div>
       ) : null}

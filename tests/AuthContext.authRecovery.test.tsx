@@ -61,6 +61,7 @@ const setup = async (options: SetupOptions) => {
     navigate: vi.fn(),
     queryClientClear: vi.fn(),
     setAuthenticated: vi.fn().mockResolvedValue(undefined),
+    endDemoSession: vi.fn(),
     saveCredentials: vi.fn().mockResolvedValue(undefined),
     getCredentialsWithBiometric: vi.fn().mockResolvedValue(
       options.biometricPromptResult === false ? null : options.credentials,
@@ -85,7 +86,7 @@ const setup = async (options: SetupOptions) => {
   vi.doMock("../services/demoData", () => ({
     isDemoSession: vi.fn().mockReturnValue(false),
     DEMO_USER: null,
-    endDemoSession: vi.fn(),
+    endDemoSession: mockState.endDemoSession,
     startDemoSession: vi.fn(),
   }));
 
@@ -174,12 +175,14 @@ const setup = async (options: SetupOptions) => {
   const { AuthProvider, useAuth } = await import("../context/AuthContext");
 
   const Probe: React.FC = () => {
-    const { isLoading, isAuthenticated, login, logout } = useAuth();
+    const auth = useAuth();
+    const { isLoading, isAuthenticated, login, logout } = auth;
     const [loginError, setLoginError] = React.useState("");
     return (
       <div>
         <div data-testid="loading">{String(isLoading)}</div>
         <div data-testid="authenticated">{String(isAuthenticated)}</div>
+        <div data-testid="public-demo-login">{String("loginAsDemo" in auth)}</div>
         <div data-testid="login-error">{loginError}</div>
         <button
           type="button"
@@ -208,6 +211,25 @@ const setup = async (options: SetupOptions) => {
 };
 
 describe("AuthContext auth recovery", () => {
+  it("neexportuje veřejný demo login a uklidí starý demo příznak", async () => {
+    window.localStorage.setItem("demo_session", "true");
+
+    const mockState = await setup({
+      isDesktop: false,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(screen.getByTestId("public-demo-login").textContent).toBe("false");
+    expect(mockState.endDemoSession).toHaveBeenCalledTimes(1);
+    window.localStorage.removeItem("demo_session");
+  });
+
   it("login timeout nepokračuje s pending uživatelem ani session follow-upem", async () => {
     expectConsoleError("Login failed Error: Připojení k přihlašovací službě vypršelo");
     const neverResolves = new Promise<any>(() => {});

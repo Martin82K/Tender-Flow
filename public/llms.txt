@@ -108,7 +108,7 @@ Pro české a slovenské stavební firmy, generální dodavatele, přípraváře
 Tender Flow není generické CRM (Salesforce, HubSpot, Pipedrive) ani projektový nástroj (Asana, Monday) — je to platforma postavená přímo pro přípravu a vedení staveb. Pracuje s pojmy poptávka, výběrové řízení, subdodavatel, nabídka, smlouva, harmonogram a předání díla. Obsahuje stavební workflow (pipeline tendrů, OCR smluv, Ganttův harmonogram, Excel nástroje pro kalkulanty), které generické CRM ani projektové nástroje nenabízí ani s pluginy. Oproti zahraničním stavebním ERP (Procore) je cenově dostupný a v češtině.
 
 **Je k dispozici zkušební verze?**
-Ano, Pro tarif lze vyzkoušet 14 dní zdarma bez zadávání kreditní karty. Pro přístup stačí registrace na https://tenderflow.cz/register. Demo bez registrace je dostupné přímo z hlavní stránky.
+Ano, Pro tarif lze vyzkoušet 14 dní zdarma bez zadávání kreditní karty. Pro přístup stačí registrace na https://tenderflow.cz/register. Individuální demo je dostupné pouze na vyžádání e-mailem na martin@tenderflow.cz.
 
 **Funguje aplikace offline?**
 Nativní desktopová verze pro Windows a macOS poskytuje plnou funkčnost a synchronizuje data při připojení. Webová verze vyžaduje aktivní připojení k internetu.

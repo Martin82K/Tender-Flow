@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
-import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
+import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 
@@ -97,12 +97,6 @@ const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
-  const { loginAsDemo } = useAuth();
-
-  const handleDemo = useCallback(() => {
-    loginAsDemo();
-    navigate("/app", { replace: true });
-  }, [loginAsDemo]);
 
   const scrollToSection = useCallback((id: string) => {
     const el = document.getElementById(id);
@@ -190,9 +184,9 @@ export const LandingPage: React.FC = () => {
             >
               Vyzkoušet 14 dn&iacute; zdarma
             </button>
-            <button className="btn-hero-secondary" onClick={handleDemo}>
-              Prohl&eacute;dnout demo →
-            </button>
+            <a className="btn-hero-secondary" href={DEMO_REQUEST_URL}>
+              Vyž&aacute;dat demo →
+            </a>
           </div>
           <div className="social-strip">
             <div className="social-text">
@@ -628,13 +622,12 @@ export const LandingPage: React.FC = () => {
               >
                 Domluvit firemn&iacute; konzultaci
               </a>
-              <button
-                type="button"
+              <a
                 className="enterprise-pricing-secondary"
-                onClick={handleDemo}
+                href={DEMO_REQUEST_URL}
               >
-                Vyzkoušet demo
-              </button>
+                Vyž&aacute;dat demo
+              </a>
             </div>
           </div>
 
@@ -787,7 +780,7 @@ export const LandingPage: React.FC = () => {
               <h4>Produkt</h4>
               <a onClick={() => scrollToSection("funkce")}>Funkce</a>
               <a onClick={() => scrollToSection("ceny")}>Cen&iacute;k</a>
-              <a onClick={handleDemo}>Demo</a>
+              <a href={DEMO_REQUEST_URL}>Demo na vyž&aacute;d&aacute;n&iacute;</a>
             </div>
             <div className="footer-col">
               <h4>Společnost</h4>

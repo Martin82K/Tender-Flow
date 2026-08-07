@@ -4,14 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@/components/LandingPage";
 
 const mockState = vi.hoisted(() => ({
-  loginAsDemo: vi.fn(),
   navigate: vi.fn(),
-}));
-
-vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({
-    loginAsDemo: mockState.loginAsDemo,
-  }),
 }));
 
 vi.mock("@/shared/routing/router", () => ({
@@ -39,5 +32,21 @@ describe("LandingPage nové moduly", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Command Center s prioritami dne")).toBeInTheDocument();
     expect(screen.getByText("TODO Osobní s podúkoly")).toBeInTheDocument();
+  });
+
+  it("nabízí demo pouze na vyžádání a nespouští veřejnou demo session", () => {
+    render(<LandingPage />);
+
+    const requestLinks = screen.getAllByRole("link", { name: /vyžádat demo/i });
+    expect(requestLinks.length).toBeGreaterThan(0);
+    requestLinks.forEach((link) => {
+      expect(link).toHaveAttribute(
+        "href",
+        "mailto:martin@tenderflow.cz?subject=%C5%BD%C3%A1dost%20o%20demo%20TenderFlow",
+      );
+    });
+    expect(
+      screen.queryByRole("button", { name: /prohlédnout demo|vyzkoušet demo/i }),
+    ).not.toBeInTheDocument();
   });
 });
