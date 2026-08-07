@@ -17,6 +17,15 @@ export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) =>
     if (!docHubProjectLinks) return null;
 
     const effectiveStructure = resolveDocHubStructureV1(structureDraft);
+    const availableLinks = [
+        { label: `/${effectiveStructure.pd}`, href: docHubProjectLinks.pd || "" },
+        { label: `/${effectiveStructure.tenders}`, href: docHubProjectLinks.tenders || "" },
+        { label: `/${effectiveStructure.contracts}`, href: docHubProjectLinks.contracts || "" },
+        { label: `/${effectiveStructure.realization}`, href: docHubProjectLinks.realization || "" },
+        { label: `/${effectiveStructure.archive}`, href: docHubProjectLinks.archive || "" },
+    ].filter((item) => item.href.trim() !== "");
+
+    if (availableLinks.length === 0) return null;
 
     const copyPath = (href: string) => {
         navigator.clipboard
@@ -32,13 +41,7 @@ export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) =>
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-                { label: `/${effectiveStructure.pd}`, href: docHubProjectLinks.pd || "" },
-                { label: `/${effectiveStructure.tenders}`, href: docHubProjectLinks.tenders || "" },
-                { label: `/${effectiveStructure.contracts}`, href: docHubProjectLinks.contracts || "" },
-                { label: `/${effectiveStructure.realization}`, href: docHubProjectLinks.realization || "" },
-                { label: `/${effectiveStructure.archive}`, href: docHubProjectLinks.archive || "" },
-            ].map((item) => (
+            {availableLinks.map((item) => (
                 <a
                     key={item.label}
                     href={isProbablyUrl(item.href) ? item.href : undefined}

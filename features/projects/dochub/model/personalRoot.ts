@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { fileSystemAdapter, isDesktop, storageAdapter } from "@/services/platformAdapter";
 import type { ProjectDetails } from "@/types";
@@ -90,15 +90,21 @@ export const useEffectiveProjectDocHubRoot = (
     identity: rootIdentity,
     rootPath: initialRoot,
   });
+  const refreshSequenceRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
+      const refreshSequence = ++refreshSequenceRef.current;
       try {
         const nextRoot = await resolveEffectiveProjectDocHubRoot(project, userId);
-        if (!cancelled) setRootState({ identity: rootIdentity, rootPath: nextRoot });
+        if (!cancelled && refreshSequence === refreshSequenceRef.current) {
+          setRootState({ identity: rootIdentity, rootPath: nextRoot });
+        }
       } catch {
-        if (!cancelled) setRootState({ identity: rootIdentity, rootPath: "" });
+        if (!cancelled && refreshSequence === refreshSequenceRef.current) {
+          setRootState({ identity: rootIdentity, rootPath: "" });
+        }
       }
     };
     const handleChange = (event: Event) => {

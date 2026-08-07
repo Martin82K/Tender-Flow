@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { createDocHubProjectMarker } from "@shared/dochub/personalLocation";
 import type { ProjectDetails } from "@/types";
@@ -21,6 +21,7 @@ vi.mock("@/services/platformAdapter", () => ({
 
 import {
   resolveEffectiveProjectDocHubRoot,
+  notifyProjectDocHubPersonalRootChanged,
   useEffectiveProjectDocHubRoot,
 } from "@features/projects/dochub/model/personalRoot";
 
@@ -120,5 +121,40 @@ describe("DocHub effective personal root", () => {
       savedAt: "2026-08-07T12:05:00.000Z",
     }));
     await waitFor(() => expect(result.current).toBe("C:\\Owner\\Project 2"));
+  });
+
+  it("ignores an older refresh that finishes after a newer personal-root refresh", async () => {
+    let resolveOld: ((value: string) => void) | undefined;
+    let resolveNew: ((value: string) => void) | undefined;
+    const oldLocation = new Promise<string>((resolve) => { resolveOld = resolve; });
+    const newLocation = new Promise<string>((resolve) => { resolveNew = resolve; });
+    mocks.storageGet
+      .mockReturnValueOnce(oldLocation)
+      .mockReturnValueOnce(newLocation);
+
+    const { result } = renderHook(() => useEffectiveProjectDocHubRoot(project, "owner-1"));
+    act(() => notifyProjectDocHubPersonalRootChanged("project-1", "owner-1"));
+
+    resolveNew?.(JSON.stringify({
+      version: 1,
+      userId: "owner-1",
+      projectId: "project-1",
+      rootPath: "C:\\Owner\\New Project",
+      rootName: "New Project",
+      savedAt: "2026-08-07T12:10:00.000Z",
+    }));
+    await waitFor(() => expect(result.current).toBe("C:\\Owner\\New Project"));
+
+    resolveOld?.(JSON.stringify({
+      version: 1,
+      userId: "owner-1",
+      projectId: "project-1",
+      rootPath: "C:\\Owner\\Old Project",
+      rootName: "Old Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+    }));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current).toBe("C:\\Owner\\New Project");
   });
 });

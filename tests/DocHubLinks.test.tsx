@@ -20,10 +20,13 @@ const projectLinks = {
   ceniky: "C:\\TenderFlow\\06_Ceniky",
 };
 
-const renderLinks = (structureDraft: Record<string, string>) =>
+const renderLinks = (
+  structureDraft: Record<string, string>,
+  links: typeof projectLinks | Record<string, string | null> = projectLinks,
+) =>
   render(
     <DocHubLinks
-      state={{ links: projectLinks, structureDraft } as never}
+      state={{ links, structureDraft } as never}
       showModal={vi.fn()}
     />,
   );
@@ -54,5 +57,19 @@ describe("DocHubLinks", () => {
     expect(screen.getByText("/Kontrakty")).toBeInTheDocument();
     expect(screen.getByText("/Stavba")).toBeInTheDocument();
     expect(screen.getByText("/Archivace")).toBeInTheDocument();
+  });
+
+  it("renders only links that are actually available", () => {
+    renderLinks({}, {
+      pd: "https://drive.google.com/drive/folders/pd",
+      tenders: null,
+      contracts: null,
+      realization: null,
+      archive: null,
+    });
+
+    expect(screen.getByText("/01_PD")).toBeInTheDocument();
+    expect(screen.queryByText("/03_Vyberova_rizeni")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

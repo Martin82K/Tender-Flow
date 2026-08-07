@@ -47,6 +47,7 @@ const fetchWithRetry = async (input: RequestInfo | URL, init: RequestInit & { tr
 const upsertFolder = async (args: {
   projectId: string;
   provider: Provider;
+  rootId: string;
   kind: string;
   key: string | null;
   itemId: string;
@@ -57,6 +58,7 @@ const upsertFolder = async (args: {
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
     provider: args.provider,
+    root_id: args.rootId,
     kind: args.kind,
     key: normalizeFolderKey(args.key),
     item_id: args.itemId,
@@ -69,6 +71,7 @@ const upsertFolder = async (args: {
 const getStoredFolder = async (args: {
   projectId: string;
   provider: Provider;
+  rootId: string;
   kind: string;
   key: string | null;
 }) => {
@@ -78,6 +81,7 @@ const getStoredFolder = async (args: {
     .select("*")
     .eq("project_id", args.projectId)
     .eq("provider", args.provider)
+    .eq("root_id", args.rootId)
     .eq("kind", args.kind)
     .eq("key", normalizeFolderKey(args.key))
     .maybeSingle();
@@ -98,6 +102,7 @@ const ensureProjectFolder = async (args: {
   const existing = await getStoredFolder({
     projectId: args.projectId,
     provider: args.provider,
+    rootId: args.rootId,
     kind: args.kind,
     key: null,
   });
@@ -117,6 +122,7 @@ const ensureProjectFolder = async (args: {
     await upsertFolder({
       projectId: args.projectId,
       provider: args.provider,
+      rootId: args.rootId,
       kind: args.kind,
       key: null,
       itemId: folder.id,
@@ -135,6 +141,7 @@ const ensureProjectFolder = async (args: {
   await upsertFolder({
     projectId: args.projectId,
     provider: args.provider,
+    rootId: args.rootId,
     kind: args.kind,
     key: null,
     itemId: folder.id,
@@ -161,6 +168,7 @@ const ensureTenderAndInquiries = async (args: {
   const tenderExisting = await getStoredFolder({
     projectId: args.projectId,
     provider: args.provider,
+    rootId: args.rootId,
     kind: "tender",
     key: tenderKey,
   });
@@ -183,6 +191,7 @@ const ensureTenderAndInquiries = async (args: {
             await upsertFolder({
               projectId: args.projectId,
               provider: args.provider,
+              rootId: args.rootId,
               kind: "tender",
               key: tenderKey,
               itemId: folder.id,
@@ -201,6 +210,7 @@ const ensureTenderAndInquiries = async (args: {
             await upsertFolder({
               projectId: args.projectId,
               provider: args.provider,
+              rootId: args.rootId,
               kind: "tender",
               key: tenderKey,
               itemId: folder.id,
@@ -214,6 +224,7 @@ const ensureTenderAndInquiries = async (args: {
   const inquiriesExisting = await getStoredFolder({
     projectId: args.projectId,
     provider: args.provider,
+    rootId: args.rootId,
     kind: "tender_inquiries",
     key: inquiriesKey,
   });
@@ -233,6 +244,7 @@ const ensureTenderAndInquiries = async (args: {
     await upsertFolder({
       projectId: args.projectId,
       provider: args.provider,
+      rootId: args.rootId,
       kind: "tender_inquiries",
       key: inquiriesKey,
       itemId: folder.id,
@@ -251,6 +263,7 @@ const ensureTenderAndInquiries = async (args: {
   await upsertFolder({
     projectId: args.projectId,
     provider: args.provider,
+    rootId: args.rootId,
     kind: "tender_inquiries",
     key: inquiriesKey,
     itemId: folder.id,
@@ -381,7 +394,7 @@ Deno.serve(async (req) => {
 
     // archive/delete on category removal: move tender folder under Archive/_Smazana_VR
     const service = createServiceClient();
-    const tenderExisting = await getStoredFolder({ projectId, provider, kind: "tender", key: categoryId });
+    const tenderExisting = await getStoredFolder({ projectId, provider, rootId, kind: "tender", key: categoryId });
     if (!tenderExisting?.item_id) {
       // Still clean up DB mappings just in case
       await service
@@ -389,6 +402,7 @@ Deno.serve(async (req) => {
         .delete()
         .eq("project_id", projectId)
         .eq("provider", provider)
+        .eq("root_id", rootId)
         .or(`key.eq.${categoryId},key.like.${categoryId}:%`);
       return json(200, { ok: true, action, skipped: true, reason: "Tender folder not found" });
     }
@@ -449,6 +463,7 @@ Deno.serve(async (req) => {
       .delete()
       .eq("project_id", projectId)
       .eq("provider", provider)
+      .eq("root_id", rootId)
       .or(`key.eq.${categoryId},key.like.${categoryId}:%`);
 
     return json(200, { ok: true, action, archivedTo: deletedParentName });

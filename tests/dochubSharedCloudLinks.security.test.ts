@@ -30,6 +30,34 @@ describe("DocHub shared cloud links", () => {
     expect(source).toContain('.eq("key", normalizeFolderKey(args.key))');
   });
 
+  it("scopes every cached folder to the current cloud root", () => {
+    const getLinkSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const autoCreateSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-autocreate/index.ts"),
+      "utf8",
+    );
+    const syncCategorySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-sync-category/index.ts"),
+      "utf8",
+    );
+    const migration = fs.readFileSync(
+      path.join(repoRoot, "supabase/migrations/20260807155600_scope_dochub_folder_cache_root.sql"),
+      "utf8",
+    );
+
+    expect(getLinkSource).toContain("root_id: args.rootId");
+    expect(getLinkSource).toContain('.eq("root_id", args.rootId)');
+    expect(autoCreateSource).toContain("root_id: args.rootId");
+    expect(syncCategorySource).toContain("root_id: args.rootId");
+    expect(syncCategorySource).toContain('.eq("root_id", args.rootId)');
+    expect(syncCategorySource).toContain('.eq("root_id", rootId)');
+    expect(migration).toContain("ADD COLUMN IF NOT EXISTS root_id TEXT");
+    expect(migration).toContain("SET root_id = NULL");
+  });
+
   it("returns cached inquiry and supplier links before requiring OAuth", () => {
     const source = fs.readFileSync(
       path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),

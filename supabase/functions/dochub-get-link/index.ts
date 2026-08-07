@@ -28,6 +28,7 @@ const json = (status: number, body: unknown) =>
 
 const upsertFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -38,6 +39,7 @@ const upsertFolder = async (args: {
   const service = createServiceClient();
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
+    root_id: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: normalizeFolderKey(args.key),
@@ -50,6 +52,7 @@ const upsertFolder = async (args: {
 
 const getStoredFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -59,6 +62,7 @@ const getStoredFolder = async (args: {
     .from("dochub_project_folders")
     .select("*")
     .eq("project_id", args.projectId)
+    .eq("root_id", args.rootId)
     .eq("provider", args.provider)
     .eq("kind", args.kind)
     .eq("key", normalizeFolderKey(args.key))
@@ -70,6 +74,7 @@ const getStoredFolder = async (args: {
 
 const getCachedFolderForRequest = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: LinkKind;
   categoryId?: string;
@@ -105,6 +110,7 @@ const ensureProjectFolder = async (args: {
 }) => {
   const existing = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -124,6 +130,7 @@ const ensureProjectFolder = async (args: {
     });
     await upsertFolder({
       projectId: args.projectId,
+      rootId: args.rootId,
       provider: args.provider,
       kind: args.kind,
       key: null,
@@ -142,6 +149,7 @@ const ensureProjectFolder = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: null,
@@ -166,6 +174,7 @@ const ensureTenderInquiries = async (args: {
   const tenderKey = args.categoryId;
   const tenderExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender",
     key: tenderKey,
@@ -189,6 +198,7 @@ const ensureTenderInquiries = async (args: {
 	            });
 	            await upsertFolder({
 	              projectId: args.projectId,
+	              rootId: args.rootId,
 	              provider: args.provider,
               kind: "tender",
               key: tenderKey,
@@ -207,6 +217,7 @@ const ensureTenderInquiries = async (args: {
             });
             await upsertFolder({
               projectId: args.projectId,
+              rootId: args.rootId,
               provider: args.provider,
               kind: "tender",
               key: tenderKey,
@@ -220,6 +231,7 @@ const ensureTenderInquiries = async (args: {
   const inquiriesKey = `${args.categoryId}:inquiries`;
   const inquiriesExisting = await getStoredFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
@@ -239,6 +251,7 @@ const ensureTenderInquiries = async (args: {
 	    });
 	    await upsertFolder({
 	      projectId: args.projectId,
+	      rootId: args.rootId,
 	      provider: args.provider,
       kind: "tender_inquiries",
       key: inquiriesKey,
@@ -257,6 +270,7 @@ const ensureTenderInquiries = async (args: {
   });
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: "tender_inquiries",
     key: inquiriesKey,
@@ -321,6 +335,7 @@ Deno.serve(async (req) => {
 
      const cachedFolder = await getCachedFolderForRequest({
        projectId,
+       rootId,
        provider,
        kind,
        categoryId,
@@ -429,6 +444,7 @@ Deno.serve(async (req) => {
     const supplierKey = `${categoryId}:${supplierId}`;
     const supplierExisting = await getStoredFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,
@@ -451,6 +467,7 @@ Deno.serve(async (req) => {
 	      });
 	      await upsertFolder({
 	        projectId,
+	        rootId,
 	        provider,
         kind: "supplier",
         key: supplierKey,
@@ -469,6 +486,7 @@ Deno.serve(async (req) => {
     });
     await upsertFolder({
       projectId,
+      rootId,
       provider,
       kind: "supplier",
       key: supplierKey,

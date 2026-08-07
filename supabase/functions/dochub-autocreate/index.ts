@@ -30,6 +30,7 @@ const json = (status: number, body: unknown) =>
 
 const upsertFolder = async (args: {
   projectId: string;
+  rootId: string;
   provider: Provider;
   kind: string;
   key: string | null;
@@ -40,6 +41,7 @@ const upsertFolder = async (args: {
   const service = createServiceClient();
   await service.from("dochub_project_folders").upsert({
     project_id: args.projectId,
+    root_id: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: normalizeFolderKey(args.key),
@@ -54,6 +56,7 @@ const ensureFolder = async (args: {
   provider: Provider;
   accessToken: string;
   projectId: string;
+  rootId: string;
   driveId: string | null;
   parentId: string;
   kind: string;
@@ -76,6 +79,7 @@ const ensureFolder = async (args: {
     const created = folder.created;
     await upsertFolder({
       projectId: args.projectId,
+      rootId: args.rootId,
       provider: args.provider,
       kind: args.kind,
       key: normalizeFolderKey(args.key),
@@ -97,6 +101,7 @@ const ensureFolder = async (args: {
   const created = folder.created;
   await upsertFolder({
     projectId: args.projectId,
+    rootId: args.rootId,
     provider: args.provider,
     kind: args.kind,
     key: normalizeFolderKey(args.key),
@@ -231,6 +236,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: rootId,
         kind,
@@ -293,6 +299,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: rootId,
         kind: "extra_top",
@@ -391,6 +398,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: tendersId,
         kind: "tender",
@@ -411,6 +419,7 @@ Deno.serve(async (req) => {
         provider,
         accessToken,
         projectId,
+        rootId,
         driveId,
         parentId: tenderFolder.id,
         kind: "tender_inquiries",
@@ -442,6 +451,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: inquiriesFolder.id,
           kind: "supplier",
@@ -462,6 +472,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: supplierFolder.id,
           kind: "supplier_email",
@@ -482,6 +493,7 @@ Deno.serve(async (req) => {
           provider,
           accessToken,
           projectId,
+          rootId,
           driveId,
           parentId: supplierFolder.id,
           kind: "supplier_offer",
@@ -503,6 +515,7 @@ Deno.serve(async (req) => {
             provider,
             accessToken,
             projectId,
+            rootId,
             driveId,
             parentId: supplierFolder.id,
             kind: "supplier_extra",
