@@ -333,6 +333,24 @@ Deno.serve(async (req) => {
      const driveId = (project.dochub_drive_id as string | null) || null;
      if (!provider || !rootId) return json(400, { error: "Missing DocHub root" });
 
+     const isProjectOwner = project.owner_id === userData.user.id;
+     let hasExplicitProjectShare = false;
+     if (!isProjectOwner) {
+       const { data: explicitShare, error: shareError } = await authed
+         .from("project_shares")
+         .select("project_id")
+         .eq("project_id", projectId)
+         .eq("user_id", userData.user.id)
+         .maybeSingle();
+       if (shareError || !explicitShare) {
+         return json(404, { error: "Folder link not available" });
+       }
+       hasExplicitProjectShare = true;
+     }
+     if (!isProjectOwner && !hasExplicitProjectShare) {
+       return json(404, { error: "Folder link not available" });
+     }
+
      const cachedFolder = await getCachedFolderForRequest({
        projectId,
        rootId,
@@ -345,7 +363,7 @@ Deno.serve(async (req) => {
        return json(200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
      }
 
-     if (!project.owner_id || project.owner_id !== userData.user.id) {
+     if (!isProjectOwner) {
        return json(404, { error: "Folder link not available" });
      }
 

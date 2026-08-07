@@ -55,7 +55,9 @@ describe("DocHub shared cloud links", () => {
     expect(syncCategorySource).toContain('.eq("root_id", args.rootId)');
     expect(syncCategorySource).toContain('.eq("root_id", rootId)');
     expect(migration).toContain("ADD COLUMN IF NOT EXISTS root_id TEXT");
-    expect(migration).toContain("SET root_id = NULL");
+    expect(migration).toContain("DELETE FROM public.dochub_project_folders");
+    expect(migration).toContain("ALTER COLUMN root_id SET NOT NULL");
+    expect(migration).toContain("PRIMARY KEY (project_id, provider, root_id, kind, key)");
   });
 
   it("returns cached inquiry and supplier links before requiring OAuth", () => {
@@ -82,20 +84,24 @@ describe("DocHub shared cloud links", () => {
     expect(source).toContain("key: categoryId,");
   });
 
-  it("allows cache hits but rejects shared cache misses before OAuth or folder creation", () => {
+  it("allows cache hits only to owners or explicitly shared users", () => {
     const source = fs.readFileSync(
       path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
       "utf8",
     );
     const cachedReturnIndex = source.indexOf("cachedFolder.web_url");
-    const ownerGuardIndex = source.indexOf("project.owner_id !== userData.user.id", cachedReturnIndex);
+    const shareLookupIndex = source.indexOf('.from("project_shares")');
+    const accessGuardIndex = source.indexOf("hasExplicitProjectShare", shareLookupIndex);
     const tokenIndex = source.indexOf("await getAccessTokenForUser", cachedReturnIndex);
     const ensureIndex = source.indexOf("await ensureProjectFolder", cachedReturnIndex);
 
     expect(source).toContain("owner_id, dochub_provider");
-    expect(ownerGuardIndex).toBeGreaterThan(cachedReturnIndex);
-    expect(tokenIndex).toBeGreaterThan(ownerGuardIndex);
-    expect(ensureIndex).toBeGreaterThan(ownerGuardIndex);
+    expect(shareLookupIndex).toBeGreaterThan(-1);
+    expect(source).toContain('.eq("user_id", userData.user.id)');
+    expect(accessGuardIndex).toBeGreaterThan(shareLookupIndex);
+    expect(cachedReturnIndex).toBeGreaterThan(accessGuardIndex);
+    expect(tokenIndex).toBeGreaterThan(cachedReturnIndex);
+    expect(ensureIndex).toBeGreaterThan(cachedReturnIndex);
   });
 
   it("requires project ownership in every authenticated global mutation endpoint", () => {

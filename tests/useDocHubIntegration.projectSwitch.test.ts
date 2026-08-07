@@ -341,4 +341,37 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.rootLink).toBe("");
     expect(result.current.state.hasPersonalLocalRoot).toBe(false);
   });
+
+  it("does not clear the next project's state when disconnect finishes late", async () => {
+    let resolveDelete: (() => void) | undefined;
+    mocks.storageGet.mockImplementation((key: string) => Promise.resolve(
+      key.endsWith(":project-2")
+        ? JSON.stringify({
+            version: 2,
+            userId: "shared-1",
+            projectId: "project-2",
+            connectionId: "connection:project-2",
+            rootPath: "D:\\Shared\\project-2",
+            rootName: "project-2",
+            savedAt: "2026-08-07T12:00:00.000Z",
+          })
+        : null,
+    ));
+    mocks.storageDelete.mockReturnValueOnce(new Promise<void>((resolve) => { resolveDelete = resolve; }));
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, onUpdate, { userId: "shared-1" }),
+      { initialProps: { currentProject: project("project-1") } },
+    );
+
+    let disconnectPromise: Promise<void> | undefined;
+    act(() => { disconnectPromise = result.current.actions.disconnect(); });
+    rerender({ currentProject: project("project-2") });
+    await waitFor(() => expect(result.current.state.rootLink).toBe("D:\\Shared\\project-2"));
+    resolveDelete?.();
+    await act(async () => disconnectPromise);
+
+    expect(result.current.state.rootLink).toBe("D:\\Shared\\project-2");
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
 });

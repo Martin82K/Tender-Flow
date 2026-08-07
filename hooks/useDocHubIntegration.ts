@@ -464,6 +464,7 @@ export const useDocHubIntegration = (
     }, [canManageGlobal, onlineRootLinkDraft, onUpdate, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
+        const actionIdentity = projectActionIdentityRef.current;
         personalLocationLoadSequenceRef.current += 1;
         const personalMappingIdentity = isDesktop && project.docHubProvider === "onedrive" && project.id && userId
             ? { projectId: project.id, userId }
@@ -478,8 +479,10 @@ export const useDocHubIntegration = (
                     personalMappingIdentity.projectId,
                     personalMappingIdentity.userId,
                 );
+                assertCurrentProjectAction(actionIdentity);
                 setHasPersonalLocalRoot(false);
             } catch (error) {
+                if (error instanceof StaleDocHubActionError) return;
                 showMessage(
                     "Nelze odebrat cestu",
                     error instanceof Error ? error.message : "Osobní cestu se nepodařilo bezpečně odebrat.",
@@ -507,7 +510,9 @@ export const useDocHubIntegration = (
                 docHubSiteId: null,
                 docHubRootWebUrl: null,
             });
+            assertCurrentProjectAction(actionIdentity);
         } catch (error) {
+            if (error instanceof StaleDocHubActionError) return;
             showMessage(
                 "Nelze odpojit Složkomat",
                 error instanceof Error ? error.message : "Globální napojení se nepodařilo odpojit.",
@@ -521,7 +526,7 @@ export const useDocHubIntegration = (
         setMode(null);
         setStatus("disconnected");
         setIsEditingSetup(false);
-    }, [canManageGlobal, onUpdate, project.docHubProvider, project.docHubRootName, project.id, showMessage, userId]);
+    }, [assertCurrentProjectAction, canManageGlobal, onUpdate, project.docHubProvider, project.docHubRootName, project.id, showMessage, userId]);
 
     const handleConnect = useCallback(async () => {
         if (!canManageGlobal) {
