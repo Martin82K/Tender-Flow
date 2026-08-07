@@ -68,6 +68,24 @@ describe("SecureStorageService", () => {
     );
   });
 
+  it("zachová obě souběžné mutace napříč instancemi služby", async () => {
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    await writeFile(storagePath, "{}", "utf8");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const sessionStorage = new SecureStorageService();
+    const settingsStorage = new SecureStorageService();
+
+    await Promise.all([
+      sessionStorage.set("session", "session-value"),
+      settingsStorage.set("settings", "settings-value"),
+    ]);
+
+    await expect(readFile(storagePath, "utf8").then(JSON.parse)).resolves.toEqual({
+      session: "c2Vzc2lvbi12YWx1ZQ==",
+      settings: "c2V0dGluZ3MtdmFsdWU=",
+    });
+  });
+
   it("umožní první bezpečný zápis, když storage soubor ještě neexistuje", async () => {
     const storagePath = join(electronMock.userDataPath, "secure-storage.json");
     const { SecureStorageService } = await import("../desktop/main/services/secureStorage");

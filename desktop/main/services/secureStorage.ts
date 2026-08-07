@@ -3,6 +3,17 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { app } from 'electron';
 
+let mutationQueue: Promise<void> = Promise.resolve();
+
+const enqueueMutation = <T>(mutation: () => Promise<T>): Promise<T> => {
+    const result = mutationQueue.then(mutation);
+    mutationQueue = result.then(
+        () => undefined,
+        () => undefined,
+    );
+    return result;
+};
+
 /**
  * Secure storage service using Electron's safeStorage API
  * Encrypts sensitive data at rest using OS-level encryption
@@ -49,12 +60,14 @@ export class SecureStorageService {
             throw new Error('SECURE_STORAGE_UNAVAILABLE');
         }
 
-        const data = await this.loadStorage();
-        const encrypted = safeStorage.encryptString(value);
-        data[key] = encrypted.toString('base64');
+        await enqueueMutation(async () => {
+            const data = await this.loadStorage();
+            const encrypted = safeStorage.encryptString(value);
+            data[key] = encrypted.toString('base64');
 
-        await this.saveStorage(data);
-        this.cache.set(key, value);
+            await this.saveStorage(data);
+            this.cache.set(key, value);
+        });
     }
 
     async delete(key: string): Promise<void> {
@@ -62,22 +75,24 @@ export class SecureStorageService {
     }
 
     async deleteMany(keys: readonly string[]): Promise<void> {
-        const data = await this.loadStorage();
-        let changed = false;
+        await enqueueMutation(async () => {
+            const data = await this.loadStorage();
+            let changed = false;
 
-        for (const key of keys) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                delete data[key];
-                changed = true;
+            for (const key of keys) {
+                if (Object.prototype.hasOwnProperty.call(data, key)) {
+                    delete data[key];
+                    changed = true;
+                }
             }
-        }
 
-        if (changed) {
-            await this.saveStorage(data);
-        }
-        for (const key of keys) {
-            this.cache.delete(key);
-        }
+            if (changed) {
+                await this.saveStorage(data);
+            }
+            for (const key of keys) {
+                this.cache.delete(key);
+            }
+        });
     }
 
     private async loadStorage(
