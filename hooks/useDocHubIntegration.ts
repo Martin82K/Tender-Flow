@@ -635,7 +635,11 @@ export const useDocHubIntegration = (
                         throw new Error("Přístup ke složce nebyl potvrzen. Vyberte prosím cílovou složku nebo její existující nadřazenou složku.");
                     }
                 }
-                await savePersonalLocalRoot(path, path.split(/[\\/]/).pop() || path);
+                if (isDesktop) {
+                    await savePersonalLocalRoot(path, path.split(/[\\/]/).pop() || path);
+                } else if (!canManageGlobal) {
+                    throw new Error("Osobní cesta sdíleného projektu je dostupná pouze v desktopové aplikaci.");
+                }
 
                 // For Desktop, we generally trust the user or the picker, but good to check
                 /* 

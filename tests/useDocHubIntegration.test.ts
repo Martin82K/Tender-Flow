@@ -245,6 +245,24 @@ describe('useDocHubIntegration', () => {
         delete (window as any).showDirectoryPicker;
     });
 
+    it('should preserve manual local-path setup for a project owner in the web app', async () => {
+        const ownerProject = {
+            ...mockProject,
+            id: 'owner-project',
+            docHubProvider: 'onedrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(ownerProject as any, onUpdateMock));
+
+        act(() => result.current.setters.setRootLink('C:\\Shared\\Owner Project'));
+        await act(async () => result.current.actions.resolveRoot());
+
+        expect(onUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
+            docHubProvider: 'onedrive',
+            docHubRootLink: 'C:\\Shared\\Owner Project',
+            docHubStatus: 'connected',
+        }));
+    });
+
     it('should handle connect flow (auth url)', async () => {
         const { result } = renderHook(() => useDocHubIntegration(mockProject as any, onUpdateMock));
 

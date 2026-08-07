@@ -76,19 +76,29 @@ export const useEffectiveProjectDocHubRoot = (
   project: ProjectDetails,
   userId: string | null,
 ): string => {
+  const rootIdentity = JSON.stringify([
+    project.id ?? null,
+    project.ownerId ?? null,
+    project.docHubProvider ?? null,
+    project.docHubRootLink ?? null,
+    userId,
+  ]);
   const initialRoot = project.docHubProvider === "onedrive"
     ? ""
     : project.docHubRootLink?.trim() || "";
-  const [rootPath, setRootPath] = useState(initialRoot);
+  const [rootState, setRootState] = useState({
+    identity: rootIdentity,
+    rootPath: initialRoot,
+  });
 
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
       try {
         const nextRoot = await resolveEffectiveProjectDocHubRoot(project, userId);
-        if (!cancelled) setRootPath(nextRoot);
+        if (!cancelled) setRootState({ identity: rootIdentity, rootPath: nextRoot });
       } catch {
-        if (!cancelled) setRootPath("");
+        if (!cancelled) setRootState({ identity: rootIdentity, rootPath: "" });
       }
     };
     const handleChange = (event: Event) => {
@@ -102,7 +112,7 @@ export const useEffectiveProjectDocHubRoot = (
       cancelled = true;
       window.removeEventListener(PERSONAL_ROOT_CHANGED_EVENT, handleChange);
     };
-  }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, userId]);
+  }, [project.id, project.ownerId, project.docHubProvider, project.docHubRootLink, rootIdentity, userId]);
 
-  return rootPath;
+  return rootState.identity === rootIdentity ? rootState.rootPath : initialRoot;
 };

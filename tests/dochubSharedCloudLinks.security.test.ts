@@ -44,6 +44,16 @@ describe("DocHub shared cloud links", () => {
     expect(tokenIndex).toBeGreaterThan(nestedCacheIndex);
   });
 
+  it("falls back to the inquiry cache key written by dochub-autocreate", () => {
+    const source = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("const legacyInquiry = await getStoredFolder");
+    expect(source).toContain("key: categoryId,");
+  });
+
   it("allows cache hits but rejects shared cache misses before OAuth or folder creation", () => {
     const source = fs.readFileSync(
       path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),

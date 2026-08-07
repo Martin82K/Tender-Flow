@@ -80,6 +80,13 @@ const getCachedFolderForRequest = async (args: {
   if (args.kind === "tender_inquiries") {
     if (!categoryId) return null;
     key = `${categoryId}:inquiries`;
+    const currentInquiry = await getStoredFolder({ ...args, key });
+    if (currentInquiry?.web_url) return currentInquiry;
+    const legacyInquiry = await getStoredFolder({
+      ...args,
+      key: categoryId,
+    });
+    return legacyInquiry;
   } else if (args.kind === "supplier") {
     if (!categoryId || !supplierId) return null;
     key = `${categoryId}:${supplierId}`;
