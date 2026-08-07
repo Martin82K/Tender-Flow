@@ -15,6 +15,11 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+    app.quit();
+}
+
 let mainWindow: BrowserWindow | null = null;
 let mcpServerStop: (() => Promise<void>) | null = null;
 
@@ -210,61 +215,72 @@ function createWindow(): void {
 }
 
 // App lifecycle
-app.whenReady().then(async () => {
-    await registerIpcHandlers();
-    createWindow();
-    startMcpServer()
-        .then(({ sseUrl, close }) => {
-            mcpServerStop = close;
-            console.log(`[MCP] Server running at ${sseUrl}`);
-        })
-        .catch((error) => {
-            console.error('[MCP] Failed to start server:', error);
-        });
+if (hasSingleInstanceLock) {
+    app.on('second-instance', () => {
+        if (!mainWindow) return;
 
-    app.on('activate', () => {
-        // macOS: re-create window when clicking dock icon
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
         }
+        mainWindow.focus();
     });
-}).catch((error) => {
-    console.error('[App] Failed to initialize:', error);
-    app.quit();
-});
 
-app.on('window-all-closed', () => {
-    // macOS: keep app running until Cmd+Q
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
+    app.whenReady().then(async () => {
+        await registerIpcHandlers();
+        createWindow();
+        startMcpServer()
+            .then(({ sseUrl, close }) => {
+                mcpServerStop = close;
+                console.log(`[MCP] Server running at ${sseUrl}`);
+            })
+            .catch((error) => {
+                console.error('[MCP] Failed to start server:', error);
+            });
 
-app.on('before-quit', async () => {
-    if (mcpServerStop) {
-        await mcpServerStop();
-        mcpServerStop = null;
-    }
-});
-
-// Security: prevent navigation away from the app
-app.on('web-contents-created', (_, contents) => {
-    contents.on('will-navigate', (event, url) => {
-        // Allow mailto links to open in default mail client
-        if (url.startsWith('mailto:')) {
-            event.preventDefault();
-            if (canOpenExternalUrl(url)) {
-                shell.openExternal(url);
+        app.on('activate', () => {
+            // macOS: re-create window when clicking dock icon
+            if (BrowserWindow.getAllWindows().length === 0) {
+                createWindow();
             }
-            return;
-        }
+        });
+    }).catch((error) => {
+        console.error('[App] Failed to initialize:', error);
+        app.quit();
+    });
 
-        const appUrl = isDev ? 'http://localhost:3000' : 'file://';
-        if (!url.startsWith(appUrl)) {
-            event.preventDefault();
+    app.on('window-all-closed', () => {
+        // macOS: keep app running until Cmd+Q
+        if (process.platform !== 'darwin') {
+            app.quit();
         }
     });
-});
+
+    app.on('before-quit', async () => {
+        if (mcpServerStop) {
+            await mcpServerStop();
+            mcpServerStop = null;
+        }
+    });
+
+    // Security: prevent navigation away from the app
+    app.on('web-contents-created', (_, contents) => {
+        contents.on('will-navigate', (event, url) => {
+            // Allow mailto links to open in default mail client
+            if (url.startsWith('mailto:')) {
+                event.preventDefault();
+                if (canOpenExternalUrl(url)) {
+                    shell.openExternal(url);
+                }
+                return;
+            }
+
+            const appUrl = isDev ? 'http://localhost:3000' : 'file://';
+            if (!url.startsWith(appUrl)) {
+                event.preventDefault();
+            }
+        });
+    });
+}
 
 // Export for potential testing
 export { mainWindow };
