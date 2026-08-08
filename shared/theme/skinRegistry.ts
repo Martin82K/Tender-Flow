@@ -2,6 +2,8 @@ import botanicaDarkFallbackAsset from "@/assets/themes/botanica/botanical-relief
 import botanicaDarkAsset from "@/assets/themes/botanica/botanical-relief-dark.webp?no-inline";
 import botanicaLightFallbackAsset from "@/assets/themes/botanica/botanical-relief-light.svg?no-inline";
 import botanicaLightAsset from "@/assets/themes/botanica/botanical-relief-light.webp?no-inline";
+import natureDarkAsset from "@/assets/themes/nature/forest-dark.jpg?no-inline";
+import natureLightAsset from "@/assets/themes/nature/forest-light.jpg?no-inline";
 import type { ThemeSkin } from "@/shared/types/theme";
 
 export type ResolvedThemeMode = "light" | "dark";
@@ -64,10 +66,28 @@ const botanicaDefinitions: Record<ResolvedThemeMode, SkinVisualDefinition> = {
   },
 };
 
+const natureDefinitions: Record<ResolvedThemeMode, SkinVisualDefinition> = {
+  light: {
+    asset: natureLightAsset,
+    sidebar: { opacity: 0.24, position: "12% center", size: "cover" },
+    header: { opacity: 0.12, position: "center 24%", size: "cover" },
+    canvas: { opacity: 0.16, position: "center", size: "cover" },
+    surface: { panelOpacity: 0.94, dataOpacity: 0.98, blur: 8 },
+  },
+  dark: {
+    asset: natureDarkAsset,
+    sidebar: { opacity: 0.86, position: "8% center", size: "cover" },
+    header: { opacity: 0.68, position: "center 18%", size: "cover" },
+    canvas: { opacity: 0.38, position: "center", size: "cover" },
+    surface: { panelOpacity: 0.96, dataOpacity: 0.99, blur: 6 },
+  },
+};
+
 const registry: Record<ThemeSkin, Record<ResolvedThemeMode, SkinVisualDefinition>> = {
   classic: { light: fallbackDefinition, dark: fallbackDefinition },
   industrial: { light: fallbackDefinition, dark: fallbackDefinition },
   botanica: botanicaDefinitions,
+  nature: natureDefinitions,
 };
 
 export const getSkinVisualDefinition = (

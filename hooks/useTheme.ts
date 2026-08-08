@@ -87,7 +87,7 @@ const getInitialUiScale = (): number => {
 };
 
 const normalizeSkin = (value: unknown): ThemeSkin =>
-    value === "classic" || value === "industrial" || value === "botanica"
+    value === "classic" || value === "industrial" || value === "botanica" || value === "nature"
         ? value
         : DEFAULT_SKIN;
 

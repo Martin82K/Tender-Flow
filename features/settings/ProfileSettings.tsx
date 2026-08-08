@@ -17,6 +17,9 @@ import { organizationService } from "@features/settings/api";
 import { formatOrgRequestStatus } from "@/shared/organization/organizationUtils";
 import { userProfileService } from "../../services/userProfileService";
 import { buildEmailSignature } from "@/shared/email/signature";
+import { themeSkinOptions } from "@/shared/theme/appearanceOptions";
+import { AppearancePicker } from "@/shared/ui/AppearancePicker";
+import { ThemeModeControl } from "@/shared/ui/ThemeModeControl";
 import type { UserEmailSignatureProfile } from "@/types";
 import type { ThemeSkin } from "@/shared/types/theme";
 
@@ -601,43 +604,20 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           </h2>
 
           <div className="space-y-5">
-            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 dark:border-slate-700 dark:bg-slate-800/60">
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
-                brightness_auto
-              </span>
-              <span className="w-16 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                Režim
-              </span>
-              <select
-                aria-label="Režim"
-                value={theme}
-                onChange={(event) => onSetTheme(event.target.value as "light" | "dark" | "system")}
-                className="select-no-native-arrow min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-1 pr-6 text-right text-sm font-semibold text-slate-900 outline-none ring-0 focus:ring-0 dark:text-white"
-              >
-                <option value="light">Světlý</option>
-                <option value="dark">Tmavý</option>
-                <option value="system">Auto</option>
-              </select>
-            </label>
+            <ThemeModeControl
+              value={theme}
+              onChange={onSetTheme}
+              className="min-h-11 rounded-xl px-3"
+            />
 
-            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 dark:border-slate-700 dark:bg-slate-800/60">
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
-                local_florist
-              </span>
-              <span className="w-16 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                Motiv
-              </span>
-              <select
-                aria-label="Motiv"
-                value={skin}
-                onChange={(event) => onSetSkin(event.target.value as ThemeSkin)}
-                className="select-no-native-arrow min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-1 pr-6 text-right text-sm font-semibold text-slate-900 outline-none ring-0 focus:ring-0 dark:text-white"
-              >
-                <option value="classic">Classic</option>
-                <option value="industrial">Industrial</option>
-                <option value="botanica">Botanica</option>
-              </select>
-            </label>
+            <AppearancePicker
+              label="Motiv"
+              icon="local_florist"
+              value={skin}
+              options={themeSkinOptions}
+              onChange={onSetSkin}
+              className="min-h-11 rounded-xl px-3"
+            />
 
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">

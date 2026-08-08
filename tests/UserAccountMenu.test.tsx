@@ -285,7 +285,7 @@ describe("UserAccountMenu", () => {
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
   });
 
-  it("ponechá motiv jako textový listbox a režim nabídne jako ikonový segmented control", async () => {
+  it("ponechá motiv jako listbox a režim nabídne jako sdílený segmented control", async () => {
     const onSetSkin = vi.fn();
     const onSetTheme = vi.fn();
 
@@ -310,18 +310,22 @@ describe("UserAccountMenu", () => {
 
     expect(screen.getAllByRole("combobox")).toHaveLength(1);
     expect(within(modeGroup).getAllByRole("button")).toHaveLength(3);
-    expect(within(modeGroup).getByRole("button", { name: "Auto" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(modeGroup).getByRole("button", { name: "Auto" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     fireEvent.click(skinPicker);
     expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Nature" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("option", { name: "Botanica" }));
+    fireEvent.click(screen.getByRole("option", { name: "Nature" }));
     fireEvent.click(within(modeGroup).getByRole("button", { name: "Tmavý" }));
 
-    expect(onSetSkin).toHaveBeenCalledWith("botanica");
+    expect(onSetSkin).toHaveBeenCalledWith("nature");
     expect(onSetTheme).toHaveBeenCalledWith("dark");
   });
 
-  it("ovládá segmented režim šipkami, Home a End bez dalších tab stopů", async () => {
+  it("ovládá sdílený segmented režim šipkami, Home a End", async () => {
     const onSetTheme = vi.fn();
 
     render(
@@ -347,10 +351,8 @@ describe("UserAccountMenu", () => {
     lightMode.focus();
     fireEvent.keyDown(lightMode, { key: "ArrowRight" });
     expect(darkMode).toHaveFocus();
-
     fireEvent.keyDown(darkMode, { key: "End" });
     expect(autoMode).toHaveFocus();
-
     fireEvent.keyDown(autoMode, { key: "Home" });
     expect(lightMode).toHaveFocus();
     expect(onSetTheme).not.toHaveBeenCalled();

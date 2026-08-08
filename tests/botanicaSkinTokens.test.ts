@@ -44,6 +44,8 @@ const contrastRatio = (foreground: string, background: string): number => {
 };
 
 describe("Botanica skin", () => {
+  const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"])';
+
   it("definuje samostatnou světlou a tmavou paletu s čitelným textem", () => {
     expect(css).toContain('html[data-skin="botanica"]');
     expect(css).toContain('html.dark[data-skin="botanica"]');
@@ -57,20 +59,20 @@ describe("Botanica skin", () => {
   });
 
   it("používá pouze čistou bezpatkovou typografii", () => {
-    expect(css).toContain('html[data-skin="botanica"] body');
+    expect(css).toContain(`${sharedSkinSelector} body`);
     expect(css).toContain('font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif');
   });
 
   it("omezuje botanický dekor na neinteraktivní podklad a kryje datové plochy", () => {
     expect(css).toContain("--tf-botanica-art:");
-    expect(css).toContain('html[data-skin="botanica"] .tf-sidebar::after');
+    expect(css).toContain(`${sharedSkinSelector} .tf-sidebar::after`);
     expect(css).toContain("inset: 0");
-    expect(css).toContain('html[data-skin="botanica"] .tf-sidebar > *');
-    expect(css).toContain('html[data-skin="botanica"] .tf-sidebar-brand');
+    expect(css).toContain(`${sharedSkinSelector} .tf-sidebar > *`);
+    expect(css).toContain(`${sharedSkinSelector} .tf-sidebar-brand`);
     expect(css).toContain("var(--tf-skin-surface-deep) 54%, transparent");
     expect(css).toContain("pointer-events: none");
-    expect(css).toContain('html[data-skin="botanica"] [data-help-id="tasks-calendar"]');
-    expect(css).toContain('html[data-skin="botanica"] table');
+    expect(css).toContain(`${sharedSkinSelector} [data-help-id="tasks-calendar"]`);
+    expect(css).toContain(`${sharedSkinSelector} table`);
     expect(css).toContain("var(--tf-skin-panel-opacity, 88%)");
     expect(css).toContain("var(--tf-skin-data-opacity, 94%)");
     expect(css).toContain("backdrop-filter: blur(var(--tf-skin-surface-blur, 10px))");
@@ -84,7 +86,7 @@ describe("Botanica skin", () => {
   });
 
   it("má stavové styly pro hover, výběr a klávesový focus", () => {
-    expect(css).toContain('html[data-skin="botanica"] :focus-visible');
+    expect(css).toContain(`${sharedSkinSelector} :focus-visible`);
     expect(css).toContain('[data-active="true"]');
     expect(css).toContain(':hover');
   });
@@ -120,8 +122,8 @@ describe("Botanica skin", () => {
   });
 
   it("přenáší botanickou paletu do Command Center a zachovává čisté panely", () => {
-    expect(commandCenterCss).toContain('html[data-skin="botanica"] .cc-root');
-    expect(commandCenterCss).toContain('html[data-skin="botanica"] .cc-panel');
+    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-root`);
+    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-panel`);
     expect(commandCenterCss).toContain("var(--tf-skin-panel-opacity, 88%)");
   });
 });

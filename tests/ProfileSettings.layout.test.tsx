@@ -118,8 +118,11 @@ describe("ProfileSettings layout", () => {
 
     expect(await screen.findByText("Vzhled aplikace")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Motiv" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Režim" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Režim" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByText("Biometrické přihlášení")).toBeInTheDocument();
     expect(screen.queryByText("Barva pozadí")).not.toBeInTheDocument();
   });

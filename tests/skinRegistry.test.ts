@@ -17,6 +17,20 @@ describe("skin visual registry", () => {
     expect(light.asset).not.toBe(dark.asset);
   });
 
+  it("má pro Nature samostatný lokální lesní asset ve světle a tmě", () => {
+    const light = getSkinVisualDefinition("nature", "light");
+    const dark = getSkinVisualDefinition("nature", "dark");
+
+    expect(light.asset).toContain("forest-light.jpg");
+    expect(dark.asset).toContain("forest-dark.jpg");
+    expect(light.asset).not.toBe(dark.asset);
+    expect(light.fallbackAsset).toBeUndefined();
+    expect(dark.fallbackAsset).toBeUndefined();
+    expect(light.sidebar.opacity).toBe(0.24);
+    expect(light.header.opacity).toBe(0.12);
+    expect(light.canvas.opacity).toBe(0.16);
+  });
+
   it("řídí nezávisle sidebar, header a canvas", () => {
     const botanica = getSkinVisualDefinition("botanica", "dark");
 
@@ -31,6 +45,17 @@ describe("skin visual registry", () => {
     expect(botanica.surface.panelOpacity).toBeGreaterThanOrEqual(0.75);
     expect(botanica.surface.dataOpacity).toBeGreaterThanOrEqual(botanica.surface.panelOpacity);
     expect(botanica.surface.dataOpacity).toBeLessThanOrEqual(1);
+  });
+
+  it("Nature chrání hustá data vyšší kryvostí než běžné panely", () => {
+    const light = getSkinVisualDefinition("nature", "light");
+    const dark = getSkinVisualDefinition("nature", "dark");
+
+    expect(light.surface.dataOpacity).toBeGreaterThan(light.surface.panelOpacity);
+    expect(dark.surface.dataOpacity).toBeGreaterThan(dark.surface.panelOpacity);
+    expect(light.surface.dataOpacity).toBeGreaterThanOrEqual(0.98);
+    expect(dark.surface.dataOpacity).toBeGreaterThanOrEqual(0.98);
+    expect(dark.canvas.opacity).toBeGreaterThan(light.canvas.opacity);
   });
 
   it("Classic a Industrial bezpečně fungují bez obrazového assetu", () => {
@@ -52,5 +77,19 @@ describe("skin visual registry", () => {
     expect(root.style.getPropertyValue("--tf-skin-header-art-opacity")).toBe("0.2");
     expect(root.style.getPropertyValue("--tf-skin-panel-opacity")).toBe("76%");
     expect(root.style.getPropertyValue("--tf-skin-data-opacity")).toBe("85%");
+  });
+
+  it("aplikuje Nature bez image-setu a bez vzdáleného assetu", () => {
+    const root = document.createElement("div");
+
+    applySkinVisualDefinition(root, "nature", "dark");
+
+    expect(root.dataset.skin).toBe("nature");
+    expect(root.style.getPropertyValue("--tf-skin-art-image")).toContain("forest-dark.jpg");
+    expect(root.style.getPropertyValue("--tf-skin-art-image")).not.toContain("http");
+    expect(root.style.getPropertyValue("--tf-skin-sidebar-art-opacity")).toBe("0.86");
+    expect(root.style.getPropertyValue("--tf-skin-header-art-opacity")).toBe("0.68");
+    expect(root.style.getPropertyValue("--tf-skin-canvas-art-opacity")).toBe("0.38");
+    expect(root.style.getPropertyValue("--tf-skin-data-opacity")).toBe("99%");
   });
 });

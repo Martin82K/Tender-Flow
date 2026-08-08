@@ -1,2 +1,2 @@
 export type ThemeMode = "light" | "dark" | "system";
-export type ThemeSkin = "classic" | "industrial" | "botanica";
+export type ThemeSkin = "classic" | "industrial" | "botanica" | "nature";
