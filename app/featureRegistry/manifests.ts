@@ -80,6 +80,14 @@ export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
       })),
     unmountSafeChecks: emptyChecks,
   }),
+  ...viewToManifest("contract-overview", {
+    id: "contracts.organization-overview",
+    routes: [{ path: "/app/contract-overview", view: "contract-overview" }],
+    navItems: [{ id: "contract-overview", label: "Smluvní přehled" }],
+    requiredCapabilities: [],
+    mount: () => import("@/features/contracts-overview").then((m) => ({ default: m.ContractOverview })),
+    unmountSafeChecks: emptyChecks,
+  }),
   ...viewToManifest("url-shortener", {
     id: "tools.url-shortener",
     routes: [{ path: "/app/url-shortener", view: "url-shortener" }],

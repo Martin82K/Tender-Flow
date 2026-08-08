@@ -24,6 +24,12 @@ export type OrganizationMember = {
   is_active: boolean;
 };
 
+export type OrganizationContractOverviewPermission = {
+  user_id: string;
+  access_enabled: boolean;
+  access_source: "automatic" | "explicit";
+};
+
 export type OrganizationJoinRequest = {
   request_id: string;
   user_id: string;
@@ -189,6 +195,23 @@ export const organizationService = {
     });
     if (error) throw new Error(error.message);
     return dedupeOrganizationMembers(data || []);
+  },
+
+  getContractOverviewPermissions: async (orgId: string): Promise<OrganizationContractOverviewPermission[]> => {
+    const { data, error } = await supabase.rpc("get_organization_contract_overview_permissions", {
+      org_id_input: orgId,
+    });
+    if (error) throw new Error(error.message);
+    return (data || []) as OrganizationContractOverviewPermission[];
+  },
+
+  setContractOverviewPermission: async (orgId: string, userId: string, enabled: boolean): Promise<void> => {
+    const { error } = await supabase.rpc("set_contract_overview_permission", {
+      org_id_input: orgId,
+      user_id_input: userId,
+      enabled_input: enabled,
+    });
+    if (error) throw new Error(error.message);
   },
 
   getOrganizationJoinRequests: async (orgId: string): Promise<OrganizationJoinRequest[]> => {

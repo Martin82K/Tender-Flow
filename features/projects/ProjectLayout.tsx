@@ -14,6 +14,7 @@ import {
   Bid,
   Subcontractor,
   StatusConfig,
+  ProjectTeamRole,
 } from "@/types";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
@@ -23,6 +24,8 @@ import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
 import { geocodingService } from "@features/maps/services/geocodingService";
 import type { ThemeSkin } from "@/shared/types/theme";
+import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings";
+import { projectService } from "@/services/projectService";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -70,10 +73,19 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
+  const [myProjectRole, setMyProjectRole] = useState<ProjectTeamRole | "owner_admin" | null>(null);
   const { hasFeature } = useFeatures();
   const contractsEnabled = hasFeature(FEATURES.MODULE_CONTRACTS);
   const contractsState = useContractsWithDetails(projectId, contractsEnabled);
   const geocodeAbortRef = useRef<{ cancelled: boolean } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    projectService.getMyProjectAccess()
+      .then((roles) => { if (active) setMyProjectRole(roles[projectId] ?? null); })
+      .catch(() => { if (active) setMyProjectRole(null); });
+    return () => { active = false; };
+  }, [projectId]);
 
   const handleAddressChanged = useCallback((address: string, location: string) => {
     // Cancel any in-flight geocoding request
@@ -124,6 +136,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           icon: "description",
           feature: FEATURES.MODULE_CONTRACTS,
         },
+        { id: "settings", label: "Nastavení", icon: "settings" },
       ] as const,
     [],
   );
@@ -156,6 +169,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     archived: "Archiv",
   };
   const currentStatus = projectStatusLabel[project.status ?? "tender"];
+  const isArchived = project.status === "archived";
+  const isReadOnly = isArchived || myProjectRole === "viewer";
   const isIndustrialSkin = skin === "industrial";
   const mobileTabsClass = isIndustrialSkin
     ? "select-no-native-arrow w-full bg-[#faf6ee] border border-[rgba(20,16,8,0.14)] text-[#14110a] px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider focus:ring-2 focus:ring-[#ff8a33]/20"
@@ -215,12 +230,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         searchPlaceholder="Hledat v projektu..."
         helpSlot={
           <div className="flex items-center gap-1">
-            <TaskCreateButton
+            {!isReadOnly && <TaskCreateButton
               projectId={projectId}
               className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/60 bg-white/80 text-primary transition-all hover:bg-primary/10 dark:border-slate-700/60 dark:bg-slate-800/80"
             >
               <span className="sr-only">Úkol</span>
-            </TaskCreateButton>
+            </TaskCreateButton>}
             <HelpButton />
           </div>
         }
@@ -229,7 +244,9 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         {renderClassicTabs()}
       </Header>
 
-      <div className="flex-1 overflow-auto flex flex-col">
+      {isArchived && <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm font-medium text-amber-800">Archivovaná stavba je pouze ke čtení. Nevznikají zde nové úkoly, schválení ani oznámení; obnovit ji může vlastník nebo administrátor projektu.</div>}
+      {!isArchived && myProjectRole === "viewer" && <div className="border-b border-blue-200 bg-blue-50 px-6 py-3 text-sm font-medium text-blue-800">K této stavbě máte přístup pouze pro čtení.</div>}
+      <div className={`flex-1 overflow-auto flex flex-col ${isReadOnly && activeTab !== "settings" ? "pointer-events-none select-none opacity-80" : ""}`} aria-readonly={isReadOnly}>
         {activeTab === "overview" && (
           <ProjectOverviewNew
             project={project}
@@ -314,6 +331,14 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdateDetails={onUpdateDetails}
             initialContractId={initialContractId}
             contractsState={contractsState}
+          />
+        )}
+        {activeTab === "settings" && (
+          <ProjectTeamSettings
+            projectId={projectId}
+            organizationId={project.organizationId}
+            currentUserId={currentUserId}
+            readOnly={isReadOnly}
           />
         )}
       </div>

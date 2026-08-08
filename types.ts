@@ -6,9 +6,17 @@ export type View =
   | "todo"
   | "project-management"
   | "project-overview"
+  | "contract-overview"
   | "url-shortener";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map" | "settings";
+
+export type ProjectTeamRole = "project_admin" | "project_manager" | "team_member" | "viewer";
+
+export interface ProjectTeamInput {
+  userId: string;
+  role: ProjectTeamRole;
+}
 
 // Tender Plan Item
 export interface TenderPlanItem {
@@ -145,6 +153,8 @@ export interface Project {
   ownerId?: string;
   ownerEmail?: string;
   sharedWith?: string[];
+  organizationId?: string;
+  initialTeam?: ProjectTeamInput[];
 }
 
 export interface ContractDetails {
@@ -215,6 +225,7 @@ export interface DocHubProviderSettings {
 export interface ProjectDetails {
   id?: string; // Optional linkage
   ownerId?: string;
+  organizationId?: string;
   title: string;
   status?: ProjectStatus; // Added specific status field
   archivedOriginalStatus?: ActiveProjectStatus | null;

@@ -15,6 +15,7 @@ import { getOrgSeatUsage } from '../api/orgBillingService';
 import { formatOrgRole, isOrgOwnerRole } from '@/shared/organization/organizationUtils';
 import { useUI } from '@/context/UIContext';
 import type { OrgSeatUsage } from '../model/types';
+import { resolveContractOverviewPermissionState } from '../model/contractOverviewPermission';
 
 interface OrgMembersTabProps {
   orgId: string;
@@ -41,18 +42,24 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
   const [deleteStep, setDeleteStep] = useState<'warn' | 'confirm'>('warn');
   const [deleteEmailInput, setDeleteEmailInput] = useState('');
   const [deleteProcessing, setDeleteProcessing] = useState(false);
+  const [contractOverviewAccess, setContractOverviewAccess] = useState<Record<string, { enabled: boolean; source: 'automatic' | 'explicit' }>>({});
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [membersList, requestsList, seats] = await Promise.all([
+      const [membersList, requestsList, seats, permissions] = await Promise.all([
         organizationService.getOrganizationMembers(orgId),
         isAdminOrOwner ? organizationService.getOrganizationJoinRequests(orgId).catch(() => []) : Promise.resolve([]),
         getOrgSeatUsage(orgId),
+        organizationService.getContractOverviewPermissions(orgId),
       ]);
       setMembers(membersList);
       setRequests(requestsList.filter(r => r.status === 'pending'));
       setSeatUsage(seats);
+      setContractOverviewAccess(Object.fromEntries(permissions.map((permission) => [
+        permission.user_id,
+        { enabled: permission.access_enabled, source: permission.access_source },
+      ])));
     } catch (err) {
       console.error('[OrgMembersTab] Failed to load:', err);
     } finally {
@@ -87,6 +94,26 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
       await loadData();
     } catch (err: any) {
       showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se přidat člena.', variant: 'danger' });
+    }
+  };
+
+  const handleContractOverviewPermission = async (member: OrganizationMember, enabled: boolean) => {
+    if (member.role !== 'member') return;
+    setProcessingMemberId(member.user_id);
+    try {
+      await organizationService.setContractOverviewPermission(orgId, member.user_id, enabled);
+      setContractOverviewAccess((current) => ({
+        ...current,
+        [member.user_id]: { enabled, source: 'explicit' },
+      }));
+    } catch (err) {
+      showAlert({
+        title: 'Chyba',
+        message: err instanceof Error ? err.message : 'Oprávnění se nepodařilo změnit.',
+        variant: 'danger',
+      });
+    } finally {
+      setProcessingMemberId(null);
     }
   };
 
@@ -346,6 +373,7 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Člen</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Role</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Přístup ke smluvnímu přehledu</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Přidán</th>
               {isAdminOrOwner && <th className="w-12"></th>}
             </tr>
@@ -362,6 +390,11 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
               const isActive = member.is_active !== false;
               const isProcessing = processingMemberId === member.user_id;
               const manageable = canManageMember(member);
+              const contractAccess = resolveContractOverviewPermissionState(
+                member,
+                contractOverviewAccess[member.user_id]?.enabled === true,
+                isAdminOrOwner,
+              );
 
               return (
                 <tr
@@ -405,6 +438,19 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                         {isActive ? 'Aktivní' : 'Deaktivován'}
                       </span>
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-500">
+                      <input
+                        type="checkbox"
+                        aria-label={`Přístup ke smluvnímu přehledu – ${member.display_name || member.email}`}
+                        checked={contractAccess.checked}
+                        disabled={!contractAccess.canAssignExplicitly || isProcessing}
+                        onChange={(event) => void handleContractOverviewPermission(member, event.target.checked)}
+                        className="rounded border-slate-300 text-primary focus:ring-primary"
+                      />
+                      {contractAccess.source === 'automatic' ? 'Automaticky' : 'Výslovně'}
+                    </label>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">
                     {member.joined_at ? new Date(member.joined_at).toLocaleDateString('cs-CZ', { month: 'short', year: 'numeric' }) : '—'}
@@ -504,7 +550,7 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
             })}
             {filteredMembers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
                   {search ? 'Žádný člen neodpovídá hledání.' : 'Žádní členové.'}
                 </td>
               </tr>
