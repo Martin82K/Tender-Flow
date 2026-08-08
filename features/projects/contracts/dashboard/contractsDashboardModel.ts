@@ -101,7 +101,8 @@ export const computeContractsDashboardStats = (
     0,
   );
   const investorPaid = investorInvoices.reduce(
-    (sum, invoice) => sum + computeInvestorInvoiceBreakdown(invoice).paidAmount,
+    (sum, invoice) =>
+      sum + computeInvestorInvoiceBreakdown(invoice, investorFinancials).paidAmount,
     0,
   );
   const investorApproved = sumInvestorInvoicesByStatus(investorInvoices, 'approved');

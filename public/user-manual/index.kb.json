@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-07T21:01:43.564Z",
+  "generatedAt": "2026-08-08T08:40:23.715Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -369,24 +369,24 @@
     {
       "slug": "smlouvy",
       "title": "📜 Smlouvy",
-      "content": "Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní stavby. - **📊 Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence). - **📄 Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu. - **✏️ Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu. - **💰 Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy. > 💡 **Tip:** Při zakládání smlouvy lze data ze smluvních dokumentů předvyplnit automaticky (např. z PDF) a před uložením je ručně potvrdit. #### Smluvní protokoly Z modulu smluv můžete generovat formální protokoly ke stavebnímu řízení. K dispozici jsou dva typy: **Předání díla SUB** (`sub_work_handover`) - Protokol pro předání a převzetí díla subdodavatele. - Obsahuje pole: stavební akce, předmět díla, termíny přejímky (smluvní/skutečný), soupis vad a nedodělků, smluvní pokuty, záruční doba, podpisy za zhotovitele i subdodavatele. - Výstup: Excel (`.xlsx`) a PDF. **Předání staveniště** (`site_handover`) - Protokol pro předání staveniště mezi objednatelem a zhotovitelem. - Obsahuje pole: název a číslo stavby, místo, smlouva o dílo, termíny zahájení/dokončení, předaná dokumentace, soupis vad, dohoda o vyklizení, záruční doba, podpisy. - Výstup: Excel (`.xlsx`). **Jak generovat protokol:** 1. Na záložce **Smlouvy** vyberte smlouvu. 2. Klikněte na akci generování protokolu. 3. Údaje se předvyplní z dat smlouvy a projektu (dodavatel, IČ, cena, termíny). 4. Zkontrolujte a doplňte pole označená jako povinná. 5. Klikněte na generování – soubor se stáhne.",
+      "content": "Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní stavby. - **📊 Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence). - **📄 Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu. - **✏️ Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu. - **💰 Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy. - **🏗️ Investor** – smlouva s objednatelem, dodatky a vystavené faktury včetně pozastávek A a B. > 💡 **Tip:** Při zakládání smlouvy lze data ze smluvních dokumentů předvyplnit automaticky (např. z PDF) a před uložením je ručně potvrdit. #### Fakturace investora a globální pozastávky 1. V části **Investor** nastavte procento **Pozastávky A** a **Pozastávky B** jednou pro celou stavbu. 2. Přidejte fakturu a zadejte fakturovanou částku. Ve sloupcích pozastávek se automaticky zobrazí vypočtené částky; procenta se na běžné faktuře nevyplňují. 3. Změna globálních procent automaticky přepočítá faktury, které nastavení stavby dědí. 4. Pokud má konkrétní faktura smluvní odchylku, odemkněte ji a použijte akci **Individuální pozastávky**. Explicitní hodnota `0 %` je také platná výjimka. 5. Akcí **Použít globální pozastávky** výjimku zrušíte a faktura se znovu řídí nastavením stavby. #### Smluvní protokoly Z modulu smluv můžete generovat formální protokoly ke stavebnímu řízení. K dispozici jsou dva typy: **Předání díla SUB** (`sub_work_handover`) - Protokol pro předání a převzetí díla subdodavatele. - Obsahuje pole: stavební akce, předmět díla, termíny přejímky (smluvní/skutečný), soupis vad a nedodělků, smluvní pokuty, záruční doba, podpisy za zhotovitele i subdodavatele. - Výstup: Excel (`.xlsx`) a PDF. **Předání staveniště** (`site_handover`) - Protokol pro předání staveniště mezi objednatelem a zhotovitelem. - Obsahuje pole: název a číslo stavby, místo, smlouva o dílo, termíny zahájení/dokončení, předaná dokumentace, soupis vad, dohoda o vyklizení, záruční doba, podpisy. - Výstup: Excel (`.xlsx`). **Jak generovat protokol:** 1. Na záložce **Smlouvy** vyberte smlouvu. 2. Klikněte na akci generování protokolu. 3. Údaje se předvyplní z dat smlouvy a projektu (dodavatel, IČ, cena, termíny). 4. Zkontrolujte a doplňte pole označená jako povinná. 5. Klikněte na generování – soubor se stáhne.",
       "keywords": [
+        "pozast",
         "smlouvy",
+        "vky",
         "smluvn",
         "smluv",
         "erp",
-        "term",
-        "zen",
+        "automaticky",
+        "konkr",
         "stavby",
-        "pdf",
-        "protokoly",
-        "stavebn",
-        "sub",
-        "handover",
-        "protokol",
-        "subdodavatele",
-        "obsahuje",
-        "pole"
+        "hodnota",
+        "dodatky",
+        "investor",
+        "faktury",
+        "vek",
+        "glob",
+        "pou"
       ],
       "source_anchor": "#smlouvy",
       "level": 3,

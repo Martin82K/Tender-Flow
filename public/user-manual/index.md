@@ -248,8 +248,17 @@ Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní s
 - **📄 Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.
 - **✏️ Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu.
 - **💰 Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.
+- **🏗️ Investor** – smlouva s objednatelem, dodatky a vystavené faktury včetně pozastávek A a B.
 
 > 💡 **Tip:** Při zakládání smlouvy lze data ze smluvních dokumentů předvyplnit automaticky (např. z PDF) a před uložením je ručně potvrdit.
+
+#### Fakturace investora a globální pozastávky
+
+1. V části **Investor** nastavte procento **Pozastávky A** a **Pozastávky B** jednou pro celou stavbu.
+2. Přidejte fakturu a zadejte fakturovanou částku. Ve sloupcích pozastávek se automaticky zobrazí vypočtené částky; procenta se na běžné faktuře nevyplňují.
+3. Změna globálních procent automaticky přepočítá faktury, které nastavení stavby dědí.
+4. Pokud má konkrétní faktura smluvní odchylku, odemkněte ji a použijte akci **Individuální pozastávky**. Explicitní hodnota `0 %` je také platná výjimka.
+5. Akcí **Použít globální pozastávky** výjimku zrušíte a faktura se znovu řídí nastavením stavby.
 
 #### Smluvní protokoly
 

@@ -35,6 +35,8 @@ Projekt podporuje taby:
 - **Investor** – smlouva s objednatelem, číslované dodatky a faktury podle
   období. Fakturace odděluje vystavenou částku, pozastávku do předání,
   pozastávku po dobu záruky, čistou částku k úhradě a skutečnou úhradu.
+  Procenta pozastávek se nastavují globálně pro stavbu a faktury je dědí;
+  jednotlivá faktura může mít explicitní výjimku.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
 
 Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální

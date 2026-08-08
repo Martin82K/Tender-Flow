@@ -30,6 +30,48 @@ describe('investorBillingModel', () => {
     });
   });
 
+  it('dědí pozastávky z globálního nastavení stavby a po jeho změně je přepočítá', () => {
+    const inheritedInvoice = invoice({
+      retentionAPercent: undefined,
+      retentionBPercent: undefined,
+    });
+
+    expect(
+      computeInvestorInvoiceBreakdown(inheritedInvoice, {
+        retentionAPercent: 5,
+        retentionBPercent: 3,
+      }),
+    ).toMatchObject({
+      retentionAAmount: 5_000,
+      retentionBAmount: 3_000,
+      payableAmount: 92_000,
+    });
+
+    expect(
+      computeInvestorInvoiceBreakdown(inheritedInvoice, {
+        retentionAPercent: 6,
+        retentionBPercent: 2,
+      }),
+    ).toMatchObject({
+      retentionAAmount: 6_000,
+      retentionBAmount: 2_000,
+      payableAmount: 92_000,
+    });
+  });
+
+  it('ponechá explicitní procenta faktury jako individuální výjimku', () => {
+    expect(
+      computeInvestorInvoiceBreakdown(
+        invoice({ retentionAPercent: 7, retentionBPercent: 1 }),
+        { retentionAPercent: 5, retentionBPercent: 3 },
+      ),
+    ).toMatchObject({
+      retentionAAmount: 7_000,
+      retentionBAmount: 1_000,
+      payableAmount: 92_000,
+    });
+  });
+
   it('u zaplacené faktury použije čistou částku jako úhradu, pokud nebyla zadána skutečná úhrada', () => {
     expect(
       computeInvestorInvoiceBreakdown(invoice({ status: 'paid' })),
