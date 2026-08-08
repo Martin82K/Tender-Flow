@@ -63,6 +63,7 @@ export const UserSecuritySettings: React.FC = () => {
 
   const primaryFactor = useMemo(() => getPrimaryFactor(status), [status]);
   const isEnabled = Boolean(primaryFactor);
+  const activeSessionCount = devices.filter((device) => device.status === "active").length;
 
   const loadStatus = async () => {
     setIsLoading(true);
@@ -379,12 +380,17 @@ export const UserSecuritySettings: React.FC = () => {
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white">
-              Zařízení
-            </h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-semibold text-slate-900 dark:text-white">
+                Aktivní session
+              </h3>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                {activeSessionCount} z 3 aktivních
+              </span>
+            </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Přehled zařízení, ze kterých jste se přihlásili do Tender Flow.
-              Zařízení je možné odhlásit bez vypnutí 2FA.
+              Účet může mít současně nejvýše tři aktivní session, například Windows, macOS a mobil.
+              Nové přihlášení nad limit odhlásí nejstarší session. Jednotlivé session můžete odhlásit bez vypnutí 2FA.
             </p>
           </div>
 
@@ -406,7 +412,7 @@ export const UserSecuritySettings: React.FC = () => {
             </div>
           ) : devices.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
-              Zatím tu není žádné evidované zařízení. Aktuální zařízení se uloží po příštím úspěšném přihlášení.
+              Zatím tu není žádná evidovaná session. Aktuální session se uloží po příštím úspěšném přihlášení.
             </div>
           ) : (
             devices.map((device) => {
