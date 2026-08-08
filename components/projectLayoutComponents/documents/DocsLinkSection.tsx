@@ -170,12 +170,12 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
       {/* Multi-link list */}
       <div
         data-help-id="documents-link-card"
-        className={`rounded-xl p-6 border transition-colors ${documentLinks.length > 0 || hasDocsLink
-          ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
-          : "bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40"
+        className={`rounded-lg border p-4 transition-colors ${documentLinks.length > 0 || hasDocsLink
+          ? "border-primary/20 bg-primary/5"
+          : "border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/30"
           }`}
       >
-        <div className="flex justify-between items-start mb-4">
+        <div className="mb-3 flex items-start justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-slate-400">
               folder_open
@@ -186,7 +186,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
             {(documentLinks.length > 0 || hasDocsLink) && (
               <span
                 data-help-id="documents-status-badge"
-                className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30"
+                className="ml-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
               >
                 {documentLinks.length || 1} odkaz
                 {documentLinks.length !== 1 ? "ů" : ""}
@@ -201,7 +201,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
           {hasDocsLink && documentLinks.length === 0 && (
             <div
               data-help-id="documents-link-row"
-              className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group hover:border-emerald-500/30 transition-all"
+              className="group flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-primary/30 dark:border-slate-700 dark:bg-slate-900/60"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="material-symbols-outlined text-emerald-400">
@@ -219,8 +219,9 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleOpenLink(project.documentationLink!)}
-                  className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
+                  className="flex min-h-10 min-w-10 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800"
                   title={getOpenButtonTitle(project.documentationLink || "")}
+                  aria-label={getOpenButtonTitle(project.documentationLink || "")}
                 >
                   <span className="material-symbols-outlined text-[18px]">
                     {getOpenButtonIcon(project.documentationLink || "")}
@@ -228,8 +229,9 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 </button>
                 <button
                   onClick={() => onEditToggle(true)}
-                  className="p-2 text-slate-500 hover:text-blue-400 transition-colors"
+                  className="flex min-h-10 min-w-10 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800"
                   title="Upravit"
+                  aria-label="Upravit odkaz"
                 >
                   <span className="material-symbols-outlined text-[18px]">
                     edit
@@ -244,7 +246,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
             <div
               key={link.id}
               data-help-id="documents-link-row"
-              className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group hover:border-emerald-500/30 transition-all"
+              className="group flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-primary/30 dark:border-slate-700 dark:bg-slate-900/60"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="material-symbols-outlined text-emerald-400">
@@ -266,11 +268,12 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleOpenLink(link.url)}
-                  className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
+                  className="flex min-h-10 min-w-10 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800"
                   title={getOpenButtonTitle(link.url)}
+                  aria-label={`${getOpenButtonTitle(link.url)} odkaz`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
                     {getOpenButtonIcon(link.url)}
@@ -278,8 +281,9 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 </button>
                 <button
                   onClick={() => handleDeleteLink(link.id)}
-                  className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                  className="flex min-h-10 min-w-10 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40 dark:hover:bg-red-950/30 dark:hover:text-red-400"
                   title="Smazat"
+                  aria-label="Smazat odkaz"
                 >
                   <span className="material-symbols-outlined text-[18px]">
                     delete
@@ -291,7 +295,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
 
           {/* Add new link form */}
           {isAddingNew ? (
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-300 dark:border-slate-600/50 space-y-3">
+            <div className="space-y-3 rounded-lg border border-slate-300 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/40">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
@@ -334,7 +338,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                   onClick={handleAddLink}
                   disabled={isShortening}
                   data-help-id="documents-save-link"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-wait text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                  className="flex min-h-10 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-wait disabled:opacity-50"
                 >
                   {isShortening && (
                     <span className="material-symbols-outlined animate-spin text-[16px]">
@@ -349,7 +353,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
             <button
               onClick={() => setIsAddingNew(true)}
               data-help-id="documents-add-link"
-              className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-300 dark:border-slate-600/50 rounded-xl text-slate-500 hover:text-emerald-500 hover:border-emerald-500/50 transition-all"
+              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-slate-500 transition-colors hover:border-primary/40 hover:bg-slate-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:border-slate-700 dark:hover:bg-slate-900"
             >
               <span className="material-symbols-outlined text-[20px]">add</span>
               <span className="text-sm font-medium">Přidat odkaz</span>
