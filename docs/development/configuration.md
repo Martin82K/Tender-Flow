@@ -60,6 +60,26 @@ Používané provozní hodnoty zahrnují:
 `scripts/write-desktop-build-env.mjs` generuje pouze povolené veřejné hodnoty
 pro desktop build. Generovaný soubor se neupravuje ručně.
 
+### Remote MCP 2.0
+
+Remote endpoint `/api/mcp` používá MCP protokol `2026-07-28` přes stateless
+Streamable HTTP. Starší klienti mohou dočasně vyjednat stateless legacy režim;
+noví klienti používají `server/discover` a metadata v každém requestu.
+
+| Proměnná | Účel |
+| --- | --- |
+| `MCP_ALLOWED_CLIENT_IDS` | povolená OAuth client ID; v produkci je povinná |
+| `MCP_ALLOWED_AUDIENCES` | povolené JWT audience včetně kanonického MCP resource URI |
+| `MCP_REQUIRED_SCOPES` | minimální OAuth scopes endpointu |
+| `MCP_ALLOWED_ORIGINS` | přesný allowlist browser originů oddělený čárkou |
+| `TENDER_FLOW_MCP_ACCESS_TOKEN` | pouze lokální stdio přístupový token; nikdy se necommituje |
+| `TENDER_FLOW_MCP_READ_ONLY` | zakáže write tools v lokálním stdio režimu |
+
+HTTP access token musí být vydaný pro kanonický resource endpoint a server jej
+ověřuje jako Supabase JWT. `MCP_ALLOWED_ORIGINS` není náhrada autentizace;
+chrání browserové požadavky a DNS-rebinding scénáře. Requesty bez `Origin`
+(typicky serverové MCP klienty) stále musí projít OAuth kontrolou.
+
 ## Feature flags a tarify
 
 Výchozí katalog je v `config/features.ts`; subscription tier normalizace je v

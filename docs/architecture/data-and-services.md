@@ -91,9 +91,17 @@ MCP implementace existuje ve dvou formách:
 - `server/mcp/` pro Node/hosting scénáře,
 - `desktop/main/services/mcpServer.ts` pro desktop.
 
-Nástroje používají Supabase autentizaci, rate limit, response helpery a podle
-konfigurace read-only režim. Consent route je `/oauth/consent`. Přístupové tokeny
-se neposílají do logů ani dokumentace.
+Remote server používá MCP 2.0 / protokol `2026-07-28`: `server/discover`,
+per-request `_meta` a stateless Streamable HTTP bez serverové MCP session.
+Dočasná stateless legacy kompatibilita sdílí stejnou factory a stejný katalog
+nástrojů, takže nevznikají dvě autorizačně odlišné implementace.
+
+Nástroje používají uživatelský Supabase access token, databázové RLS, OAuth
+client/resource/scope kontrolu, browser Origin allowlist, rate limit a audit.
+Consent route je `/oauth/consent`. Přístupové tokeny se neposílají do logů ani
+dokumentace. Zápisové nástroje zachovávají třífázový tok
+`prepare -> confirm -> execute`; běžný Supabase session token ve stdio režimu
+zpřístupní pouze read-only nástroje.
 
 ## Node server
 
