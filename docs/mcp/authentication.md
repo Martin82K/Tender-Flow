@@ -19,7 +19,7 @@ sequenceDiagram
   participant D as Supabase/RLS
   C->>M: požadavek bez tokenu
   M-->>C: 401 + WWW-Authenticate metadata
-  C->>O: authorization request + resource + standardní identity scopes
+  C->>O: authorization request + standardní identity scopes
   O->>U: přihlášení a consent
   U-->>O: schválení
   O-->>C: authorization code / access token
@@ -42,11 +42,14 @@ Server kontroluje minimálně:
 
 Supabase OAuth access token standardně obsahuje `client_id` a
 `aud=authenticated`, nikoli automaticky RFC 8707 resource. Tender Flow proto
-používá Custom Access Token Hook, který pouze OAuth tokenům přidá kanonickou
-hodnotu `app_metadata.mcp_resource=https://www.tenderflow.cz/api/mcp`. Audience
-ani ostatní claims nemění. Server přijímá tento důvěryhodný claim, ale stále
-samostatně vyžaduje přesný client allowlist; samotná existence resource claimu
-žádné doménové oprávnění neuděluje.
+používá Custom Access Token Hook a autoritativní tabulku
+`mcp_oauth_client_resources`. Kanonickou hodnotu
+`app_metadata.mcp_resource=https://www.tenderflow.cz/api/mcp` dostane jen
+aktivní OAuth klient explicitně registrovaný pro tento resource; jiné OAuth a
+běžné session tokeny zůstanou beze změny. Jde o vazbu dedikovaného klienta na
+resource, nikoli o tvrzení, že Supabase zachoval `resource` z jednotlivé
+autorizační žádosti. Server navíc stále vyžaduje přesný environment allowlist;
+samotný resource claim žádné doménové oprávnění neuděluje.
 
 OAuth `scope` a doménová MCP oprávnění jsou oddělené. Supabase Auth podporuje
 standardní scopes (`openid`, `email`, `profile`, případně `phone` a

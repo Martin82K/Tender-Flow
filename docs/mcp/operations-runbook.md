@@ -29,13 +29,16 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
    po explicitním schválení verzovanou migraci.
 3. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
-4. Provést OAuth canary se standardními `openid email profile` a read dotazem.
-5. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
-6. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
+4. Ověřit, že OAuth klient je aktivní v `auth.oauth_clients` i v
+   `mcp_oauth_client_resources`, a teprve potom zapnout Custom Access Token
+   Hook.
+5. Provést OAuth canary se standardními `openid email profile` a read dotazem.
+6. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
+7. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
-7. Write canary neprovádět, dokud nebude samostatně schválen a nasazen
+8. Write canary neprovádět, dokud nebude samostatně schválen a nasazen
    autoritativní user+client grant model; potom jen na testovacím projektu.
-8. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+9. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
 
 ### Poslední ověřený produkční preflight
 

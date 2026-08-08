@@ -40,10 +40,38 @@ const discovery = await readJson(discoveryResponse, 'OAuth discovery');
 assert(discovery.issuer === authorizationServer.href.replace(/\/$/, ''), 'OAuth issuer does not match advertised server.');
 assert(discovery.response_types_supported?.includes('code'), 'OAuth authorization code flow is not advertised.');
 assert(discovery.code_challenge_methods_supported?.includes('S256'), 'OAuth PKCE S256 is not advertised.');
-assert(typeof discovery.jwks_uri === 'string' && discovery.jwks_uri.startsWith(`${authorizationServer.origin}/`),
-  'OAuth JWKS URI is missing or cross-origin.');
+
+const assertAuthorizationServerEndpoint = (value, label) => {
+  assert(typeof value === 'string', `${label} is missing from OAuth discovery.`);
+  const endpoint = new URL(value);
+  assert(endpoint.protocol === 'https:', `${label} must use HTTPS.`);
+  assert(endpoint.origin === authorizationServer.origin, `${label} is cross-origin.`);
+  assert(endpoint.pathname.startsWith(`${authorizationServer.pathname.replace(/\/$/, '')}/`),
+    `${label} is outside the advertised authorization server path.`);
+  return endpoint.href;
+};
+
+const authorizationEndpoint = assertAuthorizationServerEndpoint(
+  discovery.authorization_endpoint,
+  'authorization_endpoint',
+);
+const tokenEndpoint = assertAuthorizationServerEndpoint(discovery.token_endpoint, 'token_endpoint');
+const expectedJwksUrl = `${authorizationServer.href.replace(/\/$/, '')}/.well-known/jwks.json`;
+assert(discovery.jwks_uri === expectedJwksUrl,
+  'OAuth discovery JWKS URI differs from the endpoint used by the MCP token validator.');
 assert(discovery.id_token_signing_alg_values_supported?.some((algorithm) => ['RS256', 'ES256'].includes(algorithm)),
   'OAuth discovery does not advertise an asymmetric ID-token signing algorithm.');
+
+const jwksResponse = await fetch(expectedJwksUrl, {
+  headers: { accept: 'application/json' },
+  redirect: 'error',
+});
+assert(jwksResponse.ok, `OAuth JWKS failed with HTTP ${jwksResponse.status}.`);
+const jwks = await readJson(jwksResponse, 'OAuth JWKS');
+assert(Array.isArray(jwks.keys) && jwks.keys.length > 0, 'OAuth JWKS does not contain signing keys.');
+assert(jwks.keys.some((key) =>
+  key && typeof key === 'object' && ['RSA', 'EC'].includes(key.kty) && typeof key.kid === 'string' && key.kid.length > 0),
+'OAuth JWKS does not contain an asymmetric key with a key id.');
 
 const unauthorizedResponse = await fetch(expectedResource, {
   method: 'POST',
@@ -76,6 +104,9 @@ console.log(JSON.stringify({
     authorizationCode: true,
     pkceS256: true,
     asymmetricSigningAdvertised: true,
+    authorizationEndpoint,
+    tokenEndpoint,
+    jwks: expectedJwksUrl,
   },
   unauthenticatedChallenge: {
     status: unauthorizedResponse.status,
