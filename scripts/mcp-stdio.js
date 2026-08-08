@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createTenderFlowMcpServer } from '../server/mcp/tenderFlowMcp.js';
+import { getLocalSessionMcpScopes } from '../server/mcp/scopePolicy.js';
 import { verifyLocalMcpAccessToken } from '../server/mcp/supabaseAuth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,7 +43,8 @@ const main = async () => {
   const includeWriteTools = auth.hasOAuthClientId && !readOnly;
 
   if (!auth.hasOAuthClientId) {
-    console.error('[Tender Flow MCP] Local Supabase session token detected; running read-only tools only.');
+    auth.scopes = getLocalSessionMcpScopes(auth.scopes);
+    console.error('[Tender Flow MCP] Local Supabase session token detected; running general read-only tools without contact data.');
   }
 
   serveStdio(

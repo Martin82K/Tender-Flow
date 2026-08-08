@@ -15,6 +15,12 @@ const scopeLabel = (scope: string): string => {
       return "e-mail uživatele";
     case "profile":
       return "základní profil";
+    case "tenderflow.read":
+      return "čtení projektů, výběrových řízení a smluv v rozsahu vašich oprávnění";
+    case "tenderflow.contacts.read":
+      return "čtení kontaktních údajů dodavatelů v rozsahu vašich oprávnění";
+    case "tenderflow.write":
+      return "navrhování a potvrzené provádění změn v Tender Flow";
     default:
       return scope;
   }
@@ -55,6 +61,7 @@ export const McpOAuthConsentPage: React.FC = () => {
         .filter(Boolean),
     [details?.scope],
   );
+  const canWrite = scopes.includes("tenderflow.write");
 
   useEffect(() => {
     let isMounted = true;
@@ -154,8 +161,9 @@ export const McpOAuthConsentPage: React.FC = () => {
               </div>
 
               <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
-                AI bude moct číst data, která mu MCP nástroje zpřístupní. Zápisy v Tender Flow vyžadují
-                samostatné potvrzení přes návrh, přesnou potvrzovací větu a jednorázový token.
+                {canWrite
+                  ? "AI bude moct číst povolená data a navrhovat změny. Každý zápis vyžaduje samostatné potvrzení přes návrh, přesnou potvrzovací větu a jednorázový token."
+                  : "AI bude moct pouze číst data odpovídající schváleným scopes a vašim oprávněním v Tender Flow."}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">

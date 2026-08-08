@@ -1,8 +1,9 @@
 import * as z from 'zod/v4';
-import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
 import { createUserSupabaseClient } from './data.js';
 import {
   buildSearchResults,
+  getContractOverview,
   getProjectDetail,
   listBids,
   listContacts,
@@ -15,6 +16,12 @@ import {
 import { logMcpAuditEvent, summarizeResultForAudit } from './audit.js';
 import { checkMcpRateLimit } from './rateLimit.js';
 import { getBaseUrl, unauthorizedMcpResponse, jsonResponse } from './response.js';
+import {
+  MCP_SCOPES,
+  assertMcpScopes,
+  getMcpToolPolicy,
+  hasMcpScopes,
+} from './scopePolicy.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
 
 const textJson = (value, isError = false) => ({
@@ -271,15 +278,18 @@ const executeProposal = async (supabase, auth, args) => {
 };
 
 const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low') => async (args) => {
+  const policy = getMcpToolPolicy(toolName);
+  const effectiveRiskLevel = riskLevel === 'low' ? policy.riskLevel : riskLevel;
   try {
-    checkMcpRateLimit(auth, toolName, riskLevel);
+    assertMcpScopes(auth, policy.requiredScopes);
+    checkMcpRateLimit(auth, toolName, effectiveRiskLevel);
     const result = await handler(args);
     await logMcpAuditEvent(supabase, {
       userId: auth.userId,
       clientId: auth.clientId,
       toolName,
       action,
-      riskLevel,
+      riskLevel: effectiveRiskLevel,
       success: true,
       requestSummary: args,
       resultSummary: summarizeResultForAudit(result),
@@ -291,12 +301,137 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
       clientId: auth.clientId,
       toolName,
       action,
-      riskLevel,
+      riskLevel: effectiveRiskLevel,
       success: false,
       errorMessage: error instanceof Error ? error.message : String(error),
       requestSummary: args,
     });
     return textJson({ ok: false, error: error instanceof Error ? error.message : String(error) }, true);
+  }
+};
+
+const registerScopedTool = (server, auth, toolName, config, handler) => {
+  const policy = getMcpToolPolicy(toolName);
+  if (!hasMcpScopes(auth.scopes, policy.requiredScopes)) return;
+  server.registerTool(toolName, config, handler);
+};
+
+const resourceJson = (uri, value) => ({
+  contents: [{
+    uri: uri.href,
+    mimeType: 'application/json',
+    text: JSON.stringify(value, null, 2),
+  }],
+});
+
+const withResourceAudit = (
+  auth,
+  supabase,
+  resourceName,
+  requiredScopes,
+  handler,
+) => async (...args) => {
+  const uri = args[0];
+  try {
+    assertMcpScopes(auth, requiredScopes);
+    checkMcpRateLimit(auth, `resource:${resourceName}`, 'low');
+    const result = await handler(...args);
+    await logMcpAuditEvent(supabase, {
+      userId: auth.userId,
+      clientId: auth.clientId,
+      toolName: `resource:${resourceName}`,
+      action: 'resource_read',
+      riskLevel: 'low',
+      success: true,
+      requestSummary: { uri: uri.href },
+      resultSummary: { ok: true },
+    });
+    return result;
+  } catch (error) {
+    await logMcpAuditEvent(supabase, {
+      userId: auth.userId,
+      clientId: auth.clientId,
+      toolName: `resource:${resourceName}`,
+      action: 'resource_read',
+      riskLevel: 'low',
+      success: false,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      requestSummary: { uri: uri.href },
+    });
+    throw error;
+  }
+};
+
+const registerTenderFlowResources = (server, auth, supabase) => {
+  server.registerResource(
+    'tender-flow-catalog',
+    'tenderflow://catalog',
+    {
+      title: 'Tender Flow MCP Catalog',
+      description: 'Available Tender Flow resource families and OAuth scopes.',
+      mimeType: 'application/json',
+      cacheHint: { cacheScope: 'private', ttlMs: 300_000 },
+    },
+    withResourceAudit(
+      auth,
+      supabase,
+      'catalog',
+      [MCP_SCOPES.identity],
+      async (uri) => resourceJson(uri, {
+        protocolVersion: '2026-07-28',
+        resources: [
+          'tenderflow://projects/{projectId}',
+          'tenderflow://organizations/{organizationId}/contracts/overview',
+        ],
+        scopes: MCP_SCOPES,
+      }),
+    ),
+  );
+
+  if (hasMcpScopes(auth.scopes, [MCP_SCOPES.read, MCP_SCOPES.contactsRead])) {
+    server.registerResource(
+      'tender-flow-project',
+      new ResourceTemplate('tenderflow://projects/{projectId}', { list: undefined }),
+      {
+        title: 'Tender Flow Project Detail',
+        description: 'Project detail, tenders, bids, contracts, and tender plan visible through RLS.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 60_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'project',
+        [MCP_SCOPES.read, MCP_SCOPES.contactsRead],
+        async (uri, variables) => resourceJson(uri, await getProjectDetail(supabase, variables.projectId)),
+      ),
+    );
+  }
+
+  if (hasMcpScopes(auth.scopes, [MCP_SCOPES.read])) {
+    server.registerResource(
+      'tender-flow-contract-overview',
+      new ResourceTemplate(
+        'tenderflow://organizations/{organizationId}/contracts/overview',
+        { list: undefined },
+      ),
+      {
+        title: 'Tender Flow Contract Overview',
+        description: 'Authorized organization contract overview with minimized document metadata.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 60_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'contract-overview',
+        [MCP_SCOPES.read],
+        async (uri, variables) => resourceJson(uri, await getContractOverview(supabase, {
+          organizationId: z.string().uuid().parse(variables.organizationId),
+          includeArchived: false,
+        })),
+      ),
+    );
   }
 };
 
@@ -306,7 +441,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.2.0',
+      version: '0.3.0',
     },
     {
       capabilities: {
@@ -316,7 +451,9 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     },
   );
 
-  server.registerTool(
+  registerTenderFlowResources(server, auth, supabase);
+
+  registerScopedTool(server, auth,
     'search',
     {
       title: 'Tender Flow Search',
@@ -332,7 +469,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'fetch',
     {
       title: 'Tender Flow Fetch',
@@ -363,7 +500,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     }),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_projects',
     {
       title: 'List Projects',
@@ -375,7 +512,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_projects', 'read', async (args) => ({ ok: true, data: await listProjects(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_get_project_detail',
     {
       title: 'Get Project Detail',
@@ -387,7 +524,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_get_project_detail', 'read', async ({ projectId }) => ({ ok: true, data: await getProjectDetail(supabase, projectId) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_tenders',
     {
       title: 'List Tenders',
@@ -399,7 +536,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_tenders', 'read', async (args) => ({ ok: true, data: await listTenders(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_bids',
     {
       title: 'List Bids',
@@ -411,7 +548,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_bids', 'read', async (args) => ({ ok: true, data: await listBids(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_winners',
     {
       title: 'List Winning Bids',
@@ -423,7 +560,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_winners', 'read', async (args) => ({ ok: true, data: await listBids(supabase, { ...args, winnersOnly: true }) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_contracts',
     {
       title: 'List Contracts',
@@ -435,7 +572,25 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_contracts', 'read', async (args) => ({ ok: true, data: await listContracts(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
+    'tf_get_contract_overview',
+    {
+      title: 'Get Contract Overview',
+      description: 'Get the authorized organization contract overview. Uses the same role/project-team scope as Tender Flow and omits raw storage paths. Read-only.',
+      inputSchema: {
+        organizationId: z.string().uuid().optional(),
+        includeArchived: z.boolean().optional(),
+      },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_get_contract_overview', 'read', async (args) => ({
+      ok: true,
+      data: await getContractOverview(supabase, args),
+    })),
+  );
+
+  registerScopedTool(server, auth,
     'tf_list_tender_plan',
     {
       title: 'List Tender Plan',
@@ -447,7 +602,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_tender_plan', 'read', async (args) => ({ ok: true, data: await listTenderPlan(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_contacts',
     {
       title: 'List Contacts',
@@ -459,7 +614,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_contacts', 'read', async (args) => ({ ok: true, data: await listContacts(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_upcoming_deadlines',
     {
       title: 'List Upcoming Deadlines',
@@ -475,7 +630,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     return server;
   }
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_prepare_change',
     {
       title: 'Prepare Tender Flow Change',
@@ -487,7 +642,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_prepare_change', 'prepare_write', async (args) => createProposal(supabase, auth, args), 'medium'),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_confirm_change',
     {
       title: 'Confirm Tender Flow Change',
@@ -499,7 +654,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_confirm_change', 'confirm_write', async (args) => confirmProposal(supabase, auth, args), 'high'),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_execute_change',
     {
       title: 'Execute Tender Flow Change',

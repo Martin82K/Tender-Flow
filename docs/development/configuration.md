@@ -70,7 +70,7 @@ noví klienti používají `server/discover` a metadata v každém requestu.
 | --- | --- |
 | `MCP_ALLOWED_CLIENT_IDS` | povolená OAuth client ID; v produkci je povinná |
 | `MCP_ALLOWED_AUDIENCES` | povolené JWT audience včetně kanonického MCP resource URI |
-| `MCP_REQUIRED_SCOPES` | minimální OAuth scopes endpointu |
+| `MCP_REQUIRED_SCOPES` | minimální OAuth scopes endpointu; výchozí je `openid` |
 | `MCP_ALLOWED_ORIGINS` | přesný allowlist browser originů oddělený čárkou |
 | `TENDER_FLOW_MCP_ACCESS_TOKEN` | pouze lokální stdio přístupový token; nikdy se necommituje |
 | `TENDER_FLOW_MCP_READ_ONLY` | zakáže write tools v lokálním stdio režimu |
@@ -79,6 +79,18 @@ HTTP access token musí být vydaný pro kanonický resource endpoint a server j
 ověřuje jako Supabase JWT. `MCP_ALLOWED_ORIGINS` není náhrada autentizace;
 chrání browserové požadavky a DNS-rebinding scénáře. Requesty bez `Origin`
 (typicky serverové MCP klienty) stále musí projít OAuth kontrolou.
+
+OAuth klient má pro doménová data požadovat jen potřebné scopes:
+
+- `tenderflow.read` — projekty, VŘ, smlouvy, termíny a smluvní přehled,
+- `tenderflow.contacts.read` — navíc kontaktní údaje dodavatelů a nabídky,
+- `tenderflow.write` — zpřístupní pouze třífázové write nástroje.
+
+Scopes se zobrazují na consent obrazovce a jsou součástí access tokenu.
+`tenderflow.write` bez `tenderflow.read` žádný zápisový nástroj nezpřístupní.
+Lokální běžný Supabase session token dostává pouze obecnou read-only sadu bez
+kontaktních údajů. Kontaktní data vyžadují OAuth `client_id` i
+`tenderflow.contacts.read`; write nástroje navíc vyžadují `tenderflow.write`.
 
 ## Feature flags a tarify
 

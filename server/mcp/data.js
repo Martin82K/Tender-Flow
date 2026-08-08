@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAnonKey, getSupabaseUrl } from './supabaseAuth.js';
 
+let mcpClientSequence = 0;
+
 export const createUserSupabaseClient = (accessToken) =>
   createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    auth: { persistSession: false },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: `tender-flow-mcp-${mcpClientSequence += 1}`,
+    },
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -21,6 +28,79 @@ const limit = (value, fallback = 8, max = 20) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(1, Math.min(Math.floor(parsed), max));
+};
+
+const normalizeCurrencyCode = (value) => {
+  const upper = String(value || '').trim().toUpperCase();
+  if (!upper || upper === 'KČ' || upper === 'KC') return 'CZK';
+  return /^[A-Z]{3}$/.test(upper) ? upper : 'CZK';
+};
+
+const nullableString = (value) =>
+  value == null || value === '' ? null : String(value);
+
+const nullableNumber = (value) => {
+  if (value == null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const mapContractOverviewAmendments = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || !item.id) return [];
+    return [{
+      id: String(item.id),
+      amendmentNo: Number(item.amendment_no || 0),
+      status: nullableString(item.status),
+      signedAt: nullableString(item.signed_at),
+      effectiveFrom: nullableString(item.effective_from),
+      deltaPrice: Number(item.delta_price || 0),
+      hasDocument: Boolean(item.document_url || item.document_storage_path),
+      documentFileName: nullableString(item.document_file_name),
+    }];
+  });
+};
+
+const mapContractOverviewRow = (row) => ({
+  organizationId: String(row.organization_id),
+  projectId: String(row.project_id),
+  projectName: String(row.project_name),
+  projectStatus: String(row.project_status),
+  contractId: String(row.contract_id),
+  contractPartner: String(row.contract_partner),
+  contractTitle: String(row.contract_title),
+  contractNumber: nullableString(row.contract_number),
+  contractStatus: String(row.contract_status),
+  currency: normalizeCurrencyCode(row.currency),
+  basePrice: Number(row.base_price || 0),
+  currentTotal: Number(row.current_total || 0),
+  approvedDrawdown: Number(row.approved_drawdown || 0),
+  remainingAmount: Number(row.remaining_amount || 0),
+  retentionPercent: nullableNumber(row.retention_percent),
+  retentionShortPercent: nullableNumber(row.retention_short_percent),
+  retentionShortAmount: nullableNumber(row.retention_short_amount),
+  retentionShortReleaseOn: nullableString(row.retention_short_release_on),
+  retentionLongPercent: nullableNumber(row.retention_long_percent),
+  retentionLongAmount: nullableNumber(row.retention_long_amount),
+  retentionLongReleaseOn: nullableString(row.retention_long_release_on),
+  warrantyMonths: nullableNumber(row.warranty_months),
+  paymentTerms: nullableString(row.payment_terms),
+  signedAt: nullableString(row.signed_at),
+  effectiveFrom: nullableString(row.effective_from),
+  effectiveTo: nullableString(row.effective_to),
+  hasDocument: Boolean(row.document_url || row.document_storage_path),
+  documentFileName: nullableString(row.document_file_name),
+  amendments: mapContractOverviewAmendments(row.amendments),
+});
+
+export const getContractOverview = async (supabase, input = {}) => {
+  const { data, error } = await supabase.rpc('get_contract_overview', {
+    organization_id_input: input.organizationId || null,
+    include_archived: Boolean(input.includeArchived),
+  });
+  if (error) throw error;
+  return (data || []).map(mapContractOverviewRow);
 };
 
 export const listProjects = async (supabase, input = {}) => {

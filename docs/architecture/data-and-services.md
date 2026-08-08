@@ -98,10 +98,24 @@ nástrojů, takže nevznikají dvě autorizačně odlišné implementace.
 
 Nástroje používají uživatelský Supabase access token, databázové RLS, OAuth
 client/resource/scope kontrolu, browser Origin allowlist, rate limit a audit.
+Katalog používá scopes `tenderflow.read`, `tenderflow.contacts.read` a
+`tenderflow.write`. Server nástroje a URI šablony, pro které klient scope
+nezískal, vůbec neinzeruje; RLS/RPC kontrola zůstává autoritativní druhou
+hranicí. Kontaktní scope chrání nástroje, které vracejí e-mail nebo telefon.
+
+MCP resources jsou privátně cacheované a používají URI šablony
+`tenderflow://projects/{projectId}` a
+`tenderflow://organizations/{organizationId}/contracts/overview`. Smluvní
+přehled volá existující `get_contract_overview` RPC, respektuje organizační
+nebo project-team rozsah a do MCP nevrací interní storage path ani přímé
+dokumentové URL. Každé resource read se zapisuje do stejného MCP auditu jako
+tool call.
 Consent route je `/oauth/consent`. Přístupové tokeny se neposílají do logů ani
 dokumentace. Zápisové nástroje zachovávají třífázový tok
 `prepare -> confirm -> execute`; běžný Supabase session token ve stdio režimu
-zpřístupní pouze read-only nástroje.
+zpřístupní pouze obecné read-only nástroje bez kontaktních údajů. Lokální audit
+používá pevný identifikátor `local-stdio` a RLS jej přijme jen u tokenu bez
+OAuth `client_id` a `azp`.
 
 ## Node server
 

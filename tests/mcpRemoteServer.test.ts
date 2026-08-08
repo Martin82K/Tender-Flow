@@ -13,10 +13,54 @@ import { checkMcpRateLimit, resetMcpRateLimitsForTests } from "../server/mcp/rat
 
 const ROOT = process.cwd();
 
+const callAuthorizedMcp = async (
+  method: string,
+  params: Record<string, unknown>,
+  scopes: string[],
+) => {
+  const response = await handleAuthorizedMcpRequest(
+    new Request("https://tenderflow.cz/api/mcp", {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": method,
+        ...(typeof params.uri === "string" ? { "mcp-name": params.uri } : {}),
+        ...(typeof params.name === "string" ? { "mcp-name": params.name } : {}),
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: `test-${method}`,
+        method,
+        params: {
+          ...params,
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientInfo": { name: "Tender Flow test", version: "1.0.0" },
+            "io.modelcontextprotocol/clientCapabilities": {},
+          },
+        },
+      }),
+    }),
+    {
+      token: "test-access-token",
+      userId: "user-1",
+      clientId: "client-1",
+      scopes,
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    },
+  );
+  const body = await response.json() as { result: Record<string, unknown> };
+  expect(response.status, JSON.stringify(body)).toBe(200);
+  return body;
+};
+
 describe("remote MCP server", () => {
   afterEach(() => {
     resetMcpRateLimitsForTests();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     delete process.env.MCP_ALLOWED_CLIENT_IDS;
     delete process.env.MCP_ALLOWED_AUDIENCES;
     delete process.env.MCP_REQUIRED_SCOPES;
@@ -24,7 +68,6 @@ describe("remote MCP server", () => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
     delete process.env.VITE_SUPABASE_URL;
-    delete process.env.TENDER_FLOW_MCP_CLIENT_ID;
   });
 
   it("publikuje OAuth protected-resource metadata pro ChatGPT MCP klienty", () => {
@@ -43,7 +86,14 @@ describe("remote MCP server", () => {
       resource: "https://tenderflow.cz/api/mcp",
       authorization_servers: ["https://tf-test.supabase.co/auth/v1"],
       bearer_methods_supported: ["header"],
-      scopes_supported: ["openid", "email", "profile"],
+      scopes_supported: [
+        "openid",
+        "email",
+        "profile",
+        "tenderflow.read",
+        "tenderflow.contacts.read",
+        "tenderflow.write",
+      ],
       resource_documentation: "https://tenderflow.cz/app/settings?tab=tools",
     });
   });
@@ -110,6 +160,7 @@ describe("remote MCP server", () => {
     expect(() =>
       validateMcpTokenClaims({ ...payload, resource: "https://evil.example/api/mcp" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
     ).toThrow("OAuth token resource does not match Tender Flow MCP.");
+    vi.stubEnv("MCP_REQUIRED_SCOPES", "openid email profile");
     expect(() =>
       validateMcpTokenClaims({ ...payload, scope: "openid email" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
     ).toThrow("OAuth token is missing required MCP scopes: profile.");
@@ -166,18 +217,188 @@ describe("remote MCP server", () => {
   it("registruje read-only discovery nástroje a oddělený třífázový zápis", () => {
     const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
 
-    expect(source).toContain("server.registerTool(\n    'search'");
-    expect(source).toContain("server.registerTool(\n    'fetch'");
+    expect(source).toContain("registerScopedTool(server, auth,\n    'search'");
+    expect(source).toContain("registerScopedTool(server, auth,\n    'fetch'");
     expect(source).toContain("tf_prepare_change");
     expect(source).toContain("tf_confirm_change");
     expect(source).toContain("tf_execute_change");
     expect(source).toContain("tf_list_bids");
     expect(source).toContain("tf_list_winners");
     expect(source).toContain("tf_list_contracts");
+    expect(source).toContain("tf_get_contract_overview");
     expect(source).toContain("tf_list_tender_plan");
     expect(source).toContain("annotations: { readOnlyHint: true");
     expect(source).toContain("Only create_task execution is enabled in MCP MVP.");
     expect(source).not.toContain("hard_delete");
+  });
+
+  it("zveřejňuje nástroje pouze pro scopes udělené konkrétnímu OAuth klientovi", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+
+    const identityOnly = await callAuthorizedMcp("tools/list", {}, ["openid"]);
+    expect(identityOnly.result.tools).toEqual([]);
+
+    const readOnly = await callAuthorizedMcp("tools/list", {}, ["openid", "tenderflow.read"]);
+    const readNames = (readOnly.result.tools as Array<{ name: string }>).map((tool) => tool.name);
+    expect(readNames).toContain("tf_list_projects");
+    expect(readNames).toContain("tf_get_contract_overview");
+    expect(readNames).not.toContain("tf_list_contacts");
+    expect(readNames).not.toContain("tf_execute_change");
+
+    const contactRead = await callAuthorizedMcp("tools/list", {}, [
+      "openid",
+      "tenderflow.read",
+      "tenderflow.contacts.read",
+    ]);
+    const contactNames = (contactRead.result.tools as Array<{ name: string }>).map((tool) => tool.name);
+    expect(contactNames).toContain("search");
+    expect(contactNames).toContain("tf_list_contacts");
+
+    const write = await callAuthorizedMcp("tools/list", {}, [
+      "openid",
+      "tenderflow.read",
+      "tenderflow.write",
+    ]);
+    const writeNames = (write.result.tools as Array<{ name: string }>).map((tool) => tool.name);
+    expect(writeNames).toContain("tf_prepare_change");
+    expect(writeNames).toContain("tf_confirm_change");
+    expect(writeNames).toContain("tf_execute_change");
+  });
+
+  it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+
+    const resources = await callAuthorizedMcp("resources/list", {}, ["openid"]);
+    expect(resources.result.resources).toEqual([
+      expect.objectContaining({
+        name: "tender-flow-catalog",
+        uri: "tenderflow://catalog",
+      }),
+    ]);
+
+    const readTemplates = await callAuthorizedMcp("resources/templates/list", {}, [
+      "openid",
+      "tenderflow.read",
+    ]);
+    const readTemplateNames = (
+      readTemplates.result.resourceTemplates as Array<{ name: string }>
+    ).map((resource) => resource.name);
+    expect(readTemplateNames).toContain("tender-flow-contract-overview");
+    expect(readTemplateNames).not.toContain("tender-flow-project");
+
+    const contactTemplates = await callAuthorizedMcp("resources/templates/list", {}, [
+      "openid",
+      "tenderflow.read",
+      "tenderflow.contacts.read",
+    ]);
+    const contactTemplateNames = (
+      contactTemplates.result.resourceTemplates as Array<{ name: string }>
+    ).map((resource) => resource.name);
+    expect(contactTemplateNames).toEqual(
+      expect.arrayContaining(["tender-flow-project", "tender-flow-contract-overview"]),
+    );
+  });
+
+  it("čte katalog jako privátní MCP 2.0 resource a audituje požadavek bez tokenu v logu", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("[]", {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await callAuthorizedMcp(
+      "resources/read",
+      { uri: "tenderflow://catalog" },
+      ["openid"],
+    );
+
+    expect(response.result).toMatchObject({
+      cacheScope: "private",
+      ttlMs: 300_000,
+      contents: [
+        expect.objectContaining({
+          uri: "tenderflow://catalog",
+          mimeType: "application/json",
+        }),
+      ],
+    });
+    const catalog = JSON.parse(
+      (response.result.contents as Array<{ text: string }>)[0].text,
+    );
+    expect(catalog).toMatchObject({
+      protocolVersion: "2026-07-28",
+      scopes: {
+        read: "tenderflow.read",
+        contactsRead: "tenderflow.contacts.read",
+        write: "tenderflow.write",
+      },
+    });
+    expect(fetchMock).toHaveBeenCalled();
+    const auditBody = String(fetchMock.mock.calls[0][1]?.body || "");
+    expect(auditBody).toContain("resource:catalog");
+    expect(auditBody).not.toContain("test-access-token");
+  });
+
+  it("čte smluvní přehled přes RLS-aware RPC resource bez interních storage cest", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    const organizationId = "11111111-1111-4111-8111-111111111111";
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/rpc/get_contract_overview")) {
+        return new Response(JSON.stringify([{
+          organization_id: organizationId,
+          project_id: "project-1",
+          project_name: "Administrativní centrum",
+          project_status: "active",
+          contract_id: "22222222-2222-4222-8222-222222222222",
+          contract_partner: "Dodavatel s.r.o.",
+          contract_title: "Generální dodávka",
+          contract_status: "signed",
+          currency: "CZK",
+          base_price: 1000,
+          current_total: 1000,
+          approved_drawdown: 250,
+          remaining_amount: 750,
+          document_storage_path: "tenant/private/contract.pdf",
+          document_file_name: "smlouva.pdf",
+          amendments: [],
+        }]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("[]", {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await callAuthorizedMcp(
+      "resources/read",
+      { uri: `tenderflow://organizations/${organizationId}/contracts/overview` },
+      ["openid", "tenderflow.read"],
+    );
+
+    const contents = response.result.contents as Array<{ text: string }>;
+    const rows = JSON.parse(contents[0].text);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        organizationId,
+        contractTitle: "Generální dodávka",
+        hasDocument: true,
+        documentFileName: "smlouva.pdf",
+      }),
+    ]);
+    expect(contents[0].text).not.toContain("tenant/private");
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/rpc/get_contract_overview"))).toBe(true);
   });
 
   it("používá MCP 2.0 server pro protokol 2026-07-28", () => {
@@ -187,7 +408,7 @@ describe("remote MCP server", () => {
 
     expect(pkg.dependencies["@modelcontextprotocol/server"]).toBe("2.0.0");
     expect(pkg.dependencies["@modelcontextprotocol/sdk"]).toBeUndefined();
-    expect(source).toContain("import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';");
+    expect(source).toContain("import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprotocol/server';");
     expect(source).toContain("createMcpHandler");
     expect(stdioSource).toContain("serveStdio");
   });
@@ -275,7 +496,7 @@ describe("remote MCP server", () => {
     });
     expect(source).toContain("verifyLocalMcpAccessToken");
     expect(source).toContain("auth.hasOAuthClientId && !readOnly");
-    expect(source).toContain("Local Supabase session token detected; running read-only tools only.");
+    expect(source).toContain("Local Supabase session token detected; running general read-only tools without contact data.");
     expect(serverSource).toContain("const includeWriteTools = options.includeWriteTools !== false;");
     expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
   });
@@ -316,5 +537,18 @@ describe("remote MCP server", () => {
     expect(migration).toContain("ON public.mcp_change_proposals");
     expect(migration).toContain("ON public.mcp_idempotency_keys");
     expect(migration.match(/client_id = \(auth\.jwt\(\) ->> 'client_id'\)/g)?.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("povolí lokální stdio audit jen session tokenu bez OAuth client_id", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260808210000_allow_local_stdio_audit.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("user_id = auth.uid()");
+    expect(migration).toContain("auth.jwt() ->> 'client_id' IS NULL");
+    expect(migration).toContain("client_id = 'local-stdio'");
+    expect(migration).not.toContain("mcp_change_proposals");
+    expect(migration).not.toContain("mcp_idempotency_keys");
   });
 });

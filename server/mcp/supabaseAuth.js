@@ -55,7 +55,7 @@ export const getAllowedClientIds = () =>
     .filter(Boolean);
 
 export const getRequiredMcpScopes = () =>
-  splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid email profile');
+  splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid');
 
 export const getAllowedAudiences = (expectedResource) =>
   splitCsvEnv('MCP_ALLOWED_AUDIENCES', `authenticated,${expectedResource || ''}`);
@@ -153,8 +153,7 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
   }
 
   const oauthClientId = String(payload.client_id || payload.azp || '').trim();
-  const fallbackClientId = String(process.env.TENDER_FLOW_MCP_CLIENT_ID || 'local-stdio').trim();
-  const clientId = oauthClientId || fallbackClientId;
+  const clientId = oauthClientId || 'local-stdio';
 
   return {
     token,
