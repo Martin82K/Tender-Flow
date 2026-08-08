@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { Header } from '@/shared/ui/Header';
+import { HeaderGlobalSearch } from '@/shared/ui/GlobalSearch';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { StarRating } from '@/shared/ui/StarRating';
@@ -697,11 +698,17 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     return (
         <div className="tf-contacts-view flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
-            <Header title="Kontakty" subtitle={`Celkem ${contacts.length} subdodavatelů`} helpSlot={<HelpButton />} notificationSlot={<NotificationBell />}>
-                <div className="flex items-center gap-2">
+            <Header
+                title="Kontakty"
+                subtitle={`Celkem ${contacts.length} subdodavatelů`}
+                helpSlot={<HelpButton />}
+                notificationSlot={<NotificationBell />}
+                showSearch={false}
+            >
+                <div data-help-id="contacts-toolbar" className="tf-contacts-toolbar flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-xl border p-1.5">
                     {selectedIds.size > 0 ? (
-                        <div data-help-id="contacts-bulk-actions" className="flex items-center gap-2 animate-fade-in bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg border border-blue-100 dark:border-blue-800">
-                            <span className="text-sm font-bold text-blue-700 dark:text-blue-300 mr-2">
+                        <div data-help-id="contacts-bulk-actions" className="tf-contacts-bulk-actions flex shrink-0 items-center gap-2 animate-fade-in rounded-lg border px-2 py-1">
+                            <span className="text-sm font-bold mr-1">
                                 {selectedIds.size} vybráno
                             </span>
                             <button
@@ -713,7 +720,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                             </button>
                             <button
                                 onClick={handleOpenBulkSpecModal}
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors"
+                                className="tf-contacts-secondary-action flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-colors"
                             >
                                 <span className="material-symbols-outlined text-[18px]">edit_note</span>
                                 Upravit specializace
@@ -721,7 +728,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                             <button
                                 onClick={handleAutoFillRegistrationData}
                                 disabled={isRegionLoading}
-                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors disabled:opacity-50"
+                                className="tf-contacts-secondary-action flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
                             >
                                 {isRegionLoading ? (
                                     <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
@@ -735,42 +742,48 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     <div
                         role="tablist"
                         aria-label="Režim zobrazení"
-                        className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5"
+                        className="tf-contacts-view-switcher flex shrink-0 items-center rounded-lg p-0.5"
                     >
                         <button
                             role="tab"
                             aria-selected={viewMode === 'cards'}
+                            data-active={viewMode === 'cards'}
                             onClick={() => setViewMode('cards')}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'cards' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            className="tf-contacts-view-tab flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
                         >
-                            <span className="material-symbols-outlined text-[16px]">grid_view</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">grid_view</span>
                             Karty
                         </button>
                         <button
                             role="tab"
                             aria-selected={viewMode === 'list'}
+                            data-active={viewMode === 'list'}
                             onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            className="tf-contacts-view-tab flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
                         >
-                            <span className="material-symbols-outlined text-[16px]">list</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">list</span>
                             Seznam
                         </button>
                         {hasMapFeature && (
                             <button
                                 role="tab"
                                 aria-selected={viewMode === 'map'}
+                                data-active={viewMode === 'map'}
                                 onClick={() => setViewMode('map')}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'map' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                className="tf-contacts-view-tab flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors"
                             >
-                                <span className="material-symbols-outlined text-[16px]">map</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">map</span>
                                 Mapa
                             </button>
                         )}
                     </div>
+                    <div className="tf-contacts-toolbar-search shrink-0">
+                        <HeaderGlobalSearch />
+                    </div>
                     <button
                         data-help-id="contacts-quick-paste"
                         onClick={openQuickPasteModal}
-                        className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                        className="tf-contacts-secondary-action flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-colors"
                         title="Rychlé vložení kontaktu (Ctrl/Cmd+Shift+K)"
                     >
                         <span aria-hidden="true" className="material-symbols-outlined text-[20px]">content_paste_go</span>
@@ -779,9 +792,9 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     <button
                         data-help-id="contacts-add"
                         onClick={handleOpenAddModal}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                        className="tf-contacts-primary-action flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
                     >
-                        <span className="material-symbols-outlined text-[20px]">add</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">add</span>
                         Přidat kontakt
                     </button>
                 </div>
@@ -884,7 +897,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 {quickPasteAnalysis.contact.company}
                                             </h4>
                                         </div>
-                                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
                                             Jistota: {quickPasteAnalysis.confidence === 'high' ? 'vysoká' : quickPasteAnalysis.confidence === 'medium' ? 'střední' : 'nízká'}
                                         </span>
                                     </div>
@@ -937,7 +950,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                 type="button"
                                 onClick={handleAnalyzeQuickPaste}
                                 disabled={isQuickPasteAnalyzing || !quickPasteText.trim()}
-                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-50 inline-flex items-center gap-2"
+                                className="tf-contacts-primary-action px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 inline-flex items-center gap-2"
                             >
                                 <span className={`material-symbols-outlined text-[18px] ${isQuickPasteAnalyzing ? 'animate-spin' : ''}`}>
                                     {isQuickPasteAnalyzing ? 'sync' : 'auto_awesome'}
@@ -1234,7 +1247,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                             );
                                                         }
                                                     }}
-                                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md hover:bg-primary/20 transition-colors"
                                                 >
                                                     {link.label}
                                                     <span className="material-symbols-outlined text-[12px]">open_in_new</span>
