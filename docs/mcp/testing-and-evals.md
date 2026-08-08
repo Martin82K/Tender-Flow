@@ -38,7 +38,11 @@ warnings a relevance scénářů.
 9. po budoucím grant modelu: `create_task` prepare → chybné confirm → správné confirm → execute,
 10. po budoucím grant modelu: opakovaný execute se stejným idempotency key bez duplicity,
 11. auditní redakce a detekce výpadku auditu,
-12. zatížení více instancí po zavedení distribuovaného limiteru.
+12. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
+    klient ani běžná session nikoli,
+13. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
+    používaný serverovým validátorem,
+14. zatížení více instancí po zavedení distribuovaného limiteru.
 
 ## Eval metriky
 

@@ -589,4 +589,42 @@ describe("remote MCP server", () => {
     expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.tender_flow_access_token_hook(JSONB) TO supabase_auth_admin");
     expect(config).toMatch(/\[auth\.hook\.custom_access_token\][\s\S]*enabled = true[\s\S]*pg-functions:\/\/postgres\/public\/tender_flow_access_token_hook/);
   });
+
+  it("váže MCP resource claim na autoritativně registrovaného OAuth klienta", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260808233204_bind_mcp_resource_to_oauth_client.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("CREATE TABLE public.mcp_oauth_client_resources");
+    expect(migration).toContain("REFERENCES auth.oauth_clients(id)");
+    expect(migration).toContain("ALTER TABLE public.mcp_oauth_client_resources ENABLE ROW LEVEL SECURITY");
+    expect(migration).toContain("TO supabase_auth_admin");
+    expect(migration).toContain("FROM public.mcp_oauth_client_resources");
+    expect(migration).toContain("JOIN auth.oauth_clients");
+    expect(migration).toContain("c.deleted_at IS NULL");
+    expect(migration).toContain("IF NOT mcp_client_is_registered THEN");
+    expect(migration).toContain("RETURN JSONB_BUILD_OBJECT('claims', claims)");
+    expect(migration).toMatch(/INSERT INTO public\.mcp_oauth_client_resources[\s\S]*SELECT c\.id,[\s\S]*FROM auth\.oauth_clients AS c/);
+    expect(migration).toContain("WHERE c.id IN (");
+    expect(migration).toContain("ON CONFLICT (client_id, resource) DO NOTHING");
+    expect(migration).not.toMatch(/INSERT INTO public\.mcp_oauth_client_resources \(client_id, resource\)\s+VALUES/);
+    expect(migration).toContain("c6d04896-33d1-4cca-a7f2-8d380ed26f0d");
+    expect(migration).toContain("9a9b2e02-5e83-4c1f-8a6f-15c7a88d9066");
+  });
+
+  it("produkční canary ověřuje skutečné OAuth endpointy a serverový JWKS", () => {
+    const source = fs.readFileSync(
+      path.join(ROOT, "scripts/check-mcp-production.mjs"),
+      "utf8",
+    );
+
+    expect(source).toContain("authorization_endpoint");
+    expect(source).toContain("token_endpoint");
+    expect(source).toContain("expectedJwksUrl");
+    expect(source).toContain("await fetch(expectedJwksUrl");
+    expect(source).toContain("Array.isArray(jwks.keys)");
+    expect(source).toContain("key.kty");
+    expect(source).toContain("key.kid");
+  });
 });

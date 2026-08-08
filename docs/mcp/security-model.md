@@ -29,6 +29,9 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 - **Permission escalation:** vlastní `tenderflow.*` token scope se nikdy
   nepřekládá na permission; tool se skryje a při volání se permission znovu
   ověří. Remote i stdio mají nyní pouze obecné read oprávnění.
+- **Resource confusion:** Auth Hook vydá syntetický MCP resource claim jen
+  aktivnímu klientovi v `mcp_oauth_client_resources`; samotná přítomnost
+  libovolného `client_id` nestačí.
 - **Prompt injection:** data z Tender Flow jsou nedůvěryhodný obsah, nikoli
   instrukce; zápis vyžaduje explicitní třífázový tok.
 - **Citlivá dokumentová metadata:** MCP mapování odstraňuje raw URL a storage

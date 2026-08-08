@@ -3,6 +3,13 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — OAuth resource binding hotfix
+
+- resource claim je vázán na autoritativní registr dedikovaných MCP OAuth
+  klientů; samotný `client_id` již nestačí,
+- produkční canary ověřuje HTTPS/origin authorization a token endpointu a
+  načítá přesný JWKS používaný serverem.
+
 ## 2026-08-09 — fail-closed OAuth kompatibilita
 
 - standardní Supabase OAuth scopes byly odděleny od interních Tender Flow
