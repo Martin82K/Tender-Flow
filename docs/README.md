@@ -62,6 +62,7 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
 
 ## Integrace a referenční artefakty
 
+- [Tender Flow MCP](mcp/README.md)
 - [Přehled API kontraktů](api/contracts-summary.md)
 - [OpenAPI kontrakt](api/contracts-summary.openapi.json)
 - [Audit analytiky a telemetrie](analytics-telemetry-audit.md)
