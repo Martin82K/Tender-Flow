@@ -81,6 +81,11 @@ const getClaimValues = (value) => {
 const getResourceValues = (payload) => [
   ...getClaimValues(payload.resource),
   ...getClaimValues(payload.resources),
+  ...getClaimValues(
+    payload.app_metadata && typeof payload.app_metadata === 'object'
+      ? payload.app_metadata.mcp_resource
+      : undefined,
+  ),
   ...getClaimValues(payload.aud).filter((value) => value.startsWith('http://') || value.startsWith('https://')),
 ];
 

@@ -43,8 +43,9 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 - Rate limit je `in-memory`, není distribuovaný a resetuje se restartem.
 - Audit helper aktuálně nezajišťuje fail-closed zápis ani spolehlivou externí
   signalizaci každého výpadku auditu.
-- Produkční OAuth canary, expirace a cross-tenant negativní scénář s reálným
-  klientem ještě nejsou zdokumentovány jako vykonané.
+- Veřejná část produkčního OAuth canary je automatizovaná; vydání tokenu,
+  expirace a cross-tenant negativní scénář s reálným klientem ještě nebyly
+  vykonány.
 - Živě není ověřeno, zda Supabase access token obsahuje MCP resource claim ve
   tvaru očekávaném serverem; kontrola zůstává fail-closed a ověří ji canary.
 - Kontaktní a write grant model vázaný na uživatele i OAuth klienta dosud není
