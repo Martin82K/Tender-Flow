@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { PipelineOverview } from "@/components/pipelineComponents/PipelineOverview";
@@ -65,7 +65,8 @@ describe("PipelineOverview layout", () => {
     expect(filters?.className).not.toContain("rounded-full");
     expect(viewToggle?.className).not.toContain("rounded-full");
 
-    expect(screen.getByRole("button", { name: /V.*chny \(2\)/i }).className).not.toContain("bg-white");
+    expect(screen.getByRole("button", { name: /V.*chny \(2\)/i }).className).toContain("text-primary");
+    expect(screen.getByRole("button", { name: /V.*chny \(2\)/i }).className).not.toMatch(/bg-(amber|teal|emerald)/);
     expect(screen.getByRole("button", { name: /Popt.*van.* \(1\)/i }).className).not.toContain("rounded-full");
     expect(screen.getByRole("button", { name: /Ukon.*en.* \(1\)/i }).className).not.toContain("rounded-full");
   });
@@ -89,5 +90,36 @@ describe("PipelineOverview layout", () => {
 
     expect(screen.getByText(hasNormalizedText(formatMoney(159000)))).toBeInTheDocument();
     expect(screen.queryByText(hasNormalizedText(formatMoney(15900000)))).not.toBeInTheDocument();
+  });
+
+  it("offers destructive table actions through an accessible context menu", () => {
+    const onDeleteCategory = vi.fn();
+    renderOverview({ onDeleteCategory });
+
+    const row = screen.getByRole("row", { name: /Zemni prace/i });
+    expect(screen.queryByRole("button", { name: "Upravit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Smazat" })).not.toBeInTheDocument();
+
+    fireEvent.contextMenu(row, { clientX: 120, clientY: 180 });
+
+    const menu = screen.getByRole("menu", { name: "Akce výběrového řízení" });
+    expect(menu).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Smazat" }));
+    expect(onDeleteCategory).toHaveBeenCalledWith("cat-1");
+  });
+
+  it("opens the same context menu from the keyboard", async () => {
+    renderOverview();
+    const row = screen.getByRole("row", { name: /Fasada/i });
+
+    row.focus();
+    fireEvent.keyDown(row, { key: "F10", shiftKey: true });
+
+    expect(
+      screen.getByRole("menu", { name: "Akce výběrového řízení" }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Smazat" })).toHaveFocus();
+    });
   });
 });

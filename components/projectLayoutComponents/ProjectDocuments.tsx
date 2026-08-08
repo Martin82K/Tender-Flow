@@ -325,8 +325,23 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
     project.documentationLink && project.documentationLink.trim() !== "",
   );
 
+  const documentTabs: Array<{
+    id: DocumentsSubTab;
+    label: string;
+    icon: string;
+    visible: boolean;
+  }> = [
+    { id: "pd", label: "Projektová dokumentace", icon: "description", visible: true },
+    { id: "templates", label: "Šablony", icon: "history_edu", visible: canTemplates },
+    { id: "dochub", label: "Složkomat", icon: "cloud_sync", visible: canDocHub },
+    { id: "ceniky", label: "Ceníky", icon: "price_change", visible: true },
+  ];
+
   return (
-    <div className="tf-documents-view p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
+    <div
+      data-layout-density="compact"
+      className="tf-documents-view h-full min-h-screen overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 md:p-6 lg:p-8"
+    >
       <ConfirmationModal
         isOpen={uiModal.isOpen}
         title={uiModal.title}
@@ -339,17 +354,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
 
       <div className="max-w-7xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8 px-4 md:px-0">
+        <div className="mb-5 flex items-center gap-3">
           <div
             data-help-id="documents-header-icon"
-            className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center"
+            className="flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"
           >
-            <span className="material-symbols-outlined text-emerald-400 text-2xl">
+            <span className="material-symbols-outlined text-xl">
               folder_open
             </span>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
               Dokumenty
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -358,98 +373,53 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
-          {/* Sidebar Navigation */}
-          <aside data-help-id="documents-sidebar" className="w-full md:w-64 flex-shrink-0">
-            <nav className="flex flex-col gap-2">
-              <button
-                onClick={() => setDocumentsSubTab("pd")}
-                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "pd"
-                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[20px]">
-                    description
-                  </span>
-                  Projektová dokumentace
-                </div>
-              </button>
-
-              {canTemplates && (
+        <div className="animate-fadeIn">
+          <aside data-help-id="documents-sidebar" className="w-full">
+            <nav
+              role="tablist"
+              aria-label="Sekce dokumentů"
+              className="flex min-w-0 gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900/70"
+            >
+              {documentTabs.filter((tab) => tab.visible).map((tab) => (
                 <button
-                  onClick={() => setDocumentsSubTab("templates")}
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "templates"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  key={tab.id}
+                  id={`documents-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={documentsSubTab === tab.id}
+                  aria-controls="documents-tabpanel"
+                  onClick={() => setDocumentsSubTab(tab.id)}
+                  className={`flex min-h-10 flex-none items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${documentsSubTab === tab.id
+                    ? "bg-slate-100 text-primary shadow-sm dark:bg-slate-800"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white"
                     }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      history_edu
-                    </span>
-                    Šablony
-                  </div>
-                </button>
-              )}
-
-              {canDocHub && (
-                <button
-                  onClick={() => setDocumentsSubTab("dochub")}
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "dochub"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      cloud_sync
-                    </span>
-                    Složkomat
-                  </div>
-                </button>
-              )}
-
-              <button
-                onClick={() => setDocumentsSubTab("ceniky")}
-                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "ceniky"
-                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[20px]">
-                    price_change
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden>
+                    {tab.icon}
                   </span>
-                  Ceníky
-                </div>
-              </button>
+                  {tab.label}
+                </button>
+              ))}
             </nav>
 
-            {/* Tips Section Sidebar */}
             <div
               data-help-id="documents-tip"
-              className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0"
+              className="mt-2 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-100/70 px-3 py-2 text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400"
             >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-blue-400 text-[20px]">
-                  lightbulb
-                </span>
-                <div>
-                  <h4 className="font-semibold text-blue-300 text-sm mb-1">
-                    Tip
-                  </h4>
-                  <p className="text-xs text-blue-400/80 leading-relaxed">
-                    Udržujte dokumentaci aktuální a dobře organizovanou pro snadný přístup celého týmu.
-                  </p>
-                </div>
-              </div>
+              <span className="material-symbols-outlined mt-0.5 text-[16px]" aria-hidden>lightbulb</span>
+              <p className="text-xs leading-relaxed">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Tip:</span>{" "}
+                Udržujte dokumentaci aktuální a dobře organizovanou pro snadný přístup celého týmu.
+              </p>
             </div>
           </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 min-w-0 bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-sm p-6">
+          <main
+            id="documents-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`documents-tab-${documentsSubTab}`}
+            className="mt-4 min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 md:p-5"
+          >
             {documentsSubTab === "pd" && (
               <DocsLinkSection
                 project={project}

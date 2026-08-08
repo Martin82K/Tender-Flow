@@ -1809,12 +1809,12 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
             <div data-help-id="overview-demand-table" className={demandTableClass}>
-              <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800/50">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
+                  <h3 className="mb-1 text-lg font-semibold leading-none text-slate-900 dark:text-white">
                     Přehled Poptávek
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  <p className="text-xs font-normal text-slate-500 dark:text-slate-400">
                     Detailní rozpis balíčků
                   </p>
                 </div>
@@ -1898,51 +1898,51 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-950/20">
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em]">
                         Stav
                       </th>
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em]">
                         Poptávka
                       </th>
 
                       {visibleColumns.sod && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           SOD
                         </th>
                       )}
                       {visibleColumns.plan && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           Plán
                         </th>
                       )}
 
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                         Cena VŘ
                       </th>
 
                       {visibleColumns.sod_vr && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           SOD - VŘ
                         </th>
                       )}
                       {visibleColumns.pn_vr && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           Plán - VŘ
                         </th>
                       )}
 
                       {visibleColumns.nabidky && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                           Nabídky
                         </th>
                       )}
                       {visibleColumns.smlouvy && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                           Smlouvy
                         </th>
                       )}
 
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                         Dodavatel
                       </th>
                     </tr>
@@ -2017,9 +2017,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             className="group hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all cursor-pointer"
                             onClick={() => onNavigateToPipeline?.(cat.id)}
                           >
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-5">
                               <div
-                                className={`inline-flex items-center gap-2 ${status.text} text-[10px] font-black uppercase tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity`}
+                                className={`inline-flex items-center gap-2 ${status.text} text-[10px] font-semibold uppercase tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity`}
                               >
                                 <span
                                   className={`size-1.5 rounded-full ${status.dot} animate-pulse`}
@@ -2027,7 +2027,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                 {status.label}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-5">
                               <div className="font-medium text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors">
                                 {cat.title}
                               </div>
@@ -2039,17 +2039,17 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             </td>
 
                             {visibleColumns.sod && (
-                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                              <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.sodBudget)}
                               </td>
                             )}
                             {visibleColumns.plan && (
-                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                              <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.planBudget)}
                               </td>
                             )}
 
-                            <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                            <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                               {hasWinner ? (
                                 formatMoney(subPrice)
                               ) : (
@@ -2060,7 +2060,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             </td>
 
                             {visibleColumns.sod_vr && (
-                              <td className="py-4 px-6 text-right">
+                              <td className="py-3 px-5 text-right">
                                 {hasWinner ? (
                                   <div
                                     className={`inline-flex items-center gap-1 font-medium text-xs ${diffSod >= 0 ? "text-emerald-500" : "text-rose-500"}`}
@@ -2076,7 +2076,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               </td>
                             )}
                             {visibleColumns.pn_vr && (
-                              <td className="py-4 px-6 text-right">
+                              <td className="py-3 px-5 text-right">
                                 {hasWinner ? (
                                   <div
                                     className={`inline-flex items-center gap-1 font-medium text-xs ${diffPlan >= 0 ? "text-emerald-500" : "text-rose-500"}`}
@@ -2093,7 +2093,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             )}
 
                             {visibleColumns.nabidky && (
-                              <td className="py-4 px-6 text-center text-xs font-medium text-slate-900 dark:text-white">
+                              <td className="py-3 px-5 text-center text-xs font-medium text-slate-900 dark:text-white">
                                 {
                                   catBids.filter(
                                     (b) =>
@@ -2110,7 +2110,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             )}
 
                             {visibleColumns.smlouvy && (
-                              <td className="py-4 px-6 text-center">
+                              <td className="py-3 px-5 text-center">
                                 {hasWinner ? (
                                   <span
                                     className={`text-xs font-medium ${
@@ -2133,10 +2133,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               </td>
                             )}
 
-                            <td className="py-4 px-6 max-w-[200px] truncate">
+                            <td className="py-3 px-5 max-w-[200px] truncate">
                               {hasWinner ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">
+                                  <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-semibold text-slate-500">
                                     {winnersNames.charAt(0)}
                                   </div>
                                   <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
@@ -2144,7 +2144,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
+                                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider italic">
                                   Nepřiřazeno
                                 </span>
                               )}
@@ -2154,31 +2154,31 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-100/50 dark:bg-slate-900/50 font-black text-slate-900 dark:text-white border-t-2 border-slate-200 dark:border-slate-800">
+                    <tr className="bg-slate-100/50 dark:bg-slate-900/50 font-semibold text-slate-900 dark:text-white border-t-2 border-slate-200 dark:border-slate-800">
                       <td
                         colSpan={2}
-                        className="py-6 px-8 text-right text-[11px] uppercase tracking-widest text-slate-500"
+                        className="py-4 px-5 text-right text-[11px] uppercase tracking-widest text-slate-500"
                       >
                         Celková bilance
                       </td>
 
                       {visibleColumns.sod && (
-                        <td className="py-6 px-6 text-right text-xs text-slate-400">
+                        <td className="py-4 px-5 text-right text-xs text-slate-400">
                           {formatMoney(totalSodBudget)}
                         </td>
                       )}
                       {visibleColumns.plan && (
-                        <td className="py-6 px-6 text-right text-xs text-slate-600 dark:text-slate-300">
+                        <td className="py-4 px-5 text-right text-xs text-slate-600 dark:text-slate-300">
                           {formatMoney(totalPlanBudget)}
                         </td>
                       )}
 
-                      <td className="py-6 px-6 text-right text-sm">
+                      <td className="py-4 px-5 text-right text-sm">
                         {formatMoney(totalWinningBidCost)}
                       </td>
 
                       {visibleColumns.sod_vr && (
-                        <td className="py-6 px-6 text-right">
+                        <td className="py-4 px-5 text-right">
                           <span
                             className={`text-sm ${totalSodDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                           >
@@ -2189,7 +2189,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       )}
 
                       {visibleColumns.pn_vr && (
-                        <td className="py-6 px-6 text-right">
+                        <td className="py-4 px-5 text-right">
                           <span
                             className={`text-sm ${totalPlanDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                           >
@@ -2203,14 +2203,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       {visibleColumns.nabidky && <td></td>}
                       {visibleColumns.smlouvy && <td></td>}
 
-                      <td className="py-6 px-6"></td>
+                      <td className="px-5 py-4"></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
               {filteredCategories.length > demandVisibleCount && (
-                <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center gap-3">
-                  <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">
+                <div className="flex items-center justify-center gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800/50">
+                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                     Zobrazeno {demandVisibleCount} z {filteredCategories.length}
                   </span>
                   <button
@@ -2219,13 +2219,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         Math.min(c + DEMAND_PAGE_SIZE, filteredCategories.length),
                       )
                     }
-                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
+                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   >
                     Zobrazit více
                   </button>
                   <button
                     onClick={() => setDemandVisibleCount(filteredCategories.length)}
-                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    className="rounded-md px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800 dark:hover:text-white"
                   >
                     Zobrazit vše
                   </button>
@@ -2233,10 +2233,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               )}
               {filteredCategories.length > DEMAND_INITIAL_VISIBLE &&
                 demandVisibleCount >= filteredCategories.length && (
-                  <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center">
+                  <div className="flex items-center justify-center border-t border-slate-200 px-5 py-3 dark:border-slate-800/50">
                     <button
                       onClick={() => setDemandVisibleCount(DEMAND_INITIAL_VISIBLE)}
-                      className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                      className="rounded-md px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800 dark:hover:text-white"
                     >
                       Sbalit
                     </button>
