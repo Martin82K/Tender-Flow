@@ -51,6 +51,9 @@ export const useContractsWithDetails = (
     setContracts([]);
     setLoading(true);
     void load();
+    return () => {
+      requestIdRef.current += 1;
+    };
   }, [enabled, load]);
 
   return { contracts, loading, error, refresh: load };
