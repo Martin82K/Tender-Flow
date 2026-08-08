@@ -15,6 +15,7 @@ npm run check:boundaries
 npm run check:legacy-structure
 npm run build
 npm run desktop:compile
+npm run mcp:canary:production
 ```
 
 Kontrolují zejména protected-resource metadata, JWT claims, oddělení OAuth scopes
@@ -51,3 +52,5 @@ warnings a relevance scénářů.
 
 Produkční release gate vyžaduje automatické testy i runtime canary. Mockovaný
 JWT nebo statický SQL test není náhradou živého RLS/OAuth scénáře.
+Veřejný canary ověřuje metadata, OAuth discovery, PKCE/JWKS a bezpečné 401;
+nepracuje s tokenem a nesmí být vydáván za tokenový nebo cross-tenant test.

@@ -703,8 +703,8 @@ const tenderFlowMcpHandler = createMcpHandler(
   },
 );
 
-export const handleAuthorizedMcpRequest = async (request, auth) =>
-  tenderFlowMcpHandler.fetch(request, {
+export const handleAuthorizedMcpRequest = async (request, auth) => {
+  const response = await tenderFlowMcpHandler.fetch(request, {
     authInfo: {
       token: auth.token,
       clientId: auth.clientId,
@@ -713,6 +713,9 @@ export const handleAuthorizedMcpRequest = async (request, auth) =>
       extra: { userId: auth.userId, email: auth.email, permissions: auth.permissions },
     },
   });
+  response.headers.set('cache-control', 'private, no-store');
+  return response;
+};
 
 const allowedMcpOrigins = () =>
   (process.env.MCP_ALLOWED_ORIGINS || '')
@@ -747,6 +750,7 @@ export const validateMcpRequestOrigin = (request) => {
 };
 
 const withMcpCors = (response, origin) => {
+  response.headers.set('cache-control', 'private, no-store');
   if (origin) {
     response.headers.set('access-control-allow-origin', origin);
     response.headers.append('vary', 'Origin');

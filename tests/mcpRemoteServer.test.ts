@@ -127,6 +127,7 @@ describe("remote MCP server", () => {
     expect(response.headers.get("www-authenticate")).toBe(
       'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource"',
     );
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
   });
 
@@ -136,7 +137,7 @@ describe("remote MCP server", () => {
       sub: "user-1",
       client_id: "client-1",
       aud: "authenticated",
-      resource: "https://tenderflow.cz/api/mcp",
+      app_metadata: { mcp_resource: "https://tenderflow.cz/api/mcp" },
       scope: "openid email profile",
     };
 
@@ -166,7 +167,7 @@ describe("remote MCP server", () => {
     });
 
     expect(() =>
-      validateMcpTokenClaims({ ...payload, resource: "https://evil.example/api/mcp" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
+      validateMcpTokenClaims({ ...payload, app_metadata: { mcp_resource: "https://evil.example/api/mcp" } }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
     ).toThrow("OAuth token resource does not match Tender Flow MCP.");
     vi.stubEnv("MCP_REQUIRED_SCOPES", "openid email profile");
     expect(() =>
@@ -467,6 +468,7 @@ describe("remote MCP server", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.json()).resolves.toMatchObject({
       jsonrpc: "2.0",
       id: "discover-1",
@@ -569,5 +571,22 @@ describe("remote MCP server", () => {
     expect(migration).toContain("client_id = 'local-stdio'");
     expect(migration).not.toContain("mcp_change_proposals");
     expect(migration).not.toContain("mcp_idempotency_keys");
+  });
+
+  it("přidává kanonický MCP resource jen do OAuth access tokenu přes omezený Auth hook", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260808231038_add_mcp_oauth_resource_claim_hook.sql"),
+      "utf8",
+    );
+    const config = fs.readFileSync(path.join(ROOT, "supabase/config.toml"), "utf8");
+
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.tender_flow_access_token_hook(event JSONB)");
+    expect(migration).toContain("event -> 'claims' ->> 'client_id'");
+    expect(migration).toContain("'{app_metadata,mcp_resource}'");
+    expect(migration).toMatch(/'\"https:\/\/www\.tenderflow\.cz\/api\/mcp\"'::jsonb/i);
+    expect(migration).toContain("SET search_path = ''");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.tender_flow_access_token_hook(JSONB) FROM PUBLIC, anon, authenticated");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.tender_flow_access_token_hook(JSONB) TO supabase_auth_admin");
+    expect(config).toMatch(/\[auth\.hook\.custom_access_token\][\s\S]*enabled = true[\s\S]*pg-functions:\/\/postgres\/public\/tender_flow_access_token_hook/);
   });
 });

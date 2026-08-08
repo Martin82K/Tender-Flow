@@ -1,6 +1,7 @@
 # Provozní runbook MCP
 
-Stav: základní provozní postup; produkční canary bude doplněn v Loopu 1
+Stav: veřejná část produkčního canary je automatizovaná; tokenový a RLS canary
+vyžaduje registrovaného klienta a testovacího uživatele
 Zdroj pravdy: `server/mcp/`, `docs/development/configuration.md` a Vercel route
 
 ## Povinná konfigurace
@@ -27,6 +28,7 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
 2. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
    po explicitním schválení verzovanou migraci.
 3. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
+   Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
 4. Provést OAuth canary se standardními `openid email profile` a read dotazem.
 5. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
 6. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
@@ -34,6 +36,18 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
 7. Write canary neprovádět, dokud nebude samostatně schválen a nasazen
    autoritativní user+client grant model; potom jen na testovacím projektu.
 8. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+
+### Poslední ověřený produkční preflight
+
+Dne 2026-08-09 byl bez tokenu ověřen kanonický endpoint
+`https://www.tenderflow.cz/api/mcp`, protected-resource metadata, 401 challenge,
+Supabase OAuth discovery, authorization code flow, PKCE S256, JWKS a nabídka
+asymetrických algoritmů RS256/ES256. Ne-www doména přesměrovává 307 na www,
+proto klienti musí jako resource používat přímo kanonickou www adresu.
+
+Tento preflight není důkazem tokenových claims ani RLS. Dokud registrovaný
+produkční klient nevydá skutečný token s očekávaným resource claimem, server
+zůstává fail-closed a kontaktní i write permissions zůstávají vypnuté.
 
 ## Minimální observabilita
 

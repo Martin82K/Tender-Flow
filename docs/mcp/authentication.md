@@ -40,6 +40,14 @@ Server kontroluje minimálně:
 6. standardní OAuth identity scopes endpointu,
 7. existenci identity uživatele v `sub`.
 
+Supabase OAuth access token standardně obsahuje `client_id` a
+`aud=authenticated`, nikoli automaticky RFC 8707 resource. Tender Flow proto
+používá Custom Access Token Hook, který pouze OAuth tokenům přidá kanonickou
+hodnotu `app_metadata.mcp_resource=https://www.tenderflow.cz/api/mcp`. Audience
+ani ostatní claims nemění. Server přijímá tento důvěryhodný claim, ale stále
+samostatně vyžaduje přesný client allowlist; samotná existence resource claimu
+žádné doménové oprávnění neuděluje.
+
 OAuth `scope` a doménová MCP oprávnění jsou oddělené. Supabase Auth podporuje
 standardní scopes (`openid`, `email`, `profile`, případně `phone` a
 `offline_access`), nikoli vlastní Tender Flow scopes. Server proto nikdy
