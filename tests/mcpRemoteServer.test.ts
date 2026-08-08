@@ -16,7 +16,8 @@ const ROOT = process.cwd();
 const callAuthorizedMcp = async (
   method: string,
   params: Record<string, unknown>,
-  scopes: string[],
+  oauthScopes: string[],
+  permissions: string[],
 ) => {
   const response = await handleAuthorizedMcpRequest(
     new Request("https://tenderflow.cz/api/mcp", {
@@ -47,7 +48,8 @@ const callAuthorizedMcp = async (
       token: "test-access-token",
       userId: "user-1",
       clientId: "client-1",
-      scopes,
+      oauthScopes,
+      permissions,
       expiresAt: Math.floor(Date.now() / 1000) + 3600,
     },
   );
@@ -90,9 +92,6 @@ describe("remote MCP server", () => {
         "openid",
         "email",
         "profile",
-        "tenderflow.read",
-        "tenderflow.contacts.read",
-        "tenderflow.write",
       ],
       resource_documentation: "https://tenderflow.cz/app/settings?tab=tools",
     });
@@ -131,7 +130,7 @@ describe("remote MCP server", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
   });
 
-  it("validuje OAuth klienta, audience, resource a scope fail-closed", () => {
+  it("validuje OAuth klienta, audience, resource a standardní scope fail-closed", () => {
     vi.stubEnv("NODE_ENV", "production");
     const payload = {
       sub: "user-1",
@@ -154,7 +153,16 @@ describe("remote MCP server", () => {
     expect(validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" })).toMatchObject({
       userId: "user-1",
       clientId: "client-1",
-      scopes: ["openid", "email", "profile"],
+      oauthScopes: ["openid", "email", "profile"],
+      permissions: ["tenderflow.read"],
+    });
+
+    expect(validateMcpTokenClaims({
+      ...payload,
+      scope: "openid email profile tenderflow.contacts.read tenderflow.write",
+    }, { expectedResource: "https://tenderflow.cz/api/mcp" })).toMatchObject({
+      oauthScopes: ["openid", "email", "profile", "tenderflow.contacts.read", "tenderflow.write"],
+      permissions: ["tenderflow.read"],
     });
 
     expect(() =>
@@ -164,6 +172,11 @@ describe("remote MCP server", () => {
     expect(() =>
       validateMcpTokenClaims({ ...payload, scope: "openid email" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
     ).toThrow("OAuth token is missing required MCP scopes: profile.");
+
+    vi.stubEnv("MCP_REQUIRED_SCOPES", "openid tenderflow.write");
+    expect(() =>
+      validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" }),
+    ).toThrow("MCP_REQUIRED_SCOPES contains unsupported OAuth scopes: tenderflow.write.");
   });
 
   it("rediguje citlivé MCP audit payloady a neukládá celé výsledky execute", () => {
@@ -232,45 +245,43 @@ describe("remote MCP server", () => {
     expect(source).not.toContain("hard_delete");
   });
 
-  it("zveřejňuje nástroje pouze pro scopes udělené konkrétnímu OAuth klientovi", async () => {
+  it("zveřejňuje remote pouze obecné read-only nástroje podle interních permissions", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
 
-    const identityOnly = await callAuthorizedMcp("tools/list", {}, ["openid"]);
+    const identityOnly = await callAuthorizedMcp("tools/list", {}, ["openid"], []);
     expect(identityOnly.result.tools).toEqual([]);
 
-    const readOnly = await callAuthorizedMcp("tools/list", {}, ["openid", "tenderflow.read"]);
+    const readOnly = await callAuthorizedMcp(
+      "tools/list",
+      {},
+      ["openid", "email", "profile"],
+      ["tenderflow.read"],
+    );
     const readNames = (readOnly.result.tools as Array<{ name: string }>).map((tool) => tool.name);
     expect(readNames).toContain("tf_list_projects");
     expect(readNames).toContain("tf_get_contract_overview");
     expect(readNames).not.toContain("tf_list_contacts");
     expect(readNames).not.toContain("tf_execute_change");
 
-    const contactRead = await callAuthorizedMcp("tools/list", {}, [
-      "openid",
-      "tenderflow.read",
-      "tenderflow.contacts.read",
-    ]);
-    const contactNames = (contactRead.result.tools as Array<{ name: string }>).map((tool) => tool.name);
-    expect(contactNames).toContain("search");
-    expect(contactNames).toContain("tf_list_contacts");
-
-    const write = await callAuthorizedMcp("tools/list", {}, [
-      "openid",
-      "tenderflow.read",
-      "tenderflow.write",
-    ]);
-    const writeNames = (write.result.tools as Array<{ name: string }>).map((tool) => tool.name);
-    expect(writeNames).toContain("tf_prepare_change");
-    expect(writeNames).toContain("tf_confirm_change");
-    expect(writeNames).toContain("tf_execute_change");
+    const forgedScopes = await callAuthorizedMcp(
+      "tools/list",
+      {},
+      ["openid", "tenderflow.read", "tenderflow.contacts.read", "tenderflow.write"],
+      ["tenderflow.read"],
+    );
+    const forgedNames = (forgedScopes.result.tools as Array<{ name: string }>).map((tool) => tool.name);
+    expect(forgedNames).not.toContain("search");
+    expect(forgedNames).not.toContain("tf_list_contacts");
+    expect(forgedNames).not.toContain("tf_prepare_change");
+    expect(forgedNames).not.toContain("tf_execute_change");
   });
 
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
 
-    const resources = await callAuthorizedMcp("resources/list", {}, ["openid"]);
+    const resources = await callAuthorizedMcp("resources/list", {}, ["openid"], []);
     expect(resources.result.resources).toEqual([
       expect.objectContaining({
         name: "tender-flow-catalog",
@@ -280,25 +291,25 @@ describe("remote MCP server", () => {
 
     const readTemplates = await callAuthorizedMcp("resources/templates/list", {}, [
       "openid",
-      "tenderflow.read",
-    ]);
+      "email",
+      "profile",
+    ], ["tenderflow.read"]);
     const readTemplateNames = (
       readTemplates.result.resourceTemplates as Array<{ name: string }>
     ).map((resource) => resource.name);
     expect(readTemplateNames).toContain("tender-flow-contract-overview");
     expect(readTemplateNames).not.toContain("tender-flow-project");
 
-    const contactTemplates = await callAuthorizedMcp("resources/templates/list", {}, [
-      "openid",
-      "tenderflow.read",
-      "tenderflow.contacts.read",
-    ]);
+    const contactTemplates = await callAuthorizedMcp(
+      "resources/templates/list",
+      {},
+      ["openid", "tenderflow.contacts.read"],
+      ["tenderflow.read"],
+    );
     const contactTemplateNames = (
       contactTemplates.result.resourceTemplates as Array<{ name: string }>
     ).map((resource) => resource.name);
-    expect(contactTemplateNames).toEqual(
-      expect.arrayContaining(["tender-flow-project", "tender-flow-contract-overview"]),
-    );
+    expect(contactTemplateNames).toEqual(["tender-flow-contract-overview"]);
   });
 
   it("čte katalog jako privátní MCP 2.0 resource a audituje požadavek bez tokenu v logu", async () => {
@@ -316,6 +327,7 @@ describe("remote MCP server", () => {
       "resources/read",
       { uri: "tenderflow://catalog" },
       ["openid"],
+      [],
     );
 
     expect(response.result).toMatchObject({
@@ -333,7 +345,12 @@ describe("remote MCP server", () => {
     );
     expect(catalog).toMatchObject({
       protocolVersion: "2026-07-28",
-      scopes: {
+      oauthScopes: {
+        identity: "openid",
+        email: "email",
+        profile: "profile",
+      },
+      permissions: {
         read: "tenderflow.read",
         contactsRead: "tenderflow.contacts.read",
         write: "tenderflow.write",
@@ -384,7 +401,8 @@ describe("remote MCP server", () => {
     const response = await callAuthorizedMcp(
       "resources/read",
       { uri: `tenderflow://organizations/${organizationId}/contracts/overview` },
-      ["openid", "tenderflow.read"],
+      ["openid", "email", "profile"],
+      ["tenderflow.read"],
     );
 
     const contents = response.result.contents as Array<{ text: string }>;
@@ -442,7 +460,8 @@ describe("remote MCP server", () => {
         token: "test-access-token",
         userId: "user-1",
         clientId: "client-1",
-        scopes: ["openid", "email", "profile"],
+        oauthScopes: ["openid", "email", "profile"],
+        permissions: ["tenderflow.read"],
         expiresAt: Math.floor(Date.now() / 1000) + 3600,
       },
     );

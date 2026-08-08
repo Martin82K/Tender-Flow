@@ -19,7 +19,7 @@ sequenceDiagram
   participant D as Supabase/RLS
   C->>M: požadavek bez tokenu
   M-->>C: 401 + WWW-Authenticate metadata
-  C->>O: authorization request + resource + scopes
+  C->>O: authorization request + resource + standardní identity scopes
   O->>U: přihlášení a consent
   U-->>O: schválení
   O-->>C: authorization code / access token
@@ -37,8 +37,14 @@ Server kontroluje minimálně:
 3. `exp` a standardní časové claims,
 4. audience a resource vůči MCP endpointu/allowlistu,
 5. `client_id` nebo `azp` vůči `MCP_ALLOWED_CLIENT_IDS`,
-6. minimální endpoint scopes a následně scopes konkrétního toolu/resource,
+6. standardní OAuth identity scopes endpointu,
 7. existenci identity uživatele v `sub`.
+
+OAuth `scope` a doménová MCP oprávnění jsou oddělené. Supabase Auth podporuje
+standardní scopes (`openid`, `email`, `profile`, případně `phone` a
+`offline_access`), nikoli vlastní Tender Flow scopes. Server proto nikdy
+neodvozuje přístup k datům z hodnoty `tenderflow.*` vložené do tokenového
+`scope`; interní permissions přiděluje až důvěryhodná serverová policy.
 
 V produkci musí být `MCP_ALLOWED_CLIENT_IDS` neprázdné. Browserový Origin se
 kontroluje přes `MCP_ALLOWED_ORIGINS`; absence Origin u serverového klienta
@@ -47,8 +53,9 @@ nenahrazuje tokenovou kontrolu.
 ## Lokální stdio
 
 `TENDER_FLOW_MCP_ACCESS_TOKEN` je lokálně předaný Supabase session token.
-Normální session token bez OAuth client identity dostane `openid` a
-`tenderflow.read`, nikoli kontaktní ani zápisový scope. Audit používá pevné
+Normální session token dostane interní oprávnění jen pro obecné čtení, nikoli
+kontaktní údaje ani zápis. Standardní OAuth scopes zůstávají identity claims a
+nejsou uměle doplňovány. Audit používá pevné
 `client_id = local-stdio`; databázová politika tuto výjimku dovolí pouze tokenu
 bez `client_id` i `azp`.
 

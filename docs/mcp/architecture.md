@@ -11,9 +11,9 @@ flowchart LR
   U["Uživatel Tender Flow"] --> C["MCP klient / AI host"]
   C -->|"OAuth 2.1 Bearer token"| H["/api/mcp stateless HTTP"]
   C -->|"lokální session token"| S["stdio bridge"]
-  H --> V["JWT, issuer, audience, resource, client a scope validace"]
+  H --> V["JWT, issuer, audience, resource, client a identity scope validace"]
   S --> V
-  V --> P["Scope policy + registrace dostupných tools/resources"]
+  V --> P["Serverové permissions + registrace dostupných tools/resources"]
   P --> R["Rate limit"]
   R --> D["Tender Flow data adaptéry"]
   D --> Q["Supabase Data API / RPC"]
@@ -47,9 +47,9 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | Vrstva | Odpovědnost |
 | --- | --- |
 | HTTP/stdio adaptér | transport, status kódy, protected-resource metadata |
-| Token validation | podpis JWT, issuer, audience/resource, client allowlist, expirace a scopes |
+| Token validation | podpis JWT, issuer, audience/resource, client allowlist, expirace a standardní identity scopes |
 | MCP server factory | capabilities, schemas, podmíněná registrace tools/resources |
-| Scope policy | centrální mapování tool → povinné scopes a riziko |
+| Permission policy | centrální mapování tool → interní permissions a riziko; neodvozuje je z tokenových `tenderflow.*` scopes |
 | Data adaptér | omezené selecty, mapování a minimalizace výsledků |
 | Supabase | autoritativní RLS/RPC, tenant a projektová oprávnění |
 | Audit/rate limit | redigovaná stopa a omezení frekvence volání |
@@ -59,5 +59,5 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | Varianta | Implementace | Stav |
 | --- | --- | --- |
 | Remote HTTP | `server/mcp/` + `api/mcp.js` | kanonická MCP 2.0 cesta |
-| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | obecné read-only scopes ve výchozím stavu |
+| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze obecná interní read permission |
 | Desktop | `desktop/main/services/mcpServer.ts` | samostatný legacy server; plánované sjednocení |

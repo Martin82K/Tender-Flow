@@ -10,7 +10,7 @@ Zdroj pravdy: MCP schemas, data adaptéry, auth handler a rate limiter
 | HTTP auth | 401 + `WWW-Authenticate` | token chybí, je neplatný nebo vyžaduje autorizaci |
 | Origin | zamítnutý HTTP request | browser Origin není v přesném allowlistu |
 | Protocol/schema | JSON-RPC invalid params / SDK chyba | header/body, metoda nebo argumenty neodpovídají kontraktu |
-| Scope | tool není v listu nebo scope error | klient nemá potřebné oprávnění |
+| Permission | tool není v listu nebo permission error | server klientovi nevydal potřebné interní oprávnění |
 | RLS/doména | tool `isError` + bezpečná zpráva | uživatel nevidí objekt nebo operace selhala |
 | Rate limit | tool/resource error | překročen procesní limit user/client/tool okna |
 | Write state | proposal/token/status/expiry error | neplatná fáze bezpečného zápisu |

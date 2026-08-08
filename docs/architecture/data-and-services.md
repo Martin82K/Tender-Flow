@@ -97,11 +97,12 @@ Dočasná stateless legacy kompatibilita sdílí stejnou factory a stejný katal
 nástrojů, takže nevznikají dvě autorizačně odlišné implementace.
 
 Nástroje používají uživatelský Supabase access token, databázové RLS, OAuth
-client/resource/scope kontrolu, browser Origin allowlist, rate limit a audit.
-Katalog používá scopes `tenderflow.read`, `tenderflow.contacts.read` a
-`tenderflow.write`. Server nástroje a URI šablony, pro které klient scope
-nezískal, vůbec neinzeruje; RLS/RPC kontrola zůstává autoritativní druhou
-hranicí. Kontaktní scope chrání nástroje, které vracejí e-mail nebo telefon.
+client/resource/identity-scope kontrolu, browser Origin allowlist, rate limit a
+audit. Standardní OAuth scopes jsou oddělené od interních permissions
+`tenderflow.read`, `tenderflow.contacts.read` a `tenderflow.write`. Server
+nástroje a URI šablony bez přidělené permission vůbec neinzeruje; RLS/RPC
+zůstává autoritativní druhou hranicí. Aktuální remote i stdio policy vydává
+jen obecné read oprávnění, takže kontaktní a write schopnosti jsou skryté.
 
 MCP resources jsou privátně cacheované a používají URI šablony
 `tenderflow://projects/{projectId}` a

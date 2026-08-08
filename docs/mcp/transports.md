@@ -27,8 +27,9 @@ ale návrhy změn jsou explicitní aplikační stav v databázi.
 `npm run mcp:stdio` spouští stejnou Node MCP factory nad standardním vstupem a
 výstupem. Token přichází pouze z `TENDER_FLOW_MCP_ACCESS_TOKEN`; nesmí být
 argumentem příkazové řádky ani součástí JSON konfigurace. Běžný Supabase
-session token získá jen identity + read scopes. `TENDER_FLOW_MCP_READ_ONLY`
-vypne registraci write tools bez ohledu na případné tokenové scopes.
+session token získá pouze interní permission pro obecné čtení bez kontaktních
+údajů. Tokenové `tenderflow.*` scopes se ignorují. `TENDER_FLOW_MCP_READ_ONLY`
+zůstává dodatečný přepínač, ale write permission současná policy nevydává.
 
 ## Desktop legacy
 

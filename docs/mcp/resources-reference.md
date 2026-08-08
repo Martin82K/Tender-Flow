@@ -5,24 +5,24 @@ Zdroj pravdy: `registerTenderFlowResources` v `server/mcp/tenderFlowMcp.js`
 
 Resources vracejí `application/json`. Všechny používají `cacheScope: private`,
 proto jejich obsah nesmí klient sdílet mezi uživateli ani OAuth klienty.
-Každé čtení podléhá scope kontrole, rate limitu, RLS/RPC a MCP auditu.
+Každé čtení podléhá OAuth/permission kontrole, rate limitu, RLS/RPC a MCP auditu.
 
 ## `tenderflow://catalog`
 
 - Typ: pevný resource.
 - Scope: `openid`.
 - Cache TTL: 300 000 ms.
-- Obsah: protokolová revize, dostupné resource šablony a názvy scopes.
+- Obsah: protokolová revize, resource rodiny, standardní OAuth scopes a interní permissions.
 - Neobsahuje doménová data ani seznam objektů uživatele.
 
 ## `tenderflow://projects/{projectId}`
 
 - Typ: resource template.
-- Scopes: read + contacts.
+- Permissions: read + contacts; aktuálně **disabled**.
 - Cache TTL: 60 000 ms.
 - Parametr: `projectId` viditelného projektu.
 - Obsah: základ projektu, VŘ, nabídky, smlouvy a plán VŘ.
-- Důvod contacts scope: agregovaný detail zahrnuje nabídky/dodavatele a může
+- Důvod contacts permission: agregovaný detail zahrnuje nabídky/dodavatele a může
   nést kontaktní údaje.
 
 Příklad URI:
@@ -35,6 +35,7 @@ tenderflow://projects/11111111-1111-4111-8111-111111111111
 
 - Typ: resource template.
 - Scope: read.
+- Stav: dostupný remote i stdio.
 - Cache TTL: 60 000 ms.
 - Parametr: platné UUID organizace.
 - Obsah: autorizovaný smluvní přehled z `get_contract_overview`, bez

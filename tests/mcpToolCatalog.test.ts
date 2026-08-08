@@ -1,43 +1,48 @@
 import { describe, expect, it, vi } from "vitest";
 import { getContractOverview } from "../server/mcp/data.js";
 import {
-  MCP_SCOPES,
-  getLocalSessionMcpScopes,
+  MCP_OAUTH_SCOPES,
+  MCP_PERMISSIONS,
+  getLocalSessionMcpPermissions,
   getMcpToolPolicy,
-  hasMcpScopes,
+  getRemoteMcpPermissions,
+  getSupportedMcpOAuthScopes,
+  hasMcpPermissions,
 } from "../server/mcp/scopePolicy.js";
 
-describe("MCP tool catalog and scopes", () => {
-  it("odděluje běžné čtení, kontaktní údaje a zápis", () => {
-    expect(getMcpToolPolicy("tf_list_projects").requiredScopes).toEqual([
-      MCP_SCOPES.read,
+describe("MCP tool catalog and permissions", () => {
+  it("odděluje standardní OAuth scopes od interních oprávnění", () => {
+    expect(getSupportedMcpOAuthScopes()).toEqual([
+      MCP_OAUTH_SCOPES.identity,
+      MCP_OAUTH_SCOPES.email,
+      MCP_OAUTH_SCOPES.profile,
     ]);
-    expect(getMcpToolPolicy("tf_list_contacts").requiredScopes).toEqual([
-      MCP_SCOPES.read,
-      MCP_SCOPES.contactsRead,
+    expect(getMcpToolPolicy("tf_list_projects").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
     ]);
-    expect(getMcpToolPolicy("tf_execute_change").requiredScopes).toEqual([
-      MCP_SCOPES.read,
-      MCP_SCOPES.write,
+    expect(getMcpToolPolicy("tf_list_contacts").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+      MCP_PERMISSIONS.contactsRead,
+    ]);
+    expect(getMcpToolPolicy("tf_execute_change").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+      MCP_PERMISSIONS.write,
     ]);
 
-    expect(hasMcpScopes([MCP_SCOPES.read], [MCP_SCOPES.read])).toBe(true);
+    expect(hasMcpPermissions([MCP_PERMISSIONS.read], [MCP_PERMISSIONS.read])).toBe(true);
     expect(
-      hasMcpScopes([MCP_SCOPES.read], [MCP_SCOPES.read, MCP_SCOPES.write]),
+      hasMcpPermissions(
+        [MCP_PERMISSIONS.read],
+        [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
+      ),
     ).toBe(false);
   });
 
-  it("běžnému lokálnímu session tokenu neudělí kontaktní scope", () => {
-    expect(getLocalSessionMcpScopes([
-      "authenticated",
-      MCP_SCOPES.contactsRead,
-      MCP_SCOPES.write,
-    ])).toEqual([
-      "authenticated",
-      MCP_SCOPES.identity,
-      MCP_SCOPES.read,
-    ]);
-    expect(getLocalSessionMcpScopes([])).not.toContain(MCP_SCOPES.contactsRead);
+  it("remote ani stdio neodvodí citlivé oprávnění z podvrženého scope claimu", () => {
+    expect(getRemoteMcpPermissions()).toEqual([MCP_PERMISSIONS.read]);
+    expect(getLocalSessionMcpPermissions()).toEqual([MCP_PERMISSIONS.read]);
+    expect(getRemoteMcpPermissions()).not.toContain(MCP_PERMISSIONS.contactsRead);
+    expect(getRemoteMcpPermissions()).not.toContain(MCP_PERMISSIONS.write);
   });
 
   it("načítá smluvní přehled přes autorizované RPC a minimalizuje dokumentová data", async () => {

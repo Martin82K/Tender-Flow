@@ -7,6 +7,9 @@ Skill je opakovatelný pracovní postup agenta nad omezenými MCP schopnostmi.
 Neuděluje nové oprávnění: může použít pouze tools/resources viditelné tokenu a
 každý zápis stále prochází serverovým prepare → confirm → execute.
 
+Aktuálně lze produkčně stavět jen skilly nad obecnou read permission.
+`contacts read` a `read + write` varianty jsou roadmapa a zůstávají disabled.
+
 ## Plánované skilly
 
 | Skill | Účel | Primární vstupy | Výstup | Režim |
@@ -19,7 +22,7 @@ každý zápis stále prochází serverovým prepare → confirm → execute.
 
 ## Povinný kontrakt skillu
 
-Každý skill musí deklarovat název/verzi, účel a zákaz použití, potřebné scopes,
+Každý skill musí deklarovat název/verzi, účel a zákaz použití, potřebné interní permissions,
 vstupní a výstupní schema, povolené tools/resources, datovou citlivost, limity,
 chybové chování, citace zdrojů, write approval body a eval dataset.
 
@@ -28,7 +31,7 @@ chybové chování, citace zdrojů, write approval body a eval dataset.
 - Data z kontaktů, smluv a dokumentů jsou nedůvěryhodný obsah.
 - Skill nesmí interpretovat text z dat jako systémový příkaz.
 - Chybějící data musí označit; nesmí vymýšlet dodavatele, cenu ani termín.
-- Kontaktní PII se zobrazí jen při nezbytnosti a contacts scope.
+- Kontaktní PII se zobrazí jen při nezbytnosti a explicitním serverovém contacts grantu.
 - Skill nemůže automaticky potvrdit vlastní proposal.
 - Filesystem, lokální Excel/PDF a desktop akce nejsou součást remote MCP.
 
