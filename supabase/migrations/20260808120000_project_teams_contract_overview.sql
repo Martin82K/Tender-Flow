@@ -181,7 +181,8 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
   SELECT CASE
-    WHEN p.owner_id = user_id_input THEN 'owner_admin'
+    WHEN p.owner_id = user_id_input
+      AND (p.organization_id IS NULL OR om.user_id IS NOT NULL) THEN 'owner_admin'
     WHEN ps.legacy_external = true THEN 'viewer'
     WHEN om.user_id IS NOT NULL THEN ps.role
     ELSE NULL
@@ -353,6 +354,8 @@ CREATE POLICY "project team select" ON public.project_shares FOR SELECT TO authe
 REVOKE INSERT, UPDATE, DELETE ON public.project_shares FROM authenticated;
 GRANT SELECT ON public.project_shares TO authenticated;
 
+ALTER TABLE public.bid_tags ENABLE ROW LEVEL SECURITY;
+
 -- Restrictive policies close historical org-wide branches: project membership AND module entitlement are required.
 DO $$
 DECLARE spec TEXT[]; relation_name TEXT; project_column TEXT; feature_key TEXT; policy_prefix TEXT;
@@ -384,6 +387,7 @@ DECLARE spec TEXT[]; relation_name TEXT; parent_kind TEXT; parent_column TEXT; f
 BEGIN
   FOREACH spec SLICE 1 IN ARRAY ARRAY[
     ['bids','category','demand_category_id','module_pipeline'],
+    ['bid_tags','bid','bid_id','module_pipeline'],
     ['contract_amendments','contract','contract_id','module_contracts'],
     ['contract_drawdowns','contract','contract_id','module_contracts'],
     ['contract_invoices','contract','contract_id','module_contracts']
@@ -399,6 +403,7 @@ BEGIN
       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=relation_name AND column_name=parent_column) THEN
       project_expression := CASE parent_kind
         WHEN 'category' THEN format('(SELECT dc.project_id FROM public.demand_categories dc WHERE dc.id::text = %I::text)', parent_column)
+        WHEN 'bid' THEN format('(SELECT dc.project_id FROM public.bids b JOIN public.demand_categories dc ON dc.id::text = COALESCE(to_jsonb(b)->>''demand_category_id'', to_jsonb(b)->>''category_id'') WHERE b.id::text = %I::text)', parent_column)
         ELSE format('(SELECT c.project_id FROM public.contracts c WHERE c.id = %I)', parent_column)
       END;
       EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_prefix || '_select', relation_name);
@@ -413,10 +418,42 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Storage access follows the same project role, module and archived-state checks as database rows.
+DROP POLICY IF EXISTS "contract_documents_select" ON storage.objects;
+CREATE POLICY "contract_documents_select"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+  bucket_id = 'contract-documents'
+  AND split_part(name, '/', 1) = 'projects'
+  AND split_part(name, '/', 3) = 'contracts'
+  AND public.can_project_module_action(split_part(name, '/', 2), 'module_contracts', false)
+);
+
+DROP POLICY IF EXISTS "contract_documents_insert" ON storage.objects;
+CREATE POLICY "contract_documents_insert"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'contract-documents'
+  AND split_part(name, '/', 1) = 'projects'
+  AND split_part(name, '/', 3) = 'contracts'
+  AND split_part(name, '/', 4) ~ '^[A-Za-z0-9-]+\.(pdf|docx)$'
+  AND public.can_project_module_action(split_part(name, '/', 2), 'module_contracts', true)
+);
+
+DROP POLICY IF EXISTS "contract_documents_delete" ON storage.objects;
+CREATE POLICY "contract_documents_delete"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+  bucket_id = 'contract-documents'
+  AND split_part(name, '/', 1) = 'projects'
+  AND split_part(name, '/', 3) = 'contracts'
+  AND public.can_project_module_action(split_part(name, '/', 2), 'module_contracts', true)
+);
+
 CREATE OR REPLACE FUNCTION public.guard_project_identity_and_archive()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
@@ -496,14 +533,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-DECLARE caller_is_legacy_external BOOLEAN;
 BEGIN
   IF NOT public.can_project_action(project_id_input, 'view') THEN RAISE EXCEPTION 'Not authorized'; END IF;
-  SELECT COALESCE(ps.legacy_external, false) INTO caller_is_legacy_external
-  FROM public.project_shares ps WHERE ps.project_id = project_id_input AND ps.user_id = auth.uid();
-  IF caller_is_legacy_external THEN
+  IF NOT public.can_project_action(project_id_input, 'manage_team') THEN
     RETURN QUERY
-    SELECT ps.user_id, au.email::text, COALESCE(up.display_name, au.email)::text, 'viewer'::text, true
+    SELECT ps.user_id, au.email::text, COALESCE(up.display_name, au.email)::text, ps.role, ps.legacy_external
     FROM public.project_shares ps JOIN auth.users au ON au.id = ps.user_id
     LEFT JOIN public.user_profiles up ON up.user_id = ps.user_id
     WHERE ps.project_id = project_id_input AND ps.user_id = auth.uid();
@@ -706,7 +740,7 @@ BEGIN
 END;
 $$;
 
--- Generic guard; trigger argument is a lookup kind: direct column, contract, or category.
+-- Generic guard; trigger argument is a lookup kind: direct column, contract, category, or bid.
 CREATE OR REPLACE FUNCTION public.guard_archived_project_write()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -720,6 +754,12 @@ BEGIN
     SELECT c.project_id INTO affected_project FROM public.contracts c WHERE c.id = (row_data->>TG_ARGV[1])::uuid;
   ELSIF TG_ARGV[0] = 'category' THEN
     SELECT dc.project_id INTO affected_project FROM public.demand_categories dc WHERE dc.id = row_data->>TG_ARGV[1];
+  ELSIF TG_ARGV[0] = 'bid' THEN
+    SELECT dc.project_id INTO affected_project
+    FROM public.bids b
+    JOIN public.demand_categories dc
+      ON dc.id::text = COALESCE(to_jsonb(b)->>'demand_category_id', to_jsonb(b)->>'category_id')
+    WHERE b.id::text = row_data->>TG_ARGV[1];
   ELSE
     affected_project := row_data->>TG_ARGV[1];
   END IF;
@@ -732,6 +772,12 @@ BEGIN
       SELECT c.project_id INTO old_project FROM public.contracts c WHERE c.id = (old_data->>TG_ARGV[1])::uuid;
     ELSIF TG_ARGV[0] = 'category' THEN
       SELECT dc.project_id INTO old_project FROM public.demand_categories dc WHERE dc.id = old_data->>TG_ARGV[1];
+    ELSIF TG_ARGV[0] = 'bid' THEN
+      SELECT dc.project_id INTO old_project
+      FROM public.bids b
+      JOIN public.demand_categories dc
+        ON dc.id::text = COALESCE(to_jsonb(b)->>'demand_category_id', to_jsonb(b)->>'category_id')
+      WHERE b.id::text = old_data->>TG_ARGV[1];
     ELSE
       old_project := old_data->>TG_ARGV[1];
     END IF;
@@ -756,7 +802,8 @@ BEGIN
     ['dochub_project_folders','direct','project_id'], ['dochub_project_connections','direct','project_id'],
     ['dochub_autocreate_runs','direct','project_id'],
     ['contract_amendments','contract','contract_id'],
-    ['contract_drawdowns','contract','contract_id'], ['contract_invoices','contract','contract_id']
+    ['contract_drawdowns','contract','contract_id'], ['contract_invoices','contract','contract_id'],
+    ['bid_tags','bid','bid_id']
   ]::TEXT[][] LOOP
     relation_name := spec[1]; lookup_kind := spec[2]; key_column := spec[3];
     IF to_regclass('public.' || relation_name) IS NOT NULL

@@ -78,6 +78,60 @@ describe("project teams, archive and contract overview migration", () => {
 
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_user_id_by_email(TEXT) FROM PUBLIC, anon, authenticated");
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_project_shares_debug(TEXT) FROM PUBLIC, anon, authenticated");
-    expect(migration).toMatch(/caller_is_legacy_external[\s\S]*ps\.user_id = auth\.uid\(\)/);
+    expect(migration).toMatch(
+      /IF NOT public\.can_project_action\(project_id_input, 'manage_team'\)[\s\S]*ps\.user_id = auth\.uid\(\)/,
+    );
+  });
+
+  it("does not authorize project identity or archive changes with a definer-owned current_user", () => {
+    const migration = readMigration();
+    const guardDefinition = migration
+      .split("CREATE OR REPLACE FUNCTION public.guard_project_identity_and_archive()")[1]
+      ?.split("DROP TRIGGER IF EXISTS trg_guard_project_identity_and_archive")[0] ?? "";
+
+    expect(guardDefinition).toContain("SECURITY INVOKER");
+    expect(guardDefinition).not.toContain("SECURITY DEFINER");
+  });
+
+  it("requires project owners to remain active members of organization projects", () => {
+    const migration = readMigration();
+    const roleDefinition = migration
+      .split("CREATE OR REPLACE FUNCTION public.effective_project_role")[1]
+      ?.split("CREATE OR REPLACE FUNCTION public.can_project_action")[0] ?? "";
+
+    expect(roleDefinition).toMatch(
+      /p\.owner_id\s*=\s*user_id_input\s+AND\s+\(p\.organization_id IS NULL OR om\.user_id IS NOT NULL\)/i,
+    );
+  });
+
+  it("returns the full project roster only to callers who can manage the team", () => {
+    const migration = readMigration();
+    const teamDefinition = migration
+      .split("CREATE OR REPLACE FUNCTION public.get_project_team")[1]
+      ?.split("CREATE OR REPLACE FUNCTION public.get_projects_metadata")[0] ?? "";
+
+    expect(teamDefinition).toMatch(
+      /IF NOT public\.can_project_action\(project_id_input, 'manage_team'\)[\s\S]*ps\.user_id = auth\.uid\(\)[\s\S]*RETURN;/i,
+    );
+  });
+
+  it("applies archived-project authorization to contract document storage writes", () => {
+    const migration = readMigration();
+
+    expect(migration).toMatch(
+      /CREATE POLICY "contract_documents_insert"[\s\S]*can_project_module_action\(split_part\(name, '\/', 2\), 'module_contracts', true\)/i,
+    );
+    expect(migration).toMatch(
+      /CREATE POLICY "contract_documents_delete"[\s\S]*can_project_module_action\(split_part\(name, '\/', 2\), 'module_contracts', true\)/i,
+    );
+  });
+
+  it("covers bid tags with project-module RLS and the archived-project write guard", () => {
+    const migration = readMigration();
+
+    expect(migration).toContain("ALTER TABLE public.bid_tags ENABLE ROW LEVEL SECURITY");
+    expect(migration).toMatch(/\['bid_tags','bid','bid_id','module_pipeline'\]/);
+    expect(migration).toMatch(/TG_ARGV\[0\] = 'bid'/);
+    expect(migration).toMatch(/\['bid_tags','bid','bid_id'\]/);
   });
 });
