@@ -42,4 +42,12 @@ describe("ThemedSelect pro role a oprávnění", () => {
     expect(members).not.toContain("<select");
     expect(matrix).not.toContain("<select");
   });
+
+  it("správa realizačního týmu používá stejný skinovaný výběr", () => {
+    const team = readFileSync(join(process.cwd(), "features/projects/team/ProjectTeamSettings.tsx"), "utf8");
+
+    expect(team).toContain("<ThemedSelect");
+    expect(team).not.toContain("<select");
+    expect(team).toContain('ariaLabel="Vyberte člena organizace"');
+  });
 });

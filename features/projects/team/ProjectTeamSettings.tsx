@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { organizationService, type OrganizationMember } from "@features/organization/api";
 import { projectService } from "@/services/projectService";
 import { PROJECT_TEAM_ROLE_LABELS } from "@shared/authorization/projectRoles";
+import { ThemedSelect } from "@shared/ui/ThemedSelect";
 
 interface ProjectTeamSettingsProps {
   projectId: string;
@@ -63,7 +64,16 @@ export const ProjectTeamSettings: React.FC<ProjectTeamSettingsProps> = ({ projec
     {readOnly && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Archivovaná stavba je pouze ke čtení. Tým nelze měnit.</div>}
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
     {canManage && <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_auto] dark:border-slate-700 dark:bg-slate-900">
-      <select value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)} className="rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm"><option value="">Vyberte člena organizace</option>{candidates.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name || member.email}</option>)}</select>
+      <ThemedSelect
+        ariaLabel="Vyberte člena organizace"
+        value={selectedUserId}
+        onChange={setSelectedUserId}
+        disabled={saving || candidates.length === 0}
+        options={[
+          { value: "", label: candidates.length === 0 ? "Všichni členové už jsou v týmu" : "Vyberte člena organizace" },
+          ...candidates.map((member) => ({ value: member.user_id, label: member.display_name || member.email })),
+        ]}
+      />
       <button type="button" disabled={!selectedUserId || saving} onClick={() => void addMember()} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Přidat</button>
     </div>}
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">

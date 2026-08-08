@@ -4784,6 +4784,14 @@ html[data-skin] .tf-themed-select-option[aria-selected="true"] {
   color: var(--tf-settings-primary-strong) !important;
 }
 
+.tf-contract-overview-row > td {
+  transition: background-color 120ms ease;
+}
+
+.tf-contract-overview-row:hover > td {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
+}
+
 html[data-skin] .tf-role-permissions-scroll {
   scrollbar-color: color-mix(in srgb, var(--tf-skin-muted) 65%, transparent) transparent;
   scrollbar-width: thin;
