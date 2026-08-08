@@ -176,13 +176,14 @@ describe("useProjectMutations -> overview cache invalidation", () => {
         location: "Praha",
         status: "tender",
         organizationId: "org-1",
+        initialTeam: [{ userId: "user-2" }],
       });
     });
 
     expect(mocks.rpcMock).toHaveBeenCalledWith("create_project_with_team", expect.objectContaining({
       project_id_input: "p-1",
       organization_id_input: "org-1",
-      team_input: [],
+      team_input: [{ user_id: "user-2" }],
     }));
     expectOverviewInvalidation(invalidateSpy);
   });

@@ -144,8 +144,12 @@ export const openContractOverviewDocument = async (
   document: Pick<ContractOverviewRow | ContractOverviewAmendment, "documentStoragePath" | "documentUrl">,
   kind: "contract" | "amendment",
 ): Promise<void> => {
+  const normalizedDocument = {
+    documentStoragePath: document.documentStoragePath ?? undefined,
+    documentUrl: document.documentUrl ?? undefined,
+  };
   const url = kind === "contract"
-    ? await contractService.getContractDocumentUrl(document)
-    : await contractService.getAmendmentDocumentUrl(document);
+    ? await contractService.getContractDocumentUrl(normalizedDocument)
+    : await contractService.getAmendmentDocumentUrl(normalizedDocument);
   await shellAdapter.openExternal(url);
 };

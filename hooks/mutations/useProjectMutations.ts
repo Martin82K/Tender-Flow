@@ -118,7 +118,6 @@ export const useAddProjectMutation = () => {
                 organization_id_input: newProject.organizationId,
                 team_input: (newProject.initialTeam || []).map((member) => ({
                     user_id: member.userId,
-                    role: member.role,
                 })),
             });
             if (error) throw error;

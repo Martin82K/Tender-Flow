@@ -27,6 +27,6 @@ describe("ContractOverviewColumnsMenu", () => {
 
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(menu).not.toBeInTheDocument());
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

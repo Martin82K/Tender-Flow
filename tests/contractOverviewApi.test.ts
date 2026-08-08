@@ -1,11 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
 
+const documentMocks = vi.hoisted(() => ({
+  getContractDocumentUrl: vi.fn(),
+  getAmendmentDocumentUrl: vi.fn(),
+  openExternal: vi.fn(),
+}));
+
 vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: { rpc: vi.fn() },
+}));
+vi.mock("@/services/contractService", () => ({
+  contractService: {
+    getContractDocumentUrl: documentMocks.getContractDocumentUrl,
+    getAmendmentDocumentUrl: documentMocks.getAmendmentDocumentUrl,
+  },
+}));
+vi.mock("@/services/platformAdapter", () => ({
+  shellAdapter: { openExternal: documentMocks.openExternal },
 }));
 import {
   formatContractOverviewMoney,
   mapContractOverviewRows,
+  openContractOverviewDocument,
 } from "@/features/contracts-overview/api/contractOverviewApi";
 
 describe("contract overview mapper", () => {
@@ -49,5 +65,17 @@ describe("contract overview mapper", () => {
     expect(result.currency).toBe("CZK");
     expect(() => formatContractOverviewMoney(1250, "KČ")).not.toThrow();
     expect(formatContractOverviewMoney(1250, "invalid")).toContain("Kč");
+  });
+
+  it("normalizuje databázové null hodnoty před otevřením dokumentu", async () => {
+    documentMocks.getContractDocumentUrl.mockResolvedValueOnce("https://signed.example/document.pdf");
+
+    await openContractOverviewDocument({ documentStoragePath: null, documentUrl: null }, "contract");
+
+    expect(documentMocks.getContractDocumentUrl).toHaveBeenCalledWith({
+      documentStoragePath: undefined,
+      documentUrl: undefined,
+    });
+    expect(documentMocks.openExternal).toHaveBeenCalledWith("https://signed.example/document.pdf");
   });
 });
