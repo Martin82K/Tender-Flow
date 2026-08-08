@@ -89,6 +89,27 @@ describe("Botanica skin", () => {
     expect(css).toContain(':hover');
   });
 
+  it("zvýrazňuje dnešní den bez plošného fillu a výhradně sémantickými skin tokeny", () => {
+    const cellSelector = ".tf-todo-calendar-day--today";
+    const cellRuleStart = css.indexOf(cellSelector);
+    const cellRuleEnd = css.indexOf("}", cellRuleStart);
+    const cellRule = css.slice(cellRuleStart, cellRuleEnd + 1);
+    const headingSelector = ".tf-todo-calendar-day-heading--today";
+    const headingRuleStart = css.indexOf(headingSelector);
+    const headingRuleEnd = css.indexOf("}", headingRuleStart);
+    const headingRule = css.slice(headingRuleStart, headingRuleEnd + 1);
+
+    expect(cellRuleStart).toBeGreaterThanOrEqual(0);
+    expect(cellRule).toContain("var(--tf-skin-accent)");
+    expect(cellRule).toContain("var(--tf-skin-line)");
+    expect(cellRule).not.toContain("background");
+    expect(headingRuleStart).toBeGreaterThanOrEqual(0);
+    expect(headingRule).toContain("var(--tf-skin-accent)");
+    expect(headingRule).toContain("var(--tf-skin-surface)");
+    expect(headingRule).toContain("var(--tf-skin-text)");
+    expect(`${cellRule}\n${headingRule}`).not.toMatch(/orange|amber|yellow|#[0-9a-f]{3,8}/i);
+  });
+
   it("propaguje skin do projektových rout, tabů a lokálních modrých povrchů", () => {
     expect(css).toContain(".tf-tender-plan-view");
     expect(css).toContain(".tf-schedule-view");

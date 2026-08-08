@@ -1741,14 +1741,19 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                 onDrop={(event) => onDayDrop(day, event)}
                 className={`min-h-[118px] border-r border-b border-slate-200 p-2 transition last:border-r-0 data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-inset data-[drop-target=true]:ring-primary/30 dark:border-slate-800 ${
                   outsideMonth ? "bg-slate-50/70 text-slate-400 dark:bg-slate-950/30" : ""
-                } ${isToday ? "bg-orange-100/90 ring-1 ring-inset ring-orange-300 dark:bg-orange-950/40 dark:ring-orange-800/70" : ""}`}
+                } ${isToday ? "tf-todo-calendar-day--today" : ""}`}
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase text-slate-500">
+                  <div
+                    data-help-id="todo-calendar-day-heading"
+                    className={`inline-flex flex-col rounded-md px-1.5 py-0.5 ${
+                      isToday ? "tf-todo-calendar-day-heading--today" : ""
+                    }`}
+                  >
+                    <div className="tf-todo-calendar-day-weekday text-[11px] font-semibold uppercase text-slate-500">
                       {day.toLocaleDateString("cs-CZ", { weekday: "short" })}
                     </div>
-                    <div className={`text-sm font-bold ${isToday ? "text-primary" : "text-slate-900 dark:text-slate-100"}`}>
+                    <div className="tf-todo-calendar-day-date text-sm font-bold text-slate-900 dark:text-slate-100">
                       {day.toLocaleDateString("cs-CZ", { day: "numeric", month: compact ? undefined : "short" })}
                     </div>
                   </div>

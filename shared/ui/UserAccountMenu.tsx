@@ -217,6 +217,78 @@ const AppearancePicker = <T extends string>({
   );
 };
 
+interface ThemeModeControlProps {
+  value: ThemeMode;
+  onChange: (value: ThemeMode) => void;
+}
+
+const ThemeModeControl: React.FC<ThemeModeControlProps> = ({ value, onChange }) => {
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const focusButton = (index: number) => {
+    const normalizedIndex = (index + themeOptions.length) % themeOptions.length;
+    buttonRefs.current[normalizedIndex]?.focus();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = index + 1;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = index - 1;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = themeOptions.length - 1;
+    }
+
+    if (nextIndex === null) return;
+    event.preventDefault();
+    focusButton(nextIndex);
+  };
+
+  return (
+    <div className="tf-theme-mode-control flex min-h-9 items-center gap-2 rounded-md px-2">
+      <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">
+        brightness_auto
+      </span>
+      <span className="w-12 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+        Režim
+      </span>
+      <div
+        role="group"
+        aria-label="Režim"
+        className="ml-auto flex shrink-0 items-center gap-0.5"
+      >
+        {themeOptions.map((option, index) => {
+          const isSelected = option.id === value;
+          return (
+            <button
+              key={option.id}
+              ref={(element) => {
+                buttonRefs.current[index] = element;
+              }}
+              type="button"
+              aria-label={option.label}
+              aria-pressed={isSelected}
+              title={`Režim: ${option.label}`}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => onChange(option.id)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+              className="tf-theme-mode-button flex size-8 items-center justify-center rounded-md outline-none transition-colors"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                {option.icon}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   user,
   theme,
@@ -556,15 +628,9 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                   options={skinOptions}
                   onChange={onSetSkin}
                 />
-                <AppearancePicker
-                  label="Režim"
-                  icon="brightness_auto"
-                  value={theme}
-                  options={themeOptions}
-                  onChange={onSetTheme}
-                />
+                <ThemeModeControl value={theme} onChange={onSetTheme} />
               </div>
-              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950">
+              <div className="mt-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
                 <div className="min-w-0 px-1.5">
                   <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     Velikost UI
@@ -573,7 +639,11 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     {uiScalePercent} %
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                <div
+                  role="group"
+                  aria-label="Velikost UI"
+                  className="tf-ui-scale-control flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
+                >
                   <UiScaleButton
                     icon="remove"
                     label="Zmenšit UI"
@@ -717,7 +787,7 @@ const UiScaleButton: React.FC<UiScaleButtonProps> = ({
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="flex size-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+    className="tf-ui-scale-button flex size-8 items-center justify-center rounded-md outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40"
     aria-label={label}
     title={label}
   >
