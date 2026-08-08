@@ -114,6 +114,12 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     view: 'project-overview',
     feature: FEATURES.FEATURE_ADVANCED_REPORTING,
   },
+  {
+    id: 'contract-overview',
+    label: 'Smluvní přehled',
+    icon: 'contract',
+    view: 'contract-overview',
+  },
   TOOLS_NAV_ITEM,
     // Pipeline is now part of Project tabs mostly, but if we had a global pipeline:
     // {

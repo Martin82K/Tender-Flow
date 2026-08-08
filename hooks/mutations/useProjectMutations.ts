@@ -109,12 +109,17 @@ export const useAddProjectMutation = () => {
                 return newProject;
             }
 
-            const { error } = await dbAdapter.from("projects").insert({
-                id: newProject.id,
-                name: newProject.name,
-                location: newProject.location,
-                status: newProject.status,
-                owner_id: user?.id,
+            if (!newProject.organizationId) throw new Error("Pro vytvoření stavby je nutná aktivní organizace.");
+            const { error } = await dbAdapter.rpc("create_project_with_team", {
+                project_id_input: newProject.id,
+                name_input: newProject.name,
+                location_input: newProject.location,
+                status_input: newProject.status,
+                organization_id_input: newProject.organizationId,
+                team_input: (newProject.initialTeam || []).map((member) => ({
+                    user_id: member.userId,
+                    role: member.role,
+                })),
             });
             if (error) throw error;
             return newProject;
@@ -339,13 +344,10 @@ export const useArchiveProjectMutation = () => {
                 return;
             }
 
-            const { error } = await dbAdapter
-                .from("projects")
-                .update({
-                    status: nextState.targetStatus,
-                    archived_original_status: nextState.archivedOriginalStatus,
-                })
-                .eq("id", id);
+            const { error } = await dbAdapter.rpc("set_project_archived", {
+                project_id_input: id,
+                archived_input: nextState.targetStatus === "archived",
+            });
             if (error) throw error;
 
             // Emit notification for project archive

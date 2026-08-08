@@ -19,6 +19,7 @@ import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
   rpcRestMock: vi.fn(),
+  rpcMock: vi.fn(),
   invokeAuthedFunctionMock: vi.fn(),
   ensureStructureMock: vi.fn(),
   getDemoDataMock: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@features/projects/dochub/model/personalRoot", () => ({
 vi.mock("../services/dbAdapter", () => ({
   dbAdapter: {
     from: mocks.fromMock,
+    rpc: mocks.rpcMock,
     rpcRest: mocks.rpcRestMock,
   },
 }));
@@ -153,6 +155,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     vi.clearAllMocks();
     mocks.fromMock.mockImplementation(() => createFromResult());
     mocks.rpcRestMock.mockResolvedValue({ data: [{ project_id: "realization-1" }], error: null });
+    mocks.rpcMock.mockResolvedValue({ data: null, error: null });
     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
     mocks.ensureStructureMock.mockResolvedValue({ success: true });
     mocks.getDemoDataMock.mockReturnValue(null);
@@ -172,9 +175,15 @@ describe("useProjectMutations -> overview cache invalidation", () => {
         name: "Projekt 1",
         location: "Praha",
         status: "tender",
+        organizationId: "org-1",
       });
     });
 
+    expect(mocks.rpcMock).toHaveBeenCalledWith("create_project_with_team", expect.objectContaining({
+      project_id_input: "p-1",
+      organization_id_input: "org-1",
+      team_input: [],
+    }));
     expectOverviewInvalidation(invalidateSpy);
   });
 
@@ -205,9 +214,6 @@ describe("useProjectMutations -> overview cache invalidation", () => {
   });
 
   it("při archivaci ukládá původní aktivní status projektu", async () => {
-    const fromResult = createFromResult();
-    mocks.fromMock.mockReturnValueOnce(fromResult);
-
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
 
@@ -219,16 +225,13 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.update).toHaveBeenCalledWith({
-      status: "archived",
-      archived_original_status: "tender",
+    expect(mocks.rpcMock).toHaveBeenCalledWith("set_project_archived", {
+      project_id_input: "p-archive",
+      archived_input: true,
     });
   });
 
   it("při obnově z archivu vrací uložený původní status", async () => {
-    const fromResult = createFromResult();
-    mocks.fromMock.mockReturnValueOnce(fromResult);
-
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
 
@@ -240,9 +243,9 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.update).toHaveBeenCalledWith({
-      status: "tender",
-      archived_original_status: null,
+    expect(mocks.rpcMock).toHaveBeenCalledWith("set_project_archived", {
+      project_id_input: "p-restore",
+      archived_input: false,
     });
   });
 

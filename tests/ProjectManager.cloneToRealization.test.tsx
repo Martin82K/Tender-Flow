@@ -44,6 +44,7 @@ vi.mock("@/services/projectService", () => ({
     shareProject: vi.fn(),
     removeShare: vi.fn(),
     updateSharePermission: vi.fn(),
+    getMyProjectAccess: vi.fn(() => new Promise(() => undefined)),
   },
 }));
 

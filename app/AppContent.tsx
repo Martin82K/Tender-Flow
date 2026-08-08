@@ -36,6 +36,7 @@ import type { FatalIncidentNotice } from "@/shared/types/incidents";
 import {
   AppLazyFallback,
   CommandCenterView,
+  ContractOverview,
   Contacts,
   ProjectLayout,
   ProjectManager,
@@ -507,6 +508,8 @@ export const AppContent: React.FC = () => {
             />
           </RequireFeature>
         );
+      case "contract-overview":
+        return <ContractOverview />;
       case "url-shortener":
         return (
           <RequireFeature feature={FEATURES.URL_SHORTENER}>

@@ -45,6 +45,8 @@ export const buildAppUrl = (
             return `${APP_BASE}/projects`;
         case "project-overview":
             return `${APP_BASE}/project-overview`;
+        case "contract-overview":
+            return `${APP_BASE}/contract-overview`;
         case "url-shortener":
             return `${APP_BASE}/url-shortener`;
         case "project": {
@@ -68,7 +70,7 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "url-shortener" }
+    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
@@ -96,6 +98,7 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
     if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
+    if (sub === "contract-overview") return { isApp: true as const, view: "contract-overview" as const };
     if (sub === "url-shortener") return { isApp: true as const, view: "url-shortener" as const };
 
     if (sub === "project") {

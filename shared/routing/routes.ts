@@ -19,6 +19,8 @@ export const isProjectTab = (val: string | null): val is ProjectTab => {
     val === "pipeline" ||
     val === "schedule" ||
     val === "documents" ||
-    val === "contracts"
+    val === "contracts" ||
+    val === "map" ||
+    val === "settings"
   );
 };

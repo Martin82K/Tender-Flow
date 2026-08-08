@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/shared/queryKeys/projectKeys';
-import { Project, ProjectStatus } from '@/types';
+import { Project, ProjectStatus, type ProjectTeamRole } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -14,10 +14,12 @@ import { AlertModal } from '@/shared/ui/AlertModal';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { useFeatures } from '@/context/FeatureContext';
 import type { ThemeSkin } from '@/shared/types/theme';
+import { navigate } from '@/shared/routing/router';
+import { buildAppUrl } from '@/shared/routing/routeUtils';
 
 interface ProjectManagerProps {
     projects: Project[];
-    onAddProject: (project: Project) => void;
+    onAddProject: (project: Project) => Promise<void>;
     onDeleteProject: (id: string) => void;
     onCloneTenderToRealization: (id: string) => Promise<{ projectId: string }>;
     onArchiveProject: (id: string) => void;
@@ -31,7 +33,8 @@ const ArchiveSection: React.FC<{
     onRestoreProject: (id: string) => void;
     openDeleteModal: (id: string, name: string) => void;
     openShareModal: (id: string) => void;
-}> = ({ projects, user, onRestoreProject, openDeleteModal, openShareModal }) => {
+    canAdminister: (id: string) => boolean;
+}> = ({ projects, user, onRestoreProject, openDeleteModal, canAdminister }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -70,24 +73,15 @@ const ArchiveSection: React.FC<{
 
                             <div className="flex items-center gap-1">
                                 {/* Restore Button */}
-                                <button
+                                {canAdminister(project.id) && <button
                                     onClick={() => onRestoreProject(project.id)}
                                     className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
                                     title="Obnovit projekt"
                                 >
                                     <span className="material-symbols-outlined text-[18px]">unarchive</span>
-                                </button>
+                                </button>}
 
-                                {/* Delete Button - Only Owner */}
-                                {(!project.ownerId || project.ownerId === user?.id) && (
-                                    <button
-                                        onClick={() => openDeleteModal(project.id, project.name)}
-                                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        title="Odstranit trvale"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">delete_forever</span>
-                                    </button>
-                                )}
+                                {/* Archiv je read-only; trvalé smazání je dostupné až po obnovení. */}
                             </div>
                         </div>
                     ))}
@@ -126,6 +120,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [newProjectLocation, setNewProjectLocation] = useState('');
     const [newProjectStatus, setNewProjectStatus] = useState<ProjectStatus>('tender');
     const [isCreating, setIsCreating] = useState(false);
+    const [createMembers, setCreateMembers] = useState<OrganizationMember[]>([]);
+    const [initialTeam, setInitialTeam] = useState<Record<string, ProjectTeamRole>>({});
+    const [projectRoles, setProjectRoles] = useState<Record<string, ProjectTeamRole | 'owner_admin'>>({});
 
     // Edit State
     const [editingProject, setEditingProject] = useState<{ id: string; name: string; location: string; status: ProjectStatus } | null>(null);
@@ -149,6 +146,29 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [selectedTransferOwnerId, setSelectedTransferOwnerId] = useState<string>('');
     const [isLoadingTransferMembers, setIsLoadingTransferMembers] = useState(false);
     const [isTransferring, setIsTransferring] = useState(false);
+
+    useEffect(() => {
+        if (!user?.organizationId) {
+            setCreateMembers([]);
+            return;
+        }
+        organizationService.getOrganizationMembers(user.organizationId)
+            .then((members) => setCreateMembers(members.filter((member) => member.is_active && member.user_id !== user.id)))
+            .catch((error) => console.error('[ProjectManager] Failed to load team candidates:', error));
+    }, [user?.id, user?.organizationId]);
+
+    useEffect(() => {
+        projectService.getMyProjectAccess().then(setProjectRoles).catch((error) => {
+            console.error('[ProjectManager] Failed to load project roles:', error);
+        });
+    }, [projects]);
+
+    const canAdministerProject = (projectId: string) => {
+        const project = projects.find((item) => item.id === projectId);
+        if (!project?.ownerId || project.ownerId === user?.id) return true;
+        const role = projectRoles[projectId];
+        return role === 'owner_admin' || role === 'project_admin';
+    };
 
     const openDeleteModal = (id: string, name: string) => {
         setDeleteTarget({ id, name });
@@ -414,11 +434,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         setIsCreating(true);
 
         const newProject: Project = {
-            id: `p${Date.now()}`, // Temporary ID, service should likely handle real ID if DB gen
+            id: crypto.randomUUID(),
             name: newProjectName,
             location: newProjectLocation,
             status: newProjectStatus,
-            ownerId: user?.id
+            ownerId: user?.id,
+            organizationId: user?.organizationId,
+            initialTeam: Object.entries(initialTeam).map(([userId, role]) => ({ userId, role })),
             // Owner ID handled by service/backend
         };
 
@@ -427,10 +449,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             // await projectService.createProject(newProject);
 
             // We call onAddProject to update local state in App.tsx and persist
-            onAddProject(newProject);
+            await onAddProject(newProject);
 
             setNewProjectName('');
             setNewProjectLocation('');
+            setInitialTeam({});
         } catch (error) {
             console.error('Error creating project:', error);
             setAlertModal({
@@ -444,32 +467,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         }
     };
 
-    const openShareModal = async (projectId: string) => {
-        console.log('[ProjectManager] Opening share modal for project:', projectId);
-        setSharingProjectId(projectId);
-        setShareEmail('');
-        setSharePermission('edit');
-        setIsLoadingShares(true);
-        try {
-            console.log('[ProjectManager] Fetching shares...');
-            const fetchedShares = await projectService.getProjectShares(projectId);
-            console.log('[ProjectManager] Fetched shares:', fetchedShares);
-            setShares(fetchedShares);
-            if (fetchedShares.length === 0) {
-                console.warn('[ProjectManager] No shares found for this project');
-            }
-        } catch (error) {
-            console.error('[ProjectManager] Error loading shares:', error);
-            setAlertModal({
-                isOpen: true,
-                title: 'Chyba',
-                message: `Chyba při načítání sdílení: ${error instanceof Error ? error.message : 'Neznámá chyba'}`,
-                variant: 'error'
-            });
-            setShares([]);
-        } finally {
-            setIsLoadingShares(false);
-        }
+    const openShareModal = (projectId: string) => {
+        navigate(buildAppUrl('project', { projectId, tab: 'settings' }));
     };
 
     const closeShareModal = () => {
@@ -661,6 +660,26 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </select>
                             </div>
                         </div>
+                        {createMembers.length > 0 && <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                            <div className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Realizační tým</div>
+                            <div className="space-y-2">
+                                {createMembers.map((member) => {
+                                    const selectedRole = initialTeam[member.user_id];
+                                    return <div key={member.user_id} className="flex items-center gap-3">
+                                        <input type="checkbox" aria-label={`Přidat ${member.display_name || member.email} do týmu`} checked={Boolean(selectedRole)} onChange={(event) => setInitialTeam((current) => {
+                                            const next = { ...current };
+                                            if (event.target.checked) next[member.user_id] = 'team_member'; else delete next[member.user_id];
+                                            return next;
+                                        })} />
+                                        <span className="min-w-0 flex-1 truncate text-sm">{member.display_name || member.email}</span>
+                                        <select disabled={!selectedRole} value={selectedRole || 'team_member'} onChange={(event) => setInitialTeam((current) => ({ ...current, [member.user_id]: event.target.value as ProjectTeamRole }))} className="rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm">
+                                            <option value="project_admin">Administrátor projektu</option><option value="project_manager">Projektový manažer</option><option value="team_member">Člen týmu</option><option value="viewer">Pouze čtení</option>
+                                        </select>
+                                    </div>;
+                                })}
+                            </div>
+                            <p className="mt-3 text-xs text-slate-400">Vybraní členové získají přístup atomicky při uložení stavby. Vlastníkem jste automaticky vy.</p>
+                        </div>}
                         <div className="flex justify-end">
                             <button
                                 type="submit"
@@ -757,7 +776,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
                                 <div data-help-id="pm-project-actions" className="flex items-center gap-2">
                                     {/* Edit Button - Only Owner */}
-                                    {(!project.ownerId || project.ownerId === user?.id) && (
+                                    {canAdministerProject(project.id) && (
                                         <button
                                             onClick={() => openEditModal(project)}
                                             className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
@@ -767,8 +786,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         </button>
                                     )}
 
-                                    {/* Share Button - Only Owner */}
-                                    {(!project.ownerId || project.ownerId === user?.id) && (
+                                    {/* Team management is available to project owner/admin. */}
+                                    {canAdministerProject(project.id) && (
                                         <button
                                             onClick={() => openShareModal(project.id)}
                                             className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors flex items-center gap-1"
@@ -802,13 +821,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         </button>
                                     )}
 
-                                    <button
+                                    {canAdministerProject(project.id) && <button
                                         onClick={() => onArchiveProject(project.id)}
                                         className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
                                         title="Archivovat"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">archive</span>
-                                    </button>
+                                    </button>}
 
                                     {/* Delete Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
@@ -837,6 +856,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         onRestoreProject={onArchiveProject}
                         openDeleteModal={openDeleteModal}
                         openShareModal={openShareModal}
+                        canAdminister={canAdministerProject}
                     />
                 )}
             </div>
