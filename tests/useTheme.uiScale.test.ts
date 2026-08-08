@@ -88,6 +88,21 @@ describe("normalizeUiScale", () => {
     expect(localStorage.getItem("projectDetailSkin")).toBe("classic");
   });
 
+  it("přijme a uloží motiv Botanica", async () => {
+    localStorage.setItem("skin", "botanica");
+
+    const { result } = renderHook(() => useTheme());
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.skin).toBe("botanica");
+    });
+
+    act(() => result.current.setSkin("botanica"));
+
+    expect(localStorage.getItem("skin")).toBe("botanica");
+    expect(localStorage.getItem("projectDetailSkin")).toBe("botanica");
+  });
+
   it("v tmavém classic režimu neodvozuje canvas ze světlé barvy pozadí", async () => {
     const { result } = renderHook(() => useTheme());
 

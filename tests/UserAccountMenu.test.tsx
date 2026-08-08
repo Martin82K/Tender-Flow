@@ -135,7 +135,8 @@ describe("UserAccountMenu", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
-    fireEvent.click(await screen.findByText("Světlý"));
+    fireEvent.click(await screen.findByRole("combobox", { name: "Režim" }));
+    fireEvent.click(screen.getByRole("option", { name: "Světlý" }));
 
     expect(onSetTheme).toHaveBeenCalledWith("light");
   });
@@ -262,8 +263,73 @@ describe("UserAccountMenu", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
-    fireEvent.click(await screen.findByText("Industrial"));
+    fireEvent.click(await screen.findByRole("combobox", { name: "Motiv" }));
+    fireEvent.click(screen.getByRole("option", { name: "Industrial" }));
 
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
+  });
+
+  it("nabízí motiv a režim ve dvou kompaktních tematizovatelných listboxech", async () => {
+    const onSetSkin = vi.fn();
+    const onSetTheme = vi.fn();
+
+    render(
+      <UserAccountMenu
+        user={user}
+        theme="system"
+        skin="classic"
+        onSetTheme={onSetTheme}
+        onSetSkin={onSetSkin}
+        uiScale={1}
+        onSetUiScale={vi.fn()}
+        onResetUiScale={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
+
+    const skinPicker = await screen.findByRole("combobox", { name: "Motiv" });
+    const modePicker = screen.getByRole("combobox", { name: "Režim" });
+
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+    fireEvent.click(skinPicker);
+    expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("option", { name: "Botanica" }));
+    fireEvent.click(modePicker);
+    fireEvent.click(screen.getByRole("option", { name: "Tmavý" }));
+
+    expect(onSetSkin).toHaveBeenCalledWith("botanica");
+    expect(onSetTheme).toHaveBeenCalledWith("dark");
+  });
+
+  it("ovládá picker klávesnicí a vrací focus na spouštěč", async () => {
+    const onSetTheme = vi.fn();
+
+    render(
+      <UserAccountMenu
+        user={user}
+        theme="light"
+        skin="botanica"
+        onSetTheme={onSetTheme}
+        onSetSkin={vi.fn()}
+        uiScale={1}
+        onSetUiScale={vi.fn()}
+        onResetUiScale={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
+    const picker = await screen.findByRole("combobox", { name: "Režim" });
+    fireEvent.keyDown(picker, { key: "ArrowDown" });
+
+    expect(await screen.findByRole("listbox", { name: "Režim" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Světlý" })).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByRole("listbox", { name: "Režim" }), { key: "Escape" });
+    expect(screen.queryByRole("listbox", { name: "Režim" })).not.toBeInTheDocument();
+    expect(picker).toHaveFocus();
   });
 });

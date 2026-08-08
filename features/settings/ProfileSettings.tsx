@@ -601,35 +601,43 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           </h2>
 
           <div className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Režim zobrazení
-              </label>
-              <div className="flex gap-1.5 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                {[
-                  { id: "light", icon: "light_mode", label: "Světlý" },
-                  { id: "dark", icon: "dark_mode", label: "Tmavý" },
-                  { id: "system", icon: "brightness_auto", label: "Systém" },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => onSetTheme(opt.id as any)}
-                    className={`
-                      flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-medium transition-all
-                      ${theme === opt.id
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      }
-                    `}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">
-                      {opt.icon}
-                    </span>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
+                brightness_auto
+              </span>
+              <span className="w-16 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Režim
+              </span>
+              <select
+                aria-label="Režim"
+                value={theme}
+                onChange={(event) => onSetTheme(event.target.value as "light" | "dark" | "system")}
+                className="select-no-native-arrow min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-1 pr-6 text-right text-sm font-semibold text-slate-900 outline-none ring-0 focus:ring-0 dark:text-white"
+              >
+                <option value="light">Světlý</option>
+                <option value="dark">Tmavý</option>
+                <option value="system">Auto</option>
+              </select>
+            </label>
+
+            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
+                local_florist
+              </span>
+              <span className="w-16 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Motiv
+              </span>
+              <select
+                aria-label="Motiv"
+                value={skin}
+                onChange={(event) => onSetSkin(event.target.value as ThemeSkin)}
+                className="select-no-native-arrow min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-1 pr-6 text-right text-sm font-semibold text-slate-900 outline-none ring-0 focus:ring-0 dark:text-white"
+              >
+                <option value="classic">Classic</option>
+                <option value="industrial">Industrial</option>
+                <option value="botanica">Botanica</option>
+              </select>
+            </label>
 
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -655,35 +663,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       </span>
                     )}
                     <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Skin aplikace
-              </label>
-              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                {[
-                  { id: "industrial", icon: "precision_manufacturing", label: "Industrial" },
-                  { id: "classic", icon: "dashboard_customize", label: "Classic" },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => onSetSkin(opt.id as ThemeSkin)}
-                    className={`
-                      flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-medium transition-all
-                      ${skin === opt.id
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      }
-                    `}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">
-                      {opt.icon}
-                    </span>
-                    {opt.label}
                   </button>
                 ))}
               </div>

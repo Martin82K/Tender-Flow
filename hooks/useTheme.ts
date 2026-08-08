@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { hexToRgb } from "../utils/helpers";
 import { appAdapter } from "../services/platformAdapter";
+import { applySkinVisualDefinition } from "../shared/theme/skinRegistry";
 import type { ThemeMode, ThemeSkin } from "../shared/types/theme";
 import type { User } from "../types";
 
@@ -86,7 +87,9 @@ const getInitialUiScale = (): number => {
 };
 
 const normalizeSkin = (value: unknown): ThemeSkin =>
-    value === "classic" || value === "industrial" ? value : DEFAULT_SKIN;
+    value === "classic" || value === "industrial" || value === "botanica"
+        ? value
+        : DEFAULT_SKIN;
 
 const normalizeHexColor = (value: unknown, fallback: string): string =>
     typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())
@@ -156,6 +159,12 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
             } else {
                 document.documentElement.classList.remove("dark");
             }
+
+            applySkinVisualDefinition(
+                document.documentElement,
+                skin,
+                isDark ? "dark" : "light",
+            );
         };
 
         applyTheme();
@@ -175,7 +184,7 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
             mediaQuery.addListener(handler);
             return () => mediaQuery.removeListener(handler);
         }
-    }, [theme]);
+    }, [skin, theme]);
 
     // Update primary color CSS variable — only when user preferences are provided
     // to prevent instances without user context from resetting the color to default
@@ -226,10 +235,6 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
         document.documentElement.style.setProperty("--tf-ui-scale-percent", formatUiScalePercent(normalized));
         document.documentElement.style.overflowX = "hidden";
     }, [uiScale]);
-
-    useEffect(() => {
-        document.documentElement.dataset.skin = skin;
-    }, [skin]);
 
     // Wrapper functions that persist and sync
     const setTheme = (newTheme: ThemeMode) => {

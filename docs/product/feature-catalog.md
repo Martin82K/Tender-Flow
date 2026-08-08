@@ -78,7 +78,9 @@ zůstane akce deaktivovaná, aby neotevřela nesprávný dokument.
 Portálová menu hromadné komunikace a exportu používají společný
 `tf-pipeline-popover` kontrakt. Classic skin využívá standardní Tailwind
 světlé/tmavé varianty; Industrial skin přepisuje povrch, linky, text, hover,
-focus, badge a stín přes globální `--tf-skin-*` tokeny. Proto se portál
+focus, badge a stín přes globální `--tf-skin-*` tokeny. Botanica používá stejný
+kontrakt s řízeně průsvitnými datovými povrchy, bezpatkovou typografií a lokálním
+WebP reliéfem se SVG fallbackem v berry/porcelánové paletě. Proto se portál
 renderovaný pod `document.body` přizpůsobuje `html[data-skin]` a `html.dark`
 bez duplikace tématu v React state.
 

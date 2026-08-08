@@ -3650,6 +3650,563 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Enhanced Print Styles for Overview Dashboard */
+/* Botanica skin: asset-backed relief with controlled, data-safe materials. */
+html[data-skin="botanica"] {
+  --tf-color-primary-rgb: 122 50 72 !important;
+  --tf-skin-bg: #f3f0f2;
+  --tf-skin-surface: #f8f5f7;
+  --tf-skin-surface-muted: #eee9ec;
+  --tf-skin-surface-deep: #e5dfe3;
+  --tf-skin-card: #fcfafb;
+  --tf-skin-text: #241a1d;
+  --tf-skin-text-2: #503c43;
+  --tf-skin-muted: #6f5860;
+  --tf-skin-muted-2: #8a7178;
+  --tf-skin-line: rgba(67, 44, 53, 0.17);
+  --tf-skin-line-2: rgba(67, 44, 53, 0.28);
+  --tf-skin-grid: rgba(122, 50, 72, 0.06);
+  --tf-skin-grid-2: rgba(122, 50, 72, 0.1);
+  --tf-skin-accent: #7a3248;
+  --tf-skin-accent-2: #ad6b7e;
+  --tf-skin-orange: #9a5267;
+  --tf-skin-orange-deep: #5c2034;
+  --tf-skin-green: #647660;
+  --tf-skin-blue: #79687f;
+  --tf-skin-rose: #9a5267;
+  --tf-skin-amber: #8b7048;
+  --tf-botanica-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'%3E%3Cg fill='none' stroke='%237a3248' stroke-width='3' opacity='.16'%3E%3Cpath d='M824 900C718 724 706 525 778 338C814 244 857 142 842 0'/%3E%3Cpath d='M773 619C654 584 584 491 580 374C702 405 773 493 773 619Z'/%3E%3Cpath d='M798 430C703 356 675 247 719 146C818 218 845 322 798 430Z'/%3E%3Cpath d='M749 729C631 724 539 661 503 559C624 563 715 626 749 729Z'/%3E%3Cpath d='M273 900C220 764 229 625 300 501'/%3E%3Cpath d='M285 716C179 686 115 609 104 514C211 538 278 615 285 716Z'/%3E%3C/g%3E%3Cg fill='%23ad6b7e' opacity='.1'%3E%3Cellipse cx='710' cy='152' rx='104' ry='183' transform='rotate(-28 710 152)'/%3E%3Cellipse cx='827' cy='178' rx='104' ry='183' transform='rotate(28 827 178)'/%3E%3Cellipse cx='771' cy='278' rx='112' ry='176' transform='rotate(88 771 278)'/%3E%3Cellipse cx='95' cy='760' rx='84' ry='150' transform='rotate(-45 95 760)'/%3E%3Cellipse cx='202' cy='806' rx='84' ry='150' transform='rotate(18 202 806)'/%3E%3C/g%3E%3C/svg%3E");
+  --tf-botanica-art: url("./assets/themes/botanica/botanical-relief-light.svg");
+  color-scheme: light;
+}
+
+html.dark[data-skin="botanica"] {
+  --tf-color-primary-rgb: 178 87 112 !important;
+  --tf-skin-bg: #090708;
+  --tf-skin-surface: #171113;
+  --tf-skin-surface-muted: #23191d;
+  --tf-skin-surface-deep: #0e0a0b;
+  --tf-skin-card: #171113;
+  --tf-skin-text: #f8edf0;
+  --tf-skin-text-2: #dec9cf;
+  --tf-skin-muted: #b89da5;
+  --tf-skin-muted-2: #887078;
+  --tf-skin-line: rgba(255, 237, 242, 0.12);
+  --tf-skin-line-2: rgba(255, 237, 242, 0.22);
+  --tf-skin-grid: rgba(182, 90, 115, 0.07);
+  --tf-skin-grid-2: rgba(182, 90, 115, 0.12);
+  --tf-skin-accent: #b25770;
+  --tf-skin-accent-2: #d18aa0;
+  --tf-skin-orange: #c56d85;
+  --tf-skin-orange-deep: #e2a0b2;
+  --tf-skin-green: #91a18c;
+  --tf-skin-blue: #ad9ab2;
+  --tf-skin-rose: #d06f89;
+  --tf-skin-amber: #c2a36c;
+  --tf-botanica-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'%3E%3Cg fill='none' stroke='%23d18aa0' stroke-width='3' opacity='.2'%3E%3Cpath d='M824 900C718 724 706 525 778 338C814 244 857 142 842 0'/%3E%3Cpath d='M773 619C654 584 584 491 580 374C702 405 773 493 773 619Z'/%3E%3Cpath d='M798 430C703 356 675 247 719 146C818 218 845 322 798 430Z'/%3E%3Cpath d='M749 729C631 724 539 661 503 559C624 563 715 626 749 729Z'/%3E%3Cpath d='M273 900C220 764 229 625 300 501'/%3E%3Cpath d='M285 716C179 686 115 609 104 514C211 538 278 615 285 716Z'/%3E%3C/g%3E%3Cg fill='%23b65a73' opacity='.12'%3E%3Cellipse cx='710' cy='152' rx='104' ry='183' transform='rotate(-28 710 152)'/%3E%3Cellipse cx='827' cy='178' rx='104' ry='183' transform='rotate(28 827 178)'/%3E%3Cellipse cx='771' cy='278' rx='112' ry='176' transform='rotate(88 771 278)'/%3E%3Cellipse cx='95' cy='760' rx='84' ry='150' transform='rotate(-45 95 760)'/%3E%3Cellipse cx='202' cy='806' rx='84' ry='150' transform='rotate(18 202 806)'/%3E%3C/g%3E%3C/svg%3E");
+  --tf-botanica-art: url("./assets/themes/botanica/botanical-relief-dark.svg");
+  color-scheme: dark;
+}
+
+html[data-skin="botanica"] body,
+html[data-skin="botanica"] .tf-app-shell {
+  background-color: var(--tf-skin-bg) !important;
+  color: var(--tf-skin-text);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html[data-skin="botanica"] :is(h1, h2, h3, h4, h5, h6, .industrial-section-title) {
+  font-family: inherit !important;
+  font-style: normal !important;
+  letter-spacing: -0.015em;
+}
+
+html[data-skin="botanica"] .tf-app-main {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--tf-skin-bg) !important;
+  background-image: none !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="botanica"] .tf-project-shell {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="botanica"] :is(
+  .tf-project-overview,
+  .tf-project-overview-view,
+  .tf-project-manager-view,
+  .tf-tender-plan-view,
+  .tf-schedule-view,
+  .tf-documents-view
+) {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="botanica"] .tf-app-main::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: var(--tf-skin-art-image, var(--tf-botanica-art));
+  background-position: var(--tf-skin-canvas-art-position, right bottom);
+  background-repeat: no-repeat;
+  background-size: var(--tf-skin-canvas-art-size, min(940px, 84vw) auto);
+  opacity: var(--tf-skin-canvas-art-opacity, 0.45);
+  pointer-events: none;
+}
+
+html[data-skin="botanica"] .tf-sidebar {
+  isolation: isolate;
+  background-color: var(--tf-skin-surface-deep) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] .tf-sidebar::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: var(--tf-skin-art-image, var(--tf-botanica-art));
+  background-position: var(--tf-skin-sidebar-art-position, 18% center);
+  background-repeat: no-repeat;
+  background-size: var(--tf-skin-sidebar-art-size, cover);
+  opacity: var(--tf-skin-sidebar-art-opacity, 0.39);
+  pointer-events: none;
+}
+
+html[data-skin="botanica"] .tf-sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="botanica"] .tf-sidebar-brand,
+html[data-skin="botanica"] .tf-topbar {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="botanica"] .tf-sidebar-brand {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 64%, transparent) !important;
+  border-radius: 0.75rem;
+  backdrop-filter: blur(3px);
+}
+
+html[data-skin="botanica"] .tf-topbar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] .tf-topbar::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: var(--tf-skin-art-image, var(--tf-botanica-art));
+  background-position: var(--tf-skin-header-art-position, 100% 43%);
+  background-repeat: no-repeat;
+  background-size: var(--tf-skin-header-art-size, 520px auto);
+  opacity: var(--tf-skin-header-art-opacity, 0.17);
+  pointer-events: none;
+}
+
+html[data-skin="botanica"] .tf-brand-title,
+html[data-skin="botanica"] .tf-topbar h1,
+html[data-skin="botanica"] [class~="text-slate-900"],
+html.dark[data-skin="botanica"] [class~="dark:text-white"],
+html.dark[data-skin="botanica"] [class~="dark:text-slate-100"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] [class~="text-slate-700"],
+html[data-skin="botanica"] [class~="text-slate-600"],
+html.dark[data-skin="botanica"] [class~="dark:text-slate-200"],
+html.dark[data-skin="botanica"] [class~="dark:text-slate-300"] {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="botanica"] [class~="text-slate-500"],
+html[data-skin="botanica"] [class~="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="botanica"] .text-primary,
+html[data-skin="botanica"] .tf-brand-edition {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="botanica"] .bg-primary {
+  background-color: var(--tf-skin-accent) !important;
+}
+
+html[data-skin="botanica"] .bg-primary\/10,
+html[data-skin="botanica"] .bg-primary\/15 {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%) !important;
+}
+
+html[data-skin="botanica"] .border-primary,
+html[data-skin="botanica"] .border-primary\/30,
+html[data-skin="botanica"] .border-primary\/50 {
+  border-color: var(--tf-skin-accent) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="project-tabs"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-muted) 84%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  box-shadow: inset 0 1px color-mix(in srgb, #ffffff 18%, transparent);
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] [data-help-id="project-tabs"] button {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="project-tabs"] button:hover {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 9%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="project-tabs"] button[data-active="true"] {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 52%, var(--tf-skin-line) 48%) !important;
+  color: var(--tf-skin-orange-deep) !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--tf-skin-bg) 18%, transparent) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="project-tabs"] button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 68%, #ffffff 32%) !important;
+  outline-offset: 2px;
+}
+
+html[data-skin="botanica"] :is(
+  [data-help-id="tender-plan-header-icon"],
+  [data-help-id="tender-plan-tip"]
+) {
+  background: color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-card) 89%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 35%, var(--tf-skin-line) 65%) !important;
+}
+
+html[data-skin="botanica"] :is(
+  [data-help-id="tender-plan-header-icon"],
+  [data-help-id="tender-plan-tip"]
+) :is([class~="text-blue-300"], [class~="text-blue-400"], [class~="text-blue-400/80"]) {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="botanica"] :is(
+  [class~="bg-blue-50"],
+  [class~="bg-blue-100"],
+  [class~="bg-blue-500/10"],
+  [class~="bg-blue-500/15"],
+  [class~="bg-blue-500/20"],
+  [class~="bg-blue-500/30"],
+  [class~="bg-indigo-50/50"],
+  [class~="bg-indigo-500/10"],
+  [class~="bg-sky-100"]
+) {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%) !important;
+}
+
+html[data-skin="botanica"] :is(
+  [class~="bg-blue-500"],
+  [class~="bg-blue-600"],
+  [class~="bg-indigo-500"]
+) {
+  background-color: var(--tf-skin-accent) !important;
+}
+
+html[data-skin="botanica"] :is(
+  [class~="text-blue-300"],
+  [class~="text-blue-400"],
+  [class~="text-blue-400/80"],
+  [class~="text-blue-500"],
+  [class~="text-blue-600"],
+  [class~="text-blue-700"],
+  [class~="text-blue-800"],
+  [class~="text-blue-900"],
+  [class~="text-indigo-400"],
+  [class~="text-indigo-500"],
+  [class~="text-indigo-600"],
+  [class~="text-sky-400"],
+  [class~="text-sky-700"]
+) {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+
+html[data-skin="botanica"] :is(
+  [class~="border-blue-200"],
+  [class~="border-blue-300"],
+  [class~="border-blue-500/20"],
+  [class~="border-blue-500/30"],
+  [class~="border-indigo-100"],
+  [class~="border-sky-500/30"]
+) {
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 38%, var(--tf-skin-line) 62%) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] {
+  gap: 1rem !important;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] > .industrial-kpi-card {
+  padding: 1rem !important;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] > .industrial-kpi-card > .gap-3 {
+  gap: 0.5rem !important;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] .text-3xl {
+  font-size: 1.5rem !important;
+  line-height: 1.15 !important;
+}
+
+html.dark[data-skin="botanica"] [data-help-id="overview-kpi-cards"] :is(
+  [class~="bg-blue-500"],
+  [class~="bg-indigo-500"],
+  [class~="bg-emerald-500"],
+  [class~="bg-amber-500"]
+) {
+  background-color: var(--tf-skin-accent) !important;
+}
+
+html.dark[data-skin="botanica"] [data-help-id="overview-kpi-cards"] :is(
+  [class~="text-blue-400"],
+  [class~="text-indigo-400"],
+  [class~="text-emerald-400"],
+  [class~="text-amber-400"]
+) {
+  color: var(--tf-skin-accent-2) !important;
+}
+
+html[data-skin="botanica"] .tf-sidebar-nav :is(summary, button, a) {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 54%, transparent);
+  color: var(--tf-skin-text-2) !important;
+  backdrop-filter: blur(2px);
+}
+
+html[data-skin="botanica"] .tf-sidebar [data-help-id="sidebar-project-item"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 54%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+html[data-skin="botanica"] .tf-sidebar-nav :is(summary, button, a):hover,
+html[data-skin="botanica"] .tf-sidebar [data-help-id="sidebar-project-item"]:hover {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-surface-deep) 89%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] .tf-sidebar [data-active="true"] {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="botanica"] .tf-app-main [class~="bg-white"],
+html[data-skin="botanica"] .tf-project-shell [class~="bg-white"],
+html[data-skin="botanica"] .card-polished,
+html[data-skin="botanica"] [data-help-id="tasks-calendar"] {
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-panel-opacity, 88%), transparent) !important;
+  background-image: none !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] [role="dialog"],
+html[data-skin="botanica"] [role="menu"],
+html[data-skin="botanica"] [data-help-id="notification-center"] {
+  background: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] .tf-app-main [class~="bg-slate-50"],
+html[data-skin="botanica"] .tf-project-shell [class~="bg-slate-50"],
+html.dark[data-skin="botanica"] .tf-app-main [class~="dark:bg-slate-900"],
+html.dark[data-skin="botanica"] .tf-app-main [class~="dark:bg-slate-900/70"],
+html.dark[data-skin="botanica"] .tf-app-main [class~="dark:bg-slate-800"],
+html.dark[data-skin="botanica"] .tf-project-shell [class~="dark:bg-slate-900"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 88%), transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] :is(input, select, textarea) {
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] :is(input, textarea)::placeholder {
+  color: var(--tf-skin-muted) !important;
+  opacity: 1;
+}
+
+html[data-skin="botanica"] table {
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 90%), transparent) !important;
+  background-image: none !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] .tf-app-main [class~="bg-white"] table,
+html.dark[data-skin="botanica"] .tf-app-main [class~="dark:bg-slate-900"] table,
+html.dark[data-skin="botanica"] .tf-app-main [class~="dark:bg-slate-900/70"] table {
+  background-color: transparent !important;
+  backdrop-filter: none;
+}
+
+html[data-skin="botanica"] table :is(thead, th) {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-muted) var(--tf-skin-data-opacity, 94%), transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="botanica"] table :is(tbody, tr, td) {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-demand-table"] table {
+  background-color: transparent !important;
+  backdrop-filter: none;
+}
+
+html[data-skin="botanica"] [data-help-id="overview-demand-table"] {
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 90%), transparent) !important;
+  background-image: none !important;
+  border-color: var(--tf-skin-line) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] table tbody tr:hover td {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="todo-calendar-scroll"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 88%), transparent) !important;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--tf-skin-surface) 55%, transparent),
+      color-mix(in srgb, var(--tf-skin-surface) 55%, transparent)
+    ),
+    var(--tf-skin-art-image, var(--tf-botanica-art)) !important;
+  background-position: center, var(--tf-skin-canvas-art-position, center) !important;
+  background-repeat: no-repeat !important;
+  background-size: auto, var(--tf-skin-canvas-art-size, cover) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] [data-help-id="todo-calendar-day"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="botanica"] [data-help-id="todo-calendar-task"][data-has-project="false"] {
+  background-color: var(--tf-skin-surface-muted) !important;
+  background-image: none !important;
+  border-color: var(--tf-skin-line-2) !important;
+}
+
+html[data-skin="botanica"] [data-active="true"],
+html[data-skin="botanica"] [aria-selected="true"],
+html[data-skin="botanica"] [aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 72%, var(--tf-skin-line) 28%) !important;
+}
+
+html[data-skin="botanica"] :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 72%, #ffffff 28%) !important;
+  outline-offset: 2px !important;
+}
+
+html[data-skin="botanica"] :is(button, a, summary):hover {
+  text-decoration-color: var(--tf-skin-accent);
+}
+
+html[data-skin="botanica"] .tf-account-menu-panel label,
+html[data-skin="botanica"] .tf-account-menu-panel [class~="bg-slate-50"],
+html.dark[data-skin="botanica"] .tf-account-menu-panel [class~="dark:bg-slate-950"] {
+  background-color: var(--tf-skin-surface-muted) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="botanica"] .tf-account-menu-panel select,
+html[data-skin="botanica"] .tf-account-menu-panel option {
+  background-color: var(--tf-skin-card) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] .tf-appearance-picker {
+  background-color: var(--tf-skin-surface-muted) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="botanica"] .tf-appearance-picker-popover {
+  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  box-shadow: 0 16px 38px color-mix(in srgb, var(--tf-skin-bg) 42%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(14px);
+}
+
+html[data-skin="botanica"] .tf-appearance-picker-option {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="botanica"] .tf-appearance-picker-option:is(:hover, :focus-visible) {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="botanica"] .tf-appearance-picker-option[aria-selected="true"] {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 19%, var(--tf-skin-card) 81%) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+@media (max-width: 900px) {
+  html[data-skin="botanica"] .tf-app-main::before {
+    background-position: 58% center;
+    background-size: cover;
+  }
+
+  html[data-skin="botanica"] .tf-sidebar::after {
+    background-position: 14% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="botanica"] .tf-app-main::before,
+  html[data-skin="botanica"] .tf-sidebar::after,
+  html[data-skin="botanica"] .tf-topbar::after {
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active), (prefers-contrast: more) {
+  html[data-skin="botanica"] .tf-app-main::before,
+  html[data-skin="botanica"] .tf-sidebar::after,
+  html[data-skin="botanica"] .tf-topbar::after {
+    display: none;
+  }
+
+  html[data-skin="botanica"] :is(.tf-app-main [class~="bg-white"], table, input, select, textarea, [role="dialog"], [role="menu"]) {
+    background-image: none !important;
+    background-color: Canvas !important;
+    color: CanvasText !important;
+    border-color: CanvasText !important;
+    backdrop-filter: none !important;
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;

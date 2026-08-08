@@ -2132,3 +2132,64 @@ html[data-skin="industrial"] .cc-project-row:hover,
 html[data-skin="industrial"] .cc-root .cc-queue-item__btn:hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, transparent);
 }
+
+html[data-skin="botanica"] .cc-root {
+  --cc-bg: transparent;
+  --cc-bg-2: var(--tf-skin-card);
+  --cc-surface: var(--tf-skin-card);
+  --cc-surface-2: var(--tf-skin-surface);
+  --cc-surface-3: var(--tf-skin-surface-muted);
+  --cc-line: var(--tf-skin-line-2);
+  --cc-line-soft: var(--tf-skin-line);
+  --cc-text: var(--tf-skin-text);
+  --cc-text-dim: var(--tf-skin-text-2);
+  --cc-text-faint: var(--tf-skin-muted);
+  --cc-red: var(--tf-skin-rose);
+  --cc-red-soft: color-mix(in srgb, var(--tf-skin-rose) 14%, var(--tf-skin-card) 86%);
+  --cc-amber: var(--tf-skin-amber);
+  --cc-amber-soft: color-mix(in srgb, var(--tf-skin-amber) 14%, var(--tf-skin-card) 86%);
+  --cc-green: var(--tf-skin-green);
+  --cc-green-soft: color-mix(in srgb, var(--tf-skin-green) 14%, var(--tf-skin-card) 86%);
+  --cc-blue: var(--tf-skin-accent);
+  --cc-blue-soft: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%);
+  --cc-purple: var(--tf-skin-blue);
+  --cc-purple-soft: color-mix(in srgb, var(--tf-skin-blue) 13%, var(--tf-skin-card) 87%);
+
+  background-color: transparent !important;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--tf-skin-bg) 55%, transparent),
+      color-mix(in srgb, var(--tf-skin-bg) 55%, transparent)
+    ),
+    var(--tf-skin-art-image, var(--tf-botanica-art)) !important;
+  background-position: center, var(--tf-skin-canvas-art-position, center) !important;
+  background-repeat: no-repeat !important;
+  background-size: auto, var(--tf-skin-canvas-art-size, cover) !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="botanica"] .cc-panel,
+html[data-skin="botanica"] .cc-kpi,
+html[data-skin="botanica"] .cc-filterbar,
+html[data-skin="botanica"] .cc-alert-item,
+html[data-skin="botanica"] .cc-project-row,
+html[data-skin="botanica"] .cc-empty,
+html[data-skin="botanica"] .cc-settings-item,
+html[data-skin="botanica"] .cc-settings-panel,
+html[data-skin="botanica"] .cc-cal__list {
+  background: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-panel-opacity, 88%), transparent);
+  border-color: var(--tf-skin-line);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--tf-skin-text) 7%, transparent);
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
+}
+
+html[data-skin="botanica"] .cc-project-row:hover,
+html[data-skin="botanica"] .cc-root .cc-queue-item__btn:hover,
+html[data-skin="botanica"] .cc-root .cc-cal__event-btn:hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 9%, var(--tf-skin-card) 91%);
+}
+
+html[data-skin="botanica"] .cc-root :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 72%, #ffffff 28%);
+  outline-offset: 2px;
+}

@@ -118,6 +118,22 @@ nezávislých větví UI.
 - Sdílená primitiva jsou v `shared/ui/`.
 - Feature specifické komponenty zůstávají u feature.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
+- Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
+  `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
+- Assetové skiny ukládají verzované, pasivní obrázky do
+  `assets/themes/<skin-id>/`. Registr skinů je formátově neutrální: jednoduché
+  škálovatelné masky mohou být SVG, zatímco fotorealistický reliéf a světlo patří
+  do optimalizovaného WebP (PNG může zůstat pouze zdrojovým masterem mimo runtime
+  bundle). Botanica má pro oba režimy WebP a bezpečný SVG fallback bez externích
+  odkazů, skriptů a `foreignObject`. `skin` a `theme` se persistují
+  samostatně v uživatelských preferences a lokálně pod klíči `skin` a `theme`.
+  Dekor se smí použít jen na shell, celý viewport sidebaru, záhlaví a volnou část
+  plátna. Jeho pozice, velikost a krytí se řídí pro každou vrstvu zvlášť. Karty,
+  tabulky a formuláře používají kontrolovaný průsvitný materiál s kontrastním
+  závojem; menu a dialogy používají čistší datový surface. Pseudo-element dekoru
+  má `pointer-events: none`, navigace je ve vyšší content vrstvě a délka menu
+  nesmí měnit velikost assetu. Při forced-colors / zvýšeném kontrastu se dekor
+  vypne a pracovní plochy přejdou na systémové barvy.
 - Přístupnost dialogů využívá sdílené dialog utility a role-based Testing
   Library selektory.
 

@@ -269,7 +269,7 @@ export interface ProjectDetails {
 
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
-  skin?: "classic" | "industrial";
+  skin?: "classic" | "industrial" | "botanica";
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
