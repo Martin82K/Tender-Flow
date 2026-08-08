@@ -259,7 +259,7 @@ Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní s
 3. Změna globálních procent automaticky přepočítá faktury, které nastavení stavby dědí.
 4. Pokud má konkrétní faktura smluvní odchylku, odemkněte ji a použijte akci **Individuální pozastávky**. Explicitní hodnota `0 %` je také platná výjimka.
 5. Akcí **Použít globální pozastávky** výjimku zrušíte a faktura se znovu řídí nastavením stavby.
-6. Uložená smlouva, dodatky a faktury jsou kvůli lepší čitelnosti zobrazené jako text. Pole se otevřou tlačítkem **Upravit** pouze u vybraného záznamu; **Zrušit** vrátí jeho původní hodnoty.
+6. Uložená smlouva, dodatky a faktury jsou kvůli lepší čitelnosti zobrazené jako text. Pole otevřete dvojklikem na vybraný záznam; při práci z klávesnice použijte **Enter** nebo mezerník. Akce **Zrušit** a ikona koše se zobrazí až během editace. Smazání dodatku nebo faktury je nutné potvrdit v modálním okně.
 
 #### Smluvní protokoly
 

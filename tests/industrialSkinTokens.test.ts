@@ -134,8 +134,22 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("[data-help-id=\"contract-detail-shell\"]");
     expect(css).toContain("[data-help-id=\"contract-detail-rail\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-kpi-card\"]");
+    expect(css).toContain("[data-help-id=\"contracts-investor-contract-panel\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-panel\"]");
     expect(css).toContain("grid-template-columns: minmax(132px, 156px) minmax(0, 1fr)");
+  });
+
+  it("industrial investor pole respektují světlý i tmavý skin včetně focusu", () => {
+    const field = cssBlockFor('html[data-skin="industrial"] .tf-contracts-investor-field');
+    const darkField = cssBlockFor('html.dark[data-skin="industrial"] .tf-contracts-investor-field');
+
+    expect(field).toContain("background: var(--tf-skin-surface-muted) !important");
+    expect(field).toContain("border-color: var(--tf-skin-line-2) !important");
+    expect(field).toContain("color: var(--tf-skin-text) !important");
+    expect(darkField).toContain("background: var(--tf-skin-surface-deep) !important");
+    expect(css).toContain('html[data-skin="industrial"] .tf-contracts-investor-field:focus');
+    expect(css).toContain('html.dark[data-skin="industrial"] .tf-contracts-investor-field[type="date"]::-webkit-calendar-picker-indicator');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-subtabs"] button:focus-visible');
   });
 
   it("industrial dashboard Smluv sjednocuje grafy, badge a KPI barvy do papírové palety", () => {

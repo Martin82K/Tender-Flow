@@ -1790,6 +1790,7 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"],
 html[data-skin="industrial"] [data-help-id="contracts-list-rail"],
 html[data-skin="industrial"] [data-help-id="contract-detail-shell"],
 html[data-skin="industrial"] [data-help-id="contracts-table"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-contract-panel"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] {
   background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
   border-color: var(--tf-skin-line) !important;
@@ -1923,17 +1924,75 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-kpis"] {
   gap: 1rem !important;
 }
 
+html[data-skin="industrial"] [data-help-id="contracts-investor-contract-panel"] h3,
 html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] h3 {
   color: var(--tf-skin-text) !important;
   font-weight: 650 !important;
 }
 
+html[data-skin="industrial"] [data-help-id="contracts-investor-contract-panel"] p,
+html[data-skin="industrial"] [data-help-id="contracts-investor-contract-panel"] [class*="text-slate-600"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-contract-panel"] [class*="text-slate-500"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] p,
 html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] [class*="text-slate-600"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] [class*="text-slate-500"] {
   color: var(--tf-skin-muted) !important;
 }
 
+html[data-skin="industrial"] .tf-contracts-investor-field {
+  background: var(--tf-skin-surface-muted) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: none;
+}
+
+html.dark[data-skin="industrial"] .tf-contracts-investor-field {
+  background: var(--tf-skin-surface-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-investor-field::placeholder {
+  color: var(--tf-skin-muted-2) !important;
+  opacity: 1;
+}
+
+html[data-skin="industrial"] .tf-contracts-investor-field + span {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-investor-field:focus {
+  border-color: var(--tf-skin-orange) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tf-skin-orange) 24%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-investor-field:disabled {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 58%, var(--tf-skin-surface) 42%) !important;
+  color: var(--tf-skin-muted) !important;
+  -webkit-text-fill-color: var(--tf-skin-muted);
+  opacity: 0.82;
+}
+
+html.dark[data-skin="industrial"] .tf-contracts-investor-field:disabled {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 74%, var(--tf-skin-surface-deep) 26%) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-investor-field[type="date"]::-webkit-calendar-picker-indicator,
+html[data-skin="industrial"] .tf-contracts-investor-field[type="month"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.62;
+}
+
+html.dark[data-skin="industrial"] .tf-contracts-investor-field[type="date"]::-webkit-calendar-picker-indicator,
+html.dark[data-skin="industrial"] .tf-contracts-investor-field[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.45);
+  opacity: 0.72;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-subtabs"] button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tf-skin-orange) 72%, transparent);
+  outline-offset: 2px;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-add-amendment"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-add-invoice"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-save"] {
   border-radius: 6px !important;
@@ -1941,6 +2000,7 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-save"] {
   font-weight: 650 !important;
 }
 
+html[data-skin="industrial"] [data-help-id="contracts-investor-add-amendment"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-add-invoice"] {
   background: var(--tf-skin-surface) !important;
   border-color: var(--tf-skin-line-2) !important;

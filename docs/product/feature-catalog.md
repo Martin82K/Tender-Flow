@@ -38,7 +38,9 @@ Projekt podporuje taby:
   Procenta pozastávek se nastavují globálně pro stavbu a faktury je dědí;
   jednotlivá faktura může mít explicitní výjimku. Smlouva, dodatky a uložené
   faktury se standardně zobrazují jako kompaktní textové řádky; vstupní pole se
-  otevřou až při úpravě konkrétního záznamu.
+  otevřou až dvojklikem nebo klávesou Enter či mezerník na konkrétním záznamu.
+  Akce pro zrušení úpravy a smazání se zobrazí pouze během editace; každé
+  odstranění dodatku nebo faktury vyžaduje potvrzení v modálním okně.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
 
 Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální

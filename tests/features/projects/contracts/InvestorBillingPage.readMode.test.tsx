@@ -19,8 +19,27 @@ const projectDetails: ProjectDetails = {
     sodPrice: 1_000_000,
     retentionAPercent: 5,
     retentionBPercent: 3,
-    amendments: [{ id: "amendment-1", number: "D1", label: "Technologie bazénu", signedAt: "2026-03-05", price: 100_000 }],
-    invoices: [{ id: "invoice-1", period: "2026-04", invoiceNumber: "FV-2026-04", issueDate: "2026-04-30", dueDate: "2026-05-30", amount: 250_000, currency: "CZK", status: "issued" }],
+    amendments: [
+      {
+        id: "amendment-1",
+        number: "D1",
+        label: "Technologie bazénu",
+        signedAt: "2026-03-05",
+        price: 100_000,
+      },
+    ],
+    invoices: [
+      {
+        id: "invoice-1",
+        period: "2026-04",
+        invoiceNumber: "FV-2026-04",
+        issueDate: "2026-04-30",
+        dueDate: "2026-05-30",
+        amount: 250_000,
+        currency: "CZK",
+        status: "issued",
+      },
+    ],
   },
 };
 
@@ -32,7 +51,7 @@ describe("InvestorBillingPage read mode", () => {
     expect(screen.getByText("Rekonstrukce bazénu")).toBeInTheDocument();
     expect(screen.queryByLabelText("Číslo smlouvy")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Upravit smlouvu s objednatelem"));
+    fireEvent.doubleClick(screen.getByLabelText("Upravit smlouvu s objednatelem"));
 
     expect(screen.getByLabelText("Číslo smlouvy")).toHaveValue("SOD-2026-01");
     expect(screen.getByLabelText("Cena smlouvy")).toHaveValue("1 000 000,00");
@@ -44,8 +63,13 @@ describe("InvestorBillingPage read mode", () => {
     expect(screen.getByText("Technologie bazénu")).toBeInTheDocument();
     expect(screen.queryByLabelText("Název dodatku 1")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Upravit dodatek 1"));
-    fireEvent.change(screen.getByLabelText("Název dodatku 1"), { target: { value: "Dočasná změna" } });
+    expect(screen.queryByLabelText("Smazat dodatek 1")).not.toBeInTheDocument();
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit dodatek 1"));
+    expect(screen.getByLabelText("Smazat dodatek 1")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Název dodatku 1"), {
+      target: { value: "Dočasná změna" },
+    });
     fireEvent.click(screen.getByLabelText("Zrušit úpravu dodatku 1"));
 
     expect(screen.getByText("Technologie bazénu")).toBeInTheDocument();
@@ -58,12 +82,61 @@ describe("InvestorBillingPage read mode", () => {
     expect(screen.getByText("FV-2026-04")).toBeInTheDocument();
     expect(screen.queryByLabelText("Číslo faktury 1")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Upravit fakturu 1"));
+    expect(screen.queryByLabelText("Smazat fakturu 1")).not.toBeInTheDocument();
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit fakturu 1"));
+    expect(screen.getByLabelText("Smazat fakturu 1")).toBeInTheDocument();
     expect(screen.getByLabelText("Číslo faktury 1")).toHaveValue("FV-2026-04");
 
     fireEvent.click(screen.getByLabelText("Zrušit úpravu faktury 1"));
     fireEvent.click(screen.getByText("+ Přidat fakturu"));
 
     expect(screen.getByLabelText("Číslo faktury 2")).toBeInTheDocument();
+  });
+
+  it("ve výchozím stavu schová všechna formulářová pole a akční ikony", () => {
+    const { container } = render(
+      <InvestorBillingPage projectDetails={projectDetails} onUpdateDetails={vi.fn()} />,
+    );
+
+    expect(container.querySelectorAll("input, select")).toHaveLength(0);
+    expect(container.querySelector('button[aria-label="Upravit smlouvu s objednatelem"]'))
+      .not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Upravit dodatek 1"]')).not.toBeInTheDocument();
+    expect(container.querySelector('button[aria-label="Upravit fakturu 1"]')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Smazat dodatek 1")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Smazat fakturu 1")).not.toBeInTheDocument();
+  });
+
+  it("zpřístupní editaci smlouvy a řádků také klávesnicí", () => {
+    render(<InvestorBillingPage projectDetails={projectDetails} onUpdateDetails={vi.fn()} />);
+
+    fireEvent.keyDown(screen.getByLabelText("Upravit smlouvu s objednatelem"), { key: "Enter" });
+    expect(screen.getByLabelText("Číslo smlouvy")).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByLabelText("Upravit dodatek 1"), { key: " " });
+    expect(screen.getByLabelText("Název dodatku 1")).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByLabelText("Upravit fakturu 1"), { key: "Enter" });
+    expect(screen.getByLabelText("Číslo faktury 1")).toBeInTheDocument();
+  });
+
+  it("smaže dodatek až po potvrzení v modalu", () => {
+    render(<InvestorBillingPage projectDetails={projectDetails} onUpdateDetails={vi.fn()} />);
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit dodatek 1"));
+    fireEvent.click(screen.getByLabelText("Smazat dodatek 1"));
+
+    expect(screen.getByText("Smazat dodatek?")).toBeInTheDocument();
+    expect(screen.getByLabelText("Název dodatku 1")).toHaveValue("Technologie bazénu");
+
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
+    expect(screen.getByLabelText("Název dodatku 1")).toHaveValue("Technologie bazénu");
+
+    fireEvent.click(screen.getByLabelText("Smazat dodatek 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Smazat" }));
+
+    expect(screen.queryByText("Technologie bazénu")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Název dodatku 1")).not.toBeInTheDocument();
   });
 });

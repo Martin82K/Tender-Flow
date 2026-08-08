@@ -85,7 +85,19 @@ describe("InvestorBillingPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Smazat fakturu"));
+    fireEvent.doubleClick(screen.getByLabelText("Upravit fakturu 1"));
+    fireEvent.click(screen.getByLabelText("Smazat fakturu 1"));
+
+    expect(screen.getByText("Smazat fakturu?")).toBeInTheDocument();
+    expect(screen.getByLabelText("Číslo faktury 1")).toHaveValue("FV-001");
+    expect(screen.queryByText("Změny nejsou uložené. Pro trvalé smazání použijte Uložit."))
+      .not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit" }));
+    expect(screen.getByLabelText("Číslo faktury 1")).toHaveValue("FV-001");
+
+    fireEvent.click(screen.getByLabelText("Smazat fakturu 1"));
+    fireEvent.click(screen.getByRole("button", { name: "Smazat" }));
     expect(screen.getByText("Změny nejsou uložené. Pro trvalé smazání použijte Uložit.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Uložit"));
@@ -185,7 +197,7 @@ describe("InvestorBillingPage", () => {
     expect(screen.getByText("300260019")).toBeInTheDocument();
     expect(screen.queryByLabelText("Číslo faktury 1")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Upravit fakturu 1"));
+    fireEvent.doubleClick(screen.getByLabelText("Upravit fakturu 1"));
     const invoiceNumber = screen.getByLabelText("Číslo faktury 1");
 
     fireEvent.change(invoiceNumber, {
@@ -215,9 +227,86 @@ describe("InvestorBillingPage", () => {
 
     expect(container.querySelector("[data-help-id='contracts-investor-page']")).toBeInTheDocument();
     expect(container.querySelectorAll("[data-help-id='contracts-investor-kpi-card']")).toHaveLength(6);
+    expect(container.querySelector("[data-help-id='contracts-investor-contract-panel']")).toBeInTheDocument();
     expect(container.querySelector("[data-help-id='contracts-investor-panel']")).toBeInTheDocument();
     expect(container.querySelector("[data-help-id='contracts-investor-empty']")).toBeInTheDocument();
     expect(screen.getByText("+ Přidat fakturu")).toHaveAttribute("data-help-id", "contracts-investor-add-invoice");
     expect(screen.getByText("Uložit")).toHaveAttribute("data-help-id", "contracts-investor-save");
+  });
+
+  it("používá kompaktní mřížku a přístupné názvy polí smlouvy", () => {
+    const { container } = render(
+      <InvestorBillingPage
+        projectDetails={projectDetails}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit smlouvu s objednatelem"));
+
+    expect(container.querySelector("[data-help-id='contracts-investor-contract-fields']"))
+      .toHaveClass("lg:grid-cols-12");
+    expect(screen.getByLabelText("Číslo smlouvy").parentElement).toHaveClass("lg:col-span-2");
+    expect(screen.getByLabelText("Název smlouvy").parentElement).toHaveClass("lg:col-span-4");
+    expect(screen.getByLabelText("Datum podpisu").parentElement).toHaveClass("lg:col-span-2");
+    expect(screen.getByLabelText("Pozastávka A – do předání").parentElement?.parentElement)
+      .toHaveClass("lg:col-span-2");
+  });
+
+  it("udržuje krátká pole dodatku v kompaktních sloupcích", () => {
+    const { container } = render(
+      <InvestorBillingPage
+        projectDetails={projectDetails}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("+ Přidat dodatek"));
+
+    const columns = container.querySelectorAll(
+      "[data-help-id='contracts-investor-amendments-table'] col",
+    );
+    expect(columns).toHaveLength(5);
+    expect(columns[0]).toHaveClass("w-44");
+    expect(columns[2]).toHaveClass("w-44");
+    expect(columns[3]).toHaveClass("w-56");
+    expect(columns[4]).toHaveClass("w-20");
+  });
+
+  it("sjednocuje native a numerická pole pro světlý i tmavý režim", () => {
+    render(
+      <InvestorBillingPage
+        projectDetails={projectDetails}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit smlouvu s objednatelem"));
+
+    const contractNumber = screen.getByLabelText("Číslo smlouvy");
+    const contractPrice = screen.getByLabelText("Cena smlouvy");
+    const signedAt = screen.getByLabelText("Datum podpisu");
+
+    for (const field of [contractNumber, contractPrice, signedAt]) {
+      expect(field).toHaveClass("tf-contracts-investor-field");
+      expect(field).toHaveClass("bg-white", "text-slate-900");
+      expect(field).toHaveClass("dark:bg-slate-950", "dark:text-slate-100");
+    }
+  });
+
+  it("používá jednotný vzhled také pro cenu dodatku", () => {
+    render(
+      <InvestorBillingPage
+        projectDetails={projectDetails}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByLabelText("Upravit dodatek 1"));
+
+    expect(screen.getByLabelText("Změna ceny dodatku 1")).toHaveClass(
+      "tf-contracts-investor-field",
+      "dark:bg-slate-950",
+    );
   });
 });
