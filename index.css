@@ -3958,16 +3958,26 @@ html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] {
 }
 
 html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] > .industrial-kpi-card {
-  padding: 1rem !important;
+  padding-block: 1rem !important;
+  padding-inline: 1.25rem !important;
 }
 
-html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] > .industrial-kpi-card > .gap-3 {
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] > .industrial-kpi-card > .gap-2 {
   gap: 0.5rem !important;
 }
 
-html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] .text-3xl {
+html[data-skin="botanica"] [data-help-id="overview-kpi-cards"] .text-2xl {
   font-size: 1.5rem !important;
   line-height: 1.15 !important;
+}
+
+html[data-skin="botanica"] .tf-overview-info-surface {
+  background-color: color-mix(in srgb, var(--tf-skin-card) 84%, transparent) !important;
+  box-shadow: inset 0 1px color-mix(in srgb, var(--tf-skin-line) 55%, transparent);
+}
+
+html[data-skin="botanica"] .tf-overview-info-column {
+  border-color: var(--tf-skin-line) !important;
 }
 
 html.dark[data-skin="botanica"] [data-help-id="overview-kpi-cards"] :is(
