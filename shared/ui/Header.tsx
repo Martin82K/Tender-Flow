@@ -119,8 +119,8 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {showSearch && (
           useLocalFilter ? (
-            <div className={searchBoxWideClass}>
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+            <div data-help-id="topbar-search" className={searchBoxWideClass}>
+              <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
                 filter_list
               </span>
               <input
@@ -128,6 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder={searchPlaceholder}
+                data-help-id="topbar-search-input"
                 className={searchInputWideClass}
               />
             </div>
@@ -159,8 +160,8 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showSearch && (
               useLocalFilter ? (
-                <div className={searchBoxClass}>
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+                <div data-help-id="topbar-search" className={searchBoxClass}>
+                  <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
                     filter_list
                   </span>
                   <input
@@ -168,6 +169,7 @@ export const Header: React.FC<HeaderProps> = ({
                     value={searchQuery}
                     onChange={handleSearchChange}
                     placeholder={searchPlaceholder}
+                    data-help-id="topbar-search-input"
                     className={searchInputClass}
                   />
                 </div>
@@ -212,8 +214,8 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showSearch && (
               useLocalFilter ? (
-                <div className={searchBoxWideClass}>
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+                <div data-help-id="topbar-search" className={searchBoxWideClass}>
+                  <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
                     filter_list
                   </span>
                   <input
@@ -221,6 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
                     value={searchQuery}
                     onChange={handleSearchChange}
                     placeholder={searchPlaceholder}
+                    data-help-id="topbar-search-input"
                     className={searchInputWideClass}
                   />
                 </div>
