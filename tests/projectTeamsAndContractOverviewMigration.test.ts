@@ -9,6 +9,11 @@ const migrationPath = path.join(
 
 const readMigration = (): string => fs.readFileSync(migrationPath, "utf8");
 
+const guardPrivilegeMigrationPath = path.join(
+  process.cwd(),
+  "supabase/migrations/20260808152522_revoke_archived_guard_execute.sql",
+);
+
 describe("project teams, archive and contract overview migration", () => {
   it("migrates existing shares without preserving external write access", () => {
     const migration = readMigration();
@@ -133,5 +138,19 @@ describe("project teams, archive and contract overview migration", () => {
     expect(migration).toMatch(/\['bid_tags','bid','bid_id','module_pipeline'\]/);
     expect(migration).toMatch(/TG_ARGV\[0\] = 'bid'/);
     expect(migration).toMatch(/\['bid_tags','bid','bid_id'\]/);
+  });
+
+  it("keeps the archived-project trigger guard unreachable as a public RPC", () => {
+    const migration = fs.readFileSync(guardPrivilegeMigrationPath, "utf8");
+
+    expect(migration).toMatch(
+      /REVOKE ALL ON FUNCTION public\.guard_archived_project_write\(\)\s+FROM PUBLIC, anon, authenticated/i,
+    );
+    expect(migration).not.toContain(
+      "GRANT EXECUTE ON FUNCTION public.guard_archived_project_write() TO anon",
+    );
+    expect(migration).not.toContain(
+      "GRANT EXECUTE ON FUNCTION public.guard_archived_project_write() TO authenticated",
+    );
   });
 });
