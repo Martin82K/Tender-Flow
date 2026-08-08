@@ -896,6 +896,71 @@ html[data-skin="industrial"] [data-help-id="overview-demand-table"] button {
   border-radius: 0 !important;
 }
 
+.tf-demand-filterbar {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  border: 1px solid var(--tf-skin-line);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 76%, transparent);
+  padding: 0.25rem;
+}
+
+.tf-demand-filter-button,
+.tf-demand-columns-button {
+  min-height: 2.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--tf-skin-muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.055em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.tf-demand-filter-button {
+  padding: 0.5rem 0.75rem;
+}
+
+.tf-demand-columns-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.tf-demand-filter-button:hover,
+.tf-demand-columns-button:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 42%, var(--tf-skin-line) 58%);
+  background: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-surface) 92%);
+  color: var(--tf-skin-text);
+}
+
+.tf-demand-filter-button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 56%, var(--tf-skin-line) 44%);
+  background: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-surface) 87%);
+  box-shadow: inset 0 -2px 0 var(--tf-skin-accent);
+  color: color-mix(in srgb, var(--tf-skin-accent) 72%, var(--tf-skin-text) 28%);
+}
+
+.tf-demand-filter-button:focus-visible,
+.tf-demand-columns-button:focus-visible {
+  border-color: var(--tf-skin-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tf-skin-accent) 24%, transparent);
+  outline: none;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] [data-help-id="overview-demand-table"] :is(.tf-demand-filter-button, .tf-demand-columns-button) {
+  border-radius: 0.375rem !important;
+}
+
 .industrial-overview .font-black {
   font-weight: 650;
 }
@@ -905,8 +970,6 @@ html[data-skin="industrial"] [data-help-id="overview-demand-table"] button {
   font-weight: 600;
 }
 
-html[data-skin="industrial"] .industrial-demand-filterbar,
-html[data-skin="industrial"] [data-help-id="pipeline-filters"],
 html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"],
 html[data-skin="industrial"] [data-help-id="schedule-controls"] > div {
   background: transparent !important;
@@ -916,8 +979,6 @@ html[data-skin="industrial"] [data-help-id="schedule-controls"] > div {
   box-shadow: none !important;
 }
 
-html[data-skin="industrial"] .industrial-demand-filterbar button,
-html[data-skin="industrial"] [data-help-id="pipeline-filters"] button,
 html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"] button,
 html[data-skin="industrial"] [data-help-id="schedule-controls"] > div button {
   background: transparent !important;
@@ -955,11 +1016,6 @@ html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"] .material-sym
   font-size: 1rem !important;
 }
 
-html[data-skin="industrial"] .industrial-demand-filterbar button[data-active="true"],
-html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-primary"],
-html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-amber"],
-html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-teal"],
-html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-emerald"],
 html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"] button[class*="bg-primary"],
 html[data-skin="industrial"] [data-help-id="schedule-controls"] > div button[class*="bg-primary"] {
   border-bottom: 1px solid var(--tf-skin-orange) !important;

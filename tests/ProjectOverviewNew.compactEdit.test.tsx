@@ -49,7 +49,7 @@ const buildProject = (): ProjectDetails => ({
 });
 
 describe("ProjectOverviewNew compact editace", () => {
-  it("industrial skin vykreslí přepínače poptávek jako linkové ovládání bez bílých pillů", () => {
+  it("použije pro filtry poptávek a Sloupce sdílené skin tokenové ovládání", () => {
     const project = buildProject();
     project.categories = [
       {
@@ -78,15 +78,20 @@ describe("ProjectOverviewNew compact editace", () => {
 
     const allButton = screen.getByRole("button", { name: /Vše \(1\)/i });
     expect(allButton).toHaveAttribute("data-active", "true");
-    expect(allButton.className).toContain("border-[#ff8a33]");
-    expect(allButton.className).toContain("tracking-[0.08em]");
+    expect(allButton).toHaveAttribute("aria-pressed", "true");
+    expect(allButton).toHaveClass("tf-demand-filter-button");
     expect(allButton.className).not.toContain("bg-white");
-    expect(allButton.className).not.toContain("rounded-xl");
+    expect(allButton.className).not.toContain("#ff8a33");
+
+    const openButton = screen.getByRole("button", { name: /Poptávané \(1\)/i });
+    fireEvent.click(openButton);
+    expect(openButton).toHaveAttribute("aria-pressed", "true");
+    expect(allButton).toHaveAttribute("aria-pressed", "false");
 
     const columnsButton = screen.getByRole("button", { name: /Sloupce/i });
-    expect(columnsButton.className).toContain("tracking-[0.08em]");
+    expect(columnsButton).toHaveClass("tf-demand-columns-button");
     expect(columnsButton.className).not.toContain("bg-white");
-    expect(columnsButton.className).not.toContain("rounded-xl");
+    expect(columnsButton.className).not.toContain("#ff8a33");
   });
 
   it("industrial skin zobrazí nad KPI kartami název stavby s brandovým psacím písmem", () => {

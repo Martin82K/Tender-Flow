@@ -104,24 +104,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
   const isIndustrialSkin = skin === "industrial";
 
-  const getDemandFilterButtonClass = (active: boolean) =>
-    isIndustrialSkin
-      ? [
-          "border-b px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors",
-          active
-            ? "border-[#ff8a33] text-[#b03a05]"
-            : "border-transparent text-slate-500 hover:border-[#ffb15c] hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100",
-        ].join(" ")
-      : [
-          "px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all",
-          active
-            ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-            : "text-slate-500 hover:text-slate-900 dark:hover:text-white",
-        ].join(" ");
+  const getDemandFilterButtonClass = (_active: boolean) => "tf-demand-filter-button";
 
-  const demandFilterShellClass = isIndustrialSkin
-    ? "flex items-center gap-5 border-b border-slate-200/70 dark:border-slate-700/70"
-    : "flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800";
+  const demandFilterShellClass = "tf-demand-filterbar";
 
   const demandTableClass = [
     isIndustrialSkin ? "industrial-demand-table" : "",
@@ -130,9 +115,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     .filter(Boolean)
     .join(" ");
 
-  const columnsButtonClass = isIndustrialSkin
-    ? "flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b border-transparent hover:border-[#ffb15c] transition-colors text-[11px] font-semibold uppercase tracking-[0.08em]"
-    : "flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter";
+  const columnsButtonClass = "tf-demand-columns-button";
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -1822,28 +1805,36 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {/* Filter Buttons */}
                 <div className={demandFilterShellClass}>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("all")}
+                    aria-pressed={demandFilter === "all"}
                     data-active={demandFilter === "all" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "all")}
                   >
                     Vše ({allCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("open")}
+                    aria-pressed={demandFilter === "open"}
                     data-active={demandFilter === "open" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "open")}
                   >
                     Poptávané ({openCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("closed")}
+                    aria-pressed={demandFilter === "closed"}
                     data-active={demandFilter === "closed" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "closed")}
                   >
                     Ukončené ({closedCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("sod")}
+                    aria-pressed={demandFilter === "sod"}
                     data-active={demandFilter === "sod" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "sod")}
                   >
@@ -1852,14 +1843,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
                   {/* Column Visibility Dropdown */}
                   <div className="relative group/columns">
-                    <button className={columnsButtonClass}>
+                    <button type="button" aria-haspopup="menu" className={columnsButtonClass}>
                       <span className="material-symbols-outlined text-lg">
                         view_column
                       </span>
                       Sloupce
                     </button>
 
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible transition-all z-20">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible group-focus-within/columns:opacity-100 group-focus-within/columns:visible transition-all z-20">
                       <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 px-2">
                         Zobrazit sloupce
                       </div>

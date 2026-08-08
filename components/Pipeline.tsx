@@ -928,6 +928,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     <div className="tf-pipeline-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
       {alertModalNode}
       <PipelineOverview
+        currentUserId={user?.id ?? null}
         categories={projectData.categories}
         bids={bids}
         searchQuery={searchQuery}

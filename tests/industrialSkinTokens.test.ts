@@ -9,6 +9,7 @@ const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const pipelineOverviewSource = readFileSync(join(process.cwd(), "components/pipelineComponents/PipelineOverview.tsx"), "utf8");
 const pipelineBulkEmailMenuSource = readFileSync(join(process.cwd(), "features/projects/ui/PipelineBulkEmailMenu.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
 const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
@@ -71,7 +72,8 @@ describe("industrial skin tokens", () => {
 
   it("přepisuje průřezové taby a přepínače mimo classic pill vzhled", () => {
     expect(css).toContain("[data-help-id=\"overview-demand-table\"]");
-    expect(css).toContain("[data-help-id=\"pipeline-filters\"]");
+    expect(pipelineOverviewSource).toContain('data-help-id="pipeline-filters"');
+    expect(css).toContain(".tf-demand-filterbar");
     expect(css).toContain("[data-help-id=\"pipeline-view-toggle\"]");
     expect(css).toContain("[data-help-id=\"schedule-controls\"] > div");
     expect(css).toContain("[data-help-id=\"contracts-subtabs\"]");
@@ -79,6 +81,19 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("[data-help-id=\"contracts-list-filters\"]");
     expect(css).toContain("background: transparent !important");
     expect(css).toContain("border-radius: 0 !important");
+  });
+
+  it("filtry Přehledu Poptávek používají skin tokeny pro povrch, stav i focus", () => {
+    expect(projectOverviewSource).toContain('"tf-demand-filterbar"');
+    expect(projectOverviewSource).toContain('"tf-demand-filter-button"');
+    expect(projectOverviewSource).toContain('"tf-demand-columns-button"');
+    expect(css).toContain('.tf-demand-filter-button[data-active="true"]');
+    expect(css).toContain(".tf-demand-filter-button:focus-visible");
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface-muted) 76%, transparent)");
+    expect(css).toContain("border-color: var(--tf-skin-accent)");
+    expect(css).toContain("color: var(--tf-skin-text)");
+    expect(pipelineOverviewSource).toContain('className="tf-demand-filterbar min-w-0"');
+    expect(pipelineOverviewSource).toContain('className="tf-demand-filter-button flex-none"');
   });
 
   it("industrial projektová navigace drží menší ikony a kompaktní tlačítka", () => {

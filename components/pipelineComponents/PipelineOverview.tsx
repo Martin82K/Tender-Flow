@@ -7,9 +7,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DemandCategory, Bid } from '../../types';
 import { formatMoney, parseFormattedNumber } from '../../utils/formatters';
+import {
+    DEFAULT_PIPELINE_TABLE_COLUMN_WIDTHS,
+    MAX_PIPELINE_TABLE_COLUMN_WIDTHS,
+    MIN_PIPELINE_TABLE_COLUMN_WIDTHS,
+    PIPELINE_TABLE_COLUMN_IDS,
+    defaultPipelineTablePreferences,
+    getPipelineTableStorageKey,
+    parsePipelineTablePreferences,
+    resizePipelineTableColumn,
+    type PipelineTablePreferences,
+    type ResizablePipelineTableColumnId,
+} from '../../features/projects/model/pipelineTablePreferences';
 import { CategoryCard } from './CategoryCard';
 
 const ROW_CLICK_DELAY_MS = 220;
+
+const readTablePreferences = (userId: string | null): PipelineTablePreferences => {
+    if (typeof window === 'undefined' || !userId) return defaultPipelineTablePreferences();
+    try {
+        return parsePipelineTablePreferences(
+            window.localStorage.getItem(getPipelineTableStorageKey(userId)),
+        );
+    } catch {
+        return defaultPipelineTablePreferences();
+    }
+};
 
 type DemandFilter = 'all' | 'open' | 'closed' | 'sod';
 type ViewMode = 'grid' | 'table';
@@ -20,6 +43,7 @@ interface RowContextMenuState {
 }
 
 interface PipelineOverviewProps {
+    currentUserId: string | null;
     categories: DemandCategory[];
     bids: Record<string, Bid[]>;
     searchQuery: string;
@@ -35,6 +59,7 @@ interface PipelineOverviewProps {
 }
 
 export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
+    currentUserId,
     categories,
     bids,
     searchQuery,
@@ -51,6 +76,80 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     const rowClickTimeoutRef = useRef<number | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState | null>(null);
+    const [tablePreferences, setTablePreferences] = useState<{
+        userId: string | null;
+        value: PipelineTablePreferences;
+    }>(() => ({
+        userId: currentUserId,
+        value: readTablePreferences(currentUserId),
+    }));
+    const resizeRef = useRef<{
+        column: ResizablePipelineTableColumnId;
+        startX: number;
+        startWidth: number;
+    } | null>(null);
+
+    const stopResizing = () => {
+        resizeRef.current = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    };
+
+    const updateColumnWidth = (column: ResizablePipelineTableColumnId, width: number) => {
+        setTablePreferences((current) => ({
+            userId: currentUserId,
+            value: {
+                version: 1,
+                widths: {
+                    ...(current.userId === currentUserId
+                        ? current.value.widths
+                        : defaultPipelineTablePreferences().widths),
+                    [column]: resizePipelineTableColumn(column, width),
+                },
+            },
+        }));
+    };
+
+    useEffect(() => {
+        setTablePreferences({ userId: currentUserId, value: readTablePreferences(currentUserId) });
+    }, [currentUserId]);
+
+    useEffect(() => {
+        if (
+            typeof window === 'undefined'
+            || !currentUserId
+            || tablePreferences.userId !== currentUserId
+        ) return;
+        try {
+            window.localStorage.setItem(
+                getPipelineTableStorageKey(currentUserId),
+                JSON.stringify(tablePreferences.value),
+            );
+        } catch {
+            // A blocked or full local storage must not make the table unusable.
+        }
+    }, [currentUserId, tablePreferences]);
+
+    useEffect(() => {
+        const handlePointerMove = (event: PointerEvent) => {
+            const resize = resizeRef.current;
+            if (!resize) return;
+            updateColumnWidth(
+                resize.column,
+                resize.startWidth + event.clientX - resize.startX,
+            );
+        };
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', stopResizing);
+        window.addEventListener('pointercancel', stopResizing);
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', stopResizing);
+            window.removeEventListener('pointercancel', stopResizing);
+            stopResizing();
+        };
+    }, [currentUserId]);
 
     useEffect(() => {
         return () => {
@@ -206,48 +305,91 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     const getNormalizedStatus = (raw: DemandCategory['status']) =>
         raw === 'sod' ? 'sod' : raw === 'closed' ? 'closed' : raw === 'negotiating' ? 'negotiating' : 'open';
 
+    const columnWidths = {
+        ...DEFAULT_PIPELINE_TABLE_COLUMN_WIDTHS,
+        ...tablePreferences.value.widths,
+    };
+    const tableWidth = PIPELINE_TABLE_COLUMN_IDS.reduce(
+        (sum, column) => sum + columnWidths[column],
+        0,
+    );
+
+    const renderResizeHandle = (
+        column: ResizablePipelineTableColumnId,
+        label: string,
+    ) => (
+        <span
+            role="separator"
+            tabIndex={0}
+            aria-label={`Změnit šířku sloupce ${label}`}
+            aria-orientation="vertical"
+            aria-valuemin={MIN_PIPELINE_TABLE_COLUMN_WIDTHS[column]}
+            aria-valuemax={MAX_PIPELINE_TABLE_COLUMN_WIDTHS[column]}
+            aria-valuenow={columnWidths[column]}
+            aria-valuetext={`${columnWidths[column]} pixelů`}
+            title="Tažením nebo šipkami změnit šířku sloupce"
+            onClick={(event) => event.stopPropagation()}
+            onDoubleClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                resizeRef.current = {
+                    column,
+                    startX: event.clientX,
+                    startWidth: columnWidths[column],
+                };
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            }}
+            onKeyDown={(event) => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                event.preventDefault();
+                event.stopPropagation();
+                const direction = event.key === 'ArrowRight' ? 1 : -1;
+                updateColumnWidth(column, columnWidths[column] + direction * (event.shiftKey ? 40 : 10));
+            }}
+            className="absolute right-0 top-0 z-10 h-full w-3 translate-x-1/2 cursor-col-resize touch-none border-r border-transparent outline-none hover:border-primary focus-visible:border-primary focus-visible:bg-primary/10"
+        />
+    );
+
     return (
         <div className="tf-pipeline-overview overflow-y-auto p-4 md:p-6 lg:p-8">
             {/* Filter Buttons and Add Button */}
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div data-help-id="pipeline-filters" className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1 dark:bg-slate-900/60">
+                <div data-help-id="pipeline-filters" className="tf-demand-filterbar min-w-0">
                     <button
+                        type="button"
                         onClick={() => onFilterChange('all')}
                         aria-pressed={demandFilter === 'all'}
-                        className={`min-h-9 flex-none rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${demandFilter === 'all'
-                            ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                            }`}
+                        data-active={demandFilter === 'all' ? 'true' : 'false'}
+                        className="tf-demand-filter-button flex-none"
                     >
                         Všechny ({allCount})
                     </button>
                     <button
+                        type="button"
                         onClick={() => onFilterChange('open')}
                         aria-pressed={demandFilter === 'open'}
-                        className={`min-h-9 flex-none rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${demandFilter === 'open'
-                            ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                            }`}
+                        data-active={demandFilter === 'open' ? 'true' : 'false'}
+                        className="tf-demand-filter-button flex-none"
                     >
                         Poptávané ({openCount})
                     </button>
                     <button
+                        type="button"
                         onClick={() => onFilterChange('closed')}
                         aria-pressed={demandFilter === 'closed'}
-                        className={`min-h-9 flex-none rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${demandFilter === 'closed'
-                            ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                            }`}
+                        data-active={demandFilter === 'closed' ? 'true' : 'false'}
+                        className="tf-demand-filter-button flex-none"
                     >
                         Ukončené ({closedCount})
                     </button>
                     <button
+                        type="button"
                         onClick={() => onFilterChange('sod')}
                         aria-pressed={demandFilter === 'sod'}
-                        className={`min-h-9 flex-none rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${demandFilter === 'sod'
-                            ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                            }`}
+                        data-active={demandFilter === 'sod' ? 'true' : 'false'}
+                        className="tf-demand-filter-button flex-none"
                     >
                         Zasmluvněné ({sodCount})
                     </button>
@@ -305,19 +447,24 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
             {/* Content: Table or Grid */}
             {viewMode === 'table' ? (
                 <div data-help-id="pipeline-overview-table" className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-[900px] w-full text-sm table-fixed">
+                    <div data-pipeline-table-scroll className="overflow-x-auto">
+                        <table className="table-fixed text-sm" style={{ width: tableWidth }}>
+                            <colgroup>
+                                {PIPELINE_TABLE_COLUMN_IDS.map((column) => (
+                                    <col key={column} style={{ width: columnWidths[column] }} />
+                                ))}
+                            </colgroup>
                             <thead className="bg-slate-100 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-700/40">
                                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    <th className="px-3 py-3 w-[110px]">Stav</th>
-                                    <th className="px-3 py-3">Poptávka</th>
-                                    <th className="px-3 py-3 w-[110px]">Termín</th>
-                                    <th className="px-3 py-3 w-[170px]">Realizace</th>
-                                    <th className="px-3 py-3 text-right w-[110px]">Cena</th>
-                                    <th className="px-3 py-3 text-right w-[90px]">Poptáno</th>
-                                    <th className="px-3 py-3 text-right w-[60px]">CN</th>
-                                    <th className="px-3 py-3 text-right w-[90px]">Smlouvy</th>
-                                    <th className="w-[72px] px-3 py-3 text-right">Akce</th>
+                                    <th className="relative px-3 py-3">Stav{renderResizeHandle('status', 'Stav')}</th>
+                                    <th className="relative px-3 py-3">Poptávka{renderResizeHandle('demand', 'Poptávka')}</th>
+                                    <th className="relative whitespace-nowrap px-3 py-3">Termín{renderResizeHandle('deadline', 'Termín')}</th>
+                                    <th className="relative whitespace-nowrap px-3 py-3">Realizace{renderResizeHandle('realization', 'Realizace')}</th>
+                                    <th className="relative px-3 py-3 text-right">Cena{renderResizeHandle('price', 'Cena')}</th>
+                                    <th className="relative px-3 py-3 text-right">Poptáno{renderResizeHandle('requested', 'Poptáno')}</th>
+                                    <th className="relative px-3 py-3 text-right">CN{renderResizeHandle('offers', 'CN')}</th>
+                                    <th className="relative px-3 py-3 text-right">Smlouvy{renderResizeHandle('contracts', 'Smlouvy')}</th>
+                                    <th className="px-3 py-3 text-right">Akce</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700/40">
@@ -358,8 +505,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                                     <div className="text-xs text-slate-500 dark:text-slate-400">{category.description}</div>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
-                                            <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
+                                            <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
+                                            <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
                                             <td className="px-3 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
                                             <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
                                             <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
