@@ -70,9 +70,10 @@ const SubcontractorCard: React.FC<CardProps> = React.memo(
         role="listitem"
         onDoubleClick={() => onEdit?.(contact)}
         onContextMenu={(e) => onContextMenu(e, contact)}
-        className={`relative flex flex-col gap-3 rounded-2xl border p-5 shadow-sm transition-all duration-200 cursor-pointer hover:shadow-lg hover:-translate-y-[2px] ${
+        data-selected={selected}
+        className={`tf-contact-card relative flex flex-col gap-3 rounded-2xl border p-5 shadow-sm transition-all duration-200 cursor-pointer hover:shadow-lg hover:-translate-y-[2px] ${
           selected
-            ? "bg-blue-50/60 dark:bg-blue-900/15 border-blue-300 dark:border-blue-700"
+            ? "bg-primary/5 border-primary/40"
             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
         }`}
       >

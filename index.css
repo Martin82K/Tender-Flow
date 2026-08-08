@@ -1201,6 +1201,138 @@ html[data-skin="industrial"] .tf-contacts-view [data-help-id="contacts-add"] .ma
   line-height: 1 !important;
 }
 
+/* Contacts use the active skin material consistently instead of legacy blue/slate islands. */
+.tf-contacts-view {
+  --tf-contacts-material: color-mix(in srgb, var(--tf-skin-card) 90%, transparent);
+  --tf-contacts-material-muted: color-mix(in srgb, var(--tf-skin-surface-muted) 88%, transparent);
+  background: transparent !important;
+  color: var(--tf-skin-text);
+}
+
+.tf-contacts-toolbar {
+  max-width: min(100%, 72rem);
+  background: var(--tf-contacts-material);
+  border-color: var(--tf-skin-line);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--tf-skin-text) 7%, transparent);
+  scrollbar-width: thin;
+}
+
+.tf-contacts-view-switcher,
+.tf-contacts-bulk-actions {
+  background: var(--tf-contacts-material-muted);
+  border-color: var(--tf-skin-line);
+  color: var(--tf-skin-text-2);
+}
+
+.tf-contacts-view-tab {
+  color: var(--tf-skin-muted);
+}
+
+.tf-contacts-view-tab:hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-surface-muted) 92%);
+  color: var(--tf-skin-text);
+}
+
+.tf-contacts-view-tab[data-active="true"] {
+  background: var(--tf-skin-card);
+  color: var(--tf-skin-text);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--tf-skin-text) 11%, transparent);
+}
+
+.tf-contacts-secondary-action {
+  border: 1px solid var(--tf-skin-line);
+  background: var(--tf-contacts-material-muted);
+  color: var(--tf-skin-text-2);
+}
+
+.tf-contacts-secondary-action:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 38%, var(--tf-skin-line) 62%);
+  background: color-mix(in srgb, var(--tf-skin-accent) 9%, var(--tf-skin-surface-muted) 91%);
+  color: var(--tf-skin-text);
+}
+
+.tf-contacts-primary-action {
+  border: 1px solid color-mix(in srgb, var(--tf-skin-accent) 62%, #000000 38%);
+  background: color-mix(in srgb, var(--tf-skin-accent) 68%, #000000 32%);
+  color: #ffffff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--tf-skin-accent) 20%, transparent);
+}
+
+.tf-contacts-primary-action:hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 60%, #000000 40%);
+}
+
+.tf-contacts-view-tab:focus-visible,
+.tf-contacts-secondary-action:focus-visible,
+.tf-contacts-primary-action:focus-visible {
+  outline: 2px solid var(--tf-skin-accent);
+  outline-offset: 2px;
+}
+
+.tf-contacts-toolbar-search > div > div {
+  background: var(--tf-contacts-material-muted) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+.tf-contacts-toolbar-search input {
+  color: var(--tf-skin-text) !important;
+}
+
+.tf-contacts-toolbar-search [class*="bg-white"],
+.tf-contacts-toolbar-search [class*="dark:bg-slate"] {
+  background-color: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+}
+
+.tf-contacts-filterbar,
+.tf-contact-card {
+  background-color: var(--tf-contacts-material) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text);
+}
+
+.tf-contact-card[data-selected="true"] {
+  background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-accent) 48%, var(--tf-skin-line) 52%) !important;
+}
+
+.tf-contacts-view [class*="bg-white"],
+.tf-contacts-view [class*="bg-slate-50"],
+.tf-contacts-view [class*="bg-slate-100"],
+.tf-contacts-view [class*="bg-slate-700"],
+.tf-contacts-view [class*="bg-slate-800"],
+.tf-contacts-view [class*="bg-slate-900"] {
+  background-color: var(--tf-contacts-material-muted) !important;
+}
+
+.tf-contacts-view [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+.tf-contacts-view [class*="text-slate-900"],
+.tf-contacts-view [class*="dark:text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+.tf-contacts-view [class*="text-slate-700"],
+.tf-contacts-view [class*="text-slate-600"] {
+  color: var(--tf-skin-text-2) !important;
+}
+
+.tf-contacts-view [class*="text-slate-500"],
+.tf-contacts-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+@media (prefers-contrast: more) {
+  .tf-contacts-toolbar,
+  .tf-contacts-secondary-action,
+  .tf-contacts-filterbar,
+  .tf-contact-card {
+    background: var(--tf-skin-card) !important;
+    border-color: var(--tf-skin-line-2) !important;
+  }
+}
+
 html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-sidebar"] button {
   background: transparent !important;
   border-radius: 0 !important;

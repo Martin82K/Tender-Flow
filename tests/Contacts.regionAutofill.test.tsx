@@ -154,6 +154,32 @@ describe("Contacts auto-fill regions", () => {
     });
   });
 
+  it("zobrazuje sjednocený toolbar s jedinou primární akcí", () => {
+    const { container } = render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={vi.fn()}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    const toolbar = container.querySelector<HTMLElement>(
+      '[data-help-id="contacts-toolbar"]',
+    );
+
+    expect(toolbar).not.toBeNull();
+    expect(toolbar).toContainElement(screen.getByRole("tab", { name: "Karty" }));
+    expect(toolbar).toContainElement(screen.getByRole("tab", { name: "Seznam" }));
+    expect(toolbar).toContainElement(screen.getByRole("combobox", { name: "Hledat…" }));
+    expect(toolbar).toContainElement(screen.getByRole("button", { name: "Vložit kontakt" }));
+    expect(toolbar).toContainElement(screen.getByRole("button", { name: "Přidat kontakt" }));
+    expect(toolbar?.querySelectorAll(".tf-contacts-primary-action")).toHaveLength(1);
+  });
+
   it("zpřístupní rychlé vložení jako modal a po Escape vrátí fokus", async () => {
     render(
       <Contacts
