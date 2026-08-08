@@ -37,6 +37,7 @@ const statusLabels: Record<ContractInvoiceStatus, string> = {
 const inputClass =
   'w-full min-w-0 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:border-transparent disabled:bg-transparent disabled:px-0 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:disabled:bg-transparent';
 const labelClass = 'mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500';
+const readValueClass = 'min-h-7 py-1 text-xs font-medium text-slate-800 dark:text-slate-200';
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 const currentPeriod = (): string => todayIso().slice(0, 7);
@@ -58,6 +59,14 @@ const formatEditableNumber = (value: number): string =>
   formatDecimal(value || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const parseEditableNumber = (value: string): number => parseDecimal(value) ?? 0;
+
+const displayText = (value?: string): string => value?.trim() || '—';
+
+const formatDisplayDate = (value?: string): string => {
+  if (!value) return '—';
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('cs-CZ').format(date);
+};
 
 const KpiCard: React.FC<{ label: string; value: number; tone?: string; detail?: string }> = ({
   label,
@@ -84,6 +93,8 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isContractEditing, setIsContractEditing] = useState(false);
+  const [editableAmendmentIds, setEditableAmendmentIds] = useState<Set<string>>(() => new Set());
   const [editableInvoiceIds, setEditableInvoiceIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
@@ -97,6 +108,8 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
     setDirty(false);
     setSaved(false);
     setSaveError(null);
+    setIsContractEditing(false);
+    setEditableAmendmentIds(new Set());
     setEditableInvoiceIds(new Set());
   }, [projectDetails]);
 
@@ -107,6 +120,28 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
     setDirty(true);
     setSaved(false);
     setSaveError(null);
+  };
+
+  const replaceForm = (next: InvestorFinancials) => {
+    setForm(next);
+    setDirty(JSON.stringify(next) !== JSON.stringify(cloneInvestorFinancials(projectDetails)));
+    setSaved(false);
+    setSaveError(null);
+  };
+
+  const cancelContractEdit = () => {
+    const original = cloneInvestorFinancials(projectDetails);
+    replaceForm({
+      ...form,
+      contractNumber: original.contractNumber,
+      contractTitle: original.contractTitle,
+      customerName: original.customerName,
+      signedAt: original.signedAt,
+      sodPrice: original.sodPrice,
+      retentionAPercent: original.retentionAPercent,
+      retentionBPercent: original.retentionBPercent,
+    });
+    setIsContractEditing(false);
   };
 
   const updateFinancials = <K extends keyof InvestorFinancials>(key: K, value: InvestorFinancials[K]) => {
@@ -123,6 +158,7 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       price: 0,
     };
     setForm((current) => ({ ...current, amendments: [...current.amendments, amendment] }));
+    setEditableAmendmentIds((current) => new Set(current).add(amendment.id));
     markChanged();
   };
 
@@ -141,6 +177,24 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       amendments: current.amendments.filter((_, candidate) => candidate !== index),
     }));
     markChanged();
+  };
+
+  const cancelAmendmentEdit = (index: number) => {
+    const amendment = form.amendments[index];
+    if (!amendment) return;
+
+    const original = cloneInvestorFinancials(projectDetails).amendments.find(
+      (candidate) => candidate.id === amendment.id,
+    );
+    const amendments = original
+      ? form.amendments.map((candidate) => candidate.id === amendment.id ? original : candidate)
+      : form.amendments.filter((candidate) => candidate.id !== amendment.id);
+    replaceForm({ ...form, amendments });
+    setEditableAmendmentIds((current) => {
+      const next = new Set(current);
+      next.delete(amendment.id);
+      return next;
+    });
   };
 
   const addInvoice = () => {
@@ -188,6 +242,30 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       });
     }
     markChanged();
+  };
+
+  const cancelInvoiceEdit = (index: number) => {
+    const invoice = invoices[index];
+    if (!invoice) return;
+
+    const original = cloneInvestorFinancials(projectDetails).invoices?.find(
+      (candidate) => candidate.id === invoice.id,
+    );
+    const nextInvoices = original
+      ? invoices.map((candidate) => candidate.id === invoice.id ? original : candidate)
+      : invoices.filter((candidate) => candidate.id !== invoice.id);
+    replaceForm({ ...form, invoices: nextInvoices });
+    setAmountInputs((current) => {
+      const next = { ...current };
+      if (original) next[invoice.id] = formatEditableNumber(original.amount || 0);
+      else delete next[invoice.id];
+      return next;
+    });
+    setEditableInvoiceIds((current) => {
+      const next = new Set(current);
+      next.delete(invoice.id);
+      return next;
+    });
   };
 
   const setInvoiceRetentionOverride = (index: number, enabled: boolean) => {
@@ -246,6 +324,8 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       setForm(nextFinancials);
       setSaved(true);
       setDirty(false);
+      setIsContractEditing(false);
+      setEditableAmendmentIds(new Set());
       setEditableInvoiceIds(new Set());
     } catch (error) {
       setSaved(false);
@@ -282,36 +362,44 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Smlouva s objednatelem</h3>
             <p className="text-xs text-slate-500">Základní smlouva a číslované dodatky.</p>
           </div>
-          <button type="button" onClick={addAmendment} className="rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
-            + Přidat dodatek
-          </button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {isContractEditing ? (
+              <button type="button" onClick={cancelContractEdit} aria-label="Zrušit úpravu smlouvy s objednatelem" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Zrušit</button>
+            ) : (
+              <button type="button" onClick={() => setIsContractEditing(true)} aria-label="Upravit smlouvu s objednatelem" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Upravit smlouvu</button>
+            )}
+            <button type="button" onClick={addAmendment} className="rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">+ Přidat dodatek</button>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div><label className={labelClass}>Číslo smlouvy</label><input className={inputClass} value={form.contractNumber || ''} onChange={(event) => updateFinancials('contractNumber', event.target.value)} /></div>
-          <div><label className={labelClass}>Název smlouvy</label><input className={inputClass} value={form.contractTitle || ''} onChange={(event) => updateFinancials('contractTitle', event.target.value)} /></div>
-          <div><label className={labelClass}>Objednatel</label><input className={inputClass} value={form.customerName || ''} onChange={(event) => updateFinancials('customerName', event.target.value)} /></div>
-          <div><label className={labelClass}>Datum podpisu</label><input type="date" className={inputClass} value={form.signedAt || ''} onChange={(event) => updateFinancials('signedAt', event.target.value)} /></div>
-          <div><label className={labelClass}>Cena smlouvy</label><NumericInput value={form.sodPrice} onChange={(value) => updateFinancials('sodPrice', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="CZK" /></div>
-          <div><label className={labelClass}>Pozastávka A – do předání</label><NumericInput value={form.retentionAPercent ?? 0} onChange={(value) => updateFinancials('retentionAPercent', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="%" /></div>
-          <div><label className={labelClass}>Pozastávka B – po dobu záruky</label><NumericInput value={form.retentionBPercent ?? 0} onChange={(value) => updateFinancials('retentionBPercent', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="%" /></div>
+          <div>{isContractEditing ? <><label htmlFor="investor-contract-number" className={labelClass}>Číslo smlouvy</label><input id="investor-contract-number" className={inputClass} value={form.contractNumber || ''} onChange={(event) => updateFinancials('contractNumber', event.target.value)} /></> : <><div className={labelClass}>Číslo smlouvy</div><div className={readValueClass}>{displayText(form.contractNumber)}</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-contract-title" className={labelClass}>Název smlouvy</label><input id="investor-contract-title" className={inputClass} value={form.contractTitle || ''} onChange={(event) => updateFinancials('contractTitle', event.target.value)} /></> : <><div className={labelClass}>Název smlouvy</div><div className={readValueClass}>{displayText(form.contractTitle)}</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-customer-name" className={labelClass}>Objednatel</label><input id="investor-customer-name" className={inputClass} value={form.customerName || ''} onChange={(event) => updateFinancials('customerName', event.target.value)} /></> : <><div className={labelClass}>Objednatel</div><div className={readValueClass}>{displayText(form.customerName)}</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-contract-signed-at" className={labelClass}>Datum podpisu</label><input id="investor-contract-signed-at" type="date" className={inputClass} value={form.signedAt || ''} onChange={(event) => updateFinancials('signedAt', event.target.value)} /></> : <><div className={labelClass}>Datum podpisu</div><div className={readValueClass}>{formatDisplayDate(form.signedAt)}</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-contract-price" className={labelClass}>Cena smlouvy</label><NumericInput id="investor-contract-price" value={form.sodPrice} onChange={(value) => updateFinancials('sodPrice', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="CZK" /></> : <><div className={labelClass}>Cena smlouvy</div><div className={`${readValueClass} tabular-nums`}>{formatMoney(form.sodPrice)}</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-retention-a" className={labelClass}>Pozastávka A – do předání</label><NumericInput id="investor-retention-a" value={form.retentionAPercent ?? 0} onChange={(value) => updateFinancials('retentionAPercent', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="%" /></> : <><div className={labelClass}>Pozastávka A – do předání</div><div className={`${readValueClass} tabular-nums`}>{formatDecimal(form.retentionAPercent ?? 0)} %</div></>}</div>
+          <div>{isContractEditing ? <><label htmlFor="investor-retention-b" className={labelClass}>Pozastávka B – po dobu záruky</label><NumericInput id="investor-retention-b" value={form.retentionBPercent ?? 0} onChange={(value) => updateFinancials('retentionBPercent', value || 0)} allowNegative={false} maxFractionDigits={2} suffix="%" /></> : <><div className={labelClass}>Pozastávka B – po dobu záruky</div><div className={`${readValueClass} tabular-nums`}>{formatDecimal(form.retentionBPercent ?? 0)} %</div></>}</div>
           <div className="flex items-end text-xs text-slate-500">Zbývá fakturovat: <strong className="ml-1 text-slate-800 dark:text-slate-200">{formatMoney(totals.remainingToInvoice)}</strong></div>
         </div>
 
         {form.amendments.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[760px] text-xs">
-              <thead><tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wider text-slate-500 dark:border-slate-800"><th className="px-2 py-2">Číslo dodatku</th><th className="px-2 py-2">Název / důvod</th><th className="px-2 py-2">Datum</th><th className="px-2 py-2 text-right">Změna ceny</th><th className="w-12" /></tr></thead>
+              <thead><tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wider text-slate-500 dark:border-slate-800"><th className="px-2 py-2">Číslo dodatku</th><th className="px-2 py-2">Název / důvod</th><th className="px-2 py-2">Datum</th><th className="px-2 py-2 text-right">Změna ceny</th><th className="w-20" /></tr></thead>
               <tbody>
-                {form.amendments.map((amendment, index) => (
-                  <tr key={amendment.id} className="border-b border-slate-100 dark:border-slate-800/70">
-                    <td className="p-2"><input aria-label={`Číslo dodatku ${index + 1}`} className={inputClass} value={amendment.number || ''} onChange={(event) => updateAmendment(index, 'number', event.target.value)} /></td>
-                    <td className="p-2"><input aria-label={`Název dodatku ${index + 1}`} className={inputClass} value={amendment.label} onChange={(event) => updateAmendment(index, 'label', event.target.value)} /></td>
-                    <td className="p-2"><input aria-label={`Datum dodatku ${index + 1}`} type="date" className={inputClass} value={amendment.signedAt || ''} onChange={(event) => updateAmendment(index, 'signedAt', event.target.value)} /></td>
-                    <td className="p-2"><NumericInput value={amendment.price} onChange={(value) => updateAmendment(index, 'price', value || 0)} allowNegative maxFractionDigits={2} suffix="CZK" /></td>
-                    <td><button type="button" aria-label={`Smazat dodatek ${index + 1}`} onClick={() => removeAmendment(index)} className="rounded p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></td>
-                  </tr>
-                ))}
+                {form.amendments.map((amendment, index) => {
+                  const editable = editableAmendmentIds.has(amendment.id);
+                  return (
+                    <tr key={amendment.id} className="border-b border-slate-100 dark:border-slate-800/70">
+                      <td className="p-2">{editable ? <input aria-label={`Číslo dodatku ${index + 1}`} className={inputClass} value={amendment.number || ''} onChange={(event) => updateAmendment(index, 'number', event.target.value)} /> : <span>{displayText(amendment.number)}</span>}</td>
+                      <td className="p-2">{editable ? <input aria-label={`Název dodatku ${index + 1}`} className={inputClass} value={amendment.label} onChange={(event) => updateAmendment(index, 'label', event.target.value)} /> : <span>{displayText(amendment.label)}</span>}</td>
+                      <td className="p-2">{editable ? <input aria-label={`Datum dodatku ${index + 1}`} type="date" className={inputClass} value={amendment.signedAt || ''} onChange={(event) => updateAmendment(index, 'signedAt', event.target.value)} /> : <span>{formatDisplayDate(amendment.signedAt)}</span>}</td>
+                      <td className="p-2 text-right tabular-nums">{editable ? <NumericInput aria-label={`Změna ceny dodatku ${index + 1}`} value={amendment.price} onChange={(value) => updateAmendment(index, 'price', value || 0)} allowNegative maxFractionDigits={2} suffix="CZK" /> : formatMoney(amendment.price)}</td>
+                      <td className="p-2"><div className="flex justify-end">{editable ? <button type="button" aria-label={`Zrušit úpravu dodatku ${index + 1}`} onClick={() => cancelAmendmentEdit(index)} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><span className="material-symbols-outlined text-[17px]">close</span></button> : <button type="button" aria-label={`Upravit dodatek ${index + 1}`} onClick={() => setEditableAmendmentIds((current) => new Set(current).add(amendment.id))} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary"><span className="material-symbols-outlined text-[17px]">edit</span></button>}<button type="button" aria-label={`Smazat dodatek ${index + 1}`} onClick={() => removeAmendment(index)} className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></div></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -351,17 +439,17 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
                   }
                   return (
                     <tr key={invoice.id} className="border-b border-slate-100 align-top dark:border-slate-800/70">
-                      <td className="p-2"><input aria-label={`Období faktury ${index + 1}`} type="month" className={inputClass} value={invoice.period || ''} disabled={!editable} onChange={(event) => updateInvoice(index, 'period', event.target.value)} /></td>
-                      <td className="p-2"><input aria-label={`Číslo faktury ${index + 1}`} className={inputClass} placeholder="Číslo faktury" value={invoice.invoiceNumber} disabled={!editable} onChange={(event) => updateInvoice(index, 'invoiceNumber', event.target.value)} /></td>
-                      <td className="p-2"><input aria-label={`Datum vystavení ${index + 1}`} type="date" className={inputClass} value={invoice.issueDate} disabled={!editable} onChange={(event) => updateInvoice(index, 'issueDate', event.target.value)} /></td>
-                      <td className="p-2"><input aria-label={`Splatnost faktury ${index + 1}`} type="date" className={inputClass} value={invoice.dueDate} disabled={!editable} onChange={(event) => updateInvoice(index, 'dueDate', event.target.value)} /></td>
-                      <td className="p-2"><input aria-label={`Fakturovaná částka ${index + 1}`} className={`${inputClass} text-right tabular-nums`} inputMode="decimal" value={amountInputs[invoice.id] ?? formatEditableNumber(invoice.amount || 0)} disabled={!editable} onChange={(event) => { setAmountInputs((current) => ({ ...current, [invoice.id]: event.target.value })); updateInvoice(index, 'amount', parseEditableNumber(event.target.value)); }} onBlur={() => setAmountInputs((current) => ({ ...current, [invoice.id]: formatEditableNumber(invoices[index]?.amount || 0) }))} /></td>
+                      <td className="p-2">{editable ? <input aria-label={`Období faktury ${index + 1}`} type="month" className={inputClass} value={invoice.period || ''} onChange={(event) => updateInvoice(index, 'period', event.target.value)} /> : displayText(invoice.period)}</td>
+                      <td className="p-2 font-medium text-slate-800 dark:text-slate-200">{editable ? <input aria-label={`Číslo faktury ${index + 1}`} className={inputClass} placeholder="Číslo faktury" value={invoice.invoiceNumber} onChange={(event) => updateInvoice(index, 'invoiceNumber', event.target.value)} /> : displayText(invoice.invoiceNumber)}</td>
+                      <td className="p-2">{editable ? <input aria-label={`Datum vystavení ${index + 1}`} type="date" className={inputClass} value={invoice.issueDate} onChange={(event) => updateInvoice(index, 'issueDate', event.target.value)} /> : formatDisplayDate(invoice.issueDate)}</td>
+                      <td className="p-2">{editable ? <input aria-label={`Splatnost faktury ${index + 1}`} type="date" className={inputClass} value={invoice.dueDate} onChange={(event) => updateInvoice(index, 'dueDate', event.target.value)} /> : formatDisplayDate(invoice.dueDate)}</td>
+                      <td className="p-2 text-right tabular-nums">{editable ? <input aria-label={`Fakturovaná částka ${index + 1}`} className={`${inputClass} text-right tabular-nums`} inputMode="decimal" value={amountInputs[invoice.id] ?? formatEditableNumber(invoice.amount || 0)} onChange={(event) => { setAmountInputs((current) => ({ ...current, [invoice.id]: event.target.value })); updateInvoice(index, 'amount', parseEditableNumber(event.target.value)); }} onBlur={() => setAmountInputs((current) => ({ ...current, [invoice.id]: formatEditableNumber(invoices[index]?.amount || 0) }))} /> : formatMoney(invoice.amount)}</td>
                       <td className="p-2 text-right">{editable && hasRetentionOverride ? <div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka A procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionAPercent ?? form.retentionAPercent ?? 0} onChange={(event) => updateInvoice(index, 'retentionAPercent', Number(event.target.value))} /><span>%</span></div> : null}<div className={`${editable && hasRetentionOverride ? 'mt-1 ' : ''}tabular-nums text-amber-600`}>{formatMoney(breakdown.retentionAAmount)}</div></td>
                       <td className="p-2 text-right">{editable && hasRetentionOverride ? <div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka B procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionBPercent ?? form.retentionBPercent ?? 0} onChange={(event) => updateInvoice(index, 'retentionBPercent', Number(event.target.value))} /><span>%</span></div> : null}<div className={`${editable && hasRetentionOverride ? 'mt-1 ' : ''}tabular-nums text-purple-600`}>{formatMoney(breakdown.retentionBAmount)}</div></td>
                       <td className="p-2 text-right font-semibold tabular-nums">{formatMoney(breakdown.payableAmount)}</td>
                       <td className="p-2 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(breakdown.paidAmount)}</td>
-                      <td className="p-2"><select aria-label={`Stav faktury ${index + 1}`} className={inputClass} value={invoice.status} disabled={!editable} onChange={(event) => updateInvoice(index, 'status', event.target.value as ContractInvoiceStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
-                      <td className="p-2"><div className="flex"><button type="button" onClick={() => setEditableInvoiceIds((current) => new Set(current).add(invoice.id))} disabled={editable} aria-label="Upravit fakturu" className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary disabled:text-primary"><span className="material-symbols-outlined text-[17px]">edit</span></button><button type="button" onClick={() => setInvoiceRetentionOverride(index, !hasRetentionOverride)} disabled={!editable} aria-label={hasRetentionOverride ? `Použít globální pozastávky faktury ${index + 1}` : `Nastavit individuální pozastávky faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"><span className="material-symbols-outlined text-[17px]">tune</span></button><button type="button" onClick={() => removeInvoice(index)} aria-label="Smazat fakturu" className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></div></td>
+                      <td className="p-2">{editable ? <select aria-label={`Stav faktury ${index + 1}`} className={inputClass} value={invoice.status} onChange={(event) => updateInvoice(index, 'status', event.target.value as ContractInvoiceStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> : statusLabels[invoice.status]}</td>
+                      <td className="p-2"><div className="flex justify-end">{editable ? <><button type="button" onClick={() => cancelInvoiceEdit(index)} aria-label={`Zrušit úpravu faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><span className="material-symbols-outlined text-[17px]">close</span></button><button type="button" onClick={() => setInvoiceRetentionOverride(index, !hasRetentionOverride)} aria-label={hasRetentionOverride ? `Použít globální pozastávky faktury ${index + 1}` : `Nastavit individuální pozastávky faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary"><span className="material-symbols-outlined text-[17px]">tune</span></button></> : <button type="button" onClick={() => setEditableInvoiceIds((current) => new Set(current).add(invoice.id))} aria-label={`Upravit fakturu ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary"><span className="material-symbols-outlined text-[17px]">edit</span></button>}<button type="button" onClick={() => removeInvoice(index)} aria-label="Smazat fakturu" className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></div></td>
                     </tr>
                   );
                 })}

@@ -182,11 +182,11 @@ describe("InvestorBillingPage", () => {
       />,
     );
 
-    const invoiceNumber = screen.getByDisplayValue("300260019");
-    expect(invoiceNumber).toBeDisabled();
+    expect(screen.getByText("300260019")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Číslo faktury 1")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Upravit fakturu"));
-    expect(invoiceNumber).not.toBeDisabled();
+    fireEvent.click(screen.getByLabelText("Upravit fakturu 1"));
+    const invoiceNumber = screen.getByLabelText("Číslo faktury 1");
 
     fireEvent.change(invoiceNumber, {
       target: { value: "30026019" },
