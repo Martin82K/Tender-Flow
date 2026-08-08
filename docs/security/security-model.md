@@ -17,7 +17,7 @@
 | Browser → Edge Function | request payload a veřejný klient | JWT/vlastní token, schema validace, rate/origin kontrola |
 | Renderer → Electron main | renderer a vstup uživatele | preload allowlist, IPC kontrakt, auth guard, path/URL validace |
 | Externí OAuth → callback | provider callback parametry | state, redirect allowlist, jednorázovost |
-| MCP client → MCP server | externí klient a tool argumenty | access token/client ID, consent, read-only režim, rate limit |
+| MCP client → MCP server | externí klient, Origin a tool argumenty | token audience/resource/client ID, consent, Origin allowlist, RLS, read-only režim, rate limit |
 | Release artefakt → uživatel | build pipeline a distribuční kanál | lokální build, ověření artefaktů, podpis/notarizace podle platformy |
 
 ## Identity a session

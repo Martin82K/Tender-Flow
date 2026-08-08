@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { redactForAudit, summarizeResultForAudit } from "../server/mcp/audit.js";
 import { buildMcpResourceMetadata } from "../server/mcp/response.js";
 import { validateMcpTokenClaims } from "../server/mcp/supabaseAuth.js";
-import { assertProjectVisible, handleMcpWebRequest } from "../server/mcp/tenderFlowMcp.js";
+import {
+  assertProjectVisible,
+  handleAuthorizedMcpRequest,
+  handleMcpWebRequest,
+} from "../server/mcp/tenderFlowMcp.js";
 import { checkMcpRateLimit, resetMcpRateLimitsForTests } from "../server/mcp/rateLimit.js";
 
 const ROOT = process.cwd();
@@ -16,7 +20,9 @@ describe("remote MCP server", () => {
     delete process.env.MCP_ALLOWED_CLIENT_IDS;
     delete process.env.MCP_ALLOWED_AUDIENCES;
     delete process.env.MCP_REQUIRED_SCOPES;
+    delete process.env.MCP_ALLOWED_ORIGINS;
     delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_ANON_KEY;
     delete process.env.VITE_SUPABASE_URL;
     delete process.env.TENDER_FLOW_MCP_CLIENT_ID;
   });
@@ -172,6 +178,88 @@ describe("remote MCP server", () => {
     expect(source).toContain("annotations: { readOnlyHint: true");
     expect(source).toContain("Only create_task execution is enabled in MCP MVP.");
     expect(source).not.toContain("hard_delete");
+  });
+
+  it("používá MCP 2.0 server pro protokol 2026-07-28", () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
+    const stdioSource = fs.readFileSync(path.join(ROOT, "scripts/mcp-stdio.js"), "utf8").replace(/\r\n/g, "\n");
+
+    expect(pkg.dependencies["@modelcontextprotocol/server"]).toBe("2.0.0");
+    expect(pkg.dependencies["@modelcontextprotocol/sdk"]).toBeUndefined();
+    expect(source).toContain("import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';");
+    expect(source).toContain("createMcpHandler");
+    expect(stdioSource).toContain("serveStdio");
+  });
+
+  it("obslouží moderní server/discover bez legacy initialize session", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    const response = await handleAuthorizedMcpRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+          "mcp-protocol-version": "2026-07-28",
+          "mcp-method": "server/discover",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "discover-1",
+          method: "server/discover",
+          params: {
+            _meta: {
+              "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+              "io.modelcontextprotocol/clientInfo": { name: "Tender Flow test", version: "1.0.0" },
+              "io.modelcontextprotocol/clientCapabilities": {},
+            },
+          },
+        }),
+      }),
+      {
+        token: "test-access-token",
+        userId: "user-1",
+        clientId: "client-1",
+        scopes: ["openid", "email", "profile"],
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      jsonrpc: "2.0",
+      id: "discover-1",
+      result: {
+        resultType: "complete",
+        supportedVersions: ["2026-07-28"],
+      },
+    });
+  });
+
+  it("odmítne nedůvěryhodný browser Origin před autentizací", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MCP_ALLOWED_ORIGINS", "https://chatgpt.com");
+
+    const rejected = await handleMcpWebRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: { origin: "https://evil.example", "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "server/discover" }),
+      }),
+    );
+    expect(rejected.status).toBe(403);
+    await expect(rejected.json()).resolves.toMatchObject({ error: "forbidden_origin" });
+
+    const allowed = await handleMcpWebRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: { origin: "https://chatgpt.com", "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "server/discover" }),
+      }),
+    );
+    expect(allowed.status).toBe(401);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe("https://chatgpt.com");
   });
 
   it("má lokální stdio entrypoint pro Claude Code/Codex a bez OAuth client_id schová write tools", () => {

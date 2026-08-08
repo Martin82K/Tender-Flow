@@ -1,6 +1,5 @@
 import * as z from 'zod/v4';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { createUserSupabaseClient } from './data.js';
 import {
   buildSearchResults,
@@ -307,7 +306,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.1.0',
+      version: '0.2.0',
     },
     {
       capabilities: {
@@ -515,17 +514,104 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   return server;
 };
 
+const authFromRequestContext = (context) => {
+  const authInfo = context.authInfo;
+  const userId = typeof authInfo?.extra?.userId === 'string'
+    ? authInfo.extra.userId
+    : '';
+
+  if (!authInfo?.token || !authInfo.clientId || !userId) {
+    throw new Error('Authenticated MCP request context is incomplete.');
+  }
+
+  return {
+    token: authInfo.token,
+    userId,
+    clientId: authInfo.clientId,
+    scopes: authInfo.scopes,
+    expiresAt: authInfo.expiresAt,
+    email: typeof authInfo.extra?.email === 'string' ? authInfo.extra.email : undefined,
+  };
+};
+
+const tenderFlowMcpHandler = createMcpHandler(
+  (context) => createTenderFlowMcpServer(authFromRequestContext(context)),
+  {
+    legacy: 'stateless',
+  },
+);
+
+export const handleAuthorizedMcpRequest = async (request, auth) =>
+  tenderFlowMcpHandler.fetch(request, {
+    authInfo: {
+      token: auth.token,
+      clientId: auth.clientId,
+      scopes: auth.scopes,
+      expiresAt: auth.expiresAt,
+      extra: { userId: auth.userId, email: auth.email },
+    },
+  });
+
+const allowedMcpOrigins = () =>
+  (process.env.MCP_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+export const validateMcpRequestOrigin = (request) => {
+  const origin = request.headers.get('origin');
+  if (!origin) return undefined;
+
+  let normalizedOrigin;
+  try {
+    const parsed = new URL(origin);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {
+      throw new Error('Origin must be an absolute HTTP(S) origin.');
+    }
+    normalizedOrigin = parsed.origin;
+  } catch {
+    throw new Error('MCP request origin is invalid.');
+  }
+
+  const configuredOrigins = allowedMcpOrigins();
+  const developmentFallback = process.env.NODE_ENV === 'production'
+    ? []
+    : [new URL(getBaseUrl(request)).origin];
+  if (![...configuredOrigins, ...developmentFallback].includes(normalizedOrigin)) {
+    throw new Error('MCP request origin is not allowed.');
+  }
+
+  return normalizedOrigin;
+};
+
+const withMcpCors = (response, origin) => {
+  if (origin) {
+    response.headers.set('access-control-allow-origin', origin);
+    response.headers.append('vary', 'Origin');
+  }
+  response.headers.set('access-control-expose-headers', 'mcp-protocol-version,www-authenticate');
+  return response;
+};
+
 export const handleMcpWebRequest = async (request) => {
+  let origin;
+  try {
+    origin = validateMcpRequestOrigin(request);
+  } catch (error) {
+    return jsonResponse(403, {
+      error: 'forbidden_origin',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
+    return withMcpCors(new Response(null, {
       status: 204,
       headers: {
-        'access-control-allow-origin': '*',
-        'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-        'access-control-allow-headers': 'authorization,content-type,mcp-session-id,mcp-protocol-version,last-event-id',
-        'access-control-expose-headers': 'mcp-session-id,mcp-protocol-version,www-authenticate',
+        'access-control-allow-methods': 'POST,OPTIONS',
+        'access-control-allow-headers': 'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name',
       },
-    });
+    }), origin);
   }
 
   let auth;
@@ -534,32 +620,18 @@ export const handleMcpWebRequest = async (request) => {
       expectedResource: `${getBaseUrl(request)}/api/mcp`,
     });
   } catch (error) {
-    return unauthorizedMcpResponse(request, error instanceof Error ? error.message : String(error));
+    return withMcpCors(
+      unauthorizedMcpResponse(request, error instanceof Error ? error.message : String(error)),
+      origin,
+    );
   }
 
   try {
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse: true,
-    });
-    const server = createTenderFlowMcpServer(auth);
-    await server.connect(transport);
-    const response = await transport.handleRequest(request, {
-      authInfo: {
-        token: auth.token,
-        clientId: auth.clientId,
-        scopes: auth.scopes,
-        expiresAt: auth.expiresAt,
-        extra: { userId: auth.userId, email: auth.email },
-      },
-    });
-    response.headers.set('access-control-allow-origin', '*');
-    response.headers.set('access-control-expose-headers', 'mcp-session-id,mcp-protocol-version,www-authenticate');
-    return response;
+    return withMcpCors(await handleAuthorizedMcpRequest(request, auth), origin);
   } catch (error) {
-    return jsonResponse(500, {
+    return withMcpCors(jsonResponse(500, {
       error: 'mcp_server_error',
       message: error instanceof Error ? error.message : String(error),
-    });
+    }), origin);
   }
 };

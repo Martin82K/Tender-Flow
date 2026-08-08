@@ -21,7 +21,8 @@ describe("root dependency security versions", () => {
   const lockfile = readJson<PackageLock>(join(root, "package-lock.json"));
 
   it("pins patched direct dependencies", () => {
-    expect(manifest.dependencies?.["@modelcontextprotocol/sdk"]).toBe("^1.30.0");
+    expect(manifest.dependencies?.["@modelcontextprotocol/server"]).toBe("2.0.0");
+    expect(manifest.dependencies?.["@modelcontextprotocol/sdk"]).toBeUndefined();
     expect(manifest.dependencies?.dompurify).toBe("3.4.13");
     expect(manifest.dependencies?.express).toBe("^4.22.2");
     expect(manifest.dependencies?.["posthog-js"]).toBe("1.379.1");
@@ -64,6 +65,8 @@ describe("root dependency security versions", () => {
 
   it.each([
     ["node_modules/@hono/node-server", "2.1.0"],
+    ["node_modules/@modelcontextprotocol/core", "2.0.0"],
+    ["node_modules/@modelcontextprotocol/server", "2.0.0"],
     ["node_modules/@modelcontextprotocol/sdk", "1.30.0"],
     ["node_modules/@modelcontextprotocol/sdk/node_modules/body-parser", "2.3.0"],
     ["node_modules/@vitejs/plugin-react", "6.0.3"],
