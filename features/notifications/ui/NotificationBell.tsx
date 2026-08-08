@@ -2,6 +2,15 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 import { useNotifications } from "../hooks/useNotifications";
 import { NotificationCenter } from "./NotificationCenter";
 
+const measureNotificationAnchor = (button: HTMLButtonElement | null) => {
+  const rect = button?.getBoundingClientRect();
+  if (!rect) return null;
+  return {
+    top: rect.bottom + 8,
+    right: window.innerWidth - rect.right,
+  };
+};
+
 /**
  * Self-contained notification bell button + dropdown.
  * Drop this into any Header via the notificationSlot prop.
@@ -22,24 +31,24 @@ export const NotificationBell: React.FC = () => {
   } = useNotifications(true);
 
   const handleToggle = () => {
-    const next = !isOpen;
-    setIsOpen(next);
-    if (next) refresh();
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+
+    setAnchor(measureNotificationAnchor(buttonRef.current));
+    setIsOpen(true);
+    refresh();
   };
 
   useLayoutEffect(() => {
     if (!isOpen) return;
     const updatePos = () => {
-      const rect = buttonRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setAnchor({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+      setAnchor(measureNotificationAnchor(buttonRef.current));
     };
     updatePos();
     window.addEventListener("resize", updatePos);
-    window.addEventListener("scroll", updatePos, true);
+    window.addEventListener("scroll", updatePos, { capture: true, passive: true });
     return () => {
       window.removeEventListener("resize", updatePos);
       window.removeEventListener("scroll", updatePos, true);

@@ -34,6 +34,7 @@ const tenantOverviewSource = readFileSync(join(process.cwd(), "features/projects
 const statusDistributionChartSource = readFileSync(join(process.cwd(), "shared/ui/overview/StatusDistributionChart.tsx"), "utf8");
 const budgetDeviationGaugeSource = readFileSync(join(process.cwd(), "shared/ui/overview/BudgetDeviationGauge.tsx"), "utf8");
 const appContentSource = readFileSync(join(process.cwd(), "app/AppContent.tsx"), "utf8");
+const headerSource = readFileSync(join(process.cwd(), "shared/ui/Header.tsx"), "utf8");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -101,6 +102,16 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('html[data-skin="industrial"] [data-help-id="notification-item"]');
     expect(css).toContain("width: min(26rem, calc(100vw - 1rem)) !important");
     expect(css).toContain("box-shadow: inset 0 -1px 0 var(--tf-skin-orange) !important");
+  });
+
+  it("industrial vyhledávání v topbaru používá skin tokeny i v tmavém režimu", () => {
+    expect(headerSource).toContain('data-help-id="topbar-search"');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search-icon"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search-input"]');
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important");
+    expect(css).toContain("color: var(--tf-skin-text) !important");
+    expect(css).toContain("color: var(--tf-skin-muted-2) !important");
   });
 
   it("industrial pipeline menu používají skin tokeny i mimo topbar portál", () => {

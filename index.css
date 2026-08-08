@@ -564,6 +564,29 @@ html[data-skin="industrial"] [data-help-id="notification-bell"] {
   color: var(--tf-skin-text-2) !important;
 }
 
+html[data-skin="industrial"] [data-help-id="topbar-search"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="topbar-search"]:focus-within {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 58%, var(--tf-skin-line) 42%) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tf-skin-orange) 18%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="topbar-search-icon"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="topbar-search-input"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="topbar-search-input"]::placeholder {
+  color: var(--tf-skin-muted-2) !important;
+  opacity: 1;
+}
+
 html[data-skin="industrial"] [data-help-id="notification-bell"]:hover,
 html[data-skin="industrial"] [data-help-id="notification-bell"][aria-expanded="true"] {
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface-muted) 92%) !important;
