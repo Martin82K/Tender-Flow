@@ -1,5 +1,5 @@
 import { getRequiredMcpScopes } from './supabaseAuth.js';
-import { getSupportedMcpScopes } from './scopePolicy.js';
+import { getSupportedMcpOAuthScopes } from './scopePolicy.js';
 
 export const jsonResponse = (status, body, headers = {}) =>
   new Response(JSON.stringify(body), {
@@ -36,7 +36,7 @@ export const buildMcpResourceMetadata = (request) => {
     bearer_methods_supported: ['header'],
     scopes_supported: Array.from(new Set([
       ...getRequiredMcpScopes(),
-      ...getSupportedMcpScopes(),
+      ...getSupportedMcpOAuthScopes(),
     ])),
     resource_documentation: `${baseUrl}/app/settings?tab=tools`,
   };

@@ -3,6 +3,16 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — fail-closed OAuth kompatibilita
+
+- standardní Supabase OAuth scopes byly odděleny od interních Tender Flow
+  permissions,
+- vlastní `tenderflow.*` hodnota v tokenovém `scope` již nemůže zpřístupnit
+  kontaktní ani write schopnost,
+- remote i stdio policy nyní vydává pouze obecné read oprávnění,
+- consent a dokumentace jasně uvádějí, že kontaktní data a zápis jsou vypnuté
+  do zavedení autoritativního user+client grant modelu.
+
 ## 2026-08-09 — dokumentační základ
 
 - přidána ucelená česká reference architektury, OAuth, scopes, tools,
@@ -11,15 +21,16 @@ detailní zdroj jednotlivých diffů.
   `in-memory` rate limitu,
 - přidán automatický test shody protokolu, názvů tools a resource URI.
 
-## 2026-08-08 — scoped katalog a resources
+## 2026-08-08 — původní scoped katalog a resources
 
-- zavedeny scopes `tenderflow.read`, `tenderflow.contacts.read` a
-  `tenderflow.write`,
+- zavedeny doménové identifikátory `tenderflow.read`,
+  `tenderflow.contacts.read` a `tenderflow.write`; od 2026-08-09 jsou vedeny
+  jako interní permissions, ne jako Supabase OAuth scopes,
 - přidány resources `tenderflow://catalog`,
   `tenderflow://projects/{projectId}` a
   `tenderflow://organizations/{organizationId}/contracts/overview`,
 - resources mají private cache hints a audit,
-- stdio session již automaticky nezíská contact PII ani write scope,
+- stdio session již automaticky nezíská contact PII ani write oprávnění,
 - lokální audit používá bezpečně omezené `local-stdio` RLS pravidlo.
 
 ## 2026-08-08 — MCP SDK v2

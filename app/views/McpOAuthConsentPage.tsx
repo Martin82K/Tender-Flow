@@ -15,16 +15,22 @@ const scopeLabel = (scope: string): string => {
       return "e-mail uživatele";
     case "profile":
       return "základní profil";
-    case "tenderflow.read":
-      return "čtení projektů, výběrových řízení a smluv v rozsahu vašich oprávnění";
-    case "tenderflow.contacts.read":
-      return "čtení kontaktních údajů dodavatelů v rozsahu vašich oprávnění";
-    case "tenderflow.write":
-      return "navrhování a potvrzené provádění změn v Tender Flow";
+    case "phone":
+      return "telefonní číslo uživatele";
+    case "offline_access":
+      return "obnovení přístupu bez opakovaného přihlášení";
     default:
       return scope;
   }
 };
+
+const supportedOAuthScopes = new Set([
+  "openid",
+  "email",
+  "profile",
+  "phone",
+  "offline_access",
+]);
 
 const getAuthorizationIdFromSearch = (search: string): string => {
   const params = new URLSearchParams(search);
@@ -58,10 +64,9 @@ export const McpOAuthConsentPage: React.FC = () => {
       (details?.scope || "")
         .split(/\s+/)
         .map((scope) => scope.trim())
-        .filter(Boolean),
+        .filter((scope) => supportedOAuthScopes.has(scope)),
     [details?.scope],
   );
-  const canWrite = scopes.includes("tenderflow.write");
 
   useEffect(() => {
     let isMounted = true;
@@ -150,7 +155,7 @@ export const McpOAuthConsentPage: React.FC = () => {
               </div>
 
               <div className="rounded-md border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-wide text-white/50">Požadovaný přístup</p>
+                <p className="text-xs uppercase tracking-wide text-white/50">OAuth identita</p>
                 <ul className="mt-2 space-y-2 text-sm text-white/80">
                   {scopes.length > 0 ? (
                     scopes.map((scope) => <li key={scope}>- {scopeLabel(scope)}</li>)
@@ -160,10 +165,16 @@ export const McpOAuthConsentPage: React.FC = () => {
                 </ul>
               </div>
 
+              <div className="rounded-md border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-wide text-white/50">Oprávnění v Tender Flow</p>
+                <ul className="mt-2 space-y-2 text-sm text-white/80">
+                  <li>- čtení projektů, výběrových řízení, smluv, plánů a termínů v rozsahu vašich oprávnění</li>
+                  <li>- Kontaktní údaje a zápisové operace nejsou povoleny.</li>
+                </ul>
+              </div>
+
               <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
-                {canWrite
-                  ? "AI bude moct číst povolená data a navrhovat změny. Každý zápis vyžaduje samostatné potvrzení přes návrh, přesnou potvrzovací větu a jednorázový token."
-                  : "AI bude moct pouze číst data odpovídající schváleným scopes a vašim oprávněním v Tender Flow."}
+                AI bude moct pouze číst obecná data, která už smíte zobrazit v Tender Flow. OAuth scopes ověřují vaši identitu; nerozšiřují oprávnění k datům.
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">

@@ -15,8 +15,8 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 
 | Hranice | Nedůvěryhodný vstup | Kontroly |
 | --- | --- | --- |
-| klient → HTTP | Origin, headers, JSON, token | Origin allowlist, JWT/issuer/audience/resource/client/scopes, schema |
-| MCP → tool/resource | názvy a argumenty | podmíněná registrace, opakovaná scope kontrola, Zod, rate limit |
+| klient → HTTP | Origin, headers, JSON, token | Origin allowlist, JWT/issuer/audience/resource/client/identity scopes, schema |
+| MCP → tool/resource | názvy a argumenty | serverové permissions, podmíněná registrace, opakovaná kontrola, Zod, rate limit |
 | MCP → data | ID, filtry, search | omezené selecty/RPC, user Bearer token, RLS a tenant role |
 | write workflow | proposal, potvrzení, token | user+client vazba, expirace, hash tokenu, idempotence |
 | audit | vstupy a výsledky | redakce secret/PII klíčů, omezené souhrny, RLS |
@@ -26,8 +26,9 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 - **Cross-tenant access:** autoritativně blokuje RLS/RPC; scope sám nestačí.
 - **Ukradený nebo zaměněný token:** issuer, resource/audience a OAuth client
   allowlist; krátká expirace má být řízena Auth serverem.
-- **Scope escalation:** tool se skryje a při volání znovu ověří; stdio běžnému
-  session tokenu nepřidá contacts/write.
+- **Permission escalation:** vlastní `tenderflow.*` token scope se nikdy
+  nepřekládá na permission; tool se skryje a při volání se permission znovu
+  ověří. Remote i stdio mají nyní pouze obecné read oprávnění.
 - **Prompt injection:** data z Tender Flow jsou nedůvěryhodný obsah, nikoli
   instrukce; zápis vyžaduje explicitní třífázový tok.
 - **Citlivá dokumentová metadata:** MCP mapování odstraňuje raw URL a storage
@@ -44,6 +45,10 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
   signalizaci každého výpadku auditu.
 - Produkční OAuth canary, expirace a cross-tenant negativní scénář s reálným
   klientem ještě nejsou zdokumentovány jako vykonané.
+- Živě není ověřeno, zda Supabase access token obsahuje MCP resource claim ve
+  tvaru očekávaném serverem; kontrola zůstává fail-closed a ověří ji canary.
+- Kontaktní a write grant model vázaný na uživatele i OAuth klienta dosud není
+  implementován; citlivé schopnosti proto zůstávají vypnuté.
 - `desktop MCP` nepoužívá stejný katalog/protokol jako remote/stdio.
 - Databázové grants mají být dále zúženy; RLS je aktuální hlavní ochrana řádků.
 

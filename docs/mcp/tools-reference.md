@@ -1,6 +1,6 @@
 # Reference MCP tools
 
-Stav: 15 registrovaných nástrojů k 2026-08-09
+Stav: 15 nástrojů v policy katalogu; 6 obecných read-only nástrojů dostupných remote/stdio k 2026-08-09
 Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/scopePolicy.js`,
 `server/mcp/data.js`
 
@@ -9,11 +9,15 @@ klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
 `{ "ok": boolean, "data"?: unknown, "error"?: string }`; `search` vrací
 `{ "results": [...] }`. Chyba toolu nastaví `isError` a je auditována.
 
+Označení „disabled“ níže znamená, že implementace existuje, ale současná
+serverová policy remote ani stdio klientům nevydává potřebnou interní
+permission. OAuth token tuto permission nemůže sám získat vlastním scope.
+
 ## Discovery a načtení výsledku
 
 ### `search`
 
-- Scopes: read + contacts; riziko: low; pouze čtení.
+- Permissions: read + contacts; riziko: low; pouze čtení; **disabled**.
 - Vstup: `query` — 1 až 500 znaků.
 - Použití: první krok pro connector/deep-research discovery nad projekty, VŘ,
   kontakty a smluvními záznamy.
@@ -21,7 +25,7 @@ klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
 
 ### `fetch`
 
-- Scopes: read + contacts; riziko: low; pouze čtení.
+- Permissions: read + contacts; riziko: low; pouze čtení; **disabled**.
 - Vstup: `id` ze `search`, nejvýše 200 znaků.
 - Podporované identifikátory: `project:<id>`,
   `tender:<projectId>:<tenderId>` a `contact:<id>`.
@@ -30,29 +34,29 @@ klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
 
 ## Projekty a výběrová řízení
 
-| Tool | Scopes | Vstup | Výsledek a limity |
+| Tool | Permissions / dostupnost | Vstup | Výsledek a limity |
 | --- | --- | --- | --- |
-| `tf_list_projects` | read | `search?`, `limit?` | viditelné projekty; server limituje počet na 20 |
-| `tf_get_project_detail` | read + contacts | `projectId` | projekt, VŘ, nabídky, smlouvy a plán; RLS-scoped |
-| `tf_list_tenders` | read | `projectId?`, `limit?` | VŘ/demand categories; limit max. 20 |
-| `tf_list_bids` | read + contacts | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 20 |
-| `tf_list_winners` | read + contacts | `projectId?`, `categoryId?`, `limit?` | pouze vítězné/zasmluvněné nabídky |
-| `tf_list_tender_plan` | read | `projectId?`, `limit?` | harmonogram/plán VŘ; limit max. 20 |
-| `tf_list_upcoming_deadlines` | read | `rangeDays?` | budoucí termíny; rozsah je normalizován na 1–365 dní |
+| `tf_list_projects` | read / dostupný | `search?`, `limit?` | viditelné projekty; server limituje počet na 20 |
+| `tf_get_project_detail` | read + contacts / disabled | `projectId` | projekt, VŘ, nabídky, smlouvy a plán; RLS-scoped |
+| `tf_list_tenders` | read / dostupný | `projectId?`, `limit?` | VŘ/demand categories; limit max. 20 |
+| `tf_list_bids` | read + contacts / disabled | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 20 |
+| `tf_list_winners` | read + contacts / disabled | `projectId?`, `categoryId?`, `limit?` | pouze vítězné/zasmluvněné nabídky |
+| `tf_list_tender_plan` | read / dostupný | `projectId?`, `limit?` | harmonogram/plán VŘ; limit max. 20 |
+| `tf_list_upcoming_deadlines` | read / dostupný | `rangeDays?` | budoucí termíny; rozsah je normalizován na 1–365 dní |
 
 ## Kontakty a smlouvy
 
-| Tool | Scopes | Vstup | Výsledek a ochrana |
+| Tool | Permissions / dostupnost | Vstup | Výsledek a ochrana |
 | --- | --- | --- | --- |
-| `tf_list_contacts` | read + contacts | `search?`, `limit?` | dodavatelé a kontaktní PII; limit max. 20 |
-| `tf_list_contracts` | read | `projectId?`, `limit?` | smlouvy viditelné uživateli; limit max. 20 |
-| `tf_get_contract_overview` | read | `organizationId?` UUID, `includeArchived?` | autorizovaný RPC přehled; bez raw storage path/URL; neplatná měna se mapuje na CZK |
+| `tf_list_contacts` | read + contacts / disabled | `search?`, `limit?` | dodavatelé a kontaktní PII; limit max. 20 |
+| `tf_list_contracts` | read / dostupný | `projectId?`, `limit?` | smlouvy viditelné uživateli; limit max. 20 |
+| `tf_get_contract_overview` | read / dostupný | `organizationId?` UUID, `includeArchived?` | autorizovaný RPC přehled; bez raw storage path/URL; neplatná měna se mapuje na CZK |
 
 ## Bezpečný zápis
 
 ### `tf_prepare_change`
 
-- Scopes: read + write; riziko medium.
+- Permissions: read + write; riziko medium; **disabled**.
 - Vstup: `change` a volitelný `reason` do 1000 znaků.
 - Pro `create_task`: `title` 1–500, `note?` max. 10 000, `dueAt?`,
   `priority?` 1–4, `projectId?`.
@@ -61,14 +65,14 @@ klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
 
 ### `tf_confirm_change`
 
-- Scopes: read + write; riziko high.
+- Permissions: read + write; riziko high; **disabled**.
 - Vstup: UUID `proposalId` a přesný `confirmationText`.
 - Ověří vlastníka, OAuth klienta, stav a desetiminutovou expiraci.
 - Výstup: krátkodobý jednorázový `executeToken`; token se nesmí logovat.
 
 ### `tf_execute_change`
 
-- Scopes: read + write; riziko high; destruktivní hint, idempotentní chování.
+- Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **disabled**.
 - Vstup: `proposalId`, `executeToken` a `idempotencyKey` 8–200 znaků.
 - Pouze `create_task` je implementovaný execution typ.
 - Opakování stejného user/client/idempotency klíče vrací uložený výsledek.

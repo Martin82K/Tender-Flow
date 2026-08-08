@@ -17,10 +17,12 @@ import { logMcpAuditEvent, summarizeResultForAudit } from './audit.js';
 import { checkMcpRateLimit } from './rateLimit.js';
 import { getBaseUrl, unauthorizedMcpResponse, jsonResponse } from './response.js';
 import {
-  MCP_SCOPES,
-  assertMcpScopes,
+  MCP_OAUTH_SCOPES,
+  MCP_PERMISSIONS,
+  assertMcpOAuthScopes,
+  assertMcpPermissions,
   getMcpToolPolicy,
-  hasMcpScopes,
+  hasMcpPermissions,
 } from './scopePolicy.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
 
@@ -281,7 +283,7 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
   const policy = getMcpToolPolicy(toolName);
   const effectiveRiskLevel = riskLevel === 'low' ? policy.riskLevel : riskLevel;
   try {
-    assertMcpScopes(auth, policy.requiredScopes);
+    assertMcpPermissions(auth, policy.requiredPermissions);
     checkMcpRateLimit(auth, toolName, effectiveRiskLevel);
     const result = await handler(args);
     await logMcpAuditEvent(supabase, {
@@ -312,7 +314,7 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
 
 const registerScopedTool = (server, auth, toolName, config, handler) => {
   const policy = getMcpToolPolicy(toolName);
-  if (!hasMcpScopes(auth.scopes, policy.requiredScopes)) return;
+  if (!hasMcpPermissions(auth.permissions, policy.requiredPermissions)) return;
   server.registerTool(toolName, config, handler);
 };
 
@@ -328,12 +330,13 @@ const withResourceAudit = (
   auth,
   supabase,
   resourceName,
-  requiredScopes,
+  requirements,
   handler,
 ) => async (...args) => {
   const uri = args[0];
   try {
-    assertMcpScopes(auth, requiredScopes);
+    assertMcpOAuthScopes(auth, requirements.oauthScopes || []);
+    assertMcpPermissions(auth, requirements.permissions || []);
     checkMcpRateLimit(auth, `resource:${resourceName}`, 'low');
     const result = await handler(...args);
     await logMcpAuditEvent(supabase, {
@@ -376,19 +379,20 @@ const registerTenderFlowResources = (server, auth, supabase) => {
       auth,
       supabase,
       'catalog',
-      [MCP_SCOPES.identity],
+      { oauthScopes: [MCP_OAUTH_SCOPES.identity] },
       async (uri) => resourceJson(uri, {
         protocolVersion: '2026-07-28',
         resources: [
           'tenderflow://projects/{projectId}',
           'tenderflow://organizations/{organizationId}/contracts/overview',
         ],
-        scopes: MCP_SCOPES,
+        oauthScopes: MCP_OAUTH_SCOPES,
+        permissions: MCP_PERMISSIONS,
       }),
     ),
   );
 
-  if (hasMcpScopes(auth.scopes, [MCP_SCOPES.read, MCP_SCOPES.contactsRead])) {
+  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read, MCP_PERMISSIONS.contactsRead])) {
     server.registerResource(
       'tender-flow-project',
       new ResourceTemplate('tenderflow://projects/{projectId}', { list: undefined }),
@@ -402,13 +406,13 @@ const registerTenderFlowResources = (server, auth, supabase) => {
         auth,
         supabase,
         'project',
-        [MCP_SCOPES.read, MCP_SCOPES.contactsRead],
+        { permissions: [MCP_PERMISSIONS.read, MCP_PERMISSIONS.contactsRead] },
         async (uri, variables) => resourceJson(uri, await getProjectDetail(supabase, variables.projectId)),
       ),
     );
   }
 
-  if (hasMcpScopes(auth.scopes, [MCP_SCOPES.read])) {
+  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read])) {
     server.registerResource(
       'tender-flow-contract-overview',
       new ResourceTemplate(
@@ -425,7 +429,7 @@ const registerTenderFlowResources = (server, auth, supabase) => {
         auth,
         supabase,
         'contract-overview',
-        [MCP_SCOPES.read],
+        { permissions: [MCP_PERMISSIONS.read] },
         async (uri, variables) => resourceJson(uri, await getContractOverview(supabase, {
           organizationId: z.string().uuid().parse(variables.organizationId),
           includeArchived: false,
@@ -683,7 +687,10 @@ const authFromRequestContext = (context) => {
     token: authInfo.token,
     userId,
     clientId: authInfo.clientId,
-    scopes: authInfo.scopes,
+    oauthScopes: authInfo.scopes,
+    permissions: Array.isArray(authInfo.extra?.permissions)
+      ? authInfo.extra.permissions.filter((permission) => typeof permission === 'string')
+      : [],
     expiresAt: authInfo.expiresAt,
     email: typeof authInfo.extra?.email === 'string' ? authInfo.extra.email : undefined,
   };
@@ -701,9 +708,9 @@ export const handleAuthorizedMcpRequest = async (request, auth) =>
     authInfo: {
       token: auth.token,
       clientId: auth.clientId,
-      scopes: auth.scopes,
+      scopes: auth.oauthScopes,
       expiresAt: auth.expiresAt,
-      extra: { userId: auth.userId, email: auth.email },
+      extra: { userId: auth.userId, email: auth.email, permissions: auth.permissions },
     },
   });
 

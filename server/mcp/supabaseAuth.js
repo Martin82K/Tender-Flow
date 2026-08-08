@@ -1,4 +1,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  getLocalSessionMcpPermissions,
+  getRemoteMcpPermissions,
+  getSupportedMcpOAuthScopes,
+} from './scopePolicy.js';
 
 const getEnv = (name, fallbackName) =>
   process.env[name] || (fallbackName ? process.env[fallbackName] : '') || '';
@@ -54,8 +59,15 @@ export const getAllowedClientIds = () =>
     .map((value) => value.trim())
     .filter(Boolean);
 
-export const getRequiredMcpScopes = () =>
-  splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid');
+export const getRequiredMcpScopes = () => {
+  const requiredScopes = splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid');
+  const supportedScopes = new Set(getSupportedMcpOAuthScopes());
+  const unsupportedScopes = requiredScopes.filter((scope) => !supportedScopes.has(scope));
+  if (unsupportedScopes.length > 0) {
+    throw new Error(`MCP_REQUIRED_SCOPES contains unsupported OAuth scopes: ${unsupportedScopes.join(', ')}.`);
+  }
+  return requiredScopes;
+};
 
 export const getAllowedAudiences = (expectedResource) =>
   splitCsvEnv('MCP_ALLOWED_AUDIENCES', `authenticated,${expectedResource || ''}`);
@@ -110,7 +122,12 @@ export const validateMcpTokenClaims = (payload, options = {}) => {
     throw new Error(`OAuth token is missing required MCP scopes: ${missingScopes.join(', ')}.`);
   }
 
-  return { userId, clientId, scopes };
+  return {
+    userId,
+    clientId,
+    oauthScopes: scopes,
+    permissions: getRemoteMcpPermissions(),
+  };
 };
 
 export const verifyMcpBearerToken = async (authorizationHeader, options = {}) => {
@@ -128,7 +145,8 @@ export const verifyMcpBearerToken = async (authorizationHeader, options = {}) =>
     token,
     userId: claims.userId,
     clientId: claims.clientId,
-    scopes: claims.scopes,
+    oauthScopes: claims.oauthScopes,
+    permissions: claims.permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     payload,
@@ -159,7 +177,8 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
     token,
     userId,
     clientId,
-    scopes: parseScopes(payload),
+    oauthScopes: parseScopes(payload),
+    permissions: getLocalSessionMcpPermissions(),
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     hasOAuthClientId: Boolean(oauthClientId),

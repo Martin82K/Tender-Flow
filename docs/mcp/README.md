@@ -30,10 +30,14 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
 
 ## Aktuální hranice
 
-- Remote MCP nabízí 12 read nástrojů, 3 nástroje zápisového protokolu a
-  3 resource URI.
-- Pouze `create_task` lze skutečně dokončit přes zápisový tok. Ostatní typy
-  změn jsou návrhové položky a server je odmítne vykonat.
+- Policy katalog implementuje 12 read nástrojů a 3 nástroje zápisového
+  protokolu. Remote i stdio nyní fail-closed zpřístupňují jen 6 obecných
+  read-only nástrojů bez kontaktních údajů a write operací.
+- Třífázový zápisový protokol je implementovaný, ale remote klientům není
+  vydáváno interní write oprávnění. Po budoucím zavedení grant modelu smí být
+  vykonatelný jen `create_task`; ostatní typy server odmítá provést.
+- Dostupný je katalog a smluvní resource. Agregovaný projektový resource je
+  skrytý, protože vyžaduje dosud nevydávané kontaktní oprávnění.
 - Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
   je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
 - Rate limit je v současnosti `in-memory` pro jeden proces. Není distribuovaný

@@ -17,7 +17,8 @@ npm run build
 npm run desktop:compile
 ```
 
-Kontrolují zejména protected-resource metadata, JWT claims, scopes, redakci
+Kontrolují zejména protected-resource metadata, JWT claims, oddělení OAuth scopes
+a interních permissions, redakci
 auditu, Origin allowlist, katalog, resources, write proposal guards,
 idempotency/RLS migrace a shodu této dokumentace s názvy toolů/resources.
 Úspěšný exit code nestačí: zaznamenává se počet testů, skipped/todo, stderr,
@@ -25,23 +26,23 @@ warnings a relevance scénářů.
 
 ## Povinné integrační scénáře
 
-1. consent pouze pro `openid` + read,
+1. consent pro standardní `openid email profile` a oddělené read-only oprávnění,
 2. read discovery a projekt uživatele,
-3. skrytí contacts/write nástrojů bez scopes,
-4. kontakt s contacts scope,
+3. skrytí contacts/write nástrojů bez serverových permissions,
+4. podvržené `tenderflow.contacts.read/write` OAuth scopes nic nezpřístupní,
 5. zamítnutí cizí organizace/projektu,
 6. expirovaný, špatně scoped, audience a client token,
 7. 401 a protected-resource metadata bez tokenu,
 8. resource cache jako private a audit resource read,
-9. `create_task` prepare → chybné confirm → správné confirm → execute,
-10. opakovaný execute se stejným idempotency key bez duplicity,
+9. po budoucím grant modelu: `create_task` prepare → chybné confirm → správné confirm → execute,
+10. po budoucím grant modelu: opakovaný execute se stejným idempotency key bez duplicity,
 11. auditní redakce a detekce výpadku auditu,
 12. zatížení více instancí po zavedení distribuovaného limiteru.
 
 ## Eval metriky
 
 - přesnost výběru správného toolu a počet zbytečných volání,
-- přesnost volby nejmenších scopes,
+- správné oddělení standardních OAuth scopes a interních permissions,
 - úplnost a faktická správnost odpovědi,
 - p50/p95/p99 latence a velikost výsledku,
 - podíl schema/auth/RLS/rate-limit chyb,

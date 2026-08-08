@@ -14,6 +14,9 @@ Zdroj pravdy: `server/mcp/`, `docs/development/configuration.md` a Vercel route
 | `TENDER_FLOW_MCP_ACCESS_TOKEN` | jen lokální stdio secret |
 | `TENDER_FLOW_MCP_READ_ONLY` | vypnutí stdio write tools |
 
+Před deployem ověřit, že `MCP_REQUIRED_SCOPES` obsahuje jen `openid`, `email`
+a `profile`; server jiné hodnoty odmítá jako chybnou konfiguraci.
+
 Supabase URL a anon key jsou potřeba pro ověření identity a user-scoped Data
 API. Service-role credential nepatří do MCP request cesty. Hodnoty se v
 incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
@@ -24,10 +27,13 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
 2. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
    po explicitním schválení verzovanou migraci.
 3. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
-4. Provést OAuth canary s nejmenšími scopes a read dotazem.
+4. Provést OAuth canary se standardními `openid email profile` a read dotazem.
 5. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
-6. Write canary provádět jen na určeném testovacím projektu a po prepare/confirm.
-7. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+6. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
+   fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
+7. Write canary neprovádět, dokud nebude samostatně schválen a nasazen
+   autoritativní user+client grant model; potom jen na testovacím projektu.
+8. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
 
 ## Minimální observabilita
 
@@ -42,7 +48,7 @@ v aplikačních metrikách; tato detekce je plánované hardening opatření.
   prověřit audit a tenantové přístupy.
 - **Podezření na cross-tenant přístup:** pozastavit MCP klienta, zachovat logy,
   ověřit JWT claims, RLS policy a konkrétní SQL/RPC cestu.
-- **Nechtěný zápis:** zablokovat write scope/klienta, dohledat proposal,
+- **Nechtěný zápis:** odebrat interní write grant/klienta, dohledat proposal,
   idempotency key a doménový audit; opravu provést standardní business cestou.
 - **Audit outage:** nepovažovat chybějící řádky za důkaz nulové aktivity;
   obnovit DB cestu a korelovat hostingové access logy.
