@@ -33,7 +33,7 @@ describe("McpOAuthConsentPage", () => {
           name: "ChatGPT",
           uri: "https://chatgpt.com",
         },
-        scope: "openid email profile",
+        scope: "openid email profile tenderflow.read tenderflow.contacts.read tenderflow.write",
       },
       error: null,
     });
@@ -49,8 +49,27 @@ describe("McpOAuthConsentPage", () => {
     expect(screen.getByText("- ověření identity")).toBeInTheDocument();
     expect(screen.getByText("- e-mail uživatele")).toBeInTheDocument();
     expect(screen.getByText("- základní profil")).toBeInTheDocument();
-    expect(screen.getByText(/Zápisy v Tender Flow vyžadují/)).toBeInTheDocument();
+    expect(screen.getByText(/čtení projektů, výběrových řízení a smluv/)).toBeInTheDocument();
+    expect(screen.getByText(/čtení kontaktních údajů dodavatelů/)).toBeInTheDocument();
+    expect(screen.getByText(/navrhování a potvrzené provádění změn/)).toBeInTheDocument();
+    expect(screen.getByText(/Každý zápis vyžaduje samostatné potvrzení/)).toBeInTheDocument();
     expect(oauthMocks.getAuthorizationDetails).toHaveBeenCalledWith("auth-1");
+  });
+
+  it("bez write scope popisuje připojení jako read-only", async () => {
+    oauthMocks.getAuthorizationDetails.mockResolvedValue({
+      data: {
+        authorization_id: "auth-1",
+        client: { client_id: "client-1", name: "ChatGPT" },
+        scope: "openid tenderflow.read",
+      },
+      error: null,
+    });
+
+    render(<McpOAuthConsentPage />);
+
+    expect(await screen.findByText(/AI bude moct pouze číst data/)).toBeInTheDocument();
+    expect(screen.queryByText(/Každý zápis vyžaduje/)).not.toBeInTheDocument();
   });
 
   it("umí obnovit authorization_id z login next parametru po OAuth redirectu", async () => {
