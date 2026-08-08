@@ -11,6 +11,7 @@ import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { buildInvestorInvoiceRow } from "@features/projects/contracts/investor/investorBillingPersistence";
 import { sanitizeDocHubSettings } from "@shared/dochub/cloudConnection";
 import {
     emitCategoryStatusNotification,
@@ -539,24 +540,7 @@ export const useUpdateProjectDetailsMutation = () => {
                     );
                     if (invoicesToInsert.length > 0) {
                         const { error: insertInvoicesError } = await dbAdapter.from("project_investor_invoices").insert(
-                            invoicesToInsert.map((invoice) => ({
-                                id: invoice.id,
-                                project_id: id,
-                                period: invoice.period || invoice.issueDate.slice(0, 7),
-                                invoice_number: invoice.invoiceNumber.trim(),
-                                issue_date: invoice.issueDate,
-                                due_date: invoice.dueDate,
-                                amount: invoice.amount,
-                                currency: invoice.currency || "CZK",
-                                status: invoice.status,
-                                retention_a_percent: invoice.retentionAPercent || 0,
-                                retention_b_percent: invoice.retentionBPercent || 0,
-                                retention_a_amount: invoice.retentionAAmount || 0,
-                                retention_b_amount: invoice.retentionBAmount || 0,
-                                paid_amount: invoice.paidAmount || 0,
-                                paid_at: invoice.status === "paid" ? invoice.paidAt || null : null,
-                                note: invoice.note?.trim() || null,
-                            })),
+                            invoicesToInsert.map((invoice) => buildInvestorInvoiceRow(id, invoice)),
                         );
                         assertNoDbError("Error inserting investor invoices:", insertInvoicesError);
                     }

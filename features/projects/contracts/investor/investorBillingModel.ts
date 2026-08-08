@@ -16,12 +16,22 @@ export interface InvestorInvoiceBreakdown {
   paidAmount: number;
 }
 
+type InvestorRetentionDefaults = Pick<
+  InvestorFinancials,
+  'retentionAPercent' | 'retentionBPercent'
+>;
+
 export const computeInvestorInvoiceBreakdown = (
   invoice: InvestorInvoice,
+  defaults?: InvestorRetentionDefaults,
 ): InvestorInvoiceBreakdown => {
   const grossAmount = roundMoney(safeAmount(invoice.amount));
-  const retentionAPercent = safePercent(invoice.retentionAPercent);
-  const retentionBPercent = safePercent(invoice.retentionBPercent);
+  const retentionAPercent = safePercent(
+    invoice.retentionAPercent ?? defaults?.retentionAPercent,
+  );
+  const retentionBPercent = safePercent(
+    invoice.retentionBPercent ?? defaults?.retentionBPercent,
+  );
   if (retentionAPercent + retentionBPercent > 100) {
     throw new Error('Součet pozastávek nesmí překročit 100 %.');
   }
@@ -52,7 +62,7 @@ export const computeInvestorTotals = (financials: InvestorFinancials) => {
   let paid = 0;
 
   for (const invoice of financials.invoices || []) {
-    const breakdown = computeInvestorInvoiceBreakdown(invoice);
+    const breakdown = computeInvestorInvoiceBreakdown(invoice, financials);
     invoiced += breakdown.grossAmount;
     retentionA += breakdown.retentionAAmount;
     retentionB += breakdown.retentionBAmount;

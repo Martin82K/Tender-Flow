@@ -153,8 +153,6 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       amount: 0,
       currency: 'CZK',
       status: 'issued',
-      retentionAPercent: form.retentionAPercent || 0,
-      retentionBPercent: form.retentionBPercent || 0,
       paidAmount: 0,
     };
     setForm((current) => ({ ...current, invoices: [...(current.invoices || []), invoice] }));
@@ -192,6 +190,22 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
     markChanged();
   };
 
+  const setInvoiceRetentionOverride = (index: number, enabled: boolean) => {
+    setForm((current) => {
+      const nextInvoices = [...(current.invoices || [])];
+      const invoice = nextInvoices[index];
+      if (!invoice) return current;
+
+      nextInvoices[index] = {
+        ...invoice,
+        retentionAPercent: enabled ? current.retentionAPercent ?? 0 : undefined,
+        retentionBPercent: enabled ? current.retentionBPercent ?? 0 : undefined,
+      };
+      return { ...current, invoices: nextInvoices };
+    });
+    markChanged();
+  };
+
   const save = async () => {
     setSaving(true);
     setSaveError(null);
@@ -202,7 +216,7 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
       const normalizedInvoices = invoices
         .filter((invoice) => invoice.invoiceNumber.trim() || invoice.amount > 0)
         .map((invoice) => {
-          const breakdown = computeInvestorInvoiceBreakdown(invoice);
+          const breakdown = computeInvestorInvoiceBreakdown(invoice, form);
           return {
             ...invoice,
             period: invoice.period || invoice.issueDate.slice(0, 7),
@@ -326,9 +340,12 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
               <tbody>
                 {invoices.map((invoice, index) => {
                   const editable = editableInvoiceIds.has(invoice.id);
+                  const hasRetentionOverride =
+                    invoice.retentionAPercent !== undefined ||
+                    invoice.retentionBPercent !== undefined;
                   let breakdown;
                   try {
-                    breakdown = computeInvestorInvoiceBreakdown(invoice);
+                    breakdown = computeInvestorInvoiceBreakdown(invoice, form);
                   } catch {
                     breakdown = { grossAmount: invoice.amount || 0, retentionAAmount: 0, retentionBAmount: 0, payableAmount: 0, paidAmount: 0 };
                   }
@@ -339,12 +356,12 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
                       <td className="p-2"><input aria-label={`Datum vystavení ${index + 1}`} type="date" className={inputClass} value={invoice.issueDate} disabled={!editable} onChange={(event) => updateInvoice(index, 'issueDate', event.target.value)} /></td>
                       <td className="p-2"><input aria-label={`Splatnost faktury ${index + 1}`} type="date" className={inputClass} value={invoice.dueDate} disabled={!editable} onChange={(event) => updateInvoice(index, 'dueDate', event.target.value)} /></td>
                       <td className="p-2"><input aria-label={`Fakturovaná částka ${index + 1}`} className={`${inputClass} text-right tabular-nums`} inputMode="decimal" value={amountInputs[invoice.id] ?? formatEditableNumber(invoice.amount || 0)} disabled={!editable} onChange={(event) => { setAmountInputs((current) => ({ ...current, [invoice.id]: event.target.value })); updateInvoice(index, 'amount', parseEditableNumber(event.target.value)); }} onBlur={() => setAmountInputs((current) => ({ ...current, [invoice.id]: formatEditableNumber(invoices[index]?.amount || 0) }))} /></td>
-                      <td className="p-2 text-right"><div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka A procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionAPercent || 0} disabled={!editable} onChange={(event) => updateInvoice(index, 'retentionAPercent', Number(event.target.value))} /><span>%</span></div><div className="mt-1 tabular-nums text-amber-600">{formatMoney(breakdown.retentionAAmount)}</div></td>
-                      <td className="p-2 text-right"><div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka B procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionBPercent || 0} disabled={!editable} onChange={(event) => updateInvoice(index, 'retentionBPercent', Number(event.target.value))} /><span>%</span></div><div className="mt-1 tabular-nums text-purple-600">{formatMoney(breakdown.retentionBAmount)}</div></td>
+                      <td className="p-2 text-right">{editable && hasRetentionOverride ? <div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka A procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionAPercent ?? form.retentionAPercent ?? 0} onChange={(event) => updateInvoice(index, 'retentionAPercent', Number(event.target.value))} /><span>%</span></div> : null}<div className={`${editable && hasRetentionOverride ? 'mt-1 ' : ''}tabular-nums text-amber-600`}>{formatMoney(breakdown.retentionAAmount)}</div></td>
+                      <td className="p-2 text-right">{editable && hasRetentionOverride ? <div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka B procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionBPercent ?? form.retentionBPercent ?? 0} onChange={(event) => updateInvoice(index, 'retentionBPercent', Number(event.target.value))} /><span>%</span></div> : null}<div className={`${editable && hasRetentionOverride ? 'mt-1 ' : ''}tabular-nums text-purple-600`}>{formatMoney(breakdown.retentionBAmount)}</div></td>
                       <td className="p-2 text-right font-semibold tabular-nums">{formatMoney(breakdown.payableAmount)}</td>
                       <td className="p-2 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(breakdown.paidAmount)}</td>
                       <td className="p-2"><select aria-label={`Stav faktury ${index + 1}`} className={inputClass} value={invoice.status} disabled={!editable} onChange={(event) => updateInvoice(index, 'status', event.target.value as ContractInvoiceStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
-                      <td className="p-2"><div className="flex"><button type="button" onClick={() => setEditableInvoiceIds((current) => new Set(current).add(invoice.id))} disabled={editable} aria-label="Upravit fakturu" className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary disabled:text-primary"><span className="material-symbols-outlined text-[17px]">edit</span></button><button type="button" onClick={() => removeInvoice(index)} aria-label="Smazat fakturu" className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></div></td>
+                      <td className="p-2"><div className="flex"><button type="button" onClick={() => setEditableInvoiceIds((current) => new Set(current).add(invoice.id))} disabled={editable} aria-label="Upravit fakturu" className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary disabled:text-primary"><span className="material-symbols-outlined text-[17px]">edit</span></button><button type="button" onClick={() => setInvoiceRetentionOverride(index, !hasRetentionOverride)} disabled={!editable} aria-label={hasRetentionOverride ? `Použít globální pozastávky faktury ${index + 1}` : `Nastavit individuální pozastávky faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"><span className="material-symbols-outlined text-[17px]">tune</span></button><button type="button" onClick={() => removeInvoice(index)} aria-label="Smazat fakturu" className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></div></td>
                     </tr>
                   );
                 })}

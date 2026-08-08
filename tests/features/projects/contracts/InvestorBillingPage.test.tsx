@@ -97,7 +97,7 @@ describe("InvestorBillingPage", () => {
     }));
   });
 
-  it("přenese výchozí pozastávky do faktury a uloží čistou uhrazenou částku", async () => {
+  it("dědí globální pozastávky bez procentních polí na faktuře", async () => {
     const onUpdateDetails = vi.fn();
     render(
       <InvestorBillingPage
@@ -114,25 +114,46 @@ describe("InvestorBillingPage", () => {
     );
 
     fireEvent.click(screen.getByText("+ Přidat fakturu"));
+    expect(screen.queryByLabelText("Pozastávka A procento 1")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pozastávka B procento 1")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Číslo faktury 1"), { target: { value: "FV-RET" } });
     fireEvent.change(screen.getByLabelText("Fakturovaná částka 1"), { target: { value: "100000" } });
     fireEvent.change(screen.getByLabelText("Stav faktury 1"), { target: { value: "paid" } });
     fireEvent.click(screen.getByText("Uložit"));
 
-    await waitFor(() => expect(onUpdateDetails).toHaveBeenCalledWith({
-      investorFinancials: expect.objectContaining({
-        invoices: [
-          expect.objectContaining({
-            period: expect.stringMatching(/^\d{4}-\d{2}$/),
+    await waitFor(() => expect(onUpdateDetails).toHaveBeenCalledTimes(1));
+    const savedInvoice = onUpdateDetails.mock.calls[0][0].investorFinancials?.invoices?.[0];
+    expect(savedInvoice).toEqual(expect.objectContaining({
+      period: expect.stringMatching(/^\d{4}-\d{2}$/),
+      retentionAAmount: 5_000,
+      retentionBAmount: 3_000,
+      paidAmount: 92_000,
+    }));
+    expect(savedInvoice).not.toHaveProperty("retentionAPercent");
+    expect(savedInvoice).not.toHaveProperty("retentionBPercent");
+  });
+
+  it("umožní na faktuře zapnout individuální výjimku", () => {
+    render(
+      <InvestorBillingPage
+        projectDetails={{
+          ...projectDetails,
+          investorFinancials: {
+            ...projectDetails.investorFinancials!,
             retentionAPercent: 5,
             retentionBPercent: 3,
-            retentionAAmount: 5_000,
-            retentionBAmount: 3_000,
-            paidAmount: 92_000,
-          }),
-        ],
-      }),
-    }));
+          },
+        }}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("+ Přidat fakturu"));
+    fireEvent.click(screen.getByLabelText("Nastavit individuální pozastávky faktury 1"));
+
+    expect(screen.getByLabelText("Pozastávka A procento 1")).toHaveValue(5);
+    expect(screen.getByLabelText("Pozastávka B procento 1")).toHaveValue(3);
+    expect(screen.getByLabelText("Použít globální pozastávky faktury 1")).toBeInTheDocument();
   });
 
   it("umožní odemknout uloženou fakturu a opravit překlep", async () => {

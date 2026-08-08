@@ -30,9 +30,10 @@ objekt uklidí.
 
 `project_investor_financials` obsahuje základní smlouvu a výchozí procenta
 pozastávek. `project_amendments` uchovává číslo a datum dodatku.
-`project_investor_invoices` ukládá období a snapshot procent i vypočtených
-částek pozastávek, takže pozdější změna smluvních defaultů nepřepíše historické
-faktury.
+`project_investor_invoices` ukládá období a vypočtené částky pozastávek. Hodnota
+`NULL` ve sloupci procenta znamená dědění globální hodnoty stavby; explicitní
+hodnota včetně nuly je individuální výjimka faktury. Změna globálního procenta
+proto přepočítá všechny děděné faktury, ale nepřepíše schválené výjimky.
 
 Pro vystavenou částku `G` platí:
 
