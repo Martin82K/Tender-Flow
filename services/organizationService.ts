@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { ProjectTeamRole } from "../types";
 
 export type OrganizationSummary = {
   organization_id: string;
@@ -20,14 +21,9 @@ export type OrganizationMember = {
   email: string;
   display_name?: string | null;
   role: "owner" | "admin" | "member";
+  professional_role?: ProjectTeamRole | null;
   joined_at: string;
   is_active: boolean;
-};
-
-export type OrganizationContractOverviewPermission = {
-  user_id: string;
-  access_enabled: boolean;
-  access_source: "automatic" | "explicit";
 };
 
 export type OrganizationJoinRequest = {
@@ -181,6 +177,19 @@ export const organizationService = {
     if (error) throw new Error(error.message);
   },
 
+  setOrganizationMemberProfessionalRole: async (
+    orgId: string,
+    userId: string,
+    professionalRole: ProjectTeamRole | null,
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("set_organization_member_professional_role", {
+      org_id_input: orgId,
+      user_id_input: userId,
+      professional_role_input: professionalRole,
+    });
+    if (error) throw new Error(error.message);
+  },
+
   transferOrganizationOwnership: async (orgId: string, newOwnerUserId: string): Promise<void> => {
     const { error } = await supabase.rpc("transfer_org_ownership", {
       org_id_input: orgId,
@@ -195,23 +204,6 @@ export const organizationService = {
     });
     if (error) throw new Error(error.message);
     return dedupeOrganizationMembers(data || []);
-  },
-
-  getContractOverviewPermissions: async (orgId: string): Promise<OrganizationContractOverviewPermission[]> => {
-    const { data, error } = await supabase.rpc("get_organization_contract_overview_permissions", {
-      org_id_input: orgId,
-    });
-    if (error) throw new Error(error.message);
-    return (data || []) as OrganizationContractOverviewPermission[];
-  },
-
-  setContractOverviewPermission: async (orgId: string, userId: string, enabled: boolean): Promise<void> => {
-    const { error } = await supabase.rpc("set_contract_overview_permission", {
-      org_id_input: orgId,
-      user_id_input: userId,
-      enabled_input: enabled,
-    });
-    if (error) throw new Error(error.message);
   },
 
   getOrganizationJoinRequests: async (orgId: string): Promise<OrganizationJoinRequest[]> => {

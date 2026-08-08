@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: { rpc: vi.fn() },
 }));
-import { mapContractOverviewRows } from "@/features/contracts-overview/api/contractOverviewApi";
+import {
+  formatContractOverviewMoney,
+  mapContractOverviewRows,
+} from "@/features/contracts-overview/api/contractOverviewApi";
 
 describe("contract overview mapper", () => {
   it("maps only the public read-only allowlist", () => {
@@ -21,5 +24,13 @@ describe("contract overview mapper", () => {
     expect(result).not.toHaveProperty("extractionJson");
     expect(result).not.toHaveProperty("invoiceNumber");
     expect(result).not.toHaveProperty("sourceBidId");
+  });
+
+  it("normalizes historical currency labels without crashing the overview", () => {
+    const [result] = mapContractOverviewRows([{ currency: "KČ" }]);
+
+    expect(result.currency).toBe("CZK");
+    expect(() => formatContractOverviewMoney(1250, "KČ")).not.toThrow();
+    expect(formatContractOverviewMoney(1250, "invalid")).toContain("Kč");
   });
 });

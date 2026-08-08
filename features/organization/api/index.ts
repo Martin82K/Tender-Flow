@@ -2,7 +2,8 @@ export { organizationService } from "@/services/organizationService";
 export type {
   OrganizationJoinRequest,
   OrganizationMember,
-  OrganizationContractOverviewPermission,
   OrganizationSummary,
   OrganizationUnlockerTimeSavings,
 } from "@/services/organizationService";
+export { rolePermissionsService } from "./rolePermissionsService";
+export type { OrganizationRolePermissionRow } from "./rolePermissionsService";

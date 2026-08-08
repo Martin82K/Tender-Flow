@@ -11,11 +11,19 @@ export type View =
 
 export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map" | "settings";
 
-export type ProjectTeamRole = "project_admin" | "project_manager" | "team_member" | "viewer";
+export type ProjectTeamRole =
+  | "deputy"
+  | "lead_site_manager"
+  | "site_manager"
+  | "preconstruction"
+  | "technician"
+  | "contracts_department"
+  | "economist";
+
+export type ProjectAccessKind = "system_owner" | "team_member" | "legacy_external";
 
 export interface ProjectTeamInput {
   userId: string;
-  role: ProjectTeamRole;
 }
 
 // Tender Plan Item

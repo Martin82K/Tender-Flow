@@ -15,7 +15,9 @@ import { getOrgSeatUsage } from '../api/orgBillingService';
 import { formatOrgRole, isOrgOwnerRole } from '@/shared/organization/organizationUtils';
 import { useUI } from '@/context/UIContext';
 import type { OrgSeatUsage } from '../model/types';
-import { resolveContractOverviewPermissionState } from '../model/contractOverviewPermission';
+import { PROJECT_TEAM_ROLE_LABELS, PROJECT_TEAM_ROLES } from '@/shared/authorization/projectRoles';
+import type { ProjectTeamRole } from '@/types';
+import { ThemedSelect } from '@/shared/ui/ThemedSelect';
 
 interface OrgMembersTabProps {
   orgId: string;
@@ -42,24 +44,18 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
   const [deleteStep, setDeleteStep] = useState<'warn' | 'confirm'>('warn');
   const [deleteEmailInput, setDeleteEmailInput] = useState('');
   const [deleteProcessing, setDeleteProcessing] = useState(false);
-  const [contractOverviewAccess, setContractOverviewAccess] = useState<Record<string, { enabled: boolean; source: 'automatic' | 'explicit' }>>({});
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [membersList, requestsList, seats, permissions] = await Promise.all([
+      const [membersList, requestsList, seats] = await Promise.all([
         organizationService.getOrganizationMembers(orgId),
         isAdminOrOwner ? organizationService.getOrganizationJoinRequests(orgId).catch(() => []) : Promise.resolve([]),
         getOrgSeatUsage(orgId),
-        organizationService.getContractOverviewPermissions(orgId),
       ]);
       setMembers(membersList);
       setRequests(requestsList.filter(r => r.status === 'pending'));
       setSeatUsage(seats);
-      setContractOverviewAccess(Object.fromEntries(permissions.map((permission) => [
-        permission.user_id,
-        { enabled: permission.access_enabled, source: permission.access_source },
-      ])));
     } catch (err) {
       console.error('[OrgMembersTab] Failed to load:', err);
     } finally {
@@ -97,19 +93,17 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
     }
   };
 
-  const handleContractOverviewPermission = async (member: OrganizationMember, enabled: boolean) => {
-    if (member.role !== 'member') return;
+  const handleProfessionalRole = async (member: OrganizationMember, role: ProjectTeamRole | null) => {
     setProcessingMemberId(member.user_id);
     try {
-      await organizationService.setContractOverviewPermission(orgId, member.user_id, enabled);
-      setContractOverviewAccess((current) => ({
-        ...current,
-        [member.user_id]: { enabled, source: 'explicit' },
-      }));
+      await organizationService.setOrganizationMemberProfessionalRole(orgId, member.user_id, role);
+      setMembers((current) => current.map((item) => (
+        item.user_id === member.user_id ? { ...item, professional_role: role } : item
+      )));
     } catch (err) {
       showAlert({
         title: 'Chyba',
-        message: err instanceof Error ? err.message : 'Oprávnění se nepodařilo změnit.',
+        message: err instanceof Error ? err.message : 'Profesní roli se nepodařilo změnit.',
         variant: 'danger',
       });
     } finally {
@@ -371,9 +365,9 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700/50">
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Člen</th>
-              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Role</th>
+              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Systémová role</th>
+              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Profesní role</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
-              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Přístup ke smluvnímu přehledu</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Přidán</th>
               {isAdminOrOwner && <th className="w-12"></th>}
             </tr>
@@ -390,11 +384,6 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
               const isActive = member.is_active !== false;
               const isProcessing = processingMemberId === member.user_id;
               const manageable = canManageMember(member);
-              const contractAccess = resolveContractOverviewPermissionState(
-                member,
-                contractOverviewAccess[member.user_id]?.enabled === true,
-                isAdminOrOwner,
-              );
 
               return (
                 <tr
@@ -432,25 +421,34 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                     </span>
                   </td>
                   <td className="px-4 py-3">
+                    {isAdminOrOwner && isActive ? (
+                      <ThemedSelect
+                        ariaLabel={`Profesní role – ${member.display_name || member.email}`}
+                        value={member.professional_role || ''}
+                        disabled={isProcessing}
+                        onChange={(value) => void handleProfessionalRole(
+                          member,
+                          value ? value as ProjectTeamRole : null,
+                        )}
+                        options={[
+                          { value: '', label: 'Bez profesní role' },
+                          ...PROJECT_TEAM_ROLES.map((role) => ({ value: role, label: PROJECT_TEAM_ROLE_LABELS[role] })),
+                        ]}
+                        className="min-w-40"
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-500">
+                        {member.professional_role ? PROJECT_TEAM_ROLE_LABELS[member.professional_role] : 'Bez profesní role'}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                       <span className={`text-xs ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>
                         {isActive ? 'Aktivní' : 'Deaktivován'}
                       </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <label className="inline-flex items-center gap-2 text-xs text-slate-500">
-                      <input
-                        type="checkbox"
-                        aria-label={`Přístup ke smluvnímu přehledu – ${member.display_name || member.email}`}
-                        checked={contractAccess.checked}
-                        disabled={!contractAccess.canAssignExplicitly || isProcessing}
-                        onChange={(event) => void handleContractOverviewPermission(member, event.target.checked)}
-                        className="rounded border-slate-300 text-primary focus:ring-primary"
-                      />
-                      {contractAccess.source === 'automatic' ? 'Automaticky' : 'Výslovně'}
-                    </label>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">
                     {member.joined_at ? new Date(member.joined_at).toLocaleDateString('cs-CZ', { month: 'short', year: 'numeric' }) : '—'}

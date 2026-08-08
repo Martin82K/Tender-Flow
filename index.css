@@ -4744,6 +4744,67 @@ html[data-skin] .tf-appearance-picker-option:is([aria-selected="true"], :checked
   color: var(--tf-settings-primary-strong) !important;
 }
 
+html[data-skin] .tf-themed-select-trigger {
+  background: color-mix(in srgb, var(--tf-skin-card) 96%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-themed-select-trigger:is(:hover, [aria-expanded="true"]) {
+  border-color: color-mix(in srgb, var(--tf-settings-primary) 58%, var(--tf-skin-line-2) 42%) !important;
+  background: color-mix(in srgb, var(--tf-settings-primary) 5%, var(--tf-skin-card) 95%) !important;
+}
+
+html[data-skin] .tf-themed-select-trigger:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--tf-settings-primary) 42%, transparent) !important;
+  outline-offset: 1px;
+}
+
+html[data-skin] .tf-themed-select-popover {
+  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--tf-skin-bg) 48%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(16px);
+  scrollbar-color: color-mix(in srgb, var(--tf-skin-muted) 55%, transparent) transparent;
+}
+
+html[data-skin] .tf-themed-select-option {
+  background-color: transparent !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin] .tf-themed-select-option:is(:hover, [data-active="true"]) {
+  background-color: color-mix(in srgb, var(--tf-settings-primary) 12%, var(--tf-skin-card) 88%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-themed-select-option[aria-selected="true"] {
+  background-color: color-mix(in srgb, var(--tf-settings-primary) 20%, var(--tf-skin-card) 80%) !important;
+  color: var(--tf-settings-primary-strong) !important;
+}
+
+html[data-skin] .tf-role-permissions-scroll {
+  scrollbar-color: color-mix(in srgb, var(--tf-skin-muted) 65%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--tf-skin-muted) 65%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @media (max-width: 900px) {
   html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before {
     background-position: 58% center;

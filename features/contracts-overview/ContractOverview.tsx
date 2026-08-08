@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
-import { getContractOverview, type ContractOverviewRow } from "./api/contractOverviewApi";
+import {
+  formatContractOverviewMoney,
+  getContractOverview,
+  type ContractOverviewRow,
+} from "./api/contractOverviewApi";
 import { useAuth } from "@/context/AuthContext";
-
-const money = (value: number, currency: string) =>
-  new Intl.NumberFormat("cs-CZ", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
 
 export const ContractOverview: React.FC = () => {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ export const ContractOverview: React.FC = () => {
                     <tr key={row.contractId} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                       <td className="p-3"><div className="font-semibold">{row.projectName}</div><div className="text-xs text-slate-400">{row.projectStatus}</div></td>
                       <td className="p-3"><div className="font-semibold">{row.contractPartner}</div><div className="text-xs text-slate-500">{row.contractTitle}{row.contractNumber ? ` · ${row.contractNumber}` : ""}</div></td>
-                      <td className="p-3">{row.contractStatus}</td><td className="p-3 text-right tabular-nums">{money(row.currentTotal, row.currency)}</td><td className="p-3 text-right tabular-nums">{money(row.approvedDrawdown, row.currency)}</td><td className="p-3 text-right tabular-nums">{money(row.remainingAmount, row.currency)}</td>
+                      <td className="p-3">{row.contractStatus}</td><td className="p-3 text-right tabular-nums">{formatContractOverviewMoney(row.currentTotal, row.currency)}</td><td className="p-3 text-right tabular-nums">{formatContractOverviewMoney(row.approvedDrawdown, row.currency)}</td><td className="p-3 text-right tabular-nums">{formatContractOverviewMoney(row.remainingAmount, row.currency)}</td>
                       <td className="p-3 text-xs text-slate-500">{row.retentionPercent == null ? "" : `Zádržné ${row.retentionPercent} %`}{row.retentionPercent != null && row.warrantyMonths != null ? " · " : ""}{row.warrantyMonths == null ? "" : `Záruka ${row.warrantyMonths} měs.`}</td>
                     </tr>
                   ))}

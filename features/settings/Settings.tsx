@@ -157,6 +157,7 @@ export const Settings: React.FC<SettingsProps> = ({
       subTab =
         subTabParam === "overview" ||
         subTabParam === "members" ||
+        subTabParam === "rolePermissions" ||
         subTabParam === "billing" ||
         subTabParam === "branding"
           ? subTabParam
@@ -218,7 +219,7 @@ export const Settings: React.FC<SettingsProps> = ({
   );
   const [activeOrgSubTab, setActiveOrgSubTab] = useState<OrgSubTab>(() => {
     const sub = settingsRoute.tab === "organization" ? settingsRoute.subTab : null;
-    if (sub === "overview" || sub === "members" || sub === "billing" || sub === "branding") return sub;
+    if (sub === "overview" || sub === "members" || sub === "rolePermissions" || sub === "billing" || sub === "branding") return sub;
     return "overview";
   });
 
@@ -348,8 +349,12 @@ export const Settings: React.FC<SettingsProps> = ({
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  const isRolePermissionsView = activeTab === "organization" && activeOrgSubTab === "rolePermissions";
+
   return (
-    <div className="tf-settings-view flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
+    <div className={`tf-settings-view flex h-full flex-col bg-background-light dark:bg-background-dark ${
+      isRolePermissionsView ? "min-h-0 overflow-hidden" : "min-h-screen overflow-y-auto"
+    }`}>
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
@@ -358,9 +363,19 @@ export const Settings: React.FC<SettingsProps> = ({
         skin={skin}
       />
 
-      <div data-help-id="settings-content" className="p-4 lg:p-6 xl:p-8 w-full pb-20">
+      <div
+        data-help-id="settings-content"
+        className={`w-full p-4 lg:p-6 xl:p-8 ${
+          isRolePermissionsView ? "flex min-h-0 flex-1 flex-col pb-4 lg:pb-6 xl:pb-8" : "pb-20"
+        }`}
+      >
         {/* Main Tab Navigation (Top Level) */}
-        <div data-help-id="settings-main-tabs" className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
+        <div
+          data-help-id="settings-main-tabs"
+          className={`flex shrink-0 items-center gap-4 border-b border-slate-200 dark:border-slate-700/50 ${
+            isRolePermissionsView ? "mb-4" : "mb-8"
+          }`}
+        >
           <button
             onClick={() => {
               setActiveTab("user");
@@ -419,7 +434,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {/* --- ADMIN TAB CONTENT --- */}
         {activeTab === "organization" && (
-          <div className="animate-fadeIn">
+          <div className={`animate-fadeIn ${isRolePermissionsView ? "min-h-0 flex-1 overflow-hidden" : ""}`}>
             <OrganizationDashboard
               activeSubTab={activeOrgSubTab}
               onSubTabChange={(tab) => {

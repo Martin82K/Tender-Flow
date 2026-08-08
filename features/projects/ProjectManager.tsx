@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/shared/queryKeys/projectKeys';
-import { Project, ProjectStatus, type ProjectTeamRole } from '@/types';
+import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -16,6 +16,7 @@ import { useFeatures } from '@/context/FeatureContext';
 import type { ThemeSkin } from '@/shared/types/theme';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
+import { PROJECT_TEAM_ROLE_LABELS } from '@/shared/authorization/projectRoles';
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -121,8 +122,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [newProjectStatus, setNewProjectStatus] = useState<ProjectStatus>('tender');
     const [isCreating, setIsCreating] = useState(false);
     const [createMembers, setCreateMembers] = useState<OrganizationMember[]>([]);
-    const [initialTeam, setInitialTeam] = useState<Record<string, ProjectTeamRole>>({});
-    const [projectRoles, setProjectRoles] = useState<Record<string, ProjectTeamRole | 'owner_admin'>>({});
+    const [initialTeam, setInitialTeam] = useState<Record<string, boolean>>({});
 
     // Edit State
     const [editingProject, setEditingProject] = useState<{ id: string; name: string; location: string; status: ProjectStatus } | null>(null);
@@ -153,21 +153,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             return;
         }
         organizationService.getOrganizationMembers(user.organizationId)
-            .then((members) => setCreateMembers(members.filter((member) => member.is_active && member.user_id !== user.id)))
+            .then((members) => setCreateMembers(members.filter((member) => member.is_active)))
             .catch((error) => console.error('[ProjectManager] Failed to load team candidates:', error));
     }, [user?.id, user?.organizationId]);
 
-    useEffect(() => {
-        projectService.getMyProjectAccess().then(setProjectRoles).catch((error) => {
-            console.error('[ProjectManager] Failed to load project roles:', error);
-        });
-    }, [projects]);
-
     const canAdministerProject = (projectId: string) => {
         const project = projects.find((item) => item.id === projectId);
-        if (!project?.ownerId || project.ownerId === user?.id) return true;
-        const role = projectRoles[projectId];
-        return role === 'owner_admin' || role === 'project_admin';
+        return Boolean(project?.ownerId && project.ownerId === user?.id);
     };
 
     const openDeleteModal = (id: string, name: string) => {
@@ -257,7 +249,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         setConfirmModal({
             isOpen: true,
             title: 'Předat vlastnictví stavby',
-            message: `Opravdu chceš předat stavbu „${projectName}" uživateli ${newOwnerLabel}? Ztratíš roli vlastníka a přístup si zachováš pouze v rámci organizace.`,
+            message: `Opravdu chcete předat stavbu „${projectName}" uživateli ${newOwnerLabel}? Přestanete být systémovým vlastníkem; případná profesní role realizačního týmu zůstane beze změny.`,
             confirmLabel: 'Předat vlastnictví',
             variant: 'danger',
             onConfirm: () => executeTransfer(),
@@ -440,7 +432,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             status: newProjectStatus,
             ownerId: user?.id,
             organizationId: user?.organizationId,
-            initialTeam: Object.entries(initialTeam).map(([userId, role]) => ({ userId, role })),
+            initialTeam: Object.keys(initialTeam).filter((userId) => initialTeam[userId]).map((userId) => ({ userId })),
             // Owner ID handled by service/backend
         };
 
@@ -664,21 +656,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                             <div className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Realizační tým</div>
                             <div className="space-y-2">
                                 {createMembers.map((member) => {
-                                    const selectedRole = initialTeam[member.user_id];
+                                    const selected = initialTeam[member.user_id] === true;
                                     return <div key={member.user_id} className="flex items-center gap-3">
-                                        <input type="checkbox" aria-label={`Přidat ${member.display_name || member.email} do týmu`} checked={Boolean(selectedRole)} onChange={(event) => setInitialTeam((current) => {
+                                        <input type="checkbox" aria-label={`Přidat ${member.display_name || member.email} do týmu`} checked={selected} onChange={(event) => setInitialTeam((current) => {
                                             const next = { ...current };
-                                            if (event.target.checked) next[member.user_id] = 'team_member'; else delete next[member.user_id];
+                                            if (event.target.checked) next[member.user_id] = true; else delete next[member.user_id];
                                             return next;
                                         })} />
-                                        <span className="min-w-0 flex-1 truncate text-sm">{member.display_name || member.email}</span>
-                                        <select disabled={!selectedRole} value={selectedRole || 'team_member'} onChange={(event) => setInitialTeam((current) => ({ ...current, [member.user_id]: event.target.value as ProjectTeamRole }))} className="rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm">
-                                            <option value="project_admin">Administrátor projektu</option><option value="project_manager">Projektový manažer</option><option value="team_member">Člen týmu</option><option value="viewer">Pouze čtení</option>
-                                        </select>
+                                        <span className="min-w-0 flex-1 truncate text-sm">{member.display_name || member.email}{member.user_id === user?.id ? " · systémový vlastník" : ""}</span>
+                                        <span className="text-xs text-slate-400">{member.professional_role ? PROJECT_TEAM_ROLE_LABELS[member.professional_role] : "Bez profesní role"}</span>
                                     </div>;
                                 })}
                             </div>
-                            <p className="mt-3 text-xs text-slate-400">Vybraní členové získají přístup atomicky při uložení stavby. Vlastníkem jste automaticky vy.</p>
+                            <p className="mt-3 text-xs text-slate-400">Vybraní členové získají přístup atomicky při uložení stavby. Profesní role se spravuje centrálně v Organizace → Členové.</p>
                         </div>}
                         <div className="flex justify-end">
                             <button

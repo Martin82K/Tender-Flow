@@ -173,7 +173,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       | "overview"
       | "members"
       | "billing"
-      | "branding" = "profile",
+      | "branding"
+      | "rolePermissions" = "profile",
   ) => {
     navigate(buildAppUrl("settings", { settingsTab, settingsSubTab }));
     setIsOpen(false);

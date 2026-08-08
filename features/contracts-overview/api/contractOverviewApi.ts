@@ -1,5 +1,18 @@
 import { dbAdapter } from "@infra/db/dbAdapter";
 
+const normalizeCurrencyCode = (currency?: string): string => {
+  const upper = currency?.trim().toUpperCase();
+  if (!upper || upper === "KČ" || upper === "KC") return "CZK";
+  return /^[A-Z]{3}$/.test(upper) ? upper : "CZK";
+};
+
+export const formatContractOverviewMoney = (value: number, currency?: string): string =>
+  new Intl.NumberFormat("cs-CZ", {
+    style: "currency",
+    currency: normalizeCurrencyCode(currency),
+    maximumFractionDigits: 0,
+  }).format(Number.isFinite(value) ? value : 0);
+
 export interface ContractOverviewRow {
   organizationId: string;
   projectId: string;
@@ -33,7 +46,7 @@ export const mapContractOverviewRows = (rows: Array<Record<string, unknown>>): C
     contractTitle: String(row.contract_title),
     contractNumber: row.contract_number ? String(row.contract_number) : null,
     contractStatus: String(row.contract_status),
-    currency: String(row.currency || "CZK"),
+    currency: normalizeCurrencyCode(String(row.currency || "CZK")),
     basePrice: Number(row.base_price || 0),
     currentTotal: Number(row.current_total || 0),
     approvedDrawdown: Number(row.approved_drawdown || 0),

@@ -144,6 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subTabParam === "compliance" ||
       subTabParam === "overview" ||
       subTabParam === "members" ||
+      subTabParam === "rolePermissions" ||
       subTabParam === "billing" ||
       subTabParam === "branding" ||
       subTabParam === "tools" // legacy
