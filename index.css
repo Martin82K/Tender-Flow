@@ -4103,6 +4103,52 @@ html[data-skin="botanica"] table tbody tr:hover td {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
 }
 
+.tf-theme-mode-control,
+.tf-ui-scale-control {
+  border: 1px solid var(--tf-skin-line);
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent);
+}
+
+.tf-theme-mode-button,
+.tf-ui-scale-button {
+  color: var(--tf-skin-muted);
+}
+
+.tf-theme-mode-button:hover,
+.tf-ui-scale-button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 9%, var(--tf-skin-surface) 91%);
+  color: var(--tf-skin-text);
+}
+
+.tf-theme-mode-button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--tf-skin-accent) 14%, var(--tf-skin-surface) 86%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-skin-accent) 56%, var(--tf-skin-line) 44%);
+  color: var(--tf-skin-text);
+}
+
+.tf-theme-mode-button:focus-visible,
+.tf-ui-scale-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tf-skin-accent) 72%, var(--tf-skin-surface) 28%);
+  outline-offset: 1px;
+}
+
+.tf-todo-calendar-day--today {
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--tf-skin-accent) 70%, var(--tf-skin-line) 30%),
+    inset 0 0 0 1px color-mix(in srgb, var(--tf-skin-accent) 28%, var(--tf-skin-line) 72%);
+}
+
+.tf-todo-calendar-day-heading--today {
+  border: 1px solid color-mix(in srgb, var(--tf-skin-accent) 48%, var(--tf-skin-line) 52%);
+  background: color-mix(in srgb, var(--tf-skin-accent) 10%, var(--tf-skin-surface) 90%);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--tf-skin-accent) 64%, var(--tf-skin-line) 36%);
+  color: var(--tf-skin-text);
+}
+
+.tf-todo-calendar-day-heading--today :is(.tf-todo-calendar-day-date, .tf-todo-calendar-day-weekday) {
+  color: var(--tf-skin-text) !important;
+}
+
 html[data-skin="botanica"] [data-help-id="todo-calendar-scroll"] {
   background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 88%), transparent) !important;
   background-image:
