@@ -22,6 +22,12 @@ export const contractQueriesApi = {
     return contractService.getContractDocumentUrl(...args);
   },
 
+  getAmendmentDocumentUrl(
+    ...args: Parameters<typeof contractService.getAmendmentDocumentUrl>
+  ): ReturnType<typeof contractService.getAmendmentDocumentUrl> {
+    return contractService.getAmendmentDocumentUrl(...args);
+  },
+
   getMarkdownVersions(
     ...args: Parameters<typeof contractService.getMarkdownVersions>
   ): ReturnType<typeof contractService.getMarkdownVersions> {

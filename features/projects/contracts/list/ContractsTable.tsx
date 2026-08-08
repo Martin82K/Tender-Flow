@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from './StatusPill';
+import { ContractAmendmentRow } from './ContractAmendmentRow';
 import { formatMoney, formatDate, formatPercent, addMonthsIso } from '../utils/format';
 import { computeRetention } from '../utils/retention';
 import {
@@ -14,6 +15,7 @@ import {
 
 const COLUMN_STORAGE_KEY = 'tf.contracts.tableColumns.v2';
 const LEGACY_COLUMN_STORAGE_KEY = 'tf.contracts.tableColumns.v1';
+const NOOP = () => undefined;
 
 const COLUMN_LABELS: Record<ContractColumnId, string> = {
   number: 'Č. smlouvy',
@@ -66,11 +68,24 @@ interface Props {
   contracts: ContractWithDetails[];
   onSelect: (id: string) => void;
   onOpenDocument?: (contract: ContractWithDetails) => Promise<void> | void;
+  onAttachDocument?: (contract: ContractWithDetails, file: File) => Promise<void> | void;
+  attachingDocumentId?: string | null;
+  onDataChanged?: () => Promise<void> | void;
 }
 
-export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDocument }) => {
+export const ContractsTable: React.FC<Props> = ({
+  contracts,
+  onSelect,
+  onOpenDocument,
+  onAttachDocument,
+  attachingDocumentId,
+  onDataChanged = NOOP,
+}) => {
   const [preferences, setPreferences] = useState<ContractTablePreferences>(readColumnPrefs);
   const [configOpen, setConfigOpen] = useState(false);
+  const [expandedContractIds, setExpandedContractIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const resizeRef = useRef<{
     column: ContractColumnId;
     startX: number;
@@ -117,6 +132,15 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDoc
         ? current.visibleColumns.filter((candidate) => candidate !== col)
         : [...current.visibleColumns, col],
     }));
+  };
+
+  const toggleContractExpansion = (contractId: string) => {
+    setExpandedContractIds((current) => {
+      const next = new Set(current);
+      if (next.has(contractId)) next.delete(contractId);
+      else next.add(contractId);
+      return next;
+    });
   };
 
   const columnsOrdered = useMemo(
@@ -209,12 +233,13 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDoc
               const retention = computeRetention(c);
               const amendmentsDelta = (c.currentTotal || 0) - (c.basePrice || 0);
               const warrantyEnd = addMonthsIso(c.signedAt, c.warrantyMonths ?? null);
+              const isExpanded = expandedContractIds.has(c.id);
               return (
-                <tr
-                  key={c.id}
-                  onClick={() => onSelect(c.id)}
-                  className="cursor-pointer border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/40"
-                >
+                <React.Fragment key={c.id}>
+                  <tr
+                    onClick={() => onSelect(c.id)}
+                    className="cursor-pointer border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                  >
                   {columnsOrdered.map((col) => {
                     switch (col) {
                       case 'number':
@@ -226,6 +251,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDoc
                         );
                       case 'document': {
                         const hasDocument = Boolean(c.documentStoragePath || c.documentUrl);
+                        const isAttaching = attachingDocumentId === c.id;
                         const isPdf = c.documentMimeType === 'application/pdf'
                           || c.documentFileName?.toLowerCase().endsWith('.pdf');
                         return (
@@ -248,14 +274,64 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDoc
                                 <span className="material-symbols-outlined text-[15px]">description</span>
                                 {isPdf ? 'PDF' : 'DOCX'}
                               </button>
-                            ) : '—'}
+                            ) : isAttaching ? (
+                              <span className="text-[10px] font-semibold text-primary" role="status">
+                                Připojuji…
+                              </span>
+                            ) : (
+                              <label
+                                onClick={(event) => event.stopPropagation()}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/10"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">attach_file</span>
+                                Připojit
+                                <input
+                                  type="file"
+                                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                  className="hidden"
+                                  aria-label={`Připojit dokument ke smlouvě ${c.title}`}
+                                  onClick={(event) => event.stopPropagation()}
+                                  onChange={(event) => {
+                                    event.stopPropagation();
+                                    const file = event.currentTarget.files?.[0];
+                                    if (file) void onAttachDocument?.(c, file);
+                                    event.currentTarget.value = '';
+                                  }}
+                                />
+                              </label>
+                            )}
                           </td>
                         );
                       }
                       case 'vendor':
                         return (
                           <td key={col} className="px-2.5 py-2.5 text-slate-700 dark:text-slate-300">
-                            {c.vendorName}
+                            <div className="flex items-center gap-1.5">
+                              {c.amendments.length > 0 ? (
+                                <button
+                                  type="button"
+                                  aria-expanded={isExpanded}
+                                  aria-label={`${isExpanded ? 'Sbalit' : 'Rozbalit'} dodatky smlouvy ${c.title}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    toggleContractExpansion(c.id);
+                                  }}
+                                  className="grid size-5 shrink-0 place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    className={`material-symbols-outlined text-[16px] transition-transform ${
+                                      isExpanded ? 'rotate-90' : ''
+                                    }`}
+                                  >
+                                    chevron_right
+                                  </span>
+                                </button>
+                              ) : (
+                                <span className="block size-5 shrink-0" aria-hidden="true" />
+                              )}
+                              <span>{c.vendorName}</span>
+                            </div>
                           </td>
                         );
                       case 'status':
@@ -333,7 +409,20 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect, onOpenDoc
                         return null;
                     }
                   })}
-                </tr>
+                  </tr>
+                  {isExpanded
+                    ? c.amendments.map((amendment) => (
+                        <ContractAmendmentRow
+                          key={amendment.id}
+                          amendment={amendment}
+                          projectId={c.projectId}
+                          currency={c.currency}
+                          columns={columnsOrdered}
+                          onChanged={onDataChanged}
+                        />
+                      ))
+                    : null}
+                </React.Fragment>
               );
             })}
           </tbody>

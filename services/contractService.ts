@@ -89,6 +89,13 @@ const mapAmendment = (row: Record<string, unknown>): ContractAmendment => ({
   deltaDeadline: row.delta_deadline as string | undefined,
   reason: row.reason as string | undefined,
   documentUrl: row.document_url as string | undefined,
+  documentStoragePath: row.document_storage_path as string | undefined,
+  documentFileName: row.document_file_name as string | undefined,
+  documentMimeType: row.document_mime_type as string | undefined,
+  documentSize:
+    row.document_size === null || row.document_size === undefined
+      ? undefined
+      : Number(row.document_size),
   extractionJson: row.extraction_json as Record<string, unknown> | undefined,
   extractionConfidence: row.extraction_confidence as number | undefined,
   createdBy: row.created_by as string | undefined,
@@ -544,6 +551,10 @@ export const contractService = {
     if (updates.deltaDeadline !== undefined) dbUpdates.delta_deadline = updates.deltaDeadline;
     if (updates.reason !== undefined) dbUpdates.reason = updates.reason;
     if (updates.documentUrl !== undefined) dbUpdates.document_url = updates.documentUrl;
+    if (updates.documentStoragePath !== undefined) dbUpdates.document_storage_path = updates.documentStoragePath || null;
+    if (updates.documentFileName !== undefined) dbUpdates.document_file_name = updates.documentFileName || null;
+    if (updates.documentMimeType !== undefined) dbUpdates.document_mime_type = updates.documentMimeType || null;
+    if (updates.documentSize !== undefined) dbUpdates.document_size = updates.documentSize || null;
     if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
     if (updates.extractionConfidence !== undefined) dbUpdates.extraction_confidence = updates.extractionConfidence;
 
@@ -811,6 +822,37 @@ export const contractService = {
     if (error) console.error('Contract document cleanup failed:', error.message);
   },
 
+  uploadAmendmentDocument: async (
+    file: File,
+    projectId: string,
+  ): Promise<Pick<ContractAmendment, 'documentStoragePath' | 'documentFileName' | 'documentMimeType' | 'documentSize'>> => {
+    const metadata = await validateContractDocument(file);
+    const path = `projects/${projectId}/contracts/${crypto.randomUUID()}.${metadata.extension}`;
+    const { error } = await supabase.storage
+      .from('contract-documents')
+      .upload(path, file, {
+        cacheControl: '3600',
+        contentType: metadata.mimeType,
+        upsert: false,
+      });
+    if (error) {
+      console.error('Amendment document upload failed:', error.message);
+      throw new Error('Dokument dodatku se nepodařilo bezpečně uložit.');
+    }
+    return {
+      documentStoragePath: path,
+      documentFileName: metadata.fileName,
+      documentMimeType: metadata.mimeType,
+      documentSize: metadata.size,
+    };
+  },
+
+  deleteAmendmentDocument: async (storagePath: string): Promise<void> => {
+    if (!storagePath.startsWith('projects/') || !storagePath.includes('/contracts/')) return;
+    const { error } = await supabase.storage.from('contract-documents').remove([storagePath]);
+    if (error) console.error('Amendment document cleanup failed:', error.message);
+  },
+
   getContractDocumentUrl: async (contract: Pick<Contract, 'documentStoragePath' | 'documentUrl'>): Promise<string> => {
     if (contract.documentStoragePath) {
       const { data, error } = await supabase.storage
@@ -823,6 +865,23 @@ export const contractService = {
     }
     const legacyUrl = sanitizeDocumentUrl(contract.documentUrl);
     if (!legacyUrl) throw new Error('Smlouva nemá platný dokument.');
+    return legacyUrl;
+  },
+
+  getAmendmentDocumentUrl: async (
+    amendment: Pick<ContractAmendment, 'documentStoragePath' | 'documentUrl'>,
+  ): Promise<string> => {
+    if (amendment.documentStoragePath) {
+      const { data, error } = await supabase.storage
+        .from('contract-documents')
+        .createSignedUrl(amendment.documentStoragePath, 15 * 60);
+      if (error || !data?.signedUrl) {
+        throw new Error('Dokument dodatku se nepodařilo otevřít.');
+      }
+      return data.signedUrl;
+    }
+    const legacyUrl = sanitizeDocumentUrl(amendment.documentUrl);
+    if (!legacyUrl) throw new Error('Dodatek nemá platný dokument.');
     return legacyUrl;
   },
 

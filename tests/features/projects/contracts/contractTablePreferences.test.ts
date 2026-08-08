@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONTRACT_COLUMN_IDS,
   DEFAULT_CONTRACT_COLUMN_WIDTHS,
   parseContractTablePreferences,
   resizeContractColumn,
 } from '@/features/projects/contracts/list/contractTablePreferences';
 
 describe('contractTablePreferences', () => {
+  it('řadí dodavatele, číslo smlouvy a dokument jako první sloupce', () => {
+    expect(CONTRACT_COLUMN_IDS.slice(0, 3)).toEqual(['vendor', 'number', 'document']);
+  });
+
   it('načte verzované viditelné sloupce a uložené šířky', () => {
     expect(
       parseContractTablePreferences(

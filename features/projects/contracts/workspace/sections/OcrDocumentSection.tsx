@@ -12,6 +12,7 @@ import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel'
 import { Modal } from '@/shared/ui/Modal';
 import { formatDate } from '../../utils/format';
 import { buildContractUpdateFromOcr } from '../../utils/contractOcrUpdate';
+import { AmendmentDocumentControl } from '../../documents/AmendmentDocumentControl';
 
 const getSafeDocumentUrl = (value: string | undefined): string | null => {
   if (!value) return null;
@@ -65,6 +66,7 @@ const DocumentRow: React.FC<{
   documentUrl?: string | null;
   hasDocument?: boolean;
   onOpenDocument?: () => Promise<void> | void;
+  extraActions?: React.ReactNode;
 }> = ({
   title,
   subtitle,
@@ -78,6 +80,7 @@ const DocumentRow: React.FC<{
   documentUrl,
   hasDocument,
   onOpenDocument,
+  extraActions,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -144,6 +147,7 @@ const DocumentRow: React.FC<{
             Odkaz na dokument je neplatný.
           </div>
         ) : null}
+        {extraActions}
       </div>
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 text-[11px] px-2.5 py-1.5">
@@ -378,6 +382,13 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
                     onPickFile={(f) => void runAmendmentOcr(a, f)}
                     actionLabel={
                       a.extractionConfidence != null ? 'Spustit OCR znovu' : 'Vybrat dokument a spustit OCR'
+                    }
+                    extraActions={
+                      <AmendmentDocumentControl
+                        amendment={a}
+                        projectId={contract.projectId}
+                        onChanged={onRefresh}
+                      />
                     }
                   />
                 );

@@ -6,6 +6,7 @@ import { ContractsTable } from './ContractsTable';
 import { ContractWorkspace } from '../workspace/ContractWorkspace';
 import { ContractEditDialog } from '../forms/ContractEditDialog';
 import { contractQueriesApi } from '../api';
+import { attachContractDocument } from '../utils/attachContractDocument';
 
 export type ContractsViewMode = 'split' | 'table';
 
@@ -30,6 +31,7 @@ export const ContractsListPage: React.FC<Props> = ({
   const [editOpen, setEditOpen] = useState(false);
   const [editContract, setEditContract] = useState<ContractWithDetails | null>(null);
   const [documentError, setDocumentError] = useState<string | null>(null);
+  const [attachingDocumentId, setAttachingDocumentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialSelectedId && contracts.some((contract) => contract.id === initialSelectedId)) {
@@ -73,6 +75,25 @@ export const ContractsListPage: React.FC<Props> = ({
       setDocumentError(
         error instanceof Error ? error.message : 'Dokument smlouvy se nepodařilo otevřít.',
       );
+    }
+  };
+
+  const handleAttachDocument = async (contract: ContractWithDetails, file: File) => {
+    setDocumentError(null);
+    if (contract.documentStoragePath || contract.documentUrl) {
+      setDocumentError('Smlouva už dokument obsahuje. Stávající dokument nebyl nahrazen.');
+      return;
+    }
+    setAttachingDocumentId(contract.id);
+    try {
+      await attachContractDocument({ contractId: contract.id, projectId, file });
+      await refresh();
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error ? error.message : 'Dokument smlouvy se nepodařilo připojit.',
+      );
+    } finally {
+      setAttachingDocumentId(null);
     }
   };
 
@@ -152,6 +173,9 @@ export const ContractsListPage: React.FC<Props> = ({
             contracts={contracts}
             onSelect={handleTableSelect}
             onOpenDocument={openDocument}
+            onAttachDocument={handleAttachDocument}
+            attachingDocumentId={attachingDocumentId}
+            onDataChanged={refresh}
           />
         )}
       </div>
