@@ -1,0 +1,45 @@
+# Tender Flow MCP
+
+Stav: implementováno, dokumentační základ 2026-08-09
+Zdroj pravdy: `server/mcp/`, `api/mcp.js`, `scripts/mcp-stdio.js` a MCP migrace v `supabase/migrations/`
+
+Tender Flow MCP zpřístupňuje autorizovaná data a omezené operace Tender Flow
+externím AI klientům. Označení „MCP 2.0“ v tomto repozitáři znamená SDK v2 a
+protokolovou revizi `2026-07-28`. Remote server je stateless: každý požadavek
+nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
+
+## Mapa dokumentace
+
+- [Architektura](architecture.md)
+- [Autentizace a OAuth](authentication.md)
+- [Scopes a oprávnění](scopes-and-permissions.md)
+- [Reference tools](tools-reference.md)
+- [Reference resources](resources-reference.md)
+- [Transporty](transports.md)
+- [Bezpečný zápis](write-safety.md)
+- [Chyby a limity](errors-and-limits.md)
+- [Bezpečnostní model](security-model.md)
+- [Provozní runbook](operations-runbook.md)
+- [Testování a evaly](testing-and-evals.md)
+- [Tender Flow skilly](skills.md)
+- [Připojení klienta](client-onboarding.md)
+- [Řešení problémů](troubleshooting.md)
+- [Release a deprecation policy](release-and-deprecation.md)
+- [Changelog](changelog.md)
+- [ADR-0001: MCP 2026-07-28](adr/0001-mcp-2026-07-28.md)
+
+## Aktuální hranice
+
+- Remote MCP nabízí 12 read nástrojů, 3 nástroje zápisového protokolu a
+  3 resource URI.
+- Pouze `create_task` lze skutečně dokončit přes zápisový tok. Ostatní typy
+  změn jsou návrhové položky a server je odmítne vykonat.
+- Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
+  je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
+- Rate limit je v současnosti `in-memory` pro jeden proces. Není distribuovaný
+  a po restartu se resetuje.
+- Produkční OAuth canary s reálným klientem je samostatný následující loop.
+
+Oficiální podklady: [MCP 2026-07-28](https://blog.modelcontextprotocol.io/posts/2026-07-28/),
+[MCP autorizace](https://modelcontextprotocol.io/docs/tutorials/security/authorization)
+a [SDK v2](https://ts.sdk.modelcontextprotocol.io/v2/api/%40modelcontextprotocol/client/).
