@@ -15,6 +15,7 @@ const documentsSource = readFileSync(join(process.cwd(), "components/projectLayo
 const docsLinkSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/DocsLinkSection.tsx"), "utf8");
 const priceListsSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/PriceListsSection.tsx"), "utf8");
 const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccountMenu.tsx"), "utf8");
+const appearancePickerSource = readFileSync(join(process.cwd(), "shared/ui/AppearancePicker.tsx"), "utf8");
 const notificationBellSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationBell.tsx"), "utf8");
 const notificationCenterSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationCenter.tsx"), "utf8");
 const notificationItemSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationItem.tsx"), "utf8");
@@ -284,7 +285,8 @@ describe("industrial skin tokens", () => {
     expect(accountMenuSource).toContain("tf-account-menu-avatar");
     expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
     expect(accountMenuSource).toContain("size-10");
-    expect(accountMenuSource).toContain("min-h-8");
+    expect(accountMenuSource).toContain("AppearancePicker");
+    expect(appearancePickerSource).toContain("min-h-8");
     expect(accountMenuSource).toContain("accountMeta");
     expect(accountMenuSource).not.toContain("badge-neon");
     expect(accountMenuSource).not.toContain("BOSS");

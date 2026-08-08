@@ -2133,7 +2133,7 @@ html[data-skin="industrial"] .cc-root .cc-queue-item__btn:hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, transparent);
 }
 
-html[data-skin="botanica"] .cc-root {
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-root {
   --cc-bg: transparent;
   --cc-bg-2: var(--tf-skin-card);
   --cc-surface: var(--tf-skin-card);
@@ -2168,28 +2168,28 @@ html[data-skin="botanica"] .cc-root {
   color: var(--tf-skin-text);
 }
 
-html[data-skin="botanica"] .cc-panel,
-html[data-skin="botanica"] .cc-kpi,
-html[data-skin="botanica"] .cc-filterbar,
-html[data-skin="botanica"] .cc-alert-item,
-html[data-skin="botanica"] .cc-project-row,
-html[data-skin="botanica"] .cc-empty,
-html[data-skin="botanica"] .cc-settings-item,
-html[data-skin="botanica"] .cc-settings-panel,
-html[data-skin="botanica"] .cc-cal__list {
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-panel,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-kpi,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-filterbar,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-alert-item,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-project-row,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-empty,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-settings-item,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-settings-panel,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-cal__list {
   background: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-panel-opacity, 88%), transparent);
   border-color: var(--tf-skin-line);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--tf-skin-text) 7%, transparent);
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html[data-skin="botanica"] .cc-project-row:hover,
-html[data-skin="botanica"] .cc-root .cc-queue-item__btn:hover,
-html[data-skin="botanica"] .cc-root .cc-cal__event-btn:hover {
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-project-row:hover,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-root .cc-queue-item__btn:hover,
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-root .cc-cal__event-btn:hover {
   background: color-mix(in srgb, var(--tf-skin-accent) 9%, var(--tf-skin-card) 91%);
 }
 
-html[data-skin="botanica"] .cc-root :focus-visible {
+html:is([data-skin="botanica"], [data-skin="nature"]) .cc-root :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 72%, #ffffff 28%);
   outline-offset: 2px;
 }
