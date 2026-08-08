@@ -499,6 +499,10 @@ export interface ContractAmendment {
   reason?: string;
 
   documentUrl?: string;
+  documentStoragePath?: string;
+  documentFileName?: string;
+  documentMimeType?: string;
+  documentSize?: number;
   extractionJson?: Record<string, unknown>;
   extractionConfidence?: number;
 

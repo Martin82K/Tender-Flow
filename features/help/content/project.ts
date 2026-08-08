@@ -460,7 +460,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "contracts",
     label: "Seznam smluv",
     description: "Tabulka nebo přehled všech smluv projektu s detaily — dodavatel, předmět, částka, stav.",
-    detail: "Dvě zobrazení: Tabulka (kompaktní řádky) a Přehled smluv (rozšířené karty). Každá smlouva je napojena na poptávkovou kategorii a subdodavatele z Pipeline.",
+    detail: "Dvě zobrazení: Tabulka (kompaktní řádky) a Přehled smluv (rozšířené karty). U smlouvy bez dokumentu použijte ve sloupci Dokument akci Připojit; PDF nebo DOCX se uloží ke stávající smlouvě bez spuštění OCR a bez změny jejích údajů. Smlouvy s dodatky lze v tabulce rozbalit a zobrazit jejich podřízené řádky. Každá smlouva je napojena na poptávkovou kategorii a subdodavatele z Pipeline.",
     category: "info",
     tourOrder: 3,
   },
@@ -470,7 +470,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "contracts",
     label: "Dodatky ke smlouvám",
     description: "Správa dodatků — změny ceny, termínů nebo rozsahu jednotlivých smluv.",
-    detail: "Každý dodatek navyšuje nebo snižuje původní cenu smlouvy. Součet dodatků se promítá do celkové zasmluvněné částky projektu.",
+    detail: "Každý dodatek patří ke konkrétní smlouvě a navyšuje nebo snižuje její původní cenu. Součet dodatků se promítá do celkové zasmluvněné částky projektu. PDF nebo DOCX lze připojit přímo ke konkrétnímu dodatku v detailu i v rozbalené tabulce; připojení samo nespouští OCR. Dokument hlavní smlouvy a dokumenty jednotlivých dodatků se vedou odděleně.",
     category: "data-entry",
     tourOrder: 4,
     dataFlow: [

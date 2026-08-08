@@ -14,9 +14,9 @@ export type ContractColumnId =
   | 'rating';
 
 export const CONTRACT_COLUMN_IDS: ContractColumnId[] = [
+  'vendor',
   'number',
   'document',
-  'vendor',
   'status',
   'total',
   'amendments',

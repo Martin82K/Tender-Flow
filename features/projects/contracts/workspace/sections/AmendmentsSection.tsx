@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { ContractAmendment, ContractWithDetails } from '@/types';
 import { contractMutationsApi } from '../../api';
 import { AmendmentDialog } from '../../forms/AmendmentDialog';
+import { AmendmentDocumentControl } from '../../documents/AmendmentDocumentControl';
 import { formatDate, formatMoney } from '../../utils/format';
 
 interface Props {
@@ -15,7 +16,11 @@ export const AmendmentsSection: React.FC<Props> = ({ contract, onRefresh }) => {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Smazat tento dodatek?')) return;
+    const amendment = contract.amendments.find((candidate) => candidate.id === id);
     await contractMutationsApi.deleteAmendment(id);
+    if (amendment?.documentStoragePath) {
+      await contractMutationsApi.deleteAmendmentDocument(amendment.documentStoragePath);
+    }
     await onRefresh();
   };
 
@@ -58,6 +63,7 @@ export const AmendmentsSection: React.FC<Props> = ({ contract, onRefresh }) => {
                 <th className="text-left px-2.5 py-2">Datum</th>
                 <th className="text-right px-2.5 py-2">Změna hodnoty</th>
                 <th className="text-left px-2.5 py-2">Důvod</th>
+                <th className="text-left px-2.5 py-2">Dokument</th>
                 <th />
               </tr>
             </thead>
@@ -79,6 +85,13 @@ export const AmendmentsSection: React.FC<Props> = ({ contract, onRefresh }) => {
                     {formatMoney(a.deltaPrice, contract.currency)}
                   </td>
                   <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{a.reason || '—'}</td>
+                  <td className="px-2.5 py-2">
+                    <AmendmentDocumentControl
+                      amendment={a}
+                      projectId={contract.projectId}
+                      onChanged={onRefresh}
+                    />
+                  </td>
                   <td className="px-2.5 py-2 text-right">
                     <button
                       type="button"
