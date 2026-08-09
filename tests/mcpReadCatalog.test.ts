@@ -152,15 +152,36 @@ describe("MCP safe read catalog", () => {
         notes: null,
         status: "submitted",
         contracted: false,
-        subcontractors: null,
       }],
       error: null,
     });
-    const supabase = { from: vi.fn(() => bids) };
+    const subcontractors = makeQuery({
+      data: [{
+        id: "supplier-1",
+        company_name: "Dodavatel s.r.o.",
+        contact_person_name: "Jan Novák",
+        email: "jan@example.test",
+        phone: "+420123456789",
+      }],
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) => (
+        table === "subcontractors" ? subcontractors : bids
+      )),
+    };
 
     const rows = await listBids(supabase as never, { categoryId: "tender-1" });
 
     expect(bids.eq).toHaveBeenCalledWith("demand_category_id", "tender-1");
-    expect(rows[0]).toMatchObject({ tenderId: "tender-1" });
+    expect(bids.select).toHaveBeenCalledWith(expect.not.stringContaining("subcontractors("));
+    expect(subcontractors.in).toHaveBeenCalledWith("id", ["supplier-1"]);
+    expect(rows[0]).toMatchObject({
+      tenderId: "tender-1",
+      companyName: "Dodavatel s.r.o.",
+      contactPerson: "Jan Novák",
+      email: "jan@example.test",
+      phone: "+420123456789",
+    });
   });
 });
