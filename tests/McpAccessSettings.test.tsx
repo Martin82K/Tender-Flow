@@ -8,11 +8,13 @@ import { McpAccessSettings } from "@/features/settings/McpAccessSettings";
 const grantMocks = vi.hoisted(() => ({
   list: vi.fn(),
   set: vi.fn(),
+  revoke: vi.fn(),
 }));
 
 vi.mock("@/features/settings/api/mcpGrantService", () => ({
   listMyMcpClientGrants: grantMocks.list,
   setMyMcpClientGrant: grantMocks.set,
+  revokeMyMcpClientAccess: grantMocks.revoke,
 }));
 
 describe("McpAccessSettings", () => {
@@ -30,6 +32,7 @@ describe("McpAccessSettings", () => {
       enabled: true,
       expiresAt: "2026-09-08T00:00:00Z",
     });
+    grantMocks.revoke.mockResolvedValue(undefined);
   });
 
   it("shows baseline read and grants contacts through the exact client-bound RPC", async () => {
@@ -70,5 +73,45 @@ describe("McpAccessSettings", () => {
         true,
       );
     });
+  });
+
+  it("requires confirmation and revokes only the selected OAuth client", async () => {
+    grantMocks.list
+      .mockResolvedValueOnce([{
+        clientId: "old-client",
+        clientName: "ChatGPT Tender Flow",
+        clientUri: "https://chatgpt.com",
+        contactsReadExpiresAt: "2026-09-08T00:00:00Z",
+        writeExpiresAt: null,
+      }, {
+        clientId: "active-client",
+        clientName: "ChatGPT Tender Flow 2",
+        clientUri: "https://chatgpt.com",
+        contactsReadExpiresAt: "2026-09-08T00:00:00Z",
+        writeExpiresAt: null,
+      }])
+      .mockResolvedValueOnce([{
+        clientId: "active-client",
+        clientName: "ChatGPT Tender Flow 2",
+        clientUri: "https://chatgpt.com",
+        contactsReadExpiresAt: "2026-09-08T00:00:00Z",
+        writeExpiresAt: null,
+      }]);
+
+    render(<McpAccessSettings />);
+    await screen.findByText("ChatGPT Tender Flow 2");
+
+    const disconnectButtons = screen.getAllByRole("button", { name: "Odpojit klienta" });
+    fireEvent.click(disconnectButtons[0]);
+    expect(grantMocks.revoke).not.toHaveBeenCalled();
+    expect(screen.getByText(/zneplatní jeho aktivní relace a obnovovací tokeny/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Potvrdit odpojení" }));
+
+    await waitFor(() => {
+      expect(grantMocks.revoke).toHaveBeenCalledWith("old-client");
+      expect(screen.queryByText("ChatGPT Tender Flow", { exact: true })).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("ChatGPT Tender Flow 2")).toBeInTheDocument();
   });
 });

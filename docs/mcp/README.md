@@ -34,6 +34,8 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
   protokolu. Aktivně consentovaný OAuth klient získá základní read katalog;
   kontaktní data vyžadují 30denní user+client grant a write katalog osmihodinový
   grant. Oba lze okamžitě odebrat v Nastavení → Nástroje → MCP přístupy.
+  Celý uživatelský OAuth souhlas lze na stejném místě odpojit po druhém
+  potvrzení; tím se zneplatní relace a refresh tokeny pouze vybraného klienta.
 - Třífázový zápisový protokol dovoluje vykonat jen `create_task`; ostatní typy
   server odmítá provést i s aktivním write grantem.
 - Dostupný je katalog, PII-minimalizovaný projektový souhrn, smluvní přehled a
