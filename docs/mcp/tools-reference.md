@@ -131,12 +131,15 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 - Permissions: read + write; riziko high; **vyžaduje osmihodinový grant**.
 - Vstup: UUID `proposalId` a přesný `confirmationText`.
 - Ověří vlastníka, OAuth klienta, stav a desetiminutovou expiraci.
-- Výstup: krátkodobý jednorázový `executeToken`; token se nesmí logovat.
+- Výstup zopakuje veřejný `confirmationText`, který klient použije i v execute
+  kroku. Starší návrhy s jednorázovým `executeToken` zůstávají kompatibilní.
 
 ### `tf_execute_change`
 
 - Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **vyžaduje osmihodinový grant**.
-- Vstup: `proposalId`, `executeToken` a `idempotencyKey` 8–200 znaků.
+- Vstup: `proposalId`, přesný `confirmationText` a `idempotencyKey` 8–200
+  znaků. Pro dříve potvrzené návrhy lze místo textu použít legacy
+  `executeToken`.
 - Implementované execution typy jsou `create_task` a stavová větev
   `update_bid`. `update_bid` nemůže měnit cenu, dodavatele, kontakty, poznámky
   ani přílohy; při změně stavu od prepare kroku execute bezpečně selže.
