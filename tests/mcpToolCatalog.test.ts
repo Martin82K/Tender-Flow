@@ -7,8 +7,32 @@ import {
   getSupportedMcpOAuthScopes,
   hasMcpPermissions,
 } from "../server/mcp/scopePolicy.js";
+import { MCP_TOOL_CATALOG } from "../shared/mcp/toolCatalog.js";
 
 describe("MCP tool catalog and permissions", () => {
+  it("udržuje zobrazovanou matici jako úplný zdroj serverových tool policy", () => {
+    const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
+
+    expect(toolNames).toHaveLength(17);
+    expect(new Set(toolNames).size).toBe(toolNames.length);
+    expect(toolNames).toEqual(expect.arrayContaining([
+      "search",
+      "fetch",
+      "tf_list_projects",
+      "tf_list_contacts",
+      "tf_prepare_change",
+      "tf_confirm_change",
+      "tf_execute_change",
+    ]));
+
+    for (const tool of MCP_TOOL_CATALOG) {
+      expect(getMcpToolPolicy(tool.name)).toEqual({
+        requiredPermissions: tool.requiredPermissions,
+        riskLevel: tool.riskLevel,
+      });
+    }
+  });
+
   it("odděluje standardní OAuth scopes od interních oprávnění", () => {
     expect(getSupportedMcpOAuthScopes()).toEqual([
       MCP_OAUTH_SCOPES.identity,

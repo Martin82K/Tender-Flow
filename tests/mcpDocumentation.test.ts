@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { MCP_TOOL_CATALOG } from "../shared/mcp/toolCatalog.js";
 
 const ROOT = process.cwd();
 const MCP_DOCS = path.join(ROOT, "docs", "mcp");
@@ -26,25 +27,7 @@ const requiredDocuments = [
   "adr/0001-mcp-2026-07-28.md",
 ];
 
-const toolNames = [
-  "search",
-  "fetch",
-  "tf_list_projects",
-  "tf_get_project_summary",
-  "tf_get_project_detail",
-  "tf_list_tenders",
-  "tf_list_bids",
-  "tf_list_winners",
-  "tf_list_contracts",
-  "tf_get_contract_overview",
-  "tf_list_tender_plan",
-  "tf_list_contacts",
-  "tf_list_upcoming_deadlines",
-  "tf_list_tasks",
-  "tf_prepare_change",
-  "tf_confirm_change",
-  "tf_execute_change",
-];
+const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
 
 const resourceUris = [
   "tenderflow://catalog",
@@ -72,9 +55,9 @@ describe("MCP documentation contract", () => {
 
     expect(serverSource).toContain("protocolVersion: '2026-07-28'");
     expect(architecture).toContain("`2026-07-28`");
+    expect(policySource).toContain("MCP_TOOL_CATALOG");
 
     for (const toolName of toolNames) {
-      expect(policySource, `${toolName} scope policy`).toContain(`${toolName}:`);
       expect(serverSource, `${toolName} registration`).toContain(`'${toolName}'`);
       expect(toolsReference, `${toolName} documentation`).toContain(`\`${toolName}\``);
     }
