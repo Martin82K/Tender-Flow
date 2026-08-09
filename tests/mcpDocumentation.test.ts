@@ -77,4 +77,15 @@ describe("MCP documentation contract", () => {
     expect(combined).not.toMatch(/\b(?:TODO|TBD|FIXME)\b/);
     expect(combined).not.toMatch(/(?:service[_-]?role|access[_-]?token)\s*[:=]\s*[A-Za-z0-9._-]{16,}/i);
   });
+
+  it("describes the visible confirmation handoff consistently", () => {
+    const confirmTool = MCP_TOOL_CATALOG.find((tool) => tool.name === "tf_confirm_change");
+    const executeTool = MCP_TOOL_CATALOG.find((tool) => tool.name === "tf_execute_change");
+    const outlookWorkflow = read("docs/mcp/outlook-bid-workflow.md");
+
+    expect(confirmTool?.data).toContain("potvrzovací text");
+    expect(confirmTool?.data).not.toContain("vydá jednorázový");
+    expect(executeTool?.data).toContain("potvrzovacím textem");
+    expect(outlookWorkflow).not.toContain("jednorázový execute token");
+  });
 });

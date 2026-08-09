@@ -24,7 +24,7 @@ datové hranice `server/mcp/data.js` spolu s verzovanými Supabase migracemi.
 - OneDrive/SharePoint cesta, download URL, access token ani obsah přílohy se
   nesmí ukládat do Outlook linku nebo MCP auditního payloadu.
 - Stavová změna má vysoké riziko, povinný pre-audit, desetiminutový proposal,
-  přesný confirmation text, jednorázový execute token a idempotency key.
+  přesný confirmation text použitý v confirm i execute kroku a idempotency key.
 - `change_mcp_bid_status` je úzké RPC. Ověřuje aktuální identitu a OAuth
   klienta, aktivní `tenderflow.write`, povolenou hodnotu statusu a write právo
   k projektové pipeline. Přímý table `UPDATE` pro MCP roli zůstává zakázaný.
