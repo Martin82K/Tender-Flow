@@ -45,10 +45,6 @@ export const hasMcpPermissions = (grantedPermissions = [], requiredPermissions =
   return requiredPermissions.every((permission) => granted.has(permission));
 };
 
-export const getRemoteMcpPermissions = () => [MCP_PERMISSIONS.read];
-
-export const getLocalSessionMcpPermissions = () => [MCP_PERMISSIONS.read];
-
 export const assertMcpOAuthScopes = (auth, requiredScopes) => {
   const grantedScopes = Array.isArray(auth?.oauthScopes) ? auth.oauthScopes : [];
   const missing = requiredScopes.filter((scope) => !grantedScopes.includes(scope));

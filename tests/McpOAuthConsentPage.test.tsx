@@ -11,6 +11,10 @@ const oauthMocks = vi.hoisted(() => ({
   denyAuthorization: vi.fn(),
 }));
 
+const routerMocks = vi.hoisted(() => ({ navigate: vi.fn() }));
+
+vi.mock("@/shared/routing/router", () => ({ navigate: routerMocks.navigate }));
+
 vi.mock("@/components/layouts/AuthLayout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -55,6 +59,8 @@ describe("McpOAuthConsentPage", () => {
       "href",
       "/app/settings?tab=tools&subTab=mcp",
     );
+    fireEvent.click(screen.getByRole("link", { name: "Zobrazit správu MCP oprávnění" }));
+    expect(routerMocks.navigate).toHaveBeenCalledWith("/app/settings?tab=tools&subTab=mcp");
     expect(oauthMocks.getAuthorizationDetails).toHaveBeenCalledWith("auth-1");
   });
 

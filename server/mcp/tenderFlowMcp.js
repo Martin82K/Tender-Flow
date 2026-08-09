@@ -28,6 +28,7 @@ import {
   hasMcpPermissions,
 } from './scopePolicy.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
+import { isMcpPermissionServiceUnavailableError } from './permissionGrants.js';
 
 const textJson = (value, isError = false) => ({
   content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
@@ -851,6 +852,20 @@ const withMcpCors = (response, origin) => {
   return response;
 };
 
+export const mcpAuthenticationFailureResponse = (request, error) => {
+  if (isMcpPermissionServiceUnavailableError(error)) {
+    return jsonResponse(503, {
+      error: 'mcp_auth_service_unavailable',
+      message: 'MCP authorization service is temporarily unavailable.',
+      status: 503,
+    });
+  }
+  return unauthorizedMcpResponse(
+    request,
+    error instanceof Error ? error.message : String(error),
+  );
+};
+
 export const handleMcpWebRequest = async (request) => {
   let origin;
   try {
@@ -879,7 +894,7 @@ export const handleMcpWebRequest = async (request) => {
     });
   } catch (error) {
     return withMcpCors(
-      unauthorizedMcpResponse(request, error instanceof Error ? error.message : String(error)),
+      mcpAuthenticationFailureResponse(request, error),
       origin,
     );
   }

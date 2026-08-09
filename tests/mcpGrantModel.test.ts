@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveMcpPermissions } from "../server/mcp/permissionGrants.js";
+import {
+  McpPermissionServiceUnavailableError,
+  resolveMcpPermissions,
+} from "../server/mcp/permissionGrants.js";
 import {
   listMyMcpClientGrants,
   setMyMcpClientGrant,
@@ -25,6 +28,7 @@ describe("authoritative MCP user-client grants", () => {
   it("resolves only the authoritative permission array returned by the bound RPC", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([
       "tenderflow.read",
       "tenderflow.contacts.read",
@@ -47,7 +51,7 @@ describe("authoritative MCP user-client grants", () => {
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          apikey: "anon-key",
+          apikey: "sb_secret_test_backend",
           Authorization: "Bearer oauth-user-token",
         }),
         body: JSON.stringify({
@@ -60,10 +64,11 @@ describe("authoritative MCP user-client grants", () => {
   it("fails closed on RPC error, missing read or unknown permission", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response("{}", { status: 503 })));
     await expect(resolveMcpPermissions({ token: "token", clientId: "client" }))
-      .rejects.toThrow("Unable to resolve MCP permissions");
+      .rejects.toBeInstanceOf(McpPermissionServiceUnavailableError);
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(JSON.stringify([
       "tenderflow.contacts.read",
@@ -77,6 +82,14 @@ describe("authoritative MCP user-client grants", () => {
     ]), { status: 200 })));
     await expect(resolveMcpPermissions({ token: "token", clientId: "client" }))
       .rejects.toThrow("Permission service returned an unsupported permission");
+  });
+
+  it("classifies missing server-side permission configuration as unavailable", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "");
+
+    await expect(resolveMcpPermissions({ token: "token", clientId: "client" }))
+      .rejects.toBeInstanceOf(McpPermissionServiceUnavailableError);
   });
 
   it("uses authenticated settings RPCs without accepting a user id", async () => {
@@ -115,6 +128,13 @@ describe("authoritative MCP user-client grants", () => {
 
     expect(filename).toBeDefined();
     const migration = fs.readFileSync(path.join(migrationDir, filename as string), "utf8");
+    const lifecycleFilename = fs.readdirSync(migrationDir)
+      .find((name) => name.endsWith("_fix_mcp_grant_lifecycle.sql"));
+    expect(lifecycleFilename).toBeDefined();
+    const lifecycleMigration = fs.readFileSync(
+      path.join(migrationDir, lifecycleFilename as string),
+      "utf8",
+    );
     expect(migration).toContain("CREATE TABLE public.mcp_user_client_grants");
     expect(migration).toContain("CREATE TABLE public.mcp_permission_grant_audit");
     expect(migration).toContain("ALTER TABLE public.mcp_user_client_grants ENABLE ROW LEVEL SECURITY");
@@ -140,6 +160,15 @@ describe("authoritative MCP user-client grants", () => {
     expect(migration.match(/JOIN auth\.oauth_consents AS oauth_consent/g)).toHaveLength(3);
     expect(migration).toContain("oauth_consent.user_id = caller_id");
     expect(migration).toContain("oauth_consent.revoked_at IS NULL");
+    expect(lifecycleMigration).toContain("ADD COLUMN consent_id UUID");
+    expect(lifecycleMigration).toContain("ADD COLUMN consent_granted_at TIMESTAMPTZ");
+    expect(lifecycleMigration).toContain("ALTER COLUMN consent_id SET NOT NULL");
+    expect(lifecycleMigration).toContain("grant_row.consent_id");
+    expect(lifecycleMigration).toContain("grant_row.consent_granted_at");
+    expect(lifecycleMigration).toContain("pg_advisory_xact_lock");
+    expect(lifecycleMigration).toContain(
+      "DROP CONSTRAINT IF EXISTS mcp_permission_grant_audit_client_id_fkey",
+    );
   });
 
   it("allows grant management only from a first-party Tender Flow session", () => {

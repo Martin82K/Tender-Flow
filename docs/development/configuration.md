@@ -72,7 +72,8 @@ noví klienti používají `server/discover` a metadata v každém requestu.
 | `MCP_ALLOWED_AUDIENCES` | povolené JWT audience včetně kanonického MCP resource URI |
 | `MCP_REQUIRED_SCOPES` | minimální OAuth scopes endpointu; výchozí je `openid` |
 | `MCP_ALLOWED_ORIGINS` | přesný allowlist browser originů oddělený čárkou |
-| `TENDER_FLOW_MCP_ACCESS_TOKEN` | pouze lokální stdio přístupový token; nikdy se necommituje |
+| `SUPABASE_MCP_SECRET_KEY` | povinný server-only Supabase `sb_secret_…` klíč; nikdy nesmí do `VITE_*` ani k MCP klientovi |
+| `TENDER_FLOW_MCP_ACCESS_TOKEN` | pouze lokální dedikovaný MCP OAuth token; běžná TF session se odmítne |
 | `TENDER_FLOW_MCP_READ_ONLY` | zakáže write tools v lokálním stdio režimu |
 
 `MCP_REQUIRED_SCOPES` smí obsahovat jen scopes inzerované MCP serverem:
@@ -89,10 +90,12 @@ OAuth klient žádá standardní Supabase identity scopes, typicky
 `tenderflow.read`, `tenderflow.contacts.read` a `tenderflow.write`. Vlastní
 `tenderflow.*` hodnota v OAuth access tokenu permission neudělí.
 
-Aktuální remote i lokální stdio policy přiděluje pouze obecné read oprávnění
-bez kontaktních údajů. Contacts/write se zapnou až samostatným autoritativním
-grant modelem vázaným na uživatele a schváleného klienta; pouhá konfigurace
-OAuth scope k tomu nestačí.
+Remote i lokální stdio vyžadují token s izolovanou rolí
+`tenderflow_mcp_client`. Datové volání vzniká až na serveru kombinací tohoto
+uživatelského JWT v `Authorization` a `SUPABASE_MCP_SECRET_KEY` v `apikey`.
+Contacts/write se zapnou až samostatným autoritativním grant modelem vázaným
+na uživatele a schváleného klienta; pouhá konfigurace OAuth scope k tomu
+nestačí.
 
 ## Feature flags a tarify
 

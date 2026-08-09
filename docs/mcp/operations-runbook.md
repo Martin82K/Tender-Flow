@@ -12,34 +12,49 @@ Zdroj pravdy: `server/mcp/`, `docs/development/configuration.md` a Vercel route
 | `MCP_ALLOWED_AUDIENCES` | povolené audience včetně kanonického resource URI |
 | `MCP_REQUIRED_SCOPES` | minimální endpoint scopes; výchozí `openid` |
 | `MCP_ALLOWED_ORIGINS` | přesný browser Origin allowlist |
-| `TENDER_FLOW_MCP_ACCESS_TOKEN` | jen lokální stdio secret |
+| `SUPABASE_MCP_SECRET_KEY` | povinný server-only `sb_secret_…` klíč pouze pro MCP backend |
+| `TENDER_FLOW_MCP_ACCESS_TOKEN` | lokální dedikovaný MCP OAuth token; běžná TF session se odmítne |
 | `TENDER_FLOW_MCP_READ_ONLY` | vypnutí stdio write tools |
 
 Před deployem ověřit, že `MCP_REQUIRED_SCOPES` obsahuje jen `openid`, `email`
 a `profile`; server jiné hodnoty odmítá jako chybnou konfiguraci.
 
-Supabase URL a anon key jsou potřeba pro ověření identity a user-scoped Data
-API. Service-role credential nepatří do MCP request cesty. Hodnoty se v
+Supabase URL je potřeba pro ověření identity. MCP Data API používá serverový
+`SUPABASE_MCP_SECRET_KEY` jako `apikey` a uživatelský OAuth JWT jako
+`Authorization`; právě tento rozdíl zachová `auth.uid()` a RLS. Veřejný anon
+klíč ani service-role credential do MCP datové cesty nepatří. Hodnoty se v
 incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
 
 ## Nasazení
 
 1. Ověřit čistou větev, testy, typecheck, build, boundaries a docs links.
-2. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
+2. V Supabase API Keys vytvořit samostatný rotovatelný secret key pro MCP a
+   uložit jej jako `SUPABASE_MCP_SECRET_KEY` do serverového/Vercel prostředí.
+3. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
    po explicitním schválení verzovanou migraci.
-3. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
+4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
-4. Ověřit, že OAuth klient je aktivní v `auth.oauth_clients` i v
+5. Ověřit, že OAuth klient je aktivní v `auth.oauth_clients` i v
    `mcp_oauth_client_resources`, a teprve potom zapnout Custom Access Token
    Hook.
-5. Provést OAuth canary se standardními `openid email profile` a read dotazem.
-6. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
-7. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
+6. Znovu připojit MCP klienta, aby byl vydán nový token; ověřit v claims
+   `role=tenderflow_mcp_client`, přesný `client_id` a kanonický resource.
+7. Ověřit, že samotný OAuth JWT s publishable/anon `apikey` dostane na
+   `/rest/v1`, Storage i Realtime 401/403. Test musí zahrnout nový token s rolí
+   `tenderflow_mcp_client` i starší token s rolí `authenticated`; pre-request
+   blokuje PostgREST a restriktivní RLS blokuje Storage i publikované Realtime
+   tabulky pro každý JWT s `client_id`/`azp`. Toolový read přes MCP backend
+   naopak musí projít.
+8. Ověřit auditní řádek, tenantovou izolaci, nulové kontakty bez contacts
+   grantu a chování expirovaného tokenu.
+   Po revoke a nové autorizaci stejného klienta ověřit, že původní
+   contacts/write grant zůstává neaktivní a audit přežije odstranění klienta.
+9. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
-8. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
+10. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
    `create_task` prepare → confirm → execute, ověřit audit a řádek tasku, grant
    revokovat a ověřit okamžité zmizení write katalogu.
-9. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+11. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
 
 ### Poslední ověřený produkční preflight
 
@@ -71,6 +86,9 @@ bez úspěšného pre-auditu server doménovou změnu nespustí.
   idempotency key a doménový audit; opravu provést standardní business cestou.
 - **Audit outage:** nepovažovat chybějící řádky za důkaz nulové aktivity;
   obnovit DB cestu a korelovat hostingové access logy.
+- **HTTP 503 `mcp_auth_service_unavailable`:** token nereautorizovat; jde o
+  dočasný výpadek permission resolveru. Ověřit Supabase/PostgREST a požadavek
+  opakovat s backoffem.
 - **Přetížení:** zkontrolovat `consume_mcp_rate_limit`, počet aktivních bucketů,
   DB latency a `Rate limit service is unavailable`; podle klienta případně
   použít OAuth allowlist/WAF kill switch.

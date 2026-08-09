@@ -25,6 +25,8 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
 7. Potřebuje-li klient kontaktní data nebo zápis, uživatel je povolí pro tento
    consentovaný klient v Nastavení → Nástroje → MCP přístupy. Contacts grant
    platí 30 dní, write grant 8 hodin; rozšíření OAuth scope je nenahrazuje.
+8. Po změně registrace nebo databázové role provést nový OAuth flow. Starší
+   token bez `role=tenderflow_mcp_client` server záměrně odmítne.
 
 Konfigurační příklad bez secretu:
 
@@ -45,6 +47,8 @@ Konfigurační příklad bez secretu:
 - nesdílí private resource cache mezi uživateli,
 - reaguje na OAuth challenge a nepodvrhuje vlastní `tenderflow.*` scopes,
 - neukládá Bearer ani execute token do logů,
+- nikdy neočekává ani nepřijímá `SUPABASE_MCP_SECRET_KEY`; tento secret patří
+  pouze Tender Flow MCP backendu,
 - při aktivním write grantu zobrazuje diff, riziko a potvrzení uživateli,
 - zvládá 401, 403/tool absence, 429, schema error a expiraci,
 - po odebrání oprávnění zahodí cache a znovu autorizuje.

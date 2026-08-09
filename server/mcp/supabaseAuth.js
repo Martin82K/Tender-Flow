@@ -1,6 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import {
-  getLocalSessionMcpPermissions,
   getSupportedMcpOAuthScopes,
 } from './scopePolicy.js';
 import { resolveMcpPermissions } from './permissionGrants.js';
@@ -14,9 +13,12 @@ export const getSupabaseUrl = () => {
   return value;
 };
 
-export const getSupabaseAnonKey = () => {
-  const value = getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
-  if (!value) throw new Error('Missing SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY.');
+export const getSupabaseMcpSecretKey = () => {
+  const value = getEnv('SUPABASE_MCP_SECRET_KEY');
+  if (!value) throw new Error('Missing SUPABASE_MCP_SECRET_KEY.');
+  if (!value.startsWith('sb_secret_')) {
+    throw new Error('SUPABASE_MCP_SECRET_KEY must be a server-only sb_secret_ key.');
+  }
   return value;
 };
 
@@ -98,6 +100,9 @@ export const validateMcpTokenClaims = (payload, options = {}) => {
   const clientId = String(payload.client_id || payload.azp || '').trim();
   if (!userId) throw new Error('OAuth token does not contain a user id.');
   if (!clientId) throw new Error('OAuth token does not contain client_id. Use Supabase OAuth 2.1 token, not a regular app session token.');
+  if (payload.role !== 'tenderflow_mcp_client') {
+    throw new Error('OAuth token is not restricted to the Tender Flow MCP database role. Reconnect the MCP client.');
+  }
 
   const allowedClientIds = getAllowedClientIds();
   if (allowedClientIds.length === 0 && isMcpProductionRuntime()) {
@@ -176,10 +181,11 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
   }
 
   const oauthClientId = String(payload.client_id || payload.azp || '').trim();
-  const clientId = oauthClientId || 'local-stdio';
-  const permissions = oauthClientId
-    ? await resolveMcpPermissions({ token, clientId })
-    : getLocalSessionMcpPermissions();
+  if (!oauthClientId || payload.role !== 'tenderflow_mcp_client') {
+    throw new Error('Local MCP requires a dedicated Supabase OAuth token. Regular Tender Flow session tokens are not accepted.');
+  }
+  const clientId = oauthClientId;
+  const permissions = await resolveMcpPermissions({ token, clientId });
 
   return {
     token,
@@ -189,7 +195,7 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
     permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
-    hasOAuthClientId: Boolean(oauthClientId),
+    hasOAuthClientId: true,
     payload,
   };
 };

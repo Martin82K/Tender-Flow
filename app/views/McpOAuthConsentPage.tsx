@@ -6,6 +6,8 @@ import {
   getMcpOAuthAuthorizationDetails,
   type McpOAuthConsentDetails,
 } from "@/infra/auth/mcpOAuthConsentService";
+import { navigate } from "@/shared/routing/router";
+import { buildAppUrl } from "@/shared/routing/routeUtils";
 
 const scopeLabel = (scope: string): string => {
   switch (scope) {
@@ -58,6 +60,10 @@ export const McpOAuthConsentPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const mcpSettingsUrl = buildAppUrl("settings", {
+    settingsTab: "tools",
+    settingsSubTab: "mcp",
+  });
 
   const scopes = useMemo(
     () =>
@@ -179,7 +185,11 @@ export const McpOAuthConsentPage: React.FC = () => {
               </div>
 
               <a
-                href="/app/settings?tab=tools&subTab=mcp"
+                href={mcpSettingsUrl}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate(mcpSettingsUrl);
+                }}
                 className="inline-flex text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
               >
                 Zobrazit správu MCP oprávnění

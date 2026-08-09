@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseAnonKey, getSupabaseUrl } from './supabaseAuth.js';
+import { getSupabaseMcpSecretKey, getSupabaseUrl } from './supabaseAuth.js';
 
 let mcpClientSequence = 0;
 
 export const createUserSupabaseClient = (accessToken) =>
-  createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  createClient(getSupabaseUrl(), getSupabaseMcpSecretKey(), {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
