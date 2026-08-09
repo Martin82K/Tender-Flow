@@ -210,7 +210,7 @@ export const listBids = async (supabase, input = {}) => {
 
   let query = supabase
     .from('bids')
-    .select('id,demand_category_id,subcontractor_id,price,price_display,notes,status,contracted,subcontractors(company_name,contact_person_name,email,phone)')
+    .select('id,demand_category_id,subcontractor_id,price,price_display,notes,status,contracted')
     .order('created_at', { ascending: false })
     .limit(limit(input.limit, 30, 100));
 
@@ -220,20 +220,38 @@ export const listBids = async (supabase, input = {}) => {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []).map((row) => ({
-    id: row.id,
-    tenderId: row.demand_category_id,
-    subcontractorId: row.subcontractor_id,
-    companyName: row.subcontractors?.company_name || null,
-    contactPerson: row.subcontractors?.contact_person_name || null,
-    email: row.subcontractors?.email || null,
-    phone: row.subcontractors?.phone || null,
-    price: row.price || null,
-    priceDisplay: row.price_display || null,
-    notes: row.notes || null,
-    status: row.status || null,
-    contracted: Boolean(row.contracted),
-  }));
+  const rows = data || [];
+  const subcontractorIds = [...new Set(
+    rows.map((row) => row.subcontractor_id).filter(Boolean),
+  )];
+  let subcontractorsById = new Map();
+  if (subcontractorIds.length > 0) {
+    const { data: subcontractors, error: subcontractorsError } = await supabase
+      .from('subcontractors')
+      .select('id,company_name,contact_person_name,email,phone')
+      .in('id', subcontractorIds);
+    if (subcontractorsError) throw subcontractorsError;
+    subcontractorsById = new Map(
+      (subcontractors || []).map((subcontractor) => [subcontractor.id, subcontractor]),
+    );
+  }
+  return rows.map((row) => {
+    const subcontractor = subcontractorsById.get(row.subcontractor_id);
+    return {
+      id: row.id,
+      tenderId: row.demand_category_id,
+      subcontractorId: row.subcontractor_id,
+      companyName: subcontractor?.company_name || null,
+      contactPerson: subcontractor?.contact_person_name || null,
+      email: subcontractor?.email || null,
+      phone: subcontractor?.phone || null,
+      price: row.price || null,
+      priceDisplay: row.price_display || null,
+      notes: row.notes || null,
+      status: row.status || null,
+      contracted: Boolean(row.contracted),
+    };
+  });
 };
 
 export const linkOutlookMessage = async (supabase, input) => {
