@@ -134,6 +134,29 @@ describe("remote MCP server", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
   });
 
+  it("loguje odmítnutí OAuth tokenu bez Authorization hodnoty", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const response = await handleMcpWebRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: {
+          authorization: "Basic super-secret-credential",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(warn).toHaveBeenCalledOnce();
+    const logOutput = JSON.stringify(warn.mock.calls);
+    expect(logOutput).toContain("mcp_auth_rejected");
+    expect(logOutput).toContain("missing_bearer");
+    expect(logOutput).not.toContain("super-secret-credential");
+    expect(logOutput).not.toContain("authorization");
+  });
+
   it("mapuje výpadek permission resolveru na 503 bez OAuth challenge", async () => {
     const response = mcpAuthenticationFailureResponse(
       new Request("https://tenderflow.cz/api/mcp"),
