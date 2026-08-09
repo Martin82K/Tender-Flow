@@ -329,6 +329,31 @@ describe("remote MCP server", () => {
     expect(forgedNames).not.toContain("tf_execute_change");
   });
 
+  it("publikuje u každého dostupného toolu OAuth security scheme pro ChatGPT", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
+
+    const catalog = await callAuthorizedMcp(
+      "tools/list",
+      {},
+      ["openid", "email", "profile"],
+      ["tenderflow.read", "tenderflow.contacts.read", "tenderflow.write"],
+    );
+    const tools = catalog.result.tools as Array<{
+      securitySchemes?: unknown;
+      _meta?: Record<string, unknown>;
+    }>;
+
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      const expectedSchemes = [{ type: "oauth2", scopes: ["openid"] }];
+      expect(tool._meta?.securitySchemes).toEqual(expectedSchemes);
+      expect(JSON.stringify(tool._meta?.securitySchemes)).not.toContain("tenderflow.contacts.read");
+      expect(JSON.stringify(tool._meta?.securitySchemes)).not.toContain("tenderflow.write");
+    }
+  });
+
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");

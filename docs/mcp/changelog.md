@@ -3,6 +3,16 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — OAuth metadata v katalogu toolů
+
+- každý publikovaný tool deklaruje pro ChatGPT OAuth2 s minimálním scope
+  `openid` v kompatibilním `_meta.securitySchemes`,
+- interní permissions `tenderflow.read`, `tenderflow.contacts.read` a
+  `tenderflow.write` se do OAuth scopes nevystavují; server je dál vyhodnocuje
+  autoritativně před registrací i spuštěním toolu,
+- regresní wire test ověřuje metadata celého dostupného katalogu a současně
+  hlídá, že kontaktní ani zápisový grant nelze získat podvrženým OAuth scope.
+
 ## 2026-08-09 — uživatelské odpojení OAuth klienta
 
 - nastavení AI a MCP přístupů umožňuje po druhém potvrzení úplně odvolat
