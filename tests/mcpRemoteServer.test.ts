@@ -128,7 +128,7 @@ describe("remote MCP server", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toBe(
-      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource"',
+      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource", scope="openid"',
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });

@@ -18,7 +18,7 @@ sequenceDiagram
   participant M as Tender Flow MCP
   participant D as Supabase/RLS
   C->>M: požadavek bez tokenu
-  M-->>C: 401 + WWW-Authenticate metadata
+  M-->>C: 401 + WWW-Authenticate metadata + required OAuth scope
   C->>O: authorization request + standardní identity scopes
   O->>U: přihlášení a consent
   U-->>O: schválení

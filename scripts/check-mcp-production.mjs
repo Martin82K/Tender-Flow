@@ -89,7 +89,8 @@ const unauthorizedResponse = await fetch(expectedResource, {
 });
 assert(unauthorizedResponse.status === 401, `Unauthenticated MCP request returned HTTP ${unauthorizedResponse.status}.`);
 assert(
-  unauthorizedResponse.headers.get('www-authenticate') === `Bearer resource_metadata="${baseUrl}/api/mcp-resource"`,
+  unauthorizedResponse.headers.get('www-authenticate') ===
+    `Bearer resource_metadata="${baseUrl}/api/mcp-resource", scope="openid"`,
   'MCP 401 challenge points to unexpected protected-resource metadata.',
 );
 assert(unauthorizedResponse.headers.get('cache-control')?.includes('no-store'),

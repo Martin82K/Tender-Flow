@@ -44,11 +44,13 @@ export const buildMcpResourceMetadata = (request) => {
 
 export const unauthorizedMcpResponse = (request, message = 'Authorization required') => {
   const baseUrl = getBaseUrl(request);
+  const requiredScopes = getRequiredMcpScopes().join(' ');
   return jsonResponse(
     401,
     { error: 'unauthorized', message },
     {
-      'www-authenticate': `Bearer resource_metadata="${baseUrl}/api/mcp-resource"`,
+      'www-authenticate':
+        `Bearer resource_metadata="${baseUrl}/api/mcp-resource", scope="${requiredScopes}"`,
     },
   );
 };
