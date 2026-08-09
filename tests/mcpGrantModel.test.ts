@@ -167,4 +167,21 @@ describe("authoritative MCP user-client grants", () => {
       expect(functionSql).toMatch(/IF jwt_client_id IS NOT NULL THEN[\s\S]*ERRCODE = '42501'/);
     }
   });
+
+  it("adds covering indexes for every new non-leading foreign key", () => {
+    const migrationDir = path.join(ROOT, "supabase/migrations");
+    const filename = fs.readdirSync(migrationDir)
+      .find((name) => name.endsWith("_mcp_grant_fk_indexes.sql"));
+
+    expect(filename).toBeDefined();
+    const migration = fs.readFileSync(path.join(migrationDir, filename as string), "utf8");
+    expect(migration).toContain("idx_mcp_user_client_grants_client_id");
+    expect(migration).toContain("ON public.mcp_user_client_grants(client_id)");
+    expect(migration).toContain("idx_mcp_user_client_grants_granted_by");
+    expect(migration).toContain("ON public.mcp_user_client_grants(granted_by)");
+    expect(migration).toContain("idx_mcp_permission_grant_audit_client_id");
+    expect(migration).toContain("ON public.mcp_permission_grant_audit(client_id)");
+    expect(migration).toContain("idx_mcp_permission_grant_audit_actor_user_id");
+    expect(migration).toContain("ON public.mcp_permission_grant_audit(actor_user_id)");
+  });
 });
