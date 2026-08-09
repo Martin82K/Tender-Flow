@@ -36,6 +36,11 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
   instrukce; zápis vyžaduje explicitní třífázový tok.
 - **Citlivá dokumentová metadata:** MCP mapování odstraňuje raw URL a storage
   path; vrací jen příznak/název.
+- **Kontaktní PII v obecném read:** `search`, `fetch` a projektový resource
+  používají PII-minimalizované adaptéry; tabulka kontaktů se bez contacts
+  permission vůbec nedotazuje. Nabídky jsou v summary pouze agregované.
+- **Task provider metadata:** obecný task adaptér vrací pouze pracovní obsah a
+  vazby vlastního tasku; externí URL, sync stav/chyby a `created_by` vynechává.
 - **Replay/dvojitý zápis:** execute token, expirace a user/client-scoped
   idempotency key.
 - **Obcházení limitu přes více instancí:** atomický PostgreSQL bucket podle

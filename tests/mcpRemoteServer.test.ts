@@ -260,8 +260,12 @@ describe("remote MCP server", () => {
       ["tenderflow.read"],
     );
     const readNames = (readOnly.result.tools as Array<{ name: string }>).map((tool) => tool.name);
+    expect(readNames).toContain("search");
+    expect(readNames).toContain("fetch");
     expect(readNames).toContain("tf_list_projects");
+    expect(readNames).toContain("tf_get_project_summary");
     expect(readNames).toContain("tf_get_contract_overview");
+    expect(readNames).toContain("tf_list_tasks");
     expect(readNames).not.toContain("tf_list_contacts");
     expect(readNames).not.toContain("tf_execute_change");
 
@@ -272,7 +276,8 @@ describe("remote MCP server", () => {
       ["tenderflow.read"],
     );
     const forgedNames = (forgedScopes.result.tools as Array<{ name: string }>).map((tool) => tool.name);
-    expect(forgedNames).not.toContain("search");
+    expect(forgedNames).toContain("search");
+    expect(forgedNames).toContain("fetch");
     expect(forgedNames).not.toContain("tf_list_contacts");
     expect(forgedNames).not.toContain("tf_prepare_change");
     expect(forgedNames).not.toContain("tf_execute_change");
@@ -299,7 +304,7 @@ describe("remote MCP server", () => {
       readTemplates.result.resourceTemplates as Array<{ name: string }>
     ).map((resource) => resource.name);
     expect(readTemplateNames).toContain("tender-flow-contract-overview");
-    expect(readTemplateNames).not.toContain("tender-flow-project");
+    expect(readTemplateNames).toContain("tender-flow-project");
 
     const contactTemplates = await callAuthorizedMcp(
       "resources/templates/list",
@@ -310,7 +315,50 @@ describe("remote MCP server", () => {
     const contactTemplateNames = (
       contactTemplates.result.resourceTemplates as Array<{ name: string }>
     ).map((resource) => resource.name);
-    expect(contactTemplateNames).toEqual(["tender-flow-contract-overview"]);
+    expect(contactTemplateNames).toEqual([
+      "tender-flow-project",
+      "tender-flow-contract-overview",
+    ]);
+  });
+
+  it("obecný search a contact fetch bez contacts permission nenačítají subcontractors", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/rpc/consume_mcp_rate_limit")) {
+        return new Response(JSON.stringify({
+          allowed: true,
+          remaining: 119,
+          retry_after_seconds: 0,
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response("[]", {
+        status: url.includes("/mcp_audit_events") ? 201 : 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const searchResponse = await callAuthorizedMcp(
+      "tools/call",
+      { name: "search", arguments: { query: "fasáda" } },
+      ["openid", "email", "profile"],
+      ["tenderflow.read"],
+    );
+    expect(searchResponse.result).toMatchObject({ isError: false });
+
+    const fetchResponse = await callAuthorizedMcp(
+      "tools/call",
+      { name: "fetch", arguments: { id: "contact:contact-1" } },
+      ["openid", "email", "profile"],
+      ["tenderflow.read"],
+    );
+    expect(fetchResponse.result).toMatchObject({
+      structuredContent: { ok: false, error: "Unknown fetch id." },
+    });
+    expect(fetchMock.mock.calls.some(([input]) =>
+      String(input).includes("/subcontractors"))).toBe(false);
   });
 
   it("čte katalog jako privátní MCP 2.0 resource a audituje požadavek bez tokenu v logu", async () => {

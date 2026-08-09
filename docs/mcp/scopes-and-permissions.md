@@ -16,7 +16,7 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 
 | Interní permission | Význam | Aktuální remote/stdio stav |
 | --- | --- | --- |
-| `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů a termínů | povoleno serverovou policy |
+| `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | povoleno serverovou policy |
 | `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | nevydává se |
 | `tenderflow.write` | přístup k třífázovým write tools; vyžaduje také read | nevydává se |
 
@@ -24,8 +24,8 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 
 | Požadované interní permissions | Nástroje |
 | --- | --- |
-| read | `tf_list_projects`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines` |
-| read + contacts | `search`, `fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts` |
+| read | `search`, `fetch`, `tf_list_projects`, `tf_get_project_summary`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines`, `tf_list_tasks` |
+| read + contacts | kontaktní větev `search`/`fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts` |
 | read + write | `tf_prepare_change`, `tf_confirm_change`, `tf_execute_change` |
 
 Katalog a tool list jsou least-privilege: položka se při chybějící permission
@@ -35,6 +35,8 @@ s uloženým katalogem nebo přímé zavolání názvu kontrolu neobejde.
 ## Doménová autorizace
 
 - seznamy a detaily používají user-scoped Supabase klienta,
+- `search`/`fetch` bez contacts permission nikdy nenačítají tabulku kontaktů,
+- tasky jsou navíc omezené RLS podmínkou `created_by = auth.uid()`,
 - RLS omezuje organizace, projekty a jejich podřízené tabulky,
 - smluvní přehled používá `get_contract_overview` RPC a jeho role/project-team
   pravidla,

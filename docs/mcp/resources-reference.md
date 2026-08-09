@@ -1,6 +1,6 @@
 # Reference MCP resources
 
-Stav: 3 resource rodiny k 2026-08-09
+Stav: 4 resource rodiny k 2026-08-09
 Zdroj pravdy: `registerTenderFlowResources` v `server/mcp/tenderFlowMcp.js`
 
 Resources vracejí `application/json`. Všechny používají `cacheScope: private`,
@@ -18,12 +18,14 @@ Každé čtení podléhá OAuth/permission kontrole, rate limitu, RLS/RPC a MCP 
 ## `tenderflow://projects/{projectId}`
 
 - Typ: resource template.
-- Permissions: read + contacts; aktuálně **disabled**.
+- Permissions: read; dostupný remote i stdio.
 - Cache TTL: 60 000 ms.
 - Parametr: `projectId` viditelného projektu.
-- Obsah: základ projektu, VŘ, nabídky, smlouvy a plán VŘ.
-- Důvod contacts permission: agregovaný detail zahrnuje nabídky/dodavatele a může
-  nést kontaktní údaje.
+- Obsah: základ projektu, VŘ, agregované počty a cenové rozpětí nabídek, smlouvy
+  a plán VŘ.
+- Minimalizace: nevrací dodavatele, kontaktní osobu, e-mail, telefon, bid notes
+  ani dokumentové cesty. Pole `potentiallyTruncated` signalizuje dosažení
+  serverových limitů.
 
 Příklad URI:
 
@@ -44,6 +46,16 @@ tenderflow://projects/11111111-1111-4111-8111-111111111111
   storage path a přímé dokumentové URL se do MCP nevracejí.
 - Neplatný/neznámý currency code se normalizuje na `CZK`, aby spotřebitelé
   nespadli při formátování.
+
+## `tenderflow://tasks/open`
+
+- Typ: pevný resource.
+- Permissions: read; dostupný remote i stdio.
+- Cache TTL: 30 000 ms.
+- Obsah: nejvýše 50 otevřených, nearchivovaných tasků vlastněných přihlášeným
+  uživatelem.
+- Minimalizace: bez externích sync/provider metadat a bez `created_by`; RLS
+  vynucuje `created_by = auth.uid()`.
 
 ## Chyby a cache
 

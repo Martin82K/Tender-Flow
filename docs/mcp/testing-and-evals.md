@@ -2,7 +2,8 @@
 
 Stav: základ kontrol kvality k 2026-08-09
 Zdroj pravdy: `tests/mcpRemoteServer.test.ts`, `tests/mcpRateLimitAudit.test.ts`,
-`tests/mcpToolCatalog.test.ts`, `tests/mcpDocumentation.test.ts`
+`tests/mcpReadCatalog.test.ts`, `tests/mcpToolCatalog.test.ts`,
+`tests/mcpDocumentation.test.ts`
 
 ## Automatické testy
 
@@ -19,9 +20,10 @@ npm run mcp:canary:production
 ```
 
 Kontrolují zejména protected-resource metadata, JWT claims, oddělení OAuth scopes
-a interních permissions, redakci
-auditu, Origin allowlist, katalog, resources, write proposal guards,
-idempotency/RLS migrace a shodu této dokumentace s názvy toolů/resources.
+a interních permissions, redakci auditu, Origin allowlist, katalog, resources,
+PII-minimalizované projektové/task adaptéry, produkční `demand_category_id`,
+write proposal guards, idempotency/RLS migrace a shodu této dokumentace s názvy
+toolů/resources.
 Úspěšný exit code nestačí: zaznamenává se počet testů, skipped/todo, stderr,
 warnings a relevance scénářů.
 

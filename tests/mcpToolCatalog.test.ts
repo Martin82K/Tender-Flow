@@ -20,6 +20,18 @@ describe("MCP tool catalog and permissions", () => {
     expect(getMcpToolPolicy("tf_list_projects").requiredPermissions).toEqual([
       MCP_PERMISSIONS.read,
     ]);
+    expect(getMcpToolPolicy("search").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+    ]);
+    expect(getMcpToolPolicy("fetch").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+    ]);
+    expect(getMcpToolPolicy("tf_get_project_summary").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+    ]);
+    expect(getMcpToolPolicy("tf_list_tasks").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+    ]);
     expect(getMcpToolPolicy("tf_list_contacts").requiredPermissions).toEqual([
       MCP_PERMISSIONS.read,
       MCP_PERMISSIONS.contactsRead,

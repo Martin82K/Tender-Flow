@@ -4,11 +4,14 @@ import { createUserSupabaseClient } from './data.js';
 import {
   buildSearchResults,
   getContractOverview,
+  getMcpTask,
   getProjectDetail,
+  getProjectSummary,
   listBids,
   listContacts,
   listContracts,
   listProjects,
+  listMcpTasks,
   listTenderPlan,
   listTenders,
   listUpcomingDeadlines,
@@ -404,6 +407,7 @@ const registerTenderFlowResources = (server, auth, supabase) => {
         resources: [
           'tenderflow://projects/{projectId}',
           'tenderflow://organizations/{organizationId}/contracts/overview',
+          'tenderflow://tasks/open',
         ],
         oauthScopes: MCP_OAUTH_SCOPES,
         permissions: MCP_PERMISSIONS,
@@ -411,13 +415,13 @@ const registerTenderFlowResources = (server, auth, supabase) => {
     ),
   );
 
-  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read, MCP_PERMISSIONS.contactsRead])) {
+  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read])) {
     server.registerResource(
       'tender-flow-project',
       new ResourceTemplate('tenderflow://projects/{projectId}', { list: undefined }),
       {
         title: 'Tender Flow Project Detail',
-        description: 'Project detail, tenders, bids, contracts, and tender plan visible through RLS.',
+        description: 'PII-minimized project summary, tenders, bid statistics, contracts, and tender plan visible through RLS.',
         mimeType: 'application/json',
         cacheHint: { cacheScope: 'private', ttlMs: 60_000 },
       },
@@ -425,8 +429,11 @@ const registerTenderFlowResources = (server, auth, supabase) => {
         auth,
         supabase,
         'project',
-        { permissions: [MCP_PERMISSIONS.read, MCP_PERMISSIONS.contactsRead] },
-        async (uri, variables) => resourceJson(uri, await getProjectDetail(supabase, variables.projectId)),
+        { permissions: [MCP_PERMISSIONS.read] },
+        async (uri, variables) => {
+          const projectId = z.string().min(1).max(100).parse(variables.projectId);
+          return resourceJson(uri, await getProjectSummary(supabase, projectId));
+        },
       ),
     );
   }
@@ -455,11 +462,37 @@ const registerTenderFlowResources = (server, auth, supabase) => {
         })),
       ),
     );
+
+    server.registerResource(
+      'tender-flow-open-tasks',
+      'tenderflow://tasks/open',
+      {
+        title: 'Tender Flow Open Tasks',
+        description: 'Open, non-archived tasks owned by the authenticated user.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 30_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'open-tasks',
+        { permissions: [MCP_PERMISSIONS.read] },
+        async (uri) => resourceJson(uri, await listMcpTasks(supabase, {
+          completed: false,
+          includeArchived: false,
+          limit: 50,
+        })),
+      ),
+    );
   }
 };
 
 export const createTenderFlowMcpServer = (auth, options = {}) => {
   const includeWriteTools = options.includeWriteTools !== false;
+  const canReadContacts = hasMcpPermissions(auth.permissions, [
+    MCP_PERMISSIONS.read,
+    MCP_PERMISSIONS.contactsRead,
+  ]);
   const supabase = createUserSupabaseClient(auth.token);
   const server = new McpServer(
     {
@@ -480,7 +513,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     'search',
     {
       title: 'Tender Flow Search',
-      description: 'Search Tender Flow projects, tenders, contacts, and contract-related records. Use this first for ChatGPT connector and deep research discovery.',
+      description: 'Search Tender Flow projects, tenders, and personal tasks. Contact results are included only when the client has the dedicated contacts permission.',
       inputSchema: {
         query: z.string().min(1).max(500).describe('Search text.'),
       },
@@ -488,7 +521,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     withAudit(auth, supabase, 'search', 'search', async ({ query }) => ({
-      results: await buildSearchResults(supabase, query),
+      results: await buildSearchResults(supabase, query, { includeContacts: canReadContacts }),
     })),
   );
 
@@ -506,15 +539,19 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'fetch', 'fetch', async ({ id }) => {
       const parts = id.split(':');
       if (parts[0] === 'project' && parts[1]) {
-        const detail = await getProjectDetail(supabase, parts[1]);
-        return { ok: true, data: { id, title: detail.project.name, text: JSON.stringify(detail, null, 2), url: `/app/project/${parts[1]}` } };
+        const summary = await getProjectSummary(supabase, parts[1]);
+        return { ok: true, data: { id, title: summary.project.name, text: JSON.stringify(summary, null, 2), url: `/app/project/${parts[1]}` } };
       }
       if (parts[0] === 'tender' && parts[1] && parts[2]) {
-        const detail = await getProjectDetail(supabase, parts[1]);
-        const tender = detail.tenders.find((item) => item.id === parts[2]);
-        return { ok: Boolean(tender), data: { id, title: tender?.title || 'Tender', text: JSON.stringify({ project: detail.project, tender, bids: detail.bids.filter((bid) => bid.tenderId === parts[2]) }, null, 2), url: `/app/project/${parts[1]}?tab=pipeline&categoryId=${parts[2]}` } };
+        const summary = await getProjectSummary(supabase, parts[1]);
+        const tender = summary.tenders.find((item) => item.id === parts[2]);
+        return { ok: Boolean(tender), data: { id, title: tender?.title || 'Tender', text: JSON.stringify({ project: summary.project, tender }, null, 2), url: `/app/project/${parts[1]}?tab=pipeline&categoryId=${parts[2]}` } };
       }
-      if (parts[0] === 'contact' && parts[1]) {
+      if (parts[0] === 'task' && parts[1]) {
+        const task = await getMcpTask(supabase, parts[1]);
+        return { ok: true, data: { id, title: task.title, text: JSON.stringify(task, null, 2), url: '/app/tasks' } };
+      }
+      if (parts[0] === 'contact' && parts[1] && canReadContacts) {
         const contacts = await listContacts(supabase, { limit: 20 });
         const contact = contacts.find((item) => item.id === parts[1]);
         return { ok: Boolean(contact), data: { id, title: contact?.companyName || 'Contact', text: JSON.stringify(contact, null, 2), url: '/app/contacts' } };
@@ -533,6 +570,21 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     withAudit(auth, supabase, 'tf_list_projects', 'read', async (args) => ({ ok: true, data: await listProjects(supabase, args) })),
+  );
+
+  registerScopedTool(server, auth,
+    'tf_get_project_summary',
+    {
+      title: 'Get Project Summary',
+      description: 'Get a PII-minimized project summary with tenders, aggregate bid statistics, contracts, and tender plan. Read-only.',
+      inputSchema: { projectId: z.string().min(1).max(100) },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_get_project_summary', 'read', async ({ projectId }) => ({
+      ok: true,
+      data: await getProjectSummary(supabase, projectId),
+    })),
   );
 
   registerScopedTool(server, auth,
@@ -647,6 +699,27 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     withAudit(auth, supabase, 'tf_list_upcoming_deadlines', 'read', async (args) => ({ ok: true, data: await listUpcomingDeadlines(supabase, args) })),
+  );
+
+  registerScopedTool(server, auth,
+    'tf_list_tasks',
+    {
+      title: 'List Personal Tasks',
+      description: 'List tasks owned by the authenticated user without external sync or provider error metadata. Read-only.',
+      inputSchema: {
+        search: z.string().max(200).optional(),
+        projectId: z.string().max(100).optional(),
+        completed: z.boolean().optional(),
+        includeArchived: z.boolean().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_list_tasks', 'read', async (args) => ({
+      ok: true,
+      data: await listMcpTasks(supabase, args),
+    })),
   );
 
   if (!includeWriteTools) {

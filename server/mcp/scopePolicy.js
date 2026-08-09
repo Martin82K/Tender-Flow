@@ -15,9 +15,10 @@ const CONTACT_PERMISSIONS = Object.freeze([MCP_PERMISSIONS.read, MCP_PERMISSIONS
 const WRITE_PERMISSIONS = Object.freeze([MCP_PERMISSIONS.read, MCP_PERMISSIONS.write]);
 
 const TOOL_POLICIES = Object.freeze({
-  search: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
-  fetch: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
+  search: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
+  fetch: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
   tf_list_projects: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
+  tf_get_project_summary: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
   tf_get_project_detail: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
   tf_list_tenders: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
   tf_list_bids: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
@@ -27,6 +28,7 @@ const TOOL_POLICIES = Object.freeze({
   tf_list_tender_plan: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
   tf_list_contacts: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
   tf_list_upcoming_deadlines: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
+  tf_list_tasks: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
   tf_prepare_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'medium' },
   tf_confirm_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'high' },
   tf_execute_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'high' },
