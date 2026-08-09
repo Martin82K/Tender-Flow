@@ -1,3 +1,5 @@
+import { MCP_PERMISSION_IDS, MCP_TOOL_CATALOG } from '../../shared/mcp/toolCatalog.js';
+
 export const MCP_OAUTH_SCOPES = Object.freeze({
   identity: 'openid',
   email: 'email',
@@ -5,34 +7,15 @@ export const MCP_OAUTH_SCOPES = Object.freeze({
 });
 
 export const MCP_PERMISSIONS = Object.freeze({
-  read: 'tenderflow.read',
-  contactsRead: 'tenderflow.contacts.read',
-  write: 'tenderflow.write',
+  ...MCP_PERMISSION_IDS,
 });
 
-const READ_PERMISSIONS = Object.freeze([MCP_PERMISSIONS.read]);
-const CONTACT_PERMISSIONS = Object.freeze([MCP_PERMISSIONS.read, MCP_PERMISSIONS.contactsRead]);
-const WRITE_PERMISSIONS = Object.freeze([MCP_PERMISSIONS.read, MCP_PERMISSIONS.write]);
-
-const TOOL_POLICIES = Object.freeze({
-  search: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  fetch: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_list_projects: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_get_project_summary: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_get_project_detail: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
-  tf_list_tenders: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_list_bids: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
-  tf_list_winners: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
-  tf_list_contracts: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_get_contract_overview: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_list_tender_plan: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_list_contacts: { requiredPermissions: CONTACT_PERMISSIONS, riskLevel: 'low' },
-  tf_list_upcoming_deadlines: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_list_tasks: { requiredPermissions: READ_PERMISSIONS, riskLevel: 'low' },
-  tf_prepare_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'medium' },
-  tf_confirm_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'high' },
-  tf_execute_change: { requiredPermissions: WRITE_PERMISSIONS, riskLevel: 'high' },
-});
+const TOOL_POLICIES = Object.freeze(Object.fromEntries(
+  MCP_TOOL_CATALOG.map(({ name, requiredPermissions, riskLevel }) => [
+    name,
+    { requiredPermissions, riskLevel },
+  ]),
+));
 
 export const getMcpToolPolicy = (toolName) => {
   const policy = TOOL_POLICIES[toolName];

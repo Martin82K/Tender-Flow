@@ -12,6 +12,7 @@ import {
   mcpAuthenticationFailureResponse,
 } from "../server/mcp/tenderFlowMcp.js";
 import { checkMcpRateLimit, resetMcpRateLimitsForTests } from "../server/mcp/rateLimit.js";
+import { MCP_TOOL_CATALOG } from "../shared/mcp/toolCatalog.js";
 
 const ROOT = process.cwd();
 
@@ -380,11 +381,14 @@ describe("remote MCP server", () => {
       ["tenderflow.read", "tenderflow.contacts.read", "tenderflow.write"],
     );
     const tools = catalog.result.tools as Array<{
+      name: string;
       securitySchemes?: unknown;
       _meta?: Record<string, unknown>;
     }>;
 
-    expect(tools.length).toBeGreaterThan(0);
+    expect(tools.map((tool) => tool.name).toSorted()).toEqual(
+      MCP_TOOL_CATALOG.map((tool) => tool.name).toSorted(),
+    );
     for (const tool of tools) {
       const expectedSchemes = [{ type: "oauth2", scopes: ["openid"] }];
       expect(tool._meta?.securitySchemes).toEqual(expectedSchemes);

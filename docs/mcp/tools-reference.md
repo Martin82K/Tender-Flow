@@ -2,8 +2,11 @@
 
 Stav: 17 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
 bez zvýšeného grantu, dalších 7 podmíněných user+client grantem k 2026-08-09
-Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/scopePolicy.js`,
-`server/mcp/data.js`
+Zdroj pravdy: sdílený katalog `shared/mcp/toolCatalog.js`, registrace handlerů
+v `server/mcp/tenderFlowMcp.js` a datové adaptéry v `server/mcp/data.js`.
+Stejný katalog vykresluje uživatelská matice v Nastavení → Nástroje → MCP
+přístupy, takže názvy, požadované interní permissions a riziko nejsou v UI
+udržované odděleně od serverové autorizace.
 
 Všechny výsledky jsou JSON v `structuredContent` a současně textový JSON pro
 klienty bez strukturovaného zpracování. Doménové tools vracejí obálku

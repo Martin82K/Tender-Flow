@@ -6,6 +6,7 @@ import {
   type McpClientGrant,
   type McpElevatedPermission,
 } from "@/features/settings/api/mcpGrantService";
+import { McpToolMatrix } from "@/features/settings/components/McpToolMatrix";
 
 const isActive = (expiresAt: string | null): boolean =>
   Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now());
@@ -204,6 +205,8 @@ export const McpAccessSettings: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              <McpToolMatrix contactsActive={contactsActive} writeActive={writeActive} />
 
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
                 {pendingDisconnectClientId === client.clientId ? (
