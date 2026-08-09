@@ -338,7 +338,15 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
 const registerScopedTool = (server, auth, toolName, config, handler) => {
   const policy = getMcpToolPolicy(toolName);
   if (!hasMcpPermissions(auth.permissions, policy.requiredPermissions)) return;
-  server.registerTool(toolName, config, handler);
+  const securitySchemes = [{ type: 'oauth2', scopes: ['openid'] }];
+  server.registerTool(toolName, {
+    ...config,
+    securitySchemes,
+    _meta: {
+      ...config._meta,
+      securitySchemes,
+    },
+  }, handler);
 };
 
 const resourceJson = (uri, value) => ({

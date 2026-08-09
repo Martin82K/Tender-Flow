@@ -33,23 +33,25 @@ warnings a relevance scénářů.
 2. read discovery a projekt uživatele,
 3. skrytí contacts/write nástrojů bez serverových permissions,
 4. podvržené `tenderflow.contacts.read/write` OAuth scopes nic nezpřístupní,
-5. zamítnutí cizí organizace/projektu,
-6. expirovaný, špatně scoped, audience a client token,
-7. 401 a protected-resource metadata bez tokenu,
-8. resource cache jako private a audit resource read,
-9. user+client resolver odmítne chybné JWT client ID, chybějící/revokovaný
+5. každý publikovaný tool má OAuth2 `openid` v `_meta.securitySchemes` a
+   metadata neobsahují interní contacts/write permissions,
+6. zamítnutí cizí organizace/projektu,
+7. expirovaný, špatně scoped, audience a client token,
+8. 401 a protected-resource metadata bez tokenu,
+9. resource cache jako private a audit resource read,
+10. user+client resolver odmítne chybné JWT client ID, chybějící/revokovaný
    consent, expirovaný grant a výpadek DB; vlastní tokenový scope nic nepřidá,
-10. grant/revokace se projeví při dalším requestu a jiné user/client kombinaci
+11. grant/revokace se projeví při dalším requestu a jiné user/client kombinaci
     nic nezpřístupní,
-11. s aktivním write grantem: `create_task` prepare → chybné confirm → správné
+12. s aktivním write grantem: `create_task` prepare → chybné confirm → správné
     confirm → execute; po revokaci tool zmizí,
-12. opakovaný execute se stejným idempotency key nevytvoří duplicitu,
-13. auditní redakce, detekce výpadku a fail-closed pre-audit write fáze,
-14. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
+13. opakovaný execute se stejným idempotency key nevytvoří duplicitu,
+14. auditní redakce, detekce výpadku a fail-closed pre-audit write fáze,
+15. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
     klient ani běžná session nikoli,
-15. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
+16. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
     používaný serverovým validátorem,
-16. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
+17. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
     izolace, fail-closed DB outage a zatížení více instancí.
 
 ## Eval metriky

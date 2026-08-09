@@ -9,6 +9,7 @@ Zdroj pravdy: HTTP handler, token validation, scope policy a provozní logy
 | „client is not allowed“ | client ID není v allowlistu | ověřit fingerprint/ID a schválení klienta |
 | resource/audience mismatch | token vydán pro jiné API | vyžádat nový token s kanonickým MCP resource |
 | tool není v katalogu | chybí interní permission | vlastní OAuth scope nepomůže; ověřit serverovou policy/grant |
+| připojený klient hlásí „žádné nástroje“ | klient má zastaralý katalog nebo tool descriptor postrádá `_meta.securitySchemes` | ověřit wire odpověď `tools/list`, reconnectnout klienta po deployi; nikdy kvůli tomu nerozšiřovat DB roli ani interní grant |
 | data jsou prázdná | RLS, filtr nebo skutečně žádná data | ověřit stejný účet/projekt v TF; neobcházet RLS |
 | project not visible | chybné ID nebo oprávnění | znovu získat ID přes list/search a ověřit roli |
 | confirm text mismatch | text nebyl přesně převzat | zobrazit nový přesný text; negenerovat jej ručně |

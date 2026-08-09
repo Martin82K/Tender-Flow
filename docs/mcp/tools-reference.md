@@ -17,6 +17,13 @@ Označení „vyžaduje grant“ níže znamená, že implementace existuje, ale
 zaregistruje pouze s aktuálním autoritativním user+client grantem. OAuth token
 tuto permission nemůže sám získat vlastním scope.
 
+Každý zaregistrovaný tool publikuje OAuth2 deklaraci s minimálním standardním
+scope `openid`. MCP 2.0 server ji na wire přenáší v
+`_meta.securitySchemes`, což je kompatibilní umístění čtené ChatGPT. Jde pouze
+o popis autentizace pro klienta, nikoli o autorizační rozhodnutí. Dostupný
+katalog se stále sestavuje podle aktuálních interních user+client permissions
+a stejné permissions se znovu kontrolují při invokaci.
+
 ## Discovery a načtení výsledku
 
 ### `search`
