@@ -1,7 +1,7 @@
 /**
  * Fill Oddíly (Sections) Utility
  *
- * Phase 1 of the Excel Indexer two-phase system.
+ * Phase 1 of the Excel Indexace VŘ two-phase system.
  *
  * Process:
  * 1. Insert a new column B

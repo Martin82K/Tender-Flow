@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { ActiveProjectStatus, Project } from "../types";
+import type { ActiveProjectStatus, Project, ProjectAccessKind, ProjectTeamRole } from "../types";
 import { isDemoSession, DEMO_PROJECT } from "./demoData";
 
 export const projectService = {
@@ -24,6 +24,7 @@ export const projectService = {
       status: p.status || "realization",
       archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
       ownerId: p.owner_id, // Need to add to type if not exists
+      organizationId: p.organization_id || undefined,
       isDemo: p.is_demo,
     }));
   },
@@ -43,6 +44,82 @@ export const projectService = {
     });
 
     if (error) throw error;
+  },
+
+  createProjectWithTeam: async (project: Project): Promise<void> => {
+    if (!project.organizationId) throw new Error("Pro vytvoření stavby je nutná aktivní organizace.");
+    const { error } = await supabase.rpc("create_project_with_team", {
+      project_id_input: project.id,
+      name_input: project.name,
+      location_input: project.location,
+      status_input: project.status,
+      organization_id_input: project.organizationId,
+      team_input: (project.initialTeam || []).map((member) => ({
+        user_id: member.userId,
+      })),
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  getMyProjectAccess: async (): Promise<Record<string, {
+    accessKind: ProjectAccessKind;
+    professionalRole: ProjectTeamRole | null;
+    legacyPermission: "view" | "edit" | null;
+  }>> => {
+    const { data, error } = await supabase.rpc("get_my_project_access");
+    if (error) throw new Error(error.message);
+    return Object.fromEntries(
+      ((data || []) as Array<Record<string, unknown>>).map((row) => [String(row.project_id), {
+        accessKind: row.access_kind as ProjectAccessKind,
+        professionalRole: (row.professional_role || null) as ProjectTeamRole | null,
+        legacyPermission: (row.legacy_permission || null) as "view" | "edit" | null,
+      }]),
+    );
+  },
+
+  getProjectTeam: async (projectId: string): Promise<Array<{
+    userId: string;
+    email: string;
+    displayName: string;
+    accessKind: ProjectAccessKind;
+    professionalRole: ProjectTeamRole | null;
+    legacyExternal: boolean;
+  }>> => {
+    const { data, error } = await supabase.rpc("get_project_team", { project_id_input: projectId });
+    if (error) throw new Error(error.message);
+    return ((data || []) as Array<Record<string, unknown>>).map((row) => ({
+      userId: String(row.user_id),
+      email: String(row.email || ""),
+      displayName: String(row.display_name || row.email || ""),
+      accessKind: row.access_kind as ProjectAccessKind,
+      professionalRole: (row.professional_role || null) as ProjectTeamRole | null,
+      legacyExternal: row.legacy_external === true,
+    }));
+  },
+
+  setProjectTeamMember: async (projectId: string, userId: string): Promise<void> => {
+    const { error } = await supabase.rpc("set_project_team_member", {
+      project_id_input: projectId,
+      user_id_input: userId,
+      role_input: null,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  removeProjectTeamMember: async (projectId: string, userId: string): Promise<void> => {
+    const { error } = await supabase.rpc("remove_project_team_member", {
+      project_id_input: projectId,
+      user_id_input: userId,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  setProjectArchived: async (projectId: string, archived: boolean): Promise<void> => {
+    const { error } = await supabase.rpc("set_project_archived", {
+      project_id_input: projectId,
+      archived_input: archived,
+    });
+    if (error) throw new Error(error.message);
   },
 
   updateProject: async (

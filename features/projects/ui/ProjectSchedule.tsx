@@ -11,8 +11,10 @@ import {
   exportScheduleToXLSX,
   exportScheduleWithTimelineToXLSX,
 } from "@/features/projects/api/projectScheduleExportApi";
+import { runPdfExportSafely } from "@/shared/pdf/pdfExportError";
 
 export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: string; categories: DemandCategory[] }> = ({ projectId, projectTitle, categories }) => {
+  const [exportError, setExportError] = React.useState<string | null>(null);
   const {
     isLoading,
     includeRealization,
@@ -167,12 +169,15 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      exportScheduleToPDF(
-                        exportRows,
-                        projectTitle || 'Harmonogram',
-                        rangeStart,
-                        rangeEnd,
-                        includeRealization ? 'realization' : 'tender'
+                      void runPdfExportSafely(
+                        () => exportScheduleToPDF(
+                          exportRows,
+                          projectTitle || 'Harmonogram',
+                          rangeStart,
+                          rangeEnd,
+                          includeRealization ? 'realization' : 'tender'
+                        ),
+                        setExportError,
                       );
                     }}
                     className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
@@ -211,6 +216,12 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
             </div>
           </div>
         </div>
+
+        {exportError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+            {exportError}
+          </div>
+        )}
 
         {isEditMode && (
           <div className="px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-200 text-xs font-semibold">
@@ -312,9 +323,11 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                     </div>
 
                     {rows.map((row) => {
-                      const hasRange = !!row.start && !!row.end;
-                      const fromX = hasRange ? diffDaysUtc(rangeStart, row.start!) * dayWidth : 0;
-                      const toX = hasRange ? diffDaysUtc(rangeStart, row.end!) * dayWidth : 0;
+                      const rowStart = row.start;
+                      const rowEnd = row.end;
+                      const hasRange = rowStart !== null && rowEnd !== null;
+                      const fromX = hasRange ? diffDaysUtc(rangeStart, rowStart) * dayWidth : 0;
+                      const toX = hasRange ? diffDaysUtc(rangeStart, rowEnd) * dayWidth : 0;
                       const left = Math.min(fromX, toX);
                       const width = Math.max(2, Math.abs(toX - fromX) + dayWidth);
                       const colorClass =
@@ -326,9 +339,9 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
 
                       const labelText = row.label;
                       const metaText = row.subLabel
-                        ? `${row.subLabel}: ${hasRange ? formatRangeLabel(row.start!, row.end!) : "—"}`
+                        ? `${row.subLabel}: ${hasRange ? formatRangeLabel(rowStart, rowEnd) : "—"}`
                         : hasRange
-                          ? formatRangeLabel(row.start!, row.end!)
+                          ? formatRangeLabel(rowStart, rowEnd)
                           : "—";
                       const editable = isRowEditable(row);
 
@@ -360,7 +373,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                                 <div
                                   className="absolute top-1/2 -translate-y-1/2 size-3 rotate-45 bg-blue-500/80 border border-blue-200/50 shadow-sm"
                                   style={{ left: left + dayWidth / 2 }}
-                                  title={formatDayLabel(row.start)}
+                                  title={formatDayLabel(rowStart)}
                                 />
                               ) : row.kind === "bar" && hasRange ? (
                                 <button
@@ -372,7 +385,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                                   className={`absolute top-1/2 -translate-y-1/2 h-3 rounded-full border ${colorClass} shadow-sm ${editable ? "cursor-pointer hover:brightness-110" : "cursor-default"
                                     }`}
                                   style={{ left, width }}
-                                  title={`${formatDayLabel(row.start)} – ${formatDayLabel(row.end)}${editable ? " (klikněte pro úpravu)" : ""}`}
+                                  title={`${formatDayLabel(rowStart)} – ${formatDayLabel(rowEnd)}${editable ? " (klikněte pro úpravu)" : ""}`}
                                 />
                               ) : editable ? (
                                 <button

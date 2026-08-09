@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createTenderFlowMcpServer } from '../server/mcp/tenderFlowMcp.js';
 import { verifyLocalMcpAccessToken } from '../server/mcp/supabaseAuth.js';
 
@@ -36,18 +36,20 @@ const isTruthy = (value) => ['1', 'true', 'yes', 'on'].includes(String(value || 
 const main = async () => {
   loadEnvFile(path.join(repoRoot, '.env.local'));
 
-  const accessToken = process.env.TENDER_FLOW_MCP_ACCESS_TOKEN || process.env.SUPABASE_ACCESS_TOKEN;
+  const accessToken = process.env.TENDER_FLOW_MCP_ACCESS_TOKEN;
   const auth = await verifyLocalMcpAccessToken(accessToken);
   const readOnly = isTruthy(process.env.TENDER_FLOW_MCP_READ_ONLY);
-  const includeWriteTools = auth.hasOAuthClientId && !readOnly;
-  const server = createTenderFlowMcpServer(auth, { includeWriteTools });
-  const transport = new StdioServerTransport();
+  const includeWriteTools = !readOnly;
 
-  if (!auth.hasOAuthClientId) {
-    console.error('[Tender Flow MCP] Local Supabase session token detected; running read-only tools only.');
-  }
-
-  await server.connect(transport);
+  serveStdio(
+    () => createTenderFlowMcpServer(auth, { includeWriteTools }),
+    {
+      legacy: 'serve',
+      onerror: (error) => {
+        console.error(`[Tender Flow MCP] ${error instanceof Error ? error.message : String(error)}`);
+      },
+    },
+  );
 };
 
 main().catch((error) => {

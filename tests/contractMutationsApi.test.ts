@@ -13,6 +13,10 @@ const contractServiceMock = vi.hoisted(() => ({
   deleteInvoice: vi.fn(),
   markInvoicePaid: vi.fn(),
   releaseRetention: vi.fn(),
+  uploadContractDocument: vi.fn(),
+  deleteContractDocument: vi.fn(),
+  uploadAmendmentDocument: vi.fn(),
+  deleteAmendmentDocument: vi.fn(),
 }));
 
 vi.mock("@/services/contractService", () => ({
@@ -39,6 +43,10 @@ describe("contractMutationsApi", () => {
     contractServiceMock.deleteInvoice.mockResolvedValue(undefined);
     contractServiceMock.markInvoicePaid.mockResolvedValue(undefined);
     contractServiceMock.releaseRetention.mockResolvedValue(undefined);
+    contractServiceMock.uploadContractDocument.mockResolvedValue({ documentStoragePath: 'projects/p/contracts/x.pdf' });
+    contractServiceMock.deleteContractDocument.mockResolvedValue(undefined);
+    contractServiceMock.uploadAmendmentDocument.mockResolvedValue({ documentStoragePath: 'projects/p/contracts/a.pdf' });
+    contractServiceMock.deleteAmendmentDocument.mockResolvedValue(undefined);
 
     const amendmentPayload = { contractId: "contract-1", deltaPrice: 0 };
     const contractPayload = {
@@ -80,6 +88,11 @@ describe("contractMutationsApi", () => {
     await contractMutationsApi.markInvoicePaid("invoice-1", "2026-05-06");
     await contractMutationsApi.deleteInvoice("invoice-1");
     await contractMutationsApi.releaseRetention("contract-1", "short");
+    const file = new File(['pdf'], 'x.pdf', { type: 'application/pdf' });
+    await contractMutationsApi.uploadContractDocument(file, 'project-1');
+    await contractMutationsApi.deleteContractDocument('projects/p/contracts/x.pdf');
+    await contractMutationsApi.uploadAmendmentDocument(file, 'project-1');
+    await contractMutationsApi.deleteAmendmentDocument('projects/p/contracts/a.pdf');
 
     expect(contractServiceMock.createAmendment).toHaveBeenCalledWith(amendmentPayload);
     expect(contractServiceMock.updateAmendment).toHaveBeenCalledWith("amendment-1", { reason: "Změna" });
@@ -101,5 +114,9 @@ describe("contractMutationsApi", () => {
     expect(contractServiceMock.markInvoicePaid).toHaveBeenCalledWith("invoice-1", "2026-05-06");
     expect(contractServiceMock.deleteInvoice).toHaveBeenCalledWith("invoice-1");
     expect(contractServiceMock.releaseRetention).toHaveBeenCalledWith("contract-1", "short");
+    expect(contractServiceMock.uploadContractDocument).toHaveBeenCalledWith(file, 'project-1');
+    expect(contractServiceMock.deleteContractDocument).toHaveBeenCalledWith('projects/p/contracts/x.pdf');
+    expect(contractServiceMock.uploadAmendmentDocument).toHaveBeenCalledWith(file, 'project-1');
+    expect(contractServiceMock.deleteAmendmentDocument).toHaveBeenCalledWith('projects/p/contracts/a.pdf');
   });
 });

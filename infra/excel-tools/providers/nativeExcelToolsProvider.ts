@@ -37,6 +37,8 @@ export const nativeExcelToolsProvider: ExcelToolsProvider = {
   async unlockExcel(file: File) {
     const buffer = await file.arrayBuffer();
     const output = await unlockExcelZip(buffer);
-    return new Blob([output], { type: XLSX_MIME });
+    const blobBytes = new Uint8Array(output.byteLength);
+    blobBytes.set(output);
+    return new Blob([blobBytes], { type: XLSX_MIME });
   },
 };

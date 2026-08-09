@@ -36,7 +36,7 @@ export const projectExportApi = {
 
   exportSupplierAnalysisToPDF(
     ...args: Parameters<typeof exportSupplierAnalysisToPDFLegacy>
-  ): void {
-    exportSupplierAnalysisToPDFLegacy(...args);
+  ): Promise<void> {
+    return exportSupplierAnalysisToPDFLegacy(...args);
   },
 };

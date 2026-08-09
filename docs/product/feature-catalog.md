@@ -28,8 +28,25 @@ Projekt podporuje taby:
 - **Pipeline** – poptávkové kategorie, dodavatelé, nabídky a komunikace.
 - **Harmonogram** – projektové termíny a exporty; dostupnost podle plánu.
 - **Dokumenty** – projektová dokumentace, šablony, DocHub a ceníky.
-- **Smlouvy** – kontrakty, dodatky, fakturace, retence a hodnocení dodavatelů.
+- **Smlouvy** – výchozí tabulkový přehled s nastavitelnými sloupci, kontrakty,
+  dodatky, fakturace, retence, hodnocení dodavatelů a privátní PDF/DOCX
+  dokumenty. Novou smlouvu lze předvyplnit přes OCR; originál se připojí pouze
+  po potvrzení uživatelem.
+- **Investor** – smlouva s objednatelem, číslované dodatky a faktury podle
+  období. Fakturace odděluje vystavenou částku, pozastávku do předání,
+  pozastávku po dobu záruky, čistou částku k úhradě a skutečnou úhradu.
+  Procenta pozastávek se nastavují globálně pro stavbu a faktury je dědí;
+  jednotlivá faktura může mít explicitní výjimku. Smlouva, dodatky a uložené
+  faktury se standardně zobrazují jako kompaktní textové řádky; vstupní pole se
+  otevřou až dvojklikem nebo klávesou Enter či mezerník na konkrétním záznamu.
+  Akce pro zrušení úpravy a smazání se zobrazí pouze během editace; každé
+  odstranění dodatku nebo faktury vyžaduje potvrzení v modálním okně.
 - **Mapa** – projekt, dodavatelé, trasy, doporučení a geokódování.
+
+Na mobilních viewportech používá hlavní navigace off-canvas sidebar o maximální
+šířce 20 rem a ponechává viditelný okraj aktuálního obsahu. Panel lze zavřít
+explicitním tlačítkem nebo kliknutím na stmavené pozadí. Toggle má v topbaru
+rezervovaný prostor, aby nekolidoval s názvem obrazovky a globálními akcemi.
 
 ## Feature oblasti
 
@@ -44,6 +61,28 @@ i Electron deep-link tok.
 Správa projektů, soutěž/realizace/archiv, klonování soutěže do realizace,
 sdílení, přehled, tender plan, pipeline, harmonogram, dokumenty, kontrakty a
 exporty. Viditelnost klienta je defense-in-depth; autoritativní přístup řídí DB.
+
+Pipeline podporuje individuální i hromadnou komunikaci. Hromadná standardní a
+materiálová poptávka vybírá pouze kontakty ve stavu `contacted`; poděkování
+nevybraným vybírá účastníky s cenovou nabídkou mimo stav `sod`. Koncept používá
+email přihlášeného uživatele v poli `To` a validní, deduplikované adresy
+subdodavatelů v `BCC`. UI před vytvořením konceptu zobrazí rekapitulaci včetně
+vyřazených neplatných adres. Aplikace zprávu sama neodesílá a stav karet mění až
+po úspěšném otevření konceptu v emailovém klientu.
+
+Vítězná nabídka ve stavu `sod` se páruje se smlouvou primárně přes ID nabídky.
+U historických záznamů se použije dodavatel pouze při jediné možné shodě. Ikona
+smlouvy pak otevře konkrétní kontrakt ve split detailu; při nejednoznačné shodě
+zůstane akce deaktivovaná, aby neotevřela nesprávný dokument.
+
+Portálová menu hromadné komunikace a exportu používají společný
+`tf-pipeline-popover` kontrakt. Classic skin využívá standardní Tailwind
+světlé/tmavé varianty; Industrial skin přepisuje povrch, linky, text, hover,
+focus, badge a stín přes globální `--tf-skin-*` tokeny. Botanica používá stejný
+kontrakt s řízeně průsvitnými datovými povrchy, bezpatkovou typografií a lokálním
+WebP reliéfem se SVG fallbackem v berry/porcelánové paletě. Proto se portál
+renderovaný pod `document.body` přizpůsobuje `html[data-skin]` a `html.dark`
+bez duplikace tématu v React state.
 
 ### Kontakty
 
@@ -84,7 +123,7 @@ flag a používají serverový proxy přístup.
 
 ### Nástroje
 
-URL zkracovač, Excel Unlocker, Excel Merger, Excel Indexer, bid comparison agent,
+URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 

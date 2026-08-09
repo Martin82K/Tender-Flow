@@ -78,4 +78,4 @@ export interface UserFeatureOverride {
 }
 
 /** Organization sub-tab identifiers */
-export type OrgSubTab = 'overview' | 'members' | 'billing' | 'branding';
+export type OrgSubTab = 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';

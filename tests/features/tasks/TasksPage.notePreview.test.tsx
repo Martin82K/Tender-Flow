@@ -1059,18 +1059,24 @@ describe("TasksPage note preview", () => {
     expect(card).toHaveAttribute("draggable", "true");
   });
 
-  it("v kalendáři výrazně podbarví aktuální datum", () => {
+  it("v Měsíci, 3 dnech i Dni zvýrazní datum bez oranžové plochy celé buňky", () => {
     const { container } = render(<TasksPage />);
-    selectCalendarMode(container, "Měsíc");
 
-    const todayCell = container.querySelector(
-      `[data-help-id="todo-calendar-day"][data-date="${dateKey(new Date())}"]`,
-    );
+    for (const mode of ["Měsíc", "3 dny", "Den"]) {
+      selectCalendarMode(container, mode);
+      const todayCell = container.querySelector(
+        `[data-help-id="todo-calendar-day"][data-date="${dateKey(new Date())}"]`,
+      );
 
-    expect(todayCell).not.toBeNull();
-    expect(todayCell).toHaveAttribute("data-today", "true");
-    expect(todayCell).toHaveClass("bg-orange-100/90");
-    expect(todayCell).toHaveClass("ring-orange-300");
+      expect(todayCell).not.toBeNull();
+      expect(todayCell).toHaveAttribute("data-today", "true");
+      expect(todayCell).toHaveClass("tf-todo-calendar-day--today");
+      expect(todayCell).not.toHaveClass("bg-orange-100/90");
+      expect(todayCell).not.toHaveClass("ring-orange-300");
+      expect(
+        todayCell?.querySelector('[data-help-id="todo-calendar-day-heading"]'),
+      ).toHaveClass("tf-todo-calendar-day-heading--today");
+    }
   });
 
   it("v měsíčním kalendáři omezí výšku karty s dlouhou poznámkou", () => {

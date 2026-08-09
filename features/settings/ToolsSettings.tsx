@@ -8,7 +8,7 @@ interface ToolsSettingsProps {
 }
 
 export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
-  // Tools: Excel unlocker
+  // Tools: Excel – odemčení
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [isUnlockingExcel, setIsUnlockingExcel] = useState(false);
   const [excelProgress, setExcelProgress] = useState<{
@@ -108,7 +108,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
 
   const EXCEL_MERGER_MIRROR_URL_STORAGE_KEY = "excelMergerMirrorUrl";
 
-  // Excel Merger Settings
+  // Excel Spojení listů settings
   const normalizeExternalUrl = (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return "";
@@ -159,7 +159,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
               <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               <div className="space-y-1">
                 <p className="font-black text-slate-900 dark:text-white">
-                  Propojování s ExcelMerger Pro…
+                  Načítám Excel Spojení listů…
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Načítám externí aplikaci ve vestavěném okně.
@@ -175,7 +175,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
           onLoad={() => setIsLoading(false)}
           sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-downloads"
           referrerPolicy="no-referrer"
-          title="Excel Merger"
+          title="Excel Spojení listů"
         />
       </div>
     );
@@ -197,7 +197,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
         </p>
       </div>
 
-      {/* Excel Unlocker */}
+      {/* Excel – odemčení */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <span className="material-symbols-outlined text-emerald-500">
@@ -346,14 +346,14 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
         </div>
       </section>
 
-      {/* Excel Merger with Custom Address */}
+      {/* Excel Spojení listů with custom address */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <span className="material-symbols-outlined text-blue-500">
               table_view
             </span>
-            Excel Merger Pro
+            Excel Spojení listů
           </h2>
           <button
             onClick={() =>

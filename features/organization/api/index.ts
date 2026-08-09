@@ -5,3 +5,5 @@ export type {
   OrganizationSummary,
   OrganizationUnlockerTimeSavings,
 } from "@/services/organizationService";
+export { rolePermissionsService } from "./rolePermissionsService";
+export type { OrganizationRolePermissionRow } from "./rolePermissionsService";

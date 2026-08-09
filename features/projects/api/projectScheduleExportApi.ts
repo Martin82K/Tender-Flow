@@ -1,7 +1,5 @@
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { RobotoRegularBase64 } from '@/fonts/roboto-regular';
+import { loadPdfRuntime, registerRobotoFont } from '@/shared/pdf/pdfRuntime';
 
 /**
  * Row data structure for schedule export
@@ -23,14 +21,6 @@ function formatDate(d: Date): string {
     month: '2-digit',
     year: 'numeric'
   }).format(d);
-}
-
-/**
- * Register Roboto font with jsPDF for Czech diacritics support
- */
-function registerRobotoFont(doc: jsPDF): void {
-  doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegularBase64);
-  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
 }
 
 /**
@@ -298,17 +288,18 @@ export async function exportScheduleWithTimelineToXLSX(
 /**
  * Export schedule to PDF format
  */
-export function exportScheduleToPDF(
+export async function exportScheduleToPDF(
   rows: ScheduleRow[],
   projectTitle: string,
   rangeStart: Date,
   rangeEnd: Date,
   mode: 'realization' | 'tender'
-): void {
+): Promise<void> {
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
   const doc = new jsPDF({ orientation: 'landscape' });
 
   // Register Roboto font for Czech diacritics support
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
 
   const modeLabel = mode === 'realization' ? 'Realizace' : 'Výběrová řízení';
 

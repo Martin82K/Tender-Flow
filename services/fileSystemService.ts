@@ -293,6 +293,34 @@ export async function readFile(
     }
 }
 
+export async function copyFile(
+    sourcePath: string,
+    destinationDirectory: string,
+): Promise<{ success: boolean; path?: string; name?: string; size?: number; error?: string }> {
+    if (!isDesktop) {
+        return { success: false, error: "Kopírování lokálních souborů je dostupné pouze v desktop aplikaci." };
+    }
+
+    try {
+        return await fileSystemAdapter.copyFile(sourcePath, destinationDirectory);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await logFileSystemIncident({
+            severity: "error",
+            code: "FS_COPY_FILE_FAILED",
+            message: `Kopírování souboru selhalo: ${message}`,
+            action: "copy_file",
+            operation: "file_system.copy_file",
+            actionStatus: "error",
+            folderPath: destinationDirectory,
+            targetPath: sourcePath,
+            reason: message,
+            stack: error instanceof Error ? error.stack : null,
+        });
+        return { success: false, error: message };
+    }
+}
+
 /**
  * Check if a folder exists
  */

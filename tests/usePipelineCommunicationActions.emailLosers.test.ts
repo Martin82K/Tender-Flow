@@ -132,6 +132,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
@@ -149,6 +150,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     );
     const decodedHtml = htmlPartBase64 ? decodeBase64Utf8(htmlPartBase64) : "";
     expect(filename).toMatch(/^Nevybrani_/);
+    expect(content).toContain("To: kalkus@baustav.cz");
     expect(content).toContain("Bcc: a@x.cz;b@x.cz");
     expect(decodedHtml).toContain("kalkus@baustav.cz");
     expect(decodedHtml).toContain("BAU-STAV a.s.");
@@ -185,6 +187,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails({
         losersEmailTemplateLink: "template:tpl-1",
       }),
@@ -234,6 +237,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const actions = usePipelineCommunicationActions({
       activeCategory,
       bids,
+      projectId: "project-1",
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),

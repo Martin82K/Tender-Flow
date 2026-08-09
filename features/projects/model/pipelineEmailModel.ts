@@ -1,5 +1,31 @@
 import type { Bid } from "@/types";
 
+export type PipelineBulkEmailKind = "inquiry" | "materialInquiry" | "losers";
+
+export interface PipelineEmailRecipientSelection {
+  candidateBids: Bid[];
+  recipientBids: Bid[];
+  missingEmailBids: Bid[];
+  invalidEmailBids: Bid[];
+  emails: string[];
+}
+
+const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RECIPIENT_SEPARATOR_PATTERN = /[;,]/;
+
+export const normalizeEmailAddress = (email: string): string => email.trim();
+
+export const isValidEmailAddress = (email: string): boolean => {
+  const normalized = normalizeEmailAddress(email);
+  return (
+    normalized.length > 0 &&
+    normalized.length <= 254 &&
+    !/[\r\n]/.test(normalized) &&
+    !RECIPIENT_SEPARATOR_PATTERN.test(normalized) &&
+    SIMPLE_EMAIL_PATTERN.test(normalized)
+  );
+};
+
 const hasBidAnyPrice = (bid: Bid): boolean => {
   const hasMainPrice = !!bid.price && bid.price !== "?" && bid.price !== "-";
   const hasPriceHistory = !!(bid.priceHistory && Object.keys(bid.priceHistory).length > 0);
@@ -13,21 +39,67 @@ export const getLoserBidsWithPrice = (categoryBids: Bid[]): Bid[] => {
   });
 };
 
-export const getLoserEmails = (loserBids: Bid[]): string[] => {
-  return loserBids.filter((bid) => !!bid.email).map((bid) => bid.email);
-};
-
 export const buildBccRecipientList = (emails: string[]): string => {
-  const uniqueEmails = new Set<string>();
+  const uniqueEmails = new Map<string, string>();
 
   for (const email of emails) {
-    const normalized = email.trim();
-    if (!normalized) continue;
-    uniqueEmails.add(normalized);
+    const normalized = normalizeEmailAddress(email);
+    if (!isValidEmailAddress(normalized)) continue;
+    const deduplicationKey = normalized.toLocaleLowerCase("en-US");
+    if (!uniqueEmails.has(deduplicationKey)) {
+      uniqueEmails.set(deduplicationKey, normalized);
+    }
   }
 
-  return Array.from(uniqueEmails).join(";");
+  return Array.from(uniqueEmails.values()).join(";");
 };
+
+const selectEmailRecipients = (
+  candidateBids: Bid[],
+): PipelineEmailRecipientSelection => {
+  const recipientBids: Bid[] = [];
+  const missingEmailBids: Bid[] = [];
+  const invalidEmailBids: Bid[] = [];
+  const uniqueEmails = new Map<string, string>();
+
+  for (const bid of candidateBids) {
+    const email = normalizeEmailAddress(bid.email || "");
+    if (!email) {
+      missingEmailBids.push(bid);
+      continue;
+    }
+    if (!isValidEmailAddress(email)) {
+      invalidEmailBids.push(bid);
+      continue;
+    }
+
+    recipientBids.push(bid);
+    const deduplicationKey = email.toLocaleLowerCase("en-US");
+    if (!uniqueEmails.has(deduplicationKey)) {
+      uniqueEmails.set(deduplicationKey, email);
+    }
+  }
+
+  return {
+    candidateBids,
+    recipientBids,
+    missingEmailBids,
+    invalidEmailBids,
+    emails: Array.from(uniqueEmails.values()),
+  };
+};
+
+export const selectBulkInquiryRecipients = (
+  categoryBids: Bid[],
+): PipelineEmailRecipientSelection =>
+  selectEmailRecipients(
+    categoryBids.filter((bid) => bid.status === "contacted"),
+  );
+
+export const selectLoserEmailRecipients = (
+  categoryBids: Bid[],
+): PipelineEmailRecipientSelection =>
+  selectEmailRecipients(getLoserBidsWithPrice(categoryBids));
 
 export const buildDefaultLosersEmailDraft = (
   projectTitle: string,

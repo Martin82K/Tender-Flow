@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { ProjectTeamRole } from "../types";
 
 export type OrganizationSummary = {
   organization_id: string;
@@ -20,6 +21,7 @@ export type OrganizationMember = {
   email: string;
   display_name?: string | null;
   role: "owner" | "admin" | "member";
+  professional_role?: ProjectTeamRole | null;
   joined_at: string;
   is_active: boolean;
 };
@@ -171,6 +173,19 @@ export const organizationService = {
       org_id_input: orgId,
       user_id_input: userId,
       role_input: role,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  setOrganizationMemberProfessionalRole: async (
+    orgId: string,
+    userId: string,
+    professionalRole: ProjectTeamRole | null,
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("set_organization_member_professional_role", {
+      org_id_input: orgId,
+      user_id_input: userId,
+      professional_role_input: professionalRole,
     });
     if (error) throw new Error(error.message);
   },

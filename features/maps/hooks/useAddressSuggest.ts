@@ -6,7 +6,7 @@ import type { SuggestResult } from '../types';
 export function useAddressSuggest(query: string) {
   const [suggestions, setSuggestions] = useState<SuggestResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

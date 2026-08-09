@@ -9,7 +9,6 @@ import { RegisterPage } from "@/features/auth/ui/RegisterPage";
 
 const mockState = vi.hoisted(() => ({
   register: vi.fn(),
-  loginAsDemo: vi.fn(),
   navigate: vi.fn(),
   getAppSettings: vi.fn(),
 }));
@@ -17,7 +16,6 @@ const mockState = vi.hoisted(() => ({
 vi.mock("@/context/AuthContext", () => ({
   useAuth: () => ({
     register: mockState.register,
-    loginAsDemo: mockState.loginAsDemo,
   }),
 }));
 

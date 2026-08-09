@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ExcelService } from "../../services/excelMergerService";
 import { useUI } from "../../context/UIContext";
 import { trackFeatureUsage } from "@features/settings/api";
+import { buildExcelMergerOutputFilename } from "@features/settings/model";
 import platformAdapter from "@infra/platform/platformAdapter";
 
 // Dynamic desktop detection helper - must be called at runtime, not module load
@@ -154,8 +155,7 @@ export const ExcelMergerProSettings: React.FC = () => {
           );
 
       // Download result
-      const baseName = excelFile.name.replace(/\.xlsx$/i, "");
-      const outputName = `${baseName}-merged.xlsx`;
+      const outputName = buildExcelMergerOutputFilename(excelFile.name);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -209,7 +209,7 @@ export const ExcelMergerProSettings: React.FC = () => {
             table_view
           </span>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Excel Merger PRO
+            Excel Spojení listů
           </h2>
         </div>
         <p className="text-sm text-slate-500">

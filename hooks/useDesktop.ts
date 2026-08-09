@@ -26,7 +26,7 @@ interface UseDesktopReturn extends DesktopState {
  */
 export function useDesktop(): UseDesktopReturn {
     const [state, setState] = useState<DesktopState>({
-        isDesktop,
+        isDesktop: Boolean(isDesktop),
         appVersion: null,
         showWelcome: false,
         updateAvailable: false,

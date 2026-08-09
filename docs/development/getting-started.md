@@ -20,7 +20,20 @@ npm install
 ```
 
 Nové dependency se nepřidávají automaticky. Před instalací ověřte účel,
-maintainera, licenci, známé zranitelnosti a stáří poslední verze alespoň 14 dní.
+licenci, registry integritu, podpis/provenance (pokud je dostupná), zdrojový
+repozitář, historii maintainerů a vydání, známé zranitelnosti a oznámené
+incidenty kompromitace. Stáří verze je pouze rizikový signál, nikoli pevná
+čekací lhůta.
+
+Po změně závislostí spusťte:
+
+```bash
+npm audit --audit-level=high
+npm audit signatures
+```
+
+Výsledek auditu sám o sobě nestačí: zkontrolujte také změnu lockfile a zda
+instalace nepřidala neočekávané balíčky, install skripty nebo nové maintainery.
 
 ## Lokální konfigurace
 
@@ -82,6 +95,8 @@ npm run desktop:compile
 npm run check:boundaries
 npm run check:legacy-structure
 npm run check:docs
+npm audit --audit-level=high
+npm audit signatures
 ```
 
 `console.error` a `console.warn` musí být v negativním testu explicitně

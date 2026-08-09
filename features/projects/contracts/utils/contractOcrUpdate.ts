@@ -154,7 +154,7 @@ export const buildContractUpdateFromOcr = (
     updates,
     appliedFields,
     'retentionPercent',
-    normalizePercent(fields.retentionPercent),
+    normalizePercent(fields.retentionPercent ?? fields.retentionTotalPercent),
   );
   assign(
     updates,

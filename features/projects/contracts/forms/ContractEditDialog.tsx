@@ -3,10 +3,14 @@ import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { contractMutationsApi } from '../api';
+import { contractExtractionService } from '@/services/contractExtractionService';
+import { buildContractUpdateFromOcr } from '../utils/contractOcrUpdate';
+import { validateContractDocument } from '@/shared/contracts/contractDocument';
 import type {
   Contract,
   ContractRetentionStatus,
   ContractStatus,
+  ContractExtractionResult,
   ContractWithDetails,
 } from '@/types';
 
@@ -26,6 +30,14 @@ const labelClass = 'block text-xs font-medium text-slate-600 dark:text-slate-300
 const toUndef = (v: number | null): number | undefined =>
   v === null || !Number.isFinite(v) ? undefined : v;
 
+const averageConfidence = (confidence: Record<string, number>): number | undefined => {
+  const values = Object.values(confidence).filter(
+    (value) => typeof value === 'number' && Number.isFinite(value),
+  );
+  if (values.length === 0) return undefined;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
+
 export const ContractEditDialog: React.FC<Props> = ({
   projectId,
   contract,
@@ -41,6 +53,8 @@ export const ContractEditDialog: React.FC<Props> = ({
     vendorIco: contract?.vendorIco ?? '',
     status: (contract?.status ?? 'draft') as ContractStatus,
     signedAt: contract?.signedAt?.slice(0, 10) ?? '',
+    effectiveFrom: contract?.effectiveFrom?.slice(0, 10) ?? '',
+    effectiveTo: contract?.effectiveTo?.slice(0, 10) ?? '',
     completionDate: contract?.completionDate?.slice(0, 10) ?? '',
     currency: contract?.currency ?? 'CZK',
     basePrice: (contract?.basePrice ?? null) as number | null,
@@ -59,9 +73,57 @@ export const ContractEditDialog: React.FC<Props> = ({
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState('');
+  const [ocrResult, setOcrResult] = useState<ContractExtractionResult | null>(null);
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [attachOriginal, setAttachOriginal] = useState(true);
+  const [ocrAppliedFields, setOcrAppliedFields] = useState<string[]>([]);
 
   const handleChange = <K extends keyof typeof form>(key: K, value: typeof form[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleOcrFile = async (file: File) => {
+    setError(null);
+    setOcrBusy(true);
+    setOcrStatus('Kontroluji dokument…');
+    setOcrResult(null);
+    try {
+      await validateContractDocument(file);
+      setOcrFile(file);
+      setAttachOriginal(true);
+      const result = await contractExtractionService.extractFromDocument(file, setOcrStatus);
+      const { updates, appliedFields } = buildContractUpdateFromOcr(result);
+      setForm((previous) => ({
+        ...previous,
+        title: updates.title ?? previous.title,
+        contractNumber: updates.contractNumber ?? previous.contractNumber,
+        vendorName: updates.vendorName ?? previous.vendorName,
+        vendorIco: updates.vendorIco ?? previous.vendorIco,
+        signedAt: updates.signedAt ?? previous.signedAt,
+        effectiveFrom: updates.effectiveFrom ?? previous.effectiveFrom,
+        effectiveTo: updates.effectiveTo ?? previous.effectiveTo,
+        completionDate: updates.completionDate ?? previous.completionDate,
+        currency: updates.currency ?? previous.currency,
+        basePrice: updates.basePrice ?? previous.basePrice,
+        retentionShortPercent:
+          updates.retentionShortPercent ?? updates.retentionPercent ?? previous.retentionShortPercent,
+        retentionLongPercent: updates.retentionLongPercent ?? previous.retentionLongPercent,
+        siteSetupPercent: updates.siteSetupPercent ?? previous.siteSetupPercent,
+        warrantyMonths: updates.warrantyMonths ?? previous.warrantyMonths,
+        paymentTerms: updates.paymentTerms ?? previous.paymentTerms,
+        scopeSummary: updates.scopeSummary ?? previous.scopeSummary,
+      }));
+      setOcrAppliedFields(appliedFields);
+      setOcrResult(result);
+      setOcrStatus('OCR dokončeno. Zkontrolujte předvyplněné hodnoty.');
+    } catch (ocrError) {
+      setError(ocrError instanceof Error ? ocrError.message : 'OCR zpracování selhalo.');
+      setOcrStatus('');
+    } finally {
+      setOcrBusy(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,9 +132,21 @@ export const ContractEditDialog: React.FC<Props> = ({
       return;
     }
 
+    if (ocrBusy) {
+      setError('Počkejte prosím na dokončení OCR.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
+    let uploadedStoragePath: string | undefined;
+    let createdContractId: string | undefined;
     try {
+      const documentMetadata =
+        !isEditing && ocrFile && attachOriginal
+          ? await contractMutationsApi.uploadContractDocument(ocrFile, projectId)
+          : {};
+      uploadedStoragePath = documentMetadata.documentStoragePath;
       const payload = {
         projectId,
         vendorName: form.vendorName,
@@ -81,6 +155,8 @@ export const ContractEditDialog: React.FC<Props> = ({
         contractNumber: form.contractNumber || undefined,
         status: form.status,
         signedAt: form.signedAt || undefined,
+        effectiveFrom: form.effectiveFrom || undefined,
+        effectiveTo: form.effectiveTo || undefined,
         completionDate: form.completionDate || undefined,
         currency: form.currency,
         basePrice: toUndef(form.basePrice) ?? 0,
@@ -99,16 +175,55 @@ export const ContractEditDialog: React.FC<Props> = ({
             : undefined,
         paymentTerms: form.paymentTerms || undefined,
         scopeSummary: form.scopeSummary || undefined,
-        source: 'manual' as const,
+        source: isEditing
+          ? contract?.source || 'manual'
+          : ocrResult
+            ? 'ai_extracted' as const
+            : 'manual' as const,
+        ...documentMetadata,
+        extractionConfidence: ocrResult
+          ? averageConfidence(ocrResult.confidence)
+          : contract?.extractionConfidence,
+        extractionJson: ocrResult
+          ? {
+              fields: ocrResult.fields,
+              confidence: ocrResult.confidence,
+              appliedContractFields: ocrAppliedFields,
+              ocrProvider: ocrResult.ocrProvider,
+              ocrModel: ocrResult.ocrModel,
+              sourceFileName: ocrResult.sourceFileName,
+              extractedAt: new Date().toISOString(),
+            }
+          : contract?.extractionJson,
       } satisfies Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>;
 
       if (isEditing && contract) {
         await contractMutationsApi.updateContract(contract.id, payload);
       } else {
-        await contractMutationsApi.createContract(payload);
+        const created = await contractMutationsApi.createContract(payload);
+        createdContractId = created.id;
+        if (ocrResult?.rawText?.trim()) {
+          try {
+            await contractMutationsApi.createMarkdownVersion({
+              entityType: 'contract',
+              contractId: created.id,
+              sourceKind: 'ocr',
+              contentMd: ocrResult.rawText,
+              sourceFileName: ocrResult.sourceFileName || ocrFile?.name,
+              ocrProvider: ocrResult.ocrProvider,
+              ocrModel: ocrResult.ocrModel,
+              metadata: { confidence: ocrResult.confidence },
+            });
+          } catch (markdownError) {
+            console.error('Contract OCR markdown save failed:', markdownError);
+          }
+        }
       }
       await onSaved();
     } catch (err) {
+      if (uploadedStoragePath && !createdContractId) {
+        await contractMutationsApi.deleteContractDocument(uploadedStoragePath);
+      }
       setError(err instanceof Error ? err.message : 'Nepodařilo se uložit smlouvu');
     } finally {
       setSubmitting(false);
@@ -150,6 +265,51 @@ export const ContractEditDialog: React.FC<Props> = ({
             {error}
           </div>
         )}
+
+        {!isEditing ? (
+          <section className="rounded-xl border border-primary/25 bg-primary/5 p-4" data-help-id="contract-create-ocr">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Předvyplnit smlouvu z OCR
+                </div>
+                <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+                  Nahrajte PDF nebo DOCX. Smlouvu lze uložit až po dokončení zpracování.
+                </div>
+              </div>
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/10">
+                {ocrBusy ? 'Zpracovávám…' : ocrResult ? 'Načíst jiný dokument' : 'Nahrát smlouvu přes OCR'}
+                <input
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  disabled={ocrBusy || submitting}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void handleOcrFile(file);
+                    event.currentTarget.value = '';
+                  }}
+                />
+              </label>
+            </div>
+            {ocrStatus ? (
+              <div className="mt-3 text-xs text-primary" role="status">{ocrStatus}</div>
+            ) : null}
+            {ocrFile && !ocrBusy ? (
+              <label className="mt-3 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={attachOriginal}
+                  disabled={ocrBusy || submitting}
+                  onChange={(event) => setAttachOriginal(event.target.checked)}
+                  className="accent-primary"
+                />
+                Připojit originální soubor ke smlouvě
+                <span className="truncate text-slate-500">({ocrFile.name})</span>
+              </label>
+            ) : null}
+          </section>
+        ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -206,6 +366,24 @@ export const ContractEditDialog: React.FC<Props> = ({
               className={inputClass}
               value={form.signedAt}
               onChange={(e) => handleChange('signedAt', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Účinnost od</label>
+            <input
+              type="date"
+              className={inputClass}
+              value={form.effectiveFrom}
+              onChange={(e) => handleChange('effectiveFrom', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Účinnost do</label>
+            <input
+              type="date"
+              className={inputClass}
+              value={form.effectiveTo}
+              onChange={(e) => handleChange('effectiveTo', e.target.value)}
             />
           </div>
           <div>
@@ -429,10 +607,10 @@ export const ContractEditDialog: React.FC<Props> = ({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || ocrBusy}
             className="px-4 py-2 text-sm font-semibold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition disabled:opacity-50"
           >
-            {submitting ? 'Ukládám…' : isEditing ? 'Uložit změny' : 'Vytvořit smlouvu'}
+            {ocrBusy ? 'Čekám na OCR…' : submitting ? 'Ukládám…' : isEditing ? 'Uložit změny' : 'Vytvořit smlouvu'}
           </button>
         </div>
       </form>

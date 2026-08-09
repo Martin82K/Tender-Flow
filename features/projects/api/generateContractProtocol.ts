@@ -1,14 +1,14 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import type jsPDF from "jspdf";
 
-import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
 import { organizationService } from "@features/organization/api";
 import { contractQueriesApi } from "@features/projects/contracts/api";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import type { ProjectDetails } from "@/types";
+import { loadPdfRuntime, registerRobotoFont } from "@/shared/pdf/pdfRuntime";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";
 import type {
+  ContractProtocolContext,
   ContractProtocolGenerationMode,
   ContractProtocolDraft,
   GenerateContractProtocolInput,
@@ -26,9 +26,10 @@ const loadExcelJS = async () => {
   return module.default;
 };
 
-const registerRobotoFont = (doc: jsPDF): void => {
-  doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegularBase64);
-  doc.addFont("Roboto-Regular.ttf", "Roboto", "normal", "Identity-H");
+type BrowserCompatibleXlsxLoader = {
+  load(
+    buffer: Buffer<ArrayBuffer> | Uint8Array<ArrayBuffer>,
+  ): Promise<unknown>;
 };
 
 const toArrayBuffer = (value: unknown): ArrayBuffer => {
@@ -38,7 +39,9 @@ const toArrayBuffer = (value: unknown): ArrayBuffer => {
 
   if (ArrayBuffer.isView(value)) {
     const view = value as ArrayBufferView;
-    return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+    const copy = new Uint8Array(view.byteLength);
+    copy.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength));
+    return copy.buffer;
   }
 
   throw new Error("Nepodařilo se převést výstup šablony na ArrayBuffer.");
@@ -100,11 +103,7 @@ const resolveMode = (
 interface PreparedContractProtocol {
   definition: ReturnType<typeof getContractProtocolDefinition>;
   draft: ContractProtocolDraft;
-  context: {
-    contract: Awaited<ReturnType<typeof contractQueriesApi.getContractById>>;
-    projectDetails: ProjectDetails;
-    today: Date;
-  };
+  context: ContractProtocolContext;
   contract: NonNullable<Awaited<ReturnType<typeof contractQueriesApi.getContractById>>>;
 }
 
@@ -265,7 +264,11 @@ export const generateContractProtocol = async (
 
   const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBuffer);
+  // ExcelJS accepts Uint8Array in browsers, although its declaration only
+  // exposes the Node Buffer overload.
+  await (workbook.xlsx as unknown as BrowserCompatibleXlsxLoader).load(
+    templateBuffer,
+  );
 
   const worksheet = workbook.worksheets[0];
   if (!worksheet) {
@@ -294,9 +297,10 @@ export const generateContractProtocolPdf = async (
 
   const { definition, draft, context, contract } =
     await prepareContractProtocol(input);
+  const { RobotoRegularBase64, autoTable, jsPDF } = await loadPdfRuntime();
 
   const doc = new jsPDF({ orientation: "portrait", format: "a4" });
-  registerRobotoFont(doc);
+  registerRobotoFont(doc, RobotoRegularBase64);
   doc.setFont("Roboto", "normal");
 
   const pageWidth = doc.internal.pageSize.getWidth();

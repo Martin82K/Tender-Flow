@@ -84,7 +84,7 @@ export const ExcelUnlockerProSettings: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-emerald-400">lock_open</span>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                        Excel Unlocker PRO
+                        Excel – odemčení
                     </h2>
                 </div>
                 <p className="text-sm text-slate-500">Odemknutí listů/sešitů z .xlsx (lokálně v prohlížeči)</p>

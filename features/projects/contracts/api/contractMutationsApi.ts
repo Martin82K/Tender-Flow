@@ -19,10 +19,34 @@ export const contractMutationsApi = {
     return contractService.deleteAmendment(...args);
   },
 
+  uploadAmendmentDocument(
+    ...args: Parameters<typeof contractService.uploadAmendmentDocument>
+  ): ReturnType<typeof contractService.uploadAmendmentDocument> {
+    return contractService.uploadAmendmentDocument(...args);
+  },
+
+  deleteAmendmentDocument(
+    ...args: Parameters<typeof contractService.deleteAmendmentDocument>
+  ): ReturnType<typeof contractService.deleteAmendmentDocument> {
+    return contractService.deleteAmendmentDocument(...args);
+  },
+
   createContract(
     ...args: Parameters<typeof contractService.createContract>
   ): ReturnType<typeof contractService.createContract> {
     return contractService.createContract(...args);
+  },
+
+  uploadContractDocument(
+    ...args: Parameters<typeof contractService.uploadContractDocument>
+  ): ReturnType<typeof contractService.uploadContractDocument> {
+    return contractService.uploadContractDocument(...args);
+  },
+
+  deleteContractDocument(
+    ...args: Parameters<typeof contractService.deleteContractDocument>
+  ): ReturnType<typeof contractService.deleteContractDocument> {
+    return contractService.deleteContractDocument(...args);
   },
 
   updateContract(

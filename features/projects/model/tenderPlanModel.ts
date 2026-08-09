@@ -56,13 +56,13 @@ export const getTenderPlanStatusBadgeClasses = (
 ): string => {
   switch (color) {
     case "blue":
-      return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      return "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20";
     case "emerald":
-      return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
     case "amber":
-      return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
     default:
-      return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+      return "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20";
   }
 };
 

@@ -9,11 +9,14 @@ const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const pipelineOverviewSource = readFileSync(join(process.cwd(), "components/pipelineComponents/PipelineOverview.tsx"), "utf8");
+const pipelineBulkEmailMenuSource = readFileSync(join(process.cwd(), "features/projects/ui/PipelineBulkEmailMenu.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
 const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
 const docsLinkSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/DocsLinkSection.tsx"), "utf8");
 const priceListsSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/PriceListsSection.tsx"), "utf8");
 const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccountMenu.tsx"), "utf8");
+const appearancePickerSource = readFileSync(join(process.cwd(), "shared/ui/AppearancePicker.tsx"), "utf8");
 const notificationBellSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationBell.tsx"), "utf8");
 const notificationCenterSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationCenter.tsx"), "utf8");
 const notificationItemSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationItem.tsx"), "utf8");
@@ -33,6 +36,7 @@ const tenantOverviewSource = readFileSync(join(process.cwd(), "features/projects
 const statusDistributionChartSource = readFileSync(join(process.cwd(), "shared/ui/overview/StatusDistributionChart.tsx"), "utf8");
 const budgetDeviationGaugeSource = readFileSync(join(process.cwd(), "shared/ui/overview/BudgetDeviationGauge.tsx"), "utf8");
 const appContentSource = readFileSync(join(process.cwd(), "app/AppContent.tsx"), "utf8");
+const headerSource = readFileSync(join(process.cwd(), "shared/ui/Header.tsx"), "utf8");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,7 +72,8 @@ describe("industrial skin tokens", () => {
 
   it("přepisuje průřezové taby a přepínače mimo classic pill vzhled", () => {
     expect(css).toContain("[data-help-id=\"overview-demand-table\"]");
-    expect(css).toContain("[data-help-id=\"pipeline-filters\"]");
+    expect(pipelineOverviewSource).toContain('data-help-id="pipeline-filters"');
+    expect(css).toContain(".tf-demand-filterbar");
     expect(css).toContain("[data-help-id=\"pipeline-view-toggle\"]");
     expect(css).toContain("[data-help-id=\"schedule-controls\"] > div");
     expect(css).toContain("[data-help-id=\"contracts-subtabs\"]");
@@ -76,6 +81,19 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("[data-help-id=\"contracts-list-filters\"]");
     expect(css).toContain("background: transparent !important");
     expect(css).toContain("border-radius: 0 !important");
+  });
+
+  it("filtry Přehledu Poptávek používají skin tokeny pro povrch, stav i focus", () => {
+    expect(projectOverviewSource).toContain('"tf-demand-filterbar"');
+    expect(projectOverviewSource).toContain('"tf-demand-filter-button"');
+    expect(projectOverviewSource).toContain('"tf-demand-columns-button"');
+    expect(css).toContain('.tf-demand-filter-button[data-active="true"]');
+    expect(css).toContain(".tf-demand-filter-button:focus-visible");
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface-muted) 76%, transparent)");
+    expect(css).toContain("border-color: var(--tf-skin-accent)");
+    expect(css).toContain("color: var(--tf-skin-text)");
+    expect(pipelineOverviewSource).toContain('className="tf-demand-filterbar min-w-0"');
+    expect(pipelineOverviewSource).toContain('className="tf-demand-filter-button flex-none"');
   });
 
   it("industrial projektová navigace drží menší ikony a kompaktní tlačítka", () => {
@@ -102,6 +120,27 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("box-shadow: inset 0 -1px 0 var(--tf-skin-orange) !important");
   });
 
+  it("industrial vyhledávání v topbaru používá skin tokeny i v tmavém režimu", () => {
+    expect(headerSource).toContain('data-help-id="topbar-search"');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search-icon"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="topbar-search-input"]');
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important");
+    expect(css).toContain("color: var(--tf-skin-text) !important");
+    expect(css).toContain("color: var(--tf-skin-muted-2) !important");
+  });
+
+  it("industrial pipeline menu používají skin tokeny i mimo topbar portál", () => {
+    expect(pipelineBulkEmailMenuSource).toContain('data-help-id="pipeline-bulk-email-menu"');
+    expect(pipelineBulkEmailMenuSource).toContain("tf-pipeline-popover");
+    expect(pipelineSource).toContain('data-help-id="pipeline-export-menu"');
+    expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-popover');
+    expect(css).toContain('html.dark[data-skin="industrial"] .tf-pipeline-popover');
+    expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface) 97%, transparent) !important");
+    expect(css).toContain("box-shadow: inset 2px 0 0 var(--tf-skin-orange) !important");
+    expect(css).toContain("color: var(--tf-skin-muted) !important");
+  });
+
   it("skin Smluv má KPI strip, list a detailový rail jako samostatnou vrstvu", () => {
     expect(css).toContain("[data-help-id=\"contracts-kpi-strip\"]");
     expect(css).toContain("[data-help-id=\"contracts-kpi-card\"]");
@@ -111,8 +150,22 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("[data-help-id=\"contract-detail-shell\"]");
     expect(css).toContain("[data-help-id=\"contract-detail-rail\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-kpi-card\"]");
+    expect(css).toContain("[data-help-id=\"contracts-investor-contract-panel\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-panel\"]");
     expect(css).toContain("grid-template-columns: minmax(132px, 156px) minmax(0, 1fr)");
+  });
+
+  it("industrial investor pole respektují světlý i tmavý skin včetně focusu", () => {
+    const field = cssBlockFor('html[data-skin="industrial"] .tf-contracts-investor-field');
+    const darkField = cssBlockFor('html.dark[data-skin="industrial"] .tf-contracts-investor-field');
+
+    expect(field).toContain("background: var(--tf-skin-surface-muted) !important");
+    expect(field).toContain("border-color: var(--tf-skin-line-2) !important");
+    expect(field).toContain("color: var(--tf-skin-text) !important");
+    expect(darkField).toContain("background: var(--tf-skin-surface-deep) !important");
+    expect(css).toContain('html[data-skin="industrial"] .tf-contracts-investor-field:focus');
+    expect(css).toContain('html.dark[data-skin="industrial"] .tf-contracts-investor-field[type="date"]::-webkit-calendar-picker-indicator');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-subtabs"] button:focus-visible');
   });
 
   it("industrial dashboard Smluv sjednocuje grafy, badge a KPI barvy do papírové palety", () => {
@@ -247,7 +300,8 @@ describe("industrial skin tokens", () => {
     expect(accountMenuSource).toContain("tf-account-menu-avatar");
     expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
     expect(accountMenuSource).toContain("size-10");
-    expect(accountMenuSource).toContain("min-h-8");
+    expect(accountMenuSource).toContain("AppearancePicker");
+    expect(appearancePickerSource).toContain("min-h-8");
     expect(accountMenuSource).toContain("accountMeta");
     expect(accountMenuSource).not.toContain("badge-neon");
     expect(accountMenuSource).not.toContain("BOSS");

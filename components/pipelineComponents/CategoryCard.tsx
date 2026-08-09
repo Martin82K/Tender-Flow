@@ -11,7 +11,7 @@ import { formatMoney } from "../../utils/formatters";
 const CLICK_DELAY_MS = 220;
 
 export interface CategoryCardProps {
-  category: DemandCategory;
+  category: DemandCategory & { winningPrice?: number };
   bidCount: number;
   priceOfferCount: number;
   contractedCount: number;

@@ -12,7 +12,12 @@ import { useUI } from "@/context/UIContext";
 import { useDesktop } from "@/hooks/useDesktop";
 import { useAppData } from "@/hooks/useAppData";
 import { useTheme } from "@/hooks/useTheme";
-import { View } from "@/types";
+import type {
+  DemandCategory,
+  ProjectDetails,
+  ProjectTab,
+  View,
+} from "@/types";
 import { platformAdapter } from "@/services/platformAdapter";
 import { useDesktopMcpTokenSync } from "@app/hooks/useDesktopMcpTokenSync";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
@@ -31,6 +36,7 @@ import type { FatalIncidentNotice } from "@/shared/types/incidents";
 import {
   AppLazyFallback,
   CommandCenterView,
+  ContractOverview,
   Contacts,
   ProjectLayout,
   ProjectManager,
@@ -91,6 +97,7 @@ export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
+  const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
   const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
 
@@ -102,10 +109,12 @@ export const AppContent: React.FC = () => {
     search,
     selectedProjectId: state.selectedProjectId,
     activePipelineCategoryId,
+    activeContractId,
     setSelectedProjectId: actions.setSelectedProjectId,
     setCurrentView,
     setActiveProjectTab,
     setActivePipelineCategoryId,
+    setActiveContractId,
   });
 
   const {
@@ -358,18 +367,23 @@ export const AppContent: React.FC = () => {
             <ProjectLayout
               projectId={state.selectedProjectId}
               projectDetails={state.allProjectDetails[state.selectedProjectId]}
-              onUpdateDetails={(updates) =>
+              onUpdateDetails={(updates: Partial<ProjectDetails>) =>
                 actions.handleUpdateProjectDetails(state.selectedProjectId!, updates)
               }
-              onAddCategory={(cat) => actions.handleAddCategory(state.selectedProjectId!, cat)}
-              onEditCategory={(cat) => actions.handleEditCategory(state.selectedProjectId!, cat)}
-              onDeleteCategory={(catId) =>
+              onAddCategory={(cat: DemandCategory) =>
+                actions.handleAddCategory(state.selectedProjectId!, cat)
+              }
+              onEditCategory={(cat: DemandCategory) =>
+                actions.handleEditCategory(state.selectedProjectId!, cat)
+              }
+              onDeleteCategory={(catId: string) =>
                 actions.handleDeleteCategory(state.selectedProjectId!, catId)
               }
               onBidsChange={actions.handleBidsChange}
               activeTab={activeProjectTab}
-              onTabChange={(tab) => {
+              onTabChange={(tab: ProjectTab) => {
                 setActiveProjectTab(tab);
+                setActiveContractId(null);
                 if (tab !== "pipeline") {
                   setActivePipelineCategoryId(null);
                 }
@@ -387,10 +401,12 @@ export const AppContent: React.FC = () => {
               statuses={state.contactStatuses}
               onUpdateContact={actions.handleUpdateContact}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
+              initialContractId={activeContractId ?? undefined}
               currentUserId={user?.id}
-              onNavigateToPipeline={(catId) => {
+              onNavigateToPipeline={(catId: string) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);
+                setActiveContractId(null);
                 navigate(
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId!,
@@ -399,13 +415,25 @@ export const AppContent: React.FC = () => {
                   }),
                 );
               }}
-              onCategoryNavigate={(catId) => {
+              onCategoryNavigate={(catId: string | null) => {
                 setActivePipelineCategoryId(catId);
                 navigate(
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId!,
                     tab: "pipeline",
                     categoryId: catId ?? undefined,
+                  }),
+                );
+              }}
+              onNavigateToContract={(contractId: string) => {
+                setActiveProjectTab("contracts");
+                setActivePipelineCategoryId(null);
+                setActiveContractId(contractId);
+                navigate(
+                  buildAppUrl("project", {
+                    projectId: state.selectedProjectId!,
+                    tab: "contracts",
+                    contractId,
                   }),
                 );
               }}
@@ -454,7 +482,7 @@ export const AppContent: React.FC = () => {
             skin={skin}
             onAddProject={actions.handleAddProject}
             onDeleteProject={actions.handleDeleteProject}
-            onCloneTenderToRealization={async (projectId) => {
+            onCloneTenderToRealization={async (projectId: string) => {
               const result = await actions.handleCloneTenderToRealization(projectId);
               actions.setSelectedProjectId(result.projectId);
               navigate(
@@ -480,6 +508,8 @@ export const AppContent: React.FC = () => {
             />
           </RequireFeature>
         );
+      case "contract-overview":
+        return <ContractOverview />;
       case "url-shortener":
         return (
           <RequireFeature feature={FEATURES.URL_SHORTENER}>
@@ -542,7 +572,7 @@ export const AppContent: React.FC = () => {
             setIsSidebarOpen={setIsSidebarOpen}
             currentView={currentView}
             projects={state.projects}
-            selectedProjectId={state.selectedProjectId}
+            selectedProjectId={state.selectedProjectId ?? ""}
             onProjectSelect={handleNavigateToProject}
             activeProjectTab={activeProjectTab}
             user={user}

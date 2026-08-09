@@ -17,7 +17,7 @@
 | Browser → Edge Function | request payload a veřejný klient | JWT/vlastní token, schema validace, rate/origin kontrola |
 | Renderer → Electron main | renderer a vstup uživatele | preload allowlist, IPC kontrakt, auth guard, path/URL validace |
 | Externí OAuth → callback | provider callback parametry | state, redirect allowlist, jednorázovost |
-| MCP client → MCP server | externí klient a tool argumenty | access token/client ID, consent, read-only režim, rate limit |
+| MCP client → MCP server | externí klient, Origin, resource URI a tool argumenty | token audience/resource/client ID, least-privilege scopes, consent, Origin allowlist, RLS/RPC, privátní cache, audit, rate limit |
 | Release artefakt → uživatel | build pipeline a distribuční kanál | lokální build, ověření artefaktů, podpis/notarizace podle platformy |
 
 ## Identity a session
@@ -27,6 +27,12 @@
 - Auth chyby jsou centralizované v session/query recovery.
 - Při opakovaných token/session chybách se session invaliduje a uživatel se
   vrací na login.
+- Jeden uživatel může mít nejvýše tři aktivní Supabase Auth session bez vazby
+  na platformu. Čtvrté přihlášení revokuje nejstarší session; databázový trigger
+  serializuje souběžná přihlášení stejného uživatele.
+- Přehled session je vlastnicky omezený přes `auth.uid()` a vzdálená revokace
+  maže jen session patřící přihlášenému uživateli. User agent a lokální
+  `installation_id` jsou pouze UX metadata, ne autorizační signály.
 - Logout a kritická invalidace čistí citlivý lokální stav a query cache.
 - Desktop credentials ukládá main proces, ne localStorage rendereru.
 - MFA a biometrika jsou další kontrola; nenahrazují serverovou autorizaci.
@@ -87,6 +93,26 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
 - secure storage pro credentials,
 - generické síťové/filesystem operace nejsou volně vystavené rendereru.
 
+## Webová CSP
+
+- Vynucená webová politika zatím zachovává kompatibilní
+  `frame-ancestors 'self'`.
+- Rozšířená politika pro `script-src`, `connect-src`, `object-src`, `base-uri`
+  a `form-action` se nejprve doručuje hlavičkou
+  `Content-Security-Policy-Report-Only`.
+- Report-only politika nepovoluje `unsafe-inline`, `unsafe-eval`, obecné
+  `https:` ani wildcard zdroj. Síťový allowlist pokrývá Supabase, Mapy.com,
+  ARES, OpenAI Realtime a výchozí EU PostHog endpointy.
+- Dynamické cíle importu kontaktů a konfigurovatelný Excel tools provider se
+  nepovolují obecným `https:` ani produkčním `localhost` pravidlem. Jejich
+  legitimní reporty jsou vstupem pro samostatný návrh explicitní konfigurace
+  před případným vynucením politiky.
+- Pilot nemá veřejný reportovací endpoint. Porušení se ověřují v browserové
+  konzoli při runtime smoke testech, aby nevznikl nechráněný ingest pro URL,
+  DOM nebo formulářová metadata.
+- Přechod na vynucení je samostatné rozhodnutí až po ověření webových toků a
+  vyřešení legitimních reportů. Široké zdroje se nepřidávají jako rychlá oprava.
+
 ## Logy a incidenty
 
 - `summarizeErrorForLog`/sanitizační utility odstraňují tokeny a PII.
@@ -107,7 +133,14 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
 - lockfiles se commitují,
 - CI používá `npm ci`,
 - závislosti se pravidelně auditují,
-- nový balíček nesmí být mladší než 14 dní,
+- nové balíčky se před instalací prověřují podle integrity, podpisu/provenance,
+  zdrojového repozitáře, maintainerů, historie vydání, známých zranitelností a
+  oznámených incidentů; stáří verze je rizikový signál, ne pevný zákaz,
+- po změně lockfile se spouští `npm audit` a `npm audit signatures`,
+- Quality CI fail-closed ověřuje high/critical advisory a registry podpisy pro
+  root i samostatný desktop dependency strom,
+- desktop CI nejdříve používá `npm ci --ignore-scripts`, aby audit vycházel z
+  commitnutého lockfile a ne z automaticky dorovnaného dependency stromu,
 - release build vychází z ověřeného zdroje a lokálních artefaktů.
 
 ## Povinné kontroly před merge
@@ -121,6 +154,7 @@ npm run check:boundaries
 npm run check:legacy-structure
 npm run check:docs
 npm audit --audit-level=high
+npm audit signatures
 ```
 
 Podle rozsahu se přidávají cílené security testy, kontrola migrací, Electron IPC

@@ -1016,7 +1016,7 @@ export const OrganizationSettings: React.FC = () => {
         <div className="flex items-center gap-2 mb-3">
           <span className="material-symbols-outlined text-sky-500">schedule</span>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            Úspora času z Excel Unlockeru
+            Úspora času: Excel – odemčení
           </h3>
         </div>
 

@@ -10,6 +10,9 @@ import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
+import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { buildInvestorInvoiceRow } from "@features/projects/contracts/investor/investorBillingPersistence";
+import { sanitizeDocHubSettings } from "@shared/dochub/cloudConnection";
 import {
     emitCategoryStatusNotification,
     emitProjectClonedNotification,
@@ -106,12 +109,16 @@ export const useAddProjectMutation = () => {
                 return newProject;
             }
 
-            const { error } = await dbAdapter.from("projects").insert({
-                id: newProject.id,
-                name: newProject.name,
-                location: newProject.location,
-                status: newProject.status,
-                owner_id: user?.id,
+            if (!newProject.organizationId) throw new Error("Pro vytvoření stavby je nutná aktivní organizace.");
+            const { error } = await dbAdapter.rpc("create_project_with_team", {
+                project_id_input: newProject.id,
+                name_input: newProject.name,
+                location_input: newProject.location,
+                status_input: newProject.status,
+                organization_id_input: newProject.organizationId,
+                team_input: (newProject.initialTeam || []).map((member) => ({
+                    user_id: member.userId,
+                })),
             });
             if (error) throw error;
             return newProject;
@@ -336,13 +343,10 @@ export const useArchiveProjectMutation = () => {
                 return;
             }
 
-            const { error } = await dbAdapter
-                .from("projects")
-                .update({
-                    status: nextState.targetStatus,
-                    archived_original_status: nextState.archivedOriginalStatus,
-                })
-                .eq("id", id);
+            const { error } = await dbAdapter.rpc("set_project_archived", {
+                project_id_input: id,
+                archived_input: nextState.targetStatus === "archived",
+            });
             if (error) throw error;
 
             // Emit notification for project archive
@@ -448,6 +452,9 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.docHubAutoCreateEnabled !== undefined) projectUpdates.dochub_autocreate_enabled = normalizedUpdates.docHubAutoCreateEnabled;
             if (normalizedUpdates.docHubAutoCreateLastRunAt !== undefined) projectUpdates.dochub_autocreate_last_run_at = normalizedUpdates.docHubAutoCreateLastRunAt;
             if (normalizedUpdates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = normalizedUpdates.docHubAutoCreateLastError;
+            if (normalizedUpdates.docHubSettings !== undefined) {
+                projectUpdates.dochub_settings = sanitizeDocHubSettings(normalizedUpdates.docHubSettings);
+            }
 
             if (Object.keys(projectUpdates).length > 0) {
                 const { error } = await dbAdapter.from("projects").update(projectUpdates).eq("id", id);
@@ -499,6 +506,12 @@ export const useUpdateProjectDetailsMutation = () => {
                 const { error: financialsError } = await dbAdapter.from("project_investor_financials").upsert({
                     project_id: id,
                     sod_price: updates.investorFinancials.sodPrice,
+                    contract_number: updates.investorFinancials.contractNumber?.trim() || null,
+                    contract_title: updates.investorFinancials.contractTitle?.trim() || null,
+                    customer_name: updates.investorFinancials.customerName?.trim() || null,
+                    signed_at: updates.investorFinancials.signedAt || null,
+                    retention_a_percent: updates.investorFinancials.retentionAPercent || 0,
+                    retention_b_percent: updates.investorFinancials.retentionBPercent || 0,
                 });
                 assertNoDbError("Error updating investor financials:", financialsError);
 
@@ -511,6 +524,8 @@ export const useUpdateProjectDetailsMutation = () => {
                                 id: a.id,
                                 project_id: id,
                                 label: a.label,
+                                amendment_number: a.number?.trim() || null,
+                                signed_at: a.signedAt || null,
                                 price: a.price,
                             }))
                         );
@@ -526,18 +541,7 @@ export const useUpdateProjectDetailsMutation = () => {
                     );
                     if (invoicesToInsert.length > 0) {
                         const { error: insertInvoicesError } = await dbAdapter.from("project_investor_invoices").insert(
-                            invoicesToInsert.map((invoice) => ({
-                                id: invoice.id,
-                                project_id: id,
-                                invoice_number: invoice.invoiceNumber.trim(),
-                                issue_date: invoice.issueDate,
-                                due_date: invoice.dueDate,
-                                amount: invoice.amount,
-                                currency: invoice.currency || "CZK",
-                                status: invoice.status,
-                                paid_at: invoice.status === "paid" ? invoice.paidAt || null : null,
-                                note: invoice.note?.trim() || null,
-                            })),
+                            invoicesToInsert.map((invoice) => buildInvestorInvoiceRow(id, invoice)),
                         );
                         assertNoDbError("Error inserting investor invoices:", insertInvoicesError);
                     }
@@ -626,24 +630,29 @@ export const useAddCategoryMutation = () => {
             if (
                 projectDetails &&
                 projectDetails.docHubEnabled &&
-                projectDetails.docHubProvider === 'onedrive' &&
-                projectDetails.docHubRootLink
+                projectDetails.docHubProvider === 'onedrive'
             ) {
+                const localRootPath = await resolveEffectiveProjectDocHubRoot(
+                    projectDetails,
+                    user?.id ?? null,
+                );
+                if (!localRootPath) return;
                 const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
                 const hierarchyTree = buildHierarchyTree(ensureExtraHierarchy(structure.extraHierarchy));
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {
                     [category.id]: [],
                 };
 
-                ensureStructure({
-                    rootPath: projectDetails.docHubRootLink,
+                const localDocHubResult = await ensureStructure({
+                    rootPath: localRootPath,
                     structure,
                     categories: [{ id: category.id, title: category.title }],
                     suppliers,
                     hierarchy: hierarchyTree,
-                }).catch(err => {
-                    console.error("Local DocHub auto-create failed:", err);
                 });
+                if (!localDocHubResult.success) {
+                    console.error("Local DocHub auto-create failed:", localDocHubResult.error);
+                }
             }
         },
         onMutate: async ({ projectId, category }) => {

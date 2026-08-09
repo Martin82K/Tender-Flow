@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-  settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'bidComparison' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
+  settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
 }
 
 export const TOOLS_NAV_ITEM: NavItemConfig = {
@@ -33,7 +33,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excelunlocker-pro',
-      label: 'Excel Unlocker PRO',
+      label: 'Excel – odemčení',
       icon: 'lock_open',
       view: 'settings',
       feature: FEATURES.EXCEL_UNLOCKER,
@@ -42,7 +42,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excelmerger-pro',
-      label: 'Excel Merger PRO',
+      label: 'Excel Spojení listů',
       icon: 'table_view',
       view: 'settings',
       feature: FEATURES.EXCEL_MERGER,
@@ -51,7 +51,7 @@ export const TOOLS_NAV_ITEM: NavItemConfig = {
     },
     {
       id: 'settings-excel-indexer',
-      label: 'Excel Indexer',
+      label: 'Excel Indexace VŘ',
       icon: 'join_inner',
       view: 'settings',
       feature: FEATURES.EXCEL_INDEXER,
@@ -113,6 +113,12 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     icon: 'monitoring',
     view: 'project-overview',
     feature: FEATURES.FEATURE_ADVANCED_REPORTING,
+  },
+  {
+    id: 'contract-overview',
+    label: 'Smluvní přehled',
+    icon: 'contract',
+    view: 'contract-overview',
   },
   TOOLS_NAV_ITEM,
     // Pipeline is now part of Project tabs mostly, but if we had a global pipeline:

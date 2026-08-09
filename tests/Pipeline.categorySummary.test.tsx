@@ -1,9 +1,15 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { Pipeline } from "../components/Pipeline";
 import { formatMoney } from "../utils/formatters";
 import type { Bid, DemandCategory, ProjectDetails } from "../types";
+
+const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [queryClient] = React.useState(() => new QueryClient());
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+};
 
 const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
   (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
@@ -131,6 +137,7 @@ const renderPipeline = (category: DemandCategory) =>
       contacts={[]}
       initialOpenCategoryId={category.id}
     />,
+    { wrapper: QueryWrapper },
   );
 
 const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =>
@@ -142,9 +149,68 @@ const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =
       contacts={[]}
       initialOpenCategoryId={category.id}
     />,
+    { wrapper: QueryWrapper },
   );
 
 describe("Pipeline category summary", () => {
+  it("řadí ikonovou složku před ikonový Export na konec hlavičky", async () => {
+    const category = createCategory();
+    const projectDetails = {
+      ...createProjectDetails(category),
+      docHubEnabled: true,
+      docHubRootLink: "https://drive.example.test/project",
+      docHubProvider: "gdrive" as const,
+      docHubStatus: "connected" as const,
+    };
+
+    render(
+      <Pipeline
+        projectId="project-1"
+        projectDetails={projectDetails}
+        bids={{ [category.id]: [baseBid] }}
+        contacts={[]}
+        initialOpenCategoryId={category.id}
+      />,
+      { wrapper: QueryWrapper },
+    );
+
+    const bulkEmailButton = await screen.findByRole("button", {
+      name: "Hromadný e-mail",
+    });
+    const folderButton = screen.getByRole("button", {
+      name: "Otevřít složku: Elektroinstalace",
+    });
+    const exportButton = screen.getByRole("button", {
+      name: "Otevřít nabídku exportních formátů",
+    });
+
+    expect(folderButton).toHaveAttribute(
+      "title",
+      "Otevřít složku: Elektroinstalace",
+    );
+    expect(exportButton).toHaveAttribute(
+      "title",
+      "Otevřít nabídku exportních formátů",
+    );
+    expect(folderButton).not.toHaveTextContent("Otevřít složku");
+    expect(exportButton).not.toHaveTextContent("Export");
+    expect(folderButton.previousElementSibling).toBe(bulkEmailButton);
+    expect(exportButton.parentElement?.previousElementSibling).toBe(folderButton);
+    expect(exportButton.parentElement?.parentElement?.lastElementChild).toBe(
+      exportButton.parentElement,
+    );
+
+    fireEvent.click(exportButton);
+
+    const exportMenu = screen.getByRole("menu", { name: "Formáty exportu" });
+    expect(exportMenu).toHaveClass("tf-pipeline-popover");
+    expect(screen.getByRole("menuitem", { name: /Excel/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /PDF/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /Markdown/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders Cena SOD and Interní plán above kanban detail", async () => {
     renderPipeline(createCategory());
 

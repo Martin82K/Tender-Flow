@@ -79,6 +79,8 @@ describe("UserSecuritySettings zařízení", () => {
     render(<UserSecuritySettings />);
 
     expect(await screen.findByText("Mac Web")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Aktivní session" })).toBeInTheDocument();
+    expect(screen.getByText("1 z 3 aktivních")).toBeInTheDocument();
     expect(screen.getByText("Aktuální")).toBeInTheDocument();
     expect(screen.getByText("Aktivní")).toBeInTheDocument();
     expect(screen.getByText("IP: 127.0.0.1")).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { User } from "@/types";
@@ -135,7 +135,16 @@ describe("UserAccountMenu", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
-    fireEvent.click(await screen.findByText("Světlý"));
+    const modeGroup = await screen.findByRole("group", { name: "Režim" });
+    const lightMode = within(modeGroup).getByRole("button", { name: "Světlý" });
+    const darkMode = within(modeGroup).getByRole("button", { name: "Tmavý" });
+
+    expect(darkMode).toHaveAttribute("aria-pressed", "true");
+    expect(darkMode).toHaveAttribute("tabindex", "0");
+    expect(lightMode).toHaveAttribute("aria-pressed", "false");
+    expect(lightMode).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.click(lightMode);
 
     expect(onSetTheme).toHaveBeenCalledWith("light");
   });
@@ -166,6 +175,14 @@ describe("UserAccountMenu", () => {
 
     expect(await screen.findByText("Velikost UI")).toBeInTheDocument();
     expect(screen.getByText("90 %")).toBeInTheDocument();
+
+    const scaleGroup = screen.getByRole("group", { name: "Velikost UI" });
+    expect(within(scaleGroup).getAllByRole("button")).toHaveLength(3);
+    for (const button of within(scaleGroup).getAllByRole("button")) {
+      expect(button).toHaveClass("size-8");
+      expect(button).not.toHaveClass("border");
+      expect(button).toHaveAttribute("title");
+    }
 
     fireEvent.click(screen.getByRole("button", { name: "Zmenšit UI" }));
     fireEvent.click(screen.getByRole("button", { name: "Zvětšit UI" }));
@@ -262,8 +279,84 @@ describe("UserAccountMenu", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
-    fireEvent.click(await screen.findByText("Industrial"));
+    fireEvent.click(await screen.findByRole("combobox", { name: "Motiv" }));
+    fireEvent.click(screen.getByRole("option", { name: "Industrial" }));
 
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
+  });
+
+  it("ponechá motiv jako listbox a režim nabídne jako sdílený segmented control", async () => {
+    const onSetSkin = vi.fn();
+    const onSetTheme = vi.fn();
+
+    render(
+      <UserAccountMenu
+        user={user}
+        theme="system"
+        skin="classic"
+        onSetTheme={onSetTheme}
+        onSetSkin={onSetSkin}
+        uiScale={1}
+        onSetUiScale={vi.fn()}
+        onResetUiScale={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
+
+    const skinPicker = await screen.findByRole("combobox", { name: "Motiv" });
+    const modeGroup = screen.getByRole("group", { name: "Režim" });
+
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+    expect(within(modeGroup).getAllByRole("button")).toHaveLength(3);
+    expect(within(modeGroup).getByRole("button", { name: "Auto" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(skinPicker);
+    expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Nature" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("option", { name: "Nature" }));
+    fireEvent.click(within(modeGroup).getByRole("button", { name: "Tmavý" }));
+
+    expect(onSetSkin).toHaveBeenCalledWith("nature");
+    expect(onSetTheme).toHaveBeenCalledWith("dark");
+  });
+
+  it("ovládá sdílený segmented režim šipkami, Home a End", async () => {
+    const onSetTheme = vi.fn();
+
+    render(
+      <UserAccountMenu
+        user={user}
+        theme="light"
+        skin="botanica"
+        onSetTheme={onSetTheme}
+        onSetSkin={vi.fn()}
+        uiScale={1}
+        onSetUiScale={vi.fn()}
+        onResetUiScale={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
+    const modeGroup = await screen.findByRole("group", { name: "Režim" });
+    const lightMode = within(modeGroup).getByRole("button", { name: "Světlý" });
+    const darkMode = within(modeGroup).getByRole("button", { name: "Tmavý" });
+    const autoMode = within(modeGroup).getByRole("button", { name: "Auto" });
+
+    lightMode.focus();
+    fireEvent.keyDown(lightMode, { key: "ArrowRight" });
+    expect(darkMode).toHaveFocus();
+    fireEvent.keyDown(darkMode, { key: "End" });
+    expect(autoMode).toHaveFocus();
+    fireEvent.keyDown(autoMode, { key: "Home" });
+    expect(lightMode).toHaveFocus();
+    expect(onSetTheme).not.toHaveBeenCalled();
+    fireEvent.click(lightMode);
+    expect(onSetTheme).toHaveBeenCalledWith("light");
   });
 });

@@ -55,6 +55,15 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - zkontrolovat state a callback URL,
 - lokální OneDrive desktop provider nepoužívá stejné cloud token workflow,
 - při sync chybě prověřit root folder vazbu a Edge log.
+- u sdíleného projektu je lokální cesta osobní pro konkrétního uživatele a zařízení;
+  cesta vlastníka se ostatním uživatelům nepřebírá,
+- sdílená lokální složka musí obsahovat marker `.tenderflow-project.json`, který
+  vytvoří vlastník při připojení složky; marker je svázaný s konkrétní generací
+  napojení projektu, takže po změně kořenové složky musí sdílený uživatel novou
+  synchronizovanou cestu znovu vybrat,
+- online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
+  samotná shoda e-mailu nezaručuje okamžitou synchronizaci — uživatel musí mít
+  cloudové oprávnění k úpravám a spuštěného synchronizačního klienta.
 
 ## Excel tools
 
@@ -63,6 +72,20 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - desktop může použít nativní provider/Python runner,
 - zkontrolovat limity velikosti a podporovaný formát,
 - neinstalovat nový balíček bez supply-chain kontroly.
+
+## CI dependency audit
+
+- `npm audit --audit-level=high` blokuje high a critical advisory; výstup
+  obsahuje i nižší nálezy, které je nutné posoudit samostatně.
+- `npm audit signatures` ověřuje nainstalovaný dependency strom proti npm
+  registry podpisům. Root a `desktop/` mají samostatné kontroly.
+- Selhání kroku `Install desktop dependencies from lockfile` obvykle znamená
+  neshodu `desktop/package.json` a `desktop/package-lock.json`; lockfile se musí
+  opravit a znovu zkontrolovat v samostatné dependency změně.
+- Při síťové chybě nejdříve ověřit dostupnost npm registry a opakovat job. Bránu
+  neobcházet přes `continue-on-error` ani vypnutím podpisové kontroly.
+- Při skutečném advisory nebo neplatném podpisu zastavit merge, dohledat přesný
+  balíček a verzi a provést běžnou supply-chain triage před aktualizací.
 
 ## Electron nejde spustit
 
@@ -80,7 +103,15 @@ Potom ověřit:
 
 ## CSP nebo externí odkaz
 
-- Produkční CSP záměrně blokuje nepovolené originy/eval.
+- Desktopová produkční CSP záměrně blokuje nepovolené originy/eval. Webová
+  rozšířená politika je během pilotu report-only; vynucený zůstává
+  `frame-ancestors`.
+- V konzoli rozlišit `Content-Security-Policy-Report-Only` warning od skutečně
+  zablokovaného requestu. U reportu zaznamenat direktivu, přesný origin a tok,
+  který jej vyvolal; nekopírovat tokeny ani celé citlivé URL.
+- U dynamických URL importů nebo konfigurovatelného Excel provideru nejdříve
+  ověřit konkrétní origin a provozní potřebu. Nepovolovat kvůli nim obecné
+  `https:` ani `localhost` v produkční politice.
 - Externí URL musí projít external URL policy.
 - Nepřidávat široké `https:*`, `unsafe-eval` nebo vypnutí `webSecurity` jako
   rychlou opravu.

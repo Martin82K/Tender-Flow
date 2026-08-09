@@ -7,17 +7,6 @@ import type {
     UpdateStatus,
     BackupSettingsInfo,
     BackupFileEntry,
-    BidComparisonAgentConfig,
-    BidComparisonAgentTestResult,
-    BidComparisonSupplierOption,
-    BidComparisonDetectionResult,
-    BidComparisonStartInput,
-    BidComparisonStartResult,
-    BidComparisonJobStatus,
-    BidComparisonAutoConfig,
-    BidComparisonAutoStartResult,
-    BidComparisonAutoScope,
-    BidComparisonAutoStatus,
 } from './types';
 import type { IpcChannel, IpcContractMap } from './ipc/contracts';
 
@@ -81,6 +70,9 @@ const electronAPI: ElectronAPI = {
 
         readFile: (filePath: string, options?: { maxBytes?: number }): Promise<Buffer> =>
             invokeTyped('fs:readFile', filePath, options),
+
+        copyFile: (sourcePath: string, destinationDirectory: string) =>
+            invokeTyped('fs:copyFile', sourcePath, destinationDirectory),
 
         writeFile: (filePath: string, data: Buffer | string): Promise<void> =>
             invokeTyped('fs:writeFile', filePath, data),
@@ -314,37 +306,6 @@ const electronAPI: ElectronAPI = {
             invokeTyped('backup:clean'),
     },
 
-    bidComparison: {
-        detectInputs: (args: { tenderFolderPath: string; suppliers: BidComparisonSupplierOption[] }): Promise<BidComparisonDetectionResult> =>
-            invokeTyped('bid-comparison:detect-inputs', args),
-
-        start: (input: BidComparisonStartInput): Promise<BidComparisonStartResult> =>
-            invokeTyped('bid-comparison:start', input),
-
-        get: (jobId: string): Promise<BidComparisonJobStatus | null> =>
-            invokeTyped('bid-comparison:get', jobId),
-
-        list: (filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> =>
-            invokeTyped('bid-comparison:list', filter),
-
-        cancel: (jobId: string): Promise<{ success: boolean }> =>
-            invokeTyped('bid-comparison:cancel', jobId),
-
-        testAgent: (config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> =>
-            invokeTyped('bid-comparison:test-agent', config),
-
-        autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
-            invokeTyped('bid-comparison:auto-start', config),
-
-        autoStop: (scope: BidComparisonAutoScope): Promise<{ success: boolean }> =>
-            invokeTyped('bid-comparison:auto-stop', scope),
-
-        autoStatus: (scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> =>
-            invokeTyped('bid-comparison:auto-status', scope),
-
-        autoList: (): Promise<BidComparisonAutoStatus[]> =>
-            invokeTyped('bid-comparison:auto-list'),
-    },
 };
 
 // Expose to renderer

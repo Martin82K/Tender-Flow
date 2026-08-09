@@ -151,6 +151,18 @@ describe("useProjectDetailsQuery contract", () => {
     expect(state.from).not.toHaveBeenCalled();
   });
 
+  it("fails closed with an actionable error when the project row is missing", async () => {
+    mockDatabaseResponses({
+      projects: { data: null, error: null },
+    });
+
+    renderHook(() => useProjectDetailsQuery("project-1"));
+
+    await expect(state.queryOptions?.queryFn()).rejects.toThrow(
+      "Projekt nebyl při načítání detailu nalezen.",
+    );
+  });
+
   it("starts all independent project metadata requests in parallel", async () => {
     const pendingResolvers = new Map<
       string,
@@ -211,6 +223,7 @@ describe("useProjectDetailsQuery contract", () => {
       projects: {
         data: {
           id: "project-1",
+          owner_id: "owner-1",
           name: "Projekt 1",
           status: "realization",
           address: "Karlovo náměstí 1",
@@ -269,6 +282,8 @@ describe("useProjectDetailsQuery contract", () => {
             amount: 250000,
             currency: "CZK",
             status: "issued",
+            retention_a_percent: null,
+            retention_b_percent: 0,
           },
         ],
         error: null,
@@ -295,6 +310,7 @@ describe("useProjectDetailsQuery contract", () => {
     expect(details).toEqual(
       expect.objectContaining({
         id: "project-1",
+        ownerId: "owner-1",
         title: "Projekt 1",
         address: "Karlovo náměstí 1",
         latitude: 50.0755,
@@ -313,19 +329,21 @@ describe("useProjectDetailsQuery contract", () => {
           siteFacilities: 2,
           insurance: 1,
         },
-        investorFinancials: {
+        investorFinancials: expect.objectContaining({
           sodPrice: 1200000,
           amendments: [
-            { id: "amendment-1", label: "Dodatek 1", price: 100000 },
+            expect.objectContaining({ id: "amendment-1", label: "Dodatek 1", price: 100000 }),
           ],
           invoices: [
             expect.objectContaining({
               id: "invoice-1",
               invoiceNumber: "2026-001",
               amount: 250000,
+              retentionAPercent: undefined,
+              retentionBPercent: 0,
             }),
           ],
-        },
+        }),
       }),
     );
     expect(details?.categories).toEqual([

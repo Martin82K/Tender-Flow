@@ -19,6 +19,8 @@ export const Settings = lazyFromManifest("settings");
 
 export const ProjectOverview = lazyFromManifest("project-overview");
 
+export const ContractOverview = lazyFromManifest("contract-overview");
+
 export const UrlShortener = lazyFromManifest("url-shortener");
 
 export const AppLazyFallback: React.FC = () => {

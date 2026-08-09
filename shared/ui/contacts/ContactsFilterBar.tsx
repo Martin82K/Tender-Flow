@@ -80,7 +80,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
     : "Nejblíže ke stavbě";
 
   return (
-    <div className="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
+    <div className="tf-contacts-filterbar bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 md:max-w-md flex items-center rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 h-12 min-w-0">
           <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">
@@ -102,7 +102,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
               onClick={() => setIsDistanceMenuOpen((prev) => !prev)}
               className={`w-full h-12 px-4 pr-10 text-left rounded-lg border flex items-center gap-2 transition-colors ${
                 distanceActive
-                  ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200"
+                  ? "bg-primary/10 border-primary/40 text-primary"
                   : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
               }`}
               title="Filtr podle vzdálenosti od stavby"
@@ -139,7 +139,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Maximální vzdálenost
                   </span>
-                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400 tabular-nums bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                  <span className="text-sm font-bold text-primary tabular-nums bg-primary/10 px-2 py-0.5 rounded-full">
                     {state.distanceKm ?? DEFAULT_DISTANCE_KM} km
                   </span>
                 </div>
@@ -151,7 +151,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
                   step={DISTANCE_STEP_KM}
                   value={state.distanceKm ?? DEFAULT_DISTANCE_KM}
                   onChange={(e) => onDistanceChange?.(Number(e.target.value))}
-                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-slate-200 dark:bg-slate-600 accent-blue-500 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-slate-200 dark:bg-slate-600 accent-primary [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white"
                 />
                 <div className="flex justify-between mt-1 text-[10px] text-slate-400 dark:text-slate-500">
                   <span>{MIN_DISTANCE_KM} km</span>
@@ -259,7 +259,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
           {distanceActive && onDistanceChange && (
             <button
               onClick={() => onDistanceChange(null)}
-              className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
+              className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
             >
               Do {state.distanceKm} km od stavby{" "}
               <span className="material-symbols-outlined text-[16px]">close</span>

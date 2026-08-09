@@ -14,10 +14,12 @@ import {
   useUpdateProjectDetailsMutation,
 } from "../hooks/mutations/useProjectMutations";
 import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantDataQuery";
+import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
   rpcRestMock: vi.fn(),
+  rpcMock: vi.fn(),
   invokeAuthedFunctionMock: vi.fn(),
   ensureStructureMock: vi.fn(),
   getDemoDataMock: vi.fn(),
@@ -25,11 +27,17 @@ const mocks = vi.hoisted(() => ({
   emitCategoryStatusNotificationMock: vi.fn(),
   emitProjectClonedNotificationMock: vi.fn(),
   emitProjectArchivedNotificationMock: vi.fn(),
+  resolveEffectiveProjectDocHubRootMock: vi.fn(),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  resolveEffectiveProjectDocHubRoot: mocks.resolveEffectiveProjectDocHubRootMock,
 }));
 
 vi.mock("../services/dbAdapter", () => ({
   dbAdapter: {
     from: mocks.fromMock,
+    rpc: mocks.rpcMock,
     rpcRest: mocks.rpcRestMock,
   },
 }));
@@ -44,6 +52,7 @@ vi.mock("../services/fileSystemService", () => ({
 
 vi.mock("../utils/docHub", () => ({
   buildHierarchyTree: vi.fn(() => []),
+  ensureExtraHierarchy: vi.fn((value) => value || []),
   resolveDocHubStructureV1: vi.fn(() => ({ extraHierarchy: [] })),
 }));
 
@@ -127,7 +136,7 @@ const createWrapper = () => {
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 
-  return { wrapper, invalidateSpy };
+  return { queryClient, wrapper, invalidateSpy };
 };
 
 const expectOverviewInvalidation = (
@@ -146,12 +155,14 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     vi.clearAllMocks();
     mocks.fromMock.mockImplementation(() => createFromResult());
     mocks.rpcRestMock.mockResolvedValue({ data: [{ project_id: "realization-1" }], error: null });
+    mocks.rpcMock.mockResolvedValue({ data: null, error: null });
     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
     mocks.ensureStructureMock.mockResolvedValue({ success: true });
     mocks.getDemoDataMock.mockReturnValue(null);
     mocks.emitCategoryStatusNotificationMock.mockResolvedValue(null);
     mocks.emitProjectClonedNotificationMock.mockResolvedValue(null);
     mocks.emitProjectArchivedNotificationMock.mockResolvedValue(null);
+    mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("/Personal/Stavba");
   });
 
   it("invaliduje overview cache po vytvoření projektu", async () => {
@@ -164,9 +175,16 @@ describe("useProjectMutations -> overview cache invalidation", () => {
         name: "Projekt 1",
         location: "Praha",
         status: "tender",
+        organizationId: "org-1",
+        initialTeam: [{ userId: "user-2" }],
       });
     });
 
+    expect(mocks.rpcMock).toHaveBeenCalledWith("create_project_with_team", expect.objectContaining({
+      project_id_input: "p-1",
+      organization_id_input: "org-1",
+      team_input: [{ user_id: "user-2" }],
+    }));
     expectOverviewInvalidation(invalidateSpy);
   });
 
@@ -197,9 +215,6 @@ describe("useProjectMutations -> overview cache invalidation", () => {
   });
 
   it("při archivaci ukládá původní aktivní status projektu", async () => {
-    const fromResult = createFromResult();
-    mocks.fromMock.mockReturnValueOnce(fromResult);
-
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
 
@@ -211,16 +226,13 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.update).toHaveBeenCalledWith({
-      status: "archived",
-      archived_original_status: "tender",
+    expect(mocks.rpcMock).toHaveBeenCalledWith("set_project_archived", {
+      project_id_input: "p-archive",
+      archived_input: true,
     });
   });
 
   it("při obnově z archivu vrací uložený původní status", async () => {
-    const fromResult = createFromResult();
-    mocks.fromMock.mockReturnValueOnce(fromResult);
-
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
 
@@ -232,9 +244,9 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
-    expect(fromResult.update).toHaveBeenCalledWith({
-      status: "tender",
-      archived_original_status: null,
+    expect(mocks.rpcMock).toHaveBeenCalledWith("set_project_archived", {
+      project_id_input: "p-restore",
+      archived_input: false,
     });
   });
 
@@ -271,6 +283,48 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
+  it("před uložením DocHub JSONB odstraní lokální cesty a identifikátory", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useUpdateProjectDetailsMutation(), {
+      wrapper,
+    });
+    const docHubSettings = {
+      gdrive: {
+        rootLink: "https://drive.google.com/drive/folders/cloud-root",
+        rootName: "Projekt",
+        rootId: "cloud-root",
+        rootWebUrl: "https://drive.google.com/drive/folders/cloud-root",
+      },
+      onedrive: {
+        rootName: "Projekt",
+      },
+      local: {
+        rootLink: "C:\\Users\\Owner\\Secret Project",
+        rootId: "local:secret",
+      },
+      onedrive_cloud: {
+        rootLink: "\\\\server\\private-share",
+        rootId: "local:legacy-cloud",
+      },
+    };
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-1",
+        updates: { docHubSettings },
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      dochub_settings: {
+        gdrive: docHubSettings.gdrive,
+        onedrive: docHubSettings.onedrive,
+      },
+    });
+  });
+
   it("invaliduje overview cache po přidání kategorie a neukládá lokální přílohu do Supabase", async () => {
     const { wrapper, invalidateSpy } = createWrapper();
     const fromResult = createFromResult();
@@ -304,6 +358,52 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     const [insertPayload] = fromResult.insert.mock.calls[0];
     expect(insertPayload).not.toHaveProperty("budget_attachment");
     expectOverviewInvalidation(invalidateSpy);
+  });
+
+  it("před dokončením vytvoření kategorie počká na lokální DocHub strukturu", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
+      id: "p-1",
+      title: "Projekt",
+      location: "",
+      categories: [],
+      docHubEnabled: true,
+      docHubProvider: "onedrive",
+      docHubRootLink: "/Projects/Stavba",
+    });
+    let finishEnsure: ((value: { success: boolean }) => void) | undefined;
+    mocks.ensureStructureMock.mockReturnValue(new Promise((resolve) => {
+      finishEnsure = resolve;
+    }));
+    const { result } = renderHook(() => useAddCategoryMutation(), { wrapper });
+    let mutationFinished = false;
+
+    await act(async () => {
+      const mutationPromise = result.current.mutateAsync({
+        projectId: "p-1",
+        category: {
+          id: "cat-1",
+          title: "Betony",
+          budget: "0 Kč",
+          sodBudget: 0,
+          planBudget: 0,
+          status: "open",
+          subcontractorCount: 0,
+          description: "",
+        },
+      }).then(() => {
+        mutationFinished = true;
+      });
+
+      await vi.waitFor(() => expect(mocks.ensureStructureMock).toHaveBeenCalled());
+      expect(mutationFinished).toBe(false);
+      finishEnsure?.({ success: true });
+      await mutationPromise;
+    });
+    expect(mutationFinished).toBe(true);
+    expect(mocks.ensureStructureMock).toHaveBeenCalledWith(
+      expect.objectContaining({ rootPath: "/Personal/Stavba" }),
+    );
   });
 
   it("invaliduje overview cache po úpravě kategorie a neukládá lokální přílohu do Supabase", async () => {

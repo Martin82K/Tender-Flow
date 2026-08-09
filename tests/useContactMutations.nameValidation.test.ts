@@ -12,12 +12,18 @@ import {
 import type { Subcontractor } from "../types";
 import { renameFolder } from "../services/fileSystemService";
 import { CONTACT_KEYS } from "../hooks/queries/useContactsQuery";
+import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
   mergeContactsMock: vi.fn(),
   updateEqMock: vi.fn(),
   updateMock: vi.fn(),
+  resolveEffectiveProjectDocHubRootMock: vi.fn(),
+}));
+
+vi.mock("@features/projects/dochub/model/personalRoot", () => ({
+  resolveEffectiveProjectDocHubRoot: mocks.resolveEffectiveProjectDocHubRootMock,
 }));
 
 vi.mock("../services/supabase", () => ({
@@ -32,6 +38,7 @@ vi.mock("../services/contactsImportService", () => ({
 
 vi.mock("../services/demoData", () => ({
   getDemoData: vi.fn(() => null),
+  isDemoSession: vi.fn(() => false),
   saveDemoData: vi.fn(),
 }));
 
@@ -110,6 +117,7 @@ beforeEach(() => {
   mocks.updateMock.mockImplementation(() => ({
     eq: mocks.updateEqMock,
   }));
+  mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("D:\\Personal\\Project");
 
   mocks.fromMock.mockImplementation(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
@@ -211,14 +219,14 @@ describe("useContactMutations name validation", () => {
 
   it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {
     const { queryClient, wrapper } = createTestContext();
-    queryClient.setQueryData(["project", "p-1"], {
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
       id: "p-1",
       docHubEnabled: true,
       docHubStatus: "connected",
       docHubProvider: "onedrive",
       docHubRootLink: "C:\\DocHubRoot",
       docHubStructureV1: { tenders: "01_VYBEROVA_RIZENI" },
-      categories: [{ id: "cat-1", title: "Zakladni cast" }],
+      categories: [{ id: "cat-1", title: "Elektro/VZT" }],
       bids: {
         "cat-1": [{ subcontractorId: "c-1" }],
       },
@@ -244,8 +252,8 @@ describe("useContactMutations name validation", () => {
       });
 
       expect(renameFolder).toHaveBeenCalledWith(
-        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny s.r.o",
-        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny a.s",
+        "D:\\Personal\\Project\\01_VYBEROVA_RIZENI\\Elektro_VZT\\IZOMAT stavebniny s.r.o",
+        "D:\\Personal\\Project\\01_VYBEROVA_RIZENI\\Elektro_VZT\\IZOMAT stavebniny a.s",
         { provider: "onedrive", projectId: "p-1" },
       );
     } finally {
@@ -254,6 +262,29 @@ describe("useContactMutations name validation", () => {
         configurable: true,
       });
     }
+  });
+
+  it("neprejmenuje slozku dodavatele po neuspesne databazove mutaci", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
+      id: "p-1",
+      docHubEnabled: true,
+      docHubStatus: "connected",
+      docHubProvider: "onedrive",
+      docHubRootLink: "C:\\DocHubRoot",
+      categories: [{ id: "cat-1", title: "Zakladni cast" }],
+      bids: { "cat-1": [{ subcontractorId: "c-1" }] },
+    });
+    queryClient.setQueryData(CONTACT_KEYS.list(), [{ ...validContact, id: "c-1", company: "Stary nazev" }]);
+    mocks.updateEqMock.mockResolvedValueOnce({ error: new Error("database unavailable") });
+    const { result } = renderHook(() => useUpdateContactMutation(), { wrapper });
+
+    await expect(result.current.mutateAsync({
+      id: "c-1",
+      updates: { company: "Novy nazev" },
+    })).rejects.toThrow("database unavailable");
+
+    expect(renameFolder).not.toHaveBeenCalled();
   });
 
   it("stale blokuje ukladani nevalidniho nazvu s koncovou teckou", () => {

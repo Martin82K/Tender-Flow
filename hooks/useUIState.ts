@@ -11,7 +11,7 @@ export interface UiModalState {
     title: string;
     message: string;
     messageNode?: React.ReactNode;
-    variant?: 'danger' | 'info' | 'success';
+    variant: 'danger' | 'info' | 'success';
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm?: () => void;

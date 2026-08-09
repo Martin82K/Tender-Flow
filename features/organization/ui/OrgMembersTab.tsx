@@ -15,6 +15,9 @@ import { getOrgSeatUsage } from '../api/orgBillingService';
 import { formatOrgRole, isOrgOwnerRole } from '@/shared/organization/organizationUtils';
 import { useUI } from '@/context/UIContext';
 import type { OrgSeatUsage } from '../model/types';
+import { PROJECT_TEAM_ROLE_LABELS, PROJECT_TEAM_ROLES } from '@/shared/authorization/projectRoles';
+import type { ProjectTeamRole } from '@/types';
+import { ThemedSelect } from '@/shared/ui/ThemedSelect';
 
 interface OrgMembersTabProps {
   orgId: string;
@@ -87,6 +90,24 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
       await loadData();
     } catch (err: any) {
       showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se přidat člena.', variant: 'danger' });
+    }
+  };
+
+  const handleProfessionalRole = async (member: OrganizationMember, role: ProjectTeamRole | null) => {
+    setProcessingMemberId(member.user_id);
+    try {
+      await organizationService.setOrganizationMemberProfessionalRole(orgId, member.user_id, role);
+      setMembers((current) => current.map((item) => (
+        item.user_id === member.user_id ? { ...item, professional_role: role } : item
+      )));
+    } catch (err) {
+      showAlert({
+        title: 'Chyba',
+        message: err instanceof Error ? err.message : 'Profesní roli se nepodařilo změnit.',
+        variant: 'danger',
+      });
+    } finally {
+      setProcessingMemberId(null);
     }
   };
 
@@ -344,7 +365,8 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700/50">
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Člen</th>
-              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Role</th>
+              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Systémová role</th>
+              <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Profesní role</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Přidán</th>
               {isAdminOrOwner && <th className="w-12"></th>}
@@ -397,6 +419,28 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                     }`}>
                       {formatOrgRole(member.role)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdminOrOwner && isActive ? (
+                      <ThemedSelect
+                        ariaLabel={`Profesní role – ${member.display_name || member.email}`}
+                        value={member.professional_role || ''}
+                        disabled={isProcessing}
+                        onChange={(value) => void handleProfessionalRole(
+                          member,
+                          value ? value as ProjectTeamRole : null,
+                        )}
+                        options={[
+                          { value: '', label: 'Bez profesní role' },
+                          ...PROJECT_TEAM_ROLES.map((role) => ({ value: role, label: PROJECT_TEAM_ROLE_LABELS[role] })),
+                        ]}
+                        className="min-w-40"
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-500">
+                        {member.professional_role ? PROJECT_TEAM_ROLE_LABELS[member.professional_role] : 'Bez profesní role'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
@@ -504,7 +548,7 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
             })}
             {filteredMembers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
                   {search ? 'Žádný člen neodpovídá hledání.' : 'Žádní členové.'}
                 </td>
               </tr>

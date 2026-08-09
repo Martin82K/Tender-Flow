@@ -46,5 +46,6 @@ application usage actions, or application usage heartbeat calls.
 - Confirm allowed origins in PostHog before enabling a production project key.
 - Confirm `/cookies` and privacy copy whenever a new tracking provider or
   telemetry table is added.
-- Keep analytics packages reviewed under the repository rule that new packages
-  younger than 14 days must not be installed.
+- Keep analytics packages reviewed under the repository supply-chain policy:
+  verify registry integrity, provenance/signatures, repository and maintainer
+  history, vulnerabilities, and reported compromise incidents before install.

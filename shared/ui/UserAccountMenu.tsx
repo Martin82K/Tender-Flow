@@ -12,6 +12,9 @@ import {
   UI_SCALE_STEP,
   normalizeUiScale,
 } from "@/hooks/useTheme";
+import { themeSkinOptions } from "@/shared/theme/appearanceOptions";
+import { AppearancePicker } from "@/shared/ui/AppearancePicker";
+import { ThemeModeControl } from "@/shared/ui/ThemeModeControl";
 import type { ThemeMode, ThemeSkin } from "@/shared/types/theme";
 import type { User } from "@/types";
 
@@ -36,25 +39,6 @@ const tierLabelMap: Record<Tier, string> = {
   enterprise: "Enterprise tarif",
   admin: "Admin tarif",
 };
-
-const themeOptions: Array<{
-  id: ThemeMode;
-  icon: string;
-  label: string;
-}> = [
-  { id: "light", icon: "light_mode", label: "Světlý" },
-  { id: "dark", icon: "dark_mode", label: "Tmavý" },
-  { id: "system", icon: "brightness_auto", label: "Auto" },
-];
-
-const skinOptions: Array<{
-  id: ThemeSkin;
-  icon: string;
-  label: string;
-}> = [
-  { id: "industrial", icon: "precision_manufacturing", label: "Industrial" },
-  { id: "classic", icon: "dashboard_customize", label: "Classic" },
-];
 
 const getInitials = (nameOrEmail: string | undefined): string => {
   const value = (nameOrEmail || "U").trim();
@@ -189,7 +173,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       | "overview"
       | "members"
       | "billing"
-      | "branding" = "profile",
+      | "branding"
+      | "rolePermissions" = "profile",
   ) => {
     navigate(buildAppUrl("settings", { settingsTab, settingsSubTab }));
     setIsOpen(false);
@@ -405,47 +390,17 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               <div className="mb-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 Vzhled
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {themeOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => onSetTheme(option.id)}
-                    className={`flex min-h-8 items-center justify-center gap-1 rounded-md border px-1.5 text-[10px] font-bold transition-all ${
-                      theme === option.id
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
-                    }`}
-                    aria-pressed={theme === option.id}
-                  >
-                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
-                      {option.icon}
-                    </span>
-                    {option.label}
-                  </button>
-                ))}
+              <div className="space-y-1.5">
+                <AppearancePicker
+                  label="Motiv"
+                  icon="local_florist"
+                  value={skin}
+                  options={themeSkinOptions}
+                  onChange={onSetSkin}
+                />
+                <ThemeModeControl value={theme} onChange={onSetTheme} />
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
-                {skinOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => onSetSkin(option.id)}
-                    className={`flex min-h-8 items-center justify-center gap-1 rounded-md border px-1.5 text-[10px] font-bold transition-all ${
-                      skin === option.id
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
-                    }`}
-                    aria-pressed={skin === option.id}
-                  >
-                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
-                      {option.icon}
-                    </span>
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950">
+              <div className="mt-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
                 <div className="min-w-0 px-1.5">
                   <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     Velikost UI
@@ -454,7 +409,11 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     {uiScalePercent} %
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                <div
+                  role="group"
+                  aria-label="Velikost UI"
+                  className="tf-ui-scale-control flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
+                >
                   <UiScaleButton
                     icon="remove"
                     label="Zmenšit UI"
@@ -598,7 +557,7 @@ const UiScaleButton: React.FC<UiScaleButtonProps> = ({
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="flex size-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+    className="tf-ui-scale-button flex size-8 items-center justify-center rounded-md outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40"
     aria-label={label}
     title={label}
   >

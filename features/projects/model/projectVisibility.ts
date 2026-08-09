@@ -8,6 +8,7 @@ export interface ProjectVisibilityRow {
   archived_original_status: ActiveProjectStatus | null;
   is_demo: boolean;
   owner_id: string | null;
+  organization_id?: string | null;
 }
 
 export interface ProjectVisibilityMetadataRow {
@@ -69,6 +70,7 @@ export const mapVisibleProjects = (
         isDemo: project.is_demo,
         // Zachovává dosavadní runtime kontrakt databázového řádku (null u demo dat).
         ownerId: project.owner_id as Project["ownerId"],
+        organizationId: project.organization_id ?? undefined,
         ownerEmail: metadata?.owner,
         sharedWith: metadata ? [...metadata.shared] : undefined,
       };

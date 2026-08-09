@@ -1,25 +1,35 @@
 import React, { useState } from 'react';
 import type { ProjectDetails } from '@/types';
 import { useContractsWithDetails } from './hooks/useContractsWithDetails';
+import type { UseContractsWithDetailsResult } from './hooks/useContractsWithDetails';
 import { ContractsDashboard } from './dashboard/ContractsDashboard';
 import { ContractsListPage } from './list/ContractsListPage';
 import { InvestorBillingPage } from './investor/InvestorBillingPage';
+import type { ContractsViewMode } from './list/ContractsListPage';
 
 type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
 interface Props {
   projectId: string;
+  initialContractId?: string;
+  contractsState?: UseContractsWithDetailsResult;
   projectDetails?: ProjectDetails;
   onUpdateDetails: (updates: Partial<ProjectDetails>) => void | Promise<void>;
 }
 
 export const ContractsModule: React.FC<Props> = ({
   projectId,
+  initialContractId,
+  contractsState,
   projectDetails,
   onUpdateDetails,
 }) => {
   const [subView, setSubView] = useState<SubView>('smlouvy');
-  const { contracts, loading, error, refresh } = useContractsWithDetails(projectId);
+  const [contractsViewMode, setContractsViewMode] = useState<ContractsViewMode>(
+    initialContractId ? 'split' : 'table',
+  );
+  const ownContractsState = useContractsWithDetails(projectId, !contractsState);
+  const { contracts, loading, error, refresh } = contractsState || ownContractsState;
 
   if (loading) {
     return (
@@ -65,7 +75,10 @@ export const ContractsModule: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          onClick={() => setSubView('smlouvy')}
+          onClick={() => {
+            setSubView('smlouvy');
+            setContractsViewMode('table');
+          }}
           data-active={subView === 'smlouvy' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'smlouvy'
@@ -103,6 +116,9 @@ export const ContractsModule: React.FC<Props> = ({
           projectId={projectId}
           contracts={contracts}
           refresh={refresh}
+          viewMode={contractsViewMode}
+          onViewModeChange={setContractsViewMode}
+          initialSelectedId={initialContractId}
         />
       )}
     </div>

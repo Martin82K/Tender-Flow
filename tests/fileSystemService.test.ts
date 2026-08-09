@@ -5,6 +5,7 @@ const mockState = vi.hoisted(() => ({
   logIncident: vi.fn().mockResolvedValue({ incidentId: "INC-1" }),
   selectFolder: vi.fn(),
   listFiles: vi.fn(),
+  copyFile: vi.fn(),
   createFolder: vi.fn(),
   deleteFolder: vi.fn(),
   renameFolder: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock("../services/platformAdapter", () => ({
   fileSystemAdapter: {
     selectFolder: mockState.selectFolder,
     listFiles: mockState.listFiles,
+    copyFile: mockState.copyFile,
     createFolder: mockState.createFolder,
     deleteFolder: mockState.deleteFolder,
     renameFolder: mockState.renameFolder,
@@ -99,6 +101,27 @@ describe("fileSystemService", () => {
 
     expect(result).toEqual({ cancelled: true });
     expect(mockState.logIncident).not.toHaveBeenCalled();
+  });
+
+  it("preda bezpecne kopirovani platform adapteru", async () => {
+    mockState.copyFile.mockResolvedValue({
+      success: true,
+      path: "/tmp/Betony/rozpocet.xlsx",
+      name: "rozpocet.xlsx",
+      size: 1234,
+    });
+
+    const { copyFile } = await import("../services/fileSystemService");
+    await expect(copyFile("/tmp/rozpocet.xlsx", "/tmp/Betony")).resolves.toEqual({
+      success: true,
+      path: "/tmp/Betony/rozpocet.xlsx",
+      name: "rozpocet.xlsx",
+      size: 1234,
+    });
+    expect(mockState.copyFile).toHaveBeenCalledWith(
+      "/tmp/rozpocet.xlsx",
+      "/tmp/Betony",
+    );
   });
 
   it("neloguje bezne nenalezeni slozky pri folderExists", async () => {

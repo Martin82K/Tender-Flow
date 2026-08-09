@@ -1,6 +1,6 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import React, { act } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PipelineOverview } from "@/components/pipelineComponents/PipelineOverview";
 import { formatMoney } from "@/utils/formatters";
@@ -35,6 +35,7 @@ const categories: DemandCategory[] = [
 const renderOverview = (overrides: Partial<React.ComponentProps<typeof PipelineOverview>> = {}) =>
   render(
     <PipelineOverview
+      currentUserId="user-1"
       categories={categories}
       bids={{}}
       searchQuery=""
@@ -52,6 +53,14 @@ const renderOverview = (overrides: Partial<React.ComponentProps<typeof PipelineO
   );
 
 describe("PipelineOverview layout", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("has stable anchors for industrial skin view controls", () => {
     const { container } = renderOverview();
 
@@ -62,12 +71,15 @@ describe("PipelineOverview layout", () => {
     expect(filters).toBeInTheDocument();
     expect(viewToggle).toBeInTheDocument();
     expect(table).toBeInTheDocument();
-    expect(filters?.className).not.toContain("rounded-full");
+    expect(filters).toHaveClass("tf-demand-filterbar");
     expect(viewToggle?.className).not.toContain("rounded-full");
 
-    expect(screen.getByRole("button", { name: /V.*chny \(2\)/i }).className).not.toContain("bg-white");
-    expect(screen.getByRole("button", { name: /Popt.*van.* \(1\)/i }).className).not.toContain("rounded-full");
-    expect(screen.getByRole("button", { name: /Ukon.*en.* \(1\)/i }).className).not.toContain("rounded-full");
+    const allFilter = screen.getByRole("button", { name: /V.*chny \(2\)/i });
+    expect(allFilter).toHaveClass("tf-demand-filter-button");
+    expect(allFilter).toHaveAttribute("data-active", "true");
+    expect(allFilter).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Popt.*van.* \(1\)/i })).toHaveAttribute("data-active", "false");
+    expect(screen.getByRole("button", { name: /Ukon.*en.* \(1\)/i })).toHaveClass("tf-demand-filter-button");
   });
 
   it("parses winning prices with decimal commas without multiplying them", () => {
@@ -89,5 +101,137 @@ describe("PipelineOverview layout", () => {
 
     expect(screen.getByText(hasNormalizedText(formatMoney(159000)))).toBeInTheDocument();
     expect(screen.queryByText(hasNormalizedText(formatMoney(15900000)))).not.toBeInTheDocument();
+  });
+
+  it("offers destructive table actions through an accessible context menu", () => {
+    const onDeleteCategory = vi.fn();
+    renderOverview({ onDeleteCategory });
+
+    const row = screen.getByRole("row", { name: /Zemni prace/i });
+    expect(screen.queryByRole("button", { name: "Upravit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Smazat" })).not.toBeInTheDocument();
+
+    fireEvent.contextMenu(row, { clientX: 120, clientY: 180 });
+
+    const menu = screen.getByRole("menu", { name: "Akce výběrového řízení" });
+    expect(menu).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Smazat" }));
+    expect(onDeleteCategory).toHaveBeenCalledWith("cat-1");
+  });
+
+  it("opens the same context menu from the keyboard", async () => {
+    renderOverview();
+    const row = screen.getByRole("row", { name: /Fasada/i });
+
+    row.focus();
+    fireEvent.keyDown(row, { key: "F10", shiftKey: true });
+
+    expect(
+      screen.getByRole("menu", { name: "Akce výběrového řízení" }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Smazat" })).toHaveFocus();
+    });
+  });
+
+  it("načte pouze validní číselné šířky aktuálního uživatele", () => {
+    window.localStorage.setItem(
+      "tf.pipeline.tableColumns.v1.user-1",
+      JSON.stringify({
+        version: 1,
+        widths: {
+          demand: 260,
+          realization: 9_999,
+          deadline: "neplatná hodnota",
+          attacker: 666,
+        },
+        organization: { name: "nesmí se načíst" },
+      }),
+    );
+
+    renderOverview();
+
+    expect(screen.getByRole("separator", { name: "Změnit šířku sloupce Poptávka" })).toHaveAttribute(
+      "aria-valuenow",
+      "260",
+    );
+    expect(screen.getByRole("separator", { name: "Změnit šířku sloupce Realizace" })).toHaveAttribute(
+      "aria-valuenow",
+      "420",
+    );
+    expect(screen.getByRole("separator", { name: "Změnit šířku sloupce Termín" })).toHaveAttribute(
+      "aria-valuenow",
+      "120",
+    );
+  });
+
+  it("nepřenáší preference mezi uživateli ani je neukládá bez identity", () => {
+    window.localStorage.setItem(
+      "tf.pipeline.tableColumns.v1.user-1",
+      JSON.stringify({ version: 1, widths: { demand: 260 } }),
+    );
+
+    const { unmount } = renderOverview({ currentUserId: "user-2" });
+    expect(screen.getByRole("separator", { name: "Změnit šířku sloupce Poptávka" })).toHaveAttribute(
+      "aria-valuenow",
+      "320",
+    );
+    unmount();
+
+    renderOverview({ currentUserId: null });
+    fireEvent.keyDown(
+      screen.getByRole("separator", { name: "Změnit šířku sloupce Poptávka" }),
+      { key: "ArrowLeft" },
+    );
+    expect([...Array(window.localStorage.length)].map((_, index) => window.localStorage.key(index)))
+      .not.toContain("tf.pipeline.tableColumns.v1.anonymous");
+  });
+
+  it("zůstane použitelná, když prohlížeč zablokuje čtení localStorage", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => {
+      throw new DOMException("Storage blocked", "SecurityError");
+    });
+
+    renderOverview();
+
+    expect(screen.getByRole("separator", { name: "Změnit šířku sloupce Poptávka" }))
+      .toHaveAttribute("aria-valuenow", "320");
+  });
+
+  it("mění šířku klávesnicí a ukládá pouze číselnou mapu šířek", () => {
+    renderOverview();
+    const handle = screen.getByRole("separator", { name: "Změnit šířku sloupce Poptávka" });
+
+    handle.focus();
+    fireEvent.keyDown(handle, { key: "ArrowLeft", shiftKey: true });
+
+    expect(handle).toHaveFocus();
+    expect(handle).toHaveAttribute("aria-valuenow", "280");
+    expect(JSON.parse(window.localStorage.getItem("tf.pipeline.tableColumns.v1.user-1") || "null"))
+      .toEqual({
+        version: 1,
+        widths: expect.objectContaining({ demand: 280 }),
+      });
+  });
+
+  it("mění šířku tažením a zachová no-wrap termínů v horizontálně posuvné tabulce", () => {
+    const { container } = renderOverview();
+    const handle = screen.getByRole("separator", { name: "Změnit šířku sloupce Realizace" });
+
+    const pointerDown = new Event("pointerdown", { bubbles: true });
+    Object.defineProperty(pointerDown, "clientX", { value: 200 });
+    const pointerMove = new Event("pointermove");
+    Object.defineProperty(pointerMove, "clientX", { value: 260 });
+    act(() => {
+      handle.dispatchEvent(pointerDown);
+      window.dispatchEvent(pointerMove);
+      window.dispatchEvent(new Event("pointerup"));
+    });
+
+    expect(handle).toHaveAttribute("aria-valuenow", "300");
+    expect(screen.getByRole("columnheader", { name: /Termín/ })).toHaveClass("whitespace-nowrap");
+    expect(screen.getByRole("columnheader", { name: /Realizace/ })).toHaveClass("whitespace-nowrap");
+    expect(container.querySelector("[data-pipeline-table-scroll]")).toHaveClass("overflow-x-auto");
+    expect(container.querySelector("table")).toHaveStyle({ width: "1272px" });
   });
 });

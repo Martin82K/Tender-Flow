@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import type { Project, User, View } from '@/types';
@@ -53,6 +53,7 @@ const renderMainLayout = (
   isSidebarOpen = false,
   currentView: View = 'project',
   uiScale = 1,
+  setIsSidebarOpen = vi.fn(),
 ) =>
   render(
     <MainLayout
@@ -64,7 +65,7 @@ const renderMainLayout = (
       }}
       closeUiModal={vi.fn()}
       isSidebarOpen={isSidebarOpen}
-      setIsSidebarOpen={vi.fn()}
+      setIsSidebarOpen={setIsSidebarOpen}
       currentView={currentView}
       projects={projects}
       selectedProjectId="project-1"
@@ -88,22 +89,39 @@ const renderMainLayout = (
   );
 
 describe('MainLayout mobile menu', () => {
-  it('drží mobilní toggle nad sticky hlavičkami', () => {
-    renderMainLayout(false);
+  it('vykreslí stabilní mobilní toggle mimo obsah hlavičky', () => {
+    const setIsSidebarOpen = vi.fn();
+    renderMainLayout(false, 'project', 1, setIsSidebarOpen);
 
     const button = screen.getByRole('button', { name: 'Zobrazit sidebar' });
 
-    expect(button).toHaveClass('z-40');
-    expect(button).not.toHaveClass('pointer-events-none');
+    expect(button).toHaveClass('left-2', 'top-2', 'z-40', 'h-11', 'w-11');
+    expect(button).toHaveAttribute('aria-controls', 'app-sidebar');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(button);
+    expect(setIsSidebarOpen).toHaveBeenCalledWith(true);
   });
 
-  it('při otevřeném sidebaru toggle skryje a vypne interakci', () => {
-    renderMainLayout(true);
+  it('při otevřeném sidebaru nabídne stmavené pozadí pro zavření', () => {
+    const setIsSidebarOpen = vi.fn();
+    renderMainLayout(true, 'project', 1, setIsSidebarOpen);
 
-    const button = screen.getByRole('button', { name: 'Schovat sidebar' });
+    expect(
+      screen.queryByRole('button', { name: 'Zobrazit sidebar' }),
+    ).not.toBeInTheDocument();
 
-    expect(button).toHaveClass('opacity-0');
-    expect(button).toHaveClass('pointer-events-none');
+    const backdrop = screen.getByRole('button', {
+      name: 'Zavřít navigační panel kliknutím mimo něj',
+    });
+    expect(backdrop).toHaveClass(
+      'left-[min(20rem,calc(100vw-3rem))]',
+      'z-40',
+      'max-md:block',
+    );
+
+    fireEvent.click(backdrop);
+    expect(setIsSidebarOpen).toHaveBeenCalledWith(false);
   });
 
   it('při zmenšení UI zachová viewport a zvětší interní layoutovou plochu', () => {

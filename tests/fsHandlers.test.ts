@@ -5,6 +5,7 @@ const fsMock = vi.hoisted(() => ({
   readdir: vi.fn(),
   stat: vi.fn(),
   readFile: vi.fn(),
+  copyFile: vi.fn(),
   writeFile: vi.fn(),
   mkdir: vi.fn(),
   rm: vi.fn(),
@@ -51,6 +52,7 @@ describe("fsHandlers", () => {
     fsMock.readdir.mockReset();
     fsMock.stat.mockReset();
     fsMock.readFile.mockReset();
+    fsMock.copyFile.mockReset();
     fsMock.writeFile.mockReset();
     fsMock.mkdir.mockReset();
     fsMock.rm.mockReset();
@@ -165,6 +167,110 @@ describe("fsHandlers", () => {
     const handler = handlers.get("fs:writeFile");
     await expect(handler?.({}, "/private/etc/hack.txt", "x")).rejects.toThrow("Access denied");
     expect(fsMock.writeFile).not.toHaveBeenCalled();
+  });
+
+  it("bezpecne zkopiruje vybrany soubor bez prepsani existujiciho", async () => {
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async (targetPath: string) => ({
+      isFile: () => targetPath.endsWith("rozpocet.xlsx"),
+      isDirectory: () => !targetPath.endsWith("rozpocet.xlsx"),
+      size: 1234,
+    }));
+    fsMock.copyFile
+      .mockRejectedValueOnce(Object.assign(new Error("exists"), { code: "EEXIST" }))
+      .mockResolvedValueOnce(undefined);
+
+    const { registerFsHandlers, addUserGrantedRoot } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+    await addUserGrantedRoot("/Users/tester/Downloads");
+    await addUserGrantedRoot("/Users/tester/Projects/Tender");
+
+    const result = await handlers.get("fs:copyFile")?.(
+      {},
+      "/Users/tester/Downloads/rozpocet.xlsx",
+      "/Users/tester/Projects/Tender/Betony",
+    );
+
+    expect({
+      ...(result as Record<string, unknown>),
+      path: normalizePathForAssert((result as { path: string }).path),
+    }).toEqual({
+      success: true,
+      path: "/Users/tester/Projects/Tender/Betony/rozpocet (2).xlsx",
+      name: "rozpocet (2).xlsx",
+      size: 1234,
+    });
+
+    expect(fsMock.copyFile).toHaveBeenCalledTimes(2);
+    expect(fsMock.copyFile.mock.calls[0].slice(0, 2).map(normalizePathForAssert)).toEqual([
+      "/Users/tester/Downloads/rozpocet.xlsx",
+      "/Users/tester/Projects/Tender/Betony/rozpocet.xlsx",
+    ]);
+    expect(fsMock.copyFile.mock.calls[1].slice(0, 2).map(normalizePathForAssert)).toEqual([
+      "/Users/tester/Downloads/rozpocet.xlsx",
+      "/Users/tester/Projects/Tender/Betony/rozpocet (2).xlsx",
+    ]);
+    expect(fsMock.copyFile.mock.calls[0][2]).toEqual(expect.any(Number));
+    expect(fsMock.copyFile.mock.calls[1][2]).toEqual(expect.any(Number));
+  });
+
+  it("odmitne kopirovani do cile mimo povolene rooty", async () => {
+    fsMock.realpath.mockImplementation(async (targetPath: string) => {
+      if (targetPath === "/private/etc") return targetPath;
+      return targetPath;
+    });
+    fsMock.stat.mockImplementation(async (targetPath: string) => ({
+      isFile: () => targetPath.endsWith("rozpocet.xlsx"),
+      isDirectory: () => !targetPath.endsWith("rozpocet.xlsx"),
+      size: 12,
+    }));
+
+    const { registerFsHandlers, addUserGrantedRoot } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+    await addUserGrantedRoot("/Users/tester/Downloads");
+
+    await expect(
+      handlers.get("fs:copyFile")?.(
+        {},
+        "/Users/tester/Downloads/rozpocet.xlsx",
+        "/private/etc",
+      ),
+    ).resolves.toEqual(expect.objectContaining({ success: false }));
+    expect(fsMock.copyFile).not.toHaveBeenCalled();
+  });
+
+  it("odmitne kopirovani zdroje mimo povolene rooty", async () => {
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async (targetPath: string) => ({
+      isFile: () => targetPath.endsWith("passwd"),
+      isDirectory: () => !targetPath.endsWith("passwd"),
+      size: 12,
+    }));
+
+    const { registerFsHandlers, addUserGrantedRoot } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+    await addUserGrantedRoot("/Users/tester/Projects/Tender");
+
+    await expect(
+      handlers.get("fs:copyFile")?.(
+        {},
+        "/private/etc/passwd",
+        "/Users/tester/Projects/Tender/Betony",
+      ),
+    ).resolves.toEqual(expect.objectContaining({ success: false }));
+    expect(fsMock.copyFile).not.toHaveBeenCalled();
   });
 
   it("povoli fs:readFile po explicitnim dialog grantu", async () => {
@@ -315,11 +421,11 @@ describe("fsHandlers", () => {
     });
 
     await expect(
-      handlers.get("fs:showItemInFolder")?.({}, "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx"),
+      handlers.get("fs:showItemInFolder")?.({}, "/Users/tester/Projects/Tender/vystup.xlsx"),
     ).resolves.toEqual({ success: true });
 
     expect(vi.mocked(shell.showItemInFolder)).toHaveBeenCalledWith(
-      "/Users/tester/Projects/Tender/porovnani-nabidek-latest.xlsx",
+      "/Users/tester/Projects/Tender/vystup.xlsx",
     );
     expect(vi.mocked(shell.openPath)).not.toHaveBeenCalled();
   });

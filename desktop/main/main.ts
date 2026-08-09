@@ -9,6 +9,7 @@ import { buildMainWindowWebPreferences } from './services/windowSecurity';
 import { ipcAuthGuard } from './services/ipcAuthGuard';
 import { canOpenExternalUrl } from './security/externalUrlPolicy';
 import { getDesktopRendererPublicEnv } from './services/publicEnv';
+import { configureSingleInstance } from './services/singleInstance';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -17,6 +18,7 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow: BrowserWindow | null = null;
 let mcpServerStop: (() => Promise<void>) | null = null;
+const hasSingleInstanceLock = configureSingleInstance(app, () => mainWindow);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 const DESKTOP_BOOTSTRAP_ENV_KEYS = new Set([
@@ -209,61 +211,64 @@ function createWindow(): void {
     }
 }
 
-// Register IPC handlers
-registerIpcHandlers();
-
 // App lifecycle
-app.whenReady().then(() => {
-    createWindow();
-    startMcpServer()
-        .then(({ sseUrl, close }) => {
-            mcpServerStop = close;
-            console.log(`[MCP] Server running at ${sseUrl}`);
-        })
-        .catch((error) => {
-            console.error('[MCP] Failed to start server:', error);
-        });
+if (hasSingleInstanceLock) {
+    app.whenReady().then(async () => {
+        await registerIpcHandlers();
+        createWindow();
+        startMcpServer()
+            .then(({ sseUrl, close }) => {
+                mcpServerStop = close;
+                console.log(`[MCP] Server running at ${sseUrl}`);
+            })
+            .catch((error) => {
+                console.error('[MCP] Failed to start server:', error);
+            });
 
-    app.on('activate', () => {
-        // macOS: re-create window when clicking dock icon
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
-    });
-});
-
-app.on('window-all-closed', () => {
-    // macOS: keep app running until Cmd+Q
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
-
-app.on('before-quit', async () => {
-    if (mcpServerStop) {
-        await mcpServerStop();
-        mcpServerStop = null;
-    }
-});
-
-// Security: prevent navigation away from the app
-app.on('web-contents-created', (_, contents) => {
-    contents.on('will-navigate', (event, url) => {
-        // Allow mailto links to open in default mail client
-        if (url.startsWith('mailto:')) {
-            event.preventDefault();
-            if (canOpenExternalUrl(url)) {
-                shell.openExternal(url);
+        app.on('activate', () => {
+            // macOS: re-create window when clicking dock icon
+            if (BrowserWindow.getAllWindows().length === 0) {
+                createWindow();
             }
-            return;
-        }
+        });
+    }).catch((error) => {
+        console.error('[App] Failed to initialize:', error);
+        app.quit();
+    });
 
-        const appUrl = isDev ? 'http://localhost:3000' : 'file://';
-        if (!url.startsWith(appUrl)) {
-            event.preventDefault();
+    app.on('window-all-closed', () => {
+        // macOS: keep app running until Cmd+Q
+        if (process.platform !== 'darwin') {
+            app.quit();
         }
     });
-});
+
+    app.on('before-quit', async () => {
+        if (mcpServerStop) {
+            await mcpServerStop();
+            mcpServerStop = null;
+        }
+    });
+
+    // Security: prevent navigation away from the app
+    app.on('web-contents-created', (_, contents) => {
+        contents.on('will-navigate', (event, url) => {
+            // Allow mailto links to open in default mail client
+            if (url.startsWith('mailto:')) {
+                event.preventDefault();
+                if (canOpenExternalUrl(url)) {
+                    shell.openExternal(url);
+                }
+                return;
+            }
+
+            const appUrl = isDev ? 'http://localhost:3000' : 'file://';
+            if (!url.startsWith(appUrl)) {
+                event.preventDefault();
+            }
+        });
+    });
+}
 
 // Export for potential testing
 export { mainWindow };

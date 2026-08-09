@@ -19,7 +19,6 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
-import { BidComparisonAgentSettings } from "@/features/settings/BidComparisonAgentSettings";
 import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
 import type { OrgSubTab } from "@/features/organization/model/types";
 import { NotificationSettings } from "@/features/settings/NotificationSettings";
@@ -29,6 +28,7 @@ import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
 import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
 import { AppUsageAdmin } from "@/features/settings/AppUsageAdmin";
 import { BackupSettings } from "@/features/backup/ui/BackupSettings";
+import { McpAccessSettings } from "@/features/settings/McpAccessSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -79,13 +79,14 @@ export const Settings: React.FC<SettingsProps> = ({
     | "notifications"
     | "backup";
   type ToolsSubTab =
+    | "mcp"
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
   const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
-  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["mcp", "contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
   const isUserSubTab = (v: string | null): v is UserSubTab =>
@@ -98,8 +99,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "usage"
     | "ai"
     | "incidents"
-    | "compliance"
-    | "bidComparison";
+    | "compliance";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -120,11 +120,6 @@ export const Settings: React.FC<SettingsProps> = ({
     if (tab === "user" && subTabParam === "tools") {
       return { tab: "tools" as const, subTab: "excelUnlocker" };
     }
-    if (tab === "tools" && subTabParam === "bidComparison") {
-      return isAdmin
-        ? { tab: "admin" as const, subTab: "bidComparison" }
-        : { tab: "tools" as const, subTab: "excelUnlocker" };
-    }
     let subTab: string | null = null;
     if (tab === "user") {
       // Redirect legacy subscription subtab to org billing
@@ -140,6 +135,7 @@ export const Settings: React.FC<SettingsProps> = ({
           : null;
     } else if (tab === "tools") {
       subTab =
+        subTabParam === "mcp" ||
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
@@ -157,14 +153,14 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "usage" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
-        subTabParam === "compliance" ||
-        subTabParam === "bidComparison"
+        subTabParam === "compliance"
           ? subTabParam
           : null;
     } else if (tab === "organization") {
       subTab =
         subTabParam === "overview" ||
         subTabParam === "members" ||
+        subTabParam === "rolePermissions" ||
         subTabParam === "billing" ||
         subTabParam === "branding"
           ? subTabParam
@@ -194,7 +190,8 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeToolsSubTab, setActiveToolsSubTab] = useState<ToolsSubTab>(() => {
     if (
       settingsRoute.tab === "tools" &&
-      (settingsRoute.subTab === "contacts" ||
+      (settingsRoute.subTab === "mcp" ||
+        settingsRoute.subTab === "contacts" ||
         settingsRoute.subTab === "excelUnlocker" ||
         settingsRoute.subTab === "excelMerger" ||
         settingsRoute.subTab === "urlShortener" ||
@@ -216,18 +213,17 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "usage" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
-        settingsRoute.subTab === "compliance" ||
-        settingsRoute.subTab === "bidComparison" ||
-        settingsRoute.subTab === "organization"
+        settingsRoute.subTab === "compliance"
       ) {
         return settingsRoute.subTab;
       }
+      if (settingsRoute.subTab === "organization") return "organizations";
       return "registration";
     },
   );
   const [activeOrgSubTab, setActiveOrgSubTab] = useState<OrgSubTab>(() => {
     const sub = settingsRoute.tab === "organization" ? settingsRoute.subTab : null;
-    if (sub === "overview" || sub === "members" || sub === "billing" || sub === "branding") return sub;
+    if (sub === "overview" || sub === "members" || sub === "rolePermissions" || sub === "billing" || sub === "branding") return sub;
     return "overview";
   });
 
@@ -282,7 +278,8 @@ export const Settings: React.FC<SettingsProps> = ({
         (canExcelMerger && "excelMerger") ||
         (canExcelIndexer && "excelIndexer") ||
         (canContactsImport && "contacts") ||
-        (canUrlShortener && "urlShortener");
+        (canUrlShortener && "urlShortener") ||
+        "mcp";
       if (firstAvailable) {
         setActiveToolsSubTab(firstAvailable as ToolsSubTab);
         updateSettingsUrl({ tab: "tools", subTab: firstAvailable as ToolsSubTab }, { replace: true });
@@ -315,8 +312,9 @@ export const Settings: React.FC<SettingsProps> = ({
 
     if (settingsRoute.tab === "admin") {
       if (isAdmin && activeTab !== "admin") setActiveTab("admin");
-      const normalizedAdminSubTab =
-        (settingsRoute.subTab as AdminSubTab) || "registration";
+      const normalizedAdminSubTab = settingsRoute.subTab === "organization"
+        ? "organizations"
+        : (settingsRoute.subTab as AdminSubTab) || "registration";
       if (normalizedAdminSubTab !== activeAdminSubTab)
         setActiveAdminSubTab(normalizedAdminSubTab);
       return;
@@ -356,8 +354,12 @@ export const Settings: React.FC<SettingsProps> = ({
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+  const isRolePermissionsView = activeTab === "organization" && activeOrgSubTab === "rolePermissions";
+
   return (
-    <div className="tf-settings-view flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
+    <div className={`tf-settings-view flex h-full flex-col bg-background-light dark:bg-background-dark ${
+      isRolePermissionsView ? "min-h-0 overflow-hidden" : "min-h-screen overflow-y-auto"
+    }`}>
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
@@ -366,9 +368,19 @@ export const Settings: React.FC<SettingsProps> = ({
         skin={skin}
       />
 
-      <div data-help-id="settings-content" className="p-4 lg:p-6 xl:p-8 w-full pb-20">
+      <div
+        data-help-id="settings-content"
+        className={`w-full p-4 lg:p-6 xl:p-8 ${
+          isRolePermissionsView ? "flex min-h-0 flex-1 flex-col pb-4 lg:pb-6 xl:pb-8" : "pb-20"
+        }`}
+      >
         {/* Main Tab Navigation (Top Level) */}
-        <div data-help-id="settings-main-tabs" className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
+        <div
+          data-help-id="settings-main-tabs"
+          className={`flex shrink-0 items-center gap-4 border-b border-slate-200 dark:border-slate-700/50 ${
+            isRolePermissionsView ? "mb-4" : "mb-8"
+          }`}
+        >
           <button
             onClick={() => {
               setActiveTab("user");
@@ -427,7 +439,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {/* --- ADMIN TAB CONTENT --- */}
         {activeTab === "organization" && (
-          <div className="animate-fadeIn">
+          <div className={`animate-fadeIn ${isRolePermissionsView ? "min-h-0 flex-1 overflow-hidden" : ""}`}>
             <OrganizationDashboard
               activeSubTab={activeOrgSubTab}
               onSubTabChange={(tab) => {
@@ -584,23 +596,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
-                <button
-                  onClick={() =>
-                    updateSettingsUrl({ tab: "admin", subTab: "bidComparison" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "bidComparison"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      compare_arrows
-                    </span>
-                    Porovnání nabídek
-                  </div>
-                </button>
                 </nav>
               </aside>
 
@@ -625,7 +620,6 @@ export const Settings: React.FC<SettingsProps> = ({
                 )}
                 {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
                 {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
-                {activeAdminSubTab === "bidComparison" && <BidComparisonAgentSettings />}
               </main>
             </div>
           </AdminMfaGuard>
@@ -748,6 +742,19 @@ export const Settings: React.FC<SettingsProps> = ({
           <div data-help-id="settings-tools-workspace" className="flex flex-col md:flex-row gap-8 animate-fadeIn">
             <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
               <nav className="flex flex-col gap-2">
+                <button
+                  onClick={() => updateSettingsUrl({ tab: "tools", subTab: "mcp" })}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeToolsSubTab === "mcp"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                    AI a MCP přístupy
+                  </div>
+                </button>
                 {canContactsImport && (
                   <button
                     onClick={() => updateSettingsUrl({ tab: "tools", subTab: "contacts" })}
@@ -774,7 +781,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">lock_open</span>
-                      Excel Unlocker PRO
+                      Excel – odemčení
                     </div>
                   </button>
                 )}
@@ -789,7 +796,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">table_view</span>
-                      Excel Merger PRO
+                      Excel Spojení listů
                     </div>
                   </button>
                 )}
@@ -804,7 +811,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">join_inner</span>
-                      Excel Indexer
+                      Excel Indexace VŘ
                     </div>
                   </button>
                 )}
@@ -827,6 +834,8 @@ export const Settings: React.FC<SettingsProps> = ({
             </aside>
 
             <main className="flex-1 min-w-0 overflow-x-hidden">
+              {activeToolsSubTab === "mcp" && <McpAccessSettings />}
+
               {activeToolsSubTab === "contacts" && canContactsImport && (
                 <section className="space-y-6">
                   <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">

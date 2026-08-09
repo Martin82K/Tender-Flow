@@ -1,14 +1,17 @@
 import * as z from 'zod/v4';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
 import { createUserSupabaseClient } from './data.js';
 import {
   buildSearchResults,
+  getContractOverview,
+  getMcpTask,
   getProjectDetail,
+  getProjectSummary,
   listBids,
   listContacts,
   listContracts,
   listProjects,
+  listMcpTasks,
   listTenderPlan,
   listTenders,
   listUpcomingDeadlines,
@@ -16,7 +19,16 @@ import {
 import { logMcpAuditEvent, summarizeResultForAudit } from './audit.js';
 import { checkMcpRateLimit } from './rateLimit.js';
 import { getBaseUrl, unauthorizedMcpResponse, jsonResponse } from './response.js';
+import {
+  MCP_OAUTH_SCOPES,
+  MCP_PERMISSIONS,
+  assertMcpOAuthScopes,
+  assertMcpPermissions,
+  getMcpToolPolicy,
+  hasMcpPermissions,
+} from './scopePolicy.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
+import { isMcpPermissionServiceUnavailableError } from './permissionGrants.js';
 
 const textJson = (value, isError = false) => ({
   content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
@@ -90,6 +102,12 @@ const hashToken = async (token) => {
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
 };
+
+const WRITE_AUDIT_ACTIONS = new Set([
+  'prepare_write',
+  'confirm_write',
+  'execute_write',
+]);
 
 export const assertProjectVisible = async (supabase, projectId) => {
   if (!projectId) return;
@@ -272,15 +290,31 @@ const executeProposal = async (supabase, auth, args) => {
 };
 
 const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low') => async (args) => {
+  const policy = getMcpToolPolicy(toolName);
+  const effectiveRiskLevel = riskLevel === 'low' ? policy.riskLevel : riskLevel;
+  const requiresPreAudit = WRITE_AUDIT_ACTIONS.has(action);
   try {
-    checkMcpRateLimit(auth, toolName, riskLevel);
+    assertMcpPermissions(auth, policy.requiredPermissions);
+    await checkMcpRateLimit(supabase, auth, toolName, effectiveRiskLevel);
+    if (requiresPreAudit) {
+      await logMcpAuditEvent(supabase, {
+        userId: auth.userId,
+        clientId: auth.clientId,
+        toolName,
+        action: `${action}_attempt`,
+        riskLevel: effectiveRiskLevel,
+        success: true,
+        requestSummary: args,
+        resultSummary: { status: 'attempted' },
+      }, { required: true });
+    }
     const result = await handler(args);
     await logMcpAuditEvent(supabase, {
       userId: auth.userId,
       clientId: auth.clientId,
       toolName,
       action,
-      riskLevel,
+      riskLevel: effectiveRiskLevel,
       success: true,
       requestSummary: args,
       resultSummary: summarizeResultForAudit(result),
@@ -292,7 +326,7 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
       clientId: auth.clientId,
       toolName,
       action,
-      riskLevel,
+      riskLevel: effectiveRiskLevel,
       success: false,
       errorMessage: error instanceof Error ? error.message : String(error),
       requestSummary: args,
@@ -301,13 +335,170 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
   }
 };
 
+const registerScopedTool = (server, auth, toolName, config, handler) => {
+  const policy = getMcpToolPolicy(toolName);
+  if (!hasMcpPermissions(auth.permissions, policy.requiredPermissions)) return;
+  server.registerTool(toolName, config, handler);
+};
+
+const resourceJson = (uri, value) => ({
+  contents: [{
+    uri: uri.href,
+    mimeType: 'application/json',
+    text: JSON.stringify(value, null, 2),
+  }],
+});
+
+const withResourceAudit = (
+  auth,
+  supabase,
+  resourceName,
+  requirements,
+  handler,
+) => async (...args) => {
+  const uri = args[0];
+  try {
+    assertMcpOAuthScopes(auth, requirements.oauthScopes || []);
+    assertMcpPermissions(auth, requirements.permissions || []);
+    await checkMcpRateLimit(supabase, auth, `resource:${resourceName}`, 'low');
+    const result = await handler(...args);
+    await logMcpAuditEvent(supabase, {
+      userId: auth.userId,
+      clientId: auth.clientId,
+      toolName: `resource:${resourceName}`,
+      action: 'resource_read',
+      riskLevel: 'low',
+      success: true,
+      requestSummary: { uri: uri.href },
+      resultSummary: { ok: true },
+    });
+    return result;
+  } catch (error) {
+    await logMcpAuditEvent(supabase, {
+      userId: auth.userId,
+      clientId: auth.clientId,
+      toolName: `resource:${resourceName}`,
+      action: 'resource_read',
+      riskLevel: 'low',
+      success: false,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      requestSummary: { uri: uri.href },
+    });
+    throw error;
+  }
+};
+
+const registerTenderFlowResources = (server, auth, supabase) => {
+  server.registerResource(
+    'tender-flow-catalog',
+    'tenderflow://catalog',
+    {
+      title: 'Tender Flow MCP Catalog',
+      description: 'Available Tender Flow resource families and OAuth scopes.',
+      mimeType: 'application/json',
+      cacheHint: { cacheScope: 'private', ttlMs: 300_000 },
+    },
+    withResourceAudit(
+      auth,
+      supabase,
+      'catalog',
+      { oauthScopes: [MCP_OAUTH_SCOPES.identity] },
+      async (uri) => resourceJson(uri, {
+        protocolVersion: '2026-07-28',
+        resources: [
+          'tenderflow://projects/{projectId}',
+          'tenderflow://organizations/{organizationId}/contracts/overview',
+          'tenderflow://tasks/open',
+        ],
+        oauthScopes: MCP_OAUTH_SCOPES,
+        permissions: MCP_PERMISSIONS,
+      }),
+    ),
+  );
+
+  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read])) {
+    server.registerResource(
+      'tender-flow-project',
+      new ResourceTemplate('tenderflow://projects/{projectId}', { list: undefined }),
+      {
+        title: 'Tender Flow Project Detail',
+        description: 'PII-minimized project summary, tenders, bid statistics, contracts, and tender plan visible through RLS.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 60_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'project',
+        { permissions: [MCP_PERMISSIONS.read] },
+        async (uri, variables) => {
+          const projectId = z.string().min(1).max(100).parse(variables.projectId);
+          return resourceJson(uri, await getProjectSummary(supabase, projectId));
+        },
+      ),
+    );
+  }
+
+  if (hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.read])) {
+    server.registerResource(
+      'tender-flow-contract-overview',
+      new ResourceTemplate(
+        'tenderflow://organizations/{organizationId}/contracts/overview',
+        { list: undefined },
+      ),
+      {
+        title: 'Tender Flow Contract Overview',
+        description: 'Authorized organization contract overview with minimized document metadata.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 60_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'contract-overview',
+        { permissions: [MCP_PERMISSIONS.read] },
+        async (uri, variables) => resourceJson(uri, await getContractOverview(supabase, {
+          organizationId: z.string().uuid().parse(variables.organizationId),
+          includeArchived: false,
+        })),
+      ),
+    );
+
+    server.registerResource(
+      'tender-flow-open-tasks',
+      'tenderflow://tasks/open',
+      {
+        title: 'Tender Flow Open Tasks',
+        description: 'Open, non-archived tasks owned by the authenticated user.',
+        mimeType: 'application/json',
+        cacheHint: { cacheScope: 'private', ttlMs: 30_000 },
+      },
+      withResourceAudit(
+        auth,
+        supabase,
+        'open-tasks',
+        { permissions: [MCP_PERMISSIONS.read] },
+        async (uri) => resourceJson(uri, await listMcpTasks(supabase, {
+          completed: false,
+          includeArchived: false,
+          limit: 50,
+        })),
+      ),
+    );
+  }
+};
+
 export const createTenderFlowMcpServer = (auth, options = {}) => {
   const includeWriteTools = options.includeWriteTools !== false;
+  const canReadContacts = hasMcpPermissions(auth.permissions, [
+    MCP_PERMISSIONS.read,
+    MCP_PERMISSIONS.contactsRead,
+  ]);
   const supabase = createUserSupabaseClient(auth.token);
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.1.0',
+      version: '0.3.0',
     },
     {
       capabilities: {
@@ -317,11 +508,13 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     },
   );
 
-  server.registerTool(
+  registerTenderFlowResources(server, auth, supabase);
+
+  registerScopedTool(server, auth,
     'search',
     {
       title: 'Tender Flow Search',
-      description: 'Search Tender Flow projects, tenders, contacts, and contract-related records. Use this first for ChatGPT connector and deep research discovery.',
+      description: 'Search Tender Flow projects, tenders, and personal tasks. Contact results are included only when the client has the dedicated contacts permission.',
       inputSchema: {
         query: z.string().min(1).max(500).describe('Search text.'),
       },
@@ -329,11 +522,11 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
     withAudit(auth, supabase, 'search', 'search', async ({ query }) => ({
-      results: await buildSearchResults(supabase, query),
+      results: await buildSearchResults(supabase, query, { includeContacts: canReadContacts }),
     })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'fetch',
     {
       title: 'Tender Flow Fetch',
@@ -347,15 +540,19 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'fetch', 'fetch', async ({ id }) => {
       const parts = id.split(':');
       if (parts[0] === 'project' && parts[1]) {
-        const detail = await getProjectDetail(supabase, parts[1]);
-        return { ok: true, data: { id, title: detail.project.name, text: JSON.stringify(detail, null, 2), url: `/app/project/${parts[1]}` } };
+        const summary = await getProjectSummary(supabase, parts[1]);
+        return { ok: true, data: { id, title: summary.project.name, text: JSON.stringify(summary, null, 2), url: `/app/project/${parts[1]}` } };
       }
       if (parts[0] === 'tender' && parts[1] && parts[2]) {
-        const detail = await getProjectDetail(supabase, parts[1]);
-        const tender = detail.tenders.find((item) => item.id === parts[2]);
-        return { ok: Boolean(tender), data: { id, title: tender?.title || 'Tender', text: JSON.stringify({ project: detail.project, tender, bids: detail.bids.filter((bid) => bid.tenderId === parts[2]) }, null, 2), url: `/app/project/${parts[1]}?tab=pipeline&categoryId=${parts[2]}` } };
+        const summary = await getProjectSummary(supabase, parts[1]);
+        const tender = summary.tenders.find((item) => item.id === parts[2]);
+        return { ok: Boolean(tender), data: { id, title: tender?.title || 'Tender', text: JSON.stringify({ project: summary.project, tender }, null, 2), url: `/app/project/${parts[1]}?tab=pipeline&categoryId=${parts[2]}` } };
       }
-      if (parts[0] === 'contact' && parts[1]) {
+      if (parts[0] === 'task' && parts[1]) {
+        const task = await getMcpTask(supabase, parts[1]);
+        return { ok: true, data: { id, title: task.title, text: JSON.stringify(task, null, 2), url: '/app/tasks' } };
+      }
+      if (parts[0] === 'contact' && parts[1] && canReadContacts) {
         const contacts = await listContacts(supabase, { limit: 20 });
         const contact = contacts.find((item) => item.id === parts[1]);
         return { ok: Boolean(contact), data: { id, title: contact?.companyName || 'Contact', text: JSON.stringify(contact, null, 2), url: '/app/contacts' } };
@@ -364,7 +561,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     }),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_projects',
     {
       title: 'List Projects',
@@ -376,7 +573,22 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_projects', 'read', async (args) => ({ ok: true, data: await listProjects(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
+    'tf_get_project_summary',
+    {
+      title: 'Get Project Summary',
+      description: 'Get a PII-minimized project summary with tenders, aggregate bid statistics, contracts, and tender plan. Read-only.',
+      inputSchema: { projectId: z.string().min(1).max(100) },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_get_project_summary', 'read', async ({ projectId }) => ({
+      ok: true,
+      data: await getProjectSummary(supabase, projectId),
+    })),
+  );
+
+  registerScopedTool(server, auth,
     'tf_get_project_detail',
     {
       title: 'Get Project Detail',
@@ -388,7 +600,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_get_project_detail', 'read', async ({ projectId }) => ({ ok: true, data: await getProjectDetail(supabase, projectId) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_tenders',
     {
       title: 'List Tenders',
@@ -400,7 +612,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_tenders', 'read', async (args) => ({ ok: true, data: await listTenders(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_bids',
     {
       title: 'List Bids',
@@ -412,7 +624,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_bids', 'read', async (args) => ({ ok: true, data: await listBids(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_winners',
     {
       title: 'List Winning Bids',
@@ -424,7 +636,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_winners', 'read', async (args) => ({ ok: true, data: await listBids(supabase, { ...args, winnersOnly: true }) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_contracts',
     {
       title: 'List Contracts',
@@ -436,7 +648,25 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_contracts', 'read', async (args) => ({ ok: true, data: await listContracts(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
+    'tf_get_contract_overview',
+    {
+      title: 'Get Contract Overview',
+      description: 'Get the authorized organization contract overview. Uses the same role/project-team scope as Tender Flow and omits raw storage paths. Read-only.',
+      inputSchema: {
+        organizationId: z.string().uuid().optional(),
+        includeArchived: z.boolean().optional(),
+      },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_get_contract_overview', 'read', async (args) => ({
+      ok: true,
+      data: await getContractOverview(supabase, args),
+    })),
+  );
+
+  registerScopedTool(server, auth,
     'tf_list_tender_plan',
     {
       title: 'List Tender Plan',
@@ -448,7 +678,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_tender_plan', 'read', async (args) => ({ ok: true, data: await listTenderPlan(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_contacts',
     {
       title: 'List Contacts',
@@ -460,7 +690,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_contacts', 'read', async (args) => ({ ok: true, data: await listContacts(supabase, args) })),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_list_upcoming_deadlines',
     {
       title: 'List Upcoming Deadlines',
@@ -472,11 +702,32 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_list_upcoming_deadlines', 'read', async (args) => ({ ok: true, data: await listUpcomingDeadlines(supabase, args) })),
   );
 
+  registerScopedTool(server, auth,
+    'tf_list_tasks',
+    {
+      title: 'List Personal Tasks',
+      description: 'List tasks owned by the authenticated user without external sync or provider error metadata. Read-only.',
+      inputSchema: {
+        search: z.string().max(200).optional(),
+        projectId: z.string().max(100).optional(),
+        completed: z.boolean().optional(),
+        includeArchived: z.boolean().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_list_tasks', 'read', async (args) => ({
+      ok: true,
+      data: await listMcpTasks(supabase, args),
+    })),
+  );
+
   if (!includeWriteTools) {
     return server;
   }
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_prepare_change',
     {
       title: 'Prepare Tender Flow Change',
@@ -488,7 +739,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_prepare_change', 'prepare_write', async (args) => createProposal(supabase, auth, args), 'medium'),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_confirm_change',
     {
       title: 'Confirm Tender Flow Change',
@@ -500,7 +751,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_confirm_change', 'confirm_write', async (args) => confirmProposal(supabase, auth, args), 'high'),
   );
 
-  server.registerTool(
+  registerScopedTool(server, auth,
     'tf_execute_change',
     {
       title: 'Execute Tender Flow Change',
@@ -515,17 +766,147 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   return server;
 };
 
+const authFromRequestContext = (context) => {
+  const authInfo = context.authInfo;
+  const userId = typeof authInfo?.extra?.userId === 'string'
+    ? authInfo.extra.userId
+    : '';
+
+  if (!authInfo?.token || !authInfo.clientId || !userId) {
+    throw new Error('Authenticated MCP request context is incomplete.');
+  }
+
+  return {
+    token: authInfo.token,
+    userId,
+    clientId: authInfo.clientId,
+    oauthScopes: authInfo.scopes,
+    permissions: Array.isArray(authInfo.extra?.permissions)
+      ? authInfo.extra.permissions.filter((permission) => typeof permission === 'string')
+      : [],
+    expiresAt: authInfo.expiresAt,
+    email: typeof authInfo.extra?.email === 'string' ? authInfo.extra.email : undefined,
+  };
+};
+
+const tenderFlowMcpHandler = createMcpHandler(
+  (context) => createTenderFlowMcpServer(authFromRequestContext(context)),
+  {
+    legacy: 'stateless',
+  },
+);
+
+export const handleAuthorizedMcpRequest = async (request, auth) => {
+  const response = await tenderFlowMcpHandler.fetch(request, {
+    authInfo: {
+      token: auth.token,
+      clientId: auth.clientId,
+      scopes: auth.oauthScopes,
+      expiresAt: auth.expiresAt,
+      extra: { userId: auth.userId, email: auth.email, permissions: auth.permissions },
+    },
+  });
+  response.headers.set('cache-control', 'private, no-store');
+  return response;
+};
+
+const allowedMcpOrigins = () =>
+  (process.env.MCP_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+export const validateMcpRequestOrigin = (request) => {
+  const origin = request.headers.get('origin');
+  if (!origin) return undefined;
+
+  let normalizedOrigin;
+  try {
+    const parsed = new URL(origin);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {
+      throw new Error('Origin must be an absolute HTTP(S) origin.');
+    }
+    normalizedOrigin = parsed.origin;
+  } catch {
+    throw new Error('MCP request origin is invalid.');
+  }
+
+  const configuredOrigins = allowedMcpOrigins();
+  const developmentFallback = process.env.NODE_ENV === 'production'
+    ? []
+    : [new URL(getBaseUrl(request)).origin];
+  if (![...configuredOrigins, ...developmentFallback].includes(normalizedOrigin)) {
+    throw new Error('MCP request origin is not allowed.');
+  }
+
+  return normalizedOrigin;
+};
+
+const withMcpCors = (response, origin) => {
+  response.headers.set('cache-control', 'private, no-store');
+  if (origin) {
+    response.headers.set('access-control-allow-origin', origin);
+    response.headers.append('vary', 'Origin');
+  }
+  response.headers.set('access-control-expose-headers', 'mcp-protocol-version,www-authenticate');
+  return response;
+};
+
+export const mcpAuthenticationFailureResponse = (request, error) => {
+  if (isMcpPermissionServiceUnavailableError(error)) {
+    return jsonResponse(503, {
+      error: 'mcp_auth_service_unavailable',
+      message: 'MCP authorization service is temporarily unavailable.',
+      status: 503,
+    });
+  }
+  return unauthorizedMcpResponse(
+    request,
+    error instanceof Error ? error.message : String(error),
+  );
+};
+
+const getMcpAuthenticationFailureCode = (error) => {
+  if (isMcpPermissionServiceUnavailableError(error)) return 'permission_service_unavailable';
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === 'Missing bearer token.') return 'missing_bearer';
+  if (message.includes('database role')) return 'invalid_role';
+  if (message.includes('client_id') || message.includes('client is not allowed')) return 'invalid_client';
+  if (message.includes('audience')) return 'invalid_audience';
+  if (message.includes('resource')) return 'invalid_resource';
+  if (message.includes('scope')) return 'invalid_scope';
+  return 'invalid_token';
+};
+
+const logMcpAuthenticationFailure = (request, error) => {
+  const url = new URL(request.url);
+  console.warn({
+    event: 'mcp_auth_rejected',
+    code: getMcpAuthenticationFailureCode(error),
+    method: request.method,
+    path: url.pathname,
+  });
+};
+
 export const handleMcpWebRequest = async (request) => {
+  let origin;
+  try {
+    origin = validateMcpRequestOrigin(request);
+  } catch (error) {
+    return jsonResponse(403, {
+      error: 'forbidden_origin',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
+    return withMcpCors(new Response(null, {
       status: 204,
       headers: {
-        'access-control-allow-origin': '*',
-        'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-        'access-control-allow-headers': 'authorization,content-type,mcp-session-id,mcp-protocol-version,last-event-id',
-        'access-control-expose-headers': 'mcp-session-id,mcp-protocol-version,www-authenticate',
+        'access-control-allow-methods': 'POST,OPTIONS',
+        'access-control-allow-headers': 'authorization,content-type,mcp-protocol-version,mcp-method,mcp-name',
       },
-    });
+    }), origin);
   }
 
   let auth;
@@ -534,32 +915,21 @@ export const handleMcpWebRequest = async (request) => {
       expectedResource: `${getBaseUrl(request)}/api/mcp`,
     });
   } catch (error) {
-    return unauthorizedMcpResponse(request, error instanceof Error ? error.message : String(error));
+    if (request.headers.has('authorization')) {
+      logMcpAuthenticationFailure(request, error);
+    }
+    return withMcpCors(
+      mcpAuthenticationFailureResponse(request, error),
+      origin,
+    );
   }
 
   try {
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse: true,
-    });
-    const server = createTenderFlowMcpServer(auth);
-    await server.connect(transport);
-    const response = await transport.handleRequest(request, {
-      authInfo: {
-        token: auth.token,
-        clientId: auth.clientId,
-        scopes: auth.scopes,
-        expiresAt: auth.expiresAt,
-        extra: { userId: auth.userId, email: auth.email },
-      },
-    });
-    response.headers.set('access-control-allow-origin', '*');
-    response.headers.set('access-control-expose-headers', 'mcp-session-id,mcp-protocol-version,www-authenticate');
-    return response;
+    return withMcpCors(await handleAuthorizedMcpRequest(request, auth), origin);
   } catch (error) {
-    return jsonResponse(500, {
+    return withMcpCors(jsonResponse(500, {
       error: 'mcp_server_error',
       message: error instanceof Error ? error.message : String(error),
-    });
+    }), origin);
   }
 };

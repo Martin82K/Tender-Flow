@@ -250,7 +250,7 @@ const parseCSV = async (blob: Blob): Promise<ImportResult> => {
             contacts
           });
         },
-        error: (error) => {
+        error: (error: Error) => {
           resolve({
             success: false,
             contacts: [],

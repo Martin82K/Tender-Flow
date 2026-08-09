@@ -104,24 +104,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
   const isIndustrialSkin = skin === "industrial";
 
-  const getDemandFilterButtonClass = (active: boolean) =>
-    isIndustrialSkin
-      ? [
-          "border-b px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors",
-          active
-            ? "border-[#ff8a33] text-[#b03a05]"
-            : "border-transparent text-slate-500 hover:border-[#ffb15c] hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100",
-        ].join(" ")
-      : [
-          "px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all",
-          active
-            ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-            : "text-slate-500 hover:text-slate-900 dark:hover:text-white",
-        ].join(" ");
+  const getDemandFilterButtonClass = (_active: boolean) => "tf-demand-filter-button";
 
-  const demandFilterShellClass = isIndustrialSkin
-    ? "flex items-center gap-5 border-b border-slate-200/70 dark:border-slate-700/70"
-    : "flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800";
+  const demandFilterShellClass = "tf-demand-filterbar";
 
   const demandTableClass = [
     isIndustrialSkin ? "industrial-demand-table" : "",
@@ -130,9 +115,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     .filter(Boolean)
     .join(" ");
 
-  const columnsButtonClass = isIndustrialSkin
-    ? "flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b border-transparent hover:border-[#ffb15c] transition-colors text-[11px] font-semibold uppercase tracking-[0.08em]"
-    : "flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter";
+  const columnsButtonClass = "tf-demand-columns-button";
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -149,21 +132,30 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     .reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
 
   const renderCompactDetails = () => (
-    <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
-      <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-        <span className="material-symbols-outlined text-primary text-xl">
+    <section
+      data-help-id="overview-info-surface"
+      aria-labelledby="overview-info-surface-title"
+      className="tf-overview-info-surface bg-white/70 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl px-5 py-4 mb-6"
+    >
+      <h3
+        id="overview-info-surface-title"
+        className="text-base font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2"
+      >
+        <span aria-hidden="true" className="material-symbols-outlined text-primary text-xl">
           info
         </span>
         Základní informace o stavbě
       </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 text-sm">
+      <div className="grid grid-cols-1 gap-y-5 text-sm lg:grid-cols-4 lg:gap-x-6 lg:gap-y-0">
         {/* 1. Investor & Info */}
-        <div data-help-id="overview-building-info" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
-          <div className="flex justify-between items-center mb-4">
+        <div data-help-id="overview-building-info" className="tf-overview-info-column lg:col-span-1 lg:border-r lg:border-slate-200 lg:pr-6 dark:lg:border-slate-800/50">
+          <div className="flex justify-between items-center mb-3">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Údaje o stavbě
             </span>
             <button
+              type="button"
+              aria-label="Upravit údaje o stavbě"
               onClick={() => setEditingInfo(true)}
               className="text-slate-400 hover:text-primary transition-colors"
             >
@@ -172,7 +164,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex justify-between items-center">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Investor:
@@ -306,12 +298,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 2. Financials (Investor) */}
-        <div data-help-id="overview-investor-finances" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
-          <div className="flex justify-between items-center mb-4">
+        <div data-help-id="overview-investor-finances" className="tf-overview-info-column lg:col-span-1 lg:border-r lg:border-slate-200 lg:pr-6 dark:lg:border-slate-800/50">
+          <div className="flex justify-between items-center mb-3">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Finance (Investor)
             </span>
             <button
+              type="button"
+              aria-label="Upravit finance investora"
               onClick={() => setEditingInvestor(true)}
               className="text-slate-400 hover:text-primary transition-colors"
             >
@@ -320,7 +314,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 SOD Cena:
@@ -610,12 +604,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 3. Internal Budget */}
-        <div data-help-id="overview-internal-budget" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
-          <div className="flex justify-between items-center mb-4">
+        <div data-help-id="overview-internal-budget" className="tf-overview-info-column lg:col-span-1 lg:border-r lg:border-slate-200 lg:pr-6 dark:lg:border-slate-800/50">
+          <div className="flex justify-between items-center mb-3">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Interní Rozpočet
             </span>
             <button
+              type="button"
+              aria-label="Upravit interní rozpočet"
               onClick={() => setEditingInternal(true)}
               className="text-slate-400 hover:text-primary transition-colors"
             >
@@ -624,7 +620,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Plán (Cíl):
@@ -814,12 +810,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
           , document.body)}
         </div>
         {/* 4. Contract Parameters (Restored & Restructured) */}
-        <div data-help-id="overview-contract-params" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
-          <div className="flex justify-between items-center mb-4">
+        <div data-help-id="overview-contract-params" className="tf-overview-info-column lg:col-span-1">
+          <div className="flex justify-between items-center mb-3">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Parametry smlouvy
             </span>
             <button
+              type="button"
+              aria-label="Upravit parametry smlouvy"
               onClick={() => setEditingContract(true)}
               className="text-slate-400 hover:text-primary transition-colors"
             >
@@ -992,7 +990,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
           , document.body)}
         </div>
       </div>
-    </div>
+    </section>
   );
 
   return (
@@ -1013,15 +1011,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       </div>
 
       {/* Top Row: 4 KPI Cards */}
-      <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div data-help-id="overview-kpi-cards" className="tf-overview-kpi-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* 1. Rozpočet (Investor) */}
-        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="tf-overview-kpi-card industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />
-          <div className="flex flex-col gap-3 relative z-10">
+          <div className="flex flex-col gap-2 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold">
               Rozpočet
             </span>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+            <div className="text-2xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
               {formatMoneyFull(totalBudget)}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -1031,13 +1029,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 2. Plánovaný Náklad */}
-        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="tf-overview-kpi-card industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500" />
-          <div className="flex flex-col gap-3 relative z-10">
+          <div className="flex flex-col gap-2 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold">
               Plán nákladů
             </span>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+            <div className="text-2xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
               {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -1047,13 +1045,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 3. Zasmluvněno */}
-        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="tf-overview-kpi-card industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
-          <div className="flex flex-col gap-3 relative z-10">
+          <div className="flex flex-col gap-2 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold">
               Zasmluvněno
             </span>
-            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums">
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums">
               {formatMoneyFull(totalContractedCost)}
             </div>
             <p
@@ -1066,9 +1064,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 4. Postup Zadávání */}
-        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="tf-overview-kpi-card industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-amber-500" />
-          <div className="flex flex-col gap-3 relative z-10">
+          <div className="flex flex-col gap-2 relative z-10">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400 font-bold">
                 Postup VŘ
@@ -1080,7 +1078,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 %
               </span>
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+            <div className="text-2xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
               {completedTasks} / {project.categories.length}
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -1794,12 +1792,12 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
             <div data-help-id="overview-demand-table" className={demandTableClass}>
-              <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800/50">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
+                  <h3 className="mb-1 text-lg font-semibold leading-none text-slate-900 dark:text-white">
                     Přehled Poptávek
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  <p className="text-xs font-normal text-slate-500 dark:text-slate-400">
                     Detailní rozpis balíčků
                   </p>
                 </div>
@@ -1807,28 +1805,36 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {/* Filter Buttons */}
                 <div className={demandFilterShellClass}>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("all")}
+                    aria-pressed={demandFilter === "all"}
                     data-active={demandFilter === "all" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "all")}
                   >
                     Vše ({allCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("open")}
+                    aria-pressed={demandFilter === "open"}
                     data-active={demandFilter === "open" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "open")}
                   >
                     Poptávané ({openCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("closed")}
+                    aria-pressed={demandFilter === "closed"}
                     data-active={demandFilter === "closed" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "closed")}
                   >
                     Ukončené ({closedCount})
                   </button>
                   <button
+                    type="button"
                     onClick={() => setDemandFilter("sod")}
+                    aria-pressed={demandFilter === "sod"}
                     data-active={demandFilter === "sod" ? "true" : "false"}
                     className={getDemandFilterButtonClass(demandFilter === "sod")}
                   >
@@ -1837,14 +1843,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
                   {/* Column Visibility Dropdown */}
                   <div className="relative group/columns">
-                    <button className={columnsButtonClass}>
+                    <button type="button" aria-haspopup="menu" className={columnsButtonClass}>
                       <span className="material-symbols-outlined text-lg">
                         view_column
                       </span>
                       Sloupce
                     </button>
 
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible transition-all z-20">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible group-focus-within/columns:opacity-100 group-focus-within/columns:visible transition-all z-20">
                       <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 px-2">
                         Zobrazit sloupce
                       </div>
@@ -1883,51 +1889,51 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-950/20">
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em]">
                         Stav
                       </th>
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em]">
                         Poptávka
                       </th>
 
                       {visibleColumns.sod && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           SOD
                         </th>
                       )}
                       {visibleColumns.plan && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           Plán
                         </th>
                       )}
 
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                         Cena VŘ
                       </th>
 
                       {visibleColumns.sod_vr && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           SOD - VŘ
                         </th>
                       )}
                       {visibleColumns.pn_vr && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-right">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-right">
                           Plán - VŘ
                         </th>
                       )}
 
                       {visibleColumns.nabidky && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                           Nabídky
                         </th>
                       )}
                       {visibleColumns.smlouvy && (
-                        <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                        <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                           Smlouvy
                         </th>
                       )}
 
-                      <th className="py-4 px-6 text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] text-center">
+                      <th className="py-3 px-5 text-[10px] uppercase font-semibold text-slate-400 tracking-[0.2em] text-center">
                         Dodavatel
                       </th>
                     </tr>
@@ -2002,9 +2008,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             className="group hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all cursor-pointer"
                             onClick={() => onNavigateToPipeline?.(cat.id)}
                           >
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-5">
                               <div
-                                className={`inline-flex items-center gap-2 ${status.text} text-[10px] font-black uppercase tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity`}
+                                className={`inline-flex items-center gap-2 ${status.text} text-[10px] font-semibold uppercase tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity`}
                               >
                                 <span
                                   className={`size-1.5 rounded-full ${status.dot} animate-pulse`}
@@ -2012,7 +2018,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                 {status.label}
                               </div>
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-3 px-5">
                               <div className="font-medium text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors">
                                 {cat.title}
                               </div>
@@ -2024,17 +2030,17 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             </td>
 
                             {visibleColumns.sod && (
-                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                              <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.sodBudget)}
                               </td>
                             )}
                             {visibleColumns.plan && (
-                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                              <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.planBudget)}
                               </td>
                             )}
 
-                            <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
+                            <td className="py-3 px-5 text-right font-medium text-slate-900 dark:text-white text-xs">
                               {hasWinner ? (
                                 formatMoney(subPrice)
                               ) : (
@@ -2045,7 +2051,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             </td>
 
                             {visibleColumns.sod_vr && (
-                              <td className="py-4 px-6 text-right">
+                              <td className="py-3 px-5 text-right">
                                 {hasWinner ? (
                                   <div
                                     className={`inline-flex items-center gap-1 font-medium text-xs ${diffSod >= 0 ? "text-emerald-500" : "text-rose-500"}`}
@@ -2061,7 +2067,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               </td>
                             )}
                             {visibleColumns.pn_vr && (
-                              <td className="py-4 px-6 text-right">
+                              <td className="py-3 px-5 text-right">
                                 {hasWinner ? (
                                   <div
                                     className={`inline-flex items-center gap-1 font-medium text-xs ${diffPlan >= 0 ? "text-emerald-500" : "text-rose-500"}`}
@@ -2078,7 +2084,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             )}
 
                             {visibleColumns.nabidky && (
-                              <td className="py-4 px-6 text-center text-xs font-medium text-slate-900 dark:text-white">
+                              <td className="py-3 px-5 text-center text-xs font-medium text-slate-900 dark:text-white">
                                 {
                                   catBids.filter(
                                     (b) =>
@@ -2095,7 +2101,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             )}
 
                             {visibleColumns.smlouvy && (
-                              <td className="py-4 px-6 text-center">
+                              <td className="py-3 px-5 text-center">
                                 {hasWinner ? (
                                   <span
                                     className={`text-xs font-medium ${
@@ -2118,10 +2124,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               </td>
                             )}
 
-                            <td className="py-4 px-6 max-w-[200px] truncate">
+                            <td className="py-3 px-5 max-w-[200px] truncate">
                               {hasWinner ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">
+                                  <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-semibold text-slate-500">
                                     {winnersNames.charAt(0)}
                                   </div>
                                   <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
@@ -2129,7 +2135,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">
+                                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider italic">
                                   Nepřiřazeno
                                 </span>
                               )}
@@ -2139,31 +2145,31 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-100/50 dark:bg-slate-900/50 font-black text-slate-900 dark:text-white border-t-2 border-slate-200 dark:border-slate-800">
+                    <tr className="bg-slate-100/50 dark:bg-slate-900/50 font-semibold text-slate-900 dark:text-white border-t-2 border-slate-200 dark:border-slate-800">
                       <td
                         colSpan={2}
-                        className="py-6 px-8 text-right text-[11px] uppercase tracking-widest text-slate-500"
+                        className="py-4 px-5 text-right text-[11px] uppercase tracking-widest text-slate-500"
                       >
                         Celková bilance
                       </td>
 
                       {visibleColumns.sod && (
-                        <td className="py-6 px-6 text-right text-xs text-slate-400">
+                        <td className="py-4 px-5 text-right text-xs text-slate-400">
                           {formatMoney(totalSodBudget)}
                         </td>
                       )}
                       {visibleColumns.plan && (
-                        <td className="py-6 px-6 text-right text-xs text-slate-600 dark:text-slate-300">
+                        <td className="py-4 px-5 text-right text-xs text-slate-600 dark:text-slate-300">
                           {formatMoney(totalPlanBudget)}
                         </td>
                       )}
 
-                      <td className="py-6 px-6 text-right text-sm">
+                      <td className="py-4 px-5 text-right text-sm">
                         {formatMoney(totalWinningBidCost)}
                       </td>
 
                       {visibleColumns.sod_vr && (
-                        <td className="py-6 px-6 text-right">
+                        <td className="py-4 px-5 text-right">
                           <span
                             className={`text-sm ${totalSodDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                           >
@@ -2174,7 +2180,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       )}
 
                       {visibleColumns.pn_vr && (
-                        <td className="py-6 px-6 text-right">
+                        <td className="py-4 px-5 text-right">
                           <span
                             className={`text-sm ${totalPlanDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                           >
@@ -2188,14 +2194,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       {visibleColumns.nabidky && <td></td>}
                       {visibleColumns.smlouvy && <td></td>}
 
-                      <td className="py-6 px-6"></td>
+                      <td className="px-5 py-4"></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
               {filteredCategories.length > demandVisibleCount && (
-                <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center gap-3">
-                  <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">
+                <div className="flex items-center justify-center gap-3 border-t border-slate-200 px-5 py-3 dark:border-slate-800/50">
+                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                     Zobrazeno {demandVisibleCount} z {filteredCategories.length}
                   </span>
                   <button
@@ -2204,13 +2210,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         Math.min(c + DEMAND_PAGE_SIZE, filteredCategories.length),
                       )
                     }
-                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
+                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   >
                     Zobrazit více
                   </button>
                   <button
                     onClick={() => setDemandVisibleCount(filteredCategories.length)}
-                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    className="rounded-md px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800 dark:hover:text-white"
                   >
                     Zobrazit vše
                   </button>
@@ -2218,10 +2224,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               )}
               {filteredCategories.length > DEMAND_INITIAL_VISIBLE &&
                 demandVisibleCount >= filteredCategories.length && (
-                  <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center">
+                  <div className="flex items-center justify-center border-t border-slate-200 px-5 py-3 dark:border-slate-800/50">
                     <button
                       onClick={() => setDemandVisibleCount(DEMAND_INITIAL_VISIBLE)}
-                      className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                      className="rounded-md px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800 dark:hover:text-white"
                     >
                       Sbalit
                     </button>

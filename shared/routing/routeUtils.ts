@@ -21,9 +21,10 @@ export const buildAppUrl = (
         projectId?: string;
         tab?: ProjectTab;
         categoryId?: string | null;
+        contractId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'bidComparison' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'billing' | 'branding';
+        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
     }
 ): string => {
     switch (view) {
@@ -44,6 +45,8 @@ export const buildAppUrl = (
             return `${APP_BASE}/projects`;
         case "project-overview":
             return `${APP_BASE}/project-overview`;
+        case "contract-overview":
+            return `${APP_BASE}/contract-overview`;
         case "url-shortener":
             return `${APP_BASE}/url-shortener`;
         case "project": {
@@ -51,6 +54,7 @@ export const buildAppUrl = (
             const params = new URLSearchParams();
             if (opts.tab) params.set("tab", opts.tab);
             if (opts.categoryId) params.set("categoryId", opts.categoryId);
+            if (opts.contractId) params.set("contractId", opts.contractId);
             if (opts.documentsSubTab) params.set("documentsSubTab", opts.documentsSubTab);
             const qs = params.toString();
             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
@@ -66,13 +70,14 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "url-shortener" }
+    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
         projectId: string;
         tab?: ProjectTab;
         categoryId?: string;
+        contractId?: string;
     };
 
 /**
@@ -93,6 +98,7 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
     if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
+    if (sub === "contract-overview") return { isApp: true as const, view: "contract-overview" as const };
     if (sub === "url-shortener") return { isApp: true as const, view: "url-shortener" as const };
 
     if (sub === "project") {
@@ -100,12 +106,14 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
         const params = new URLSearchParams(search);
         const tabParam = params.get("tab");
         const categoryIdParam = params.get("categoryId");
+        const contractIdParam = params.get("contractId");
         return {
             isApp: true as const,
             view: "project" as const,
             projectId,
             tab: isProjectTab(tabParam) ? tabParam : undefined,
             categoryId: categoryIdParam || undefined,
+            contractId: contractIdParam || undefined,
         };
     }
 

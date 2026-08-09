@@ -6,6 +6,8 @@ import {
   getMcpOAuthAuthorizationDetails,
   type McpOAuthConsentDetails,
 } from "@/infra/auth/mcpOAuthConsentService";
+import { navigate } from "@/shared/routing/router";
+import { buildAppUrl } from "@/shared/routing/routeUtils";
 
 const scopeLabel = (scope: string): string => {
   switch (scope) {
@@ -15,10 +17,22 @@ const scopeLabel = (scope: string): string => {
       return "e-mail uživatele";
     case "profile":
       return "základní profil";
+    case "phone":
+      return "telefonní číslo uživatele";
+    case "offline_access":
+      return "obnovení přístupu bez opakovaného přihlášení";
     default:
       return scope;
   }
 };
+
+const supportedOAuthScopes = new Set([
+  "openid",
+  "email",
+  "profile",
+  "phone",
+  "offline_access",
+]);
 
 const getAuthorizationIdFromSearch = (search: string): string => {
   const params = new URLSearchParams(search);
@@ -46,13 +60,17 @@ export const McpOAuthConsentPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const mcpSettingsUrl = buildAppUrl("settings", {
+    settingsTab: "tools",
+    settingsSubTab: "mcp",
+  });
 
   const scopes = useMemo(
     () =>
       (details?.scope || "")
         .split(/\s+/)
         .map((scope) => scope.trim())
-        .filter(Boolean),
+        .filter((scope) => supportedOAuthScopes.has(scope)),
     [details?.scope],
   );
 
@@ -143,7 +161,7 @@ export const McpOAuthConsentPage: React.FC = () => {
               </div>
 
               <div className="rounded-md border border-white/10 bg-black/20 p-4">
-                <p className="text-xs uppercase tracking-wide text-white/50">Požadovaný přístup</p>
+                <p className="text-xs uppercase tracking-wide text-white/50">OAuth identita</p>
                 <ul className="mt-2 space-y-2 text-sm text-white/80">
                   {scopes.length > 0 ? (
                     scopes.map((scope) => <li key={scope}>- {scopeLabel(scope)}</li>)
@@ -153,10 +171,29 @@ export const McpOAuthConsentPage: React.FC = () => {
                 </ul>
               </div>
 
-              <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
-                AI bude moct číst data, která mu MCP nástroje zpřístupní. Zápisy v Tender Flow vyžadují
-                samostatné potvrzení přes návrh, přesnou potvrzovací větu a jednorázový token.
+              <div className="rounded-md border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-wide text-white/50">Oprávnění v Tender Flow</p>
+                <ul className="mt-2 space-y-2 text-sm text-white/80">
+                  <li>- čtení projektů, výběrových řízení, smluv, plánů a termínů v rozsahu vašich oprávnění</li>
+                  <li>- Bez samostatného časově omezeného grantu nejsou kontaktní údaje ani zápis povoleny.</li>
+                </ul>
               </div>
+
+              <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
+                AI bude po připojení moct pouze číst obecná data, která už smíte zobrazit v Tender Flow.
+                Rozšířená oprávnění můžete samostatně povolit a kdykoliv odebrat v nastavení AI a MCP přístupů.
+              </div>
+
+              <a
+                href={mcpSettingsUrl}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate(mcpSettingsUrl);
+                }}
+                className="inline-flex text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
+              >
+                Zobrazit správu MCP oprávnění
+              </a>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button

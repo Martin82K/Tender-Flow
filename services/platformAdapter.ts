@@ -10,16 +10,6 @@ import type {
     FolderSnapshot,
     BackupSettingsInfo,
     BackupFileEntry,
-    BidComparisonAgentConfig,
-    BidComparisonAgentTestResult,
-    BidComparisonDetectionResult,
-    BidComparisonStartInput,
-    BidComparisonStartResult,
-    BidComparisonJobStatus,
-    BidComparisonAutoConfig,
-    BidComparisonAutoScope,
-    BidComparisonAutoStartResult,
-    BidComparisonAutoStatus,
 } from '../shared/types/desktop';
 
 // Extend Window interface for TypeScript
@@ -78,6 +68,26 @@ export const fileSystemAdapter = {
             return window.electronAPI.fs.readFile(filePath, options) as unknown as Uint8Array;
         }
         throw new Error('File reading not available on web.');
+    },
+
+    async writeFile(filePath: string, data: string): Promise<void> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.writeFile(filePath, data);
+        }
+        throw new Error('File writing not available on web.');
+    },
+
+    async copyFile(sourcePath: string, destinationDirectory: string): Promise<{
+        success: boolean;
+        path?: string;
+        name?: string;
+        size?: number;
+        error?: string;
+    }> {
+        if (isDesktop && window.electronAPI?.fs?.copyFile) {
+            return window.electronAPI.fs.copyFile(sourcePath, destinationDirectory);
+        }
+        return { success: false, error: 'File copying not available on web.' };
     },
 
     /**
@@ -446,80 +456,6 @@ export const oauthAdapter = {
 };
 
 /**
- * Bid Comparison Adapter
- * Desktop-only async bid comparison jobs
- */
-export const bidComparisonAdapter = {
-    isAvailable(): boolean {
-        return !!(isDesktop && window.electronAPI?.bidComparison);
-    },
-
-    async detectInputs(args: {
-        tenderFolderPath: string;
-        suppliers: Array<{ name: string }>;
-    }): Promise<BidComparisonDetectionResult> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.detectInputs(args);
-        }
-        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
-    },
-
-    async start(input: BidComparisonStartInput): Promise<BidComparisonStartResult> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.start(input);
-        }
-        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
-    },
-
-    async get(jobId: string): Promise<BidComparisonJobStatus | null> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.get(jobId);
-        }
-        return null;
-    },
-
-    async cancel(jobId: string): Promise<{ success: boolean }> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.cancel(jobId);
-        }
-        return { success: false };
-    },
-
-    async testAgent(config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.testAgent(config);
-        }
-        return {
-            success: false,
-            endpoint: null,
-            status: null,
-            error: 'Test Hermes agenta je dostupný pouze v desktop aplikaci.',
-        };
-    },
-
-    async autoStart(config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.autoStart(config);
-        }
-        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
-    },
-
-    async autoStop(scope: BidComparisonAutoScope): Promise<{ success: boolean }> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.autoStop(scope);
-        }
-        return { success: false };
-    },
-
-    async autoStatus(scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> {
-        if (isDesktop && window.electronAPI?.bidComparison) {
-            return window.electronAPI.bidComparison.autoStatus(scope);
-        }
-        return null;
-    },
-};
-
-/**
  * Biometric Authentication Adapter
  * Biometric authentication on desktop (Touch ID / Face ID / Windows Hello)
  */
@@ -858,7 +794,6 @@ export const platformAdapter = {
     updater: updaterAdapter,
     mcp: mcpAdapter,
     oauth: oauthAdapter,
-    bidComparison: bidComparisonAdapter,
     biometric: biometricAdapter,
     session: sessionAdapter,
     shell: shellAdapter,

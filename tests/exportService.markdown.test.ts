@@ -85,10 +85,10 @@ describe('exportService markdown helpers', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('exportMarkdownToPdf zpracuje heading/list/table a ulozi pdf', () => {
+  it('exportMarkdownToPdf zpracuje heading/list/table a ulozi pdf', async () => {
     const md = `# Smlouva\n\n- podminka A\n- podminka B\n\n| Sloupec | Hodnota |\n|---|---|\n| A | B |`;
 
-    exportMarkdownToPdf('smlouva_test', md, 'Náhled smlouvy');
+    await exportMarkdownToPdf('smlouva_test', md, 'Náhled smlouvy');
 
     expect(autoTableMock).toHaveBeenCalled();
     expect(saveMock).toHaveBeenCalledWith('smlouva_test.pdf');

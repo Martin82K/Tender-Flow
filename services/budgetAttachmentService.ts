@@ -1,5 +1,5 @@
 import type { BudgetAttachment } from "@/types";
-import { pickFile, readFile } from "@/services/fileSystemService";
+import { copyFile, pickFile, readFile } from "@/services/fileSystemService";
 import {
   buildBudgetAttachmentMetadata,
   isPathInsideDirectory,
@@ -11,6 +11,12 @@ export interface EmailAttachment {
   filename: string;
   contentType: string;
   base64Content: string;
+}
+
+export interface PendingBudgetAttachment {
+  sourcePath: string;
+  fileName: string;
+  size?: number;
 }
 
 const extensionContentTypes: Record<string, string> = {
@@ -63,6 +69,46 @@ export const selectBudgetAttachment = async (
     throw new Error("Vybraný soubor musí být uložený ve složce tohoto VŘ.");
   }
 
+  return attachment;
+};
+
+export const selectPendingBudgetAttachment = async (): Promise<PendingBudgetAttachment | null> => {
+  const selected = await pickFile({
+    title: "Vybrat rozpočtovou přílohu",
+  });
+
+  if (selected.cancelled) return null;
+  if (!selected.path || !selected.name) {
+    throw new Error(selected.error || "Soubor nebyl vybrán.");
+  }
+
+  return {
+    sourcePath: selected.path,
+    fileName: selected.name,
+    size: selected.size,
+  };
+};
+
+export const copyPendingBudgetAttachment = async (
+  tenderFolderPath: string,
+  pendingAttachment: PendingBudgetAttachment,
+): Promise<BudgetAttachment> => {
+  const result = await copyFile(
+    pendingAttachment.sourcePath,
+    tenderFolderPath,
+  );
+  if (!result.success || !result.path) {
+    throw new Error(result.error || "Přílohu se nepodařilo zkopírovat do složky VŘ.");
+  }
+
+  const attachment = buildBudgetAttachmentMetadata({
+    filePath: result.path,
+    tenderFolderPath,
+    size: result.size ?? pendingAttachment.size,
+  });
+  if (!attachment) {
+    throw new Error("Zkopírovaná příloha není uvnitř složky tohoto VŘ.");
+  }
   return attachment;
 };
 

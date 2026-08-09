@@ -6,7 +6,7 @@
 - Testing Library
 - jsdom
 - TypeScript typecheck
-- Vite produkční build
+- Vite 8.1 produkční build (Rolldown/Oxc)
 - Electron TypeScript compile
 - vlastní architektonické a dokumentační guardy
 
@@ -38,6 +38,51 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - legacy structure brání růstu frozen kořenů,
 - docs checker ověřuje interní odkazy.
 
+Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
+`strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
+`strictNullChecks`, `noImplicitAny` a `strictPropertyInitialization`, aby byl
+baseline auditovatelný při upgradech TypeScriptu. Aliasové `paths` jsou
+explicitně relativní vůči `tsconfig.json`; deprecated `baseUrl` se nepoužívá.
+Desktopová konfigurace nesmí `noImplicitAny` oslabovat. Desktop main proces
+používá spárované `module` a `moduleResolution` v režimu `Node16`, který
+zachovává jeho CommonJS package scope bez legacy `node10` resolution. Změna
+těchto pojistek nebo podporované řady kompilátoru musí mít konfigurační regresní
+test v
+`tests/typescriptStrictnessConfig.test.ts`. Data načtená z dynamických hranic,
+například JSON z demo úložiště, musí před vstupem do query a mutační vrstvy
+dostat explicitní doménový kontrakt, aby se `any` nešířilo aplikací.
+
+Webový build používá přesně připnutou a supply-chain prověřenou řadu Vite 8.1
+s React pluginem 6. Produkční chunking se konfiguruje přes
+`build.rolldownOptions.output.codeSplitting`; odstraněný objektový
+`rollupOptions.output.manualChunks` se nesmí vrátit. Tento kontrakt chrání
+`tests/viteToolchainConfig.test.ts`, skutečnou kompatibilitu Rolldown/Oxc,
+CommonJS balíčků, CSS minifikace a chunk pořadí však vždy potvrzuje až web build
+a runtime smoke test webu i Electron rendereru.
+
+Těžké exportní runtime závislosti nesmí být statickým importem startovního
+rendereru. `tests/desktopCsp.test.ts` hlídá zdrojové importy a zakazuje vynucenou
+`vendor-pdf` skupinu, která by dynamické PDF moduly vrátila do úvodního grafu.
+`tests/exportService.lazyPdfRuntime.test.ts` navíc ověřuje, že PDF knihovny,
+Markdown parser i Roboto font se inicializují teprve při PDF akci. Po změně
+chunkingu je stále nutné zkontrolovat produkční manifest: `index.html` nesmí mít
+PDF nebo font mezi statickými `imports` a příslušné moduly musí být dynamické.
+
+### Runtime smoke test aplikace
+
+Každá vývojová smyčka musí kromě automatických testů ověřit také skutečně
+spuštěnou sestavenou aplikaci. Minimální webový smoke test zahrnuje:
+
+- načtení aplikace bez prázdné stránky nebo chybového překryvu,
+- jeden smysluplný hlavní uživatelský tok a navigaci,
+- kontrolu výsledné URL a viditelného stavu,
+- kontrolu neočekávaných chyb a warningů v konzoli a selhaných síťových požadavků,
+- vizuální kontrolu výsledku pomocí screenshotu.
+
+U změn specifických pro Electron se navíc spustí odpovídající desktopový tok,
+pokud jsou v testovacím prostředí dostupná potřebná OS oprávnění. Samotný webový
+smoke test nenahrazuje ověření IPC, filesystemu, biometriky ani notifikací.
+
 ## Příkazy
 
 ```bash
@@ -61,7 +106,8 @@ Pro změnu chování:
 3. doložit relevantní RED příčinu,
 4. implementovat,
 5. spustit cílený GREEN běh,
-6. spustit úplnou sadu a přečíst log.
+6. spustit úplnou sadu a přečíst log,
+7. spustit sestavenou aplikaci a provést runtime smoke test.
 
 Test, který byl zelený před implementací bez dobrého důvodu, nemusí dokazovat
 požadovanou změnu.

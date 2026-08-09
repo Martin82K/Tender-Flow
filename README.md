@@ -69,7 +69,9 @@ Nejdůležitější vstupy:
   guardy.
 - Tajné klíče patří pouze do lokálního prostředí nebo secret managementu, nikdy
   do repozitáře.
-- Nový balíček nesmí být mladší než 14 dní.
+- Nový balíček musí před instalací projít kontrolou integrity, původu,
+  maintainerů, známých incidentů a zranitelností; po instalaci se ověřují audit
+  i registry podpisy/provenance.
 
 Podrobnosti jsou v [AGENTS.md](AGENTS.md).
 

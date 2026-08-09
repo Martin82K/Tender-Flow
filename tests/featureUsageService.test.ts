@@ -91,7 +91,7 @@ describe('featureUsageService', () => {
       data: [
         {
           feature_key: 'excel_unlocker',
-          feature_name: 'Excel Unlocker PRO',
+          feature_name: 'Excel – odemčení',
           total_count: '11',
           range_count: 4,
           last_used_at: '2026-02-07T10:20:30.000Z',
@@ -107,7 +107,7 @@ describe('featureUsageService', () => {
     await expect(getFeatureUsageSummaryAdmin('org-1', 30)).resolves.toEqual([
       {
         featureKey: 'excel_unlocker',
-        featureName: 'Excel Unlocker PRO',
+        featureName: 'Excel – odemčení',
         totalCount: 11,
         rangeCount: 4,
         lastUsedAt: '2026-02-07T10:20:30.000Z',

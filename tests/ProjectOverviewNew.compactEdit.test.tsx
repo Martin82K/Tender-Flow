@@ -49,7 +49,7 @@ const buildProject = (): ProjectDetails => ({
 });
 
 describe("ProjectOverviewNew compact editace", () => {
-  it("industrial skin vykreslí přepínače poptávek jako linkové ovládání bez bílých pillů", () => {
+  it("použije pro filtry poptávek a Sloupce sdílené skin tokenové ovládání", () => {
     const project = buildProject();
     project.categories = [
       {
@@ -78,15 +78,20 @@ describe("ProjectOverviewNew compact editace", () => {
 
     const allButton = screen.getByRole("button", { name: /Vše \(1\)/i });
     expect(allButton).toHaveAttribute("data-active", "true");
-    expect(allButton.className).toContain("border-[#ff8a33]");
-    expect(allButton.className).toContain("tracking-[0.08em]");
+    expect(allButton).toHaveAttribute("aria-pressed", "true");
+    expect(allButton).toHaveClass("tf-demand-filter-button");
     expect(allButton.className).not.toContain("bg-white");
-    expect(allButton.className).not.toContain("rounded-xl");
+    expect(allButton.className).not.toContain("#ff8a33");
+
+    const openButton = screen.getByRole("button", { name: /Poptávané \(1\)/i });
+    fireEvent.click(openButton);
+    expect(openButton).toHaveAttribute("aria-pressed", "true");
+    expect(allButton).toHaveAttribute("aria-pressed", "false");
 
     const columnsButton = screen.getByRole("button", { name: /Sloupce/i });
-    expect(columnsButton.className).toContain("tracking-[0.08em]");
+    expect(columnsButton).toHaveClass("tf-demand-columns-button");
     expect(columnsButton.className).not.toContain("bg-white");
-    expect(columnsButton.className).not.toContain("rounded-xl");
+    expect(columnsButton.className).not.toContain("#ff8a33");
   });
 
   it("industrial skin zobrazí nad KPI kartami název stavby s brandovým psacím písmem", () => {
@@ -147,6 +152,39 @@ describe("ProjectOverviewNew compact editace", () => {
     );
 
     expect(screen.queryByRole("button", { name: /Sdílet stavbu/i })).not.toBeInTheDocument();
+  });
+
+  it("vykreslí kompaktní KPI a klidnou informační plochu s přístupnými editacemi", () => {
+    render(
+      <ProjectOverviewNew
+        project={buildProject()}
+        onUpdate={() => undefined}
+        variant="compact"
+        skin="botanica"
+      />,
+    );
+
+    const kpiGrid = screen.getByText("Rozpočet").closest("[data-help-id='overview-kpi-cards']");
+    expect(kpiGrid).toHaveClass("tf-overview-kpi-grid", "gap-4");
+
+    const kpiCards = kpiGrid?.querySelectorAll(".tf-overview-kpi-card");
+    expect(kpiCards).toHaveLength(4);
+    kpiCards?.forEach((card) => {
+      expect(card).toHaveClass("py-4");
+      expect(card).not.toHaveClass("p-6");
+    });
+
+    const infoSurface = screen.getByRole("region", {
+      name: "Základní informace o stavbě",
+    });
+    expect(infoSurface).toHaveClass("tf-overview-info-surface", "px-5", "py-4");
+    expect(infoSurface).not.toHaveClass("border", "shadow-sm", "p-6");
+    expect(within(infoSurface).getAllByText(/Investor|Lokace|Adresa|Termín|Hl\. stavbyvedoucí/).length).toBeGreaterThan(0);
+
+    expect(within(infoSurface).getByRole("button", { name: "Upravit údaje o stavbě" })).toBeInTheDocument();
+    expect(within(infoSurface).getByRole("button", { name: "Upravit finance investora" })).toBeInTheDocument();
+    expect(within(infoSurface).getByRole("button", { name: "Upravit interní rozpočet" })).toBeInTheDocument();
+    expect(within(infoSurface).getByRole("button", { name: "Upravit parametry smlouvy" })).toBeInTheDocument();
   });
 
   it("otevře modal pro finance investora a uloží změnu", () => {

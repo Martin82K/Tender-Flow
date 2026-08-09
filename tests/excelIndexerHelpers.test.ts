@@ -10,7 +10,7 @@ import { fillOddily } from "@/shared/tools/excel/fillOddily";
 const writeWorkbook = async (workbook: ExcelJS.Workbook): Promise<ArrayBuffer> =>
   (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
 
-describe("excel indexer helpers", () => {
+describe("Excel Indexace VŘ helpers", () => {
   it("normalizuje ciselne kody z hodnot bunek", () => {
     expect(normalizeCode(311236101)).toBe("311236101");
     expect(normalizeCode(" 311236101 ")).toBe("311236101");

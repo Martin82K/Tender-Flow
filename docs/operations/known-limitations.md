@@ -26,10 +26,25 @@ unit/contract/build brána, nikoli cloud end-to-end test.
 Legacy kořeny stále existují a architektonický audit eviduje přechodové importy.
 Migrace probíhá po malých testovaných smyčkách; plošný přesun by byl rizikový.
 
+### JSON záloha dokumentů smluv a rozšířeného Investora
+
+JSON backup export díky `to_jsonb` obsahuje nová investorská pole, současná
+obnova manifestu `1.0` je však zatím explicitně nevkládá zpět. Binární PDF/DOCX
+objekty ve Storage nejsou součástí JSON zálohy vůbec. Obnova proto nevytváří
+nefunkční odkazy, ale čísla investorské smlouvy, období a snapshoty pozastávek
+je po obnově manifestu `1.0` nutné doplnit ručně. Plnohodnotná obnova vyžaduje
+novou verzi backup manifestu a export Storage objektů.
+
 ## Bundle
 
-Vite hlásí některé chunky větší než 750 kB a některé moduly se importují
-staticky i dynamicky. Build funguje, ale jde o evidovaný výkonový dluh.
+Vite 8 s Rolldownem stále hlásí dynamický `exceljs` chunk větší než 750 kB.
+ExcelJS se načítá až při odpovídajícím exportu, takže nezatěžuje start aplikace,
+ale první použití těžkého Excel exportu zůstává evidovaným výkonovým dluhem.
+PDF runtime (`jspdf`, `jspdf-autotable`), Markdown parser a vložený Roboto font
+se rovněž načítají až při prvním PDF exportu. První export proto může podle sítě
+krátce čekat na dynamické chunky; další exporty používají cacheovaný runtime.
+Pokud se dynamický chunk nepodaří načíst, aplikace zobrazí bezpečnou výzvu k
+opakování exportu nebo obnovení aplikace namísto tichého selhání.
 
 ## Platformní rozdíly
 

@@ -1,5 +1,5 @@
 /**
- * Excel Merger Pro Types
+ * Excel Spojení listů types
  * Types for the Excel sheet merging functionality
  */
 

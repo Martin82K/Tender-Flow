@@ -1,4 +1,8 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  getSupportedMcpOAuthScopes,
+} from './scopePolicy.js';
+import { resolveMcpPermissions } from './permissionGrants.js';
 
 const getEnv = (name, fallbackName) =>
   process.env[name] || (fallbackName ? process.env[fallbackName] : '') || '';
@@ -9,9 +13,12 @@ export const getSupabaseUrl = () => {
   return value;
 };
 
-export const getSupabaseAnonKey = () => {
-  const value = getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY');
-  if (!value) throw new Error('Missing SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY.');
+export const getSupabaseMcpSecretKey = () => {
+  const value = getEnv('SUPABASE_MCP_SECRET_KEY');
+  if (!value) throw new Error('Missing SUPABASE_MCP_SECRET_KEY.');
+  if (!value.startsWith('sb_secret_')) {
+    throw new Error('SUPABASE_MCP_SECRET_KEY must be a server-only sb_secret_ key.');
+  }
   return value;
 };
 
@@ -54,8 +61,15 @@ export const getAllowedClientIds = () =>
     .map((value) => value.trim())
     .filter(Boolean);
 
-export const getRequiredMcpScopes = () =>
-  splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid email profile');
+export const getRequiredMcpScopes = () => {
+  const requiredScopes = splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid');
+  const supportedScopes = new Set(getSupportedMcpOAuthScopes());
+  const unsupportedScopes = requiredScopes.filter((scope) => !supportedScopes.has(scope));
+  if (unsupportedScopes.length > 0) {
+    throw new Error(`MCP_REQUIRED_SCOPES contains unsupported OAuth scopes: ${unsupportedScopes.join(', ')}.`);
+  }
+  return requiredScopes;
+};
 
 export const getAllowedAudiences = (expectedResource) =>
   splitCsvEnv('MCP_ALLOWED_AUDIENCES', `authenticated,${expectedResource || ''}`);
@@ -69,6 +83,11 @@ const getClaimValues = (value) => {
 const getResourceValues = (payload) => [
   ...getClaimValues(payload.resource),
   ...getClaimValues(payload.resources),
+  ...getClaimValues(
+    payload.app_metadata && typeof payload.app_metadata === 'object'
+      ? payload.app_metadata.mcp_resource
+      : undefined,
+  ),
   ...getClaimValues(payload.aud).filter((value) => value.startsWith('http://') || value.startsWith('https://')),
 ];
 
@@ -81,6 +100,9 @@ export const validateMcpTokenClaims = (payload, options = {}) => {
   const clientId = String(payload.client_id || payload.azp || '').trim();
   if (!userId) throw new Error('OAuth token does not contain a user id.');
   if (!clientId) throw new Error('OAuth token does not contain client_id. Use Supabase OAuth 2.1 token, not a regular app session token.');
+  if (payload.role !== 'tenderflow_mcp_client') {
+    throw new Error('OAuth token is not restricted to the Tender Flow MCP database role. Reconnect the MCP client.');
+  }
 
   const allowedClientIds = getAllowedClientIds();
   if (allowedClientIds.length === 0 && isMcpProductionRuntime()) {
@@ -110,7 +132,11 @@ export const validateMcpTokenClaims = (payload, options = {}) => {
     throw new Error(`OAuth token is missing required MCP scopes: ${missingScopes.join(', ')}.`);
   }
 
-  return { userId, clientId, scopes };
+  return {
+    userId,
+    clientId,
+    oauthScopes: scopes,
+  };
 };
 
 export const verifyMcpBearerToken = async (authorizationHeader, options = {}) => {
@@ -123,12 +149,14 @@ export const verifyMcpBearerToken = async (authorizationHeader, options = {}) =>
   const issuer = getSupabaseAuthIssuer();
   const { payload } = await jwtVerify(token, getJwks(issuer), { issuer });
   const claims = validateMcpTokenClaims(payload, options);
+  const permissions = await resolveMcpPermissions({ token, clientId: claims.clientId });
 
   return {
     token,
     userId: claims.userId,
     clientId: claims.clientId,
-    scopes: claims.scopes,
+    oauthScopes: claims.oauthScopes,
+    permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     payload,
@@ -153,17 +181,21 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
   }
 
   const oauthClientId = String(payload.client_id || payload.azp || '').trim();
-  const fallbackClientId = String(process.env.TENDER_FLOW_MCP_CLIENT_ID || 'local-stdio').trim();
-  const clientId = oauthClientId || fallbackClientId;
+  if (!oauthClientId || payload.role !== 'tenderflow_mcp_client') {
+    throw new Error('Local MCP requires a dedicated Supabase OAuth token. Regular Tender Flow session tokens are not accepted.');
+  }
+  const clientId = oauthClientId;
+  const permissions = await resolveMcpPermissions({ token, clientId });
 
   return {
     token,
     userId,
     clientId,
-    scopes: parseScopes(payload),
+    oauthScopes: parseScopes(payload),
+    permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
-    hasOAuthClientId: Boolean(oauthClientId),
+    hasOAuthClientId: true,
     payload,
   };
 };

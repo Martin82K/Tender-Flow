@@ -67,9 +67,23 @@ export const summarizeResultForAudit = (result) => {
   return redactForAudit({ ok, error, data });
 };
 
-export const logMcpAuditEvent = async (supabase, event) => {
+const auditUnavailable = () => new Error(
+  'Audit service is unavailable; write was not executed.',
+);
+
+const reportAuditFailure = (event, error) => {
+  console.error('MCP audit insert failed.', {
+    userId: event.userId,
+    clientId: event.clientId,
+    toolName: event.toolName,
+    action: event.action,
+    errorCode: typeof error?.code === 'string' ? error.code : 'unknown',
+  });
+};
+
+export const logMcpAuditEvent = async (supabase, event, options = {}) => {
   try {
-    await supabase.from('mcp_audit_events').insert({
+    const { error } = await supabase.from('mcp_audit_events').insert({
       user_id: event.userId,
       client_id: event.clientId,
       tool_name: event.toolName,
@@ -82,8 +96,11 @@ export const logMcpAuditEvent = async (supabase, event) => {
       request_summary: redactForAudit(event.requestSummary ?? null),
       result_summary: redactForAudit(event.resultSummary ?? null),
     });
-  } catch {
-    // Audit logging must not break read-only MCP calls. Security-sensitive
-    // write calls log again after execution and surface their own failure.
+    if (error) throw error;
+    return { ok: true };
+  } catch (error) {
+    reportAuditFailure(event, error);
+    if (options.required) throw auditUnavailable();
+    return { ok: false };
   }
 };

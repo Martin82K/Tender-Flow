@@ -11,8 +11,8 @@ interface DocHubAutoCreateStatusProps {
     setShowLog: (v: boolean) => void;
     showOverview: boolean;
     setShowOverview: (v: boolean) => void;
-    logRef: React.RefObject<HTMLDivElement>;
-    overviewRef: React.RefObject<HTMLDivElement>;
+    logRef: React.RefObject<HTMLDivElement | null>;
+    overviewRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DocHubAutoCreateStatus: React.FC<DocHubAutoCreateStatusProps> = ({

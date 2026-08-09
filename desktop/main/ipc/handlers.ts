@@ -4,9 +4,8 @@ import * as http from 'http';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import { SecureStorageService } from '../services/secureStorage';
-import { getBidComparisonAutoRunner } from '../services/bidComparisonAutoRunner';
+import { cleanupRetiredDesktopFeatureStorage } from '../services/retiredFeatureStorage';
 import { resolvePortablePath } from '../services/portablePathResolver';
-import { registerBidComparisonHandlers } from './modules/bidComparisonHandlers';
 import { registerFsHandlers } from './modules/fsHandlers';
 import { registerMcpHandlers } from './modules/mcpHandlers';
 import { registerNetHandlers } from './modules/netHandlers';
@@ -125,7 +124,13 @@ const startLoopbackServer = (timeoutMs: number) => {
     });
 };
 
-export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
+export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<void> {
+    try {
+        await cleanupRetiredDesktopFeatureStorage(storageService);
+    } catch (error) {
+        console.warn('[RetiredFeatureCleanup] Failed to remove retired secure storage entries:', error);
+    }
+
     if (mainWindow) {
         ipcAuthGuard.setMainWindow(mainWindow);
     }
@@ -147,8 +152,6 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         ipcAuthGuard.requireAuth(sender, channel);
     };
 
-    const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
-    void bidComparisonAutoRunner.restorePersistedSessions();
     const remapLogCache = new Set<string>();
 
     const resolvePortableReadPath = async (targetPath: string): Promise<string> =>
@@ -177,7 +180,6 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
     registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth, grantedRootsStorage: storageService });
     registerWatcherHandlers({ resolvePortableReadPath, requireAuth });
-    registerBidComparisonHandlers({ resolvePortableReadPath, bidComparisonAutoRunner, requireAuth });
     registerSessionHandlers({ storageService, requireAuth });
     registerMcpHandlers({ requireAuth });
     registerOAuthHandlers({
@@ -286,13 +288,13 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
     ipcMain.handle('python:isAvailable', async (event): Promise<{ available: boolean; version?: string }> => {
         requireAuth(event.sender, 'python:isAvailable');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().isPythonAvailable();
     });
 
     ipcMain.handle('python:checkDependencies', async (event): Promise<{ installed: boolean; missing: string[] }> => {
         requireAuth(event.sender, 'python:checkDependencies');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().checkDependencies();
     });
 
@@ -303,7 +305,7 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         outputFile?: string;
     }> => {
         requireAuth(event.sender, 'python:runTool');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().runTool(options as any);
     });
 
@@ -314,19 +316,19 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         outputFile?: string;
     }> => {
         requireAuth(event.sender, 'python:mergeExcel');
-        const { getPythonRunner } = await import('../services/pythonRunner');
+        const { getPythonRunner } = await import('../services/pythonRunner.js');
         return getPythonRunner().mergeExcel(inputFile, outputFile);
     });
 
     // --- BIOMETRIC AUTH ---
 
     ipcMain.handle('biometric:isAvailable', async (): Promise<boolean> => {
-        const { getBiometricAuthService } = await import('../services/biometricAuth');
+        const { getBiometricAuthService } = await import('../services/biometricAuth.js');
         return getBiometricAuthService().isAvailable();
     });
 
     ipcMain.handle('biometric:prompt', async (event, reason: string): Promise<boolean> => {
-        const { getBiometricAuthService } = await import('../services/biometricAuth');
+        const { getBiometricAuthService } = await import('../services/biometricAuth.js');
         const win = BrowserWindow.fromWebContents(event.sender);
         const windowHandle = win?.getNativeWindowHandle();
         return getBiometricAuthService().prompt(reason, windowHandle);

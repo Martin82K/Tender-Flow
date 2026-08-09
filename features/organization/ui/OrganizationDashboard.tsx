@@ -2,7 +2,7 @@
  * OrganizationDashboard
  *
  * Unified organization settings dashboard with sub-tabs:
- * Přehled, Členové, Předplatné, Branding.
+ * Přehled, Členové, Role a oprávnění, Předplatné, Branding.
  *
  * Replaces the old monolithic OrganizationSettings component.
  */
@@ -17,6 +17,7 @@ import { OrgOverviewTab } from './OrgOverviewTab';
 import { OrgMembersTab } from './OrgMembersTab';
 import { OrgBillingTab } from './OrgBillingTab';
 import { OrgBrandingTab } from './OrgBrandingTab';
+import { OrgRolePermissionsTab } from './OrgRolePermissionsTab';
 
 interface OrganizationDashboardProps {
   activeSubTab: OrgSubTab;
@@ -26,6 +27,7 @@ interface OrganizationDashboardProps {
 const SUB_TABS: { id: OrgSubTab; label: string; icon: string }[] = [
   { id: 'overview', label: 'Přehled', icon: 'dashboard' },
   { id: 'members', label: 'Členové', icon: 'group' },
+  { id: 'rolePermissions', label: 'Role a oprávnění', icon: 'admin_panel_settings' },
   { id: 'billing', label: 'Předplatné', icon: 'credit_card' },
   { id: 'branding', label: 'Branding', icon: 'palette' },
 ];
@@ -59,6 +61,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
   const selectedOrg = organizations.find(o => o.organization_id === selectedOrgId);
   const isOwner = selectedOrg?.member_role === 'owner';
   const isAdminOrOwner = selectedOrg?.member_role === 'owner' || selectedOrg?.member_role === 'admin';
+  const isRolePermissionsView = activeSubTab === 'rolePermissions';
 
   if (loading) {
     return (
@@ -85,7 +88,10 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
   }
 
   return (
-    <div data-help-id="settings-organization-workspace" className="animate-fadeIn">
+    <div
+      data-help-id="settings-organization-workspace"
+      className={`animate-fadeIn ${isRolePermissionsView ? 'flex h-full min-h-0 flex-col' : ''}`}
+    >
       {/* Org selector (if user is in multiple orgs) */}
       {organizations.length > 1 && (
         <div className="mb-6">
@@ -104,7 +110,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
       )}
 
       {/* Sub-tab navigation */}
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className={`flex flex-col gap-8 md:flex-row ${isRolePermissionsView ? 'min-h-0 flex-1' : ''}`}>
         <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
           <nav className="flex flex-col gap-2">
             {SUB_TABS.map(tab => (
@@ -128,7 +134,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
           </nav>
         </aside>
 
-        <main className="flex-1 min-w-0 overflow-x-hidden">
+        <main className={`min-w-0 flex-1 overflow-x-hidden ${isRolePermissionsView ? 'flex min-h-0 flex-col' : ''}`}>
           {activeSubTab === 'overview' && selectedOrgId && (
             <OrgOverviewTab
               orgId={selectedOrgId}
@@ -148,6 +154,12 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
             <OrgBillingTab
               orgId={selectedOrgId}
               isOwner={isOwner}
+            />
+          )}
+          {activeSubTab === 'rolePermissions' && selectedOrgId && (
+            <OrgRolePermissionsTab
+              orgId={selectedOrgId}
+              isAdminOrOwner={isAdminOrOwner}
             />
           )}
           {activeSubTab === 'branding' && selectedOrgId && (

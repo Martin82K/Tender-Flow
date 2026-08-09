@@ -1,4 +1,5 @@
 import { dialog, ipcMain, shell } from "electron";
+import { constants as fsConstants } from "fs";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { ipcAuthGuard } from "../../services/ipcAuthGuard";
@@ -295,6 +296,70 @@ export const registerFsHandlers = ({
     const resolvedFilePath = await ensurePathAllowed(await resolvePortableWritePath(filePath), "write");
     await fs.writeFile(resolvedFilePath, data);
   });
+
+  ipcMain.handle(
+    "fs:copyFile",
+    async (
+      event,
+      sourcePath: string,
+      destinationDirectory: string,
+    ): Promise<{ success: boolean; path?: string; name?: string; size?: number; error?: string }> => {
+      requireAuth(event.sender, "fs:copyFile");
+      await ensurePersistedRootsLoaded();
+
+      try {
+        const resolvedSourcePath = await ensurePathAllowed(
+          await resolvePortableReadPath(sourcePath),
+          "read",
+        );
+        const sourceStats = await fs.stat(resolvedSourcePath);
+        if (!sourceStats.isFile()) {
+          throw new Error("Vybraná cesta není soubor.");
+        }
+
+        const resolvedDestinationDirectory = await ensurePathAllowed(
+          await resolvePortableWritePath(destinationDirectory),
+          "write",
+        );
+        const destinationStats = await fs.stat(resolvedDestinationDirectory);
+        if (!destinationStats.isDirectory()) {
+          throw new Error("Cílová cesta není složka.");
+        }
+
+        const parsedName = path.parse(path.basename(resolvedSourcePath));
+        for (let suffix = 0; suffix < 1000; suffix += 1) {
+          const targetName = suffix === 0
+            ? parsedName.base
+            : `${parsedName.name} (${suffix + 1})${parsedName.ext}`;
+          const requestedTargetPath = path.join(resolvedDestinationDirectory, targetName);
+          const resolvedTargetPath = await ensurePathAllowed(
+            await resolvePortableWritePath(requestedTargetPath),
+            "write",
+          );
+
+          try {
+            await fs.copyFile(resolvedSourcePath, resolvedTargetPath, fsConstants.COPYFILE_EXCL);
+            return {
+              success: true,
+              path: resolvedTargetPath,
+              name: targetName,
+              size: sourceStats.size,
+            };
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === "EEXIST") continue;
+            throw error;
+          }
+        }
+
+        throw new Error("Pro přílohu se nepodařilo najít volný název souboru.");
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+  );
 
   ipcMain.handle("fs:openInExplorer", async (event, targetPath: string): Promise<{ success: boolean; error?: string }> => {
     requireAuth(event.sender, 'fs:openInExplorer');

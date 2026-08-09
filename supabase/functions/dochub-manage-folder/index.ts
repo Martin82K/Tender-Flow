@@ -131,11 +131,14 @@ Deno.serve(async (req) => {
         // Verify access
         const { data: project, error: projectError } = await authed
             .from("projects")
-            .select("dochub_root_id, dochub_drive_id")
+            .select("owner_id, dochub_root_id, dochub_drive_id")
             .eq("id", projectId)
             .maybeSingle();
 
         if (projectError || !project) return json(403, { error: "No access to project" });
+        if (!project.owner_id || project.owner_id !== userData.user.id) {
+            return json(403, { error: "Project owner permission required" });
+        }
 
         const { accessToken } = await getAccessTokenForUser({
             userId: userData.user.id,

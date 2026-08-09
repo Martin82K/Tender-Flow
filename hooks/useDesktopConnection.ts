@@ -15,7 +15,7 @@ export interface DesktopConnectionState {
  */
 export function useDesktopConnection() {
     const [state, setState] = useState<DesktopConnectionState>({
-        isDesktop,
+        isDesktop: Boolean(isDesktop),
         fsStatus: { available: false, mode: 'none' },
         isWatching: false,
         watchedFolder: null,
