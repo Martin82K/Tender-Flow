@@ -25,8 +25,8 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 | Požadované interní permissions | Nástroje |
 | --- | --- |
 | read | `search`, `fetch`, `tf_list_projects`, `tf_get_project_summary`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines`, `tf_list_tasks` |
-| read + contacts | kontaktní větev `search`/`fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts` |
-| read + write | `tf_prepare_change`, `tf_confirm_change`, `tf_execute_change` |
+| read + contacts | kontaktní větev `search`/`fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts`, `tf_match_outlook_reply` |
+| read + write | `tf_prepare_change`, `tf_confirm_change`, `tf_execute_change`, `tf_link_outlook_message` |
 
 Katalog a tool list jsou least-privilege: položka se při chybějící permission
 nezaregistruje. Stejná permission se znovu kontroluje při invokaci, takže manipulace
@@ -42,6 +42,9 @@ s uloženým katalogem nebo přímé zavolání názvu kontrolu neobejde.
   pravidla,
 - `projectId` pro `create_task` se před přípravou i provedením ověřuje jako
   viditelný uživateli,
+- Outlook vazba se ukládá jen pro kartu dodavatele, ke které má uživatel
+  projektové právo zápisu; vyhledání odpovědi znovu kontroluje read oprávnění
+  a vrací jen autorizované kandidáty bez uložených message ID,
 - proposal a idempotency data jsou vázána na `auth.uid()` i OAuth `client_id`.
 
 OAuth klient má žádat pouze potřebné standardní identity scopes. Vlastní

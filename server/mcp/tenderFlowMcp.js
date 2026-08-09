@@ -7,6 +7,7 @@ import {
   getMcpTask,
   getProjectDetail,
   getProjectSummary,
+  linkOutlookMessage,
   listBids,
   listContacts,
   listContracts,
@@ -15,6 +16,7 @@ import {
   listTenderPlan,
   listTenders,
   listUpcomingDeadlines,
+  matchOutlookReply,
 } from './data.js';
 import { logMcpAuditEvent, summarizeResultForAudit } from './audit.js';
 import { checkMcpRateLimit } from './rateLimit.js';
@@ -92,6 +94,30 @@ const executeChangeSchema = z.object({
   idempotencyKey: z.string().min(8).max(200),
 });
 
+const outlookIdentifierSchema = z.string().trim().min(1).max(2048);
+
+const linkOutlookMessageSchema = z.object({
+  bidId: z.string().trim().min(1).max(100),
+  outlookImmutableId: outlookIdentifierSchema,
+  internetMessageId: outlookIdentifierSchema.optional(),
+  conversationId: outlookIdentifierSchema.optional(),
+});
+
+const matchOutlookReplySchema = z.object({
+  outlookImmutableId: outlookIdentifierSchema.optional(),
+  internetMessageId: outlookIdentifierSchema.optional(),
+  inReplyToInternetMessageId: outlookIdentifierSchema.optional(),
+  conversationId: outlookIdentifierSchema.optional(),
+}).refine(
+  (value) => Boolean(
+    value.outlookImmutableId
+      || value.internetMessageId
+      || value.inReplyToInternetMessageId
+      || value.conversationId
+  ),
+  { message: 'At least one Outlook message identifier is required.' },
+);
+
 const makeConfirmationText = (proposal) =>
   `POTVRZUJI MCP ZMĚNU ${proposal.id}: ${proposal.change_type}`;
 
@@ -104,6 +130,7 @@ const hashToken = async (token) => {
 };
 
 const WRITE_AUDIT_ACTIONS = new Set([
+  'link_outlook_message',
   'prepare_write',
   'confirm_write',
   'execute_write',
@@ -506,7 +533,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.3.0',
+      version: '0.4.0',
     },
     {
       capabilities: {
@@ -731,9 +758,39 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     })),
   );
 
+  registerScopedTool(server, auth,
+    'tf_match_outlook_reply',
+    {
+      title: 'Match Outlook Reply',
+      description: 'Use this when an Outlook reply must be matched to an existing Tender Flow bid using immutable message, RFC message, In-Reply-To, or conversation identifiers. Read-only and does not store email content.',
+      inputSchema: matchOutlookReplySchema,
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_match_outlook_reply', 'read', async (args) => ({
+      ok: true,
+      data: await matchOutlookReply(supabase, args),
+    })),
+  );
+
   if (!includeWriteTools) {
     return server;
   }
+
+  registerScopedTool(server, auth,
+    'tf_link_outlook_message',
+    {
+      title: 'Link Outlook Message',
+      description: 'Use this after Outlook returns stable identifiers for a sent inquiry. Idempotently links the message to one writable Tender Flow bid without changing its status or price.',
+      inputSchema: linkOutlookMessageSchema,
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_link_outlook_message', 'link_outlook_message', async (args) => ({
+      ok: true,
+      data: await linkOutlookMessage(supabase, args),
+    }), 'medium'),
+  );
 
   registerScopedTool(server, auth,
     'tf_prepare_change',
