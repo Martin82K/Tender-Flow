@@ -866,6 +866,28 @@ export const mcpAuthenticationFailureResponse = (request, error) => {
   );
 };
 
+const getMcpAuthenticationFailureCode = (error) => {
+  if (isMcpPermissionServiceUnavailableError(error)) return 'permission_service_unavailable';
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === 'Missing bearer token.') return 'missing_bearer';
+  if (message.includes('database role')) return 'invalid_role';
+  if (message.includes('client_id') || message.includes('client is not allowed')) return 'invalid_client';
+  if (message.includes('audience')) return 'invalid_audience';
+  if (message.includes('resource')) return 'invalid_resource';
+  if (message.includes('scope')) return 'invalid_scope';
+  return 'invalid_token';
+};
+
+const logMcpAuthenticationFailure = (request, error) => {
+  const url = new URL(request.url);
+  console.warn({
+    event: 'mcp_auth_rejected',
+    code: getMcpAuthenticationFailureCode(error),
+    method: request.method,
+    path: url.pathname,
+  });
+};
+
 export const handleMcpWebRequest = async (request) => {
   let origin;
   try {
@@ -893,6 +915,9 @@ export const handleMcpWebRequest = async (request) => {
       expectedResource: `${getBaseUrl(request)}/api/mcp`,
     });
   } catch (error) {
+    if (request.headers.has('authorization')) {
+      logMcpAuthenticationFailure(request, error);
+    }
     return withMcpCors(
       mcpAuthenticationFailureResponse(request, error),
       origin,
