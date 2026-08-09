@@ -1,7 +1,12 @@
 import { Readable } from 'node:stream';
 import { handleMcpWebRequest } from './tenderFlowMcp.js';
 
-const nodeRequestToWebRequest = (req) => {
+const serializeParsedBody = (body) => {
+  if (typeof body === 'string' || body instanceof Uint8Array) return body;
+  return JSON.stringify(body);
+};
+
+export const nodeRequestToWebRequest = (req) => {
   const protocol = req.headers['x-forwarded-proto'] || (req.socket?.encrypted ? 'https' : 'http');
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
   const url = `${protocol}://${host}${req.url}`;
@@ -15,11 +20,18 @@ const nodeRequestToWebRequest = (req) => {
   }
 
   const method = req.method || 'GET';
+  const canHaveBody = method !== 'GET' && method !== 'HEAD';
+  const hasParsedBody = canHaveBody && req.body !== undefined;
+  const body = !canHaveBody
+    ? undefined
+    : hasParsedBody
+      ? serializeParsedBody(req.body)
+      : Readable.toWeb(req);
   return new Request(url, {
     method,
     headers,
-    body: method === 'GET' || method === 'HEAD' ? undefined : Readable.toWeb(req),
-    duplex: method === 'GET' || method === 'HEAD' ? undefined : 'half',
+    body,
+    duplex: canHaveBody && !hasParsedBody ? 'half' : undefined,
   });
 };
 
