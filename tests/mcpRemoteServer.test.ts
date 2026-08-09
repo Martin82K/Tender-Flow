@@ -726,14 +726,14 @@ describe("remote MCP server", () => {
     expect(config).toMatch(/\[auth\.hook\.custom_access_token\][\s\S]*enabled = true[\s\S]*pg-functions:\/\/postgres\/public\/tender_flow_access_token_hook/);
   });
 
-  it("čte OAuth client_id z dokumentované top-level hodnoty Auth hook eventu", () => {
+  it("čte OAuth client_id z claims a zachovává kompatibilní top-level fallback", () => {
     const migration = fs.readFileSync(
-      path.join(ROOT, "supabase/migrations/20260809164000_fix_mcp_oauth_hook_client_id.sql"),
+      path.join(ROOT, "supabase/migrations/20260809165000_fix_mcp_oauth_hook_claims_client_id.sql"),
       "utf8",
     );
 
+    expect(migration).toContain("NULLIF(BTRIM(claims ->> 'client_id'), '')");
     expect(migration).toContain("NULLIF(BTRIM(event ->> 'client_id'), '')");
-    expect(migration).not.toContain("event -> 'claims' ->> 'client_id'");
     expect(migration).toContain("TO_JSONB('tenderflow_mcp_client'::TEXT)");
     expect(migration).toContain("'{app_metadata,mcp_resource}'");
     expect(migration).toContain("SET search_path = ''");

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -46,6 +47,21 @@ const readAuthSchemaGrantHardeningMigration = () => {
   );
 };
 
+const readBackendProofMigration = () => fs.readFileSync(
+  path.join(ROOT, "supabase/migrations/20260809170500_mcp_backend_proof.sql"),
+  "utf8",
+);
+
+const readBackendProofHardeningMigration = () => fs.readFileSync(
+  path.join(ROOT, "supabase/migrations/20260809171500_harden_mcp_backend_proof_schema.sql"),
+  "utf8",
+);
+
+const readBackendProofPolicyMigration = () => fs.readFileSync(
+  path.join(ROOT, "supabase/migrations/20260809172000_lock_mcp_backend_proof_rows.sql"),
+  "utf8",
+);
+
 describe("MCP tool-only database boundary", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -73,13 +89,14 @@ describe("MCP tool-only database boundary", () => {
     expect(stdio).not.toContain("Local Supabase session token detected");
   });
 
-  it("posílá serverový klíč jen jako apikey a uživatelský JWT jako Authorization", async () => {
+  it("posílá serverový klíč jen jako apikey, uživatelský JWT jako Authorization a odvozený backend proof", async () => {
     vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "sb_publishable_public");
     vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_backend_only");
 
     const { createUserSupabaseClient } = await import("../server/mcp/data.js");
     createUserSupabaseClient("oauth-user-token");
+    const backendProof = createHash("sha256").update("sb_secret_backend_only").digest("hex");
 
     expect(createClientMock).toHaveBeenCalledWith(
       "https://example.supabase.co",
@@ -88,10 +105,33 @@ describe("MCP tool-only database boundary", () => {
         global: {
           headers: {
             Authorization: "Bearer oauth-user-token",
+            "x-tenderflow-mcp-proof": backendProof,
           },
         },
       }),
     );
+  });
+
+  it("nahrazuje prefixovou kontrolu přesným backend proofem registrovaným jen service_role", () => {
+    const migration = readBackendProofMigration();
+    const hardening = readBackendProofHardeningMigration();
+    const policy = readBackendProofPolicyMigration();
+
+    expect(migration).toContain("CREATE TABLE public.mcp_backend_proof");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.register_mcp_backend_proof");
+    expect(migration).toMatch(
+      /GRANT EXECUTE ON FUNCTION public\.register_mcp_backend_proof\(TEXT\) TO service_role/,
+    );
+    expect(migration).toContain("x-tenderflow-mcp-proof");
+    expect(migration).toContain("public.mcp_backend_proof_is_valid()");
+    expect(migration).not.toContain("api_key !~ '^sb_secret_'");
+    expect(hardening).toContain("CREATE SCHEMA IF NOT EXISTS mcp_private");
+    expect(hardening).toContain("ALTER TABLE public.mcp_backend_proof SET SCHEMA mcp_private");
+    expect(hardening).toContain("ALTER FUNCTION public.mcp_backend_proof_is_valid() SET SCHEMA mcp_private");
+    expect(hardening).toContain("mcp_private.mcp_backend_proof_is_valid()");
+    expect(hardening).toMatch(/REVOKE ALL ON SCHEMA mcp_private\s+FROM PUBLIC/);
+    expect(policy).toContain("CREATE POLICY mcp_backend_proof_deny_all");
+    expect(policy).toMatch(/USING \(false\)\s+WITH CHECK \(false\)/);
   });
 
   it("vydává registrovaným MCP klientům izolovanou NOINHERIT roli", () => {

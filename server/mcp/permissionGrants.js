@@ -1,6 +1,8 @@
 import { MCP_PERMISSIONS } from './scopePolicy.js';
+import { deriveMcpBackendProof } from './backendProof.js';
 
 const KNOWN_PERMISSIONS = new Set(Object.values(MCP_PERMISSIONS));
+const backendProofRegistrations = new Map();
 
 export class McpPermissionServiceUnavailableError extends Error {
   constructor() {
@@ -29,6 +31,49 @@ const getPermissionServiceConfig = () => {
   return { supabaseUrl, secretKey };
 };
 
+export const clearMcpBackendProofRegistrationCache = () => {
+  backendProofRegistrations.clear();
+};
+
+const registerBackendProof = async ({ supabaseUrl, secretKey, backendProof }) => {
+  const cacheKey = `${supabaseUrl}:${backendProof}`;
+  const cached = backendProofRegistrations.get(cacheKey);
+  if (cached) return cached;
+
+  const registration = (async () => {
+    let response;
+    try {
+      response = await fetch(`${supabaseUrl}/rest/v1/rpc/register_mcp_backend_proof`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(5_000),
+        headers: {
+          apikey: secretKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ proof_input: backendProof }),
+      });
+    } catch {
+      throw new McpPermissionServiceUnavailableError();
+    }
+
+    if (!response.ok) throw new McpPermissionServiceUnavailableError();
+    try {
+      if (await response.json() !== true) throw new McpPermissionServiceUnavailableError();
+    } catch (error) {
+      if (error instanceof McpPermissionServiceUnavailableError) throw error;
+      throw new McpPermissionServiceUnavailableError();
+    }
+  })();
+
+  backendProofRegistrations.set(cacheKey, registration);
+  try {
+    await registration;
+  } catch (error) {
+    backendProofRegistrations.delete(cacheKey);
+    throw error;
+  }
+};
+
 export const resolveMcpPermissions = async ({ token, clientId }) => {
   const accessToken = String(token || '').trim();
   const normalizedClientId = String(clientId || '').trim();
@@ -37,6 +82,8 @@ export const resolveMcpPermissions = async ({ token, clientId }) => {
   }
 
   const { supabaseUrl, secretKey } = getPermissionServiceConfig();
+  const backendProof = deriveMcpBackendProof(secretKey);
+  await registerBackendProof({ supabaseUrl, secretKey, backendProof });
   let response;
   try {
     response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_my_mcp_permissions`, {
@@ -45,6 +92,7 @@ export const resolveMcpPermissions = async ({ token, clientId }) => {
       headers: {
         apikey: secretKey,
         Authorization: `Bearer ${accessToken}`,
+        'x-tenderflow-mcp-proof': backendProof,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ client_id_input: normalizedClientId }),

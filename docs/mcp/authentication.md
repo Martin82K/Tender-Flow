@@ -25,7 +25,7 @@ sequenceDiagram
   O-->>C: authorization code / access token
   C->>M: Bearer token + MCP request
   M->>M: podpis a claims validace
-  M->>D: OAuth JWT + neveřejný backend apikey
+  M->>D: OAuth JWT + neveřejný backend apikey + exact proof
   D-->>M: aktuální read/contacts/write permissions
   M->>D: toolový dotaz jako izolovaná MCP role a auth.uid() uživatele
   D-->>M: pouze data povolená RLS
@@ -58,9 +58,12 @@ Tentýž hook nastaví registrovanému MCP klientovi roli
 `tenderflow_mcp_client`. Role je `NOLOGIN NOINHERIT`: nezdědí obecná oprávnění
 role `authenticated`, nemá přístup ke Storage/Realtime a dostane jen explicitní
 tabulky/RPC potřebné aktuálním toolsetem. Každý Data API request této role musí
-navíc projít `pgrst.db_pre_request`, který vyžaduje platný serverový
-`sb_secret_…` klíč. Ten drží pouze MCP backend. Samotný Bearer token proto není
-použitelný jako obecný Supabase credential.
+navíc projít `pgrst.db_pre_request`. Supabase gateway validuje serverový
+`sb_secret_…` klíč jako `apikey`, ale PostgREST jej v request headers nevidí.
+MCP backend proto odvodí SHA-256 proof, zaregistruje jej přes RPC dostupné pouze
+`service_role` a posílá jej odděleně v `x-tenderflow-mcp-proof`. Guard vyžaduje
+přesnou shodu s jedinou aktivní hodnotou v neexponovaném `mcp_private`.
+Samotný Bearer token proto není použitelný jako obecný Supabase credential.
 
 OAuth `scope` a doménová MCP oprávnění jsou oddělené. Supabase Auth podporuje
 standardní scopes (`openid`, `email`, `profile`, případně `phone` a
@@ -87,7 +90,8 @@ používá stejný autoritativní resolver a stejnou databázovou hranici jako r
 transport. Po nasazení role je nutné staré tokeny zahodit a klienta znovu
 připojit, aby Supabase vydal nový JWT. Databázový pre-request guard však staré
 tokeny blokuje okamžitě: každý JWT s neprázdným `client_id` nebo `azp` musí
-přijít přes MCP backend se serverovým `SUPABASE_MCP_SECRET_KEY`, i když v něm
+přijít přes MCP backend s přesným proofem odvozeným ze serverového
+`SUPABASE_MCP_SECRET_KEY`, i když v něm
 ještě zůstala původní role `authenticated`. Storage a publikované Realtime
 tabulky mají navíc restriktivní RLS, která takový starší OAuth token odmítne i
 mimo PostgREST.

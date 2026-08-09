@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  clearMcpBackendProofRegistrationCache,
   McpPermissionServiceUnavailableError,
   resolveMcpPermissions,
 } from "../server/mcp/permissionGrants.js";
@@ -23,19 +25,22 @@ describe("authoritative MCP user-client grants", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    clearMcpBackendProofRegistrationCache();
   });
 
   it("resolves only the authoritative permission array returned by the bound RPC", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "anon-key");
     vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([
-      "tenderflow.read",
-      "tenderflow.contacts.read",
-    ]), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    }));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("true", { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        "tenderflow.read",
+        "tenderflow.contacts.read",
+      ]), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(resolveMcpPermissions({
@@ -46,13 +51,27 @@ describe("authoritative MCP user-client grants", () => {
       "tenderflow.contacts.read",
     ]);
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    const backendProof = createHash("sha256").update("sb_secret_test_backend").digest("hex");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://tf-test.supabase.co/rest/v1/rpc/register_mcp_backend_proof",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "sb_secret_test_backend",
+        }),
+        body: JSON.stringify({ proof_input: backendProof }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
       "https://tf-test.supabase.co/rest/v1/rpc/get_my_mcp_permissions",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
           apikey: "sb_secret_test_backend",
           Authorization: "Bearer oauth-user-token",
+          "x-tenderflow-mcp-proof": backendProof,
         }),
         body: JSON.stringify({
           client_id_input: "c6d04896-33d1-4cca-a7f2-8d380ed26f0d",
@@ -66,7 +85,9 @@ describe("authoritative MCP user-client grants", () => {
     vi.stubEnv("SUPABASE_ANON_KEY", "anon-key");
     vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
 
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response("{}", { status: 503 })));
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(new Response("true", { status: 200 }))
+      .mockResolvedValueOnce(new Response("{}", { status: 503 })));
     await expect(resolveMcpPermissions({ token: "token", clientId: "client" }))
       .rejects.toBeInstanceOf(McpPermissionServiceUnavailableError);
 

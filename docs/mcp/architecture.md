@@ -13,7 +13,7 @@ flowchart LR
   C -->|"dedikovaný OAuth token"| S["stdio bridge"]
   H --> V["JWT, issuer, audience, resource, client a identity scope validace"]
   S --> V
-  V --> G["MCP permission resolver + backend secret"]
+  V --> G["MCP permission resolver + exact backend proof"]
   G --> P["Registrace dostupných tools/resources"]
   P --> R["Rate limit"]
   R --> D["Tender Flow data adaptéry"]
@@ -32,13 +32,19 @@ jeho claims. Registrovanému MCP OAuth klientovi vydá Auth hook JWT s rolí
 Datový adaptér sestaví request-scoped Supabase klienta ze dvou oddělených
 credentialů: uživatelský OAuth JWT zůstává pouze v `Authorization`, zatímco
 serverový `SUPABASE_MCP_SECRET_KEY` se posílá jako `apikey`. API gateway ověří
-serverový klíč a PostgREST pre-request guard jeho přítomnost vyžaduje pro MCP
-roli. RLS se dál vyhodnocuje podle uživatelského JWT, tedy přes `auth.uid()`,
-OAuth `client_id`, tenantovou roli a interní grant. MCP klient ani AI host
-serverový klíč nikdy nedostane. Service-role klíč se v této cestě nepoužívá.
+serverový klíč, ale do PostgREST `request.headers` jej nepředává. Backend proto
+z klíče odvodí SHA-256 proof, jednou jej zaregistruje přes
+`register_mcp_backend_proof` dostupné pouze `service_role` a do každého
+uživatelského Data API požadavku přidá `x-tenderflow-mcp-proof`. PostgREST
+pre-request guard vyžaduje přesnou shodu proofu uloženého v neexponovaném
+schématu `mcp_private`. RLS se dál vyhodnocuje podle uživatelského JWT, tedy
+přes `auth.uid()`, OAuth `client_id`, tenantovou roli a interní grant. MCP
+klient ani AI host nedostane serverový klíč ani proof. Privilegovaný registrační
+request neobsahuje uživatelský JWT ani doménová data; uživatelské dotazy
+nepoužívají service-role bypass.
 
 Pokus použít samotný OAuth token proti `/rest/v1`, přes Storage nebo Realtime
-selže: Data API postrádá backendový secret a ostatní subsystémy nemají pro
+selže: Data API postrádá přesný backend proof a ostatní subsystémy nemají pro
 `tenderflow_mcp_client` žádné grants. Praktický databázový povrch tak vlastní
 tool backend, nikoli MCP klient.
 
@@ -66,7 +72,7 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | Permission resolver | per-request RPC váže `auth.uid()`, JWT klienta, consent, expiraci a revokaci; fail-closed |
 | Permission policy | centrální mapování tool → interní permissions a riziko; neodvozuje je z tokenových `tenderflow.*` scopes |
 | Data adaptér | omezené selecty, mapování a minimalizace výsledků |
-| Supabase | backend-secret pre-request, izolovaná role, autoritativní RLS/RPC, tenant a projektová oprávnění |
+| Supabase | exact-proof pre-request, privátní proof store, izolovaná role, autoritativní RLS/RPC, tenant a projektová oprávnění |
 | Audit/rate limit | redigovaný write pre-audit/outcome a distribuovaný PostgreSQL risk bucket |
 
 ## Runtime varianty

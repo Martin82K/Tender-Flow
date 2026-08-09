@@ -3,6 +3,20 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — exact backend proof pro PostgREST
+
+- protože Supabase gateway nepředává nový `sb_secret_…` klíč do PostgREST
+  request headers, nahradila se neúčinná prefixová kontrola přesným proofem
+  odvozeným ze serverového secretu,
+- proof se registruje přes `service_role`-only RPC, ukládá se v neexponovaném
+  `mcp_private` a tabulka má nulové direct grants, FORCE RLS a restriktivní
+  deny-all policy,
+- permission i tool data requesty nesou uživatelský OAuth JWT pouze v
+  `Authorization` a exact proof v samostatné hlavičce; OAuth bearer bez
+  backendu nadále nemůže použít Data API,
+- Auth hook nyní preferuje dokumentované `claims.client_id` a zachovává
+  kompatibilní top-level fallback.
+
 ## 2026-08-09 — auth-schema boundary hotfix
 
 - MCP RLS a PostgREST pre-request guard už nevolají `auth.uid()`/`auth.jwt()`
