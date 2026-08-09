@@ -3,6 +3,7 @@ import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprot
 import { createUserSupabaseClient } from './data.js';
 import {
   buildSearchResults,
+  changeBidStatus,
   getContractOverview,
   getMcpTask,
   getProjectDetail,
@@ -64,13 +65,39 @@ const createTaskProposalSchema = z.object({
   projectId: z.string().optional(),
 });
 
+const bidStatusSchema = z.enum([
+  'contacted',
+  'sent',
+  'offer',
+  'shortlist',
+  'sod',
+  'rejected',
+]);
+
+const updateBidProposalSchema = z.object({
+  type: z.literal('update_bid'),
+  payload: z.object({
+    bidId: z.string().trim().min(1).max(100),
+    status: bidStatusSchema,
+  }).strict(),
+});
+
+const storedUpdateBidProposalSchema = z.object({
+  type: z.literal('update_bid'),
+  payload: z.object({
+    bidId: z.string().trim().min(1).max(100),
+    status: bidStatusSchema,
+    expectedStatus: bidStatusSchema,
+  }).strict(),
+}).strict();
+
 const prepareChangeSchema = z.object({
   change: z.discriminatedUnion('type', [
     createTaskProposalSchema,
+    updateBidProposalSchema,
     z.object({
       type: z.enum([
         'create_bid',
-        'update_bid',
         'create_contact',
         'update_contact',
         'create_note',
@@ -147,16 +174,37 @@ export const assertProjectVisible = async (supabase, projectId) => {
   if (!data) throw new Error('Project is not visible to the authenticated user.');
 };
 
-const createProposal = async (supabase, auth, args) => {
+export const createProposal = async (supabase, auth, args) => {
   const change = args.change;
+  let storedChange = change;
+  let diff = { before: null, after: change };
   if (change.type === 'create_task') {
     await assertProjectVisible(supabase, change.projectId);
   }
-  const riskLevel = change.type === 'create_task' ? 'medium' : 'high';
-  const supported = change.type === 'create_task';
-  const summary = supported
+  if (change.type === 'update_bid') {
+    const preview = await changeBidStatus(supabase, {
+      ...change.payload,
+      dryRun: true,
+    });
+    storedChange = {
+      ...change,
+      payload: {
+        ...change.payload,
+        expectedStatus: preview.previousStatus,
+      },
+    };
+    diff = {
+      before: { bidId: preview.bidId, status: preview.previousStatus },
+      after: { bidId: preview.bidId, status: preview.status },
+    };
+  }
+  const supported = ['create_task', 'update_bid'].includes(change.type);
+  const riskLevel = change.type === 'update_bid' ? 'high' : supported ? 'medium' : 'high';
+  const summary = change.type === 'create_task'
     ? `Vytvořit úkol "${change.title}".`
-    : `Připravit změnu typu ${change.type}; provedení zatím není v MCP MVP povoleno.`;
+    : change.type === 'update_bid'
+      ? `Změnit stav nabídky ${change.payload.bidId} na ${change.payload.status}.`
+      : `Připravit změnu typu ${change.type}; provedení zatím není v MCP povoleno.`;
 
   const { data, error } = await supabase
     .from('mcp_change_proposals')
@@ -164,7 +212,7 @@ const createProposal = async (supabase, auth, args) => {
       user_id: auth.userId,
       client_id: auth.clientId,
       change_type: change.type,
-      change_payload: change,
+      change_payload: storedChange,
       status: 'prepared',
       risk_level: riskLevel,
       summary,
@@ -190,10 +238,7 @@ const createProposal = async (supabase, auth, args) => {
       summary,
       expiresAt: data.expires_at,
       confirmationText,
-      diff: {
-        before: null,
-        after: change,
-      },
+      diff,
       executeNote: supported
         ? 'Zavolej tf_confirm_change s přesným confirmationText. Teprve potom lze provést tf_execute_change.'
         : 'Tento typ změny je ve vzdáleném MCP zatím pouze návrh; proveď ho ručně v aplikaci.',
@@ -244,7 +289,7 @@ const confirmProposal = async (supabase, auth, args) => {
   };
 };
 
-const executeProposal = async (supabase, auth, args) => {
+export const executeProposal = async (supabase, auth, args) => {
   const tokenHash = await hashToken(args.executeToken);
   const { data: proposal, error } = await supabase
     .from('mcp_change_proposals')
@@ -262,22 +307,13 @@ const executeProposal = async (supabase, auth, args) => {
   if (proposal.status !== 'confirmed') throw new Error(`Proposal is not executable in status ${proposal.status}.`);
   if (proposal.execute_token_hash !== tokenHash) throw new Error('Invalid execute token.');
   if (new Date(proposal.expires_at).getTime() < Date.now()) throw new Error('Proposal expired.');
-  if (proposal.change_type !== 'create_task') {
-    throw new Error('Only create_task execution is enabled in MCP MVP.');
+  if (!['create_task', 'update_bid'].includes(proposal.change_type)) {
+    throw new Error('Only create_task and status-only update_bid execution are enabled in MCP.');
   }
 
-  const payload = proposal.change_payload;
-  await assertProjectVisible(supabase, payload.projectId);
-  const taskPayload = {
-    title: boundedText(payload.title, 500),
-    note: payload.note ? boundedText(payload.note, 10000) : null,
-    due_at: payload.dueAt || null,
-    priority: payload.priority || null,
-    project_id: payload.projectId || null,
-    related_entity_type: null,
-    related_entity_id: null,
-    created_by: auth.userId,
-  };
+  const payload = proposal.change_type === 'update_bid'
+    ? storedUpdateBidProposalSchema.parse(proposal.change_payload).payload
+    : createTaskProposalSchema.parse(proposal.change_payload);
 
   const { data: existing } = await supabase
     .from('mcp_idempotency_keys')
@@ -288,14 +324,35 @@ const executeProposal = async (supabase, auth, args) => {
     .maybeSingle();
   if (existing?.result) return { ok: true, data: existing.result };
 
-  const { data: task, error: taskError } = await supabase
-    .from('tasks')
-    .insert(taskPayload)
-    .select('*')
-    .single();
-  if (taskError) throw taskError;
-
-  const result = { proposalId: proposal.id, status: 'executed', task };
+  let result;
+  if (proposal.change_type === 'create_task') {
+    await assertProjectVisible(supabase, payload.projectId);
+    const taskPayload = {
+      title: boundedText(payload.title, 500),
+      note: payload.note ? boundedText(payload.note, 10000) : null,
+      due_at: payload.dueAt || null,
+      priority: payload.priority || null,
+      project_id: payload.projectId || null,
+      related_entity_type: null,
+      related_entity_id: null,
+      created_by: auth.userId,
+    };
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .insert(taskPayload)
+      .select('*')
+      .single();
+    if (taskError) throw taskError;
+    result = { proposalId: proposal.id, status: 'executed', task };
+  } else {
+    const bid = await changeBidStatus(supabase, {
+      bidId: payload.bidId,
+      status: payload.status,
+      expectedStatus: payload.expectedStatus,
+      dryRun: false,
+    });
+    result = { proposalId: proposal.id, status: 'executed', bid };
+  }
   await supabase.from('mcp_idempotency_keys').insert({
     user_id: auth.userId,
     client_id: auth.clientId,
@@ -820,7 +877,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     'tf_execute_change',
     {
       title: 'Execute Tender Flow Change',
-      description: 'Execute a confirmed change using a one-time token and idempotency key. MVP executes only create_task.',
+      description: 'Execute a confirmed create_task or status-only update_bid using a one-time token and idempotency key.',
       inputSchema: executeChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },

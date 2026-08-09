@@ -292,6 +292,26 @@ export const matchOutlookReply = async (supabase, input = {}) => {
   }));
 };
 
+export const changeBidStatus = async (supabase, input) => {
+  const { data, error } = await supabase.rpc('change_mcp_bid_status', {
+    bid_id_input: normalizedIdentifier(input.bidId),
+    status_input: normalizedIdentifier(input.status),
+    expected_status_input: normalizedIdentifier(input.expectedStatus),
+    dry_run_input: Boolean(input.dryRun),
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('Bid status change did not return a result.');
+  return {
+    bidId: String(row.bid_id),
+    projectId: String(row.project_id),
+    tenderId: String(row.tender_id),
+    previousStatus: String(row.previous_status),
+    status: String(row.status),
+    changed: Boolean(row.changed),
+  };
+};
+
 export const listContracts = async (supabase, input = {}) => {
   let query = supabase
     .from('contracts')

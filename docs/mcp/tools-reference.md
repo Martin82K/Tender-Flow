@@ -119,6 +119,10 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 - Vstup: `change` a volitelný `reason` do 1000 znaků.
 - Pro `create_task`: `title` 1–500, `note?` max. 10 000, `dueAt?`,
   `priority?` 1–4, `projectId?`.
+- Pro `update_bid`: přesný payload `bidId` a `status`; status musí být jeden z
+  `contacted`, `sent`, `offer`, `shortlist`, `sod`, `rejected`. Další pole jsou
+  odmítnuta. Prepare použije autoritativní RPC dry-run a do návrhu uloží
+  očekávaný původní stav.
 - Výstup: proposal ID, riziko, diff, expirace a přesný potvrzovací text.
 - Nemění doménová data.
 
@@ -133,9 +137,12 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 
 - Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **vyžaduje osmihodinový grant**.
 - Vstup: `proposalId`, `executeToken` a `idempotencyKey` 8–200 znaků.
-- Pouze `create_task` je implementovaný execution typ.
+- Implementované execution typy jsou `create_task` a stavová větev
+  `update_bid`. `update_bid` nemůže měnit cenu, dodavatele, kontakty, poznámky
+  ani přílohy; při změně stavu od prepare kroku execute bezpečně selže.
 - Opakování stejného user/client/idempotency klíče vrací uložený výsledek.
 
-Typy `create_bid`, `update_bid`, `create_contact`, `update_contact`,
-`create_note`, `update_note` a `archive_entity` lze připravit pouze jako
-neproveditelný návrh. MCP je nesmí prezentovat jako dokončenou změnu.
+Typy `create_bid`, `create_contact`, `update_contact`, `create_note`,
+`update_note` a `archive_entity` lze připravit pouze jako neproveditelný návrh.
+Cena v `update_bid` zatím podporovaná není a MCP ji nesmí prezentovat jako
+dokončenou změnu.

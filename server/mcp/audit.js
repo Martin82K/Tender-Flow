@@ -59,8 +59,8 @@ export const summarizeResultForAudit = (result) => {
       error,
       status: data.status,
       proposalId: data.proposalId,
-      entityType: data.task ? 'task' : undefined,
-      entityId: data.task?.id,
+      entityType: data.task ? 'task' : data.bid ? 'bid' : undefined,
+      entityId: data.task?.id || data.bid?.bidId,
       resultKeys: Object.keys(data).slice(0, MAX_OBJECT_KEYS),
     });
   }
