@@ -49,6 +49,11 @@ const nullableNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const normalizedIdentifier = (value) => {
+  const normalized = String(value || '').trim();
+  return normalized || null;
+};
+
 const mapContractOverviewAmendments = (value) => {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -228,6 +233,44 @@ export const listBids = async (supabase, input = {}) => {
     notes: row.notes || null,
     status: row.status || null,
     contracted: Boolean(row.contracted),
+  }));
+};
+
+export const linkOutlookMessage = async (supabase, input) => {
+  const { data, error } = await supabase.rpc('link_mcp_outlook_message', {
+    bid_id_input: normalizedIdentifier(input.bidId),
+    outlook_immutable_id_input: normalizedIdentifier(input.outlookImmutableId),
+    internet_message_id_input: normalizedIdentifier(input.internetMessageId),
+    conversation_id_input: normalizedIdentifier(input.conversationId),
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('Outlook message link was not created.');
+  return {
+    bidId: String(row.bid_id),
+    projectId: String(row.project_id),
+    tenderId: String(row.tender_id),
+    linked: Boolean(row.linked),
+  };
+};
+
+export const matchOutlookReply = async (supabase, input = {}) => {
+  const { data, error } = await supabase.rpc('match_mcp_outlook_reply', {
+    outlook_immutable_id_input: normalizedIdentifier(input.outlookImmutableId),
+    internet_message_id_input: normalizedIdentifier(input.internetMessageId),
+    in_reply_to_internet_message_id_input: normalizedIdentifier(input.inReplyToInternetMessageId),
+    conversation_id_input: normalizedIdentifier(input.conversationId),
+  });
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    bidId: String(row.bid_id),
+    projectId: String(row.project_id),
+    projectName: String(row.project_name),
+    tenderId: String(row.tender_id),
+    tenderTitle: String(row.tender_title),
+    companyName: row.company_name ? String(row.company_name) : null,
+    bidStatus: row.bid_status ? String(row.bid_status) : null,
+    matchType: String(row.match_type),
   }));
 };
 

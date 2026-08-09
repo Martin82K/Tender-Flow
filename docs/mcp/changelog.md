@@ -3,6 +3,19 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — minimální Outlook message vazby
+
+- přidány `tf_link_outlook_message` a `tf_match_outlook_reply` pro propojení
+  odeslané poptávky a odpovědi s existující kartou dodavatele,
+- ukládají se pouze stabilní Outlook identifikátory (`ImmutableId`, RFC
+  `internetMessageId` a volitelný `conversationId`), nikdy tělo emailu,
+  předmět, adresáti ani přílohy,
+- privátní tabulka nemá přímé granty a používá FORCE RLS/deny-all; přístup je
+  jen přes MCP RPC svázaná s ověřeným uživatelem, permissions a projektovým
+  oprávněním,
+- link je idempotentní metadata zápis s povinným pre-auditem; cenu a kanban
+  stav nadále smí měnit jen samostatně navržený a potvrzený business workflow.
+
 ## 2026-08-09 — sdílená matice toolů a oprávnění
 
 - serverová autorizace a uživatelská obrazovka používají společný katalog 17

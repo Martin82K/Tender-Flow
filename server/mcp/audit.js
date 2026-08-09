@@ -1,4 +1,4 @@
-const SENSITIVE_KEY_PATTERN = /(authorization|cookie|secret|token|executeToken|execute_token|password|apikey|api_key|access[_-]?key|refresh[_-]?token|idempotencyKey|idempotency_key)/i;
+const SENSITIVE_KEY_PATTERN = /(authorization|cookie|secret|token|executeToken|execute_token|password|apikey|api_key|access[_-]?key|refresh[_-]?token|idempotencyKey|idempotency_key|outlookImmutableId|internetMessageId|inReplyToInternetMessageId|conversationId)/i;
 const MAX_STRING_LENGTH = 240;
 const MAX_OBJECT_KEYS = 16;
 const MAX_ARRAY_ITEMS = 5;

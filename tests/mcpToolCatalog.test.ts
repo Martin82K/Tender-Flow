@@ -13,13 +13,15 @@ describe("MCP tool catalog and permissions", () => {
   it("udržuje zobrazovanou matici jako úplný zdroj serverových tool policy", () => {
     const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
 
-    expect(toolNames).toHaveLength(17);
+    expect(toolNames).toHaveLength(19);
     expect(new Set(toolNames).size).toBe(toolNames.length);
     expect(toolNames).toEqual(expect.arrayContaining([
       "search",
       "fetch",
       "tf_list_projects",
       "tf_list_contacts",
+      "tf_match_outlook_reply",
+      "tf_link_outlook_message",
       "tf_prepare_change",
       "tf_confirm_change",
       "tf_execute_change",
@@ -57,6 +59,14 @@ describe("MCP tool catalog and permissions", () => {
     expect(getMcpToolPolicy("tf_list_contacts").requiredPermissions).toEqual([
       MCP_PERMISSIONS.read,
       MCP_PERMISSIONS.contactsRead,
+    ]);
+    expect(getMcpToolPolicy("tf_match_outlook_reply").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+      MCP_PERMISSIONS.contactsRead,
+    ]);
+    expect(getMcpToolPolicy("tf_link_outlook_message").requiredPermissions).toEqual([
+      MCP_PERMISSIONS.read,
+      MCP_PERMISSIONS.write,
     ]);
     expect(getMcpToolPolicy("tf_execute_change").requiredPermissions).toEqual([
       MCP_PERMISSIONS.read,
