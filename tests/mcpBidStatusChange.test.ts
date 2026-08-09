@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createProposal,
   executeProposal,
+  isExecutionConfirmed,
 } from "../server/mcp/tenderFlowMcp.js";
 
 const ROOT = process.cwd();
@@ -89,6 +90,29 @@ describe("MCP bid status change", () => {
     expect(source).toContain("Only create_task and status-only update_bid execution are enabled in MCP.");
   });
 
+  it("accepts the visible confirmation text and preserves legacy execute tokens", async () => {
+    const executeToken = "x".repeat(64);
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(executeToken),
+    );
+    const executeTokenHash = Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    const proposal = {
+      confirmation_text: "POTVRZUJI MCP ZMĚNU proposal-1: update_bid",
+      execute_token_hash: executeTokenHash,
+    };
+
+    await expect(isExecutionConfirmed(proposal, {
+      confirmationText: proposal.confirmation_text,
+    })).resolves.toBe(true);
+    await expect(isExecutionConfirmed(proposal, { executeToken })).resolves.toBe(true);
+    await expect(isExecutionConfirmed(proposal, {
+      confirmationText: "POTVRZUJI JINOU ZMĚNU",
+    })).resolves.toBe(false);
+  });
+
   it("prepares an authoritative before/after status diff", async () => {
     const proposal = {
       id: "11111111-1111-4111-8111-111111111111",
@@ -151,21 +175,16 @@ describe("MCP bid status change", () => {
   });
 
   it("executes only the confirmed status and records a bid result", async () => {
-    const executeToken = "x".repeat(64);
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(executeToken),
-    );
-    const executeTokenHash = Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+    const confirmationText =
+      "POTVRZUJI MCP ZMĚNU 11111111-1111-4111-8111-111111111111: update_bid";
     const proposal = {
       id: "11111111-1111-4111-8111-111111111111",
       user_id: "user-1",
       client_id: "client-1",
       status: "confirmed",
       expires_at: new Date(Date.now() + 60_000).toISOString(),
-      execute_token_hash: executeTokenHash,
+      confirmation_text: confirmationText,
+      execute_token_hash: null,
       change_type: "update_bid",
       change_payload: {
         type: "update_bid",
@@ -213,7 +232,7 @@ describe("MCP bid status change", () => {
       clientId: "client-1",
     }, {
       proposalId: proposal.id,
-      executeToken,
+      confirmationText,
       idempotencyKey: "outlook-reply-bid-1",
     })).resolves.toEqual({
       ok: true,

@@ -117,7 +117,8 @@ const confirmChangeSchema = z.object({
 
 const executeChangeSchema = z.object({
   proposalId: z.string().uuid(),
-  executeToken: z.string().min(20).max(500),
+  confirmationText: z.string().min(1).max(1000).optional(),
+  executeToken: z.string().min(20).max(500).optional(),
   idempotencyKey: z.string().min(8).max(200),
 });
 
@@ -263,14 +264,12 @@ const confirmProposal = async (supabase, auth, args) => {
     throw new Error('Confirmation text does not match exactly.');
   }
 
-  const executeToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-  const executeTokenHash = await hashToken(executeToken);
   const { error: updateError } = await supabase
     .from('mcp_change_proposals')
     .update({
       status: 'confirmed',
       confirmed_at: new Date().toISOString(),
-      execute_token_hash: executeTokenHash,
+      execute_token_hash: null,
     })
     .eq('id', proposal.id)
     .eq('status', 'prepared');
@@ -282,15 +281,22 @@ const confirmProposal = async (supabase, auth, args) => {
     data: {
       proposalId: proposal.id,
       status: 'confirmed',
-      executeToken,
+      confirmationText: proposal.confirmation_text,
       expiresAt: proposal.expires_at,
-      warning: 'Token je jednorázový a krátkodobý. Neposílej ho mimo MCP execute call.',
+      warning: 'Pro execute znovu použij přesný confirmationText a nový idempotencyKey.',
     },
   };
 };
 
+export const isExecutionConfirmed = async (proposal, args) => {
+  const confirmationMatches = typeof args.confirmationText === 'string'
+    && args.confirmationText.trim() === proposal.confirmation_text;
+  if (confirmationMatches) return true;
+  if (!args.executeToken || !proposal.execute_token_hash) return false;
+  return proposal.execute_token_hash === await hashToken(args.executeToken);
+};
+
 export const executeProposal = async (supabase, auth, args) => {
-  const tokenHash = await hashToken(args.executeToken);
   const { data: proposal, error } = await supabase
     .from('mcp_change_proposals')
     .select('*')
@@ -305,7 +311,9 @@ export const executeProposal = async (supabase, auth, args) => {
     return { ok: true, data: { proposalId: proposal.id, status: 'executed', result: proposal.execution_result } };
   }
   if (proposal.status !== 'confirmed') throw new Error(`Proposal is not executable in status ${proposal.status}.`);
-  if (proposal.execute_token_hash !== tokenHash) throw new Error('Invalid execute token.');
+  if (!await isExecutionConfirmed(proposal, args)) {
+    throw new Error('Invalid execution confirmation.');
+  }
   if (new Date(proposal.expires_at).getTime() < Date.now()) throw new Error('Proposal expired.');
   if (!['create_task', 'update_bid'].includes(proposal.change_type)) {
     throw new Error('Only create_task and status-only update_bid execution are enabled in MCP.');
@@ -865,7 +873,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     'tf_confirm_change',
     {
       title: 'Confirm Tender Flow Change',
-      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change. Returns a one-time execute token.',
+      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change. The same text is required again for execute.',
       inputSchema: confirmChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -877,7 +885,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     'tf_execute_change',
     {
       title: 'Execute Tender Flow Change',
-      description: 'Execute a confirmed create_task or status-only update_bid using a one-time token and idempotency key.',
+      description: 'Execute a confirmed create_task or status-only update_bid using the exact confirmation text and an idempotency key. Legacy one-time execute tokens remain accepted.',
       inputSchema: executeChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
