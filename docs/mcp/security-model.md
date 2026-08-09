@@ -17,15 +17,18 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 | --- | --- | --- |
 | klient → HTTP | Origin, headers, JSON, token | Origin allowlist, JWT/issuer/audience/resource/client/identity scopes, schema |
 | MCP → tool/resource | názvy a argumenty | per-request user+client permission resolver, podmíněná registrace, opakovaná kontrola, Zod, distribuovaný DB rate limit |
-| MCP → data | ID, filtry, search | oddělený backend `sb_secret_` apikey, izolovaná NOINHERIT role, omezené grants/selecty/RPC, user Bearer token, RLS a tenant role |
+| MCP → data | ID, filtry, search | oddělený backend `sb_secret_` apikey, přesný odvozený proof, izolovaná NOINHERIT role, omezené grants/selecty/RPC, user Bearer token, RLS a tenant role |
 | write workflow | proposal, potvrzení, token | user+client vazba, expirace, hash tokenu, idempotence |
 | audit | vstupy a výsledky | redakce secret/PII klíčů, omezené souhrny, RLS, povinný pre-audit write fází |
 
 ## Hrozby a mitigace
 
 - **Cross-tenant access:** autoritativně blokuje RLS/RPC; scope sám nestačí.
-- **Přímý Data API bypass:** MCP OAuth JWT má vyhrazenou NOINHERIT roli a
-  PostgREST jej přijme jen spolu se serverovým `SUPABASE_MCP_SECRET_KEY`.
+- **Přímý Data API bypass:** MCP OAuth JWT má vyhrazenou NOINHERIT roli.
+  Gateway ověří serverový `SUPABASE_MCP_SECRET_KEY`; backend z něj odvodí
+  přesný proof, který registruje pouze přes `service_role` RPC a posílá v
+  `x-tenderflow-mcp-proof`. PostgREST přijme MCP request jen při přesné shodě
+  s hodnotou v neexponovaném `mcp_private`; klient nezná klíč ani proof.
   Role záměrně nemá přístup ke spravovanému schématu `auth`; podepsanou
   identitu uživatele a klienta poskytují jen úzké `SECURITY DEFINER` helpery
   `mcp_current_user_id()` a `mcp_current_client_id()` v `public`.
@@ -85,6 +88,9 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
   `tenderflow_mcp_client`; server starší JWT fail-closed odmítne.
 - Serverový `SUPABASE_MCP_SECRET_KEY` musí být před deployem vytvořen jako
   samostatný rotovatelný Supabase secret API key a uložen ve Vercel secrets.
+- Rotace proofu používá jeden aktivní singleton. Při změně secretu se nesmí
+  dlouho překrývat instance s různými klíči; bezpečnost selže uzavřeně, ale
+  střídavá registrace může dočasně odmítat legitimní MCP požadavky.
 - `desktop MCP` nepoužívá stejný katalog/protokol jako remote/stdio.
 - Živý produkční canary musí ještě ověřit expiraci a revokaci elevated grantu;
   statický migrační test ani rollback dry-run tuto provozní kontrolu nenahrazuje.

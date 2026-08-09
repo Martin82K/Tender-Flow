@@ -21,9 +21,12 @@ a `profile`; server jiné hodnoty odmítá jako chybnou konfiguraci.
 
 Supabase URL je potřeba pro ověření identity. MCP Data API používá serverový
 `SUPABASE_MCP_SECRET_KEY` jako `apikey` a uživatelský OAuth JWT jako
-`Authorization`; právě tento rozdíl zachová `auth.uid()` a RLS. Veřejný anon
-klíč ani service-role credential do MCP datové cesty nepatří. Hodnoty se v
-incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
+`Authorization`; z tajného klíče navíc odvozuje přesný backend proof pro
+PostgREST pre-request guard. Právě toto oddělení zachová `auth.uid()` a RLS.
+Privilegované `service_role` RPC pouze registruje/rotuje proof a nikdy nenese
+uživatelský JWT ani doménová data. Veřejný anon klíč ani service-role bypass do
+uživatelské MCP datové cesty nepatří. Klíč ani proof se v incidentních
+výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
 
 ## Nasazení
 
@@ -34,6 +37,8 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
    po explicitním schválení verzovanou migraci.
 4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
+   První autorizovaný request musí přes service-role-only RPC zaregistrovat
+   backend proof; následné permission a tool requesty musí nést stejný proof.
 5. Pod rolí `tenderflow_mcp_client` ověřit, že `mcp_current_user_id()`,
    `mcp_current_client_id()` a `enforce_mcp_backend_boundary()` fungují bez
    `USAGE` oprávnění na schéma `auth`.
@@ -58,6 +63,13 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
    `create_task` prepare → confirm → execute, ověřit audit a řádek tasku, grant
    revokovat a ověřit okamžité zmizení write katalogu.
 12. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+
+Při rotaci `SUPABASE_MCP_SECRET_KEY` nejdřív nasadit jednu konzistentní novou
+hodnotu, vyvolat autorizovaný MCP canary a až po úspěchu ukončit staré instance.
+Proof store je záměrně singleton: souběžné instance s různými secrets se mohou
+navzájem přepisovat a dočasně selhat 403/503, vždy však fail-closed. Nikdy
+nevypisovat uložený proof; kontrolovat pouze existenci jednoho řádku a čas
+`updated_at`.
 
 ### Poslední ověřený produkční preflight
 

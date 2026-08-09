@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseMcpSecretKey, getSupabaseUrl } from './supabaseAuth.js';
+import { deriveMcpBackendProof } from './backendProof.js';
 
 let mcpClientSequence = 0;
 
-export const createUserSupabaseClient = (accessToken) =>
-  createClient(getSupabaseUrl(), getSupabaseMcpSecretKey(), {
+export const createUserSupabaseClient = (accessToken) => {
+  const secretKey = getSupabaseMcpSecretKey();
+  return createClient(getSupabaseUrl(), secretKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -14,9 +16,11 @@ export const createUserSupabaseClient = (accessToken) =>
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`,
+        'x-tenderflow-mcp-proof': deriveMcpBackendProof(secretKey),
       },
     },
   });
+};
 
 const normalizeSearch = (value) =>
   String(value || '')
