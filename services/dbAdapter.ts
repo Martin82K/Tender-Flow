@@ -4,6 +4,8 @@ import { getPublicEnvValue } from "../shared/config/publicEnv";
 export const dbAdapter = {
   from: <T extends string>(table: T) => supabase.from(table),
   functions: supabase.functions,
+  revokeOauthGrant: (clientId: string) =>
+    supabase.auth.oauth.revokeGrant({ clientId }),
   rpc: <T = unknown>(fn: string, args?: Record<string, unknown>) =>
     (supabase as any).rpc(fn, args),
   rpcRest: async <T = unknown>(fn: string, args?: Record<string, unknown>) => {

@@ -9,6 +9,7 @@ import {
 } from "../server/mcp/permissionGrants.js";
 import {
   listMyMcpClientGrants,
+  revokeMyMcpClientAccess,
   setMyMcpClientGrant,
 } from "../features/settings/api/mcpGrantService";
 
@@ -16,6 +17,7 @@ const ROOT = process.cwd();
 
 const dbAdapterMock = vi.hoisted(() => ({
   rpc: vi.fn(),
+  revokeOauthGrant: vi.fn(),
 }));
 
 vi.mock("@/services/dbAdapter", () => ({ dbAdapter: dbAdapterMock }));
@@ -140,6 +142,23 @@ describe("authoritative MCP user-client grants", () => {
       permission_input: "tenderflow.write",
       enabled_input: true,
     });
+  });
+
+  it("revokes the authenticated user's exact OAuth client grant", async () => {
+    dbAdapterMock.revokeOauthGrant.mockResolvedValueOnce({ data: {}, error: null });
+
+    await expect(revokeMyMcpClientAccess("client-1")).resolves.toBeUndefined();
+    expect(dbAdapterMock.revokeOauthGrant).toHaveBeenCalledWith("client-1");
+  });
+
+  it("fails safely when OAuth client revocation is rejected", async () => {
+    dbAdapterMock.revokeOauthGrant.mockResolvedValueOnce({
+      data: null,
+      error: { message: "Odpojení OAuth klienta se nepodařilo." },
+    });
+
+    await expect(revokeMyMcpClientAccess("client-1"))
+      .rejects.toThrow("Odpojení OAuth klienta se nepodařilo.");
   });
 
   it("migration keeps grants private, expiring, audited and JWT client-bound", () => {

@@ -3,6 +3,14 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — uživatelské odpojení OAuth klienta
+
+- nastavení AI a MCP přístupů umožňuje po druhém potvrzení úplně odvolat
+  uživatelský souhlas konkrétního OAuth klienta,
+- odvolání používá standardní Supabase OAuth revokaci, která zneplatní relace
+  a refresh tokeny vybraného klienta; ostatní klienti a auditní historie
+  zůstávají zachované.
+
 ## 2026-08-09 — exact backend proof pro PostgREST
 
 - protože Supabase gateway nepředává nový `sb_secret_…` klíč do PostgREST
