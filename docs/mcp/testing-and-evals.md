@@ -3,7 +3,7 @@
 Stav: základ kontrol kvality k 2026-08-09
 Zdroj pravdy: `tests/mcpRemoteServer.test.ts`, `tests/mcpRateLimitAudit.test.ts`,
 `tests/mcpReadCatalog.test.ts`, `tests/mcpToolCatalog.test.ts`,
-`tests/mcpDocumentation.test.ts`
+`tests/mcpOutlookMessageLinks.test.ts`, `tests/mcpDocumentation.test.ts`
 
 ## Automatické testy
 
@@ -53,6 +53,12 @@ warnings a relevance scénářů.
     používaný serverovým validátorem,
 17. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
     izolace, fail-closed DB outage a zatížení více instancí.
+18. Outlook link: opakovaný link stejné immutable zprávy je idempotentní,
+    stejná zpráva nesmí přejít na jinou kartu a cizí tenant ji nesmí číst ani
+    změnit,
+19. Outlook match: priorita immutable/In-Reply-To/internet/conversation ID,
+    nejvýše 10 autorizovaných kandidátů, žádný návrat uložených ID ani obsahu
+    zprávy a odmítnutí volání bez contacts grantu.
 
 ## Eval metriky
 

@@ -7,6 +7,12 @@ Zdroj pravdy: `createProposal`, `confirmProposal` a `executeProposal` v
 Tender Flow odděluje návrh, vědomé potvrzení a provedení. AI klient nesmí tyto
 kroky sloučit ani potvrzovací text domýšlet za uživatele.
 
+Třífázový protokol je povinný pro změny business dat. Jedinou úzkou výjimkou je
+`tf_link_outlook_message`: idempotentně uloží pouze stabilní Outlook
+identifikátory k již existující kartě. Nemůže měnit cenu, stav, dodavatele ani
+obsah nabídky. I tato operace vyžaduje write grant, projektové edit právo a
+úspěšný redigovaný audit pokusu; při chybě auditu selže bez zápisu.
+
 Write nástroje se objeví pouze klientovi s aktivním osmihodinovým
 `tenderflow.write` grantem pro přihlášeného uživatele a přesný OAuth klient.
 Grant zpřístupní protokol, ale nenahrazuje RLS, projektovou autorizaci, audit,
@@ -53,3 +59,7 @@ typy musí skončit zprávou, že ruční provedení v aplikaci je nutné.
 - pro nový uživatelský záměr vygenerovat nový idempotency key,
 - po nejednoznačném network timeoutu nejprve zopakovat execute se stejným
   idempotency key místo vytvoření druhého návrhu.
+- pro Outlook používat Graph `ImmutableId`; tělo emailu a přílohy předávat
+  přímo cílovému konektoru, nikoli ukládat do MCP vazby,
+- výsledek `tf_match_outlook_reply` nepovažovat za souhlas se změnou ceny nebo
+  kanban stavu, zvlášť pokud vrátí více kandidátů.

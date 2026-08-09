@@ -30,14 +30,22 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
 
 ## Aktuální hranice
 
-- Policy katalog implementuje 14 read nástrojů a 3 nástroje zápisového
+- Policy katalog implementuje 15 read nástrojů a 4 nástroje zápisového
   protokolu. Aktivně consentovaný OAuth klient získá základní read katalog;
   kontaktní data vyžadují 30denní user+client grant a write katalog osmihodinový
   grant. Oba lze okamžitě odebrat v Nastavení → Nástroje → MCP přístupy.
   Celý uživatelský OAuth souhlas lze na stejném místě odpojit po druhém
   potvrzení; tím se zneplatní relace a refresh tokeny pouze vybraného klienta.
-- Třífázový zápisový protokol dovoluje vykonat jen `create_task`; ostatní typy
-  server odmítá provést i s aktivním write grantem.
+- Třífázový zápisový protokol dovoluje z business změn vykonat jen
+  `create_task`; ostatní typy server odmítá provést i s aktivním write grantem.
+  Samostatný idempotentní `tf_link_outlook_message` ukládá pouze stabilní
+  identifikátory zprávy k existující kartě dodavatele. Nemění cenu, stav ani
+  obsah nabídky a před zápisem vyžaduje write grant, projektové edit právo a
+  úspěšný audit pokusu.
+- Outlook MVP ukládá `ImmutableId`, `internetMessageId` a volitelný
+  `conversationId`; tělo emailu, předmět, adresáti ani přílohy se do Tender Flow
+  neukládají. Odpověď lze následně přiřadit nástrojem
+  `tf_match_outlook_reply`.
 - Dostupný je katalog, PII-minimalizovaný projektový souhrn, smluvní přehled a
   vlastní otevřené tasky. Plný detail nabídek a kontaktů zůstává skrytý.
 - Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
