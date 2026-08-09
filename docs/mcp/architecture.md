@@ -52,7 +52,7 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | Permission policy | centrální mapování tool → interní permissions a riziko; neodvozuje je z tokenových `tenderflow.*` scopes |
 | Data adaptér | omezené selecty, mapování a minimalizace výsledků |
 | Supabase | autoritativní RLS/RPC, tenant a projektová oprávnění |
-| Audit/rate limit | redigovaná stopa a omezení frekvence volání |
+| Audit/rate limit | redigovaný write pre-audit/outcome a distribuovaný PostgreSQL risk bucket |
 
 ## Runtime varianty
 

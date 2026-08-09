@@ -3,6 +3,15 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — distribuovaný limiter a audit hardening
+
+- procesní limiter nahradil atomický PostgreSQL user/client/risk bucket se
+  serverovými limity a fail-closed chováním,
+- audit helper nově detekuje i návratové Supabase chyby a bezpečně je
+  signalizuje,
+- každá write fáze vyžaduje úspěšný redigovaný attempt audit před spuštěním
+  doménového handleru.
+
 ## 2026-08-09 — OAuth resource binding hotfix
 
 - resource claim je vázán na autoritativní registr dedikovaných MCP OAuth

@@ -16,10 +16,10 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 | Hranice | Nedůvěryhodný vstup | Kontroly |
 | --- | --- | --- |
 | klient → HTTP | Origin, headers, JSON, token | Origin allowlist, JWT/issuer/audience/resource/client/identity scopes, schema |
-| MCP → tool/resource | názvy a argumenty | serverové permissions, podmíněná registrace, opakovaná kontrola, Zod, rate limit |
+| MCP → tool/resource | názvy a argumenty | serverové permissions, podmíněná registrace, opakovaná kontrola, Zod, distribuovaný DB rate limit |
 | MCP → data | ID, filtry, search | omezené selecty/RPC, user Bearer token, RLS a tenant role |
 | write workflow | proposal, potvrzení, token | user+client vazba, expirace, hash tokenu, idempotence |
-| audit | vstupy a výsledky | redakce secret/PII klíčů, omezené souhrny, RLS |
+| audit | vstupy a výsledky | redakce secret/PII klíčů, omezené souhrny, RLS, povinný pre-audit write fází |
 
 ## Hrozby a mitigace
 
@@ -38,14 +38,16 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
   path; vrací jen příznak/název.
 - **Replay/dvojitý zápis:** execute token, expirace a user/client-scoped
   idempotency key.
+- **Obcházení limitu přes více instancí:** atomický PostgreSQL bucket podle
+  user/client/risk; pevné limity a klientská vazba jsou uvnitř RPC.
+- **Tichý výpadek auditu:** Supabase návratové chyby i výjimky se signalizují
+  bezpečným hosting logem; každá write fáze vyžaduje úspěšný audit pokusu ještě
+  před doménovým handlerem.
 - **DNS rebinding/browser abuse:** přesný Origin allowlist; non-browser klient
   stále potřebuje validní token.
 
 ## Známá reziduální rizika
 
-- Rate limit je `in-memory`, není distribuovaný a resetuje se restartem.
-- Audit helper aktuálně nezajišťuje fail-closed zápis ani spolehlivou externí
-  signalizaci každého výpadku auditu.
 - Veřejná část produkčního OAuth canary je automatizovaná; vydání tokenu,
   expirace a cross-tenant negativní scénář s reálným klientem ještě nebyly
   vykonány.
