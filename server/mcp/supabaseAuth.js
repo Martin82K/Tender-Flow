@@ -63,6 +63,9 @@ export const getAllowedClientIds = () =>
 
 export const getRequiredMcpScopes = () => {
   const requiredScopes = splitScopesEnv('MCP_REQUIRED_SCOPES', 'openid');
+  if (requiredScopes.length === 0) {
+    throw new Error('MCP_REQUIRED_SCOPES must contain at least one supported OAuth scope.');
+  }
   const supportedScopes = new Set(getSupportedMcpOAuthScopes());
   const unsupportedScopes = requiredScopes.filter((scope) => !supportedScopes.has(scope));
   if (unsupportedScopes.length > 0) {

@@ -128,10 +128,44 @@ describe("remote MCP server", () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toBe(
-      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource"',
+      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource", scope="openid"',
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
+  });
+
+  it("publikuje nakonfigurované podporované scopes v OAuth challenge", async () => {
+    vi.stubEnv("MCP_REQUIRED_SCOPES", "openid email profile");
+
+    const response = await handleMcpWebRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toBe(
+      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource", scope="openid email profile"',
+    );
+  });
+
+  it("zachová OAuth discovery challenge i při chybné konfiguraci scopes", async () => {
+    vi.stubEnv("MCP_REQUIRED_SCOPES", "openid tenderflow.write");
+
+    const response = await handleMcpWebRequest(
+      new Request("https://tenderflow.cz/api/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toBe(
+      'Bearer resource_metadata="https://tenderflow.cz/api/mcp-resource", scope="openid"',
+    );
   });
 
   it("loguje odmítnutí OAuth tokenu bez Authorization hodnoty", async () => {
@@ -223,6 +257,11 @@ describe("remote MCP server", () => {
     expect(() =>
       validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" }),
     ).toThrow("MCP_REQUIRED_SCOPES contains unsupported OAuth scopes: tenderflow.write.");
+
+    vi.stubEnv("MCP_REQUIRED_SCOPES", "   ");
+    expect(() =>
+      validateMcpTokenClaims({ ...payload, scope: "" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
+    ).toThrow("MCP_REQUIRED_SCOPES must contain at least one supported OAuth scope.");
   });
 
   it("rediguje citlivé MCP audit payloady a neukládá celé výsledky execute", () => {

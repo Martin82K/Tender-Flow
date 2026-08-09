@@ -35,7 +35,8 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    uložit jej jako `SUPABASE_MCP_SECRET_KEY` do serverového/Vercel prostředí.
 3. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
    po explicitním schválení verzovanou migraci.
-4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
+4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`,
+   včetně `scope="openid"` ve `WWW-Authenticate`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
    První autorizovaný request musí přes service-role-only RPC zaregistrovat
    backend proof; následné permission a tool requesty musí nést stejný proof.
