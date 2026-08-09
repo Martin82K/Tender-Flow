@@ -47,9 +47,19 @@ jednorázový náhodný execute token; databáze ukládá jen SHA-256 hash.
 Před zápisem znovu ověří viditelnost projektu. Po úspěchu uloží výsledek,
 proposal označí `executed` a hash execute tokenu odstraní.
 
-Pouze `create_task` je nyní vykonatelný. Název je ořezán na 500 znaků, poznámka
-na 10 000; `created_by` se odvozuje z ověřeného uživatele. Ostatní návrhové
-typy musí skončit zprávou, že ruční provedení v aplikaci je nutné.
+Vykonatelné jsou `create_task` a stavová větev `update_bid`. Název úkolu je
+ořezán na 500 znaků, poznámka na 10 000; `created_by` se odvozuje z ověřeného
+uživatele. `update_bid` přijímá pouze `bidId` a jeden povolený status. Prepare
+načte aktuální stav přes stejné omezené RPC v dry-run režimu a execute provede
+compare-and-set; při mezitímní cizí změně selže bez přepsání. Stejný cílový stav
+je idempotentní. Cena, kontakt, dodavatel, poznámky a přílohy se touto větví
+měnit nedají. Ostatní návrhové typy musí skončit zprávou, že ruční provedení v
+aplikaci je nutné.
+
+Role `tenderflow_mcp_client` nadále nemá `UPDATE` na `public.bids`. Stav mění
+jen `change_mcp_bid_status`, jehož `EXECUTE` je odebrán rolím `PUBLIC`, `anon`,
+`authenticated` a `service_role` a udělen pouze MCP roli. RPC znovu ověřuje
+user/client, aktivní write grant a projektové právo k pipeline.
 
 ## Povinnosti klienta
 
