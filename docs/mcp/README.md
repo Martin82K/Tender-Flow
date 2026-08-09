@@ -44,7 +44,9 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
   je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
 - Rate limit je distribuovaný PostgreSQL user/client/risk bucket s pevnými
   60sekundovými limity a fail-closed chováním při DB výpadku.
-- Produkční OAuth canary s reálným klientem je samostatný následující loop.
+- Produkční OAuth canary i skutečné volání `tf_list_projects` z ChatGPT jsou
+  ověřené. Vlastní MCP aplikace je nutné používat ve standardním režimu Chat;
+  agentní režim Work vlastní aplikace modelu nezpřístupňuje.
 
 Oficiální podklady: [MCP 2026-07-28](https://blog.modelcontextprotocol.io/posts/2026-07-28/),
 [MCP autorizace](https://modelcontextprotocol.io/docs/tutorials/security/authorization)

@@ -3,6 +3,17 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — sdílená matice toolů a oprávnění
+
+- serverová autorizace a uživatelská obrazovka používají společný katalog 17
+  MCP nástrojů v `shared/mcp/toolCatalog.js`,
+- každý OAuth klient zobrazuje název toolu, čtená nebo měněná data, režim,
+  potvrzovací protokol a aktuální stav podle baseline, contacts a write grantu,
+- regresní test porovnává celý publikovaný `tools/list` se sdíleným katalogem,
+  takže nový nebo odebraný tool nemůže zůstat v UI bez odpovídající serverové
+  policy,
+- změna nepřidává databázové granty, OAuth scopes ani nové zapisovací operace.
+
 ## 2026-08-09 — OAuth metadata v katalogu toolů
 
 - každý publikovaný tool deklaruje pro ChatGPT OAuth2 s minimálním scope

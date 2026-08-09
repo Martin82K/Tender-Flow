@@ -40,6 +40,14 @@ describe("McpAccessSettings", () => {
 
     expect(await screen.findByText("ChatGPT Tender Flow")).toBeInTheDocument();
     expect(screen.getByText("Základní čtení aktivní")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Přehled dostupných nástrojů" })).toBeInTheDocument();
+    expect(screen.getByText("tf_list_projects")).toBeInTheDocument();
+    expect(screen.getByText("tf_list_contacts")).toBeInTheDocument();
+    expect(screen.getByText("tf_execute_change")).toBeInTheDocument();
+    expect(screen.getByText("10 z 17 aktivních")).toBeInTheDocument();
+    expect(screen.getAllByText("Aktivní").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Vyžaduje kontaktní údaje").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Vyžaduje zápis").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Povolit kontaktní údaje" }));
     await waitFor(() => {
@@ -73,6 +81,22 @@ describe("McpAccessSettings", () => {
         true,
       );
     });
+  });
+
+  it("promítne aktivní kontaktní a zápisový grant do celé matice", async () => {
+    grantMocks.list.mockResolvedValueOnce([{
+      clientId: "client-1",
+      clientName: "ChatGPT Tender Flow",
+      clientUri: "https://chatgpt.com",
+      contactsReadExpiresAt: "2099-09-08T00:00:00Z",
+      writeExpiresAt: "2099-08-09T08:00:00Z",
+    }]);
+
+    render(<McpAccessSettings />);
+
+    expect(await screen.findByText("17 z 17 aktivních")).toBeInTheDocument();
+    expect(screen.queryByText("Vyžaduje kontaktní údaje")).not.toBeInTheDocument();
+    expect(screen.queryByText("Vyžaduje zápis")).not.toBeInTheDocument();
   });
 
   it("requires confirmation and revokes only the selected OAuth client", async () => {
