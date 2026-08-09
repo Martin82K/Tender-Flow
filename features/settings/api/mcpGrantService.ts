@@ -79,3 +79,8 @@ export const setMyMcpClientGrant = async (
     expiresAt: row.expires_at || null,
   };
 };
+
+export const revokeMyMcpClientAccess = async (clientId: string): Promise<void> => {
+  const { error } = await dbAdapter.revokeOauthGrant(clientId);
+  if (error) throwRpcError(error);
+};

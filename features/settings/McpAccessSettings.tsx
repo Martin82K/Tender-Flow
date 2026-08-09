@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   listMyMcpClientGrants,
+  revokeMyMcpClientAccess,
   setMyMcpClientGrant,
   type McpClientGrant,
   type McpElevatedPermission,
@@ -22,6 +23,7 @@ export const McpAccessSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [pendingWriteClientId, setPendingWriteClientId] = useState<string | null>(null);
+  const [pendingDisconnectClientId, setPendingDisconnectClientId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -52,6 +54,22 @@ export const McpAccessSettings: React.FC = () => {
       await load();
     } catch (changeError) {
       setError(changeError instanceof Error ? changeError.message : String(changeError));
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const disconnectClient = async (clientId: string) => {
+    const key = `${clientId}:disconnect`;
+    setSavingKey(key);
+    setError(null);
+    try {
+      await revokeMyMcpClientAccess(clientId);
+      setPendingDisconnectClientId(null);
+      setPendingWriteClientId(null);
+      await load();
+    } catch (disconnectError) {
+      setError(disconnectError instanceof Error ? disconnectError.message : String(disconnectError));
     } finally {
       setSavingKey(null);
     }
@@ -95,6 +113,7 @@ export const McpAccessSettings: React.FC = () => {
           const writeActive = isActive(client.writeExpiresAt);
           const contactsKey = `${client.clientId}:tenderflow.contacts.read`;
           const writeKey = `${client.clientId}:tenderflow.write`;
+          const disconnectKey = `${client.clientId}:disconnect`;
 
           return (
             <article
@@ -184,6 +203,48 @@ export const McpAccessSettings: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
+
+              <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
+                {pendingDisconnectClientId === client.clientId ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-100">
+                    <p className="font-semibold">Opravdu odpojit tohoto klienta?</p>
+                    <p className="mt-1">
+                      Odpojení zneplatní jeho aktivní relace a obnovovací tokeny. Pro další přístup bude
+                      klient vyžadovat nové přihlášení a váš nový souhlas.
+                    </p>
+                    <p className="mt-2 break-all font-mono text-xs">{client.clientId}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={savingKey === disconnectKey}
+                        onClick={() => void disconnectClient(client.clientId)}
+                        className="rounded-lg bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Potvrdit odpojení
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingKey === disconnectKey}
+                        onClick={() => setPendingDisconnectClientId(null)}
+                        className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold"
+                      >
+                        Zrušit
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingWriteClientId(null);
+                      setPendingDisconnectClientId(client.clientId);
+                    }}
+                    className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
+                  >
+                    Odpojit klienta
+                  </button>
+                )}
               </div>
             </article>
           );
