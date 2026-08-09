@@ -16,9 +16,9 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 
 | Interní permission | Význam | Aktuální remote/stdio stav |
 | --- | --- | --- |
-| `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | povoleno serverovou policy |
-| `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | nevydává se |
-| `tenderflow.write` | přístup k třífázovým write tools; vyžaduje také read | nevydává se |
+| `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | automaticky pro aktivně consentovaného registrovaného klienta |
+| `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | volitelný user+client grant na 30 dní |
+| `tenderflow.write` | přístup k třífázovým write tools; vyžaduje také read | volitelný user+client grant na 8 hodin |
 
 ## Matice nástrojů
 
@@ -46,5 +46,11 @@ s uloženým katalogem nebo přímé zavolání názvu kontrolu neobejde.
 
 OAuth klient má žádat pouze potřebné standardní identity scopes. Vlastní
 `tenderflow.*` hodnota v OAuth tokenu se ignoruje a permission nezíská.
-Kontaktní a write permission zůstávají vypnuté, dokud nebude implementovaný a
-živě otestovaný grant model vázaný na uživatele i schváleného klienta.
+Server při každém MCP požadavku volá autoritativní resolver. Ten váže
+`auth.uid()`, přesný JWT `client_id`/`azp`, aktivní registr MCP resource,
+nezrušený OAuth consent a neexpirovaný grant. Přímý přístup rolí `anon` a
+`authenticated` k grantovým i auditním tabulkám je odebraný; uživatel spravuje
+jen vlastní granty přes RPC bez parametru `user_id`. Správcovská RPC navíc
+odmítnou JWT s `client_id` nebo `azp`, takže je lze volat pouze z first-party
+Tender Flow session, nikoli tokenem consentovaného MCP klienta. Výpadek
+resolveru končí fail-closed bez katalogu.

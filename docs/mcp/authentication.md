@@ -25,6 +25,8 @@ sequenceDiagram
   O-->>C: authorization code / access token
   C->>M: Bearer token + MCP request
   M->>M: podpis a claims validace
+  M->>D: autoritativní user+client permission resolver
+  D-->>M: aktuální read/contacts/write permissions
   M->>D: dotaz jako auth.uid() uživatele
   D-->>M: pouze data povolená RLS
   M-->>C: MCP výsledek
@@ -55,7 +57,12 @@ OAuth `scope` a doménová MCP oprávnění jsou oddělené. Supabase Auth podpo
 standardní scopes (`openid`, `email`, `profile`, případně `phone` a
 `offline_access`), nikoli vlastní Tender Flow scopes. Server proto nikdy
 neodvozuje přístup k datům z hodnoty `tenderflow.*` vložené do tokenového
-`scope`; interní permissions přiděluje až důvěryhodná serverová policy.
+`scope`; interní permissions přiděluje až databázový resolver pro konkrétního
+uživatele a consentovaného OAuth klienta. Resolver se volá při každém remote
+požadavku, kontroluje expiraci i revokaci a při DB chybě odmítne přístup.
+OAuth klient může oprávnění pouze použít přes MCP toolset. Výpis a změna
+zvýšených grantů vyžadují first-party Tender Flow session bez JWT `client_id`
+i `azp`; stejný OAuth bearer si proto nemůže rozšířit vlastní oprávnění.
 
 V produkci musí být `MCP_ALLOWED_CLIENT_IDS` neprázdné. Browserový Origin se
 kontroluje přes `MCP_ALLOWED_ORIGINS`; absence Origin u serverového klienta
@@ -66,7 +73,9 @@ nenahrazuje tokenovou kontrolu.
 `TENDER_FLOW_MCP_ACCESS_TOKEN` je lokálně předaný Supabase session token.
 Normální session token dostane interní oprávnění jen pro obecné čtení, nikoli
 kontaktní údaje ani zápis. Standardní OAuth scopes zůstávají identity claims a
-nejsou uměle doplňovány. Audit používá pevné
+nejsou uměle doplňovány. Pokud stdio dostane skutečný OAuth token s
+`client_id`, použije stejný autoritativní resolver jako remote transport.
+Audit normální session cesty používá pevné
 `client_id = local-stdio`; databázová politika tuto výjimku dovolí pouze tokenu
 bez `client_id` i `azp`.
 

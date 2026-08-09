@@ -1,6 +1,7 @@
 # Reference MCP tools
 
-Stav: 17 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných remote/stdio k 2026-08-09
+Stav: 17 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
+bez zvýšeného grantu, dalších 7 podmíněných user+client grantem k 2026-08-09
 Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/scopePolicy.js`,
 `server/mcp/data.js`
 
@@ -12,9 +13,9 @@ Každý tool nejprve atomicky spotřebuje sdílený user/client/risk bucket. Wri
 fáze se nespustí bez úspěšného redigovaného `*_attempt` auditu; po dokončení se
 zapíše samostatný outcome.
 
-Označení „disabled“ níže znamená, že implementace existuje, ale současná
-serverová policy remote ani stdio klientům nevydává potřebnou interní
-permission. OAuth token tuto permission nemůže sám získat vlastním scope.
+Označení „vyžaduje grant“ níže znamená, že implementace existuje, ale server ji
+zaregistruje pouze s aktuálním autoritativním user+client grantem. OAuth token
+tuto permission nemůže sám získat vlastním scope.
 
 ## Discovery a načtení výsledku
 
@@ -23,7 +24,7 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 - Permissions: read; riziko: low; pouze čtení; dostupný.
 - Vstup: `query` — 1 až 500 znaků.
 - Použití: první krok pro connector/deep-research discovery nad projekty, VŘ a
-  vlastními tasky. Kontakty přidá jen budoucí samostatný contacts grant.
+  vlastními tasky. Kontakty přidá jen aktivní 30denní contacts grant.
 - Výstup: pole výsledků `id`, `title`, `url`, volitelná `metadata`.
 
 ### `fetch`
@@ -42,10 +43,10 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 | --- | --- | --- | --- |
 | `tf_list_projects` | read / dostupný | `search?`, `limit?` | viditelné projekty; server limituje počet na 20 |
 | `tf_get_project_summary` | read / dostupný | `projectId` | PII-minimalizovaný projekt, VŘ, agregované bid statistiky, smlouvy a plán; explicitní limity a truncation příznaky |
-| `tf_get_project_detail` | read + contacts / disabled | `projectId` | projekt, VŘ, nabídky, smlouvy a plán; RLS-scoped |
+| `tf_get_project_detail` | read + contacts / vyžaduje grant | `projectId` | projekt, VŘ, nabídky, smlouvy a plán; RLS-scoped |
 | `tf_list_tenders` | read / dostupný | `projectId?`, `limit?` | VŘ/demand categories; limit max. 20 |
-| `tf_list_bids` | read + contacts / disabled | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 100; vazba přes `demand_category_id` |
-| `tf_list_winners` | read + contacts / disabled | `projectId?`, `categoryId?`, `limit?` | pouze vítězné/zasmluvněné nabídky |
+| `tf_list_bids` | read + contacts / vyžaduje grant | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 100; vazba přes `demand_category_id` |
+| `tf_list_winners` | read + contacts / vyžaduje grant | `projectId?`, `categoryId?`, `limit?` | pouze vítězné/zasmluvněné nabídky |
 | `tf_list_tender_plan` | read / dostupný | `projectId?`, `limit?` | harmonogram/plán VŘ; limit max. 100 |
 | `tf_list_upcoming_deadlines` | read / dostupný | `rangeDays?` | budoucí termíny; rozsah je normalizován na 1–365 dní |
 
@@ -53,7 +54,7 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 
 | Tool | Permissions / dostupnost | Vstup | Výsledek a ochrana |
 | --- | --- | --- | --- |
-| `tf_list_contacts` | read + contacts / disabled | `search?`, `limit?` | dodavatelé a kontaktní PII; limit max. 20 |
+| `tf_list_contacts` | read + contacts / vyžaduje grant | `search?`, `limit?` | dodavatelé a kontaktní PII; limit max. 20 |
 | `tf_list_contracts` | read / dostupný | `projectId?`, `limit?` | smlouvy viditelné uživateli; limit max. 20 |
 | `tf_get_contract_overview` | read / dostupný | `organizationId?` UUID, `includeArchived?` | autorizovaný RPC přehled; bez raw storage path/URL; neplatná měna se mapuje na CZK |
 
@@ -72,7 +73,7 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 
 ### `tf_prepare_change`
 
-- Permissions: read + write; riziko medium; **disabled**.
+- Permissions: read + write; riziko medium; **vyžaduje osmihodinový grant**.
 - Vstup: `change` a volitelný `reason` do 1000 znaků.
 - Pro `create_task`: `title` 1–500, `note?` max. 10 000, `dueAt?`,
   `priority?` 1–4, `projectId?`.
@@ -81,14 +82,14 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 
 ### `tf_confirm_change`
 
-- Permissions: read + write; riziko high; **disabled**.
+- Permissions: read + write; riziko high; **vyžaduje osmihodinový grant**.
 - Vstup: UUID `proposalId` a přesný `confirmationText`.
 - Ověří vlastníka, OAuth klienta, stav a desetiminutovou expiraci.
 - Výstup: krátkodobý jednorázový `executeToken`; token se nesmí logovat.
 
 ### `tf_execute_change`
 
-- Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **disabled**.
+- Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **vyžaduje osmihodinový grant**.
 - Vstup: `proposalId`, `executeToken` a `idempotencyKey` 8–200 znaků.
 - Pouze `create_task` je implementovaný execution typ.
 - Opakování stejného user/client/idempotency klíče vrací uložený výsledek.

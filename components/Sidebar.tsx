@@ -130,6 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subTabParam === "profile" ||
       subTabParam === "notifications" ||
       subTabParam === "backup" ||
+      subTabParam === "mcp" ||
       subTabParam === "contacts" ||
       subTabParam === "excelUnlocker" ||
       subTabParam === "excelMerger" ||

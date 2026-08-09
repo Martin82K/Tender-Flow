@@ -17,12 +17,14 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
    `WWW-Authenticate` odpovědi 401.
 2. Provést OAuth authorization code flow s resource indikátorem MCP endpointu.
 3. Zobrazit uživateli Tender Flow consent oddělující identity scopes od
-   interního read-only oprávnění.
+   interních oprávnění.
 4. Posílat `Authorization: Bearer …`, `MCP-Protocol-Version: 2026-07-28`,
    odpovídající `Mcp-Method`/`Mcp-Name` a klientská metadata v `_meta`.
 5. Volitelně zavolat `server/discover`, potom `tools/list` a resource seznamy.
-6. Provést read-only canary a ověřit audit. Contacts/write nelze aktivovat
-   rozšířením OAuth scope; vyžadují budoucí serverový grant model.
+6. Provést read-only canary a ověřit audit.
+7. Potřebuje-li klient kontaktní data nebo zápis, uživatel je povolí pro tento
+   consentovaný klient v Nastavení → Nástroje → MCP přístupy. Contacts grant
+   platí 30 dní, write grant 8 hodin; rozšíření OAuth scope je nenahrazuje.
 
 Konfigurační příklad bez secretu:
 
@@ -43,7 +45,7 @@ Konfigurační příklad bez secretu:
 - nesdílí private resource cache mezi uživateli,
 - reaguje na OAuth challenge a nepodvrhuje vlastní `tenderflow.*` scopes,
 - neukládá Bearer ani execute token do logů,
-- po budoucím povolení write zobrazuje diff, riziko a potvrzení uživateli,
+- při aktivním write grantu zobrazuje diff, riziko a potvrzení uživateli,
 - zvládá 401, 403/tool absence, 429, schema error a expiraci,
 - po odebrání oprávnění zahodí cache a znovu autorizuje.
 

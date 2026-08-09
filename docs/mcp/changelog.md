@@ -3,10 +3,22 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — autoritativní user+client granty
+
+- interní permissions se při každém MCP požadavku řeší databázovým RPC podle
+  `auth.uid()`, přesného JWT klienta, aktivního resource registru a OAuth
+  consentu,
+- consentovaný klient získá baseline read; contacts grant expiruje za 30 dní
+  a write grant za 8 hodin, oba lze okamžitě revokovat,
+- přidáno uživatelské Nastavení → Nástroje → MCP přístupy, druhé potvrzení pro
+  write a append-only audit grantů,
+- grantové tabulky nemají přímý přístup `anon` ani `authenticated`; správa
+  probíhá přes user-bound `SECURITY DEFINER` RPC s prázdným `search_path`.
+
 ## 2026-08-09 — bezpečný read katalog a tasky
 
 - obecné `search`/`fetch` jsou dostupné bez kontaktní PII; kontaktní větev
-  zůstává vázaná na nevydávané contacts permission,
+  zůstává vázaná na samostatnou contacts permission,
 - přidán PII-minimalizovaný `tf_get_project_summary`, projektový resource,
   `tf_list_tasks` a `tenderflow://tasks/open`,
 - MCP mapování nabídek používá produkční `demand_category_id` místo prázdného

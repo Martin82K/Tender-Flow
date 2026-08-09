@@ -93,7 +93,7 @@ describe("remote MCP server", () => {
         "email",
         "profile",
       ],
-      resource_documentation: "https://tenderflow.cz/app/settings?tab=tools",
+      resource_documentation: "https://tenderflow.cz/app/settings?tab=tools&subTab=mcp",
     });
   });
 
@@ -155,15 +155,15 @@ describe("remote MCP server", () => {
       userId: "user-1",
       clientId: "client-1",
       oauthScopes: ["openid", "email", "profile"],
-      permissions: ["tenderflow.read"],
     });
+    expect(validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" }))
+      .not.toHaveProperty("permissions");
 
     expect(validateMcpTokenClaims({
       ...payload,
       scope: "openid email profile tenderflow.contacts.read tenderflow.write",
     }, { expectedResource: "https://tenderflow.cz/api/mcp" })).toMatchObject({
       oauthScopes: ["openid", "email", "profile", "tenderflow.contacts.read", "tenderflow.write"],
-      permissions: ["tenderflow.read"],
     });
 
     expect(() =>

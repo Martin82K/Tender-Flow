@@ -13,7 +13,8 @@ flowchart LR
   C -->|"lokální session token"| S["stdio bridge"]
   H --> V["JWT, issuer, audience, resource, client a identity scope validace"]
   S --> V
-  V --> P["Serverové permissions + registrace dostupných tools/resources"]
+  V --> G["Supabase user+client permission resolver"]
+  G --> P["Registrace dostupných tools/resources"]
   P --> R["Rate limit"]
   R --> D["Tender Flow data adaptéry"]
   D --> Q["Supabase Data API / RPC"]
@@ -49,6 +50,7 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | HTTP/stdio adaptér | transport, status kódy, protected-resource metadata |
 | Token validation | podpis JWT, issuer, audience/resource, client allowlist, expirace a standardní identity scopes |
 | MCP server factory | capabilities, schemas, podmíněná registrace tools/resources |
+| Permission resolver | per-request RPC váže `auth.uid()`, JWT klienta, consent, expiraci a revokaci; fail-closed |
 | Permission policy | centrální mapování tool → interní permissions a riziko; neodvozuje je z tokenových `tenderflow.*` scopes |
 | Data adaptér | omezené selecty, mapování a minimalizace výsledků |
 | Supabase | autoritativní RLS/RPC, tenant a projektová oprávnění |
@@ -59,5 +61,5 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | Varianta | Implementace | Stav |
 | --- | --- | --- |
 | Remote HTTP | `server/mcp/` + `api/mcp.js` | kanonická MCP 2.0 cesta |
-| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze obecná interní read permission |
+| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | session: obecné read; OAuth token: stejný grant resolver |
 | Desktop | `desktop/main/services/mcpServer.ts` | samostatný legacy server; plánované sjednocení |

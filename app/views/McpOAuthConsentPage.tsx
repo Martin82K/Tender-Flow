@@ -169,13 +169,21 @@ export const McpOAuthConsentPage: React.FC = () => {
                 <p className="text-xs uppercase tracking-wide text-white/50">Oprávnění v Tender Flow</p>
                 <ul className="mt-2 space-y-2 text-sm text-white/80">
                   <li>- čtení projektů, výběrových řízení, smluv, plánů a termínů v rozsahu vašich oprávnění</li>
-                  <li>- Kontaktní údaje a zápisové operace nejsou povoleny.</li>
+                  <li>- Bez samostatného časově omezeného grantu nejsou kontaktní údaje ani zápis povoleny.</li>
                 </ul>
               </div>
 
               <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
-                AI bude moct pouze číst obecná data, která už smíte zobrazit v Tender Flow. OAuth scopes ověřují vaši identitu; nerozšiřují oprávnění k datům.
+                AI bude po připojení moct pouze číst obecná data, která už smíte zobrazit v Tender Flow.
+                Rozšířená oprávnění můžete samostatně povolit a kdykoliv odebrat v nastavení AI a MCP přístupů.
               </div>
+
+              <a
+                href="/app/settings?tab=tools&subTab=mcp"
+                className="inline-flex text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
+              >
+                Zobrazit správu MCP oprávnění
+              </a>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button

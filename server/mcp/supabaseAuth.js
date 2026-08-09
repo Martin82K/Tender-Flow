@@ -1,9 +1,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import {
   getLocalSessionMcpPermissions,
-  getRemoteMcpPermissions,
   getSupportedMcpOAuthScopes,
 } from './scopePolicy.js';
+import { resolveMcpPermissions } from './permissionGrants.js';
 
 const getEnv = (name, fallbackName) =>
   process.env[name] || (fallbackName ? process.env[fallbackName] : '') || '';
@@ -131,7 +131,6 @@ export const validateMcpTokenClaims = (payload, options = {}) => {
     userId,
     clientId,
     oauthScopes: scopes,
-    permissions: getRemoteMcpPermissions(),
   };
 };
 
@@ -145,13 +144,14 @@ export const verifyMcpBearerToken = async (authorizationHeader, options = {}) =>
   const issuer = getSupabaseAuthIssuer();
   const { payload } = await jwtVerify(token, getJwks(issuer), { issuer });
   const claims = validateMcpTokenClaims(payload, options);
+  const permissions = await resolveMcpPermissions({ token, clientId: claims.clientId });
 
   return {
     token,
     userId: claims.userId,
     clientId: claims.clientId,
     oauthScopes: claims.oauthScopes,
-    permissions: claims.permissions,
+    permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     payload,
@@ -177,13 +177,16 @@ export const verifyLocalMcpAccessToken = async (accessToken) => {
 
   const oauthClientId = String(payload.client_id || payload.azp || '').trim();
   const clientId = oauthClientId || 'local-stdio';
+  const permissions = oauthClientId
+    ? await resolveMcpPermissions({ token, clientId })
+    : getLocalSessionMcpPermissions();
 
   return {
     token,
     userId,
     clientId,
     oauthScopes: parseScopes(payload),
-    permissions: getLocalSessionMcpPermissions(),
+    permissions,
     expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     hasOAuthClientId: Boolean(oauthClientId),

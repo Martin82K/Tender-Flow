@@ -36,8 +36,9 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
 6. Ověřit auditní řádek, tenantovou izolaci a chování expirovaného tokenu.
 7. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
-8. Write canary neprovádět, dokud nebude samostatně schválen a nasazen
-   autoritativní user+client grant model; potom jen na testovacím projektu.
+8. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
+   `create_task` prepare → confirm → execute, ověřit audit a řádek tasku, grant
+   revokovat a ověřit okamžité zmizení write katalogu.
 9. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
 
 ### Poslední ověřený produkční preflight
@@ -50,7 +51,7 @@ proto klienti musí jako resource používat přímo kanonickou www adresu.
 
 Tento preflight není důkazem tokenových claims ani RLS. Dokud registrovaný
 produkční klient nevydá skutečný token s očekávaným resource claimem, server
-zůstává fail-closed a kontaktní i write permissions zůstávají vypnuté.
+zůstává fail-closed; tokenový canary je nutný i pro základní read permission.
 
 ## Minimální observabilita
 
@@ -73,6 +74,16 @@ bez úspěšného pre-auditu server doménovou změnu nespustí.
 - **Přetížení:** zkontrolovat `consume_mcp_rate_limit`, počet aktivních bucketů,
   DB latency a `Rate limit service is unavailable`; podle klienta případně
   použít OAuth allowlist/WAF kill switch.
+
+## Kill switch pořadí
+
+1. Odebrat uživatelský contacts/write grant přes Nastavení nebo správcovské
+   RPC volané first-party Tender Flow session; OAuth MCP token je volat nesmí.
+2. Pro jednoho klienta revokovat OAuth consent nebo deaktivovat jeho řádek v
+   `mcp_oauth_client_resources`.
+3. Odebrat client ID z `MCP_ALLOWED_CLIENT_IDS` a nasadit konfiguraci.
+4. Při plošném incidentu zablokovat `/api/mcp` na edge/WAF a zachovat auditní
+   i hosting logy. Databázovou migraci nevracet destruktivním rollbackem.
 
 Rollback aplikace nesmí vracet databázové migrace destruktivním příkazem.
 Kompatibilní forward-fix je preferovaný; revokace OAuth klienta je bezpečný

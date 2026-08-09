@@ -28,6 +28,7 @@ import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
 import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
 import { AppUsageAdmin } from "@/features/settings/AppUsageAdmin";
 import { BackupSettings } from "@/features/backup/ui/BackupSettings";
+import { McpAccessSettings } from "@/features/settings/McpAccessSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -78,13 +79,14 @@ export const Settings: React.FC<SettingsProps> = ({
     | "notifications"
     | "backup";
   type ToolsSubTab =
+    | "mcp"
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
   const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
-  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["mcp", "contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
   const isUserSubTab = (v: string | null): v is UserSubTab =>
@@ -133,6 +135,7 @@ export const Settings: React.FC<SettingsProps> = ({
           : null;
     } else if (tab === "tools") {
       subTab =
+        subTabParam === "mcp" ||
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
@@ -187,7 +190,8 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeToolsSubTab, setActiveToolsSubTab] = useState<ToolsSubTab>(() => {
     if (
       settingsRoute.tab === "tools" &&
-      (settingsRoute.subTab === "contacts" ||
+      (settingsRoute.subTab === "mcp" ||
+        settingsRoute.subTab === "contacts" ||
         settingsRoute.subTab === "excelUnlocker" ||
         settingsRoute.subTab === "excelMerger" ||
         settingsRoute.subTab === "urlShortener" ||
@@ -274,7 +278,8 @@ export const Settings: React.FC<SettingsProps> = ({
         (canExcelMerger && "excelMerger") ||
         (canExcelIndexer && "excelIndexer") ||
         (canContactsImport && "contacts") ||
-        (canUrlShortener && "urlShortener");
+        (canUrlShortener && "urlShortener") ||
+        "mcp";
       if (firstAvailable) {
         setActiveToolsSubTab(firstAvailable as ToolsSubTab);
         updateSettingsUrl({ tab: "tools", subTab: firstAvailable as ToolsSubTab }, { replace: true });
@@ -737,6 +742,19 @@ export const Settings: React.FC<SettingsProps> = ({
           <div data-help-id="settings-tools-workspace" className="flex flex-col md:flex-row gap-8 animate-fadeIn">
             <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
               <nav className="flex flex-col gap-2">
+                <button
+                  onClick={() => updateSettingsUrl({ tab: "tools", subTab: "mcp" })}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeToolsSubTab === "mcp"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">hub</span>
+                    AI a MCP přístupy
+                  </div>
+                </button>
                 {canContactsImport && (
                   <button
                     onClick={() => updateSettingsUrl({ tab: "tools", subTab: "contacts" })}
@@ -816,6 +834,8 @@ export const Settings: React.FC<SettingsProps> = ({
             </aside>
 
             <main className="flex-1 min-w-0 overflow-x-hidden">
+              {activeToolsSubTab === "mcp" && <McpAccessSettings />}
+
               {activeToolsSubTab === "contacts" && canContactsImport && (
                 <section className="space-y-6">
                   <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
