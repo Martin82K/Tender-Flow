@@ -327,7 +327,7 @@ describe("remote MCP server", () => {
     expect(source).toContain("tf_get_contract_overview");
     expect(source).toContain("tf_list_tender_plan");
     expect(source).toContain("annotations: { readOnlyHint: true");
-    expect(source).toContain("Only create_task execution is enabled in MCP MVP.");
+    expect(source).toContain("Only create_task and status-only update_bid execution are enabled in MCP.");
     expect(source).not.toContain("hard_delete");
   });
 
