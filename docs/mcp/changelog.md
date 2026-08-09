@@ -3,6 +3,14 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — auth-schema boundary hotfix
+
+- MCP RLS a PostgREST pre-request guard už nevolají `auth.uid()`/`auth.jwt()`
+  přímo pod izolovanou rolí,
+- přidány úzké identity helpery v `public`, protože Supabase spravované schéma
+  `auth` nemůže běžná migrační role delegovat nové databázové roli,
+- zachováno `NOINHERIT`, explicitní toolové granty a blokace přímého Data API.
+
 ## 2026-08-09 — tool-only databázová hranice
 
 - registrované MCP OAuth tokeny dostávají izolovanou NOINHERIT roli místo

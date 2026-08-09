@@ -34,27 +34,30 @@ incidentních výstupech nevypisují; ověřuje se pouze přítomnost a fingerpr
    po explicitním schválení verzovanou migraci.
 4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
-5. Ověřit, že OAuth klient je aktivní v `auth.oauth_clients` i v
+5. Pod rolí `tenderflow_mcp_client` ověřit, že `mcp_current_user_id()`,
+   `mcp_current_client_id()` a `enforce_mcp_backend_boundary()` fungují bez
+   `USAGE` oprávnění na schéma `auth`.
+6. Ověřit, že OAuth klient je aktivní v `auth.oauth_clients` i v
    `mcp_oauth_client_resources`, a teprve potom zapnout Custom Access Token
    Hook.
-6. Znovu připojit MCP klienta, aby byl vydán nový token; ověřit v claims
+7. Znovu připojit MCP klienta, aby byl vydán nový token; ověřit v claims
    `role=tenderflow_mcp_client`, přesný `client_id` a kanonický resource.
-7. Ověřit, že samotný OAuth JWT s publishable/anon `apikey` dostane na
+8. Ověřit, že samotný OAuth JWT s publishable/anon `apikey` dostane na
    `/rest/v1`, Storage i Realtime 401/403. Test musí zahrnout nový token s rolí
    `tenderflow_mcp_client` i starší token s rolí `authenticated`; pre-request
    blokuje PostgREST a restriktivní RLS blokuje Storage i publikované Realtime
    tabulky pro každý JWT s `client_id`/`azp`. Toolový read přes MCP backend
    naopak musí projít.
-8. Ověřit auditní řádek, tenantovou izolaci, nulové kontakty bez contacts
+9. Ověřit auditní řádek, tenantovou izolaci, nulové kontakty bez contacts
    grantu a chování expirovaného tokenu.
    Po revoke a nové autorizaci stejného klienta ověřit, že původní
    contacts/write grant zůstává neaktivní a audit přežije odstranění klienta.
-9. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
+10. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
-10. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
+11. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
    `create_task` prepare → confirm → execute, ověřit audit a řádek tasku, grant
    revokovat a ověřit okamžité zmizení write katalogu.
-11. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
+12. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
 
 ### Poslední ověřený produkční preflight
 
