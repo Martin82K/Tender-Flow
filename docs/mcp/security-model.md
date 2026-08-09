@@ -26,6 +26,9 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 - **Cross-tenant access:** autoritativně blokuje RLS/RPC; scope sám nestačí.
 - **Přímý Data API bypass:** MCP OAuth JWT má vyhrazenou NOINHERIT roli a
   PostgREST jej přijme jen spolu se serverovým `SUPABASE_MCP_SECRET_KEY`.
+  Role záměrně nemá přístup ke spravovanému schématu `auth`; podepsanou
+  identitu uživatele a klienta poskytují jen úzké `SECURITY DEFINER` helpery
+  `mcp_current_user_id()` a `mcp_current_client_id()` v `public`.
   Stejný pre-request požadavek platí i pro starší OAuth JWT s `client_id`/`azp`
   a původní rolí `authenticated`, takže při nasazení nevzniká přechodové okno.
   Storage a publikované Realtime tabulky navíc odmítají staré OAuth tokeny

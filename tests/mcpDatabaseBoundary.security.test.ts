@@ -22,6 +22,18 @@ const readBoundaryMigration = () => {
   );
 };
 
+const readAuthSchemaBoundaryMigration = () => {
+  const migrationName = fs
+    .readdirSync(path.join(ROOT, "supabase/migrations"))
+    .find((name) => name.endsWith("_fix_mcp_auth_schema_boundary.sql"));
+
+  expect(migrationName).toBeDefined();
+  return fs.readFileSync(
+    path.join(ROOT, "supabase/migrations", migrationName as string),
+    "utf8",
+  );
+};
+
 describe("MCP tool-only database boundary", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -141,5 +153,16 @@ describe("MCP tool-only database boundary", () => {
 
     expect(migration).toContain('CREATE POLICY "Subcontractors visible to owner or org"');
     expect(migration).toContain("can_write_subcontractor_tenant(owner_id, organization_id)");
+  });
+
+  it("nevyžaduje pro MCP roli přístup ke spravovanému auth schématu", () => {
+    const migration = readAuthSchemaBoundaryMigration();
+
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.mcp_current_user_id()");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.mcp_current_client_id()");
+    expect(migration).toMatch(/SECURITY DEFINER[\s\S]*SET search_path = ''/);
+    expect(migration).toContain("public.mcp_current_client_id()");
+    expect(migration).toContain("public.mcp_current_user_id()");
+    expect(migration).not.toContain("GRANT USAGE ON SCHEMA auth TO tenderflow_mcp_client");
   });
 });
