@@ -3,6 +3,17 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — bezpečný read katalog a tasky
+
+- obecné `search`/`fetch` jsou dostupné bez kontaktní PII; kontaktní větev
+  zůstává vázaná na nevydávané contacts permission,
+- přidán PII-minimalizovaný `tf_get_project_summary`, projektový resource,
+  `tf_list_tasks` a `tenderflow://tasks/open`,
+- MCP mapování nabídek používá produkční `demand_category_id` místo prázdného
+  legacy `category_id`,
+- task a projektové adaptéry mají minimální selecty, pevné limity a explicitní
+  truncation metadata.
+
 ## 2026-08-09 — distribuovaný limiter a audit hardening
 
 - procesní limiter nahradil atomický PostgreSQL user/client/risk bucket se

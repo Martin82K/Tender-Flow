@@ -30,6 +30,7 @@ const toolNames = [
   "search",
   "fetch",
   "tf_list_projects",
+  "tf_get_project_summary",
   "tf_get_project_detail",
   "tf_list_tenders",
   "tf_list_bids",
@@ -39,6 +40,7 @@ const toolNames = [
   "tf_list_tender_plan",
   "tf_list_contacts",
   "tf_list_upcoming_deadlines",
+  "tf_list_tasks",
   "tf_prepare_change",
   "tf_confirm_change",
   "tf_execute_change",
@@ -47,6 +49,7 @@ const toolNames = [
 const resourceUris = [
   "tenderflow://catalog",
   "tenderflow://projects/{projectId}",
+  "tenderflow://tasks/open",
   "tenderflow://organizations/{organizationId}/contracts/overview",
 ];
 

@@ -30,14 +30,14 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
 
 ## Aktuální hranice
 
-- Policy katalog implementuje 12 read nástrojů a 3 nástroje zápisového
-  protokolu. Remote i stdio nyní fail-closed zpřístupňují jen 6 obecných
-  read-only nástrojů bez kontaktních údajů a write operací.
+- Policy katalog implementuje 14 read nástrojů a 3 nástroje zápisového
+  protokolu. Remote i stdio fail-closed zpřístupňují 10 obecných read-only
+  nástrojů bez kontaktních údajů a write operací.
 - Třífázový zápisový protokol je implementovaný, ale remote klientům není
   vydáváno interní write oprávnění. Po budoucím zavedení grant modelu smí být
   vykonatelný jen `create_task`; ostatní typy server odmítá provést.
-- Dostupný je katalog a smluvní resource. Agregovaný projektový resource je
-  skrytý, protože vyžaduje dosud nevydávané kontaktní oprávnění.
+- Dostupný je katalog, PII-minimalizovaný projektový souhrn, smluvní přehled a
+  vlastní otevřené tasky. Plný detail nabídek a kontaktů zůstává skrytý.
 - Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
   je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
 - Rate limit je distribuovaný PostgreSQL user/client/risk bucket s pevnými

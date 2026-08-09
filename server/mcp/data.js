@@ -201,19 +201,19 @@ export const listBids = async (supabase, input = {}) => {
 
   let query = supabase
     .from('bids')
-    .select('id,category_id,subcontractor_id,price,price_display,notes,status,contracted,subcontractors(company_name,contact_person_name,email,phone)')
+    .select('id,demand_category_id,subcontractor_id,price,price_display,notes,status,contracted,subcontractors(company_name,contact_person_name,email,phone)')
     .order('created_at', { ascending: false })
     .limit(limit(input.limit, 30, 100));
 
-  if (input.categoryId) query = query.eq('category_id', input.categoryId);
-  if (categoryIds) query = query.in('category_id', categoryIds);
+  if (input.categoryId) query = query.eq('demand_category_id', input.categoryId);
+  if (categoryIds) query = query.in('demand_category_id', categoryIds);
   if (input.winnersOnly) query = query.eq('contracted', true);
 
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((row) => ({
     id: row.id,
-    tenderId: row.category_id,
+    tenderId: row.demand_category_id,
     subcontractorId: row.subcontractor_id,
     companyName: row.subcontractors?.company_name || null,
     contactPerson: row.subcontractors?.contact_person_name || null,
@@ -311,8 +311,8 @@ export const getProjectDetail = async (supabase, projectId) => {
   if (categoryIds.length > 0) {
     const bidsRes = await supabase
       .from('bids')
-      .select('id,category_id,subcontractor_id,price,price_display,notes,status,contracted,subcontractors(company_name,contact_person_name,email,phone)')
-      .in('category_id', categoryIds)
+      .select('id,demand_category_id,subcontractor_id,price,price_display,notes,status,contracted,subcontractors(company_name,contact_person_name,email,phone)')
+      .in('demand_category_id', categoryIds)
       .limit(200);
     if (bidsRes.error) throw bidsRes.error;
     bids = bidsRes.data || [];
@@ -339,7 +339,7 @@ export const getProjectDetail = async (supabase, projectId) => {
     })),
     bids: bids.map((row) => ({
       id: row.id,
-      tenderId: row.category_id,
+      tenderId: row.demand_category_id,
       subcontractorId: row.subcontractor_id,
       companyName: row.subcontractors?.company_name || null,
       contactPerson: row.subcontractors?.contact_person_name || null,
@@ -373,6 +373,207 @@ export const getProjectDetail = async (supabase, projectId) => {
   };
 };
 
+const PROJECT_SUMMARY_LIMITS = Object.freeze({
+  tenders: 200,
+  tenderPlan: 200,
+  contracts: 100,
+  bids: 500,
+});
+
+const emptyBidStats = () => ({
+  bidCount: 0,
+  contractedBidCount: 0,
+  pricedBidCount: 0,
+  minPrice: null,
+  maxPrice: null,
+});
+
+const buildBidStatsByTender = (rows) => {
+  const statsByTender = new Map();
+  for (const row of rows) {
+    const tenderId = String(row.demand_category_id || '');
+    if (!tenderId) continue;
+    const stats = statsByTender.get(tenderId) || emptyBidStats();
+    stats.bidCount += 1;
+    if (row.contracted) stats.contractedBidCount += 1;
+    const price = Number(row.price);
+    if (Number.isFinite(price)) {
+      stats.pricedBidCount += 1;
+      stats.minPrice = stats.minPrice == null ? price : Math.min(stats.minPrice, price);
+      stats.maxPrice = stats.maxPrice == null ? price : Math.max(stats.maxPrice, price);
+    }
+    statsByTender.set(tenderId, stats);
+  }
+  return statsByTender;
+};
+
+export const getProjectSummary = async (supabase, projectId) => {
+  if (!projectId) throw new Error('Missing projectId.');
+
+  const [projectRes, categoriesRes, plansRes, contractsRes] = await Promise.all([
+    supabase
+      .from('projects')
+      .select('id,name,location,status,finish_date,investor,organization_id')
+      .eq('id', projectId)
+      .maybeSingle(),
+    supabase
+      .from('demand_categories')
+      .select('id,title,status,deadline,realization_start,realization_end,budget_display,plan_budget')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(PROJECT_SUMMARY_LIMITS.tenders),
+    supabase
+      .from('tender_plans')
+      .select('id,name,date_from,date_to,category_id')
+      .eq('project_id', projectId)
+      .order('date_from', { ascending: true })
+      .limit(PROJECT_SUMMARY_LIMITS.tenderPlan),
+    supabase
+      .from('contracts')
+      .select('id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(PROJECT_SUMMARY_LIMITS.contracts),
+  ]);
+
+  if (projectRes.error) throw projectRes.error;
+  if (!projectRes.data) throw new Error('Project not found.');
+  if (categoriesRes.error) throw categoriesRes.error;
+  if (plansRes.error) throw plansRes.error;
+  if (contractsRes.error) throw contractsRes.error;
+
+  const categories = categoriesRes.data || [];
+  const categoryIds = categories.map((row) => row.id);
+  let bids = [];
+  if (categoryIds.length > 0) {
+    const bidsRes = await supabase
+      .from('bids')
+      .select('id,demand_category_id,price,status,contracted')
+      .in('demand_category_id', categoryIds)
+      .limit(PROJECT_SUMMARY_LIMITS.bids);
+    if (bidsRes.error) throw bidsRes.error;
+    bids = bidsRes.data || [];
+  }
+  const statsByTender = buildBidStatsByTender(bids);
+
+  return {
+    project: {
+      id: projectRes.data.id,
+      name: projectRes.data.name,
+      location: projectRes.data.location || null,
+      status: projectRes.data.status || null,
+      finishDate: projectRes.data.finish_date || null,
+      investor: projectRes.data.investor || null,
+      organizationId: projectRes.data.organization_id || null,
+    },
+    tenders: categories.map((row) => ({
+      id: row.id,
+      title: row.title,
+      status: row.status || null,
+      deadline: row.deadline || null,
+      realizationStart: row.realization_start || null,
+      realizationEnd: row.realization_end || null,
+      budgetDisplay: row.budget_display || null,
+      planBudget: nullableNumber(row.plan_budget),
+      bidStats: statsByTender.get(String(row.id)) || emptyBidStats(),
+    })),
+    tenderPlan: (plansRes.data || []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      dateFrom: row.date_from || null,
+      dateTo: row.date_to || null,
+      categoryId: row.category_id || null,
+    })),
+    contracts: (contractsRes.data || []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      vendorName: row.vendor_name || null,
+      contractNumber: row.contract_number || null,
+      status: row.status || null,
+      basePrice: nullableNumber(row.base_price) ?? 0,
+      signedAt: row.signed_at || null,
+      effectiveFrom: row.effective_from || null,
+      effectiveTo: row.effective_to || null,
+      sourceBidId: row.source_bid_id || null,
+    })),
+    potentiallyTruncated: {
+      tenders: categories.length >= PROJECT_SUMMARY_LIMITS.tenders,
+      tenderPlan: (plansRes.data || []).length >= PROJECT_SUMMARY_LIMITS.tenderPlan,
+      contracts: (contractsRes.data || []).length >= PROJECT_SUMMARY_LIMITS.contracts,
+      bids: bids.length >= PROJECT_SUMMARY_LIMITS.bids,
+    },
+  };
+};
+
+const MCP_TASK_SELECT = [
+  'id',
+  'title',
+  'note',
+  'due_at',
+  'reminder_at',
+  'priority',
+  'project_id',
+  'related_entity_type',
+  'related_entity_id',
+  'parent_task_id',
+  'todo_project_id',
+  'completed',
+  'completed_at',
+  'archived_at',
+  'created_at',
+  'updated_at',
+].join(',');
+
+const mapMcpTask = (row) => ({
+  id: row.id,
+  title: row.title,
+  note: row.note || null,
+  dueAt: row.due_at || null,
+  reminderAt: row.reminder_at || null,
+  priority: nullableNumber(row.priority),
+  projectId: row.project_id || null,
+  relatedEntity: row.related_entity_type && row.related_entity_id
+    ? { type: row.related_entity_type, id: row.related_entity_id }
+    : null,
+  parentTaskId: row.parent_task_id || null,
+  todoProjectId: row.todo_project_id || null,
+  completed: Boolean(row.completed),
+  completedAt: row.completed_at || null,
+  archivedAt: row.archived_at || null,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+export const listMcpTasks = async (supabase, input = {}) => {
+  let query = supabase
+    .from('tasks')
+    .select(MCP_TASK_SELECT)
+    .order('due_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(limit(input.limit, 30, 100));
+
+  if (typeof input.completed === 'boolean') query = query.eq('completed', input.completed);
+  if (input.projectId) query = query.eq('project_id', input.projectId);
+  if (!input.includeArchived) query = query.is('archived_at', null);
+  const search = normalizeSearch(input.search);
+  if (search) query = query.or(`title.ilike.%${search}%,note.ilike.%${search}%`);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map(mapMcpTask);
+};
+
+export const getMcpTask = async (supabase, taskId) => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(MCP_TASK_SELECT)
+    .eq('id', taskId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Task not found.');
+  return mapMcpTask(data);
+};
+
 export const listUpcomingDeadlines = async (supabase, input = {}) => {
   const days = limit(input.rangeDays, 30, 180);
   const now = new Date();
@@ -388,11 +589,13 @@ export const listUpcomingDeadlines = async (supabase, input = {}) => {
   return data || [];
 };
 
-export const buildSearchResults = async (supabase, query) => {
-  const [projects, tenders, contacts] = await Promise.all([
+export const buildSearchResults = async (supabase, query, options = {}) => {
+  const includeContacts = options.includeContacts === true;
+  const [projects, tenders, tasks, contacts] = await Promise.all([
     listProjects(supabase, { search: query, limit: 6 }),
     listTenders(supabase, { limit: 6 }),
-    listContacts(supabase, { search: query, limit: 6 }),
+    listMcpTasks(supabase, { search: query, completed: false, limit: 6 }),
+    includeContacts ? listContacts(supabase, { search: query, limit: 6 }) : [],
   ]);
 
   return [
@@ -411,6 +614,12 @@ export const buildSearchResults = async (supabase, query) => {
         url: item.url,
         metadata: { type: 'tender', projectId: item.projectId, tenderId: item.id, status: item.status },
       })),
+    ...tasks.map((item) => ({
+      id: `task:${item.id}`,
+      title: `Úkol: ${item.title}`,
+      url: '/app/tasks',
+      metadata: { type: 'task', taskId: item.id, projectId: item.projectId },
+    })),
     ...contacts.map((item) => ({
       id: `contact:${item.id}`,
       title: `Kontakt: ${item.companyName}`,

@@ -1,6 +1,6 @@
 # Reference MCP tools
 
-Stav: 15 nástrojů v policy katalogu; 6 obecných read-only nástrojů dostupných remote/stdio k 2026-08-09
+Stav: 17 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných remote/stdio k 2026-08-09
 Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/scopePolicy.js`,
 `server/mcp/data.js`
 
@@ -20,18 +20,19 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 
 ### `search`
 
-- Permissions: read + contacts; riziko: low; pouze čtení; **disabled**.
+- Permissions: read; riziko: low; pouze čtení; dostupný.
 - Vstup: `query` — 1 až 500 znaků.
-- Použití: první krok pro connector/deep-research discovery nad projekty, VŘ,
-  kontakty a smluvními záznamy.
+- Použití: první krok pro connector/deep-research discovery nad projekty, VŘ a
+  vlastními tasky. Kontakty přidá jen budoucí samostatný contacts grant.
 - Výstup: pole výsledků `id`, `title`, `url`, volitelná `metadata`.
 
 ### `fetch`
 
-- Permissions: read + contacts; riziko: low; pouze čtení; **disabled**.
+- Permissions: read; riziko: low; pouze čtení; dostupný.
 - Vstup: `id` ze `search`, nejvýše 200 znaků.
 - Podporované identifikátory: `project:<id>`,
-  `tender:<projectId>:<tenderId>` a `contact:<id>`.
+  `tender:<projectId>:<tenderId>`, `task:<id>` a při contacts grantu
+  `contact:<id>`.
 - Výstup: citation-friendly JSON text a interní aplikační URL; neznámý typ
   vrátí `ok: false`.
 
@@ -40,11 +41,12 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 | Tool | Permissions / dostupnost | Vstup | Výsledek a limity |
 | --- | --- | --- | --- |
 | `tf_list_projects` | read / dostupný | `search?`, `limit?` | viditelné projekty; server limituje počet na 20 |
+| `tf_get_project_summary` | read / dostupný | `projectId` | PII-minimalizovaný projekt, VŘ, agregované bid statistiky, smlouvy a plán; explicitní limity a truncation příznaky |
 | `tf_get_project_detail` | read + contacts / disabled | `projectId` | projekt, VŘ, nabídky, smlouvy a plán; RLS-scoped |
 | `tf_list_tenders` | read / dostupný | `projectId?`, `limit?` | VŘ/demand categories; limit max. 20 |
-| `tf_list_bids` | read + contacts / disabled | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 20 |
+| `tf_list_bids` | read + contacts / disabled | `projectId?`, `categoryId?`, `winnersOnly?`, `limit?` | nabídky včetně dodavatele; limit max. 100; vazba přes `demand_category_id` |
 | `tf_list_winners` | read + contacts / disabled | `projectId?`, `categoryId?`, `limit?` | pouze vítězné/zasmluvněné nabídky |
-| `tf_list_tender_plan` | read / dostupný | `projectId?`, `limit?` | harmonogram/plán VŘ; limit max. 20 |
+| `tf_list_tender_plan` | read / dostupný | `projectId?`, `limit?` | harmonogram/plán VŘ; limit max. 100 |
 | `tf_list_upcoming_deadlines` | read / dostupný | `rangeDays?` | budoucí termíny; rozsah je normalizován na 1–365 dní |
 
 ## Kontakty a smlouvy
@@ -54,6 +56,17 @@ permission. OAuth token tuto permission nemůže sám získat vlastním scope.
 | `tf_list_contacts` | read + contacts / disabled | `search?`, `limit?` | dodavatelé a kontaktní PII; limit max. 20 |
 | `tf_list_contracts` | read / dostupný | `projectId?`, `limit?` | smlouvy viditelné uživateli; limit max. 20 |
 | `tf_get_contract_overview` | read / dostupný | `organizationId?` UUID, `includeArchived?` | autorizovaný RPC přehled; bez raw storage path/URL; neplatná měna se mapuje na CZK |
+
+## Osobní tasky
+
+### `tf_list_tasks`
+
+- Permissions: read; riziko: low; pouze čtení; dostupný.
+- Vstup: `search?`, `projectId?`, `completed?`, `includeArchived?`, `limit?` 1–100.
+- Výstup: tasky vlastněné přihlášeným uživatelem podle RLS. Obsahuje pracovní
+  název, poznámku, termíny, prioritu a vazbu na projekt/entitu; neobsahuje
+  `created_by`, externí provider URL, sync stav ani raw sync chybu.
+- Bez `includeArchived: true` jsou archivované tasky vyloučené.
 
 ## Bezpečný zápis
 
