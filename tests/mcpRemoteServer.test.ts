@@ -316,12 +316,22 @@ describe("remote MCP server", () => {
   it("čte katalog jako privátní MCP 2.0 resource a audituje požadavek bez tokenu v logu", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response("[]", {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).includes("/rpc/consume_mcp_rate_limit")) {
+        return new Response(JSON.stringify({
+          allowed: true,
+          remaining: 119,
+          retry_after_seconds: 0,
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("[]", {
         status: 201,
         headers: { "content-type": "application/json" },
-      }),
-    );
+      });
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await callAuthorizedMcp(
@@ -358,7 +368,9 @@ describe("remote MCP server", () => {
       },
     });
     expect(fetchMock).toHaveBeenCalled();
-    const auditBody = String(fetchMock.mock.calls[0][1]?.body || "");
+    const auditCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/mcp_audit_events"));
+    const auditBody = String(auditCall?.[1]?.body || "");
     expect(auditBody).toContain("resource:catalog");
     expect(auditBody).not.toContain("test-access-token");
   });
@@ -369,6 +381,16 @@ describe("remote MCP server", () => {
     const organizationId = "11111111-1111-4111-8111-111111111111";
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
+      if (url.includes("/rpc/consume_mcp_rate_limit")) {
+        return new Response(JSON.stringify({
+          allowed: true,
+          remaining: 119,
+          retry_after_seconds: 0,
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
       if (url.includes("/rpc/get_contract_overview")) {
         return new Response(JSON.stringify([{
           organization_id: organizationId,
@@ -522,16 +544,30 @@ describe("remote MCP server", () => {
     expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
   });
 
-  it("omezuje volání per user/client/tool", () => {
+  it("omezuje volání distribuovaně per user/client/risk bucket", async () => {
     const auth = { userId: "user-1", clientId: "client-1" };
+    let count = 0;
+    const supabase = {
+      rpc: vi.fn().mockImplementation(async () => {
+        count += 1;
+        return {
+          data: {
+            allowed: count <= 12,
+            remaining: Math.max(12 - count, 0),
+            retry_after_seconds: count <= 12 ? 0 : 42,
+          },
+          error: null,
+        };
+      }),
+    };
 
     for (let i = 0; i < 12; i += 1) {
-      expect(() => checkMcpRateLimit(auth, "tf_execute_change", "high")).not.toThrow();
+      await expect(checkMcpRateLimit(supabase, auth, "tf_execute_change", "high"))
+        .resolves.toMatchObject({ allowed: true });
     }
 
-    expect(() => checkMcpRateLimit(auth, "tf_execute_change", "high")).toThrow(
-      "Rate limit exceeded for tf_execute_change",
-    );
+    await expect(checkMcpRateLimit(supabase, auth, "tf_execute_change", "high"))
+      .rejects.toThrow("Rate limit exceeded for tf_execute_change");
   });
 
   it("má databázové guardrails pro audit, návrhy změn a idempotenci execute", () => {

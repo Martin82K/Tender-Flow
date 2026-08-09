@@ -1,8 +1,8 @@
 # Testování a evaly MCP
 
 Stav: základ kontrol kvality k 2026-08-09
-Zdroj pravdy: `tests/mcpRemoteServer.test.ts`, `tests/mcpToolCatalog.test.ts`,
-`tests/mcpDocumentation.test.ts`
+Zdroj pravdy: `tests/mcpRemoteServer.test.ts`, `tests/mcpRateLimitAudit.test.ts`,
+`tests/mcpToolCatalog.test.ts`, `tests/mcpDocumentation.test.ts`
 
 ## Automatické testy
 
@@ -37,12 +37,13 @@ warnings a relevance scénářů.
 8. resource cache jako private a audit resource read,
 9. po budoucím grant modelu: `create_task` prepare → chybné confirm → správné confirm → execute,
 10. po budoucím grant modelu: opakovaný execute se stejným idempotency key bez duplicity,
-11. auditní redakce a detekce výpadku auditu,
+11. auditní redakce, detekce výpadku a fail-closed pre-audit write fáze,
 12. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
     klient ani běžná session nikoli,
 13. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
     používaný serverovým validátorem,
-14. zatížení více instancí po zavedení distribuovaného limiteru.
+14. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
+    izolace, fail-closed DB outage a zatížení více instancí.
 
 ## Eval metriky
 

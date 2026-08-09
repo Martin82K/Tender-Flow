@@ -8,6 +8,9 @@ Všechny výsledky jsou JSON v `structuredContent` a současně textový JSON pr
 klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
 `{ "ok": boolean, "data"?: unknown, "error"?: string }`; `search` vrací
 `{ "results": [...] }`. Chyba toolu nastaví `isError` a je auditována.
+Každý tool nejprve atomicky spotřebuje sdílený user/client/risk bucket. Write
+fáze se nespustí bez úspěšného redigovaného `*_attempt` auditu; po dokončení se
+zapíše samostatný outcome.
 
 Označení „disabled“ níže znamená, že implementace existuje, ale současná
 serverová policy remote ani stdio klientům nevydává potřebnou interní

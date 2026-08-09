@@ -57,7 +57,8 @@ zůstává fail-closed a kontaktní i write permissions zůstávají vypnuté.
 Sledovat počet volání podle toolu/resource, výsledek, riziko, OAuth klienta,
 latenci a rate-limit odmítnutí. Nikdy neukládat Bearer/execute token, celé
 kontakty ani plný execute výsledek. Výpadek auditního INSERT musí být viditelný
-v aplikačních metrikách; tato detekce je plánované hardening opatření.
+v hosting logu. U write fáze ověřit existenci `*_attempt` před outcome řádkem;
+bez úspěšného pre-auditu server doménovou změnu nespustí.
 
 ## Incidenty
 
@@ -69,8 +70,9 @@ v aplikačních metrikách; tato detekce je plánované hardening opatření.
   idempotency key a doménový audit; opravu provést standardní business cestou.
 - **Audit outage:** nepovažovat chybějící řádky za důkaz nulové aktivity;
   obnovit DB cestu a korelovat hostingové access logy.
-- **Přetížení:** dočasně omezit klienta/WAF, protože současný `in-memory` limiter
-  není dostatečný napříč instancemi.
+- **Přetížení:** zkontrolovat `consume_mcp_rate_limit`, počet aktivních bucketů,
+  DB latency a `Rate limit service is unavailable`; podle klienta případně
+  použít OAuth allowlist/WAF kill switch.
 
 Rollback aplikace nesmí vracet databázové migrace destruktivním příkazem.
 Kompatibilní forward-fix je preferovaný; revokace OAuth klienta je bezpečný

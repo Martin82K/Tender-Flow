@@ -40,8 +40,8 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
   skrytý, protože vyžaduje dosud nevydávané kontaktní oprávnění.
 - Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
   je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
-- Rate limit je v současnosti `in-memory` pro jeden proces. Není distribuovaný
-  a po restartu se resetuje.
+- Rate limit je distribuovaný PostgreSQL user/client/risk bucket s pevnými
+  60sekundovými limity a fail-closed chováním při DB výpadku.
 - Produkční OAuth canary s reálným klientem je samostatný následující loop.
 
 Oficiální podklady: [MCP 2026-07-28](https://blog.modelcontextprotocol.io/posts/2026-07-28/),

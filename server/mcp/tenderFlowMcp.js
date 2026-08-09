@@ -99,6 +99,12 @@ const hashToken = async (token) => {
     .join('');
 };
 
+const WRITE_AUDIT_ACTIONS = new Set([
+  'prepare_write',
+  'confirm_write',
+  'execute_write',
+]);
+
 export const assertProjectVisible = async (supabase, projectId) => {
   if (!projectId) return;
   const { data, error } = await supabase
@@ -282,9 +288,22 @@ const executeProposal = async (supabase, auth, args) => {
 const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low') => async (args) => {
   const policy = getMcpToolPolicy(toolName);
   const effectiveRiskLevel = riskLevel === 'low' ? policy.riskLevel : riskLevel;
+  const requiresPreAudit = WRITE_AUDIT_ACTIONS.has(action);
   try {
     assertMcpPermissions(auth, policy.requiredPermissions);
-    checkMcpRateLimit(auth, toolName, effectiveRiskLevel);
+    await checkMcpRateLimit(supabase, auth, toolName, effectiveRiskLevel);
+    if (requiresPreAudit) {
+      await logMcpAuditEvent(supabase, {
+        userId: auth.userId,
+        clientId: auth.clientId,
+        toolName,
+        action: `${action}_attempt`,
+        riskLevel: effectiveRiskLevel,
+        success: true,
+        requestSummary: args,
+        resultSummary: { status: 'attempted' },
+      }, { required: true });
+    }
     const result = await handler(args);
     await logMcpAuditEvent(supabase, {
       userId: auth.userId,
@@ -337,7 +356,7 @@ const withResourceAudit = (
   try {
     assertMcpOAuthScopes(auth, requirements.oauthScopes || []);
     assertMcpPermissions(auth, requirements.permissions || []);
-    checkMcpRateLimit(auth, `resource:${resourceName}`, 'low');
+    await checkMcpRateLimit(supabase, auth, `resource:${resourceName}`, 'low');
     const result = await handler(...args);
     await logMcpAuditEvent(supabase, {
       userId: auth.userId,

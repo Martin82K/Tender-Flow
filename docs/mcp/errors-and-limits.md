@@ -12,7 +12,7 @@ Zdroj pravdy: MCP schemas, data adaptéry, auth handler a rate limiter
 | Protocol/schema | JSON-RPC invalid params / SDK chyba | header/body, metoda nebo argumenty neodpovídají kontraktu |
 | Permission | tool není v listu nebo permission error | server klientovi nevydal potřebné interní oprávnění |
 | RLS/doména | tool `isError` + bezpečná zpráva | uživatel nevidí objekt nebo operace selhala |
-| Rate limit | tool/resource error | překročen procesní limit user/client/tool okna |
+| Rate limit | tool/resource error | překročen sdílený limit user/client/risk okna nebo nedostupný limiter |
 | Write state | proposal/token/status/expiry error | neplatná fáze bezpečného zápisu |
 
 Autentizační chyba se nesmí převádět na úspěšný tool result. Naproti tomu chyba
@@ -39,7 +39,11 @@ obcházet limit paralelními požadavky.
 
 ## Rate limit
 
-Klíč zahrnuje uživatele, OAuth klienta a tool/resource. Okno a limit se liší
-podle rizika. Implementace je `in-memory` a procesní: po restartu se resetuje a
-více instancí nesdílí čítače. Konkrétní čísla jsou implementační detail do
-zavedení distribuovaného limiteru a nemají být klientskou garancí.
+Autoritativní PostgreSQL RPC sdílí čítače mezi všemi instancemi. Klíč zahrnuje
+uživatele, OAuth klienta, rizikovou třídu a pevné 60sekundové okno. Limity jsou
+120 pro `low`, 30 pro `medium` a 12 pro `high`; všechny tools/resources stejné
+rizikové třídy sdílejí bucket. Klient nemůže limit navýšit parametrem RPC.
+
+Při nedostupnosti databáze limiter selže uzavřeně a doménový handler se
+nespustí. Překročení vrací bezpečnou chybu s `Retry after Ns`; čítače po expiraci
+odstraňuje RPC pouze pro aktuálního uživatele.
