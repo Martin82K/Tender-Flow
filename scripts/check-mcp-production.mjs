@@ -88,10 +88,33 @@ const unauthorizedResponse = await fetch(expectedResource, {
   redirect: 'error',
 });
 assert(unauthorizedResponse.status === 401, `Unauthenticated MCP request returned HTTP ${unauthorizedResponse.status}.`);
+const oauthChallenge = unauthorizedResponse.headers.get('www-authenticate') || '';
+const challengePrefix = `Bearer resource_metadata="${baseUrl}/api/mcp-resource", scope="`;
 assert(
-  unauthorizedResponse.headers.get('www-authenticate') ===
-    `Bearer resource_metadata="${baseUrl}/api/mcp-resource", scope="openid"`,
+  oauthChallenge.startsWith(challengePrefix) && oauthChallenge.endsWith('"'),
   'MCP 401 challenge points to unexpected protected-resource metadata.',
+);
+const challengeScopes = oauthChallenge
+  .slice(challengePrefix.length, -1)
+  .split(/\s+/)
+  .filter(Boolean);
+const supportedChallengeScopes = new Set(['openid', 'email', 'profile']);
+const expectedChallengeScopes = (process.env.MCP_REQUIRED_SCOPES || 'openid')
+  .split(/[,\s]+/)
+  .map((scope) => scope.trim())
+  .filter(Boolean);
+assert(expectedChallengeScopes.length > 0, 'MCP_REQUIRED_SCOPES does not define an expected OAuth scope.');
+assert(
+  expectedChallengeScopes.every((scope) => supportedChallengeScopes.has(scope)),
+  'MCP_REQUIRED_SCOPES contains an unsupported OAuth scope.',
+);
+assert(
+  challengeScopes.join(' ') === expectedChallengeScopes.join(' '),
+  'MCP 401 challenge requests unexpected OAuth scopes.',
+);
+assert(
+  expectedChallengeScopes.every((scope) => metadata.scopes_supported.includes(scope)),
+  'Expected MCP OAuth scope is missing from protected-resource metadata.',
 );
 assert(unauthorizedResponse.headers.get('cache-control')?.includes('no-store'),
   'MCP 401 response is not explicitly marked no-store.');

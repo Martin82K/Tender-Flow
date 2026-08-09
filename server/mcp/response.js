@@ -44,7 +44,14 @@ export const buildMcpResourceMetadata = (request) => {
 
 export const unauthorizedMcpResponse = (request, message = 'Authorization required') => {
   const baseUrl = getBaseUrl(request);
-  const requiredScopes = getRequiredMcpScopes().join(' ');
+  let requiredScopes = 'openid';
+  try {
+    const configuredScopes = getRequiredMcpScopes();
+    if (configuredScopes.length > 0) requiredScopes = configuredScopes.join(' ');
+  } catch {
+    // Keep the OAuth discovery challenge available even when strict token validation
+    // rejects an invalid server configuration.
+  }
   return jsonResponse(
     401,
     { error: 'unauthorized', message },
