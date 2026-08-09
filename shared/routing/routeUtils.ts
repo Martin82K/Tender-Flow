@@ -24,7 +24,7 @@ export const buildAppUrl = (
         contractId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
+        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
     }
 ): string => {
     switch (view) {

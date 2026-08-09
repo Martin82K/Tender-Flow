@@ -31,11 +31,11 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
 ## Aktuální hranice
 
 - Policy katalog implementuje 14 read nástrojů a 3 nástroje zápisového
-  protokolu. Remote i stdio fail-closed zpřístupňují 10 obecných read-only
-  nástrojů bez kontaktních údajů a write operací.
-- Třífázový zápisový protokol je implementovaný, ale remote klientům není
-  vydáváno interní write oprávnění. Po budoucím zavedení grant modelu smí být
-  vykonatelný jen `create_task`; ostatní typy server odmítá provést.
+  protokolu. Aktivně consentovaný OAuth klient získá základní read katalog;
+  kontaktní data vyžadují 30denní user+client grant a write katalog osmihodinový
+  grant. Oba lze okamžitě odebrat v Nastavení → Nástroje → MCP přístupy.
+- Třífázový zápisový protokol dovoluje vykonat jen `create_task`; ostatní typy
+  server odmítá provést i s aktivním write grantem.
 - Dostupný je katalog, PII-minimalizovaný projektový souhrn, smluvní přehled a
   vlastní otevřené tasky. Plný detail nabídek a kontaktů zůstává skrytý.
 - Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`

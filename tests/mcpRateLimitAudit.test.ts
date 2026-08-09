@@ -15,6 +15,7 @@ describe("MCP distributed rate limit and audit reliability", () => {
     vi.unstubAllEnvs();
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_MCP_SECRET_KEY;
   });
 
   it("používá atomický databázový limiter a předá risk bucket", async () => {
@@ -108,6 +109,7 @@ describe("MCP distributed rate limit and audit reliability", () => {
   it("při výpadku pre-auditu nespustí write proposal handler", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);

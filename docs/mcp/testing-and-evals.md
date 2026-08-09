@@ -29,7 +29,7 @@ warnings a relevance scénářů.
 
 ## Povinné integrační scénáře
 
-1. consent pro standardní `openid email profile` a oddělené read-only oprávnění,
+1. consent pro standardní `openid email profile` a oddělená interní oprávnění,
 2. read discovery a projekt uživatele,
 3. skrytí contacts/write nástrojů bez serverových permissions,
 4. podvržené `tenderflow.contacts.read/write` OAuth scopes nic nezpřístupní,
@@ -37,14 +37,19 @@ warnings a relevance scénářů.
 6. expirovaný, špatně scoped, audience a client token,
 7. 401 a protected-resource metadata bez tokenu,
 8. resource cache jako private a audit resource read,
-9. po budoucím grant modelu: `create_task` prepare → chybné confirm → správné confirm → execute,
-10. po budoucím grant modelu: opakovaný execute se stejným idempotency key bez duplicity,
-11. auditní redakce, detekce výpadku a fail-closed pre-audit write fáze,
-12. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
+9. user+client resolver odmítne chybné JWT client ID, chybějící/revokovaný
+   consent, expirovaný grant a výpadek DB; vlastní tokenový scope nic nepřidá,
+10. grant/revokace se projeví při dalším requestu a jiné user/client kombinaci
+    nic nezpřístupní,
+11. s aktivním write grantem: `create_task` prepare → chybné confirm → správné
+    confirm → execute; po revokaci tool zmizí,
+12. opakovaný execute se stejným idempotency key nevytvoří duplicitu,
+13. auditní redakce, detekce výpadku a fail-closed pre-audit write fáze,
+14. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
     klient ani běžná session nikoli,
-13. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
+15. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
     používaný serverovým validátorem,
-14. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
+16. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
     izolace, fail-closed DB outage a zatížení více instancí.
 
 ## Eval metriky

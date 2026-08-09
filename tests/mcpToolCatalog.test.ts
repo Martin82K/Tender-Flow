@@ -3,9 +3,7 @@ import { getContractOverview } from "../server/mcp/data.js";
 import {
   MCP_OAUTH_SCOPES,
   MCP_PERMISSIONS,
-  getLocalSessionMcpPermissions,
   getMcpToolPolicy,
-  getRemoteMcpPermissions,
   getSupportedMcpOAuthScopes,
   hasMcpPermissions,
 } from "../server/mcp/scopePolicy.js";
@@ -48,13 +46,6 @@ describe("MCP tool catalog and permissions", () => {
         [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
       ),
     ).toBe(false);
-  });
-
-  it("remote ani stdio neodvodí citlivé oprávnění z podvrženého scope claimu", () => {
-    expect(getRemoteMcpPermissions()).toEqual([MCP_PERMISSIONS.read]);
-    expect(getLocalSessionMcpPermissions()).toEqual([MCP_PERMISSIONS.read]);
-    expect(getRemoteMcpPermissions()).not.toContain(MCP_PERMISSIONS.contactsRead);
-    expect(getRemoteMcpPermissions()).not.toContain(MCP_PERMISSIONS.write);
   });
 
   it("načítá smluvní přehled přes autorizované RPC a minimalizuje dokumentová data", async () => {

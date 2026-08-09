@@ -3,10 +3,41 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-09 — tool-only databázová hranice
+
+- registrované MCP OAuth tokeny dostávají izolovanou NOINHERIT roli místo
+  obecné role `authenticated`,
+- Data API pro tuto roli vyžaduje oddělený backendový `sb_secret_…` klíč;
+  klient zná pouze OAuth JWT a nemůže přeskočit MCP toolset,
+- Storage a Realtime nejsou MCP roli udělené; tabulkové grants jsou omezené na
+  aktuální tool adaptéry a každou oblast dál chrání user/client permission RLS,
+- stdio odmítá běžné Tender Flow session tokeny a vyžaduje stejný dedikovaný
+  OAuth token jako remote transport,
+- odstraněny historické bezpodmínečné CRUD politiky kontaktů a obnovené
+  owner/organization tenantové politiky.
+
+## 2026-08-09 — autoritativní user+client granty
+
+- interní permissions se při každém MCP požadavku řeší databázovým RPC podle
+  `auth.uid()`, přesného JWT klienta, aktivního resource registru a OAuth
+  consentu,
+- consentovaný klient získá baseline read; contacts grant expiruje za 30 dní
+  a write grant za 8 hodin, oba lze okamžitě revokovat,
+- přidáno uživatelské Nastavení → Nástroje → MCP přístupy, druhé potvrzení pro
+  write a append-only audit grantů,
+- grantové tabulky nemají přímý přístup `anon` ani `authenticated`; správa
+  probíhá přes user-bound `SECURITY DEFINER` RPC s prázdným `search_path`.
+- elevated grant je svázaný s konkrétní generací OAuth consentu, takže revoke
+  a následná reautorizace automaticky neobnoví contacts/write,
+- audit uchovává OAuth client ID jako snapshot i po odstranění klienta a první
+  souběžné změny stejného grantu serializuje transakční advisory lock,
+- výpadek permission resolveru vrací dočasné HTTP 503 místo OAuth 401 a odkaz
+  z consent stránky používá jednotný aplikační router.
+
 ## 2026-08-09 — bezpečný read katalog a tasky
 
 - obecné `search`/`fetch` jsou dostupné bez kontaktní PII; kontaktní větev
-  zůstává vázaná na nevydávané contacts permission,
+  zůstává vázaná na samostatnou contacts permission,
 - přidán PII-minimalizovaný `tf_get_project_summary`, projektový resource,
   `tf_list_tasks` a `tenderflow://tasks/open`,
 - MCP mapování nabídek používá produkční `demand_category_id` místo prázdného

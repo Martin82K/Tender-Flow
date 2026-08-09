@@ -7,10 +7,11 @@ Zdroj pravdy: `createProposal`, `confirmProposal` a `executeProposal` v
 Tender Flow odděluje návrh, vědomé potvrzení a provedení. AI klient nesmí tyto
 kroky sloučit ani potvrzovací text domýšlet za uživatele.
 
-Aktuální produkční policy nevydává remote ani stdio klientům interní write
-permission, takže tyto nástroje nejsou v jejich katalogu. Níže je bezpečnostní
-kontrakt již implementovaného protokolu pro budoucí aktivaci až po zavedení
-autoritativního user+client grant modelu a živém canary.
+Write nástroje se objeví pouze klientovi s aktivním osmihodinovým
+`tenderflow.write` grantem pro přihlášeného uživatele a přesný OAuth klient.
+Grant zpřístupní protokol, ale nenahrazuje RLS, projektovou autorizaci, audit,
+potvrzení ani idempotenci. Uživatel jej zapíná s druhým explicitním potvrzením
+v Nastavení → Nástroje → MCP přístupy a může jej okamžitě odebrat.
 
 ```mermaid
 stateDiagram-v2

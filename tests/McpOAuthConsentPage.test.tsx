@@ -11,6 +11,10 @@ const oauthMocks = vi.hoisted(() => ({
   denyAuthorization: vi.fn(),
 }));
 
+const routerMocks = vi.hoisted(() => ({ navigate: vi.fn() }));
+
+vi.mock("@/shared/routing/router", () => ({ navigate: routerMocks.navigate }));
+
 vi.mock("@/components/layouts/AuthLayout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -41,7 +45,7 @@ describe("McpOAuthConsentPage", () => {
     oauthMocks.denyAuthorization.mockResolvedValue({ data: {}, error: null });
   });
 
-  it("načte authorization details a oddělí OAuth identitu od read-only MCP oprávnění", async () => {
+  it("načte authorization details a oddělí OAuth identitu od základního MCP oprávnění", async () => {
     render(<McpOAuthConsentPage />);
 
     expect(await screen.findByText("ChatGPT")).toBeInTheDocument();
@@ -50,7 +54,13 @@ describe("McpOAuthConsentPage", () => {
     expect(screen.getByText("- e-mail uživatele")).toBeInTheDocument();
     expect(screen.getByText("- základní profil")).toBeInTheDocument();
     expect(screen.getByText(/čtení projektů, výběrových řízení, smluv, plánů a termínů/)).toBeInTheDocument();
-    expect(screen.getByText(/Kontaktní údaje a zápisové operace nejsou povoleny/)).toBeInTheDocument();
+    expect(screen.getByText(/Bez samostatného časově omezeného grantu nejsou kontaktní údaje ani zápis povoleny/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Zobrazit správu MCP oprávnění" })).toHaveAttribute(
+      "href",
+      "/app/settings?tab=tools&subTab=mcp",
+    );
+    fireEvent.click(screen.getByRole("link", { name: "Zobrazit správu MCP oprávnění" }));
+    expect(routerMocks.navigate).toHaveBeenCalledWith("/app/settings?tab=tools&subTab=mcp");
     expect(oauthMocks.getAuthorizationDetails).toHaveBeenCalledWith("auth-1");
   });
 
@@ -66,7 +76,7 @@ describe("McpOAuthConsentPage", () => {
 
     render(<McpOAuthConsentPage />);
 
-    expect(await screen.findByText(/AI bude moct pouze číst obecná data/)).toBeInTheDocument();
+    expect(await screen.findByText(/AI bude po připojení moct pouze číst obecná data/)).toBeInTheDocument();
     expect(screen.queryByText(/Každý zápis vyžaduje/)).not.toBeInTheDocument();
     expect(screen.queryByText(/čtení kontaktních údajů dodavatelů/)).not.toBeInTheDocument();
   });

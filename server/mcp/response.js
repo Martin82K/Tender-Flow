@@ -38,7 +38,7 @@ export const buildMcpResourceMetadata = (request) => {
       ...getRequiredMcpScopes(),
       ...getSupportedMcpOAuthScopes(),
     ])),
-    resource_documentation: `${baseUrl}/app/settings?tab=tools`,
+    resource_documentation: `${baseUrl}/app/settings?tab=tools&subTab=mcp`,
   };
 };
 

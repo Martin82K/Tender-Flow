@@ -36,14 +36,10 @@ const isTruthy = (value) => ['1', 'true', 'yes', 'on'].includes(String(value || 
 const main = async () => {
   loadEnvFile(path.join(repoRoot, '.env.local'));
 
-  const accessToken = process.env.TENDER_FLOW_MCP_ACCESS_TOKEN || process.env.SUPABASE_ACCESS_TOKEN;
+  const accessToken = process.env.TENDER_FLOW_MCP_ACCESS_TOKEN;
   const auth = await verifyLocalMcpAccessToken(accessToken);
   const readOnly = isTruthy(process.env.TENDER_FLOW_MCP_READ_ONLY);
-  const includeWriteTools = auth.hasOAuthClientId && !readOnly;
-
-  if (!auth.hasOAuthClientId) {
-    console.error('[Tender Flow MCP] Local Supabase session token detected; running general read-only tools without contact data.');
-  }
+  const includeWriteTools = !readOnly;
 
   serveStdio(
     () => createTenderFlowMcpServer(auth, { includeWriteTools }),

@@ -4,10 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { redactForAudit, summarizeResultForAudit } from "../server/mcp/audit.js";
 import { buildMcpResourceMetadata } from "../server/mcp/response.js";
 import { validateMcpTokenClaims } from "../server/mcp/supabaseAuth.js";
+import { McpPermissionServiceUnavailableError } from "../server/mcp/permissionGrants.js";
 import {
   assertProjectVisible,
   handleAuthorizedMcpRequest,
   handleMcpWebRequest,
+  mcpAuthenticationFailureResponse,
 } from "../server/mcp/tenderFlowMcp.js";
 import { checkMcpRateLimit, resetMcpRateLimitsForTests } from "../server/mcp/rateLimit.js";
 
@@ -69,6 +71,7 @@ describe("remote MCP server", () => {
     delete process.env.MCP_ALLOWED_ORIGINS;
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_MCP_SECRET_KEY;
     delete process.env.VITE_SUPABASE_URL;
   });
 
@@ -93,7 +96,7 @@ describe("remote MCP server", () => {
         "email",
         "profile",
       ],
-      resource_documentation: "https://tenderflow.cz/app/settings?tab=tools",
+      resource_documentation: "https://tenderflow.cz/app/settings?tab=tools&subTab=mcp",
     });
   });
 
@@ -131,15 +134,34 @@ describe("remote MCP server", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
   });
 
+  it("mapuje výpadek permission resolveru na 503 bez OAuth challenge", async () => {
+    const response = mcpAuthenticationFailureResponse(
+      new Request("https://tenderflow.cz/api/mcp"),
+      new McpPermissionServiceUnavailableError(),
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("www-authenticate")).toBeNull();
+    await expect(response.json()).resolves.toMatchObject({
+      error: "mcp_auth_service_unavailable",
+    });
+  });
+
   it("validuje OAuth klienta, audience, resource a standardní scope fail-closed", () => {
     vi.stubEnv("NODE_ENV", "production");
     const payload = {
       sub: "user-1",
       client_id: "client-1",
+      role: "tenderflow_mcp_client",
       aud: "authenticated",
       app_metadata: { mcp_resource: "https://tenderflow.cz/api/mcp" },
       scope: "openid email profile",
     };
+
+    expect(() => validateMcpTokenClaims(
+      { ...payload, role: "authenticated" },
+      { expectedResource: "https://tenderflow.cz/api/mcp" },
+    )).toThrow("OAuth token is not restricted to the Tender Flow MCP database role");
 
     expect(() => validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" })).toThrow(
       "MCP_ALLOWED_CLIENT_IDS must be configured in production.",
@@ -155,15 +177,15 @@ describe("remote MCP server", () => {
       userId: "user-1",
       clientId: "client-1",
       oauthScopes: ["openid", "email", "profile"],
-      permissions: ["tenderflow.read"],
     });
+    expect(validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" }))
+      .not.toHaveProperty("permissions");
 
     expect(validateMcpTokenClaims({
       ...payload,
       scope: "openid email profile tenderflow.contacts.read tenderflow.write",
     }, { expectedResource: "https://tenderflow.cz/api/mcp" })).toMatchObject({
       oauthScopes: ["openid", "email", "profile", "tenderflow.contacts.read", "tenderflow.write"],
-      permissions: ["tenderflow.read"],
     });
 
     expect(() =>
@@ -249,6 +271,7 @@ describe("remote MCP server", () => {
   it("zveřejňuje remote pouze obecné read-only nástroje podle interních permissions", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
 
     const identityOnly = await callAuthorizedMcp("tools/list", {}, ["openid"], []);
     expect(identityOnly.result.tools).toEqual([]);
@@ -286,6 +309,7 @@ describe("remote MCP server", () => {
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
 
     const resources = await callAuthorizedMcp("resources/list", {}, ["openid"], []);
     expect(resources.result.resources).toEqual([
@@ -324,6 +348,7 @@ describe("remote MCP server", () => {
   it("obecný search a contact fetch bez contacts permission nenačítají subcontractors", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.includes("/rpc/consume_mcp_rate_limit")) {
@@ -364,6 +389,7 @@ describe("remote MCP server", () => {
   it("čte katalog jako privátní MCP 2.0 resource a audituje požadavek bez tokenu v logu", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       if (String(input).includes("/rpc/consume_mcp_rate_limit")) {
         return new Response(JSON.stringify({
@@ -426,6 +452,7 @@ describe("remote MCP server", () => {
   it("čte smluvní přehled přes RLS-aware RPC resource bez interních storage cest", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     const organizationId = "11111111-1111-4111-8111-111111111111";
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
@@ -505,6 +532,7 @@ describe("remote MCP server", () => {
   it("obslouží moderní server/discover bez legacy initialize session", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
     const response = await handleAuthorizedMcpRequest(
       new Request("https://tenderflow.cz/api/mcp", {
         method: "POST",
@@ -574,7 +602,7 @@ describe("remote MCP server", () => {
     expect(allowed.headers.get("access-control-allow-origin")).toBe("https://chatgpt.com");
   });
 
-  it("má lokální stdio entrypoint pro Claude Code/Codex a bez OAuth client_id schová write tools", () => {
+  it("má lokální stdio entrypoint pro Claude Code/Codex jen s dedikovaným OAuth tokenem", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     const source = fs.readFileSync(path.join(ROOT, "scripts/mcp-stdio.js"), "utf8").replace(/\r\n/g, "\n");
     const mcpConfig = JSON.parse(fs.readFileSync(path.join(ROOT, ".mcp.json"), "utf8"));
@@ -586,8 +614,9 @@ describe("remote MCP server", () => {
       url: "https://www.tenderflow.cz/api/mcp",
     });
     expect(source).toContain("verifyLocalMcpAccessToken");
-    expect(source).toContain("auth.hasOAuthClientId && !readOnly");
-    expect(source).toContain("Local Supabase session token detected; running general read-only tools without contact data.");
+    expect(source).toContain("const accessToken = process.env.TENDER_FLOW_MCP_ACCESS_TOKEN");
+    expect(source).not.toContain("process.env.SUPABASE_ACCESS_TOKEN");
+    expect(source).toContain("const includeWriteTools = !readOnly");
     expect(serverSource).toContain("const includeWriteTools = options.includeWriteTools !== false;");
     expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
   });
