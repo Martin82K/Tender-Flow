@@ -40,14 +40,13 @@ describe("McpAccessSettings", () => {
 
     expect(await screen.findByText("ChatGPT Tender Flow")).toBeInTheDocument();
     expect(screen.getByText("Základní čtení aktivní")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Přehled dostupných nástrojů" })).toBeInTheDocument();
-    expect(screen.getByText("tf_list_projects")).toBeInTheDocument();
-    expect(screen.getByText("tf_list_contacts")).toBeInTheDocument();
-    expect(screen.getByText("tf_execute_change")).toBeInTheDocument();
-    expect(screen.getByText("10 z 20 aktivních")).toBeInTheDocument();
-    expect(screen.getAllByText("Aktivní").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Vyžaduje kontaktní údaje").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Vyžaduje zápis").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Skupiny oprávnění" })).toBeInTheDocument();
+    expect(screen.getByText("Základní čtení")).toBeInTheDocument();
+    expect(screen.getByText("Kontaktní a dodavatelská data")).toBeInTheDocument();
+    expect(screen.getAllByText("Zápisové operace")).toHaveLength(2);
+    expect(screen.queryByText(/Úkoly, kanban a ceny/)).not.toBeInTheDocument();
+    expect(screen.getByText("Vyžaduje kontaktní údaje")).toBeInTheDocument();
+    expect(screen.getByText("Vyžaduje zápis")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Povolit kontaktní údaje" }));
     await waitFor(() => {
@@ -59,20 +58,21 @@ describe("McpAccessSettings", () => {
     });
   });
 
-  it("requires a second explicit confirmation before the eight-hour write grant", async () => {
+  it("requires a second explicit confirmation before a write grant valid until revoked", async () => {
     render(<McpAccessSettings />);
     await screen.findByText("ChatGPT Tender Flow");
 
     fireEvent.click(screen.getByRole("button", { name: "Povolit zápis" }));
     expect(grantMocks.set).not.toHaveBeenCalled();
-    expect(screen.getByText(/Každý zápis stále vyžaduje prepare\/confirm\/execute/)).toBeInTheDocument();
+    expect(screen.getByText(/Rizikové změny stále vyžadují prepare\/confirm\/execute/)).toBeInTheDocument();
+    expect(screen.getByText(/Outlook message ID se propojuje přímo/)).toBeInTheDocument();
 
     grantMocks.set.mockResolvedValueOnce({
       permission: "tenderflow.write",
       enabled: true,
-      expiresAt: "2026-08-09T08:00:00Z",
+      expiresAt: "infinity",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Potvrdit zápis na 8 hodin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Potvrdit zápis do odvolání" }));
 
     await waitFor(() => {
       expect(grantMocks.set).toHaveBeenCalledWith(
@@ -89,12 +89,13 @@ describe("McpAccessSettings", () => {
       clientName: "ChatGPT Tender Flow",
       clientUri: "https://chatgpt.com",
       contactsReadExpiresAt: "2099-09-08T00:00:00Z",
-      writeExpiresAt: "2099-08-09T08:00:00Z",
+      writeExpiresAt: "infinity",
     }]);
 
     render(<McpAccessSettings />);
 
-    expect(await screen.findByText("20 z 20 aktivních")).toBeInTheDocument();
+    expect(await screen.findByText("Zápisové operace povoleny")).toBeInTheDocument();
+    expect(screen.getByText("Platí do odvolání")).toBeInTheDocument();
     expect(screen.queryByText("Vyžaduje kontaktní údaje")).not.toBeInTheDocument();
     expect(screen.queryByText("Vyžaduje zápis")).not.toBeInTheDocument();
   });

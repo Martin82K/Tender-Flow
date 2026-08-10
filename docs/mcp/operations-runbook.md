@@ -2,7 +2,8 @@
 
 Stav: veřejná část produkčního canary je automatizovaná; tokenový a RLS canary
 vyžaduje registrovaného klienta a testovacího uživatele
-Zdroj pravdy: `server/mcp/`, `docs/development/configuration.md` a Vercel route
+Zdroj pravdy: `server/mcp/`, `mcp-service/`, `docs/development/configuration.md`
+a veřejná Vercel proxy route
 
 ## Povinná konfigurace
 
@@ -13,6 +14,8 @@ Zdroj pravdy: `server/mcp/`, `docs/development/configuration.md` a Vercel route
 | `MCP_REQUIRED_SCOPES` | minimální endpoint scopes; výchozí `openid` |
 | `MCP_ALLOWED_ORIGINS` | přesný browser Origin allowlist |
 | `SUPABASE_MCP_SECRET_KEY` | povinný server-only `sb_secret_…` klíč pouze pro MCP backend |
+| `MCP_CANONICAL_BASE_URL` | v samostatné službě přesně `https://www.tenderflow.cz` |
+| `MCP_UPSTREAM_URL` | pouze v aplikačním projektu; po cutover přesná HTTPS URL samostatného `/api/mcp` |
 | `TENDER_FLOW_MCP_ACCESS_TOKEN` | lokální dedikovaný MCP OAuth token; běžná TF session se odmítne |
 | `TENDER_FLOW_MCP_READ_ONLY` | vypnutí stdio write tools |
 
@@ -35,7 +38,9 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    uložit jej jako `SUPABASE_MCP_SECRET_KEY` do serverového/Vercel prostředí.
 3. U DB změny provést migration audit, linked dry-run, RLS/grants/indexy a až
    po explicitním schválení verzovanou migraci.
-4. Nasadit aplikaci a ověřit `/api/mcp-resource` a 401 challenge `/api/mcp`,
+4. Nasadit nejprve samostatný projekt z `mcp-service/` a ověřit jeho interní
+   `/api/mcp-resource` a 401 challenge. Teprve po autorizovaném canary nastavit
+   aplikační `MCP_UPSTREAM_URL` a jedním redeployem přepnout veřejný `/api/mcp`,
    včetně `scope="openid"` ve `WWW-Authenticate`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
    První autorizovaný request musí přes service-role-only RPC zaregistrovat
@@ -60,7 +65,7 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    contacts/write grant zůstává neaktivní a audit přežije odstranění klienta.
 10. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
-11. Na testovacím projektu a účtu povolit osmihodinový write grant, provést
+11. Na testovacím projektu a účtu povolit write grant do odvolání, provést
    `create_task` prepare → confirm → execute, ověřit audit a řádek tasku, grant
    revokovat a ověřit okamžité zmizení write katalogu.
 12. Po deployi znovu ověřit health, chyby, latenci a databázové advisories.
@@ -122,3 +127,6 @@ bez úspěšného pre-auditu server doménovou změnu nespustí.
 Rollback aplikace nesmí vracet databázové migrace destruktivním příkazem.
 Kompatibilní forward-fix je preferovaný; revokace OAuth klienta je bezpečný
 okamžitý kill switch.
+
+Při výpadku samostatné služby odebrat `MCP_UPSTREAM_URL` a redeploynout pouze
+aplikační Vercel projekt; veřejná URL pak znovu používá zabudovaný handler.

@@ -1,0 +1,15 @@
+{
+  "name": "@tenderflow/remote-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "@supabase/supabase-js": "2.86.0",
+    "jose": "6.2.3",
+    "zod": "4.4.3"
+  }
+}

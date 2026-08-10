@@ -83,7 +83,7 @@ a stejné permissions se znovu kontrolují při invokaci.
 
 ### `tf_link_outlook_message`
 
-- Permissions: read + write; riziko medium; **vyžaduje osmihodinový grant**.
+- Permissions: read + write; riziko medium; **vyžaduje odvolatelný write grant**.
 - Vstup: `bidId`, `outlookImmutableId`, volitelně `internetMessageId` a
   `conversationId`; každý identifikátor má limit 2048 znaků.
 - Použití: po odeslání poptávky přes Outlook propojí stabilní identifikátory
@@ -115,7 +115,7 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 
 ### `tf_prepare_bid_status_change`
 
-- Permissions: read + write; riziko medium; **vyžaduje osmihodinový grant**.
+- Permissions: read + write; riziko medium; **vyžaduje odvolatelný write grant**.
 - Použije se pro jednoznačný záměr přesunout jednu kartu dodavatele v kanbanu.
 - Vstup: pouze přesný `bidId` a cílový `status`.
   Status musí být jeden z `contacted`, `sent`, `offer`, `shortlist`, `sod`,
@@ -128,7 +128,7 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 
 ### `tf_prepare_change`
 
-- Permissions: read + write; riziko medium; **vyžaduje osmihodinový grant**.
+- Permissions: read + write; riziko medium; **vyžaduje odvolatelný write grant**.
 - Vstup: `change` a volitelný `reason` do 1000 znaků.
 - Pro `create_task`: `title` 1–500, `note?` max. 10 000, `dueAt?`,
   `priority?` 1–4, `projectId?`.
@@ -141,7 +141,7 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 
 ### `tf_confirm_change`
 
-- Permissions: read + write; riziko high; **vyžaduje osmihodinový grant**.
+- Permissions: read + write; riziko high; **vyžaduje odvolatelný write grant**.
 - Vstup: UUID `proposalId` a přesný `confirmationText`.
 - Ověří vlastníka, OAuth klienta, stav a desetiminutovou expiraci.
 - Výstup zopakuje veřejný `confirmationText`, který klient použije i v execute
@@ -149,7 +149,7 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 
 ### `tf_execute_change`
 
-- Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **vyžaduje osmihodinový grant**.
+- Permissions: read + write; riziko high; destruktivní hint, idempotentní chování; **vyžaduje odvolatelný write grant**.
 - Vstup: `proposalId`, přesný `confirmationText` a `idempotencyKey` 8–200
   znaků. Pro dříve potvrzené návrhy lze místo textu použít legacy
   `executeToken`.

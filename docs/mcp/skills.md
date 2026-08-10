@@ -4,8 +4,10 @@ Stav: návrh; skilly uvedené níže nejsou dosud produkční MCP capabilities
 Zdroj pravdy po implementaci: verzované skill balíčky a MCP tool/resource katalog
 
 Skill je opakovatelný pracovní postup agenta nad omezenými MCP schopnostmi.
-Neuděluje nové oprávnění: může použít pouze tools/resources viditelné tokenu a
-každý zápis stále prochází serverovým prepare → confirm → execute.
+Neuděluje nové oprávnění: může použít pouze tools/resources viditelné tokenu.
+Business změny procházejí serverovým prepare → confirm → execute; jedinou
+přímou write výjimkou je omezená auditovaná Outlook metadata vazba popsaná v
+[bezpečném zápisu](write-safety.md).
 
 Aktuálně lze produkčně stavět jen skilly nad obecnou read permission.
 `contacts read` a `read + write` varianty jsou roadmapa a zůstávají disabled.

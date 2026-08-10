@@ -24,7 +24,7 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
 6. Provést read-only canary a ověřit audit.
 7. Potřebuje-li klient kontaktní data nebo zápis, uživatel je povolí pro tento
    consentovaný klient v Nastavení → Nástroje → MCP přístupy. Contacts grant
-   platí 30 dní, write grant 8 hodin; rozšíření OAuth scope je nenahrazuje.
+   platí 30 dní, write grant do odvolání; rozšíření OAuth scope je nenahrazuje.
 8. Po změně registrace nebo databázové role provést nový OAuth flow. Starší
    token bez `role=tenderflow_mcp_client` server záměrně odmítne.
 
