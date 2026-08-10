@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { ContractOverview } from "@/features/contracts-overview/ContractOverview";
 import type { ContractOverviewRow } from "@/features/contracts-overview/api/contractOverviewApi";
+import { APP_VERSION } from "@/config/version";
 
 const { exportContractOverviewToExcelMock, getContractOverviewMock } = vi.hoisted(() => ({
   exportContractOverviewToExcelMock: vi.fn(),
@@ -173,7 +174,7 @@ describe("seskupení smluv a dodatků ve Smluvním přehledu", () => {
       expect.objectContaining({
         organizationName: "REKO a.s.",
         exportedBy: "Martin Kalkus",
-        appVersion: "1.9.0-beta.14",
+        appVersion: APP_VERSION,
       }),
     ));
     expect(exportContractOverviewToExcelMock.mock.calls[0][2].exportedBy).not.toContain("@");
