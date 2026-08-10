@@ -460,7 +460,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "contracts",
     label: "Seznam smluv",
     description: "Tabulka nebo přehled všech smluv projektu s detaily — dodavatel, předmět, částka, stav.",
-    detail: "Dvě zobrazení: Tabulka (kompaktní řádky) a Přehled smluv (rozšířené karty). U smlouvy bez dokumentu použijte ve sloupci Dokument akci Připojit; PDF nebo DOCX se uloží ke stávající smlouvě bez spuštění OCR a bez změny jejích údajů. Smlouvy s dodatky lze v tabulce rozbalit a zobrazit jejich podřízené řádky. Každá smlouva je napojena na poptávkovou kategorii a subdodavatele z Pipeline.",
+    detail: "Dvě zobrazení: Tabulka (kompaktní řádky) a Přehled smluv (rozšířené karty). V tabulce lze stáhnout stylizovaný Excel s logem Tender Flow, údaji o projektu, datem, verzí aplikace a uživatelem, který export provedl. U smlouvy bez dokumentu použijte ve sloupci Dokument akci Připojit; PDF nebo DOCX se uloží ke stávající smlouvě bez spuštění OCR a bez změny jejích údajů. Smlouvy s dodatky lze v tabulce rozbalit a zobrazit jejich podřízené řádky. Každá smlouva je napojena na poptávkovou kategorii a subdodavatele z Pipeline.",
     category: "info",
     tourOrder: 3,
   },

@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { ContractWithDetails } from '@/types';
+import type { ContractWithDetails, ProjectDetails } from '@/types';
+import { APP_VERSION } from '@/config/version';
+import { useAuth } from '@/context/AuthContext';
+import { exportContractTableToXlsx } from '@/services/exportService';
 import { ContractsHeadline } from './ContractsHeadline';
 import { ContractListPanel } from './ContractListPanel';
 import { ContractsTable } from './ContractsTable';
@@ -12,6 +15,7 @@ export type ContractsViewMode = 'split' | 'table';
 
 interface Props {
   projectId: string;
+  projectDetails?: ProjectDetails;
   contracts: ContractWithDetails[];
   refresh: () => Promise<void> | void;
   viewMode: ContractsViewMode;
@@ -21,17 +25,20 @@ interface Props {
 
 export const ContractsListPage: React.FC<Props> = ({
   projectId,
+  projectDetails,
   contracts,
   refresh,
   viewMode,
   onViewModeChange,
   initialSelectedId,
 }) => {
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editContract, setEditContract] = useState<ContractWithDetails | null>(null);
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [attachingDocumentId, setAttachingDocumentId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (initialSelectedId && contracts.some((contract) => contract.id === initialSelectedId)) {
@@ -96,6 +103,26 @@ export const ContractsListPage: React.FC<Props> = ({
     }
   };
 
+  const handleExport = async () => {
+    setDocumentError(null);
+    setExporting(true);
+    try {
+      const userLabel = user?.name?.trim() || 'Uživatel';
+      await exportContractTableToXlsx(contracts, {
+        organizationName: user?.organizationName || 'Organizace',
+        projectName: projectDetails?.title || 'Projekt',
+        exportedBy: userLabel,
+        appVersion: APP_VERSION,
+      });
+    } catch (error) {
+      setDocumentError(
+        error instanceof Error ? error.message : 'Export smluv do Excelu se nepodařilo vytvořit.',
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="tf-contracts-list-page flex-1 flex flex-col min-h-0">
       <div className="flex items-center gap-3 px-5 py-3">
@@ -133,6 +160,20 @@ export const ContractsListPage: React.FC<Props> = ({
             ▦ Tabulka
           </button>
         </div>
+        {viewMode === 'table' ? (
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting || contracts.length === 0}
+            data-help-id="contracts-export-xlsx"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+          >
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+              table_view
+            </span>
+            {exporting ? 'Exportuji…' : 'Export do Excelu'}
+          </button>
+        ) : null}
       </div>
 
       <ContractsHeadline contracts={contracts} />
