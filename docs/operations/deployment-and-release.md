@@ -59,6 +59,13 @@ npm run desktop:build:mac
 npm run desktop:build:win
 ```
 
+Produkční desktop build je fail-closed: před balením musí být dostupné veřejné
+hodnoty `VITE_SUPABASE_URL` a `VITE_SUPABASE_ANON_KEY` v prostředí nebo v
+lokálním `.env.local`. Pokud chybí, anon klíč není platný jednořádkový JWT nebo
+jeho payload nemá roli `anon`, build skončí chybou a nesmí se publikovat; jinak
+by zabalená aplikace nemohla provést standardní přihlášení nebo by mohla
+obsahovat nepřípustně privilegovanou hodnotu.
+
 `electron-builder.yml` definuje app ID, platformní cíle, ikony, ASAR, updater a
 publikaci na GitHub. macOS cíl obsahuje DMG a ZIP pro arm64; Windows NSIS pro x64.
 

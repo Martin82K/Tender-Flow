@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -9,6 +10,16 @@ const extractDesktopPublicKeys = (source: string): string[] => {
 };
 
 describe("desktop build env security", () => {
+  it("předá produkční příznak i kroku desktop:compile", () => {
+    const packageJson = JSON.parse(
+      readFileSync(join(process.cwd(), "package.json"), "utf-8"),
+    ) as { scripts: Record<string, string> };
+
+    expect(packageJson.scripts["desktop:build"]).toContain(
+      "&& cross-env ELECTRON_BUILD=true npm run desktop:compile",
+    );
+  });
+
   it("přibaluje pouze veřejné Vite hodnoty, nikdy privátní tokeny ani secrety", () => {
     const source = readFileSync(
       join(process.cwd(), "scripts", "write-desktop-build-env.mjs"),
@@ -24,5 +35,66 @@ describe("desktop build env security", () => {
     expect(publicKeys.every((key) => key.startsWith("VITE_"))).toBe(true);
     expect(publicKeys.some((key) => /(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD|TOKEN)/i.test(key))).toBe(false);
     expect(source).toContain("forbiddenPublicKeyPattern");
+  });
+
+  it("zastaví produkční desktop build, pokud chybí Supabase public env", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: process.cwd(),
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        CI: "false",
+        ELECTRON_BUILD: "true",
+        VITE_SUPABASE_URL: "",
+        VITE_SUPABASE_ANON_KEY: "",
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "Missing required desktop build env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
+    );
+  });
+
+  it("zastaví produkční desktop build, pokud je Supabase anon klíč poškozený zalomením", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: process.cwd(),
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        CI: "false",
+        ELECTRON_BUILD: "true",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_ANON_KEY: "header.payload\n.signature",
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must be a single-line JWT",
+    );
+  });
+
+  it("zastaví desktop build, pokud JWT nemá anon roli", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const payload = Buffer.from(JSON.stringify({ role: "service_role" })).toString("base64url");
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: process.cwd(),
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        CI: "false",
+        ELECTRON_BUILD: "true",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_ANON_KEY: `header.${payload}.signature`,
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must have the anon role",
+    );
   });
 });

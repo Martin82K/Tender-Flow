@@ -70,8 +70,36 @@ for (const key of publicKeys) {
 }
 
 const missing = requiredKeys.filter((key) => !values[key]);
-if (missing.length > 0 && process.env.CI === "true") {
+const isProductionDesktopBuild = process.env.ELECTRON_BUILD === "true";
+if (missing.length > 0 && (process.env.CI === "true" || isProductionDesktopBuild)) {
   throw new Error(`Missing required desktop build env: ${missing.join(", ")}`);
+}
+
+if (
+  values.VITE_SUPABASE_ANON_KEY &&
+  !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(values.VITE_SUPABASE_ANON_KEY)
+) {
+  throw new Error(
+    "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must be a single-line JWT",
+  );
+}
+
+if (values.VITE_SUPABASE_ANON_KEY) {
+  let anonKeyPayload;
+  try {
+    const payloadSegment = values.VITE_SUPABASE_ANON_KEY.split(".")[1];
+    anonKeyPayload = JSON.parse(Buffer.from(payloadSegment, "base64url").toString("utf-8"));
+  } catch {
+    throw new Error(
+      "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must contain a valid JWT payload",
+    );
+  }
+
+  if (anonKeyPayload?.role !== "anon") {
+    throw new Error(
+      "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must have the anon role",
+    );
+  }
 }
 
 const buildEnv = {};
