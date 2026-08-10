@@ -10,6 +10,21 @@ const extractDesktopPublicKeys = (source: string): string[] => {
 };
 
 describe("desktop build env security", () => {
+  it("používá v quality workflow syntetický anon JWT místo neplatného placeholderu", () => {
+    const workflow = readFileSync(
+      join(process.cwd(), ".github", "workflows", "quality.yml"),
+      "utf-8",
+    );
+    const match = workflow.match(/VITE_SUPABASE_ANON_KEY:\s*([^\s]+)/);
+
+    expect(match?.[1]).toBeTruthy();
+    expect(match?.[1]).not.toBe("ci-placeholder-anon-key");
+    const payload = JSON.parse(
+      Buffer.from(match![1].split(".")[1], "base64url").toString("utf-8"),
+    ) as { role?: string };
+    expect(payload.role).toBe("anon");
+  });
+
   it("předá produkční příznak i kroku desktop:compile", () => {
     const packageJson = JSON.parse(
       readFileSync(join(process.cwd(), "package.json"), "utf-8"),

@@ -13,7 +13,7 @@ jobs:
     env:
       # Safe dummy values for CI test/runtime init. Real secrets are not needed here.
       VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
-      VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      VITE_SUPABASE_ANON_KEY: e30.eyJyb2xlIjoiYW5vbiJ9.c2lnbmF0dXJl
 
     steps:
       - name: Checkout code
