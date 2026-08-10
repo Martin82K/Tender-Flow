@@ -82,6 +82,11 @@ const updateBidProposalSchema = z.object({
   }).strict(),
 });
 
+const prepareBidStatusChangeSchema = z.object({
+  bidId: z.string().trim().min(1).max(100),
+  status: bidStatusSchema,
+}).strict();
+
 const storedUpdateBidProposalSchema = z.object({
   type: z.literal('update_bid'),
   payload: z.object({
@@ -598,9 +603,10 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.4.0',
+      version: '0.5.0',
     },
     {
+      instructions: 'To move a supplier bid card in the Tender Flow kanban, first call tf_prepare_bid_status_change. Show its before/after diff to the user, then use tf_confirm_change and tf_execute_change only after explicit confirmation.',
       capabilities: {
         tools: { listChanged: false },
         resources: { listChanged: false },
@@ -854,6 +860,20 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     withAudit(auth, supabase, 'tf_link_outlook_message', 'link_outlook_message', async (args) => ({
       ok: true,
       data: await linkOutlookMessage(supabase, args),
+    }), 'medium'),
+  );
+
+  registerScopedTool(server, auth,
+    'tf_prepare_bid_status_change',
+    {
+      title: 'Prepare Supplier Bid Status Change',
+      description: 'Use this when the user wants to move one supplier bid card to another Tender Flow kanban status. This only prepares an authorized before/after proposal; it does not change the card until tf_confirm_change and tf_execute_change succeed.',
+      inputSchema: prepareBidStatusChangeSchema,
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    withAudit(auth, supabase, 'tf_prepare_bid_status_change', 'prepare_write', async ({ bidId, status }) => createProposal(supabase, auth, {
+      change: { type: 'update_bid', payload: { bidId, status } },
     }), 'medium'),
   );
 

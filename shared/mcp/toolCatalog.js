@@ -161,6 +161,15 @@ export const MCP_TOOL_CATALOG = Object.freeze([
     mode: "write",
   },
   {
+    name: "tf_prepare_bid_status_change",
+    title: "Příprava přesunu karty dodavatele",
+    category: "Zápis",
+    data: "Připraví změnu stavu karty dodavatele v kanbanu; stav změní až následné potvrzení a provedení.",
+    requiredPermissions: WRITE,
+    riskLevel: "medium",
+    mode: "write",
+  },
+  {
     name: "tf_prepare_change",
     title: "Příprava změny",
     category: "Zápis",

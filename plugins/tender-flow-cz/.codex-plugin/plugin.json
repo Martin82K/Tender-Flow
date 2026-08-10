@@ -1,6 +1,6 @@
 {
   "name": "tender-flow-cz",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tender Flow CZ plugin for connecting Codex to the remote Tender Flow MCP server.",
   "author": {
     "name": "Tender Flow",
@@ -33,6 +33,7 @@
     "defaultPrompt": [
       "Search Tender Flow projects and fetch relevant tender details.",
       "List upcoming Tender Flow deadlines for visible projects.",
+      "Prepare moving a supplier bid card to another kanban status for my approval.",
       "Prepare a Tender Flow task proposal for my approval."
     ],
     "brandColor": "#0F766E",

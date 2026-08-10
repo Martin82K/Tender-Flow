@@ -44,7 +44,7 @@ describe("McpAccessSettings", () => {
     expect(screen.getByText("tf_list_projects")).toBeInTheDocument();
     expect(screen.getByText("tf_list_contacts")).toBeInTheDocument();
     expect(screen.getByText("tf_execute_change")).toBeInTheDocument();
-    expect(screen.getByText("10 z 19 aktivních")).toBeInTheDocument();
+    expect(screen.getByText("10 z 20 aktivních")).toBeInTheDocument();
     expect(screen.getAllByText("Aktivní").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Vyžaduje kontaktní údaje").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Vyžaduje zápis").length).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe("McpAccessSettings", () => {
 
     render(<McpAccessSettings />);
 
-    expect(await screen.findByText("19 z 19 aktivních")).toBeInTheDocument();
+    expect(await screen.findByText("20 z 20 aktivních")).toBeInTheDocument();
     expect(screen.queryByText("Vyžaduje kontaktní údaje")).not.toBeInTheDocument();
     expect(screen.queryByText("Vyžaduje zápis")).not.toBeInTheDocument();
   });

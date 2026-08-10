@@ -3,6 +3,18 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-10 — objevitelný zápis stavu kanbanu
+
+- přidán jednoúčelový `tf_prepare_bid_status_change` pro přípravu přesunu jedné
+  karty dodavatele; skutečný zápis dál vyžaduje `tf_confirm_change` a
+  `tf_execute_change`,
+- vstup je striktně omezen na `bidId` a povolený cílový stav;
+  používá stávající RPC dry-run, before/after diff a compare-and-set,
+- obecný `tf_prepare_change` zůstává kompatibilní a MCP role nadále nemá přímý
+  `UPDATE` na `bids`,
+- serverová verze je `0.5.0`; release postup nově výslovně vyžaduje Refresh
+  developer připojení nebo Scan Tools a publikování nového metadata snapshotu.
+
 ## 2026-08-09 — minimální Outlook message vazby
 
 - přidány `tf_link_outlook_message` a `tf_match_outlook_reply` pro propojení

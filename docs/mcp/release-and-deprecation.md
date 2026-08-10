@@ -6,7 +6,7 @@ Vztah ke standardu: respektuje minimálně dvanáctiměsíční deprecation okno
 ## Verzování
 
 Sledujeme tři nezávislé verze: MCP protokolovou revizi (aktuálně
-`2026-07-28`), serverovou implementaci (`McpServer` nyní `0.3.0`) a jednotlivé
+`2026-07-28`), serverovou implementaci (`McpServer` nyní `0.5.0`) a jednotlivé
 skill/kontrakt verze. Změna interní implementace bez změny schématu není
 automaticky nový protokol. Přidání nepovinného pole je additive; odstranění
 nebo přejmenování toolu, resource, scope či významu pole je breaking změna.
@@ -20,6 +20,12 @@ nebo přejmenování toolu, resource, scope či významu pole je breaking změna
 - audit a observabilita bez secretů,
 - migration dry-run a catalog/advisor kontrola u DB změn,
 - green GitHub Actions a hosting preview/production checks.
+
+Změna názvu, popisu, schématu, anotací nebo autentizace toolu vyžaduje po
+nasazení také obnovu metadata snapshotu v ChatGPT. U developer-mode připojení
+se použije **Refresh**. U publikovaného pluginu je nutné znovu spustit
+**Scan Tools**, ověřit nalezený kontrakt, odeslat a publikovat novou verzi.
+Samotné nasazení MCP endpointu snapshot publikovaného pluginu nezmění.
 
 ## Deprecation
 
