@@ -85,7 +85,9 @@ export const usePipelineContactsController = ({
         }
       }
 
-      setLocalContacts((prev) => [...prev, newContact]);
+      if (userRole === "demo" || !persistNewContact) {
+        setLocalContacts((prev) => [...prev, newContact]);
+      }
       setIsCreateContactModalOpen(false);
       onContactSaved?.(newContact);
     } catch (error) {
