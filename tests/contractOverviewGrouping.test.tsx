@@ -4,7 +4,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ContractOverview } from "@/features/contracts-overview/ContractOverview";
 import type { ContractOverviewRow } from "@/features/contracts-overview/api/contractOverviewApi";
 
-const { getContractOverviewMock } = vi.hoisted(() => ({
+const { exportContractOverviewToExcelMock, getContractOverviewMock } = vi.hoisted(() => ({
+  exportContractOverviewToExcelMock: vi.fn(),
   getContractOverviewMock: vi.fn(),
 }));
 
@@ -61,8 +62,19 @@ vi.mock("@/features/contracts-overview/api/contractOverviewApi", () => ({
   openContractOverviewDocument: vi.fn(),
 }));
 
+vi.mock("@/features/contracts-overview/api/contractOverviewExport", () => ({
+  exportContractOverviewToExcel: exportContractOverviewToExcelMock,
+}));
+
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({ user: { organizationId: "org-1" } }),
+  useAuth: () => ({
+    user: {
+      organizationId: "org-1",
+      organizationName: "REKO a.s.",
+      name: "Martin Kalkus",
+      email: "martin@example.com",
+    },
+  }),
 }));
 
 vi.mock("@/context/UIContext", () => ({
@@ -97,5 +109,24 @@ describe("seskupení smluv a dodatků ve Smluvním přehledu", () => {
       name: "Sbalit dodatky smlouvy Smlouva o dílo",
     }));
     await waitFor(() => expect(screen.queryByText("Dodatek č. 1")).not.toBeInTheDocument());
+  });
+
+  it("předá exportu značku organizace, verzi aplikace a jméno bez e-mailu", async () => {
+    getContractOverviewMock.mockResolvedValueOnce([overviewRow]);
+    exportContractOverviewToExcelMock.mockResolvedValueOnce(undefined);
+    render(<ContractOverview />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Export do Excelu" }));
+
+    await waitFor(() => expect(exportContractOverviewToExcelMock).toHaveBeenCalledWith(
+      [overviewRow],
+      expect.any(Array),
+      expect.objectContaining({
+        organizationName: "REKO a.s.",
+        exportedBy: "Martin Kalkus",
+        appVersion: "1.9.0-beta.14",
+      }),
+    ));
+    expect(exportContractOverviewToExcelMock.mock.calls[0][2].exportedBy).not.toContain("@");
   });
 });

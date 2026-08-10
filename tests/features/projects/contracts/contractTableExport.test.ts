@@ -65,6 +65,15 @@ describe("contractTableExport", () => {
     expect(sheet?.getCell("A9").alignment?.wrapText).toBe(true);
     expect(sheet?.getCell("A10").alignment?.wrapText).toBe(true);
     expect(sheet?.getCell("C10").alignment?.wrapText).toBe(true);
+    expect(sheet?.getColumn("N").width).toBeGreaterThanOrEqual(16);
+    expect(sheet?.getCell("N10").value).toBeInstanceOf(Date);
+    expect(sheet?.getCell("N10").numFmt).toBe("dd.mm.yyyy");
+    expect(sheet?.getCell("N10").alignment?.horizontal).toBe("center");
+    expect(sheet?.getCell("N10").border?.left?.style).toBe("thin");
+    expect(sheet?.getColumn("P").width).toBeGreaterThanOrEqual(14);
+    expect(sheet?.getCell("P10").numFmt).toContain("★");
+    expect(sheet?.getCell("P10").alignment?.horizontal).toBe("center");
+    expect(sheet?.getCell("P10").border?.left?.style).toBe("thin");
     expect(sheet?.autoFilter).toEqual({ from: "A9", to: "Q10" });
     expect(sheet?.views[0]).toMatchObject({ state: "frozen", xSplit: 3, ySplit: 9 });
     expect(sheet?.getImages()).toHaveLength(1);

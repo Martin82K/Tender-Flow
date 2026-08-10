@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { APP_VERSION } from "@/config/version";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -184,7 +185,11 @@ export const ContractOverview: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportContractOverviewToExcel(filteredRows, visibleParameterKeys);
+      await exportContractOverviewToExcel(filteredRows, visibleParameterKeys, {
+        organizationName: user?.organizationName || "Organizace",
+        exportedBy: user?.name?.trim() || "Uživatel",
+        appVersion: APP_VERSION,
+      });
     } catch (reason) {
       showAlert({
         title: "Export se nezdařil",

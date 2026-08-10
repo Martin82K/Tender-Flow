@@ -157,7 +157,7 @@ describe("redesign Smluvního přehledu", () => {
     ], []);
 
     expect(exportRows[1][6]).toBe(110);
-    expect(exportRows[2][6]).toBe("");
+    expect(exportRows[2][6]).toBeNull();
     expect(exportRows[2][9]).toBe(-10);
   });
 });

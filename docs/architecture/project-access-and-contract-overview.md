@@ -18,6 +18,8 @@ Archivovaná stavba zůstává viditelná původnímu týmu v Archivu, ale datab
 
 Výstup `get_contract_overview` je read-only allowlist základních identifikátorů, partnera, stavu, ceny, souhrnného schváleného čerpání, zbývající částky, vybraných časových/garančních parametrů a metadat přímo připojeného dokumentu smlouvy nebo dodatku. Neobsahuje nabídky, rozhodnutí výběru, technické dokumenty, extrakční JSON ani jednotlivé faktury. Ve sloupci Soubory se dokument otevře až po kliknutí: privátní Storage znovu vyhodnotí RLS a vytvoří krátkodobou podepsanou URL, která se neukládá do přehledu. Dodatky jsou ve výchozím stavu seskupené pod rodičovskou smlouvou a rozbalují se ovládáním u partnera. Každé úspěšné načtení zapisuje počet výsledků a volbu archivu do auditní tabulky.
 
+Excel export používá stejný značkový layout jako tabulka smluv v detailu stavby: logo Tender Flow, organizaci, datum, verzi aplikace, zobrazované jméno uživatele, souhrnné karty, filtry a zmrazené panely. Data zůstávají typovaná jako čísla, procenta a kalendářní data; textové vstupy jsou neutralizované proti vzorcům. E-mail uživatele se do sdíleného sešitu nevkládá.
+
 Historická sdílení mimo organizaci jsou označena `legacy_external` a zachována pouze pro čtení. Nejde o profesní roli. Nové členy týmu lze vybírat pouze z aktivních členů stejné organizace. Staré generické role se automaticky nemapují na profese; takové členství zůstane bez profesní role do ručního přiřazení.
 
 Budoucí schvalování výběru má používat samostatnou tabulku zadání a kroků workflow s konkrétními adresáty, termínem a auditní stopou. Nesmí být odvozeno automaticky z projektové role.
