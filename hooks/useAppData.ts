@@ -266,8 +266,8 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     }, [queryClient]);
 
     const setContacts = useCallback((val: any) => {
-        queryClient.setQueryData(CONTACT_KEYS.list(), val);
-    }, [queryClient]);
+        queryClient.setQueryData(CONTACT_KEYS.scopedList(user?.id), val);
+    }, [queryClient, user?.id]);
 
     return {
         state: {

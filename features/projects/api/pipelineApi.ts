@@ -1,5 +1,6 @@
 import { pipelineRepository, type BidInsertPayload } from "@/infra/projects/pipelineRepository";
 import type { Bid, BidStatus, Subcontractor } from "@/types";
+import { toSubcontractorPersistencePayload } from "@features/contacts/model/contactPersistence";
 
 export const fetchLinkedTenderPlanDates = async (
   projectId: string,
@@ -56,29 +57,16 @@ export const deleteBid = async (bidId: string) => {
   return pipelineRepository.deleteBid(bidId);
 };
 
-export const insertSubcontractor = async (contact: Subcontractor) => {
-  return pipelineRepository.insertSubcontractor({
-    id: contact.id,
-    company_name: contact.company,
-    contact_person_name: contact.name,
-    email: contact.email,
-    phone: contact.phone,
-    specialization: contact.specialization,
-    ico: contact.ico,
-    region: contact.region,
-    status_id: contact.status,
-  });
+export const insertSubcontractor = async (
+  contact: Subcontractor,
+  organizationId?: string,
+) => {
+  return pipelineRepository.insertSubcontractor(
+    toSubcontractorPersistencePayload(contact, organizationId),
+  );
 };
 
 export const updateSubcontractor = async (contact: Subcontractor) => {
-  return pipelineRepository.updateSubcontractor(contact.id, {
-    company_name: contact.company,
-    contact_person_name: contact.name,
-    email: contact.email,
-    phone: contact.phone,
-    specialization: contact.specialization,
-    ico: contact.ico,
-    region: contact.region,
-    status_id: contact.status,
-  });
+  const { id: _id, ...payload } = toSubcontractorPersistencePayload(contact);
+  return pipelineRepository.updateSubcontractor(contact.id, payload);
 };

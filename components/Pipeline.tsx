@@ -73,7 +73,8 @@ interface PipelineProps {
   onEditCategory?: (category: DemandCategory) => void | Promise<void>;
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (bids: Record<string, Bid[]>) => void;
-  onUpdateContact?: (contact: Subcontractor) => void;
+  onAddContact?: (contact: Subcontractor) => Promise<void> | void;
+  onUpdateContact?: (contact: Subcontractor) => Promise<void> | void;
   searchQuery?: string;
   initialOpenCategoryId?: string;
   onCategoryNavigate?: (categoryId: string | null) => void;
@@ -105,6 +106,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onEditCategory,
   onDeleteCategory,
   onBidsChange,
+  onAddContact,
   onUpdateContact,
   searchQuery = "",
   initialOpenCategoryId,
@@ -256,8 +258,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
   } = usePipelineContactsController({
     externalContacts,
     userRole: user?.role,
+    organizationId: user?.organizationId,
     projectDataId: projectId,
     showAlert,
+    persistNewContact: onAddContact,
+    persistContactUpdate: onUpdateContact,
     onContactSaved: (contact) => {
       setSelectedSubcontractorIds((prev) => new Set(prev).add(contact.id));
     },

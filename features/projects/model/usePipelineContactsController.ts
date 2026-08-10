@@ -13,16 +13,22 @@ interface ShowAlertArgs {
 interface UsePipelineContactsControllerInput {
   externalContacts: Subcontractor[];
   userRole?: string;
+  organizationId?: string;
   projectDataId: string;
   showAlert: (args: ShowAlertArgs) => void;
+  persistNewContact?: (contact: Subcontractor) => Promise<void> | void;
+  persistContactUpdate?: (contact: Subcontractor) => Promise<void> | void;
   onContactSaved?: (contact: Subcontractor) => void;
 }
 
 export const usePipelineContactsController = ({
   externalContacts,
   userRole,
+  organizationId,
   projectDataId,
   showAlert,
+  persistNewContact,
+  persistContactUpdate,
   onContactSaved,
 }: UsePipelineContactsControllerInput) => {
   const [localContacts, setLocalContacts] =
@@ -68,18 +74,29 @@ export const usePipelineContactsController = ({
           projectDemoDataApi.saveDemoData(demoData);
         }
       } else {
-        const { error } = await insertSubcontractor(newContact);
-        if (error) {
-          console.error("Error saving contact to Supabase:", error);
-          throw error;
+        if (persistNewContact) {
+          await persistNewContact(newContact);
+        } else {
+          const { error } = await insertSubcontractor(newContact, organizationId);
+          if (error) {
+            console.error("Error saving contact to Supabase:", error);
+            throw error;
+          }
         }
       }
 
-      setLocalContacts((prev) => [...prev, newContact]);
+      if (userRole === "demo" || !persistNewContact) {
+        setLocalContacts((prev) => [...prev, newContact]);
+      }
       setIsCreateContactModalOpen(false);
       onContactSaved?.(newContact);
     } catch (error) {
       console.error("Unexpected error saving contact:", error);
+      showAlert({
+        title: "Kontakt se nepodařilo uložit",
+        message: "Nový kontakt nebyl uložen. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
+        variant: "danger",
+      });
     }
   };
 
@@ -107,10 +124,14 @@ export const usePipelineContactsController = ({
           projectDemoDataApi.saveDemoData(demoData);
         }
       } else {
-        const { error } = await updateSubcontractor(updatedContact);
-        if (error) {
-          console.error("Error updating contact in Supabase:", error);
-          throw error;
+        if (persistContactUpdate) {
+          await persistContactUpdate(updatedContact);
+        } else {
+          const { data, error } = await updateSubcontractor(updatedContact);
+          if (error || !data) {
+            console.error("Error updating contact in Supabase:", error);
+            throw error || new Error("Kontakt nebyl aktualizován");
+          }
         }
       }
 
@@ -122,6 +143,11 @@ export const usePipelineContactsController = ({
       setEditingContact(null);
     } catch (error) {
       console.error("Unexpected error updating contact:", error);
+      showAlert({
+        title: "Kontakt se nepodařilo uložit",
+        message: "Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
+        variant: "danger",
+      });
     }
   };
 
