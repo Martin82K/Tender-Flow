@@ -394,6 +394,18 @@ describe("remote MCP server", () => {
     expect(forgedNames).not.toContain("tf_execute_change");
   });
 
+  it("publikuje kanbanové instrukce pouze klientům s dostupnými write nástroji", () => {
+    const source = fs.readFileSync(
+      path.join(ROOT, "server/mcp/tenderFlowMcp.js"),
+      "utf8",
+    ).replace(/\r\n/g, "\n");
+
+    expect(source).toContain(
+      "const canUseWriteTools = includeWriteTools && hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.write]);",
+    );
+    expect(source).toContain("instructions: canUseWriteTools ? KANBAN_WRITE_INSTRUCTIONS : undefined");
+  });
+
   it("publikuje u každého dostupného toolu OAuth security scheme pro ChatGPT", async () => {
     vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
     vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
@@ -440,6 +452,10 @@ describe("remote MCP server", () => {
     expect(kanbanSchema).toContain('"rejected"');
     expect(kanbanSchema).not.toContain('"reason"');
     expect(kanbanSchema).not.toContain('"expectedStatus"');
+
+    const confirmTool = tools.find((tool) => tool.name === "tf_confirm_change");
+    expect(confirmTool?.description).toContain("tf_prepare_change");
+    expect(confirmTool?.description).toContain("tf_prepare_bid_status_change");
   });
 
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
