@@ -15,8 +15,12 @@ export interface ContractOverviewExportMeta {
   appLogoDataUrl?: string | null;
 }
 
-const DEFAULT_TF_LOGO_URL = "/TF_ico.png";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+export const resolveContractOverviewLogoUrl = (baseUrl: string): string => {
+  const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return `${normalizedBaseUrl}TF_ico.png`;
+};
 
 const loadExcelJS = async () => {
   const module = await import("exceljs");
@@ -231,15 +235,16 @@ export const buildContractOverviewWorkbook = async (
   sheet.getCell("C4").font = { name: "Aptos", size: 10, color: { argb: "FF64748B" } };
   sheet.getCell("C4").alignment = { horizontal: "center", vertical: "middle" };
 
+  const currencies = new Set(rows.map((row) => normalizeCurrency(row.currency)));
+  const summaryCurrency = currencies.size === 1 ? [...currencies][0] : null;
+  const financialSummaryUnavailable = currencies.size > 1;
   const cardLabels = ["POČET SMLUV", "HODNOTA SMLUV", "ČERPÁNÍ", "ZBÝVÁ"];
   const cardValues = [
     rows.length,
-    rows.reduce((sum, row) => sum + row.currentTotal, 0),
-    rows.reduce((sum, row) => sum + row.approvedDrawdown, 0),
-    rows.reduce((sum, row) => sum + row.remainingAmount, 0),
+    financialSummaryUnavailable ? "Více měn" : rows.reduce((sum, row) => sum + row.currentTotal, 0),
+    financialSummaryUnavailable ? "Více měn" : rows.reduce((sum, row) => sum + row.approvedDrawdown, 0),
+    financialSummaryUnavailable ? "Více měn" : rows.reduce((sum, row) => sum + row.remainingAmount, 0),
   ];
-  const currencies = new Set(rows.map((row) => normalizeCurrency(row.currency)));
-  const summaryCurrency = currencies.size === 1 ? [...currencies][0] : null;
   for (let index = 0; index < 4; index += 1) {
     const startColumn = Math.floor(index * totalColumns / 4) + 1;
     const endColumn = index === 3 ? totalColumns : Math.floor((index + 1) * totalColumns / 4);
@@ -254,7 +259,9 @@ export const buildContractOverviewWorkbook = async (
     valueCell.value = cardValues[index];
     valueCell.font = { name: "Aptos Display", size: 15, bold: true, color: { argb: index === 0 ? "FF0F172A" : "FFEA580C" } };
     valueCell.alignment = { horizontal: "center", vertical: "middle" };
-    valueCell.numFmt = index === 0 ? "#,##0" : summaryCurrency ? currencyNumberFormat(summaryCurrency) : "#,##0.00";
+    if (typeof valueCell.value === "number") {
+      valueCell.numFmt = index === 0 ? "#,##0" : summaryCurrency ? currencyNumberFormat(summaryCurrency) : "#,##0.00";
+    }
   }
 
   const table = sheet.addTable({
@@ -327,7 +334,7 @@ export const exportContractOverviewToExcel = async (
   meta: ContractOverviewExportMeta,
 ): Promise<void> => {
   const appLogoDataUrl = meta.appLogoDataUrl === undefined
-    ? await fetchImageDataUrl(DEFAULT_TF_LOGO_URL)
+    ? await fetchImageDataUrl(resolveContractOverviewLogoUrl(import.meta.env.BASE_URL))
     : meta.appLogoDataUrl;
   const workbook = await buildContractOverviewWorkbook(rows, visibleParameters, {
     ...meta,

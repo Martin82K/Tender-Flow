@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildContractOverviewWorkbook,
+  resolveContractOverviewLogoUrl,
   type ContractOverviewExportMeta,
 } from "@/features/contracts-overview/api/contractOverviewExport";
 import type { ContractOverviewRow } from "@/features/contracts-overview/api/contractOverviewApi";
@@ -104,5 +105,31 @@ describe("contractOverviewExport", () => {
 
     expect(cell?.value).toBe("'=HYPERLINK(\"https://attacker.invalid\")");
     expect(cell?.formula).toBeUndefined();
+  });
+
+  it("použije relativní cestu loga pro desktopový Vite build", () => {
+    expect(resolveContractOverviewLogoUrl("./")).toBe("./TF_ico.png");
+    expect(resolveContractOverviewLogoUrl("/")).toBe("/TF_ico.png");
+  });
+
+  it("u víceměnového výběru nesčítá neslučitelné finanční hodnoty", async () => {
+    const workbook = await buildContractOverviewWorkbook(
+      [overviewRow, {
+        ...overviewRow,
+        contractId: "contract-2",
+        currency: "EUR",
+        currentTotal: 20_000,
+        approvedDrawdown: 5_000,
+        remainingAmount: 15_000,
+      }],
+      [],
+      { ...meta, appLogoDataUrl: null },
+    );
+    const sheet = workbook.getWorksheet("Smluvní přehled");
+
+    expect(sheet?.getCell("A7").value).toBe(2);
+    expect(sheet?.getCell("D7").value).toBe("Více měn");
+    expect(sheet?.getCell("G7").value).toBe("Více měn");
+    expect(sheet?.getCell("J7").value).toBe("Více měn");
   });
 });

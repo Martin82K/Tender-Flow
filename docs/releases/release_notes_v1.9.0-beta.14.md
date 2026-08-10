@@ -28,6 +28,9 @@ testovacího sestavení po aktuální bezpečnou integraci Tender Flow MCP.
 - Hledání dodatku v organizačním Smluvním přehledu automaticky odkryje jeho
   řádek. Legacy dokument dodatku je pro čtečky obrazovky správně rozlišen od
   dokumentu hlavní smlouvy.
+- Logo organizačního exportu se načítá správně i v zabalené desktopové aplikaci.
+  Pokud přehled obsahuje více měn, finanční souhrn nesčítá jejich neslučitelné
+  nominální hodnoty a místo toho výslovně uvede „Více měn“.
 
 ### Beta.13 — Tender Flow MCP a Outlook vazby
 
