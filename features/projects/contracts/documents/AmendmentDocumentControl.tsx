@@ -43,8 +43,7 @@ export const AmendmentDocumentControl: React.FC<Props> = ({
   const handleOpen = async () => {
     setError(null);
     try {
-      const url = await contractQueriesApi.getAmendmentDocumentUrl(amendment);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      await contractQueriesApi.openAmendmentDocument(amendment);
     } catch (openError) {
       setError(
         openError instanceof Error

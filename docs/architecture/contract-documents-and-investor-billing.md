@@ -13,6 +13,11 @@ uživatelům. Zápis a smazání jsou omezené na vlastníka a uživatele s prá
 `edit`; všechny operace vyžadují modul `module_contracts`. Při otevření klient
 vytvoří podepsaný odkaz s platností 15 minut.
 
+Desktop předá podepsaný odkaz přes autentizovaný shell IPC. Politika povolí
+pouze HTTPS, přesný Supabase origin z build konfigurace, bucket
+`contract-documents`, očekávanou cestu `projects/.../contracts/...pdf|docx` a
+neprázdný podpisový token. Celá podepsaná URL se neloguje.
+
 Klient před uploadem ověřuje limit 20 MB, příponu, MIME typ a základní signaturu
 PDF nebo ZIP kontejneru DOCX. Bucket stejný limit a MIME allowlist vynucuje
 znovu. OCR používá samostatný dočasný objekt, který se po zpracování odstraní;

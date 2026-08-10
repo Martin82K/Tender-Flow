@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
     canOpenExternalUrl,
     isAllowedExternalUrl,
@@ -6,6 +6,13 @@ import {
 } from '../desktop/main/security/externalUrlPolicy';
 
 describe('externalUrlPolicy', () => {
+    const originalSupabaseUrl = process.env.VITE_SUPABASE_URL;
+
+    afterEach(() => {
+        if (originalSupabaseUrl === undefined) delete process.env.VITE_SUPABASE_URL;
+        else process.env.VITE_SUPABASE_URL = originalSupabaseUrl;
+    });
+
     it('allows HTTPS SharePoint tenant document links', () => {
         const parsed = parseExternalUrl('https://baustavky-my.sharepoint.com/:f:/g/personal/example');
 
@@ -26,5 +33,26 @@ describe('externalUrlPolicy', () => {
 
     it('blocks unapproved HTTPS hosts', () => {
         expect(canOpenExternalUrl('https://example.com/docs')).toBe(false);
+    });
+
+    it('allows only signed contract documents on the configured Supabase origin', () => {
+        process.env.VITE_SUPABASE_URL = 'https://project-ref.supabase.co';
+
+        expect(canOpenExternalUrl(
+            'https://project-ref.supabase.co/storage/v1/object/sign/contract-documents/projects/project-1/contracts/document.pdf?token=signed',
+        )).toBe(true);
+        expect(canOpenExternalUrl(
+            'https://project-ref.supabase.co/storage/v1/object/sign/other-bucket/projects/project-1/contracts/document.pdf?token=signed',
+        )).toBe(false);
+        expect(canOpenExternalUrl(
+            'https://project-ref.supabase.co/storage/v1/object/sign/contract-documents/projects/project-1/contracts/document.pdf',
+        )).toBe(false);
+        expect(canOpenExternalUrl(
+            'https://attacker.supabase.co/storage/v1/object/sign/contract-documents/projects/project-1/contracts/document.pdf?token=signed',
+        )).toBe(false);
+        expect(canOpenExternalUrl(
+            'http://project-ref.supabase.co/storage/v1/object/sign/contract-documents/projects/project-1/contracts/document.pdf?token=signed',
+            { allowHttp: true },
+        )).toBe(false);
     });
 });

@@ -183,8 +183,7 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
   const openContractDocument = async () => {
     setErr('contract', null);
     try {
-      const url = await contractQueriesApi.getContractDocumentUrl(contract);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      await contractQueriesApi.openContractDocument(contract);
     } catch (openError) {
       setErr(
         'contract',

@@ -9,8 +9,16 @@ const contractServiceMock = vi.hoisted(() => ({
   listContractsByProjectIds: vi.fn(),
 }));
 
+const shellAdapterMock = vi.hoisted(() => ({
+  openExternal: vi.fn(),
+}));
+
 vi.mock("@/services/contractService", () => ({
   contractService: contractServiceMock,
+}));
+
+vi.mock("@/services/platformAdapter", () => ({
+  shellAdapter: shellAdapterMock,
 }));
 
 import { contractQueriesApi } from "../features/projects/contracts/api";
@@ -51,5 +59,24 @@ describe("contractQueriesApi", () => {
     expect(contractServiceMock.getAmendmentDocumentUrl).toHaveBeenCalledWith({
       documentStoragePath: 'projects/p/contracts/a.pdf',
     });
+  });
+
+  it("otevře privátní dokumenty přes bezpečný platformní adaptér", async () => {
+    const contract = { documentStoragePath: "projects/p/contracts/x.pdf" };
+    const amendment = { documentStoragePath: "projects/p/contracts/a.pdf" };
+    contractServiceMock.getContractDocumentUrl.mockResolvedValue("https://signed.example/document.pdf");
+    contractServiceMock.getAmendmentDocumentUrl.mockResolvedValue("https://signed.example/amendment.pdf");
+
+    await contractQueriesApi.openContractDocument(contract);
+    await contractQueriesApi.openAmendmentDocument(amendment);
+
+    expect(shellAdapterMock.openExternal).toHaveBeenNthCalledWith(
+      1,
+      "https://signed.example/document.pdf",
+    );
+    expect(shellAdapterMock.openExternal).toHaveBeenNthCalledWith(
+      2,
+      "https://signed.example/amendment.pdf",
+    );
   });
 });
