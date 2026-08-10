@@ -82,7 +82,7 @@ describe("redesign Smluvního přehledu", () => {
     expect(toggleContractOverviewProject(oneRemaining, "p1")).toBeNull();
   });
 
-  it("sjednocuje hover podklad řádku i přes sticky identifikační buňky", () => {
+  it("sjednocuje hover podklad řádku přes explicitní buňky všech sloupců", () => {
     const component = readFileSync(
       join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
       "utf8",
@@ -90,9 +90,36 @@ describe("redesign Smluvního přehledu", () => {
     const styles = readFileSync(join(process.cwd(), "index.css"), "utf8");
 
     expect(component).toContain('className="tf-contract-overview-row group');
+    expect(component).toContain("tf-contract-overview-cell");
     expect(component).not.toContain("{row.projectStatus}");
-    expect(styles).toContain(".tf-contract-overview-row:hover > td");
+    expect(styles).toContain(
+      ".tf-contract-overview .tf-contract-overview-row:hover > .tf-contract-overview-cell",
+    );
     expect(styles).toContain("var(--tf-skin-card)");
+  });
+
+  it("pojmenovává sloupec Soubory a zobrazuje srozumitelný prázdný stav", () => {
+    const component = readFileSync(
+      join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
+      "utf8",
+    );
+
+    expect(component).toContain(">Soubory</th>");
+    expect(component).toContain("Bez souboru");
+    expect(component).toContain("Otevřít soubor");
+  });
+
+  it("seskupuje dodatky pod rozbalovací řádek smlouvy stejně jako tabulka ve stavbě", () => {
+    const component = readFileSync(
+      join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
+      "utf8",
+    );
+
+    expect(component).toContain("expandedContractIds");
+    expect(component).toContain("toggleContractExpansion(row.contractId)");
+    expect(component).toContain("aria-expanded={isExpanded}");
+    expect(component).toContain("Rozbalit dodatky smlouvy");
+    expect(component).toContain("isExpanded ? row.amendments.map");
   });
 
   it("nový RPC allowlist neobsahuje nabídky, VŘ ani faktury", () => {

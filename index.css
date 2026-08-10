@@ -4840,11 +4840,12 @@ html[data-skin] .tf-themed-select-option[aria-selected="true"] {
   color: var(--tf-settings-primary-strong) !important;
 }
 
-.tf-contract-overview-row > td {
+.tf-contract-overview .tf-contract-overview-row > .tf-contract-overview-cell {
   transition: background-color 120ms ease;
 }
 
-.tf-contract-overview-row:hover > td {
+.tf-contract-overview .tf-contract-overview-row:hover > .tf-contract-overview-cell,
+.tf-contract-overview .tf-contract-overview-row:focus-within > .tf-contract-overview-cell {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
 }
 
