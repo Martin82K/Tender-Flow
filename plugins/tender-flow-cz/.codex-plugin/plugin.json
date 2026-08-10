@@ -33,8 +33,7 @@
     "defaultPrompt": [
       "Search Tender Flow projects and fetch relevant tender details.",
       "List upcoming Tender Flow deadlines for visible projects.",
-      "Prepare moving a supplier bid card to another kanban status for my approval.",
-      "Prepare a Tender Flow task proposal for my approval."
+      "Prepare a Tender Flow task or supplier bid status change for my approval."
     ],
     "brandColor": "#0F766E",
     "composerIcon": "./assets/tender-flow-cz-small.svg",

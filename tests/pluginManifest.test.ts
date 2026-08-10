@@ -34,8 +34,9 @@ describe('Tender Flow CZ plugin manifest', () => {
     expect(plugin.interface.displayName).toBe('Tender Flow CZ');
     expect(plugin.interface.capabilities).toEqual(expect.arrayContaining(['Read', 'Write']));
     expect(plugin.interface.defaultPrompt).toContain(
-      'Prepare moving a supplier bid card to another kanban status for my approval.',
+      'Prepare a Tender Flow task or supplier bid status change for my approval.',
     );
+    expect(plugin.interface.defaultPrompt).toHaveLength(3);
     expect(plugin.interface.privacyPolicyURL).toBe('https://tenderflow.cz/privacy');
     expect(plugin.interface.termsOfServiceURL).toBe('https://tenderflow.cz/terms');
     expect(mcp.mcpServers['tender-flow-cz']).toMatchObject({
