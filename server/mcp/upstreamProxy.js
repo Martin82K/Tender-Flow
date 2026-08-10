@@ -1,5 +1,28 @@
 import { nodeRequestToWebRequest, sendWebResponseToNode } from './nodeHandler.js';
 
+const HOP_BY_HOP_HEADERS = [
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+];
+const HEADER_NAME_PATTERN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+const AUTOMATICALLY_DECODED_ENCODINGS = new Set(['br', 'deflate', 'gzip']);
+
+const removeHopByHopHeaders = (headers) => {
+  const connectionHeaders = (headers.get('connection') || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => HEADER_NAME_PATTERN.test(value));
+  for (const header of [...HOP_BY_HOP_HEADERS, ...connectionHeaders]) {
+    headers.delete(header);
+  }
+};
+
 export const resolveMcpUpstreamUrl = (value) => {
   const configured = value?.trim();
   if (!configured) return null;
@@ -25,7 +48,7 @@ export const proxyNodeMcpRequest = async (req, res, upstreamUrl) => {
   }
 
   const headers = new Headers(webRequest.headers);
-  headers.delete('connection');
+  removeHopByHopHeaders(headers);
   headers.delete('content-length');
   headers.delete('host');
   headers.set('x-forwarded-host', incomingUrl.host);
@@ -39,5 +62,21 @@ export const proxyNodeMcpRequest = async (req, res, upstreamUrl) => {
     duplex: canHaveBody ? 'half' : undefined,
     redirect: 'manual',
   });
-  await sendWebResponseToNode(upstreamResponse, res);
+  const responseHeaders = new Headers(upstreamResponse.headers);
+  removeHopByHopHeaders(responseHeaders);
+  const contentEncodings = (responseHeaders.get('content-encoding') || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const wasAutomaticallyDecoded = contentEncodings.length > 0
+    && contentEncodings.every((encoding) => AUTOMATICALLY_DECODED_ENCODINGS.has(encoding));
+  if (wasAutomaticallyDecoded) {
+    responseHeaders.delete('content-encoding');
+    responseHeaders.delete('content-length');
+  }
+  await sendWebResponseToNode(new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: responseHeaders,
+  }), res);
 };

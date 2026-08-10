@@ -41,6 +41,8 @@ const textJson = (value, isError = false) => ({
 
 const boundedText = (value, max = 500) => String(value || '').trim().slice(0, max);
 
+const KANBAN_WRITE_INSTRUCTIONS = 'To move a supplier bid card in the Tender Flow kanban, first call tf_prepare_bid_status_change. Show its before/after diff to the user, then use tf_confirm_change and tf_execute_change only after explicit confirmation.';
+
 const toolResultSchema = z.object({
   ok: z.boolean(),
   data: z.unknown().optional(),
@@ -595,6 +597,7 @@ const registerTenderFlowResources = (server, auth, supabase) => {
 
 export const createTenderFlowMcpServer = (auth, options = {}) => {
   const includeWriteTools = options.includeWriteTools !== false;
+  const canUseWriteTools = includeWriteTools && hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.write]);
   const canReadContacts = hasMcpPermissions(auth.permissions, [
     MCP_PERMISSIONS.read,
     MCP_PERMISSIONS.contactsRead,
@@ -606,7 +609,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
       version: '0.5.0',
     },
     {
-      instructions: 'To move a supplier bid card in the Tender Flow kanban, first call tf_prepare_bid_status_change. Show its before/after diff to the user, then use tf_confirm_change and tf_execute_change only after explicit confirmation.',
+      instructions: canUseWriteTools ? KANBAN_WRITE_INSTRUCTIONS : undefined,
       capabilities: {
         tools: { listChanged: false },
         resources: { listChanged: false },
@@ -893,7 +896,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
     'tf_confirm_change',
     {
       title: 'Confirm Tender Flow Change',
-      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change. The same text is required again for execute.',
+      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change or tf_prepare_bid_status_change. The same text is required again for execute.',
       inputSchema: confirmChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

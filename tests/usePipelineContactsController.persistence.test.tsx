@@ -56,6 +56,25 @@ describe("usePipelineContactsController persistence", () => {
     expect(result.current.localContacts).toEqual([contact]);
   });
 
+  it("přidá kontakt lokálně i když persist callback neaktualizuje externí cache", async () => {
+    const persistNewContact = vi.fn().mockResolvedValue(undefined);
+    const externalContacts: Subcontractor[] = [];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      projectDataId: "project-1",
+      showAlert: vi.fn(),
+      persistNewContact,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(contact);
+    });
+
+    expect(persistNewContact).toHaveBeenCalledWith(contact);
+    expect(result.current.localContacts).toEqual([contact]);
+  });
+
   it("přidá kontakt lokálně ve fallback větvi bez společné mutace", async () => {
     mocks.insertSubcontractor.mockResolvedValue({ data: contact, error: null });
     const externalContacts: Subcontractor[] = [];
