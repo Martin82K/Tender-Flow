@@ -1,3 +1,5 @@
+import { TENDER_FLOW_LOGO_DATA_URL } from "@/shared/branding/tenderFlowLogo";
+
 import type { ContractOverviewRow } from "./contractOverviewApi";
 import {
   CONTRACT_OVERVIEW_PARAMETER_LABELS,
@@ -16,11 +18,6 @@ export interface ContractOverviewExportMeta {
 }
 
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-export const resolveContractOverviewLogoUrl = (baseUrl: string): string => {
-  const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return `${normalizedBaseUrl}TF_ico.png`;
-};
 
 const loadExcelJS = async () => {
   const module = await import("exceljs");
@@ -99,22 +96,6 @@ export const buildContractOverviewExportRows = (
     }
   }
   return output;
-};
-
-const fetchImageDataUrl = async (url: string): Promise<string | null> => {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : "");
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
 };
 
 const downloadBlob = (blob: Blob, filename: string): void => {
@@ -205,8 +186,11 @@ export const buildContractOverviewWorkbook = async (
     sheet.getColumn(column).alignment = { horizontal: "left", vertical: "middle", wrapText: true };
   });
 
-  if (meta.appLogoDataUrl) {
-    const imageId = workbook.addImage({ base64: meta.appLogoDataUrl, extension: "png" });
+  const appLogoDataUrl = meta.appLogoDataUrl === undefined
+    ? TENDER_FLOW_LOGO_DATA_URL
+    : meta.appLogoDataUrl;
+  if (appLogoDataUrl) {
+    const imageId = workbook.addImage({ base64: appLogoDataUrl, extension: "png" });
     sheet.addImage(imageId, {
       tl: { col: 0.25, row: 0.25 },
       ext: { width: 70, height: 70 },
@@ -333,13 +317,7 @@ export const exportContractOverviewToExcel = async (
   visibleParameters: ContractOverviewParameterKey[],
   meta: ContractOverviewExportMeta,
 ): Promise<void> => {
-  const appLogoDataUrl = meta.appLogoDataUrl === undefined
-    ? await fetchImageDataUrl(resolveContractOverviewLogoUrl(import.meta.env.BASE_URL))
-    : meta.appLogoDataUrl;
-  const workbook = await buildContractOverviewWorkbook(rows, visibleParameters, {
-    ...meta,
-    appLogoDataUrl,
-  });
+  const workbook = await buildContractOverviewWorkbook(rows, visibleParameters, meta);
   const output = await workbook.xlsx.writeBuffer();
   const blob = new Blob([output as BlobPart], { type: XLSX_MIME });
   downloadBlob(blob, `smluvni_prehled_${new Date().toISOString().slice(0, 10)}.xlsx`);
