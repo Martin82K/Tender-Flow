@@ -110,6 +110,24 @@ describe("redesign Smluvního přehledu", () => {
     expect(component).not.toContain("1360 + visibleParameterKeys.length * 170");
     expect(styles).toContain(".tf-contract-overview-scroll::-webkit-scrollbar");
     expect(styles).toContain("scrollbar-gutter: stable");
+    expect(component).toContain("Vodorovný posun tabulky");
+    expect(component).toContain("tf-contract-overview-scroll-controls");
+  });
+
+  it("styluje celý smluvní přehled přes aktivní skin tokeny", () => {
+    const component = readFileSync(
+      join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(join(process.cwd(), "index.css"), "utf8");
+
+    expect(component).toContain("tf-contract-overview-panel");
+    expect(component).toContain("tf-contract-overview-toolbar");
+    expect(component).toContain("tf-contract-overview-table-panel");
+    expect(styles).toContain("html[data-skin] .tf-contract-overview");
+    expect(styles).toContain("var(--tf-skin-surface)");
+    expect(styles).toContain("var(--tf-skin-line)");
+    expect(styles).toContain("var(--tf-skin-text)");
   });
 
   it("odlišuje každý druhý smluvní řádek i v připnutých buňkách", () => {

@@ -4844,6 +4844,43 @@ html[data-skin] .tf-themed-select-option[aria-selected="true"] {
   transition: background-color 120ms ease;
 }
 
+html[data-skin] .tf-contract-overview {
+  background-color: var(--tf-skin-bg) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] :is(
+  .tf-contract-overview-panel,
+  .tf-contract-overview-toolbar,
+  .tf-contract-overview-table-panel,
+  .tf-contract-overview-scroll-controls
+) {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 92%), transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-contract-overview :is(input, button, label) {
+  border-color: var(--tf-skin-line-2);
+}
+
+html[data-skin] .tf-contract-overview table :is(th, td) {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin] .tf-contract-overview .tf-contract-overview-contract-row > .tf-contract-overview-cell {
+  background-color: color-mix(in srgb, var(--tf-skin-card) 96%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-contract-overview .tf-contract-overview-contract-row-alt > .tf-contract-overview-cell {
+  background-color: color-mix(in srgb, var(--tf-skin-line) 22%, var(--tf-skin-card) 78%) !important;
+}
+
+.tf-contract-overview-scroll-range {
+  accent-color: var(--tf-settings-primary);
+}
+
 .tf-contract-overview-scroll {
   scrollbar-color: color-mix(in srgb, var(--tf-skin-muted) 70%, transparent) color-mix(in srgb, var(--tf-skin-card) 88%, var(--tf-skin-line-2) 12%);
   scrollbar-gutter: stable;

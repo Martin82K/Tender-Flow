@@ -179,4 +179,24 @@ describe("seskupení smluv a dodatků ve Smluvním přehledu", () => {
     ));
     expect(exportContractOverviewToExcelMock.mock.calls[0][2].exportedBy).not.toContain("@");
   });
+
+  it("synchronizuje vždy viditelný ovladač s vodorovným posunem tabulky", async () => {
+    getContractOverviewMock.mockResolvedValueOnce([overviewRow]);
+    render(<ContractOverview />);
+
+    const scrollRegion = await screen.findByTestId("contract-overview-scroll-region");
+    Object.defineProperties(scrollRegion, {
+      clientWidth: { configurable: true, value: 500 },
+      scrollWidth: { configurable: true, value: 1500 },
+    });
+    scrollRegion.scrollLeft = 240;
+    fireEvent.scroll(scrollRegion);
+
+    const slider = screen.getByRole("slider", { name: "Vodorovný posun tabulky" });
+    await waitFor(() => expect(slider).toHaveAttribute("max", "1000"));
+    expect(slider).toHaveValue("240");
+
+    fireEvent.change(slider, { target: { value: "620" } });
+    expect(scrollRegion.scrollLeft).toBe(620);
+  });
 });

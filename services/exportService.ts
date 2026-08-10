@@ -1639,23 +1639,23 @@ export async function buildContractTableWorkbook(
   sheet.mergeCells('C1:Q1');
   sheet.getCell('C1').value = 'Přehled smluv';
   sheet.getCell('C1').font = { name: 'Aptos Display', size: 22, bold: true, color: { argb: 'FF0F172A' } };
-  sheet.getCell('C1').alignment = { horizontal: 'left', vertical: 'middle' };
+  sheet.getCell('C1').alignment = { horizontal: 'center', vertical: 'middle' };
   sheet.getRow(1).height = 30;
 
   sheet.mergeCells('C2:Q2');
   sheet.getCell('C2').value = `${meta.organizationName || 'Organizace'} · ${meta.projectName || 'Projekt'}`;
   sheet.getCell('C2').font = { name: 'Aptos', size: 12, bold: true, color: { argb: 'FF334155' } };
-  sheet.getCell('C2').alignment = { horizontal: 'left', vertical: 'middle' };
+  sheet.getCell('C2').alignment = { horizontal: 'center', vertical: 'middle' };
 
   sheet.mergeCells('C3:Q3');
   sheet.getCell('C3').value = `Export provedl: ${meta.exportedBy || 'Uživatel'}`;
   sheet.getCell('C3').font = { name: 'Aptos', size: 10, color: { argb: 'FF475569' } };
-  sheet.getCell('C3').alignment = { horizontal: 'left', vertical: 'middle' };
+  sheet.getCell('C3').alignment = { horizontal: 'center', vertical: 'middle' };
 
   sheet.mergeCells('C4:Q4');
   sheet.getCell('C4').value = `Datum exportu: ${exportedAt.toLocaleString('cs-CZ')} · Tender Flow ${meta.appVersion}`;
   sheet.getCell('C4').font = { name: 'Aptos', size: 10, color: { argb: 'FF64748B' } };
-  sheet.getCell('C4').alignment = { horizontal: 'left', vertical: 'middle' };
+  sheet.getCell('C4').alignment = { horizontal: 'center', vertical: 'middle' };
 
   const cardRanges = ['A6:D6', 'E6:H6', 'I6:L6', 'M6:Q6'];
   const cardValueRanges = ['A7:D7', 'E7:H7', 'I7:L7', 'M7:Q7'];
@@ -1739,14 +1739,19 @@ export async function buildContractTableWorkbook(
     ref: 'A9',
     headerRow: true,
     totalsRow: false,
-    style: { theme: 'TableStyleMedium2', showRowStripes: true },
+    style: {
+      theme: 'TableStyleMedium2',
+      showFirstColumn: false,
+      showLastColumn: false,
+      showRowStripes: false,
+      showColumnStripes: false,
+    },
     columns: headers.map((name) => ({ name })),
     rows,
   });
   table.commit();
 
   const lastRow = Math.max(9, 9 + contracts.length);
-  sheet.autoFilter = { from: 'A9', to: `Q${lastRow}` };
   sheet.getRow(9).height = 30;
   sheet.getRow(9).eachCell((cell) => {
     cell.font = { name: 'Aptos', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1760,20 +1765,28 @@ export async function buildContractTableWorkbook(
 
   if (contracts.length > 0) {
     const dataRange = sheet.getRows(10, contracts.length) || [];
-    dataRange.forEach((row) => {
+    dataRange.forEach((row, rowIndex) => {
       const wrappedLineCount = Math.max(
         Math.ceil(String(row.getCell(1).value || '').length / 28),
         Math.ceil(String(row.getCell(3).value || '').length / 28),
         Math.ceil(String(row.getCell(15).value || '').length / 16),
       );
       row.height = Math.min(90, Math.max(32, wrappedLineCount * 15));
-      row.eachCell((cell) => {
+      for (let column = 1; column <= headers.length; column += 1) {
+        const cell = row.getCell(column);
         cell.font = { name: 'Aptos', size: 10, color: { argb: 'FF1E293B' } };
         cell.alignment = { vertical: 'middle' };
         cell.border = {
-          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'thin', color: { argb: 'FFD8E0EA' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          ...(column === 1 ? { left: { style: 'thin', color: { argb: 'FFE2E8F0' } } } : {}),
         };
-      });
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: rowIndex % 2 === 1 ? 'FFF8FAFC' : 'FFFFFFFF' },
+        };
+      }
     });
     for (let rowNumber = 10; rowNumber <= lastRow; rowNumber += 1) {
       const currency = normalizeContractExportCurrency(contracts[rowNumber - 10]?.currency);
