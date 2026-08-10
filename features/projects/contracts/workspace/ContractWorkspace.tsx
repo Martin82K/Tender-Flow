@@ -33,9 +33,9 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
             <button
               type="button"
               onClick={onEditContract}
-              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              ✎ Upravit
+              ✎ Upravit záznam
             </button>
           </div>
         </div>

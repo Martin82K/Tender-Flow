@@ -74,6 +74,7 @@ describe('ContractWorkspace layout', () => {
     );
 
     expect(document.querySelector('[data-help-id="contract-detail-rail"]')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '✎ Upravit záznam' })).toHaveClass('bg-primary', 'text-white');
     expect(screen.getAllByTestId(/-section$/)).toHaveLength(8);
   });
 });
