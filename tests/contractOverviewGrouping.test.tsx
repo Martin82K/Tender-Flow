@@ -125,6 +125,22 @@ describe("seskupení smluv a dodatků ve Smluvním přehledu", () => {
     })).toBeDisabled();
   });
 
+  it("při hledání deaktivuje ovládání i po předchozím ručním rozbalení", async () => {
+    getContractOverviewMock.mockResolvedValueOnce([overviewRow]);
+    render(<ContractOverview />);
+
+    fireEvent.click(await screen.findByRole("button", {
+      name: "Rozbalit dodatky smlouvy Smlouva o dílo",
+    }));
+    fireEvent.change(screen.getByRole("textbox", {
+      name: "Hledat ve smluvním přehledu",
+    }), { target: { value: "dodatek 1" } });
+
+    expect(screen.getByRole("button", {
+      name: "Dodatky smlouvy Smlouva o dílo rozbalené výsledkem hledání",
+    })).toBeDisabled();
+  });
+
   it("pojmenuje legacy dokument dodatku podle jeho skutečného typu", async () => {
     getContractOverviewMock.mockResolvedValueOnce([{
       ...overviewRow,

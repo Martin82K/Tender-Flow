@@ -322,10 +322,10 @@ export const ContractOverview: React.FC = () => {
                               <button
                                 type="button"
                                 aria-expanded={isExpanded}
-                                aria-label={isExpandedBySearch && !isManuallyExpanded
+                                aria-label={isExpandedBySearch
                                   ? `Dodatky smlouvy ${row.contractTitle} rozbalené výsledkem hledání`
                                   : `${isExpanded ? "Sbalit dodatky smlouvy" : "Rozbalit dodatky smlouvy"} ${row.contractTitle}`}
-                                disabled={isExpandedBySearch && !isManuallyExpanded}
+                                disabled={isExpandedBySearch}
                                 onClick={() => toggleContractExpansion(row.contractId)}
                                 className="grid size-5 shrink-0 place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-500"
                               >
