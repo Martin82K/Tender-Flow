@@ -7,6 +7,7 @@ import {
   Subcontractor,
   StatusConfig,
   ContractSummaryDto,
+  ContractWithDetails,
 } from '../types';
 import type { SupplierOfferRef } from '../shared/overview/overviewAnalytics';
 import { getOfferStatusMeta } from '../shared/offers/offerStatus';
@@ -1469,6 +1470,15 @@ export interface ContractSummaryExportMeta {
   projectName: string;
 }
 
+export interface ContractTableExportMeta {
+  organizationName: string;
+  projectName: string;
+  exportedBy: string;
+  exportedAt?: Date;
+  appVersion: string;
+  appLogoDataUrl?: string | null;
+}
+
 const sanitizeExportFileName = (value: string): string => {
   const trimmed = value.trim();
   if (!trimmed) return 'smlouvy';
@@ -1518,6 +1528,311 @@ const sanitizeSpreadsheetCell = (value: string): string => {
 
   return value;
 };
+
+const addMonthsForContractExport = (
+  value?: string,
+  months?: number | null,
+): Date | null => {
+  if (!value || !months) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setMonth(parsed.getMonth() + months);
+  return parsed;
+};
+
+const contractDocumentLabel = (contract: ContractWithDetails): string => {
+  if (!contract.documentStoragePath && !contract.documentUrl) return '—';
+  const fileName = contract.documentFileName?.toLowerCase() || '';
+  if (contract.documentMimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
+    return 'PDF';
+  }
+  if (
+    contract.documentMimeType
+      === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    || fileName.endsWith('.docx')
+  ) {
+    return 'DOCX';
+  }
+  return 'Dokument';
+};
+
+const normalizeContractExportCurrency = (currency?: string): string => {
+  const normalized = currency?.trim().toUpperCase() || 'CZK';
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : 'CZK';
+};
+
+const contractCurrencyNumberFormat = (currency: string): string => {
+  const symbol = currency === 'CZK'
+    ? 'Kč'
+    : currency === 'EUR'
+      ? '€'
+      : currency === 'USD'
+        ? '$'
+        : currency;
+  return `#,##0.00 "${symbol}"`;
+};
+
+export async function buildContractTableWorkbook(
+  contracts: ContractWithDetails[],
+  meta: ContractTableExportMeta,
+) {
+  const ExcelJS = await loadExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  const exportedAt = meta.exportedAt ?? new Date();
+  const sheet = workbook.addWorksheet('Smlouvy', {
+    views: [{ state: 'frozen', xSplit: 3, ySplit: 9, topLeftCell: 'D10' }],
+    properties: { defaultRowHeight: 20 },
+    pageSetup: {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      paperSize: 9,
+      margins: {
+        left: 0.25,
+        right: 0.25,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0.2,
+        footer: 0.2,
+      },
+    },
+  });
+
+  workbook.creator = 'Tender Flow';
+  workbook.company = meta.organizationName;
+  workbook.title = `Přehled smluv – ${meta.projectName}`;
+  workbook.subject = 'Export tabulky smluv';
+  workbook.created = exportedAt;
+  workbook.modified = exportedAt;
+
+  sheet.views = [{
+    state: 'frozen',
+    xSplit: 3,
+    ySplit: 9,
+    topLeftCell: 'D10',
+    showGridLines: false,
+  }];
+  sheet.headerFooter.oddFooter = `Tender Flow ${meta.appVersion} &C&F &RStrana &P z &N`;
+
+  const columnWidths = [
+    30, 18, 30, 12, 14, 17, 17, 17, 17, 13, 18, 13, 18, 14, 18, 13, 12,
+  ];
+  sheet.columns = columnWidths.map((width) => ({ width }));
+
+  if (meta.appLogoDataUrl) {
+    const imageId = workbook.addImage({
+      base64: meta.appLogoDataUrl,
+      extension: 'png',
+    });
+    sheet.addImage(imageId, {
+      tl: { col: 0.25, row: 0.25 },
+      ext: { width: 70, height: 70 },
+      editAs: 'oneCell',
+    });
+  }
+
+  sheet.mergeCells('C1:Q1');
+  sheet.getCell('C1').value = 'Přehled smluv';
+  sheet.getCell('C1').font = { name: 'Aptos Display', size: 22, bold: true, color: { argb: 'FF0F172A' } };
+  sheet.getCell('C1').alignment = { horizontal: 'left', vertical: 'middle' };
+  sheet.getRow(1).height = 30;
+
+  sheet.mergeCells('C2:Q2');
+  sheet.getCell('C2').value = `${meta.organizationName || 'Organizace'} · ${meta.projectName || 'Projekt'}`;
+  sheet.getCell('C2').font = { name: 'Aptos', size: 12, bold: true, color: { argb: 'FF334155' } };
+  sheet.getCell('C2').alignment = { horizontal: 'left', vertical: 'middle' };
+
+  sheet.mergeCells('C3:Q3');
+  sheet.getCell('C3').value = `Export provedl: ${meta.exportedBy || 'Uživatel'}`;
+  sheet.getCell('C3').font = { name: 'Aptos', size: 10, color: { argb: 'FF475569' } };
+  sheet.getCell('C3').alignment = { horizontal: 'left', vertical: 'middle' };
+
+  sheet.mergeCells('C4:Q4');
+  sheet.getCell('C4').value = `Datum exportu: ${exportedAt.toLocaleString('cs-CZ')} · Tender Flow ${meta.appVersion}`;
+  sheet.getCell('C4').font = { name: 'Aptos', size: 10, color: { argb: 'FF64748B' } };
+  sheet.getCell('C4').alignment = { horizontal: 'left', vertical: 'middle' };
+
+  const cardRanges = ['A6:D6', 'E6:H6', 'I6:L6', 'M6:Q6'];
+  const cardValueRanges = ['A7:D7', 'E7:H7', 'I7:L7', 'M7:Q7'];
+  const cardLabels = ['POČET SMLUV', 'HODNOTA SMLUV', 'NAFAKTUROVÁNO', 'ZAPLACENO'];
+  const cardValues = [
+    contracts.length,
+    contracts.reduce((sum, contract) => sum + contract.currentTotal, 0),
+    contracts.reduce((sum, contract) => sum + contract.invoicedSum, 0),
+    contracts.reduce((sum, contract) => sum + contract.paidSum, 0),
+  ];
+  const currencies = new Set(
+    contracts.map((contract) => normalizeContractExportCurrency(contract.currency)),
+  );
+  const summaryCurrency = currencies.size === 1 ? [...currencies][0] : null;
+  cardRanges.forEach((range, index) => {
+    sheet.mergeCells(range);
+    sheet.getCell(range.split(':')[0]).value = cardLabels[index];
+    sheet.getCell(range.split(':')[0]).font = { name: 'Aptos', size: 9, bold: true, color: { argb: 'FF64748B' } };
+    sheet.getCell(range.split(':')[0]).alignment = { horizontal: 'center', vertical: 'middle' };
+    sheet.getCell(range.split(':')[0]).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+  });
+  cardValueRanges.forEach((range, index) => {
+    sheet.mergeCells(range);
+    const cell = sheet.getCell(range.split(':')[0]);
+    cell.value = cardValues[index];
+    cell.font = { name: 'Aptos Display', size: 15, bold: true, color: { argb: index === 0 ? 'FF0F172A' : 'FFEA580C' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+    cell.numFmt = index === 0
+      ? '#,##0'
+      : summaryCurrency
+        ? contractCurrencyNumberFormat(summaryCurrency)
+        : '#,##0.00';
+  });
+
+  const headers = [
+    'Dodavatel',
+    'Č. smlouvy',
+    'Předmět',
+    'Dokument',
+    'Stav',
+    'Hodnota',
+    'Dodatky',
+    'Nafakturováno',
+    'Zaplaceno',
+    'Poz. krátká %',
+    'Poz. krátká částka',
+    'Poz. dlouhá %',
+    'Poz. dlouhá částka',
+    'Záruka do',
+    'Splatnost',
+    'Hodnocení',
+    'Měna',
+  ];
+  const rows = contracts.map((contract) => {
+    const shortPercent = contract.retentionShortPercent ?? 0;
+    const longPercent = contract.retentionLongPercent ?? 0;
+    return [
+      sanitizeSpreadsheetCell(contract.vendorName),
+      sanitizeSpreadsheetCell(contract.contractNumber || '—'),
+      sanitizeSpreadsheetCell(contract.title),
+      contractDocumentLabel(contract),
+      getContractSummaryStatusLabel(contract.status),
+      contract.currentTotal,
+      contract.currentTotal - contract.basePrice,
+      contract.invoicedSum,
+      contract.paidSum,
+      shortPercent,
+      contract.retentionShortAmount ?? Math.round(contract.currentTotal * shortPercent / 100),
+      longPercent,
+      contract.retentionLongAmount ?? Math.round(contract.currentTotal * longPercent / 100),
+      addMonthsForContractExport(contract.signedAt, contract.warrantyMonths),
+      sanitizeSpreadsheetCell(contract.paymentTerms || '—'),
+      contract.vendorRating ?? null,
+      normalizeContractExportCurrency(contract.currency),
+    ];
+  });
+
+  const table = sheet.addTable({
+    name: 'ContractsTable',
+    ref: 'A9',
+    headerRow: true,
+    totalsRow: false,
+    style: { theme: 'TableStyleMedium2', showRowStripes: true },
+    columns: headers.map((name) => ({ name })),
+    rows,
+  });
+  table.commit();
+
+  const lastRow = Math.max(9, 9 + contracts.length);
+  sheet.autoFilter = { from: 'A9', to: `Q${lastRow}` };
+  sheet.getRow(9).height = 30;
+  sheet.getRow(9).eachCell((cell) => {
+    cell.font = { name: 'Aptos', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.border = {
+      right: { style: 'thin', color: { argb: 'FF475569' } },
+      bottom: { style: 'medium', color: { argb: 'FFEA580C' } },
+    };
+  });
+
+  if (contracts.length > 0) {
+    const dataRange = sheet.getRows(10, contracts.length) || [];
+    dataRange.forEach((row) => {
+      const wrappedLineCount = Math.max(
+        Math.ceil(String(row.getCell(1).value || '').length / 28),
+        Math.ceil(String(row.getCell(3).value || '').length / 28),
+        Math.ceil(String(row.getCell(15).value || '').length / 16),
+      );
+      row.height = Math.min(90, Math.max(32, wrappedLineCount * 15));
+      row.eachCell((cell) => {
+        cell.font = { name: 'Aptos', size: 10, color: { argb: 'FF1E293B' } };
+        cell.alignment = { vertical: 'middle' };
+        cell.border = {
+          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        };
+      });
+    });
+    for (let rowNumber = 10; rowNumber <= lastRow; rowNumber += 1) {
+      const currency = normalizeContractExportCurrency(contracts[rowNumber - 10]?.currency);
+      ['F', 'G', 'H', 'I', 'K', 'M'].forEach((column) => {
+        sheet.getCell(`${column}${rowNumber}`).numFmt = contractCurrencyNumberFormat(currency);
+      });
+      ['J', 'L'].forEach((column) => {
+        sheet.getCell(`${column}${rowNumber}`).numFmt = '0.00" %"';
+      });
+      sheet.getCell(`N${rowNumber}`).numFmt = 'dd.mm.yyyy';
+      sheet.getCell(`P${rowNumber}`).numFmt = '0.0';
+    }
+    ['A', 'B', 'C', 'D', 'E', 'O', 'Q'].forEach((column) => {
+      sheet.getColumn(column).alignment = {
+        horizontal: 'left',
+        vertical: 'middle',
+        wrapText: true,
+      };
+    });
+    ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'P'].forEach((column) => {
+      sheet.getColumn(column).alignment = { horizontal: 'right', vertical: 'middle' };
+    });
+  }
+
+  sheet.getCell('A9').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  sheet.getCell('B9').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  sheet.getCell('C9').alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  sheet.getCell('A7').numFmt = '#,##0';
+  ['E7', 'I7', 'M7'].forEach((address) => {
+    sheet.getCell(address).numFmt = summaryCurrency
+      ? contractCurrencyNumberFormat(summaryCurrency)
+      : '#,##0.00';
+  });
+  sheet.getColumn('P').alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getColumn('Q').alignment = { horizontal: 'center', vertical: 'middle' };
+  for (let rowNumber = 9; rowNumber <= lastRow; rowNumber += 1) {
+    const cell = sheet.getCell(`Q${rowNumber}`);
+    cell.border = {
+      ...cell.border,
+      left: {
+        style: rowNumber === 9 ? 'medium' : 'thin',
+        color: { argb: rowNumber === 9 ? 'FFFFFFFF' : 'FF94A3B8' },
+      },
+    };
+  }
+  return workbook;
+}
+
+export async function exportContractTableToXlsx(
+  contracts: ContractWithDetails[],
+  meta: ContractTableExportMeta,
+): Promise<void> {
+  const appLogoDataUrl = meta.appLogoDataUrl === undefined
+    ? await fetchImageDataUrl(DEFAULT_TF_LOGO_URL)
+    : meta.appLogoDataUrl;
+  const workbook = await buildContractTableWorkbook(contracts, {
+    ...meta,
+    appLogoDataUrl,
+  });
+  const output = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([output as BlobPart], { type: XLSX_MIME });
+  downloadBlob(blob, getContractSummaryFilename(meta.projectName, 'xlsx'));
+}
 
 export async function exportContractSummariesToXlsx(
   contracts: ContractSummaryDto[],

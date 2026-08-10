@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContractWithDetails } from '@/types';
 
@@ -23,6 +23,30 @@ const contract: ContractWithDetails = {
   paidSum: 0,
   overdueSum: 0,
 };
+
+const exportContractTableToXlsxMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@/context/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      id: 'user-1',
+      name: 'Martin Kalkus',
+      email: 'martin@example.com',
+      organizationName: 'REKO a.s.',
+    },
+  }),
+}));
+vi.mock('@/services/exportService', () => ({
+  exportContractTableToXlsx: (...args: unknown[]) => exportContractTableToXlsxMock(...args),
+}));
+vi.mock('@/features/projects/contracts/api', () => ({
+  contractQueriesApi: {
+    openContractDocument: vi.fn(),
+  },
+}));
+vi.mock('@/features/projects/contracts/utils/attachContractDocument', () => ({
+  attachContractDocument: vi.fn(),
+}));
 
 vi.mock('@/features/projects/contracts/hooks/useContractsWithDetails', () => ({
   useContractsWithDetails: () => ({
@@ -50,7 +74,11 @@ vi.mock('@/features/projects/contracts/forms/ContractEditDialog', () => ({
 import { ContractsModule } from '@/features/projects/contracts/ContractsModule';
 
 describe('ContractsModule navigation', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    exportContractTableToXlsxMock.mockReset();
+    exportContractTableToXlsxMock.mockResolvedValue(undefined);
+  });
 
   it('vstupuje do Smluv v tabulce a kliknutí na záložku Smlouvy tabulku obnoví', () => {
     render(
@@ -76,6 +104,29 @@ describe('ContractsModule navigation', () => {
     const create = screen.getByRole('button', { name: '+ Nová smlouva' });
     const toggle = document.querySelector('[data-help-id="contracts-view-toggle"]');
     expect(create.compareDocumentPosition(toggle!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('exportuje tabulku smluv s projektem, aplikací a přihlášeným uživatelem', async () => {
+    render(
+      <ContractsModule
+        projectId="project-1"
+        projectDetails={{ id: 'project-1', title: 'Rekonstrukce školy' }}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export do Excelu' }));
+
+    await waitFor(() => expect(exportContractTableToXlsxMock).toHaveBeenCalledTimes(1));
+    expect(exportContractTableToXlsxMock).toHaveBeenCalledWith(
+      [contract],
+      expect.objectContaining({
+        organizationName: 'REKO a.s.',
+        projectName: 'Rekonstrukce školy',
+        exportedBy: 'Martin Kalkus',
+        appVersion: expect.stringMatching(/^\d+\.\d+\.\d+/),
+      }),
+    );
   });
 
   it('otevře deep-linkovanou smlouvu rovnou ve split detailu', () => {
