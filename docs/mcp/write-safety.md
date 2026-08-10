@@ -13,10 +13,11 @@ identifikátory k již existující kartě. Nemůže měnit cenu, stav, dodavate
 obsah nabídky. I tato operace vyžaduje write grant, projektové edit právo a
 úspěšný redigovaný audit pokusu; při chybě auditu selže bez zápisu.
 
-Write nástroje se objeví pouze klientovi s aktivním osmihodinovým
+Write nástroje se objeví pouze klientovi s aktivním, explicitně odvolatelným
 `tenderflow.write` grantem pro přihlášeného uživatele a přesný OAuth klient.
-Grant zpřístupní protokol, ale nenahrazuje RLS, projektovou autorizaci, audit,
-potvrzení ani idempotenci. Uživatel jej zapíná s druhým explicitním potvrzením
+Grant zpřístupní třífázový protokol a jedinou výše popsanou přímou metadata
+operaci. Nenahrazuje RLS, projektovou autorizaci, audit ani idempotenci;
+potvrzení je povinné pro business změny. Uživatel jej zapíná s druhým explicitním potvrzením
 v Nastavení → Nástroje → MCP přístupy a může jej okamžitě odebrat.
 
 ```mermaid

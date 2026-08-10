@@ -211,6 +211,24 @@ describe("authoritative MCP user-client grants", () => {
     );
   });
 
+  it("keeps write permission until explicit revoke without weakening consent binding", () => {
+    const migrationDir = path.join(ROOT, "supabase/migrations");
+    const filename = fs.readdirSync(migrationDir)
+      .find((name) => name.endsWith("_mcp_persistent_write_grant.sql"));
+
+    expect(filename).toBeDefined();
+    const migration = fs.readFileSync(path.join(migrationDir, filename as string), "utf8");
+    expect(migration).toContain("'infinity'::TIMESTAMPTZ");
+    expect(migration).toContain("permission_input = 'tenderflow.write'");
+    expect(migration).toContain("oauth_consent.id");
+    expect(migration).toContain("oauth_consent.granted_at");
+    expect(migration).toContain("MCP grant management requires a first-party Tender Flow session");
+    expect(migration).toContain("SET search_path = ''");
+    expect(migration).toMatch(/REVOKE ALL ON FUNCTION public\.set_my_mcp_client_grant/);
+    expect(migration).toContain("TO authenticated");
+    expect(migration).not.toContain("TO tenderflow_mcp_client");
+  });
+
   it("allows grant management only from a first-party Tender Flow session", () => {
     const migrationDir = path.join(ROOT, "supabase/migrations");
     const filename = fs.readdirSync(migrationDir)

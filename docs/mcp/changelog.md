@@ -3,6 +3,19 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-10 — samostatný MCP deployment a trvalý write grant
+
+- Remote MCP dostal samostatný Vercel project root `mcp-service/`, bezpečný
+  proxy cutover při zachování kanonické OAuth resource URL a fail-safe build
+  scope pro oddělení MCP od webového/desktopového releasu.
+- `tenderflow.write` grant nově platí do explicitního odvolání. Rizikové
+  business mutace nadále vyžadují krátkodobý proposal, přesné confirm/execute,
+  objektovou autorizaci a audit. Úzká Outlook metadata vazba zůstává přímá,
+  idempotentní, projektově autorizovaná a auditovaná; vazba grantu na konkrétní
+  OAuth consent zůstává zachována.
+- Nastavení aplikace zobrazuje stabilní skupiny oprávnění místo statického
+  seznamu toolů, takže rozšíření remote katalogu nevyžaduje rebuild UI.
+
 ## 2026-08-10 — objevitelný zápis stavu kanbanu
 
 - přidán jednoúčelový `tf_prepare_bid_status_change` pro přípravu přesunu jedné

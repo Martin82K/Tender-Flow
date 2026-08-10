@@ -74,6 +74,28 @@ describe("remote MCP server", () => {
     delete process.env.SUPABASE_ANON_KEY;
     delete process.env.SUPABASE_MCP_SECRET_KEY;
     delete process.env.VITE_SUPABASE_URL;
+    delete process.env.MCP_CANONICAL_BASE_URL;
+  });
+
+  it("uses an explicit canonical origin behind the standalone MCP proxy", () => {
+    process.env.VITE_SUPABASE_URL = "https://tf-test.supabase.co";
+    process.env.MCP_CANONICAL_BASE_URL = "https://www.tenderflow.cz";
+
+    const metadata = buildMcpResourceMetadata(
+      new Request("https://tender-flow-mcp.vercel.app/api/mcp"),
+    );
+
+    expect(metadata.resource).toBe("https://www.tenderflow.cz/api/mcp");
+    expect(metadata.resource_documentation)
+      .toBe("https://www.tenderflow.cz/app/settings?tab=tools&subTab=mcp");
+  });
+
+  it("rejects an unsafe canonical origin instead of weakening audience validation", () => {
+    process.env.MCP_CANONICAL_BASE_URL = "http://localhost:3000/path";
+
+    expect(() => buildMcpResourceMetadata(
+      new Request("https://tender-flow-mcp.vercel.app/api/mcp"),
+    )).toThrow("MCP_CANONICAL_BASE_URL");
   });
 
   it("publikuje OAuth protected-resource metadata pro ChatGPT MCP klienty", () => {

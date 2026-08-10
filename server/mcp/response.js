@@ -11,6 +11,22 @@ export const jsonResponse = (status, body, headers = {}) =>
   });
 
 export const getBaseUrl = (request) => {
+  const configuredBaseUrl = process.env.MCP_CANONICAL_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    const configured = new URL(configuredBaseUrl);
+    if (
+      configured.protocol !== 'https:'
+      || configured.username
+      || configured.password
+      || configured.pathname !== '/'
+      || configured.search
+      || configured.hash
+    ) {
+      throw new Error('MCP_CANONICAL_BASE_URL must be an HTTPS origin without credentials, path, query or fragment.');
+    }
+    return configured.origin;
+  }
+
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const forwardedHost = request.headers.get('x-forwarded-host');
   if (forwardedHost) {

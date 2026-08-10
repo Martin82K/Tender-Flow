@@ -32,8 +32,11 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
 
 - Policy katalog implementuje 15 read nástrojů a 4 nástroje zápisového
   protokolu. Aktivně consentovaný OAuth klient získá základní read katalog;
-  kontaktní data vyžadují 30denní user+client grant a write katalog osmihodinový
-  grant. Oba lze okamžitě odebrat v Nastavení → Nástroje → MCP přístupy.
+  kontaktní data vyžadují 30denní user+client grant a write katalog grant
+  platný do odvolání. Rizikové business mutace používají krátkodobé potvrzení,
+  objektovou autorizaci a audit; úzká Outlook vazba zapisuje přímo pouze
+  stabilní identifikátory s projektovým právem a auditem. Oba granty lze okamžitě odebrat v
+  Nastavení → Nástroje → MCP přístupy.
   Celý uživatelský OAuth souhlas lze na stejném místě odpojit po druhém
   potvrzení; tím se zneplatní relace a refresh tokeny pouze vybraného klienta.
 - Třífázový zápisový protokol dovoluje z business změn vykonat jen
