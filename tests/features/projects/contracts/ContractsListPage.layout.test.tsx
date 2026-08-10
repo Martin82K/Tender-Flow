@@ -106,4 +106,29 @@ describe('ContractsListPage layout', () => {
       screen.queryByRole('searchbox', { name: 'Hledat smlouvu nebo dodavatele' }),
     ).not.toBeInTheDocument();
   });
+
+  it('resetuje skryté filtry při otevření smlouvy z tabulky', () => {
+    const Harness = () => {
+      const [viewMode, setViewMode] = React.useState<'split' | 'table'>('split');
+      return (
+        <ContractsListPage
+          projectId="project-1"
+          contracts={contracts}
+          refresh={vi.fn()}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aktivní' }));
+    fireEvent.click(screen.getByRole('button', { name: /Tabulka/ }));
+    fireEvent.click(screen.getByText('Uzavřená smlouva').closest('tr') as HTMLElement);
+
+    const listRail = document.querySelector('[data-help-id="contracts-list-rail"]');
+    expect(within(listRail as HTMLElement).getByText('Aktivní smlouva')).toBeInTheDocument();
+    expect(within(listRail as HTMLElement).getByText('Uzavřená smlouva')).toBeInTheDocument();
+  });
 });

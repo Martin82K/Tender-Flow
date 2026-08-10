@@ -54,6 +54,12 @@ export const ContractsListPage: React.FC<Props> = ({
     }
   }, [contracts, initialSelectedId, onViewModeChange, selectedId]);
 
+  useEffect(() => {
+    if (viewMode !== 'table') return;
+    setFilter('all');
+    setQuery('');
+  }, [viewMode]);
+
   const selected = useMemo(
     () => contracts.find((c) => c.id === selectedId) || null,
     [contracts, selectedId],
