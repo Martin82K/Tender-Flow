@@ -5,6 +5,7 @@
 - **Výchozí tabulka smluv**: projektový modul Smlouvy se otevírá přímo v tabulkovém přehledu; přepínač Split/Tabulka a akce Nová smlouva jsou ihned pod hlavní navigací.
 - **Nastavitelné sloupce**: šířky sloupců lze měnit tažením, nastavení se lokálně obnoví při příštím otevření a dlouhá čísla i názvy smluv se zalamují.
 - **Originální dokument smlouvy**: PDF a DOCX lze při založení bezpečně připojit, následně otevřít ikonou přímo z tabulky a OCR zůstává volitelnou předvyplňovací vrstvou.
+- **Kompletní správa smlouvy**: v editaci lze přílohu připojit, nahradit nebo odpojit a smlouvu lze po potvrzení smazat včetně návazných záznamů a uložených dokumentů.
 - **OCR při založení**: formulář čeká na dokončení OCR, předvyplní validovaná pole a ponechá uživateli závěrečnou kontrolu před uložením.
 - **Investor**: doplněna evidence smlouvy s objednatelem a číslovaných dodatků, fakturační období a samostatné pozastávky do předání a po dobu záruky.
 - **Přesnější úhrady**: z vystavené částky se automaticky počítají obě pozastávky a čistá částka k úhradě; jako uhrazená se vykazuje až zaplacená čistá částka.

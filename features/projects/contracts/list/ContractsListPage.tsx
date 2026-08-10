@@ -225,8 +225,16 @@ export const ContractsListPage: React.FC<Props> = ({
           projectId={projectId}
           contract={editContract}
           onClose={() => setEditOpen(false)}
-          onSaved={async () => {
+          onSaved={async (warning) => {
             setEditOpen(false);
+            setDocumentError(warning ?? null);
+            await refresh();
+          }}
+          onDeleted={async (warning) => {
+            setEditOpen(false);
+            setEditContract(null);
+            setSelectedId(null);
+            setDocumentError(warning ?? null);
             await refresh();
           }}
         />

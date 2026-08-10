@@ -67,4 +67,24 @@ describe('contractService documents', () => {
       900,
     );
   });
+
+  it('propaguje chybu mazání přílohy, aby ji volající nemohl zaměnit za úspěch', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.remove.mockResolvedValue({ error: { message: 'RLS denied' } });
+    try {
+      await expect(
+        contractService.deleteContractDocument('projects/project-1/contracts/file.pdf'),
+      ).rejects.toThrow('Přílohu smlouvy se nepodařilo odstranit');
+      expect(consoleError).toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it('odmítne nebezpečnou cestu mimo adresář smluv projektu', async () => {
+    await expect(
+      contractService.deleteContractDocument('../contracts/file.pdf'),
+    ).rejects.toThrow('Neplatná cesta přílohy smlouvy');
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+  });
 });

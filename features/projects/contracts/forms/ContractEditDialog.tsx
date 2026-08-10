@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
+import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { contractMutationsApi } from '../api';
 import { contractExtractionService } from '@/services/contractExtractionService';
 import { buildContractUpdateFromOcr } from '../utils/contractOcrUpdate';
+import {
+  deleteContractWithDocuments,
+  updateContractWithDocumentChange,
+} from '../utils/contractCrud';
 import { validateContractDocument } from '@/shared/contracts/contractDocument';
 import type {
   Contract,
@@ -18,7 +23,8 @@ interface Props {
   projectId: string;
   contract?: ContractWithDetails | null;
   onClose: () => void;
-  onSaved: () => Promise<void> | void;
+  onSaved: (warning?: string) => Promise<void> | void;
+  onDeleted?: (warning?: string) => Promise<void> | void;
 }
 
 const inputClass =
@@ -43,6 +49,7 @@ export const ContractEditDialog: React.FC<Props> = ({
   contract,
   onClose,
   onSaved,
+  onDeleted,
 }) => {
   const isEditing = Boolean(contract?.id);
 
@@ -79,6 +86,10 @@ export const ContractEditDialog: React.FC<Props> = ({
   const [ocrFile, setOcrFile] = useState<File | null>(null);
   const [attachOriginal, setAttachOriginal] = useState(true);
   const [ocrAppliedFields, setOcrAppliedFields] = useState<string[]>([]);
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [removeDocument, setRemoveDocument] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleChange = <K extends keyof typeof form>(key: K, value: typeof form[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -122,6 +133,39 @@ export const ContractEditDialog: React.FC<Props> = ({
       setOcrStatus('');
     } finally {
       setOcrBusy(false);
+    }
+  };
+
+  const handleReplacementFile = async (file: File) => {
+    setError(null);
+    try {
+      await validateContractDocument(file);
+      setReplacementFile(file);
+      setRemoveDocument(false);
+    } catch (validationError) {
+      setError(
+        validationError instanceof Error
+          ? validationError.message
+          : 'Vybranou přílohu nelze použít.',
+      );
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!contract || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const result = await deleteContractWithDocuments(contract);
+      setDeleteConfirmOpen(false);
+      await (onDeleted ?? onSaved)(result.cleanupWarning ?? undefined);
+    } catch (deleteError) {
+      setDeleteConfirmOpen(false);
+      setError(
+        deleteError instanceof Error ? deleteError.message : 'Smlouvu se nepodařilo smazat.',
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -198,7 +242,13 @@ export const ContractEditDialog: React.FC<Props> = ({
       } satisfies Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>;
 
       if (isEditing && contract) {
-        await contractMutationsApi.updateContract(contract.id, payload);
+        const result = await updateContractWithDocumentChange({
+          contract,
+          updates: payload,
+          replacementFile,
+          removeDocument,
+        });
+        await onSaved(result.cleanupWarning ?? undefined);
       } else {
         const created = await contractMutationsApi.createContract(payload);
         createdContractId = created.id;
@@ -218,8 +268,8 @@ export const ContractEditDialog: React.FC<Props> = ({
             console.error('Contract OCR markdown save failed:', markdownError);
           }
         }
+        await onSaved();
       }
-      await onSaved();
     } catch (err) {
       if (uploadedStoragePath && !createdContractId) {
         await contractMutationsApi.deleteContractDocument(uploadedStoragePath);
@@ -231,8 +281,10 @@ export const ContractEditDialog: React.FC<Props> = ({
   };
 
   const showOcrPanel = isEditing && contract;
+  const hasStoredDocument = Boolean(contract?.documentStoragePath || contract?.documentUrl);
 
   return (
+    <>
     <Modal
       isOpen
       onClose={onClose}
@@ -308,6 +360,66 @@ export const ContractEditDialog: React.FC<Props> = ({
                 <span className="truncate text-slate-500">({ocrFile.name})</span>
               </label>
             ) : null}
+          </section>
+        ) : null}
+
+        {isEditing && contract ? (
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Příloha smlouvy
+            </div>
+            <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+              {replacementFile
+                ? `Po uložení bude připojen soubor ${replacementFile.name}.`
+                : removeDocument
+                  ? 'Po uložení bude současná příloha odpojena a odstraněna.'
+                  : hasStoredDocument
+                    ? contract.documentFileName || 'Smlouva obsahuje připojený dokument.'
+                    : 'Smlouva zatím nemá připojený dokument.'}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/10">
+                {hasStoredDocument ? 'Nahradit přílohu' : 'Připojit přílohu'}
+                <input
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  aria-label={hasStoredDocument ? 'Nahradit přílohu smlouvy' : 'Připojit přílohu smlouvy'}
+                  disabled={submitting || deleting}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void handleReplacementFile(file);
+                    event.currentTarget.value = '';
+                  }}
+                />
+              </label>
+              {hasStoredDocument && !removeDocument ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplacementFile(null);
+                    setRemoveDocument(true);
+                  }}
+                  disabled={submitting || deleting}
+                  className="rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10"
+                >
+                  Odpojit a smazat přílohu
+                </button>
+              ) : null}
+              {replacementFile || removeDocument ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplacementFile(null);
+                    setRemoveDocument(false);
+                  }}
+                  disabled={submitting || deleting}
+                  className="rounded-lg px-3 py-2 text-xs text-slate-600 hover:bg-slate-200 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  Zrušit změnu přílohy
+                </button>
+              ) : null}
+            </div>
           </section>
         ) : null}
 
@@ -597,7 +709,17 @@ export const ContractEditDialog: React.FC<Props> = ({
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+          {isEditing ? (
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(true)}
+              disabled={submitting || deleting}
+              className="mr-auto px-4 py-2 text-sm font-semibold rounded-lg text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              Smazat smlouvu
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
@@ -617,5 +739,15 @@ export const ContractEditDialog: React.FC<Props> = ({
         </div>
       </div>
     </Modal>
+    <ConfirmationModal
+      isOpen={deleteConfirmOpen}
+      title="Smazat smlouvu?"
+      message={`Opravdu chcete smazat smlouvu „${contract?.title || ''}“ včetně jejích dodatků, faktur a připojených souborů? Tuto akci nelze vrátit.`}
+      confirmLabel={deleting ? 'Mažu…' : 'Smazat'}
+      onCancel={() => setDeleteConfirmOpen(false)}
+      onConfirm={() => void handleDelete()}
+      variant="danger"
+    />
+    </>
   );
 };

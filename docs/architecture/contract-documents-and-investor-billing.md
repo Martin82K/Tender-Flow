@@ -23,6 +23,19 @@ PDF nebo ZIP kontejneru DOCX. Bucket stejný limit a MIME allowlist vynucuje
 znovu. OCR používá samostatný dočasný objekt, který se po zpracování odstraní;
 jeho krátkodobá URL se neukládá ani neloguje.
 
+V editaci smlouvy lze přílohu připojit, nahradit nebo odpojit. Náhrada se nejprve
+nahraje pod novou náhodnou cestu, potom se přepojí databázová metadata a až po
+úspěšném zápisu se odstraní původní objekt. Při chybě zápisu se nový objekt
+uklidí. Odpojení nejprve vyčistí metadata smlouvy a potom odstraní objekt ze
+Storage, takže chyba úklidu nevytvoří nefunkční odkaz. Uživatel je na případný
+neúspěšný úklid upozorněn.
+
+Smazání smlouvy vždy vyžaduje potvrzení. Nejprve se přes projektovou RLS smaže
+databázový záznam; návazné dodatky, čerpání, faktury a interní verze se řeší
+definovanými cizími klíči. Následně klient přes Storage API uklidí originál
+smlouvy a dokumenty dodatků. Cesty před smazáním procházejí allowlistem tvaru
+`projects/{projectId}/contracts/{safeName}.pdf|docx`.
+
 ## Export tabulky smluv
 
 Tabulkové zobrazení smluv nabízí lokální export do `.xlsx`. Workbook obsahuje
