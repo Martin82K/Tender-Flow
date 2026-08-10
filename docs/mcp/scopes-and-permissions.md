@@ -18,7 +18,15 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 | --- | --- | --- |
 | `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | automaticky pro aktivně consentovaného registrovaného klienta |
 | `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | volitelný user+client grant na 30 dní |
-| `tenderflow.write` | přístup k třífázovým write tools; vyžaduje také read | volitelný user+client grant na 8 hodin |
+| `tenderflow.write` | třífázové business změny a úzká přímá Outlook metadata vazba; vyžaduje také read | volitelný user+client grant do odvolání |
+
+Trvalý write grant dovoluje klientovi připravovat business změny a přímo uložit
+úzkou Outlook metadata vazbu. Business změna nadále vyžaduje krátkodobý návrh,
+přesné potvrzení, execute krok, objektovou autorizaci a audit. Outlook vazba
+ukládá pouze stabilní identifikátory, nemění cenu ani stav a vyžaduje projektové
+právo i audit. Grant je vázaný na konkrétní řádek
+OAuth consentu; jeho revokace nebo nová generace consentu starý grant okamžitě
+zneplatní.
 
 ## Matice nástrojů
 

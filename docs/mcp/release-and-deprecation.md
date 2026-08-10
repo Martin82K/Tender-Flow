@@ -21,6 +21,16 @@ nebo přejmenování toolu, resource, scope či významu pole je breaking změna
 - migration dry-run a catalog/advisor kontrola u DB změn,
 - green GitHub Actions a hosting preview/production checks.
 
+MCP runtime se vydává samostatným Vercel projektem z `mcp-service/`. Změna jen
+v `server/mcp/`, `shared/mcp/` nebo `mcp-service/` nesmí vyžadovat nový webový
+ani desktopový release. Aplikační build je nutný pouze při změně UI nebo
+aplikačního kontraktu; rozhodnutí je fail-safe v `scripts/vercel-build-scope.mjs`.
+Nový tool lze přidat do existující skupiny oprávnění bez buildu aplikace jen
+tehdy, když jeho data a dopad odpovídají již zobrazenému souhlasu. Materiálně
+širší data, nový typ rizikové akce nebo slabší potvrzovací režim vyžadují novou
+interní permission, aktualizovaný UI souhlas a aplikační release; nesmí se
+tiše schovat pod existující trvalý grant.
+
 Změna názvu, popisu, schématu, anotací nebo autentizace toolu vyžaduje po
 nasazení také obnovu metadata snapshotu v ChatGPT. U developer-mode připojení
 se použije **Refresh**. U publikovaného pluginu je nutné znovu spustit

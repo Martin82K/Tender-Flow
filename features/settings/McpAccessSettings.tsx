@@ -9,10 +9,11 @@ import {
 import { McpToolMatrix } from "@/features/settings/components/McpToolMatrix";
 
 const isActive = (expiresAt: string | null): boolean =>
-  Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now());
+  expiresAt === "infinity" || Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now());
 
 const formatExpiry = (expiresAt: string | null): string => {
   if (!expiresAt) return "není povoleno";
+  if (expiresAt === "infinity") return "do odvolání";
   const value = new Date(expiresAt);
   if (Number.isNaN(value.getTime())) return "neplatný čas expirace";
   return value.toLocaleString("cs-CZ", { dateStyle: "medium", timeStyle: "short" });
@@ -90,8 +91,9 @@ export const McpAccessSettings: React.FC = () => {
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-        Kontaktní údaje se povolují nejvýše na 30 dní. Zápis je záměrně krátkodobý – 8 hodin – a každý
-        zápis stále vyžaduje prepare/confirm/execute potvrzení, audit a běžná oprávnění Tender Flow.
+        Kontaktní údaje se povolují nejvýše na 30 dní. Zápisové operace jsou povoleny do odvolání.
+        Rizikové business změny vyžadují prepare/confirm/execute; omezené propojení Outlook message ID
+        zapisuje jen identifikátory a vždy vyžaduje projektové právo a audit.
       </div>
 
       {error && (
@@ -160,15 +162,16 @@ export const McpAccessSettings: React.FC = () => {
                 <div className="rounded-lg border border-amber-200 p-4 dark:border-amber-500/30">
                   <h4 className="font-semibold text-slate-900 dark:text-white">Zápisové operace</h4>
                   <p className="mt-1 text-sm text-slate-500">
-                    Příprava, potvrzení a provedení podporovaných změn přes auditovaný protokol.
+                    Potvrzované business změny a omezené auditované propojení Outlook zprávy.
                   </p>
                   <p className="mt-2 text-xs text-slate-500">
-                    {writeActive ? `Platí do ${formatExpiry(client.writeExpiresAt)}` : "Není povoleno"}
+                    {writeActive ? `Platí ${formatExpiry(client.writeExpiresAt)}` : "Není povoleno"}
                   </p>
 
                   {!writeActive && pendingWriteClientId === client.clientId ? (
                     <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
-                      <p>Každý zápis stále vyžaduje prepare/confirm/execute a může změnit vaše data.</p>
+                      <p>Rizikové změny stále vyžadují prepare/confirm/execute a mohou změnit vaše data.</p>
+                      <p className="mt-2">Outlook message ID se propojuje přímo, ale jen k povolené kartě a bez obsahu e-mailu.</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -176,7 +179,7 @@ export const McpAccessSettings: React.FC = () => {
                           onClick={() => void changeGrant(client.clientId, "tenderflow.write", true)}
                           className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-60"
                         >
-                          Potvrdit zápis na 8 hodin
+                          Potvrdit zápis do odvolání
                         </button>
                         <button
                           type="button"
