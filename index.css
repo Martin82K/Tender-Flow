@@ -2005,8 +2005,7 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] {
 
 html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] [class*="uppercase"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] [class*="uppercase"],
-html[data-skin="industrial"] [data-help-id="contracts-table"] th,
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
+html[data-skin="industrial"] [data-help-id="contracts-table"] th {
   color: var(--tf-skin-muted) !important;
   font-weight: 600 !important;
   letter-spacing: 0.08em;
@@ -2245,33 +2244,6 @@ html[data-skin="industrial"] [data-help-id="contracts-table"] tr:hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 7%, transparent) !important;
 }
 
-html[data-skin="industrial"] [data-help-id="contract-detail-with-rail"] {
-  grid-template-columns: minmax(132px, 156px) minmax(0, 1fr);
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] {
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
-  border-color: var(--tf-skin-line) !important;
-  border-radius: 0 !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
-  background: transparent !important;
-  border-left: 2px solid transparent;
-  border-radius: 0 !important;
-  color: var(--tf-skin-muted) !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button[data-active="true"] {
-  border-left-color: var(--tf-skin-orange);
-  color: var(--tf-skin-orange-deep) !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button span[class*="rounded-full"] {
-  background: transparent !important;
-  color: var(--tf-skin-muted) !important;
-}
-
 html[data-skin="industrial"] [data-help-id="contracts-table"] th,
 html[data-skin="industrial"] [data-help-id="contracts-table"] [class*="bg-slate-50"],
 html[data-skin="industrial"] [data-help-id="contracts-table"] [class*="bg-slate-900"] {
@@ -2369,8 +2341,7 @@ html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-v
   border: 0 !important;
 }
 
-html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="bg-primary"],
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] [class*="bg-primary"] {
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="bg-primary"] {
   background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
   color: var(--tf-skin-orange-deep) !important;
 }

@@ -141,18 +141,19 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("color: var(--tf-skin-muted) !important");
   });
 
-  it("skin Smluv má KPI strip, list a detailový rail jako samostatnou vrstvu", () => {
+  it("skin Smluv má KPI strip, list, horní filtry a detail jako samostatné vrstvy", () => {
     expect(css).toContain("[data-help-id=\"contracts-kpi-strip\"]");
     expect(css).toContain("[data-help-id=\"contracts-kpi-card\"]");
     expect(contractsDashboardSource).toContain('data-help-id="contracts-dashboard"');
     expect(contractsDashboardSource).toContain('data-help-id="contracts-cashflow-bar"');
     expect(css).toContain("[data-help-id=\"contracts-list-rail\"]");
+    expect(contractListPanelSource).not.toContain('data-help-id="contracts-list-search"');
     expect(css).toContain("[data-help-id=\"contract-detail-shell\"]");
-    expect(css).toContain("[data-help-id=\"contract-detail-rail\"]");
+    expect(contractWorkspaceSource).toContain('data-help-id="contract-detail-content"');
+    expect(contractWorkspaceSource).not.toContain('data-help-id="contract-detail-rail"');
     expect(css).toContain("[data-help-id=\"contracts-investor-kpi-card\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-contract-panel\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-panel\"]");
-    expect(css).toContain("grid-template-columns: minmax(132px, 156px) minmax(0, 1fr)");
   });
 
   it("industrial investor pole respektují světlý i tmavý skin včetně focusu", () => {

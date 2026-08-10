@@ -1,19 +1,24 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from './StatusPill';
-import { ContractFilters, applyContractFilter, type ContractFilterKey } from './ContractFilters';
+import { applyContractFilter, type ContractFilterKey } from './ContractFilters';
 import { formatMoney } from '../utils/format';
 
 interface Props {
   contracts: ContractWithDetails[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  filter: ContractFilterKey;
+  query: string;
 }
 
-export const ContractListPanel: React.FC<Props> = ({ contracts, selectedId, onSelect }) => {
-  const [filter, setFilter] = useState<ContractFilterKey>('all');
-  const [query, setQuery] = useState('');
-
+export const ContractListPanel: React.FC<Props> = ({
+  contracts,
+  selectedId,
+  onSelect,
+  filter,
+  query,
+}) => {
   const visible = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('cs');
     return contracts.filter((c) => {
@@ -29,20 +34,6 @@ export const ContractListPanel: React.FC<Props> = ({ contracts, selectedId, onSe
 
   return (
     <aside data-help-id="contracts-list-rail" className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
-        <div data-help-id="contracts-list-search" className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 px-3 py-2">
-          <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-base">search</span>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Hledat smlouvu / dodavatele…"
-            className="flex-1 bg-transparent outline-none text-sm text-slate-900 placeholder-slate-500 dark:text-slate-200 dark:placeholder-slate-600"
-          />
-        </div>
-        <ContractFilters active={filter} onChange={setFilter} counts={{ all: visible.length }} />
-      </div>
-
       <div className="flex-1 overflow-auto">
         {visible.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-500">
