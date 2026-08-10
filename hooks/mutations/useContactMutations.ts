@@ -16,6 +16,10 @@ import {
 } from "../../shared/dochub/subcontractorNameRules";
 import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
+import {
+    toSubcontractorPersistencePayload,
+    toSubcontractorUpdatePayload,
+} from "@features/contacts/model/contactPersistence";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -32,9 +36,31 @@ export const assertValidSubcontractorCompanyNameOrThrow = (companyName: string):
 const toDocHubFolderSegment = (name: string): string =>
     sanitizeSubcontractorCompanyName(name.trim()).sanitized;
 
+const updateSubcontractorRow = async (
+    id: string,
+    updates: Partial<Subcontractor>,
+): Promise<void> => {
+    const dbUpdates = {
+        ...toSubcontractorUpdatePayload(updates),
+        updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await dbAdapter
+        .from("subcontractors")
+        .update(dbUpdates)
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+        throw new Error("Kontakt nebyl aktualizován. Ověřte oprávnění a zkuste to znovu.");
+    }
+};
+
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const contactQueryKey = CONTACT_KEYS.scopedList(user?.id);
 
     return useMutation({
         mutationFn: async (newContact: Subcontractor) => {
@@ -50,34 +76,20 @@ export const useAddContactMutation = () => {
             }
 
             const { error } = await dbAdapter.from("subcontractors").insert({
-                id: newContact.id,
-                company_name: newContact.company,
-                contact_person_name: newContact.name,
-                email: newContact.email,
-                phone: newContact.phone,
-                specialization: newContact.specialization,
-                ico: newContact.ico,
-                region: newContact.region,
-                address: newContact.address,
-                city: newContact.city,
-                web: newContact.web,
-                note: newContact.note,
-                regions: newContact.regions,
-                status_id: newContact.status,
-                contacts: newContact.contacts,
+                ...toSubcontractorPersistencePayload(newContact, user?.organizationId),
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
             });
             if (error) throw error;
             return newContact;
         },
         onMutate: async (newContact) => {
-            await queryClient.cancelQueries({ queryKey: CONTACT_KEYS.list() });
-            const previousContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list());
-            queryClient.setQueryData<Subcontractor[]>(CONTACT_KEYS.list(), (old) => [newContact, ...(old || [])]);
+            await queryClient.cancelQueries({ queryKey: contactQueryKey });
+            const previousContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey);
+            queryClient.setQueryData<Subcontractor[]>(contactQueryKey, (old) => [newContact, ...(old || [])]);
             return { previousContacts };
         },
         onError: (_err, _newContact, context) => {
-            queryClient.setQueryData(CONTACT_KEYS.list(), context?.previousContacts);
+            queryClient.setQueryData(contactQueryKey, context?.previousContacts);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
@@ -88,6 +100,7 @@ export const useAddContactMutation = () => {
 export const useUpdateContactMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const contactQueryKey = CONTACT_KEYS.scopedList(user?.id);
     const { pathname, search } = useLocation();
     const route = parseAppRoute(pathname, search);
     const projectId = (route.isApp && 'view' in route && route.view === "project") ? route.projectId : undefined;
@@ -107,34 +120,18 @@ export const useUpdateContactMutation = () => {
                 return;
             }
 
-            const dbUpdates: any = { updated_at: new Date().toISOString() };
-            if (updates.company !== undefined) dbUpdates.company_name = updates.company;
-            if (updates.name !== undefined) dbUpdates.contact_person_name = updates.name;
-            if (updates.email !== undefined) dbUpdates.email = updates.email;
-            if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-            if (updates.specialization !== undefined) dbUpdates.specialization = updates.specialization;
-            if (updates.ico !== undefined) dbUpdates.ico = updates.ico;
-            if (updates.region !== undefined) dbUpdates.region = updates.region;
-            if (updates.address !== undefined) dbUpdates.address = updates.address;
-            if (updates.city !== undefined) dbUpdates.city = updates.city;
-            if (updates.web !== undefined) dbUpdates.web = updates.web;
-            if (updates.note !== undefined) dbUpdates.note = updates.note;
-            if (updates.regions !== undefined) dbUpdates.regions = updates.regions;
-            if (updates.status !== undefined) dbUpdates.status_id = updates.status;
-            if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
-            if (updates.aresCheckedAt !== undefined) dbUpdates.ares_checked_at = updates.aresCheckedAt;
-            if (updates.aresNotFound !== undefined) dbUpdates.ares_not_found = updates.aresNotFound;
-
-            const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
-            if (error) throw error;
+            await updateSubcontractorRow(id, updates);
         },
         onMutate: async ({ id, updates }) => {
-            await queryClient.cancelQueries({ queryKey: CONTACT_KEYS.list() });
-            const previousContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list());
-            queryClient.setQueryData<Subcontractor[]>(CONTACT_KEYS.list(), (old) =>
+            await queryClient.cancelQueries({ queryKey: contactQueryKey });
+            const previousContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey);
+            queryClient.setQueryData<Subcontractor[]>(contactQueryKey, (old) =>
                 (old || []).map(c => c.id === id ? { ...c, ...updates } : c)
             );
             return { previousContacts };
+        },
+        onError: (_error, _variables, context) => {
+            queryClient.setQueryData(contactQueryKey, context?.previousContacts);
         },
         onSuccess: (_data, variables) => {
             // Auto-Rename DocHub Folder if name changed and we are in a project context
@@ -144,7 +141,7 @@ export const useUpdateContactMutation = () => {
                 // Context from onMutate has previousContacts
                 // But let's look up the contact in the list (it might be stale in cache vs mutated local state, but previousContacts has the old state)
 
-                const previousContact = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list())?.find(c => c.id === variables.id);
+                const previousContact = queryClient.getQueryData<Subcontractor[]>(contactQueryKey)?.find(c => c.id === variables.id);
                 // Wait, we optimistic updated in onMutate, so 'active' cache has new name.
                 // We need PRE-UPDATE name.
                 // We can pass it in context? Yes but `onSuccess` receives `context`.
@@ -236,6 +233,7 @@ export const useUpdateContactMutation = () => {
 export const useDeleteContactsMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const contactQueryKey = CONTACT_KEYS.scopedList(user?.id);
 
     return useMutation({
         mutationFn: async (ids: string[]) => {
@@ -252,12 +250,15 @@ export const useDeleteContactsMutation = () => {
             if (error) throw error;
         },
         onMutate: async (ids) => {
-            await queryClient.cancelQueries({ queryKey: CONTACT_KEYS.list() });
-            const previousContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list());
-            queryClient.setQueryData<Subcontractor[]>(CONTACT_KEYS.list(), (old) =>
+            await queryClient.cancelQueries({ queryKey: contactQueryKey });
+            const previousContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey);
+            queryClient.setQueryData<Subcontractor[]>(contactQueryKey, (old) =>
                 (old || []).filter(c => !ids.includes(c.id))
             );
             return { previousContacts };
+        },
+        onError: (_error, _ids, context) => {
+            queryClient.setQueryData(contactQueryKey, context?.previousContacts);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
@@ -268,6 +269,7 @@ export const useDeleteContactsMutation = () => {
 export const useBulkUpdateContactsMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const contactQueryKey = CONTACT_KEYS.scopedList(user?.id);
 
     return useMutation({
         mutationFn: async (updates: { id: string, data: Partial<Subcontractor> }[]) => {
@@ -290,37 +292,21 @@ export const useBulkUpdateContactsMutation = () => {
 
             // Parallel updates
             await Promise.all(updates.map(async ({ id, data }) => {
-                const dbUpdates: any = { updated_at: new Date().toISOString() };
-                if (data.company !== undefined) dbUpdates.company_name = data.company;
-                if (data.name !== undefined) dbUpdates.contact_person_name = data.name;
-                if (data.email !== undefined) dbUpdates.email = data.email;
-                if (data.phone !== undefined) dbUpdates.phone = data.phone;
-                if (data.specialization !== undefined) dbUpdates.specialization = data.specialization;
-                if (data.ico !== undefined) dbUpdates.ico = data.ico;
-                if (data.region !== undefined) dbUpdates.region = data.region;
-                if (data.address !== undefined) dbUpdates.address = data.address;
-                if (data.city !== undefined) dbUpdates.city = data.city;
-                if (data.status !== undefined) dbUpdates.status_id = data.status;
-                if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
-                if (data.latitude !== undefined) dbUpdates.latitude = data.latitude;
-                if (data.longitude !== undefined) dbUpdates.longitude = data.longitude;
-                if (data.geocodedAt !== undefined) dbUpdates.geocoded_at = data.geocodedAt;
-                if (data.aresCheckedAt !== undefined) dbUpdates.ares_checked_at = data.aresCheckedAt;
-                if (data.aresNotFound !== undefined) dbUpdates.ares_not_found = data.aresNotFound;
-
-                const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
-                if (error) throw error;
+                await updateSubcontractorRow(id, data);
             }));
         },
         onMutate: async (updates) => {
-            await queryClient.cancelQueries({ queryKey: CONTACT_KEYS.list() });
-            const previousContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list());
-            queryClient.setQueryData<Subcontractor[]>(CONTACT_KEYS.list(), (old) => {
+            await queryClient.cancelQueries({ queryKey: contactQueryKey });
+            const previousContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey);
+            queryClient.setQueryData<Subcontractor[]>(contactQueryKey, (old) => {
                 if (!old) return old;
                 const updatesMap = new Map(updates.map(u => [u.id, u.data]));
                 return old.map(c => updatesMap.has(c.id) ? { ...c, ...updatesMap.get(c.id) } : c);
             });
             return { previousContacts };
+        },
+        onError: (_error, _updates, context) => {
+            queryClient.setQueryData(contactQueryKey, context?.previousContacts);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
@@ -331,6 +317,7 @@ export const useBulkUpdateContactsMutation = () => {
 export const useImportContactsMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const contactQueryKey = CONTACT_KEYS.scopedList(user?.id);
 
     return useMutation({
         mutationFn: async ({ newContacts, onProgress }: { newContacts: Subcontractor[], onProgress?: (p: number) => void }) => {
@@ -343,7 +330,7 @@ export const useImportContactsMutation = () => {
             // But since I'm rewriting useAppData, I need to implement it here or call a service.
             // useAppData imported mergeContacts from services/contactsImportService.
 
-            const currentContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list()) || [];
+            const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
             const { mergedContacts, added, updated } = mergeContacts(currentContacts, newContacts);
             added.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             updated.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
@@ -379,21 +366,7 @@ export const useImportContactsMutation = () => {
 
             // I'll follow simple standard React Query for now:
             const toInsert = added.map(c => ({
-                id: c.id,
-                company_name: c.company,
-                contacts: c.contacts,
-                status_id: c.status,
-                contact_person_name: c.name,
-                email: c.email,
-                phone: c.phone,
-                specialization: c.specialization,
-                ico: c.ico,
-                region: c.region,
-                address: c.address,
-                city: c.city,
-                web: c.web,
-                note: c.note,
-                regions: c.regions,
+                ...toSubcontractorPersistencePayload(c, user?.organizationId),
                 updated_at: new Date().toISOString()
             }));
 
@@ -405,13 +378,7 @@ export const useImportContactsMutation = () => {
             // Updates - do one by one or upsert if full record?
             // Merge logic usually retains IDs.
             await Promise.all(updated.map(async c => {
-                const { error } = await dbAdapter.from("subcontractors").update({
-                    company_name: c.company,
-                    contacts: c.contacts,
-                    // ... others
-                    updated_at: new Date().toISOString()
-                }).eq("id", c.id);
-                if (error) throw error;
+                await updateSubcontractorRow(c.id, c);
                 updateProgress();
             }));
         },

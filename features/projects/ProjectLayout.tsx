@@ -41,7 +41,8 @@ interface ProjectLayoutProps {
   onTabChange: (tab: ProjectTab) => void;
   contacts: Subcontractor[];
   statuses?: StatusConfig[];
-  onUpdateContact: (contact: Subcontractor) => void;
+  onAddContact: (contact: Subcontractor) => Promise<void> | void;
+  onUpdateContact: (contact: Subcontractor) => Promise<void> | void;
   initialPipelineCategoryId?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
   onCategoryNavigate?: (categoryId: string | null) => void;
@@ -63,6 +64,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   onTabChange,
   contacts,
   statuses,
+  onAddContact,
   onUpdateContact,
   initialPipelineCategoryId,
   onNavigateToPipeline,
@@ -300,6 +302,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onEditCategory={onEditCategory}
             onDeleteCategory={onDeleteCategory}
             onBidsChange={(bids) => onBidsChange?.(projectId, bids)}
+            onAddContact={onAddContact}
             onUpdateContact={onUpdateContact}
             searchQuery={searchQuery}
             initialOpenCategoryId={initialPipelineCategoryId}

@@ -61,33 +61,19 @@ export const pipelineRepository = {
     return supabase.from("bids").delete().eq("id", bidId);
   },
 
-  insertSubcontractor(payload: {
-    id: string;
-    company_name: string;
-    contact_person_name: string | undefined;
-    email: string | undefined;
-    phone: string | undefined;
-    specialization: string[];
-    ico: string | undefined;
-    region: string | undefined;
-    status_id: string;
-  }) {
+  insertSubcontractor(payload: Record<string, unknown>) {
     return supabase.from("subcontractors").insert(payload);
   },
 
   updateSubcontractor(
     id: string,
-    payload: {
-      company_name: string;
-      contact_person_name: string | undefined;
-      email: string | undefined;
-      phone: string | undefined;
-      specialization: string[];
-      ico: string | undefined;
-      region: string | undefined;
-      status_id: string;
-    },
+    payload: Record<string, unknown>,
   ) {
-    return supabase.from("subcontractors").update(payload).eq("id", id);
+    return supabase
+      .from("subcontractors")
+      .update(payload)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
   },
 };
