@@ -28,6 +28,8 @@ interface UseContactsQueryInput {
 export const CONTACT_KEYS = {
   all: ["contacts"] as const,
   list: () => [...CONTACT_KEYS.all, "list"] as const,
+  scopedList: (userId?: string | null) =>
+    [...CONTACT_KEYS.list(), userId] as const,
 };
 
 const fetchAllContactRows = async (): Promise<SubcontractorRow[]> => {
@@ -83,7 +85,7 @@ export const useContactsQuery = ({
   userRole,
 }: UseContactsQueryInput) =>
   useQuery({
-    queryKey: [...CONTACT_KEYS.list(), userId],
+    queryKey: CONTACT_KEYS.scopedList(userId),
     enabled: Boolean(userId),
     queryFn: async () => {
       if (userRole === "demo") return demoDataAdapter.getContacts();

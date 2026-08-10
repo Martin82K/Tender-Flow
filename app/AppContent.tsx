@@ -399,6 +399,7 @@ export const AppContent: React.FC = () => {
               }}
               contacts={state.contacts}
               statuses={state.contactStatuses}
+              onAddContact={actions.handleAddContact}
               onUpdateContact={actions.handleUpdateContact}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
               initialContractId={activeContractId ?? undefined}

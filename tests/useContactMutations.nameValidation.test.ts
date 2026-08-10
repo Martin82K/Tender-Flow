@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   mergeContactsMock: vi.fn(),
   updateEqMock: vi.fn(),
   updateMock: vi.fn(),
+  updateSelectMock: vi.fn(),
+  updateMaybeSingleMock: vi.fn(),
   resolveEffectiveProjectDocHubRootMock: vi.fn(),
 }));
 
@@ -113,7 +115,9 @@ const validContact: Subcontractor = {
 beforeEach(() => {
   vi.clearAllMocks();
 
-  mocks.updateEqMock.mockResolvedValue({ error: null });
+  mocks.updateMaybeSingleMock.mockResolvedValue({ data: { id: "c-1" }, error: null });
+  mocks.updateSelectMock.mockReturnValue({ maybeSingle: mocks.updateMaybeSingleMock });
+  mocks.updateEqMock.mockReturnValue({ select: mocks.updateSelectMock });
   mocks.updateMock.mockImplementation(() => ({
     eq: mocks.updateEqMock,
   }));
@@ -217,6 +221,34 @@ describe("useContactMutations name validation", () => {
     expect(mocks.updateEqMock).toHaveBeenCalledWith("id", "c-1");
   });
 
+  it("optimisticky aktualizuje uživatelsky scoped cache kontaktů", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    const scopedKey = CONTACT_KEYS.scopedList("u-1");
+    queryClient.setQueryData(scopedKey, [validContact]);
+    const { result } = renderHook(() => useUpdateContactMutation(), { wrapper });
+
+    await result.current.mutateAsync({
+      id: "c-1",
+      updates: { company: "Nová firma" },
+    });
+
+    expect(queryClient.getQueryData<Subcontractor[]>(scopedKey)?.[0].company).toBe(
+      "Nová firma",
+    );
+  });
+
+  it("nepovažuje nulový databázový UPDATE za úspěšné uložení", async () => {
+    mocks.updateMaybeSingleMock.mockResolvedValueOnce({ data: null, error: null });
+    const { result } = renderHook(() => useUpdateContactMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(result.current.mutateAsync({
+      id: "c-1",
+      updates: { note: "Změna" },
+    })).rejects.toThrow("Kontakt nebyl aktualizován");
+  });
+
   it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {
     const { queryClient, wrapper } = createTestContext();
     queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-1"), {
@@ -231,7 +263,7 @@ describe("useContactMutations name validation", () => {
         "cat-1": [{ subcontractorId: "c-1" }],
       },
     });
-    queryClient.setQueryData(CONTACT_KEYS.list(), [
+    queryClient.setQueryData(CONTACT_KEYS.scopedList("u-1"), [
       { ...validContact, id: "c-1", company: "IZOMAT stavebniny s.r.o." },
     ]);
 
@@ -275,8 +307,8 @@ describe("useContactMutations name validation", () => {
       categories: [{ id: "cat-1", title: "Zakladni cast" }],
       bids: { "cat-1": [{ subcontractorId: "c-1" }] },
     });
-    queryClient.setQueryData(CONTACT_KEYS.list(), [{ ...validContact, id: "c-1", company: "Stary nazev" }]);
-    mocks.updateEqMock.mockResolvedValueOnce({ error: new Error("database unavailable") });
+    queryClient.setQueryData(CONTACT_KEYS.scopedList("u-1"), [{ ...validContact, id: "c-1", company: "Stary nazev" }]);
+    mocks.updateMaybeSingleMock.mockResolvedValueOnce({ data: null, error: new Error("database unavailable") });
     const { result } = renderHook(() => useUpdateContactMutation(), { wrapper });
 
     await expect(result.current.mutateAsync({

@@ -20,6 +20,7 @@ import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCards
 import {
     analyzeContactQuickPaste,
 } from '@features/contacts/model/contactQuickPaste';
+import { withPrimaryContactMirror } from '@features/contacts/model/contactPersistence';
 import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
 import { useAccessibleDialog } from '@/shared/ui/useAccessibleDialog';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
@@ -576,7 +577,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         try {
             const contactId = editingContact ? editingContact.id : crypto.randomUUID();
-            const savedContact = { ...baseContact, id: contactId } as Subcontractor;
+            const savedContact = withPrimaryContactMirror({
+                ...baseContact,
+                id: contactId,
+            } as Subcontractor);
 
             if (editingContact) {
                 await onUpdateContact(savedContact);
@@ -596,7 +600,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         } catch (error) {
             console.error('Error saving contact:', error);
-            // Modal stays open so user can see the error or retry
+            setConfirmModal({
+                isOpen: true,
+                title: 'Kontakt se nepodařilo uložit',
+                message: 'Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.',
+                onConfirm: closeConfirmModal,
+                variant: 'danger',
+            });
         }
     };
 
