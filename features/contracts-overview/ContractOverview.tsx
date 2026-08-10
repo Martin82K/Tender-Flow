@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "@/config/version";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
@@ -32,6 +32,91 @@ interface DocumentButtonProps {
   kind: "contract" | "amendment";
   onError: (message: string) => void;
 }
+
+interface HorizontalScrollControlsProps {
+  targetRef: React.RefObject<HTMLDivElement | null>;
+  contentVersion: string;
+}
+
+const HORIZONTAL_SCROLL_STEP = 320;
+
+const HorizontalScrollControls: React.FC<HorizontalScrollControlsProps> = ({
+  targetRef,
+  contentVersion,
+}) => {
+  const [position, setPosition] = useState(0);
+  const [maxScroll, setMaxScroll] = useState(0);
+
+  const syncScrollState = useCallback(() => {
+    const target = targetRef.current;
+    if (!target) return;
+    const nextMax = Math.max(0, target.scrollWidth - target.clientWidth);
+    setMaxScroll(nextMax);
+    setPosition(Math.min(target.scrollLeft, nextMax));
+  }, [targetRef]);
+
+  useEffect(() => {
+    const target = targetRef.current;
+    if (!target) return undefined;
+    syncScrollState();
+    target.addEventListener("scroll", syncScrollState, { passive: true });
+    window.addEventListener("resize", syncScrollState);
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(syncScrollState);
+    resizeObserver?.observe(target);
+    return () => {
+      target.removeEventListener("scroll", syncScrollState);
+      window.removeEventListener("resize", syncScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [contentVersion, syncScrollState, targetRef]);
+
+  const setScrollPosition = (nextPosition: number) => {
+    const target = targetRef.current;
+    if (!target) return;
+    const clampedPosition = Math.max(0, Math.min(nextPosition, maxScroll));
+    target.scrollLeft = clampedPosition;
+    setPosition(clampedPosition);
+  };
+
+  return (
+    <div className="tf-contract-overview-scroll-controls flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900">
+      <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline dark:text-slate-400">
+        Posun tabulky
+      </span>
+      <button
+        type="button"
+        aria-label="Posunout tabulku doleva"
+        disabled={position <= 0}
+        onClick={() => setScrollPosition(position - HORIZONTAL_SCROLL_STEP)}
+        className="grid size-7 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        <span aria-hidden="true" className="material-symbols-outlined text-[17px]">chevron_left</span>
+      </button>
+      <input
+        type="range"
+        aria-label="Vodorovný posun tabulky"
+        min={0}
+        max={maxScroll}
+        step={1}
+        value={Math.min(position, maxScroll)}
+        disabled={maxScroll === 0}
+        onChange={(event) => setScrollPosition(Number(event.target.value))}
+        className="tf-contract-overview-scroll-range h-5 min-w-0 flex-1 cursor-ew-resize disabled:cursor-not-allowed"
+      />
+      <button
+        type="button"
+        aria-label="Posunout tabulku doprava"
+        disabled={position >= maxScroll}
+        onClick={() => setScrollPosition(position + HORIZONTAL_SCROLL_STEP)}
+        className="grid size-7 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        <span aria-hidden="true" className="material-symbols-outlined text-[17px]">chevron_right</span>
+      </button>
+    </div>
+  );
+};
 
 const ContractOverviewCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({
   className,
@@ -82,6 +167,19 @@ const parameterValue = (row: ContractOverviewRow, key: ContractOverviewParameter
   }
 };
 
+const parameterColumnClass = (key: ContractOverviewParameterKey): string => {
+  switch (key) {
+    case "paymentTerms": return "min-w-[220px] max-w-[320px]";
+    case "warrantyEnd":
+    case "retentionShortRelease":
+    case "retentionLongRelease":
+    case "warrantyRetentionRelease":
+      return "min-w-[130px]";
+    default:
+      return "min-w-[115px]";
+  }
+};
+
 export const ContractOverview: React.FC = () => {
   const { user } = useAuth();
   const { showAlert } = useUI();
@@ -98,6 +196,7 @@ export const ContractOverview: React.FC = () => {
   );
   const [expandedContractIds, setExpandedContractIds] = useState<Set<string>>(() => new Set());
   const [exporting, setExporting] = useState(false);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -207,7 +306,7 @@ export const ContractOverview: React.FC = () => {
     <div className="tf-contract-overview flex h-full min-h-0 flex-col bg-slate-50 dark:bg-slate-950">
       <Header title="Smluvní přehled" subtitle="Read-only přehled smluv podle oprávnění profesní role" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
       <main className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4 lg:p-6">
-        <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <aside className="tf-contract-overview-panel flex w-64 shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           <div className="border-b border-slate-200 p-4 dark:border-slate-700">
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-bold text-slate-900 dark:text-white">Stavby</h2>
@@ -251,7 +350,7 @@ export const ContractOverview: React.FC = () => {
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-          <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+          <div className="tf-contract-overview-toolbar shrink-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative min-w-56 flex-1">
                 <span aria-hidden="true" className="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-slate-400">search</span>
@@ -287,8 +386,13 @@ export const ContractOverview: React.FC = () => {
           {loading && <div className="flex flex-1 items-center justify-center text-slate-500">Načítám smluvní přehled…</div>}
           {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
           {!loading && !error && (
-            <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-              <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: `${1360 + visibleParameterKeys.length * 170}px` }}>
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <div
+                ref={tableScrollRef}
+                data-testid="contract-overview-scroll-region"
+                className="tf-contract-overview-scroll tf-contract-overview-table-panel min-h-0 flex-1 overflow-x-scroll overflow-y-auto rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+              >
+                <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
                 <thead className="sticky top-0 z-30 text-left text-[11px] uppercase tracking-wide text-slate-500">
                   <tr>
                     <th rowSpan={2} className="sticky left-0 top-0 z-50 w-[220px] min-w-[220px] border-b border-r border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Stavba</th>
@@ -302,11 +406,11 @@ export const ContractOverview: React.FC = () => {
                     {visibleParameterKeys.length > 0 && <th colSpan={visibleParameterKeys.length} className="border-b border-l border-slate-200 bg-primary/5 p-3 text-center text-primary dark:border-slate-700">Smluvní parametry</th>}
                   </tr>
                   {visibleParameterKeys.length > 0 && (
-                    <tr>{visibleParameterKeys.map((key) => <th key={key} className="min-w-[170px] border-b border-l border-slate-200 bg-slate-50 p-3 normal-case tracking-normal dark:border-slate-700 dark:bg-slate-800">{CONTRACT_OVERVIEW_PARAMETER_LABELS[key]}</th>)}</tr>
+                    <tr>{visibleParameterKeys.map((key) => <th key={key} className={`${parameterColumnClass(key)} border-b border-l border-slate-200 bg-slate-50 p-3 normal-case tracking-normal dark:border-slate-700 dark:bg-slate-800`}>{CONTRACT_OVERVIEW_PARAMETER_LABELS[key]}</th>)}</tr>
                   )}
                 </thead>
                 <tbody>
-                  {filteredRows.map((row) => {
+                  {filteredRows.map((row, rowIndex) => {
                     const isManuallyExpanded = expandedContractIds.has(row.contractId);
                     const isExpandedBySearch = row.amendments.some(
                       (amendment) => contractOverviewAmendmentMatchesQuery(amendment, query),
@@ -314,7 +418,7 @@ export const ContractOverview: React.FC = () => {
                     const isExpanded = isManuallyExpanded || isExpandedBySearch;
                     return (
                       <React.Fragment key={row.contractId}>
-                      <tr className="tf-contract-overview-row group border-b border-slate-100">
+                      <tr className={`tf-contract-overview-row tf-contract-overview-contract-row group border-b border-slate-100 ${rowIndex % 2 === 1 ? "tf-contract-overview-contract-row-alt" : ""}`}>
                         <ContractOverviewCell className="sticky left-0 z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">{row.projectName}</ContractOverviewCell>
                         <ContractOverviewCell className="sticky left-[220px] z-20 w-[200px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                           <div className="flex items-start gap-1.5">
@@ -371,7 +475,12 @@ export const ContractOverview: React.FC = () => {
                   })}
                   {filteredRows.length === 0 && <tr><td colSpan={8 + visibleParameterKeys.length} className="p-12 text-center text-slate-400">Žádné smlouvy odpovídající filtrům.</td></tr>}
                 </tbody>
-              </table>
+                </table>
+              </div>
+              <HorizontalScrollControls
+                targetRef={tableScrollRef}
+                contentVersion={`${visibleParameterKeys.length}:${filteredRows.length}`}
+              />
             </div>
           )}
         </section>

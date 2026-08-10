@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from '../list/StatusPill';
 import { HeaderSection } from './sections/HeaderSection';
@@ -9,7 +9,6 @@ import { InvoicesSection } from './sections/InvoicesSection';
 import { DrawdownsSection } from './sections/DrawdownsSection';
 import { RetentionSection } from './sections/RetentionSection';
 import { WarrantySection } from './sections/WarrantySection';
-import { WorkspaceNav, type WorkspaceSection, type WorkspaceSectionId } from './WorkspaceNav';
 
 interface Props {
   contract: ContractWithDetails;
@@ -18,60 +17,10 @@ interface Props {
 }
 
 export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh }) => {
-  const [activeSection, setActiveSection] = useState<WorkspaceSectionId>('hlavicka');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const sections = useMemo<WorkspaceSection[]>(
-    () => [
-      { id: 'hlavicka', label: '✦ Hlavička' },
-      { id: 'ocr', label: '📄 OCR dokument' },
-      { id: 'finance', label: '₡ Finance' },
-      { id: 'dodatky', label: '⊕ Dodatky', badge: contract.amendments.length },
-      { id: 'faktury', label: '🧾 Fakturace', badge: contract.invoices.length },
-      { id: 'cerpani', label: '▤ Čerpání' },
-      { id: 'poz', label: '◈ Pozastávky' },
-      { id: 'zaruka', label: '🛡 Záruka' },
-    ],
-    [contract.amendments.length, contract.invoices.length],
-  );
-
-  const scrollToSection = (id: WorkspaceSectionId) => {
-    const container = scrollContainerRef.current;
-    const el = container?.querySelector<HTMLElement>(`#sec-${id}`);
-    if (container && el) {
-      container.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' });
-    }
-    setActiveSection(id);
-  };
-
   useEffect(() => {
-    setActiveSection('hlavicka');
     scrollContainerRef.current?.scrollTo({ top: 0 });
-  }, [contract.id]);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const handle = () => {
-      const ids: WorkspaceSectionId[] = [
-        'hlavicka',
-        'ocr',
-        'finance',
-        'dodatky',
-        'faktury',
-        'cerpani',
-        'poz',
-        'zaruka',
-      ];
-      let current: WorkspaceSectionId = ids[0];
-      for (const id of ids) {
-        const el = container.querySelector<HTMLElement>(`#sec-${id}`);
-        if (el && el.offsetTop - 30 <= container.scrollTop) current = id;
-      }
-      setActiveSection(current);
-    };
-    container.addEventListener('scroll', handle, { passive: true });
-    return () => container.removeEventListener('scroll', handle);
   }, [contract.id]);
 
   return (
@@ -84,9 +33,9 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
             <button
               type="button"
               onClick={onEditContract}
-              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="rounded-lg border border-primary bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              ✎ Upravit
+              ✎ Upravit záznam
             </button>
           </div>
         </div>
@@ -97,8 +46,8 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
         </div>
       </div>
 
-      <div data-help-id="contract-detail-with-rail" className="flex-1 overflow-hidden flex">
-        <div ref={scrollContainerRef} className="flex-1 min-w-0 overflow-y-auto px-6 py-2">
+      <div data-help-id="contract-detail-content" className="flex-1 overflow-hidden">
+        <div ref={scrollContainerRef} className="h-full min-w-0 overflow-y-auto px-6 py-2">
           <HeaderSection contract={contract} onChanged={onRefresh} />
           <OcrDocumentSection contract={contract} onRefresh={onRefresh} />
           <FinancialSection contract={contract} />
@@ -108,11 +57,6 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
           <RetentionSection contract={contract} onRefresh={onRefresh} />
           <WarrantySection contract={contract} />
         </div>
-        <WorkspaceNav
-          sections={sections}
-          active={activeSection}
-          onNavigate={scrollToSection}
-        />
       </div>
     </section>
   );

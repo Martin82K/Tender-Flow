@@ -222,7 +222,7 @@ export const ContractsTable: React.FC<Props> = ({
                       document.body.style.cursor = 'col-resize';
                       document.body.style.userSelect = 'none';
                     }}
-                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize border-r border-transparent hover:border-primary group-hover:bg-primary/5"
+                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize outline-none after:pointer-events-none after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-px after:rounded-full after:bg-primary/20 after:transition-colors after:duration-150 hover:after:bg-primary/50 focus-visible:after:bg-primary/70 active:after:bg-primary/80"
                   />
                 </th>
               ))}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { strFromU8, unzipSync } from "fflate";
 
 import {
   buildContractOverviewWorkbook,
@@ -91,7 +92,36 @@ describe("contractOverviewExport", () => {
     expect(sheet?.getCell("K11").value).toBeNull();
     expect(sheet?.getCell("K11").numFmt).toBeUndefined();
     expect(sheet?.views[0]).toMatchObject({ state: "frozen", xSplit: 3, ySplit: 9 });
-    expect(sheet?.autoFilter).toEqual({ from: "A9", to: "M11" });
+    expect(sheet?.autoFilter).toBeNull();
+    expect(sheet?.getTable("ContractOverviewTable")).toBeDefined();
+  });
+
+  it("zapisuje filtr pouze do tabulky a vytváří úplnou jemnou mřížku se střídáním řádků", async () => {
+    const workbook = await buildContractOverviewWorkbook(
+      [
+        { ...overviewRow, amendments: [] },
+        { ...overviewRow, contractId: "contract-2", contractPartner: "Dodavatel Beta", amendments: [] },
+      ],
+      [],
+      { ...meta, appLogoDataUrl: null },
+    );
+    const sheet = workbook.getWorksheet("Smluvní přehled");
+    const firstRowCell = sheet?.getCell("B10");
+    const secondRowCell = sheet?.getCell("B11");
+
+    expect(firstRowCell?.border).toMatchObject({
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    });
+    expect(secondRowCell?.fill).not.toEqual(firstRowCell?.fill);
+
+    const output = await workbook.xlsx.writeBuffer();
+    const archive = unzipSync(new Uint8Array(output as ArrayBuffer));
+    const worksheetXml = strFromU8(archive["xl/worksheets/sheet1.xml"]);
+    const tableXml = strFromU8(archive["xl/tables/table1.xml"]);
+
+    expect(worksheetXml).not.toContain("<autoFilter");
+    expect(tableXml).toContain('<autoFilter ref="A9:J11"');
   });
 
   it("neutralizuje text začínající vzorcem i v branded exportu", async () => {

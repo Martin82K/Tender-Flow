@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { exportContractTableToXlsx } from '@/services/exportService';
 import { ContractsHeadline } from './ContractsHeadline';
 import { ContractListPanel } from './ContractListPanel';
+import { ContractFilters, type ContractFilterKey } from './ContractFilters';
 import { ContractsTable } from './ContractsTable';
 import { ContractWorkspace } from '../workspace/ContractWorkspace';
 import { ContractEditDialog } from '../forms/ContractEditDialog';
@@ -39,6 +40,8 @@ export const ContractsListPage: React.FC<Props> = ({
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [attachingDocumentId, setAttachingDocumentId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [filter, setFilter] = useState<ContractFilterKey>('all');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (initialSelectedId && contracts.some((contract) => contract.id === initialSelectedId)) {
@@ -50,6 +53,12 @@ export const ContractsListPage: React.FC<Props> = ({
       setSelectedId(contracts[0]?.id || null);
     }
   }, [contracts, initialSelectedId, onViewModeChange, selectedId]);
+
+  useEffect(() => {
+    if (viewMode !== 'table') return;
+    setFilter('all');
+    setQuery('');
+  }, [viewMode]);
 
   const selected = useMemo(
     () => contracts.find((c) => c.id === selectedId) || null,
@@ -125,7 +134,7 @@ export const ContractsListPage: React.FC<Props> = ({
 
   return (
     <div className="tf-contracts-list-page flex-1 flex flex-col min-h-0">
-      <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-3 px-5 py-3">
         <button
           type="button"
           onClick={openCreate}
@@ -174,6 +183,34 @@ export const ContractsListPage: React.FC<Props> = ({
             {exporting ? 'Exportuji…' : 'Export do Excelu'}
           </button>
         ) : null}
+        {viewMode === 'split' ? (
+          <div
+            data-help-id="contracts-list-toolbar"
+            className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2"
+          >
+            <label
+              data-help-id="contracts-list-search"
+              className="flex w-72 max-w-full items-center gap-2 border-b border-slate-300 bg-transparent px-1 py-2 dark:border-slate-700"
+            >
+              <span className="material-symbols-outlined text-base text-slate-400 dark:text-slate-500" aria-hidden="true">
+                search
+              </span>
+              <span className="sr-only">Hledat smlouvu nebo dodavatele</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Hledat smlouvu / dodavatele…"
+                className="min-w-0 flex-1 appearance-none border-0 bg-transparent text-sm text-slate-900 shadow-none outline-none placeholder-slate-500 dark:text-slate-200 dark:placeholder-slate-600"
+              />
+            </label>
+            <ContractFilters
+              active={filter}
+              onChange={setFilter}
+              counts={{ all: contracts.length }}
+            />
+          </div>
+        ) : null}
       </div>
 
       <ContractsHeadline contracts={contracts} />
@@ -195,6 +232,8 @@ export const ContractsListPage: React.FC<Props> = ({
               contracts={contracts}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              filter={filter}
+              query={query}
             />
             {selected ? (
               <ContractWorkspace
@@ -225,8 +264,16 @@ export const ContractsListPage: React.FC<Props> = ({
           projectId={projectId}
           contract={editContract}
           onClose={() => setEditOpen(false)}
-          onSaved={async () => {
+          onSaved={async (warning) => {
             setEditOpen(false);
+            setDocumentError(warning ?? null);
+            await refresh();
+          }}
+          onDeleted={async (warning) => {
+            setEditOpen(false);
+            setEditContract(null);
+            setSelectedId(null);
+            setDocumentError(warning ?? null);
             await refresh();
           }}
         />

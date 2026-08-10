@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { strFromU8, unzipSync } from "fflate";
 import type { ContractWithDetails } from "@/types";
 import { buildContractTableWorkbook } from "@/services/exportService";
 
@@ -49,6 +50,7 @@ describe("contractTableExport", () => {
     const sheet = workbook.getWorksheet("Smlouvy");
     expect(sheet).toBeDefined();
     expect(sheet?.getCell("C1").value).toBe("Přehled smluv");
+    expect(sheet?.getCell("C1").alignment?.horizontal).toBe("center");
     expect(sheet?.getCell("C2").value).toBe("REKO a.s. · Rekonstrukce školy");
     expect(sheet?.getCell("C3").value).toBe("Export provedl: Martin Kalkus");
     expect(sheet?.getCell("C3").value).not.toContain("@");
@@ -74,9 +76,40 @@ describe("contractTableExport", () => {
     expect(sheet?.getCell("P10").numFmt).toContain("★");
     expect(sheet?.getCell("P10").alignment?.horizontal).toBe("center");
     expect(sheet?.getCell("P10").border?.left?.style).toBe("thin");
-    expect(sheet?.autoFilter).toEqual({ from: "A9", to: "Q10" });
+    expect(sheet?.autoFilter).toBeNull();
+    expect(sheet?.getTable("ContractsTable")).toBeDefined();
     expect(sheet?.views[0]).toMatchObject({ state: "frozen", xSplit: 3, ySplit: 9 });
     expect(sheet?.getImages()).toHaveLength(1);
+  });
+
+  it("zapisuje jediný tabulkový filtr a úplnou mřížku se střídáním řádků", async () => {
+    const workbook = await buildContractTableWorkbook(
+      [contract, { ...contract, id: "contract-2", vendorName: "Dodavatel Beta" }],
+      {
+        organizationName: "REKO a.s.",
+        projectName: "Rekonstrukce školy",
+        exportedBy: "Martin Kalkus",
+        exportedAt: new Date("2026-08-10T06:30:00.000Z"),
+        appVersion: "1.9.0-beta.18",
+        appLogoDataUrl: null,
+      },
+    );
+    const sheet = workbook.getWorksheet("Smlouvy");
+
+    expect(sheet?.getCell("B10").border).toMatchObject({
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    });
+    expect(sheet?.getCell("B11").fill).not.toEqual(sheet?.getCell("B10").fill);
+
+    const output = await workbook.xlsx.writeBuffer();
+    const archive = unzipSync(new Uint8Array(output as ArrayBuffer));
+    const worksheetXml = strFromU8(archive["xl/worksheets/sheet1.xml"]);
+    const tableXml = strFromU8(archive["xl/tables/table1.xml"]);
+
+    expect(worksheetXml).not.toContain("<autoFilter");
+    expect(tableXml).toContain('<autoFilter ref="A9:Q11"');
+    expect(tableXml).toContain('showFirstColumn="0" showLastColumn="0" showRowStripes="0" showColumnStripes="0"');
   });
 
   it("zapisuje uživatelské texty jako text a ne jako vzorce", async () => {

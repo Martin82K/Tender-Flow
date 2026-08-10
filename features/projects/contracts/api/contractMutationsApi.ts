@@ -55,6 +55,12 @@ export const contractMutationsApi = {
     return contractService.updateContract(...args);
   },
 
+  deleteContract(
+    ...args: Parameters<typeof contractService.deleteContract>
+  ): ReturnType<typeof contractService.deleteContract> {
+    return contractService.deleteContract(...args);
+  },
+
   updateVendorRating(
     ...args: Parameters<typeof contractService.updateVendorRating>
   ): ReturnType<typeof contractService.updateVendorRating> {

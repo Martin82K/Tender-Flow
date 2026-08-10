@@ -453,41 +453,43 @@ export const contractService = {
 
   updateContract: async (id: string, updates: Partial<Contract>): Promise<void> => {
     const dbUpdates: Record<string, unknown> = {};
+    const has = (key: keyof Contract): boolean => Object.prototype.hasOwnProperty.call(updates, key);
 
     if (updates.title !== undefined) dbUpdates.title = updates.title;
-    if (updates.contractNumber !== undefined) dbUpdates.contract_number = updates.contractNumber;
+    if (has('contractNumber')) dbUpdates.contract_number = updates.contractNumber || null;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.signedAt !== undefined) dbUpdates.signed_at = updates.signedAt;
-    if (updates.effectiveFrom !== undefined) dbUpdates.effective_from = updates.effectiveFrom;
-    if (updates.effectiveTo !== undefined) dbUpdates.effective_to = updates.effectiveTo;
-    if (updates.completionDate !== undefined) dbUpdates.completion_date = updates.completionDate || null;
+    if (has('signedAt')) dbUpdates.signed_at = updates.signedAt || null;
+    if (has('effectiveFrom')) dbUpdates.effective_from = updates.effectiveFrom || null;
+    if (has('effectiveTo')) dbUpdates.effective_to = updates.effectiveTo || null;
+    if (has('completionDate')) dbUpdates.completion_date = updates.completionDate || null;
+    if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
     if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
-    if (updates.retentionPercent !== undefined) dbUpdates.retention_percent = updates.retentionPercent;
-    if (updates.retentionAmount !== undefined) dbUpdates.retention_amount = updates.retentionAmount;
-    if (updates.retentionShortPercent !== undefined) dbUpdates.retention_short_percent = updates.retentionShortPercent;
-    if (updates.retentionShortAmount !== undefined) dbUpdates.retention_short_amount = updates.retentionShortAmount;
-    if (updates.retentionShortReleaseOn !== undefined) dbUpdates.retention_short_release_on = updates.retentionShortReleaseOn || null;
+    if (has('retentionPercent')) dbUpdates.retention_percent = updates.retentionPercent ?? null;
+    if (has('retentionAmount')) dbUpdates.retention_amount = updates.retentionAmount ?? null;
+    if (has('retentionShortPercent')) dbUpdates.retention_short_percent = updates.retentionShortPercent ?? null;
+    if (has('retentionShortAmount')) dbUpdates.retention_short_amount = updates.retentionShortAmount ?? null;
+    if (has('retentionShortReleaseOn')) dbUpdates.retention_short_release_on = updates.retentionShortReleaseOn || null;
     if (updates.retentionShortStatus !== undefined) dbUpdates.retention_short_status = updates.retentionShortStatus;
-    if (updates.retentionLongPercent !== undefined) dbUpdates.retention_long_percent = updates.retentionLongPercent;
-    if (updates.retentionLongAmount !== undefined) dbUpdates.retention_long_amount = updates.retentionLongAmount;
-    if (updates.retentionLongReleaseOn !== undefined) dbUpdates.retention_long_release_on = updates.retentionLongReleaseOn || null;
+    if (has('retentionLongPercent')) dbUpdates.retention_long_percent = updates.retentionLongPercent ?? null;
+    if (has('retentionLongAmount')) dbUpdates.retention_long_amount = updates.retentionLongAmount ?? null;
+    if (has('retentionLongReleaseOn')) dbUpdates.retention_long_release_on = updates.retentionLongReleaseOn || null;
     if (updates.retentionLongStatus !== undefined) dbUpdates.retention_long_status = updates.retentionLongStatus;
-    if (updates.siteSetupPercent !== undefined) dbUpdates.site_setup_percent = updates.siteSetupPercent;
-    if (updates.warrantyMonths !== undefined) dbUpdates.warranty_months = updates.warrantyMonths;
-    if (updates.paymentTerms !== undefined) dbUpdates.payment_terms = updates.paymentTerms;
-    if (updates.scopeSummary !== undefined) dbUpdates.scope_summary = updates.scopeSummary;
-    if (updates.documentUrl !== undefined) {
+    if (has('siteSetupPercent')) dbUpdates.site_setup_percent = updates.siteSetupPercent ?? null;
+    if (has('warrantyMonths')) dbUpdates.warranty_months = updates.warrantyMonths ?? null;
+    if (has('paymentTerms')) dbUpdates.payment_terms = updates.paymentTerms || null;
+    if (has('scopeSummary')) dbUpdates.scope_summary = updates.scopeSummary || null;
+    if (has('documentUrl')) {
       dbUpdates.document_url = sanitizeDocumentUrl(updates.documentUrl);
     }
-    if (updates.documentStoragePath !== undefined) dbUpdates.document_storage_path = updates.documentStoragePath || null;
-    if (updates.documentFileName !== undefined) dbUpdates.document_file_name = updates.documentFileName || null;
-    if (updates.documentMimeType !== undefined) dbUpdates.document_mime_type = updates.documentMimeType || null;
-    if (updates.documentSize !== undefined) dbUpdates.document_size = updates.documentSize || null;
-    if (updates.extractionConfidence !== undefined) dbUpdates.extraction_confidence = updates.extractionConfidence;
-    if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
-    if (updates.vendorId !== undefined) dbUpdates.vendor_id = updates.vendorId;
+    if (has('documentStoragePath')) dbUpdates.document_storage_path = updates.documentStoragePath || null;
+    if (has('documentFileName')) dbUpdates.document_file_name = updates.documentFileName || null;
+    if (has('documentMimeType')) dbUpdates.document_mime_type = updates.documentMimeType || null;
+    if (has('documentSize')) dbUpdates.document_size = updates.documentSize || null;
+    if (has('extractionConfidence')) dbUpdates.extraction_confidence = updates.extractionConfidence ?? null;
+    if (has('extractionJson')) dbUpdates.extraction_json = updates.extractionJson ?? null;
+    if (has('vendorId')) dbUpdates.vendor_id = updates.vendorId || null;
     if (updates.vendorName !== undefined) dbUpdates.vendor_name = updates.vendorName;
-    if (updates.vendorIco !== undefined) dbUpdates.vendor_ico = updates.vendorIco;
+    if (has('vendorIco')) dbUpdates.vendor_ico = updates.vendorIco || null;
     if (updates.vendorRating !== undefined) dbUpdates.vendor_rating = updates.vendorRating;
     if (updates.vendorRatingNote !== undefined) dbUpdates.vendor_rating_note = updates.vendorRatingNote;
     if (updates.vendorRatingAt !== undefined) dbUpdates.vendor_rating_at = updates.vendorRatingAt;
@@ -495,8 +497,15 @@ export const contractService = {
 
     if (Object.keys(dbUpdates).length === 0) return;
 
-    const { error } = await supabase.from('contracts').update(dbUpdates).eq('id', id);
+    const { data, error } = await supabase
+      .from('contracts')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select('id');
     if (error) throw error;
+    if (!data?.length) {
+      throw new Error('Smlouva nebyla nalezena nebo nemáte oprávnění ji upravit.');
+    }
   },
 
   updateVendorRating: async (
@@ -512,8 +521,15 @@ export const contractService = {
   },
 
   deleteContract: async (id: string): Promise<void> => {
-    const { error } = await supabase.from('contracts').delete().eq('id', id);
+    const { data, error } = await supabase
+      .from('contracts')
+      .delete()
+      .eq('id', id)
+      .select('id');
     if (error) throw error;
+    if (!data?.length) {
+      throw new Error('Smlouva nebyla nalezena nebo nemáte oprávnění ji smazat.');
+    }
   },
 
   // ============== AMENDMENTS ==============
@@ -817,9 +833,21 @@ export const contractService = {
   },
 
   deleteContractDocument: async (storagePath: string): Promise<void> => {
-    if (!storagePath.startsWith('projects/') || !storagePath.includes('/contracts/')) return;
+    const pathParts = storagePath.split('/');
+    const isSafeContractPath =
+      pathParts.length === 4
+      && pathParts[0] === 'projects'
+      && Boolean(pathParts[1])
+      && pathParts[2] === 'contracts'
+      && /^[A-Za-z0-9-]+\.(pdf|docx)$/i.test(pathParts[3]);
+    if (!isSafeContractPath) {
+      throw new Error('Neplatná cesta přílohy smlouvy.');
+    }
     const { error } = await supabase.storage.from('contract-documents').remove([storagePath]);
-    if (error) console.error('Contract document cleanup failed:', error.message);
+    if (error) {
+      console.error('Contract document cleanup failed:', error.message);
+      throw new Error('Přílohu smlouvy se nepodařilo odstranit z úložiště.');
+    }
   },
 
   uploadAmendmentDocument: async (

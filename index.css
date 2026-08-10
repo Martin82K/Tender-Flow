@@ -2005,8 +2005,7 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] {
 
 html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] [class*="uppercase"],
 html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] [class*="uppercase"],
-html[data-skin="industrial"] [data-help-id="contracts-table"] th,
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
+html[data-skin="industrial"] [data-help-id="contracts-table"] th {
   color: var(--tf-skin-muted) !important;
   font-weight: 600 !important;
   letter-spacing: 0.08em;
@@ -2222,12 +2221,17 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-empty"] {
 }
 
 html[data-skin="industrial"] [data-help-id="contracts-list-search"] {
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 70%, transparent) !important;
+  background: transparent !important;
   border-color: var(--tf-skin-line) !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
 }
 
 html[data-skin="industrial"] [data-help-id="contracts-list-search"] input {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   color: var(--tf-skin-text) !important;
 }
 
@@ -2243,33 +2247,6 @@ html[data-skin="industrial"] [data-help-id="contracts-list-rail"] button[data-ac
 html[data-skin="industrial"] [data-help-id="contracts-list-rail"] button:hover,
 html[data-skin="industrial"] [data-help-id="contracts-table"] tr:hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 7%, transparent) !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-with-rail"] {
-  grid-template-columns: minmax(132px, 156px) minmax(0, 1fr);
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] {
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
-  border-color: var(--tf-skin-line) !important;
-  border-radius: 0 !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
-  background: transparent !important;
-  border-left: 2px solid transparent;
-  border-radius: 0 !important;
-  color: var(--tf-skin-muted) !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button[data-active="true"] {
-  border-left-color: var(--tf-skin-orange);
-  color: var(--tf-skin-orange-deep) !important;
-}
-
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button span[class*="rounded-full"] {
-  background: transparent !important;
-  color: var(--tf-skin-muted) !important;
 }
 
 html[data-skin="industrial"] [data-help-id="contracts-table"] th,
@@ -2369,8 +2346,7 @@ html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-v
   border: 0 !important;
 }
 
-html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="bg-primary"],
-html[data-skin="industrial"] [data-help-id="contract-detail-rail"] [class*="bg-primary"] {
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="bg-primary"] {
   background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
   color: var(--tf-skin-orange-deep) !important;
 }
@@ -4842,6 +4818,76 @@ html[data-skin] .tf-themed-select-option[aria-selected="true"] {
 
 .tf-contract-overview .tf-contract-overview-row > .tf-contract-overview-cell {
   transition: background-color 120ms ease;
+}
+
+html[data-skin] .tf-contract-overview {
+  background-color: var(--tf-skin-bg) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] :is(
+  .tf-contract-overview-panel,
+  .tf-contract-overview-toolbar,
+  .tf-contract-overview-table-panel,
+  .tf-contract-overview-scroll-controls
+) {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 92%), transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-contract-overview :is(input, button, label) {
+  border-color: var(--tf-skin-line-2);
+}
+
+html[data-skin] .tf-contract-overview table :is(th, td) {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin] .tf-contract-overview .tf-contract-overview-contract-row > .tf-contract-overview-cell {
+  background-color: color-mix(in srgb, var(--tf-skin-card) 96%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-contract-overview .tf-contract-overview-contract-row-alt > .tf-contract-overview-cell {
+  background-color: color-mix(in srgb, var(--tf-skin-line) 22%, var(--tf-skin-card) 78%) !important;
+}
+
+.tf-contract-overview-scroll-range {
+  accent-color: var(--tf-settings-primary);
+}
+
+.tf-contract-overview-scroll {
+  scrollbar-color: color-mix(in srgb, var(--tf-skin-muted) 70%, transparent) color-mix(in srgb, var(--tf-skin-card) 88%, var(--tf-skin-line-2) 12%);
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+}
+
+.tf-contract-overview-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.tf-contract-overview-scroll::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--tf-skin-card) 88%, var(--tf-skin-line-2) 12%);
+  border-radius: 999px;
+}
+
+.tf-contract-overview-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--tf-skin-muted) 70%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.tf-contract-overview-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--tf-skin-muted) 88%, transparent);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.tf-contract-overview .tf-contract-overview-contract-row-alt > .tf-contract-overview-cell {
+  background-color: color-mix(in srgb, var(--tf-skin-line) 22%, var(--tf-skin-card) 78%) !important;
 }
 
 .tf-contract-overview .tf-contract-overview-row:hover > .tf-contract-overview-cell,
