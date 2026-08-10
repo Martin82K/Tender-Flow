@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildContractOverviewWorkbook,
-  resolveContractOverviewLogoUrl,
   type ContractOverviewExportMeta,
 } from "@/features/contracts-overview/api/contractOverviewExport";
 import type { ContractOverviewRow } from "@/features/contracts-overview/api/contractOverviewApi";
@@ -107,9 +106,14 @@ describe("contractOverviewExport", () => {
     expect(cell?.formula).toBeUndefined();
   });
 
-  it("použije relativní cestu loga pro desktopový Vite build", () => {
-    expect(resolveContractOverviewLogoUrl("./")).toBe("./TF_ico.png");
-    expect(resolveContractOverviewLogoUrl("/")).toBe("/TF_ico.png");
+  it("vkládá logo jako lokální data asset bez fetch(file:)", async () => {
+    const workbook = await buildContractOverviewWorkbook(
+      [overviewRow],
+      [],
+      { ...meta, appLogoDataUrl: undefined },
+    );
+
+    expect(workbook.getWorksheet("Smluvní přehled")?.getImages()).toHaveLength(1);
   });
 
   it("u víceměnového výběru nesčítá neslučitelné finanční hodnoty", async () => {

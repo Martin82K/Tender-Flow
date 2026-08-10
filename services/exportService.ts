@@ -20,6 +20,7 @@ import {
   getContractSummaryStatusLabel,
 } from '@/shared/contracts/contractSummary';
 import { loadPdfRuntime, registerRobotoFont } from '@/shared/pdf/pdfRuntime';
+import { TENDER_FLOW_LOGO_DATA_URL } from '@/shared/branding/tenderFlowLogo';
 
 /**
  * Format money for display
@@ -1620,9 +1621,12 @@ export async function buildContractTableWorkbook(
   ];
   sheet.columns = columnWidths.map((width) => ({ width }));
 
-  if (meta.appLogoDataUrl) {
+  const appLogoDataUrl = meta.appLogoDataUrl === undefined
+    ? TENDER_FLOW_LOGO_DATA_URL
+    : meta.appLogoDataUrl;
+  if (appLogoDataUrl) {
     const imageId = workbook.addImage({
-      base64: meta.appLogoDataUrl,
+      base64: appLogoDataUrl,
       extension: 'png',
     });
     sheet.addImage(imageId, {
@@ -1832,13 +1836,7 @@ export async function exportContractTableToXlsx(
   contracts: ContractWithDetails[],
   meta: ContractTableExportMeta,
 ): Promise<void> {
-  const appLogoDataUrl = meta.appLogoDataUrl === undefined
-    ? await fetchImageDataUrl(DEFAULT_TF_LOGO_URL)
-    : meta.appLogoDataUrl;
-  const workbook = await buildContractTableWorkbook(contracts, {
-    ...meta,
-    appLogoDataUrl,
-  });
+  const workbook = await buildContractTableWorkbook(contracts, meta);
   const output = await workbook.xlsx.writeBuffer();
   const blob = new Blob([output as BlobPart], { type: XLSX_MIME });
   downloadBlob(blob, getContractSummaryFilename(meta.projectName, 'xlsx'));
