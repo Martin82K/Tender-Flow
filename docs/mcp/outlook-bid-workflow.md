@@ -12,7 +12,7 @@ datové hranice `server/mcp/data.js` spolu s verzovanými Supabase migracemi.
 | Uložit vazbu odeslané zprávy | `tf_link_outlook_message` | pouze `bidId` a stabilní Outlook identifikátory; privátní tabulka a úzké RPC | hotovo |
 | Najít kartu z odpovědi | `tf_match_outlook_reply` | immutable ID, RFC message ID, In-Reply-To nebo conversation ID; bez těla emailu a bez návratu uložených ID | hotovo |
 | Přenést přílohu | Outlook + OneDrive/SharePoint konektory, nikoli databáze MCP | binární obsah jde přímo mezi autorizovanými konektory; MCP vazba neukládá obsah, URL ani token | konektorový krok mimo Tender Flow MCP |
-| Změnit stav karty | `tf_prepare_change` → `tf_confirm_change` → `tf_execute_change`, typ `update_bid` | přesný `bidId + status`, RPC dry-run a compare-and-set; MCP role nemá přímý `UPDATE` na `bids` | hotovo v tomto loopu |
+| Změnit stav karty | `tf_prepare_bid_status_change` → `tf_confirm_change` → `tf_execute_change`; zpětně kompatibilní je i `tf_prepare_change` s typem `update_bid` | přesný `bidId + status`, RPC dry-run a compare-and-set; MCP role nemá přímý `UPDATE` na `bids` | hotovo |
 | Doplnit cenu | zatím pouze ručně v Tender Flow | obecný `update_bid` payload ani přímý DB zápis nejsou povoleny | chybí – kandidát dalšího loopu |
 
 ## Bezpečnostní rozhodnutí

@@ -1,7 +1,7 @@
 # Reference MCP tools
 
-Stav: 19 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
-bez zvýšeného grantu, dalších 9 podmíněných user+client grantem k 2026-08-09
+Stav: 20 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
+bez zvýšeného grantu, dalších 10 podmíněných user+client grantem k 2026-08-10
 Zdroj pravdy: sdílený katalog `shared/mcp/toolCatalog.js`, registrace handlerů
 v `server/mcp/tenderFlowMcp.js` a datové adaptéry v `server/mcp/data.js`.
 Stejný katalog vykresluje uživatelská matice v Nastavení → Nástroje → MCP
@@ -112,6 +112,19 @@ a stejné permissions se znovu kontrolují při invokaci.
 `tf_link_outlook_message` je úzká metadata operace mimo třífázový business
 protokol. Vyžaduje write grant, autoritativní projektové edit právo a povinný
 pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
+
+### `tf_prepare_bid_status_change`
+
+- Permissions: read + write; riziko medium; **vyžaduje osmihodinový grant**.
+- Použije se pro jednoznačný záměr přesunout jednu kartu dodavatele v kanbanu.
+- Vstup: pouze přesný `bidId` a cílový `status`.
+  Status musí být jeden z `contacted`, `sent`, `offer`, `shortlist`, `sod`,
+  `rejected`; další pole jsou odmítnuta.
+- Provede pouze autoritativní RPC dry-run, uloží očekávaný původní stav a vrátí
+  before/after diff. Kartu zatím nezmění.
+- Změna se provede až přes `tf_confirm_change` a `tf_execute_change`.
+- Jde o jednoúčelový, lépe objevitelný vstup do stejného bezpečného workflow;
+  obecný `tf_prepare_change` zůstává zpětně kompatibilní.
 
 ### `tf_prepare_change`
 

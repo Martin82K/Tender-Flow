@@ -318,6 +318,7 @@ describe("remote MCP server", () => {
 
     expect(source).toContain("registerScopedTool(server, auth,\n    'search'");
     expect(source).toContain("registerScopedTool(server, auth,\n    'fetch'");
+    expect(source).toContain("tf_prepare_bid_status_change");
     expect(source).toContain("tf_prepare_change");
     expect(source).toContain("tf_confirm_change");
     expect(source).toContain("tf_execute_change");
@@ -353,6 +354,7 @@ describe("remote MCP server", () => {
     expect(readNames).toContain("tf_get_contract_overview");
     expect(readNames).toContain("tf_list_tasks");
     expect(readNames).not.toContain("tf_list_contacts");
+    expect(readNames).not.toContain("tf_prepare_bid_status_change");
     expect(readNames).not.toContain("tf_execute_change");
 
     const forgedScopes = await callAuthorizedMcp(
@@ -365,6 +367,7 @@ describe("remote MCP server", () => {
     expect(forgedNames).toContain("search");
     expect(forgedNames).toContain("fetch");
     expect(forgedNames).not.toContain("tf_list_contacts");
+    expect(forgedNames).not.toContain("tf_prepare_bid_status_change");
     expect(forgedNames).not.toContain("tf_prepare_change");
     expect(forgedNames).not.toContain("tf_execute_change");
   });
@@ -382,6 +385,9 @@ describe("remote MCP server", () => {
     );
     const tools = catalog.result.tools as Array<{
       name: string;
+      description?: string;
+      inputSchema?: unknown;
+      annotations?: Record<string, unknown>;
       securitySchemes?: unknown;
       _meta?: Record<string, unknown>;
     }>;
@@ -395,6 +401,23 @@ describe("remote MCP server", () => {
       expect(JSON.stringify(tool._meta?.securitySchemes)).not.toContain("tenderflow.contacts.read");
       expect(JSON.stringify(tool._meta?.securitySchemes)).not.toContain("tenderflow.write");
     }
+
+    const kanbanTool = tools.find((tool) => tool.name === "tf_prepare_bid_status_change");
+    expect(kanbanTool).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(kanbanTool?.description).toContain("move one supplier bid card");
+    const kanbanSchema = JSON.stringify(kanbanTool?.inputSchema);
+    expect(kanbanSchema).toContain('"bidId"');
+    expect(kanbanSchema).toContain('"status"');
+    expect(kanbanSchema).toContain('"rejected"');
+    expect(kanbanSchema).not.toContain('"reason"');
+    expect(kanbanSchema).not.toContain('"expectedStatus"');
   });
 
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
