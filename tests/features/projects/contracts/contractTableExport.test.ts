@@ -94,5 +94,6 @@ describe("contractTableExport", () => {
     const cell = workbook.getWorksheet("Smlouvy")?.getCell("A10");
     expect(cell?.value).toBe("'=HYPERLINK(\"https://attacker.invalid\")");
     expect(cell?.formula).toBeUndefined();
+    expect(workbook.getWorksheet("Smlouvy")?.getImages()).toHaveLength(1);
   });
 });
