@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -52,8 +53,33 @@ describe("desktop build env security", () => {
     expect(source).toContain("forbiddenPublicKeyPattern");
   });
 
-  it("zastaví produkční desktop build, pokud chybí Supabase public env", () => {
+  it("umožňuje podporovaný Supabase publishable klíč", () => {
     const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const testRoot = mkdtempSync(join(tmpdir(), "tf-desktop-env-"));
+    try {
+      const result = spawnSync(process.execPath, [scriptPath], {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          NODE_ENV: "test",
+          DESKTOP_BUILD_ENV_TEST_ROOT: testRoot,
+          CI: "true",
+          ELECTRON_BUILD: "false",
+          VITE_SUPABASE_URL: "https://example.supabase.co",
+          VITE_SUPABASE_ANON_KEY: "sb_publishable_test_key",
+        },
+      });
+
+      expect(result.status).toBe(0);
+    } finally {
+      rmSync(testRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("ověří produkční klíč proti cílovému Supabase projektu", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const payload = Buffer.from(JSON.stringify({ role: "anon" })).toString("base64url");
     const result = spawnSync(process.execPath, [scriptPath], {
       cwd: process.cwd(),
       encoding: "utf-8",
@@ -61,15 +87,62 @@ describe("desktop build env security", () => {
         ...process.env,
         CI: "false",
         ELECTRON_BUILD: "true",
-        VITE_SUPABASE_URL: "",
-        VITE_SUPABASE_ANON_KEY: "",
+        VITE_SUPABASE_URL: "http://127.0.0.1:1",
+        VITE_SUPABASE_ANON_KEY: `header.${payload}.signature`,
       },
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(
-      "Missing required desktop build env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
+      "Invalid desktop build env: Supabase rejected the configured public key",
     );
+  });
+
+  it("umožňuje izolovat env soubory do dočasného testovacího kořene", () => {
+    const source = readFileSync(
+      join(process.cwd(), "scripts", "write-desktop-build-env.mjs"),
+      "utf-8",
+    );
+
+    expect(source).toContain("DESKTOP_BUILD_ENV_TEST_ROOT");
+  });
+
+  it("směruje index release notes na beta.17", () => {
+    const releaseIndex = readFileSync(
+      join(process.cwd(), "docs", "releases", "README.md"),
+      "utf-8",
+    );
+
+    expect(releaseIndex).toContain(
+      "Aktuální release notes: `release_notes_v1.9.0-beta.17.md`",
+    );
+  });
+
+  it("zastaví produkční desktop build, pokud chybí Supabase public env", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const testRoot = mkdtempSync(join(tmpdir(), "tf-desktop-env-"));
+    try {
+      const result = spawnSync(process.execPath, [scriptPath], {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          NODE_ENV: "test",
+          DESKTOP_BUILD_ENV_TEST_ROOT: testRoot,
+          CI: "false",
+          ELECTRON_BUILD: "true",
+          VITE_SUPABASE_URL: "",
+          VITE_SUPABASE_ANON_KEY: "",
+        },
+      });
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        "Missing required desktop build env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
+      );
+    } finally {
+      rmSync(testRoot, { recursive: true, force: true });
+    }
   });
 
   it("zastaví produkční desktop build, pokud je Supabase anon klíč poškozený zalomením", () => {

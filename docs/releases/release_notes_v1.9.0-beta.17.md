@@ -5,7 +5,7 @@
 - Windows instalátor je sestaven lokálně z ověřené konfigurace a nepochází z
   GitHub Actions artefaktu.
 - Produkční desktop build nyní skončí chybou, pokud chybí veřejná Supabase
-  konfigurace nebo pokud anon klíč obsahuje zalomení či nemá platný tvar JWT.
+  konfigurace nebo pokud cílový Supabase projekt anon/publishable klíč odmítne.
 - Oprava nahrazuje beta.16, ve které byl zabalen poškozený anon klíč a standardní
   přihlášení proto nemohlo odeslat autentizační požadavek.
 
