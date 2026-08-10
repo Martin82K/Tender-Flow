@@ -3,7 +3,7 @@
 Tato kumulativní beta verze obsahuje všechny změny řady 1.9.0-beta od prvního
 testovacího sestavení po aktuální bezpečnou integraci Tender Flow MCP.
 
-### Beta.14 — zapisovatelný kanban a smluvní dokumenty
+### Beta.14 — zapisovatelný kanban, smluvní dokumenty a Excel export
 
 - Nový samostatný MCP tool připraví změnu stavu karty dodavatele v kanbanu.
   Přesun zůstává součástí třífázového toku návrh → potvrzení → provedení;
@@ -17,6 +17,11 @@ testovacího sestavení po aktuální bezpečnou integraci Tender Flow MCP.
   adaptér. Povolené jsou pouze krátkodobě podepsané HTTPS odkazy z přesného
   nakonfigurovaného Supabase originu, bucketu a očekávané cesty; celé podepsané
   URL se nezapisuje do logu.
+- Tabulku smluv lze exportovat do stylizovaného Excelu s logem Tender Flow,
+  projektovými souhrny, přehlednými hlavičkami, zalamováním textu, filtry,
+  zmrazenými panely a tiskovým rozložením. Soubor uvádí datum exportu, verzi
+  aplikace a zobrazované jméno uživatele; jeho e-mail se do sdíleného výstupu
+  nevkládá.
 
 ### Beta.13 — Tender Flow MCP a Outlook vazby
 
