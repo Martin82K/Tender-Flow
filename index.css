@@ -2221,12 +2221,17 @@ html[data-skin="industrial"] [data-help-id="contracts-investor-empty"] {
 }
 
 html[data-skin="industrial"] [data-help-id="contracts-list-search"] {
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 70%, transparent) !important;
+  background: transparent !important;
   border-color: var(--tf-skin-line) !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
 }
 
 html[data-skin="industrial"] [data-help-id="contracts-list-search"] input {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   color: var(--tf-skin-text) !important;
 }
 

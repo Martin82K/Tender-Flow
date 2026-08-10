@@ -190,7 +190,7 @@ export const ContractsListPage: React.FC<Props> = ({
           >
             <label
               data-help-id="contracts-list-search"
-              className="flex w-72 max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/60"
+              className="flex w-72 max-w-full items-center gap-2 border-b border-slate-300 bg-transparent px-1 py-2 dark:border-slate-700"
             >
               <span className="material-symbols-outlined text-base text-slate-400 dark:text-slate-500" aria-hidden="true">
                 search
@@ -201,7 +201,7 @@ export const ContractsListPage: React.FC<Props> = ({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Hledat smlouvu / dodavatele…"
-                className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder-slate-500 dark:text-slate-200 dark:placeholder-slate-600"
+                className="min-w-0 flex-1 appearance-none border-0 bg-transparent text-sm text-slate-900 shadow-none outline-none placeholder-slate-500 dark:text-slate-200 dark:placeholder-slate-600"
               />
             </label>
             <ContractFilters

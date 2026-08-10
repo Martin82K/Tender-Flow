@@ -74,9 +74,13 @@ describe('ContractsListPage layout', () => {
     const toolbar = document.querySelector('[data-help-id="contracts-list-toolbar"]');
     const listRail = document.querySelector('[data-help-id="contracts-list-rail"]');
     const search = screen.getByRole('searchbox', { name: 'Hledat smlouvu nebo dodavatele' });
+    const searchShell = search.closest('[data-help-id="contracts-list-search"]');
 
     expect(toolbar).toContainElement(search);
     expect(listRail).not.toContainElement(search);
+    expect(searchShell).toHaveClass('border-b', 'bg-transparent');
+    expect(searchShell).not.toHaveClass('rounded-lg', 'border');
+    expect(search).toHaveClass('border-0', 'bg-transparent');
     expect(within(listRail as HTMLElement).getByText('Aktivní smlouva')).toBeInTheDocument();
     expect(within(listRail as HTMLElement).getByText('Uzavřená smlouva')).toBeInTheDocument();
 
