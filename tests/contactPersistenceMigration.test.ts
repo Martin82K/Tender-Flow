@@ -3,7 +3,7 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const MIGRATION = "20260810150000_fix_contact_persistence.sql";
+const MIGRATION = "20260810130735_fix_contact_persistence.sql";
 
 const readMigration = (): string =>
   fs.readFileSync(path.join(ROOT, "supabase/migrations", MIGRATION), "utf8");
