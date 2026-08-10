@@ -1616,7 +1616,7 @@ export async function buildContractTableWorkbook(
   sheet.headerFooter.oddFooter = `Tender Flow ${meta.appVersion} &C&F &RStrana &P z &N`;
 
   const columnWidths = [
-    30, 18, 30, 12, 14, 17, 17, 17, 17, 13, 18, 13, 18, 14, 18, 13, 12,
+    30, 18, 30, 12, 14, 17, 17, 17, 17, 13, 18, 13, 18, 16, 18, 14, 12,
   ];
   sheet.columns = columnWidths.map((width) => ({ width }));
 
@@ -1780,7 +1780,7 @@ export async function buildContractTableWorkbook(
         sheet.getCell(`${column}${rowNumber}`).numFmt = '0.00" %"';
       });
       sheet.getCell(`N${rowNumber}`).numFmt = 'dd.mm.yyyy';
-      sheet.getCell(`P${rowNumber}`).numFmt = '0.0';
+      sheet.getCell(`P${rowNumber}`).numFmt = '0.0 "★"';
     }
     ['A', 'B', 'C', 'D', 'E', 'O', 'Q'].forEach((column) => {
       sheet.getColumn(column).alignment = {
@@ -1789,8 +1789,18 @@ export async function buildContractTableWorkbook(
         wrapText: true,
       };
     });
-    ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'P'].forEach((column) => {
+    ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'].forEach((column) => {
       sheet.getColumn(column).alignment = { horizontal: 'right', vertical: 'middle' };
+    });
+    ['N', 'P'].forEach((column) => {
+      sheet.getColumn(column).alignment = { horizontal: 'center', vertical: 'middle' };
+      for (let rowNumber = 10; rowNumber <= lastRow; rowNumber += 1) {
+        const cell = sheet.getCell(`${column}${rowNumber}`);
+        cell.border = {
+          ...cell.border,
+          left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        };
+      }
     });
   }
 

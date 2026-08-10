@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { APP_VERSION } from "@/config/version";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -13,6 +14,7 @@ import { exportContractOverviewToExcel } from "./api/contractOverviewExport";
 import {
   CONTRACT_OVERVIEW_PARAMETER_KEYS,
   CONTRACT_OVERVIEW_PARAMETER_LABELS,
+  contractOverviewAmendmentMatchesQuery,
   filterContractOverviewRows,
   formatContractOverviewDate,
   formatContractOverviewPercent,
@@ -31,13 +33,27 @@ interface DocumentButtonProps {
   onError: (message: string) => void;
 }
 
+const ContractOverviewCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({
+  className,
+  ...props
+}) => (
+  <td
+    {...props}
+    className={`tf-contract-overview-cell ${className || ""}`}
+  />
+);
+
 const DocumentButton: React.FC<DocumentButtonProps> = ({ document, kind, onError }) => {
   const hasDocument = Boolean(document.documentUrl || document.documentStoragePath);
-  if (!hasDocument) return <span className="text-slate-300 dark:text-slate-600">—</span>;
+  if (!hasDocument) {
+    return <span className="whitespace-nowrap text-[11px] text-slate-400 dark:text-slate-500">Bez souboru</span>;
+  }
+  const fallbackDocumentType = kind === "amendment" ? "dodatku" : "smlouvy";
   return (
     <button
       type="button"
       title={document.documentFileName || "Otevřít připojený dokument"}
+      aria-label={`Otevřít soubor ${document.documentFileName || fallbackDocumentType}`}
       onClick={() => {
         void openContractOverviewDocument(document, kind).catch((reason: unknown) => {
           onError(reason instanceof Error ? reason.message : "Dokument se nepodařilo otevřít.");
@@ -80,6 +96,7 @@ export const ContractOverview: React.FC = () => {
   const [visibleParameters, setVisibleParameters] = useState<Set<ContractOverviewParameterKey>>(
     () => new Set(CONTRACT_OVERVIEW_PARAMETER_KEYS),
   );
+  const [expandedContractIds, setExpandedContractIds] = useState<Set<string>>(() => new Set());
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -154,6 +171,15 @@ export const ContractOverview: React.FC = () => {
     });
   };
 
+  const toggleContractExpansion = (contractId: string) => {
+    setExpandedContractIds((current) => {
+      const next = new Set(current);
+      if (next.has(contractId)) next.delete(contractId);
+      else next.add(contractId);
+      return next;
+    });
+  };
+
   const handleDocumentError = (message: string) => {
     showAlert({ title: "Dokument nelze otevřít", message, variant: "danger" });
   };
@@ -161,7 +187,11 @@ export const ContractOverview: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportContractOverviewToExcel(filteredRows, visibleParameterKeys);
+      await exportContractOverviewToExcel(filteredRows, visibleParameterKeys, {
+        organizationName: user?.organizationName || "Organizace",
+        exportedBy: user?.name?.trim() || "Uživatel",
+        appVersion: APP_VERSION,
+      });
     } catch (reason) {
       showAlert({
         title: "Export se nezdařil",
@@ -264,7 +294,7 @@ export const ContractOverview: React.FC = () => {
                     <th rowSpan={2} className="sticky left-0 top-0 z-50 w-[220px] min-w-[220px] border-b border-r border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Stavba</th>
                     <th rowSpan={2} className="sticky left-[220px] top-0 z-50 w-[200px] min-w-[200px] border-b border-r border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Partner</th>
                     <th rowSpan={2} className="sticky left-[420px] top-0 z-50 w-[220px] min-w-[220px] border-b border-r border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Smlouva</th>
-                    <th rowSpan={2} className="min-w-[125px] border-b border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Dokument smlouvy</th>
+                    <th rowSpan={2} className="min-w-[125px] border-b border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Soubory</th>
                     <th rowSpan={2} className="min-w-[105px] border-b border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Stav</th>
                     <th rowSpan={2} title="Aktuální hodnota smlouvy včetně dodatků" className="min-w-[150px] border-b border-slate-200 bg-slate-50 p-3 text-right dark:border-slate-700 dark:bg-slate-800">Limit</th>
                     <th rowSpan={2} className="min-w-[140px] border-b border-slate-200 bg-slate-50 p-3 text-right dark:border-slate-700 dark:bg-slate-800">Čerpání</th>
@@ -276,34 +306,69 @@ export const ContractOverview: React.FC = () => {
                   )}
                 </thead>
                 <tbody>
-                  {filteredRows.map((row) => (
-                    <React.Fragment key={row.contractId}>
+                  {filteredRows.map((row) => {
+                    const isManuallyExpanded = expandedContractIds.has(row.contractId);
+                    const isExpandedBySearch = row.amendments.some(
+                      (amendment) => contractOverviewAmendmentMatchesQuery(amendment, query),
+                    );
+                    const isExpanded = isManuallyExpanded || isExpandedBySearch;
+                    return (
+                      <React.Fragment key={row.contractId}>
                       <tr className="tf-contract-overview-row group border-b border-slate-100">
-                        <td className="sticky left-0 z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-800 group-hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:group-hover:bg-slate-800">{row.projectName}</td>
-                        <td className="sticky left-[220px] z-20 w-[200px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-700 group-hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:group-hover:bg-slate-800">{row.contractPartner}</td>
-                        <td className="sticky left-[420px] z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top group-hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:group-hover:bg-slate-800"><div className="font-semibold text-slate-800 dark:text-slate-100">{row.contractTitle}</div><div className="mt-1 text-xs text-slate-500">{row.contractNumber || "—"}</div></td>
-                        <td className="border-b border-slate-100 p-3 align-top dark:border-slate-800"><DocumentButton document={row} kind="contract" onError={handleDocumentError} /></td>
-                        <td className="border-b border-slate-100 p-3 align-top dark:border-slate-800"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{getContractOverviewStatusLabel(row.contractStatus)}</span></td>
-                        <td className="border-b border-slate-100 p-3 text-right align-top font-semibold tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.currentTotal, row.currency)}</td>
-                        <td className="border-b border-slate-100 p-3 text-right align-top tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.approvedDrawdown, row.currency)}</td>
-                        <td className="border-b border-slate-100 p-3 text-right align-top tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.remainingAmount, row.currency)}</td>
-                        {visibleParameterKeys.map((key) => <td key={key} className="border-b border-l border-slate-100 p-3 align-top text-xs text-slate-600 dark:border-slate-800 dark:text-slate-300">{parameterValue(row, key) || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>)}
+                        <ContractOverviewCell className="sticky left-0 z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">{row.projectName}</ContractOverviewCell>
+                        <ContractOverviewCell className="sticky left-[220px] z-20 w-[200px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                          <div className="flex items-start gap-1.5">
+                            {row.amendments.length > 0 ? (
+                              <button
+                                type="button"
+                                aria-expanded={isExpanded}
+                                aria-label={isExpandedBySearch
+                                  ? `Dodatky smlouvy ${row.contractTitle} rozbalené výsledkem hledání`
+                                  : `${isExpanded ? "Sbalit dodatky smlouvy" : "Rozbalit dodatky smlouvy"} ${row.contractTitle}`}
+                                disabled={isExpandedBySearch}
+                                onClick={() => toggleContractExpansion(row.contractId)}
+                                className="grid size-5 shrink-0 place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-500"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className={`material-symbols-outlined text-[16px] transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                                >
+                                  chevron_right
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="block size-5 shrink-0" aria-hidden="true" />
+                            )}
+                            <span>{row.contractPartner}</span>
+                          </div>
+                        </ContractOverviewCell>
+                        <ContractOverviewCell className="sticky left-[420px] z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top dark:border-slate-800 dark:bg-slate-900"><div className="font-semibold text-slate-800 dark:text-slate-100">{row.contractTitle}</div><div className="mt-1 text-xs text-slate-500">{row.contractNumber || "—"}</div></ContractOverviewCell>
+                        <ContractOverviewCell className="border-b border-slate-100 p-3 align-top dark:border-slate-800"><DocumentButton document={row} kind="contract" onError={handleDocumentError} /></ContractOverviewCell>
+                        <ContractOverviewCell className="border-b border-slate-100 p-3 align-top dark:border-slate-800"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{getContractOverviewStatusLabel(row.contractStatus)}</span></ContractOverviewCell>
+                        <ContractOverviewCell className="border-b border-slate-100 p-3 text-right align-top font-semibold tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.currentTotal, row.currency)}</ContractOverviewCell>
+                        <ContractOverviewCell className="border-b border-slate-100 p-3 text-right align-top tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.approvedDrawdown, row.currency)}</ContractOverviewCell>
+                        <ContractOverviewCell className="border-b border-slate-100 p-3 text-right align-top tabular-nums dark:border-slate-800">{formatContractOverviewMoney(row.remainingAmount, row.currency)}</ContractOverviewCell>
+                        {visibleParameterKeys.map((key) => <ContractOverviewCell key={key} className="border-b border-l border-slate-100 p-3 align-top text-xs text-slate-600 dark:border-slate-800 dark:text-slate-300">{parameterValue(row, key) || <span className="text-slate-300 dark:text-slate-600">—</span>}</ContractOverviewCell>)}
                       </tr>
-                      {row.amendments.map((amendment) => (
-                        <tr key={amendment.id} className="tf-contract-overview-row group bg-slate-50/70 dark:bg-slate-950/40">
-                          <td className="sticky left-0 z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950" />
-                          <td className="sticky left-[220px] z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950" />
-                          <td className="sticky left-[420px] z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200"><span aria-hidden="true">↳</span> Dodatek č. {amendment.amendmentNo}</div><div className="mt-1 text-xs text-slate-500">Hodnota dodatku: <span className={amendment.deltaPrice < 0 ? "text-red-600 dark:text-red-400" : ""}>{formatContractOverviewMoney(amendment.deltaPrice, row.currency)}</span></div></td>
-                          <td className="border-b border-slate-100 p-3 dark:border-slate-800"><DocumentButton document={amendment} kind="amendment" onError={handleDocumentError} /></td>
-                          <td className="border-b border-slate-100 p-3 text-slate-300 dark:border-slate-800 dark:text-slate-600">{amendment.status ? getContractOverviewStatusLabel(amendment.status) : "—"}</td>
-                          <td className="border-b border-slate-100 p-3 dark:border-slate-800" />
-                          <td className="border-b border-slate-100 p-3 dark:border-slate-800" />
-                          <td className="border-b border-slate-100 p-3 dark:border-slate-800" />
-                          {visibleParameterKeys.map((key) => <td key={key} className="border-b border-l border-slate-100 p-3 text-slate-300 dark:border-slate-800 dark:text-slate-700">—</td>)}
+                      {isExpanded ? row.amendments.map((amendment) => (
+                        <tr
+                          key={amendment.id}
+                          className="tf-contract-overview-row group bg-slate-50/70 dark:bg-slate-950/40"
+                        >
+                          <ContractOverviewCell className="sticky left-0 z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950" />
+                          <ContractOverviewCell className="sticky left-[220px] z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950" />
+                          <ContractOverviewCell className="sticky left-[420px] z-10 border-b border-r border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200"><span aria-hidden="true">↳</span> Dodatek č. {amendment.amendmentNo}</div><div className="mt-1 text-xs text-slate-500">Hodnota dodatku: <span className={amendment.deltaPrice < 0 ? "text-red-600 dark:text-red-400" : ""}>{formatContractOverviewMoney(amendment.deltaPrice, row.currency)}</span></div></ContractOverviewCell>
+                          <ContractOverviewCell className="border-b border-slate-100 p-3 dark:border-slate-800"><DocumentButton document={amendment} kind="amendment" onError={handleDocumentError} /></ContractOverviewCell>
+                          <ContractOverviewCell className="border-b border-slate-100 p-3 text-slate-300 dark:border-slate-800 dark:text-slate-600">{amendment.status ? getContractOverviewStatusLabel(amendment.status) : "—"}</ContractOverviewCell>
+                          <ContractOverviewCell className="border-b border-slate-100 p-3 dark:border-slate-800" />
+                          <ContractOverviewCell className="border-b border-slate-100 p-3 dark:border-slate-800" />
+                          <ContractOverviewCell className="border-b border-slate-100 p-3 dark:border-slate-800" />
+                          {visibleParameterKeys.map((key) => <ContractOverviewCell key={key} className="border-b border-l border-slate-100 p-3 text-slate-300 dark:border-slate-800 dark:text-slate-700">—</ContractOverviewCell>)}
                         </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
+                      )) : null}
+                      </React.Fragment>
+                    );
+                  })}
                   {filteredRows.length === 0 && <tr><td colSpan={8 + visibleParameterKeys.length} className="p-12 text-center text-slate-400">Žádné smlouvy odpovídající filtrům.</td></tr>}
                 </tbody>
               </table>
