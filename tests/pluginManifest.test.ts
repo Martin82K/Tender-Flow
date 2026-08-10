@@ -14,10 +14,12 @@ describe('Tender Flow CZ plugin manifest', () => {
   it('points to the remote Tender Flow MCP server', () => {
     const plugin = readJson<{
       name: string;
+      version: string;
       mcpServers: string;
       interface: {
         displayName: string;
         capabilities: string[];
+        defaultPrompt: string[];
         privacyPolicyURL: string;
         termsOfServiceURL: string;
       };
@@ -27,9 +29,13 @@ describe('Tender Flow CZ plugin manifest', () => {
     }>(join(pluginRoot, '.mcp.json'));
 
     expect(plugin.name).toBe('tender-flow-cz');
+    expect(plugin.version).toBe('0.2.0');
     expect(plugin.mcpServers).toBe('./.mcp.json');
     expect(plugin.interface.displayName).toBe('Tender Flow CZ');
     expect(plugin.interface.capabilities).toEqual(expect.arrayContaining(['Read', 'Write']));
+    expect(plugin.interface.defaultPrompt).toContain(
+      'Prepare moving a supplier bid card to another kanban status for my approval.',
+    );
     expect(plugin.interface.privacyPolicyURL).toBe('https://tenderflow.cz/privacy');
     expect(plugin.interface.termsOfServiceURL).toBe('https://tenderflow.cz/terms');
     expect(mcp.mcpServers['tender-flow-cz']).toMatchObject({

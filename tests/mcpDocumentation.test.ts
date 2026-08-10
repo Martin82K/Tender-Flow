@@ -88,4 +88,17 @@ describe("MCP documentation contract", () => {
     expect(executeTool?.data).toContain("potvrzovacím textem");
     expect(outlookWorkflow).not.toContain("jednorázový execute token");
   });
+
+  it("publishes a dedicated kanban status preparation contract", () => {
+    const kanbanTool = MCP_TOOL_CATALOG.find(
+      (tool) => tool.name === "tf_prepare_bid_status_change",
+    );
+    const toolsReference = read("docs/mcp/tools-reference.md");
+    const releaseGuide = read("docs/mcp/release-and-deprecation.md");
+
+    expect(kanbanTool?.data).toContain("stavu karty dodavatele");
+    expect(toolsReference).toContain("`tf_prepare_bid_status_change`");
+    expect(releaseGuide).toContain("Scan Tools");
+    expect(releaseGuide).toContain("publikovat novou verzi");
+  });
 });
