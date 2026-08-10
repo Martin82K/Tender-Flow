@@ -107,14 +107,14 @@ describe("desktop build env security", () => {
     expect(source).toContain("DESKTOP_BUILD_ENV_TEST_ROOT");
   });
 
-  it("směruje index release notes na beta.17", () => {
+  it("směruje index release notes na beta.18", () => {
     const releaseIndex = readFileSync(
       join(process.cwd(), "docs", "releases", "README.md"),
       "utf-8",
     );
 
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.0-beta.17.md`",
+      "Aktuální release notes: `release_notes_v1.9.0-beta.18.md`",
     );
   });
 
