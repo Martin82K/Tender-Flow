@@ -23,6 +23,18 @@ PDF nebo ZIP kontejneru DOCX. Bucket stejný limit a MIME allowlist vynucuje
 znovu. OCR používá samostatný dočasný objekt, který se po zpracování odstraní;
 jeho krátkodobá URL se neukládá ani neloguje.
 
+## Export tabulky smluv
+
+Tabulkové zobrazení smluv nabízí lokální export do `.xlsx`. Workbook obsahuje
+logo Tender Flow, organizaci a projekt, datum a čas exportu, verzi aplikace a
+jméno přihlášeného uživatele. Datová část zachovává částky, procenta
+a datumy jako typované Excel hodnoty, používá filtry, zmrazené záhlaví,
+zalomení dlouhých textů a tiskové rozložení na šířku.
+
+Export nevytváří nový serverový záznam a neposílá data třetí straně. Textové
+hodnoty začínající znaky vyhodnocovanými tabulkovými aplikacemi jako vzorec se
+zapisují jako text, aby otevření souboru nespustilo formula injection.
+
 ## Založení smlouvy přes OCR
 
 OCR pouze předvyplňuje whitelistovaná doménová pole. Neznámá pole, neplatné

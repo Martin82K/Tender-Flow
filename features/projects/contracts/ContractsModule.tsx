@@ -114,6 +114,7 @@ export const ContractsModule: React.FC<Props> = ({
       ) : (
         <ContractsListPage
           projectId={projectId}
+          projectDetails={projectDetails}
           contracts={contracts}
           refresh={refresh}
           viewMode={contractsViewMode}
