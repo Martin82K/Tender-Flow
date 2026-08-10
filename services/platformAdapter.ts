@@ -591,7 +591,7 @@ export const sessionAdapter = {
  */
 export const shellAdapter = {
     async openExternal(url: string): Promise<void> {
-        console.log('[shellAdapter] openExternal called with URL:', url);
+        console.log('[shellAdapter] openExternal called');
         console.log('[shellAdapter] isDesktop:', isDesktop);
         console.log('[shellAdapter] electronAPI available:', !!window.electronAPI);
         console.log('[shellAdapter] shell API available:', !!(window.electronAPI?.shell));

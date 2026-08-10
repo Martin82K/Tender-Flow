@@ -69,8 +69,7 @@ export const ContractsListPage: React.FC<Props> = ({
   const openDocument = async (contract: ContractWithDetails) => {
     setDocumentError(null);
     try {
-      const url = await contractQueriesApi.getContractDocumentUrl(contract);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      await contractQueriesApi.openContractDocument(contract);
     } catch (error) {
       setDocumentError(
         error instanceof Error ? error.message : 'Dokument smlouvy se nepodařilo otevřít.',

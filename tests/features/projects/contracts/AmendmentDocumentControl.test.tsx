@@ -5,7 +5,7 @@ import type { ContractAmendment } from '@/types';
 
 const mocks = vi.hoisted(() => ({
   attachAmendmentDocument: vi.fn(),
-  getAmendmentDocumentUrl: vi.fn(),
+  openAmendmentDocument: vi.fn(),
 }));
 
 vi.mock('@/features/projects/contracts/utils/attachAmendmentDocument', () => ({
@@ -14,7 +14,7 @@ vi.mock('@/features/projects/contracts/utils/attachAmendmentDocument', () => ({
 
 vi.mock('@/features/projects/contracts/api', () => ({
   contractQueriesApi: {
-    getAmendmentDocumentUrl: mocks.getAmendmentDocumentUrl,
+    openAmendmentDocument: mocks.openAmendmentDocument,
   },
 }));
 
@@ -31,7 +31,7 @@ describe('AmendmentDocumentControl', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.attachAmendmentDocument.mockResolvedValue(undefined);
-    mocks.getAmendmentDocumentUrl.mockResolvedValue('https://example.test/dodatek.pdf');
+    mocks.openAmendmentDocument.mockResolvedValue(undefined);
   });
 
   it('připojí PDF ke konkrétnímu dodatku bez spuštění OCR', async () => {
@@ -64,7 +64,6 @@ describe('AmendmentDocumentControl', () => {
   });
 
   it('otevře uložený dokument přes časově omezenou adresu', async () => {
-    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const amendmentWithDocument: ContractAmendment = {
       ...amendment,
       documentStoragePath: 'projects/project-1/contracts/amendment.pdf',
@@ -83,13 +82,7 @@ describe('AmendmentDocumentControl', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Otevřít dokument dodatku č. 1' }));
 
     await waitFor(() => {
-      expect(mocks.getAmendmentDocumentUrl).toHaveBeenCalledWith(amendmentWithDocument);
-      expect(open).toHaveBeenCalledWith(
-        'https://example.test/dodatek.pdf',
-        '_blank',
-        'noopener,noreferrer',
-      );
+      expect(mocks.openAmendmentDocument).toHaveBeenCalledWith(amendmentWithDocument);
     });
-    open.mockRestore();
   });
 });
