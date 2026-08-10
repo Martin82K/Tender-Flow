@@ -14,6 +14,7 @@ import { exportContractOverviewToExcel } from "./api/contractOverviewExport";
 import {
   CONTRACT_OVERVIEW_PARAMETER_KEYS,
   CONTRACT_OVERVIEW_PARAMETER_LABELS,
+  contractOverviewAmendmentMatchesQuery,
   filterContractOverviewRows,
   formatContractOverviewDate,
   formatContractOverviewPercent,
@@ -47,11 +48,12 @@ const DocumentButton: React.FC<DocumentButtonProps> = ({ document, kind, onError
   if (!hasDocument) {
     return <span className="whitespace-nowrap text-[11px] text-slate-400 dark:text-slate-500">Bez souboru</span>;
   }
+  const fallbackDocumentType = kind === "amendment" ? "dodatku" : "smlouvy";
   return (
     <button
       type="button"
       title={document.documentFileName || "Otevřít připojený dokument"}
-      aria-label={`Otevřít soubor ${document.documentFileName || "smlouvy"}`}
+      aria-label={`Otevřít soubor ${document.documentFileName || fallbackDocumentType}`}
       onClick={() => {
         void openContractOverviewDocument(document, kind).catch((reason: unknown) => {
           onError(reason instanceof Error ? reason.message : "Dokument se nepodařilo otevřít.");
@@ -305,7 +307,11 @@ export const ContractOverview: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredRows.map((row) => {
-                    const isExpanded = expandedContractIds.has(row.contractId);
+                    const isManuallyExpanded = expandedContractIds.has(row.contractId);
+                    const isExpandedBySearch = row.amendments.some(
+                      (amendment) => contractOverviewAmendmentMatchesQuery(amendment, query),
+                    );
+                    const isExpanded = isManuallyExpanded || isExpandedBySearch;
                     return (
                       <React.Fragment key={row.contractId}>
                       <tr className="tf-contract-overview-row group border-b border-slate-100">
@@ -316,9 +322,12 @@ export const ContractOverview: React.FC = () => {
                               <button
                                 type="button"
                                 aria-expanded={isExpanded}
-                                aria-label={`${isExpanded ? "Sbalit dodatky smlouvy" : "Rozbalit dodatky smlouvy"} ${row.contractTitle}`}
+                                aria-label={isExpandedBySearch && !isManuallyExpanded
+                                  ? `Dodatky smlouvy ${row.contractTitle} rozbalené výsledkem hledání`
+                                  : `${isExpanded ? "Sbalit dodatky smlouvy" : "Rozbalit dodatky smlouvy"} ${row.contractTitle}`}
+                                disabled={isExpandedBySearch && !isManuallyExpanded}
                                 onClick={() => toggleContractExpansion(row.contractId)}
-                                className="grid size-5 shrink-0 place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                className="grid size-5 shrink-0 place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-500"
                               >
                                 <span
                                   aria-hidden="true"

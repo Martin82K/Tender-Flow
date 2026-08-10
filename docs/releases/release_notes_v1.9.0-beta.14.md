@@ -25,6 +25,9 @@ testovacího sestavení po aktuální bezpečnou integraci Tender Flow MCP.
 - Stejný styl nyní používá i organizační Smluvní přehled včetně samostatných
   řádků dodatků. Ve stavebním exportu jsou sloupce Záruka do a Hodnocení širší,
   vizuálně oddělené a používají jednoznačný formát data a hvězdičkového skóre.
+- Hledání dodatku v organizačním Smluvním přehledu automaticky odkryje jeho
+  řádek. Legacy dokument dodatku je pro čtečky obrazovky správně rozlišen od
+  dokumentu hlavní smlouvy.
 
 ### Beta.13 — Tender Flow MCP a Outlook vazby
 

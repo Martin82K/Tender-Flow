@@ -111,6 +111,39 @@ describe("seskupení smluv a dodatků ve Smluvním přehledu", () => {
     await waitFor(() => expect(screen.queryByText("Dodatek č. 1")).not.toBeInTheDocument());
   });
 
+  it("při hledání podle dodatku automaticky odkryje odpovídající řádek", async () => {
+    getContractOverviewMock.mockResolvedValueOnce([overviewRow]);
+    render(<ContractOverview />);
+
+    fireEvent.change(await screen.findByRole("textbox", {
+      name: "Hledat ve smluvním přehledu",
+    }), { target: { value: "dodatek 1" } });
+
+    expect(await screen.findByText("Dodatek č. 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Dodatky smlouvy Smlouva o dílo rozbalené výsledkem hledání",
+    })).toBeDisabled();
+  });
+
+  it("pojmenuje legacy dokument dodatku podle jeho skutečného typu", async () => {
+    getContractOverviewMock.mockResolvedValueOnce([{
+      ...overviewRow,
+      amendments: [{
+        ...overviewRow.amendments[0],
+        documentUrl: "https://legacy.example/dodatek.pdf",
+      }],
+    }]);
+    render(<ContractOverview />);
+
+    fireEvent.click(await screen.findByRole("button", {
+      name: "Rozbalit dodatky smlouvy Smlouva o dílo",
+    }));
+
+    expect(await screen.findByRole("button", {
+      name: "Otevřít soubor dodatku",
+    })).toBeInTheDocument();
+  });
+
   it("předá exportu značku organizace, verzi aplikace a jméno bez e-mailu", async () => {
     getContractOverviewMock.mockResolvedValueOnce([overviewRow]);
     exportContractOverviewToExcelMock.mockResolvedValueOnce(undefined);
