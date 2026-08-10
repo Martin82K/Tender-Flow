@@ -82,6 +82,19 @@ const parameterValue = (row: ContractOverviewRow, key: ContractOverviewParameter
   }
 };
 
+const parameterColumnClass = (key: ContractOverviewParameterKey): string => {
+  switch (key) {
+    case "paymentTerms": return "min-w-[220px] max-w-[320px]";
+    case "warrantyEnd":
+    case "retentionShortRelease":
+    case "retentionLongRelease":
+    case "warrantyRetentionRelease":
+      return "min-w-[130px]";
+    default:
+      return "min-w-[115px]";
+  }
+};
+
 export const ContractOverview: React.FC = () => {
   const { user } = useAuth();
   const { showAlert } = useUI();
@@ -287,8 +300,8 @@ export const ContractOverview: React.FC = () => {
           {loading && <div className="flex flex-1 items-center justify-center text-slate-500">Načítám smluvní přehled…</div>}
           {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
           {!loading && !error && (
-            <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-              <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: `${1360 + visibleParameterKeys.length * 170}px` }}>
+            <div className="tf-contract-overview-scroll min-h-0 flex-1 overflow-x-scroll overflow-y-auto rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+              <table className="w-max min-w-full border-separate border-spacing-0 text-sm">
                 <thead className="sticky top-0 z-30 text-left text-[11px] uppercase tracking-wide text-slate-500">
                   <tr>
                     <th rowSpan={2} className="sticky left-0 top-0 z-50 w-[220px] min-w-[220px] border-b border-r border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">Stavba</th>
@@ -302,11 +315,11 @@ export const ContractOverview: React.FC = () => {
                     {visibleParameterKeys.length > 0 && <th colSpan={visibleParameterKeys.length} className="border-b border-l border-slate-200 bg-primary/5 p-3 text-center text-primary dark:border-slate-700">Smluvní parametry</th>}
                   </tr>
                   {visibleParameterKeys.length > 0 && (
-                    <tr>{visibleParameterKeys.map((key) => <th key={key} className="min-w-[170px] border-b border-l border-slate-200 bg-slate-50 p-3 normal-case tracking-normal dark:border-slate-700 dark:bg-slate-800">{CONTRACT_OVERVIEW_PARAMETER_LABELS[key]}</th>)}</tr>
+                    <tr>{visibleParameterKeys.map((key) => <th key={key} className={`${parameterColumnClass(key)} border-b border-l border-slate-200 bg-slate-50 p-3 normal-case tracking-normal dark:border-slate-700 dark:bg-slate-800`}>{CONTRACT_OVERVIEW_PARAMETER_LABELS[key]}</th>)}</tr>
                   )}
                 </thead>
                 <tbody>
-                  {filteredRows.map((row) => {
+                  {filteredRows.map((row, rowIndex) => {
                     const isManuallyExpanded = expandedContractIds.has(row.contractId);
                     const isExpandedBySearch = row.amendments.some(
                       (amendment) => contractOverviewAmendmentMatchesQuery(amendment, query),
@@ -314,7 +327,7 @@ export const ContractOverview: React.FC = () => {
                     const isExpanded = isManuallyExpanded || isExpandedBySearch;
                     return (
                       <React.Fragment key={row.contractId}>
-                      <tr className="tf-contract-overview-row group border-b border-slate-100">
+                      <tr className={`tf-contract-overview-row tf-contract-overview-contract-row group border-b border-slate-100 ${rowIndex % 2 === 1 ? "tf-contract-overview-contract-row-alt" : ""}`}>
                         <ContractOverviewCell className="sticky left-0 z-20 w-[220px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">{row.projectName}</ContractOverviewCell>
                         <ContractOverviewCell className="sticky left-[220px] z-20 w-[200px] border-b border-r border-slate-100 bg-white p-3 align-top font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                           <div className="flex items-start gap-1.5">

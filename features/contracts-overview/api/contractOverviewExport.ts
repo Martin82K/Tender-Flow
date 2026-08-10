@@ -253,7 +253,7 @@ export const buildContractOverviewWorkbook = async (
     ref: "A9",
     headerRow: true,
     totalsRow: false,
-    style: { theme: "TableStyleMedium2", showRowStripes: true },
+    style: { theme: "TableStyleMedium2", showRowStripes: false },
     columns: exportRows[0].map((name) => ({ name: String(name) })),
     rows: exportRows.slice(1),
   });
@@ -261,7 +261,6 @@ export const buildContractOverviewWorkbook = async (
 
   const lastRow = Math.max(9, 8 + exportRows.length);
   const lastColumnLetter = sheet.getColumn(totalColumns).letter;
-  sheet.autoFilter = { from: "A9", to: `${lastColumnLetter}${lastRow}` };
   sheet.getRow(9).height = 30;
   sheet.getRow(9).eachCell((cell) => {
     cell.font = { name: "Aptos", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
@@ -280,14 +279,24 @@ export const buildContractOverviewWorkbook = async (
   for (let rowNumber = 10; rowNumber <= lastRow; rowNumber += 1) {
     const sourceRow = exportRows[rowNumber - 9];
     const isAmendment = sourceRow[0] === "Dodatek";
+    const isAlternateRow = (rowNumber - 10) % 2 === 1;
     const dataRow = sheet.getRow(rowNumber);
     dataRow.height = isAmendment ? 26 : 34;
-    dataRow.eachCell((cell) => {
+    for (let column = 1; column <= totalColumns; column += 1) {
+      const cell = dataRow.getCell(column);
       cell.font = { name: "Aptos", size: 10, color: { argb: "FF1E293B" } };
       cell.alignment = { vertical: "middle" };
-      cell.border = { bottom: { style: "thin", color: { argb: "FFCBD5E1" } } };
-      if (isAmendment) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
-    });
+      cell.border = {
+        bottom: { style: "thin", color: { argb: "FFD8E0EA" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        ...(column === 1 ? { left: { style: "thin", color: { argb: "FFE2E8F0" } } } : {}),
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: isAmendment ? "FFF1F5F9" : isAlternateRow ? "FFF8FAFC" : "FFFFFFFF" },
+      };
+    }
     const currency = rowCurrencies[rowNumber - 10] || "CZK";
     [7, 8, 9, 10].forEach((column) => {
       const cell = sheet.getCell(rowNumber, column);

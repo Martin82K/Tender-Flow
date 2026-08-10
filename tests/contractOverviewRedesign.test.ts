@@ -98,6 +98,32 @@ describe("redesign Smluvního přehledu", () => {
     expect(styles).toContain("var(--tf-skin-card)");
   });
 
+  it("zobrazuje stabilní vodorovný posuvník a nechává šířku tabulky reagovat na obsah", () => {
+    const component = readFileSync(
+      join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(join(process.cwd(), "index.css"), "utf8");
+
+    expect(component).toContain("tf-contract-overview-scroll");
+    expect(component).toContain('className="w-max min-w-full');
+    expect(component).not.toContain("1360 + visibleParameterKeys.length * 170");
+    expect(styles).toContain(".tf-contract-overview-scroll::-webkit-scrollbar");
+    expect(styles).toContain("scrollbar-gutter: stable");
+  });
+
+  it("odlišuje každý druhý smluvní řádek i v připnutých buňkách", () => {
+    const component = readFileSync(
+      join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(join(process.cwd(), "index.css"), "utf8");
+
+    expect(component).toContain("tf-contract-overview-contract-row");
+    expect(component).toContain("tf-contract-overview-contract-row-alt");
+    expect(styles).toContain(".tf-contract-overview-contract-row-alt > .tf-contract-overview-cell");
+  });
+
   it("pojmenovává sloupec Soubory a zobrazuje srozumitelný prázdný stav", () => {
     const component = readFileSync(
       join(process.cwd(), "features/contracts-overview/ContractOverview.tsx"),
