@@ -1,3 +1,5 @@
+import { getPublicEnvValue } from '../services/publicEnv';
+
 const ALLOWED_EXTERNAL_HOSTS = new Set([
     'accounts.google.com',
     'oauth2.googleapis.com',
@@ -12,6 +14,7 @@ const ALLOWED_EXTERNAL_HOSTS = new Set([
 ]);
 
 const HTTPS_ONLY_HOST_SUFFIXES = ['.sharepoint.com'];
+const CONTRACT_DOCUMENT_SIGNED_PATH = /^\/storage\/v1\/object\/sign\/contract-documents\/projects\/[A-Za-z0-9-]+\/contracts\/[A-Za-z0-9-]+\.(pdf|docx)$/i;
 
 type ExternalUrlPolicyOptions = {
     allowHttp?: boolean;
@@ -20,6 +23,28 @@ type ExternalUrlPolicyOptions = {
 const isHttpsOnlyHost = (hostname: string): boolean => {
     const normalizedHostname = hostname.toLowerCase();
     return HTTPS_ONLY_HOST_SUFFIXES.some((suffix) => normalizedHostname.endsWith(suffix));
+};
+
+const isConfiguredContractDocumentUrl = (parsed: URL): boolean => {
+    if (
+        parsed.protocol !== 'https:'
+        || parsed.username
+        || parsed.password
+        || !parsed.searchParams.get('token')
+        || !CONTRACT_DOCUMENT_SIGNED_PATH.test(parsed.pathname)
+    ) {
+        return false;
+    }
+
+    const configuredUrl = getPublicEnvValue('VITE_SUPABASE_URL');
+    if (!configuredUrl) return false;
+
+    try {
+        const configuredOrigin = new URL(configuredUrl);
+        return configuredOrigin.protocol === 'https:' && parsed.origin === configuredOrigin.origin;
+    } catch {
+        return false;
+    }
 };
 
 export const parseExternalUrl = (
@@ -51,6 +76,7 @@ export const isAllowedExternalUrl = (parsed: URL): boolean => {
     const hostname = parsed.hostname.toLowerCase();
     if (ALLOWED_EXTERNAL_HOSTS.has(hostname)) return true;
     if (parsed.protocol === 'https:' && isHttpsOnlyHost(hostname)) return true;
+    if (isConfiguredContractDocumentUrl(parsed)) return true;
 
     return false;
 };
