@@ -1,4 +1,4 @@
-import type { ContractOverviewRow } from "../api/contractOverviewApi";
+import type { ContractOverviewAmendment, ContractOverviewRow } from "../api/contractOverviewApi";
 
 export type ContractOverviewParameterKey =
   | "warranty"
@@ -54,6 +54,18 @@ export const toggleContractOverviewProject = (
 
 const normalizeSearch = (value: string): string => value.trim().toLocaleLowerCase("cs-CZ");
 
+export const contractOverviewAmendmentMatchesQuery = (
+  amendment: ContractOverviewAmendment,
+  query: string,
+): boolean => {
+  const normalizedQuery = normalizeSearch(query);
+  if (!normalizedQuery) return false;
+  return [
+    `dodatek ${amendment.amendmentNo}`,
+    amendment.documentFileName || "",
+  ].some((value) => normalizeSearch(value).includes(normalizedQuery));
+};
+
 export const getContractOverviewStatusLabel = (status: string): string =>
   CONTRACT_OVERVIEW_STATUS_LABELS[status as keyof typeof CONTRACT_OVERVIEW_STATUS_LABELS] || status;
 
@@ -66,13 +78,14 @@ export const filterContractOverviewRows = (
     if (filters.projectIds.size > 0 && !filters.projectIds.has(row.projectId)) return false;
     if (filters.statuses.size > 0 && !filters.statuses.has(row.contractStatus)) return false;
     if (!query) return true;
-    return [
+    const contractMatches = [
       row.projectName,
       row.contractPartner,
       row.contractTitle,
       row.contractNumber || "",
-      ...row.amendments.map((amendment) => `dodatek ${amendment.amendmentNo}`),
     ].some((value) => normalizeSearch(value).includes(query));
+    return contractMatches
+      || row.amendments.some((amendment) => contractOverviewAmendmentMatchesQuery(amendment, query));
   });
 };
 

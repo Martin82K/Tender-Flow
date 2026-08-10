@@ -22,6 +22,15 @@ testovacího sestavení po aktuální bezpečnou integraci Tender Flow MCP.
   zmrazenými panely a tiskovým rozložením. Soubor uvádí datum exportu, verzi
   aplikace a zobrazované jméno uživatele; jeho e-mail se do sdíleného výstupu
   nevkládá.
+- Stejný styl nyní používá i organizační Smluvní přehled včetně samostatných
+  řádků dodatků. Ve stavebním exportu jsou sloupce Záruka do a Hodnocení širší,
+  vizuálně oddělené a používají jednoznačný formát data a hvězdičkového skóre.
+- Hledání dodatku v organizačním Smluvním přehledu automaticky odkryje jeho
+  řádek. Legacy dokument dodatku je pro čtečky obrazovky správně rozlišen od
+  dokumentu hlavní smlouvy.
+- Logo organizačního exportu se načítá správně i v zabalené desktopové aplikaci.
+  Pokud přehled obsahuje více měn, finanční souhrn nesčítá jejich neslučitelné
+  nominální hodnoty a místo toho výslovně uvede „Více měn“.
 
 ### Beta.13 — Tender Flow MCP a Outlook vazby
 
