@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 const root = process.cwd();
 const scanRoots = ["app", "features", "shared", "components", "hooks", "context", "services", "utils", "infra"];
@@ -36,20 +37,33 @@ const collectFiles = (dir) => {
   return out;
 };
 
-const extractSpecifiers = (content) => {
-  const patterns = [
-    /\bimport\s+(?:[^'"()]*?\s+from\s+)?['"]([^'"]+)['"]/g,
-    /\bexport\s+[^'"]*?\s+from\s+['"]([^'"]+)['"]/g,
-    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
-    /\bimport\(\s*`([^`${}]+)`\s*\)/g,
-  ];
-
+const extractSpecifiers = (content, fileName) => {
+  const extension = path.extname(fileName);
+  const scriptKind = extension === ".tsx"
+    ? ts.ScriptKind.TSX
+    : extension === ".js" || extension === ".mjs"
+      ? ts.ScriptKind.JS
+      : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, scriptKind);
   const specs = [];
-  for (const pattern of patterns) {
-    for (const match of content.matchAll(pattern)) {
-      specs.push(match[1]);
+  const visit = (node) => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    ) {
+      specs.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteralLike(node.arguments[0])
+    ) {
+      specs.push(node.arguments[0].text);
     }
-  }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
   return specs;
 };
 
@@ -72,20 +86,19 @@ const isUiLayer = (fileRel) =>
   fileRel.startsWith("hooks/") ||
   fileRel.startsWith("context/");
 
-const normalizeRepoPath = (repoPath) => {
-  const normalized = path.posix.normalize(toPosix(repoPath));
-  if (normalized === ".." || normalized.startsWith("../") || path.posix.isAbsolute(normalized)) {
-    return null;
-  }
-  return normalized.replace(/^\.\//, "");
+const resolveRepoPathFromRoot = (repoPath) => {
+  const resolved = path.resolve(root, ...toPosix(repoPath).split("/"));
+  const relative = toPosix(path.relative(root, resolved));
+  if (relative === ".." || relative.startsWith("../")) return null;
+  return relative;
 };
 
 const resolveToRepoPath = (spec, fileAbs) => {
-  if (spec.startsWith("@/")) return normalizeRepoPath(spec.slice(2));
-  if (spec.startsWith("@app/")) return normalizeRepoPath(`app/${spec.slice(5)}`);
-  if (spec.startsWith("@features/")) return normalizeRepoPath(`features/${spec.slice(10)}`);
-  if (spec.startsWith("@shared/")) return normalizeRepoPath(`shared/${spec.slice(8)}`);
-  if (spec.startsWith("@infra/")) return normalizeRepoPath(`infra/${spec.slice(7)}`);
+  if (spec.startsWith("@/")) return resolveRepoPathFromRoot(spec.slice(2));
+  if (spec.startsWith("@app/")) return resolveRepoPathFromRoot(`app/${spec.slice(5)}`);
+  if (spec.startsWith("@features/")) return resolveRepoPathFromRoot(`features/${spec.slice(10)}`);
+  if (spec.startsWith("@shared/")) return resolveRepoPathFromRoot(`shared/${spec.slice(8)}`);
+  if (spec.startsWith("@infra/")) return resolveRepoPathFromRoot(`infra/${spec.slice(7)}`);
 
   if (spec.startsWith("./") || spec.startsWith("../")) {
     const resolved = path.resolve(path.dirname(fileAbs), spec);
@@ -145,7 +158,7 @@ const allFiles = scanRoots.flatMap((dir) => collectFiles(dir));
 for (const fileAbs of allFiles) {
   const fileRel = toPosix(path.relative(root, fileAbs));
   const content = fs.readFileSync(fileAbs, "utf8");
-  const specs = extractSpecifiers(content);
+  const specs = extractSpecifiers(content, fileAbs);
 
   for (const spec of specs) {
     if (!isWebLayer(fileRel)) continue;
