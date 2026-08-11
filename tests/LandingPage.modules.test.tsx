@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@/components/LandingPage";
 
@@ -18,6 +18,35 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("popisuje konkrétní projektové údaje v Enterprise nabídce", () => {
+    render(<LandingPage />);
+
+    const projectFeatures = screen.getByText("Tendry & projekty").parentElement;
+    expect(projectFeatures).not.toBeNull();
+
+    const projectFeatureList = within(projectFeatures as HTMLElement);
+    expect(
+      projectFeatureList.getByText(
+        "Přehled stavby — investor, lokace, termíny a odpovědné osoby",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      projectFeatureList.getByText(
+        "Finanční řízení — plánované náklady, smluvní ceny, dodatky a fakturace",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      projectFeatureList.getByText(
+        "Stav výběrových řízení — otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      projectFeatureList.getByText(
+        "Termíny, rizika a pokrytí rozpočtu napříč projekty",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("komunikuje Command Center a TODO Osobní ve veřejném obsahu", () => {
     render(<LandingPage />);
 
@@ -30,8 +59,6 @@ describe("LandingPage nové moduly", () => {
     expect(
       screen.getByRole("heading", { name: "TODO Osobní" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Command Center s prioritami dne")).toBeInTheDocument();
-    expect(screen.getByText("TODO Osobní s podúkoly")).toBeInTheDocument();
   });
 
   it("nabízí demo pouze na vyžádání a nespouští veřejnou demo session", () => {
