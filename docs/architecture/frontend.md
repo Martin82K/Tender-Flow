@@ -116,6 +116,8 @@ nezávislých větví UI.
 
 - Tailwind CSS 4 a existující design tokeny.
 - Sdílená primitiva jsou v `shared/ui/`.
+- Sdílené české číselné formátování vlastní `shared/formatting/`; původní
+  `utils/formatters.ts` je pouze kompatibilní re-export pro legacy konzumenty.
 - Feature specifické komponenty zůstávají u feature.
 - Pipeline UI se postupně přesouvá do `features/projects/pipeline/ui/`.
   Kanonické `BidCard`, kanbanový `Column` a `SubcontractorSelectorModal` jsou

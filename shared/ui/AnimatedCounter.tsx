@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { formatDecimal } from "@/utils/formatters";
+import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 
 interface AnimatedCounterProps {
     end: number;

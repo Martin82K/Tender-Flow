@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { ContactPerson, Subcontractor, StatusConfig } from "@/types";
 import { StarRating } from "@/shared/ui/StarRating";
-import { formatDecimal } from "@/utils/formatters";
+import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { useContactsFilters } from "@/shared/ui/contacts/useContactsFilters";
 import { ContactsFilterBar } from "@/shared/ui/contacts/ContactsFilterBar";
 import {
