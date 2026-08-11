@@ -4,6 +4,10 @@ import {
   applyVendorRatings,
   mapSubcontractorRows,
 } from "@features/contacts/model/contactQueryModel";
+import {
+  EMPTY_FILTER_STATE,
+  filterContacts,
+} from "@/shared/ui/contacts/contactsFiltersLogic";
 
 describe("contact query model", () => {
   it("maps scalar specialization and synthesizes the legacy primary contact", () => {
@@ -77,6 +81,43 @@ describe("contact query model", () => {
         status: "available",
       }),
     );
+  });
+
+  it("normalizes partial JSON contact people before text search", () => {
+    const contacts = mapSubcontractorRows(
+      [
+        {
+          id: "contact-legacy",
+          company_name: "Legacy firma",
+          specialization: ["Elektro"],
+          contacts: [
+            {
+              id: "person-legacy",
+              name: null,
+              phone: null,
+              email: null,
+            },
+          ],
+          status_id: "available",
+        },
+      ],
+      () => "generated-contact-id",
+    );
+
+    expect(() =>
+      filterContacts(contacts, {
+        ...EMPTY_FILTER_STATE,
+        searchText: "nenalezeny-vyraz",
+      }),
+    ).not.toThrow();
+    expect(contacts[0].contacts).toEqual([
+      {
+        id: "person-legacy",
+        name: "-",
+        phone: "-",
+        email: "-",
+      },
+    ]);
   });
 
   it("aggregates only finite vendor ratings without mutating input", () => {

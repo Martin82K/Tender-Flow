@@ -8,6 +8,7 @@ import {
   assertValidSubcontractorCompanyNameOrThrow,
   useImportContactsMutation,
   useUpdateContactMutation,
+  useDeleteContactsMutation,
 } from "../hooks/mutations/useContactMutations";
 import type { Subcontractor } from "../types";
 import { renameFolder } from "../services/fileSystemService";
@@ -21,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   updateMock: vi.fn(),
   updateSelectMock: vi.fn(),
   updateMaybeSingleMock: vi.fn(),
+  deleteInMock: vi.fn(),
+  deleteMock: vi.fn(),
   resolveEffectiveProjectDocHubRootMock: vi.fn(),
 }));
 
@@ -121,14 +124,14 @@ beforeEach(() => {
   mocks.updateMock.mockImplementation(() => ({
     eq: mocks.updateEqMock,
   }));
+  mocks.deleteInMock.mockResolvedValue({ error: null });
+  mocks.deleteMock.mockReturnValue({ in: mocks.deleteInMock });
   mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("D:\\Personal\\Project");
 
   mocks.fromMock.mockImplementation(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
     update: mocks.updateMock,
-    delete: vi.fn(() => ({
-      in: vi.fn().mockResolvedValue({ error: null }),
-    })),
+    delete: mocks.deleteMock,
   }));
 
   mocks.mergeContactsMock.mockImplementation(
@@ -235,6 +238,22 @@ describe("useContactMutations name validation", () => {
     expect(queryClient.getQueryData<Subcontractor[]>(scopedKey)?.[0].company).toBe(
       "Nová firma",
     );
+  });
+
+  it("maže pouze zadané testovací ID a odstraní je ze scoped cache", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    const scopedKey = CONTACT_KEYS.scopedList("u-1");
+    queryClient.setQueryData(scopedKey, [
+      validContact,
+      { ...validContact, id: "c-safe", company: "Bezpečná testovací firma" },
+    ]);
+    const { result } = renderHook(() => useDeleteContactsMutation(), { wrapper });
+
+    await result.current.mutateAsync(["c-safe"]);
+
+    expect(mocks.deleteMock).toHaveBeenCalledOnce();
+    expect(mocks.deleteInMock).toHaveBeenCalledWith("id", ["c-safe"]);
+    expect(queryClient.getQueryData<Subcontractor[]>(scopedKey)?.map(({ id }) => id)).toEqual(["c-1"]);
   });
 
   it("nepovažuje nulový databázový UPDATE za úspěšné uložení", async () => {
