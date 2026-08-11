@@ -7,6 +7,8 @@ describe("shouldShowWhatsNew", () => {
   it("nezobrazí novinky pro přeskočenou verzi 1.7.0", () => {
     expect(shouldShowWhatsNew("1.7.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.7.0", "1.6.3")).toBe(false);
+    expect(shouldShowWhatsNew("1.9.0", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.1", null)).toBe(false);
     expect(shouldShowWhatsNew(APP_VERSION, null)).toBe(false);
   });
 

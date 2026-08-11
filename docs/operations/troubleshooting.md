@@ -23,6 +23,11 @@ Klientská filtrace nesmí být rozšiřovaná jako náhrada DB politiky.
 ## Přihlášení nebo refresh session
 
 - 400/401 Invalid Refresh Token: invalidovat uloženou session a přihlásit znovu,
+- u MCP klienta s aktivním consentem, ale bez řádku v `auth.sessions` pro jeho
+  `oauth_client_id`, odpojit a znovu připojit klienta; ztracený refresh token
+  nelze obnovit a nesmí se kopírovat z jiné session,
+- ověřit, že limit first-party session nepočítá OAuth session do stejného
+  bucketu; nové běžné přihlášení nesmí zneplatnit MCP refresh-token chain,
 - opakované auth chyby: query client spustí centralizovaný recovery,
 - desktop biometrika: ověřit OS podporu a uložené credentials,
 - MFA: ověřit pending MFA stav a aktuální assurance flow.

@@ -40,6 +40,8 @@ zachovat legacy API a odstranit poslední feature→legacy hook vazbu.
 - [x] Chyba contacts response se propaguje, volitelná ratings response chyba
   nezahodí načtené kontakty.
 - [x] Mapování zachová specializace, kontaktní osoby, adresy, geodata a ARES stav.
+- [x] JSONB `contacts` je nedůvěryhodný vstup: neplatné položky se zahodí a
+  chybějící textová pole se normalizují před vyhledáváním a renderem.
 - [x] Rating průměr a počet se počítají pouze z konečných čísel.
 - [x] Architektonický audit nemá žádnou feature→legacy hook vazbu.
 - [x] Projdou cílené testy, úplný Vitest, typecheck, buildy a všechny guardy.

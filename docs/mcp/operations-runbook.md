@@ -63,6 +63,10 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    grantu a chování expirovaného tokenu.
    Po revoke a nové autorizaci stejného klienta ověřit, že původní
    contacts/write grant zůstává neaktivní a audit přežije odstranění klienta.
+   Současně ověřit, že aktivní consent má právě jednu `auth.sessions` session
+   pro stejného uživatele a `oauth_client_id`, alespoň jeden nerevokovaný
+   refresh-token řádek a že tři first-party session tento OAuth řádek
+   neodstraní. Kontrola nesmí vybírat ani logovat sloupec s tokenem.
 10. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
 11. Na testovacím projektu a účtu povolit write grant do odvolání, provést
@@ -110,6 +114,10 @@ bez úspěšného pre-auditu server doménovou změnu nespustí.
 - **HTTP 503 `mcp_auth_service_unavailable`:** token nereautorizovat; jde o
   dočasný výpadek permission resolveru. Ověřit Supabase/PostgREST a požadavek
   opakovat s backoffem.
+- **`Invalid Refresh Token: Refresh Token Not Found` při aktivním consentu:**
+  ověřit OAuth session podle user/client ID bez čtení tokenu. Po opravě session
+  bucketu klienta jednou odpojit a znovu připojit; chybějící token neobnovovat
+  ručně ani přes service role.
 - **Přetížení:** zkontrolovat `consume_mcp_rate_limit`, počet aktivních bucketů,
   DB latency a `Rate limit service is unavailable`; podle klienta případně
   použít OAuth allowlist/WAF kill switch.

@@ -27,9 +27,11 @@
 - Auth chyby jsou centralizované v session/query recovery.
 - Při opakovaných token/session chybách se session invaliduje a uživatel se
   vrací na login.
-- Jeden uživatel může mít nejvýše tři aktivní Supabase Auth session bez vazby
-  na platformu. Čtvrté přihlášení revokuje nejstarší session; databázový trigger
-  serializuje souběžná přihlášení stejného uživatele.
+- Jeden uživatel může mít nejvýše tři aktivní first-party Supabase Auth session
+  bez vazby na platformu. Čtvrté běžné přihlášení revokuje pouze nejstarší
+  first-party session. OAuth session jsou oddělené podle přesného client ID;
+  nové připojení stejného klienta nahrazuje pouze jeho předchozí session.
+  Databázový trigger serializuje souběžná přihlášení stejného uživatele.
 - Přehled session je vlastnicky omezený přes `auth.uid()` a vzdálená revokace
   maže jen session patřící přihlášenému uživateli. User agent a lokální
   `installation_id` jsou pouze UX metadata, ne autorizační signály.
