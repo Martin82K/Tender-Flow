@@ -112,6 +112,12 @@ describe("Architecture Guardrails", () => {
       );
       const ordinaryBlockCommentRejected = boundaryFails();
 
+      fs.writeFileSync(
+        jsConsumerPath,
+        '/** @import { Secret } from "@/server/private" */\nexport const value = {};\n',
+      );
+      const jsDocImportTagRejected = boundaryFails();
+
       expect({
         aliasReentryRejected,
         trailingPublicEntrypointRejected,
@@ -121,6 +127,7 @@ describe("Architecture Guardrails", () => {
         typeofImportTypeRejected,
         jsDocImportTypeRejected,
         ordinaryBlockCommentRejected,
+        jsDocImportTagRejected,
       }).toEqual({
         aliasReentryRejected: true,
         trailingPublicEntrypointRejected: false,
@@ -130,6 +137,7 @@ describe("Architecture Guardrails", () => {
         typeofImportTypeRejected: true,
         jsDocImportTypeRejected: true,
         ordinaryBlockCommentRejected: false,
+        jsDocImportTagRejected: true,
       });
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
