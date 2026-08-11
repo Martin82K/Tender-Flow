@@ -4,10 +4,18 @@ import { describe, expect, it } from "vitest";
 
 const MIGRATIONS_DIR = path.join(process.cwd(), "supabase/migrations");
 const MIGRATION_SUFFIX = "_limit_active_auth_sessions_to_three.sql";
+const OAUTH_FIX_MIGRATION_SUFFIX = "_separate_oauth_session_limits.sql";
 
 const readMigration = (): string => {
   const migration = fs.readdirSync(MIGRATIONS_DIR).find((file) => file.endsWith(MIGRATION_SUFFIX));
   if (!migration) throw new Error(`Chybí migrace *${MIGRATION_SUFFIX}`);
+  return fs.readFileSync(path.join(MIGRATIONS_DIR, migration), "utf8");
+};
+
+const readOAuthFixMigration = (): string => {
+  const migration = fs.readdirSync(MIGRATIONS_DIR)
+    .find((file) => file.endsWith(OAUTH_FIX_MIGRATION_SUFFIX));
+  if (!migration) throw new Error(`Chybí migrace *${OAUTH_FIX_MIGRATION_SUFFIX}`);
   return fs.readFileSync(path.join(MIGRATIONS_DIR, migration), "utf8");
 };
 
@@ -33,6 +41,28 @@ describe("limit tří aktivních přihlašovacích session", () => {
 
   it("zachová bezpečnostní vlastnosti triggeru", () => {
     const sql = readMigration();
+
+    expect(sql).toContain("CREATE OR REPLACE FUNCTION public.handle_new_session()");
+    expect(sql).toContain("SECURITY DEFINER");
+    expect(sql).toContain("SET search_path = pg_catalog, public");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.handle_new_session() FROM PUBLIC");
+    expect(sql).toContain("AFTER INSERT ON auth.sessions");
+  });
+
+  it("oddělí first-party limit od OAuth session a ponechá jednu session na OAuth klienta", () => {
+    const sql = readOAuthFixMigration();
+
+    expect(sql).toContain("NEW.oauth_client_id IS NULL");
+    expect(sql).toContain("existing_session.oauth_client_id IS NULL");
+    expect(sql).toContain("existing_session.oauth_client_id = NEW.oauth_client_id");
+    expect(sql).toContain("MAX_FIRST_PARTY_SESSIONS CONSTANT INTEGER := 3");
+    expect(sql).toContain("MAX_OAUTH_SESSIONS_PER_CLIENT CONSTANT INTEGER := 1");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).not.toContain("user_agent");
+  });
+
+  it("zachová bezpečnostní vlastnosti triggeru i po oddělení OAuth session", () => {
+    const sql = readOAuthFixMigration();
 
     expect(sql).toContain("CREATE OR REPLACE FUNCTION public.handle_new_session()");
     expect(sql).toContain("SECURITY DEFINER");
