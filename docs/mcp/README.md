@@ -51,8 +51,9 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
   `tf_match_outlook_reply`.
 - Dostupný je katalog, PII-minimalizovaný projektový souhrn, smluvní přehled a
   vlastní otevřené tasky. Plný detail nabídek a kontaktů zůstává skrytý.
-- Remote a lokální stdio používají společnou Node implementaci. `desktop MCP`
-  je zatím samostatná starší implementace; její sjednocení je plánovaná práce.
+- Remote a lokální stdio používají společnou kanonickou Node implementaci MCP
+  2.0. Electron aplikace lokální MCP server nespouští a nepředává do main
+  procesu uživatelský session token ani kontext projektu.
 - Rate limit je distribuovaný PostgreSQL user/client/risk bucket s pevnými
   60sekundovými limity a fail-closed chováním při DB výpadku.
 - Produkční OAuth canary i skutečné volání `tf_list_projects` z ChatGPT jsou

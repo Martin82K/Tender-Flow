@@ -233,21 +233,6 @@ const electronAPI: ElectronAPI = {
         },
     },
 
-    mcp: {
-        setCurrentProject: (projectId: string | null): Promise<void> =>
-            invokeTyped('mcp:setCurrentProject', projectId),
-        setAuthToken: (token: string | null): Promise<void> =>
-            invokeTyped('mcp:setAuthToken', token),
-        getStatus: (): Promise<{
-            port: number | null;
-            sseUrl: string | null;
-            currentProjectId: string | null;
-            hasAuthToken: boolean;
-            isConfigured: boolean;
-        }> =>
-            invokeTyped('mcp:getStatus'),
-    },
-
     shell: {
         openExternal: (url: string): Promise<void> =>
             ipcRenderer.invoke('shell:openExternal', url),

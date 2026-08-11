@@ -335,14 +335,6 @@ export interface UpdateStatusInfo {
     error?: string;
 }
 
-export interface McpStatusInfo {
-    port: number | null;
-    sseUrl: string | null;
-    currentProjectId: string | null;
-    hasAuthToken: boolean;
-    isConfigured: boolean;
-}
-
 export interface OAuthGoogleLoginArgs {
     clientId: string;
     scopes: string[];
@@ -410,31 +402,6 @@ export const updaterAdapter = {
             });
         }
         return undefined;
-    },
-};
-
-/**
- * MCP Adapter
- * MCP runtime status and auth context synchronization
- */
-export const mcpAdapter = {
-    async setCurrentProject(projectId: string | null): Promise<void> {
-        if (isDesktop && window.electronAPI?.mcp?.setCurrentProject) {
-            return window.electronAPI.mcp.setCurrentProject(projectId);
-        }
-    },
-
-    async setAuthToken(token: string | null): Promise<void> {
-        if (isDesktop && window.electronAPI?.mcp?.setAuthToken) {
-            return window.electronAPI.mcp.setAuthToken(token);
-        }
-    },
-
-    async getStatus(): Promise<McpStatusInfo | null> {
-        if (isDesktop && window.electronAPI?.mcp?.getStatus) {
-            return window.electronAPI.mcp.getStatus();
-        }
-        return null;
     },
 };
 
@@ -792,7 +759,6 @@ export const platformAdapter = {
     app: appAdapter,
     dialog: dialogAdapter,
     updater: updaterAdapter,
-    mcp: mcpAdapter,
     oauth: oauthAdapter,
     biometric: biometricAdapter,
     session: sessionAdapter,

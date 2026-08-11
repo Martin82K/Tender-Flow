@@ -1,6 +1,6 @@
 # Architektura Tender Flow MCP
 
-Stav: popis aktuální implementace k 2026-08-09
+Stav: popis aktuální implementace k 2026-08-11
 Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/data.js`,
 `server/mcp/supabaseAuth.js`
 
@@ -81,10 +81,13 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | --- | --- | --- |
 | Remote HTTP | `mcp-service/` + `server/mcp/` | samostatně nasaditelná MCP 2.0 cesta |
 | Veřejná kompatibilní proxy | `api/mcp.js` | zachovává kanonickou OAuth URL a umožňuje rollback |
+| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze dedikovaný MCP OAuth token; stejná DB hranice jako remote |
 
 Remote MCP má vlastní Vercel project root a produkční větev `release`. Webová
 aplikace a MCP používají oddělené path filtry, takže změna pouze v MCP runtime
 nespouští Vite ani Electron build. Konkrétní tool catalog není součástí UI
 aplikace; UI spravuje pouze stabilní skupiny oprávnění.
-| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze dedikovaný MCP OAuth token; stejná DB hranice jako remote |
-| Desktop | `desktop/main/services/mcpServer.ts` | samostatný legacy server; plánované sjednocení |
+
+Electron aplikace lokální MCP server nespouští. Desktop renderer ani preload
+nevystavují MCP IPC API a uživatelský session token se kvůli MCP nepředává do
+main procesu.

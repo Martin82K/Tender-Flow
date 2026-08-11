@@ -16,7 +16,6 @@ export interface ElectronAPI {
     session: SessionAPI;
     net: NetworkAPI;
     oauth: OAuthAPI;
-    mcp: McpAPI;
     shell: ShellAPI;
     notification: NotificationAPI;
     backup: BackupAPI;
@@ -161,18 +160,6 @@ export interface OAuthAPI {
         scope?: string | null;
         tokenType: string;
         idToken?: string | null;
-    }>;
-}
-
-export interface McpAPI {
-    setCurrentProject: (projectId: string | null) => Promise<void>;
-    setAuthToken: (token: string | null) => Promise<void>;
-    getStatus: () => Promise<{
-        port: number | null;
-        sseUrl: string | null;
-        currentProjectId: string | null;
-        hasAuthToken: boolean;
-        isConfigured: boolean;
     }>;
 }
 

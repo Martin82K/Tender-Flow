@@ -156,10 +156,6 @@ vi.mock("@/components/desktop", () => ({
   UpdateBanner: () => null,
 }));
 
-vi.mock("@app/hooks/useDesktopMcpTokenSync", () => ({
-  useDesktopMcpTokenSync: () => undefined,
-}));
-
 vi.mock("@app/hooks/useRouteStateSync", () => ({
   useRouteStateSync: () => undefined,
 }));

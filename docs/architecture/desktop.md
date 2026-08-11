@@ -47,7 +47,6 @@ Vite/HMR na lokálních hostech.
 | `oauthHandlers` | externí OAuth toky |
 | `notificationHandlers` | nativní notifikace |
 | `watcherHandlers` | hlídání složek |
-| `mcpHandlers` | MCP lifecycle a konfigurace |
 | `docxConversion` | lokální konverze dokumentů |
 
 Handler musí validovat typy, oprávnění, velikost vstupu a cestu. Renderer používá
