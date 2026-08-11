@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { DemandCategory } from "../../types";
-import { formatMoney } from "../../utils/formatters";
+import { formatMoney } from "@shared/formatting/numberFormatters";
 
 const CLICK_DELAY_MS = 220;
 
