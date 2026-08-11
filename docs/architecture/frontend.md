@@ -118,7 +118,8 @@ nezávislých větví UI.
 - Sdílená primitiva jsou v `shared/ui/`.
 - Feature specifické komponenty zůstávají u feature.
 - Pipeline UI se postupně přesouvá do `features/projects/pipeline/ui/`.
-  Kanonický `BidCard` je vlastněný tímto modulem a zveřejněný přes jeho
+  Kanonické `BidCard` a kanbanový `Column` jsou vlastněné tímto modulem a
+  zveřejněné přes jeho
   `features/projects/pipeline/index.ts`; původní cesta v
   `components/pipelineComponents/` je pouze kompatibilní re-export pro legacy
   konzumenty.
