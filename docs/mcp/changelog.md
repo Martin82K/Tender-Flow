@@ -3,6 +3,15 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-11 — oddělené first-party a OAuth session limity
+
+- běžné webové/desktopové přihlášení už nepočítá MCP OAuth session do limitu
+  tří first-party session a nemůže tak odstranit refresh-token chain konektoru,
+- každý uživatel má nejvýše jednu session pro konkrétní OAuth client ID; nové
+  připojení nahrazuje pouze starou session stejného klienta,
+- consent, resource allowlist, tenantová RLS a explicitní revokace zůstávají
+  beze změny; již ztracený refresh token vyžaduje jednorázové nové připojení.
+
 ## 2026-08-10 — samostatný MCP deployment a trvalý write grant
 
 - Remote MCP dostal samostatný Vercel project root `mcp-service/`, bezpečný
