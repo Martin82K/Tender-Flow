@@ -51,12 +51,12 @@ import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/Pipel
 import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
 import {
   BidCard,
+  CategoryCard,
   Column,
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
 import {
   EditBidModal,
-  CategoryCard,
   CreateContactModal,
   PipelineOverview,
   CategoryFormModal,
