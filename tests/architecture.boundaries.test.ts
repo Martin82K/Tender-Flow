@@ -32,28 +32,32 @@ const collectFiles = (dir: string): string[] => {
   return out;
 };
 
-describe("Architecture Guardrails", () => {
-  it("handles comments, trailing entrypoints, and alias re-entry without boundary gaps", () => {
-    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-feature-boundary-review-"));
-    const projectsDir = path.join(fixtureRoot, "features/projects");
-    const tasksDir = path.join(fixtureRoot, "features/tasks");
-    const configDir = path.join(fixtureRoot, "config");
-    const serverDir = path.join(fixtureRoot, "server");
-    const consumerPath = path.join(tasksDir, "consumer.ts");
-    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+const createBoundaryReviewFixture = () => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-feature-boundary-review-"));
+  const projectsDir = path.join(fixtureRoot, "features/projects");
+  const tasksDir = path.join(fixtureRoot, "features/tasks");
+  const configDir = path.join(fixtureRoot, "config");
+  const serverDir = path.join(fixtureRoot, "server");
+  const consumerPath = path.join(tasksDir, "consumer.ts");
+  const jsConsumerPath = path.join(tasksDir, "consumer.js");
+  const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
 
-    fs.mkdirSync(projectsDir, { recursive: true });
-    fs.mkdirSync(tasksDir, { recursive: true });
-    fs.mkdirSync(configDir, { recursive: true });
-    fs.mkdirSync(serverDir, { recursive: true });
-    fs.writeFileSync(path.join(projectsDir, "index.ts"), "export const value = 1;\n");
-    fs.writeFileSync(path.join(serverDir, "private.ts"), "export const secret = 1;\n");
-    fs.writeFileSync(
-      path.join(configDir, "architecture-boundary-allowlist.json"),
-      JSON.stringify({ allowedFindings: [] }),
-    );
+  fs.mkdirSync(projectsDir, { recursive: true });
+  fs.mkdirSync(tasksDir, { recursive: true });
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.mkdirSync(serverDir, { recursive: true });
+  fs.writeFileSync(path.join(projectsDir, "index.ts"), "export const value = 1;\n");
+  fs.writeFileSync(path.join(serverDir, "private.ts"), "export const secret = 1;\n");
+  fs.writeFileSync(
+    path.join(configDir, "architecture-boundary-allowlist.json"),
+    JSON.stringify({ allowedFindings: [] }),
+  );
 
-    const boundaryFails = () => {
+  return {
+    fixtureRoot,
+    consumerPath,
+    jsConsumerPath,
+    boundaryFails: () => {
       try {
         execFileSync(process.execPath, [boundaryScript], {
           cwd: fixtureRoot,
@@ -64,81 +68,84 @@ describe("Architecture Guardrails", () => {
       } catch {
         return true;
       }
-    };
+    },
+  };
+};
 
+describe("Architecture Guardrails", () => {
+  it("rejects normalized alias escape and re-entry", () => {
+    const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
     try {
       const fixtureName = path.basename(fixtureRoot);
       fs.writeFileSync(
         consumerPath,
         `import { secret } from "@features/tasks/../../../${fixtureName}/server/private";\nvoid secret;\n`,
       );
-      const aliasReentryRejected = boundaryFails();
+      expect(boundaryFails()).toBe(true);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
 
+  it("allows public trailing entrypoints and import examples in plain text", () => {
+    const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
+    try {
       fs.writeFileSync(
         consumerPath,
         'import { value } from "@features/tasks/../projects/";\nvoid value;\n',
       );
-      const trailingPublicEntrypointRejected = boundaryFails();
+      expect(boundaryFails()).toBe(false);
 
       fs.writeFileSync(
         consumerPath,
         "// Example: import(`@features/projects/model/private`)\nexport const value = 1;\n",
       );
-      const commentedImportRejected = boundaryFails();
+      expect(boundaryFails()).toBe(false);
 
       fs.writeFileSync(
         consumerPath,
         'const example = "import(`@features/projects/model/private`)";\nvoid example;\n',
       );
-      const stringImportRejected = boundaryFails();
+      expect(boundaryFails()).toBe(false);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
 
+  it("rejects TypeScript import types", () => {
+    const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
+    try {
       fs.writeFileSync(consumerPath, 'type Secret = import("@/server/private").Secret;\n');
-      const importTypeRejected = boundaryFails();
+      expect(boundaryFails()).toBe(true);
 
       fs.writeFileSync(consumerPath, 'type SecretModule = typeof import("@/server/private");\n');
-      const typeofImportTypeRejected = boundaryFails();
+      expect(boundaryFails()).toBe(true);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
 
+  it("checks JSDoc import types without parsing ordinary comments", () => {
+    const { fixtureRoot, consumerPath, jsConsumerPath, boundaryFails } = createBoundaryReviewFixture();
+    try {
       fs.writeFileSync(consumerPath, "export const safe = 1;\n");
-      const jsConsumerPath = path.join(tasksDir, "consumer.js");
       fs.writeFileSync(
         jsConsumerPath,
         '/** @type {import("@/server/private").Secret} */\nexport const value = {};\n',
       );
-      const jsDocImportTypeRejected = boundaryFails();
+      expect(boundaryFails()).toBe(true);
 
       fs.writeFileSync(
         jsConsumerPath,
         '/* Example: @type {import("@/server/private").Secret} */\nexport const value = {};\n',
       );
-      const ordinaryBlockCommentRejected = boundaryFails();
+      expect(boundaryFails()).toBe(false);
 
       fs.writeFileSync(
         jsConsumerPath,
         '/** @import { Secret } from "@/server/private" */\nexport const value = {};\n',
       );
-      const jsDocImportTagRejected = boundaryFails();
-
-      expect({
-        aliasReentryRejected,
-        trailingPublicEntrypointRejected,
-        commentedImportRejected,
-        stringImportRejected,
-        importTypeRejected,
-        typeofImportTypeRejected,
-        jsDocImportTypeRejected,
-        ordinaryBlockCommentRejected,
-        jsDocImportTagRejected,
-      }).toEqual({
-        aliasReentryRejected: true,
-        trailingPublicEntrypointRejected: false,
-        commentedImportRejected: false,
-        stringImportRejected: false,
-        importTypeRejected: true,
-        typeofImportTypeRejected: true,
-        jsDocImportTypeRejected: true,
-        ordinaryBlockCommentRejected: false,
-        jsDocImportTagRejected: true,
-      });
+      expect(boundaryFails()).toBe(true);
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
