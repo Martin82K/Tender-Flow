@@ -99,7 +99,7 @@ describe("MCP distributed rate limit and audit reliability", () => {
   });
 
   it("vyžaduje úspěšný audit před každou MCP write fází", () => {
-    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8");
+    const source = fs.readFileSync(path.join(ROOT, "server/mcp/core/toolRuntime.js"), "utf8");
     expect(source).toContain("const requiresPreAudit = WRITE_AUDIT_ACTIONS.has(action)");
     expect(source).toContain("action: `${action}_attempt`");
     expect(source).toContain("{ required: true }");

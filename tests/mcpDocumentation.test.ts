@@ -47,23 +47,26 @@ describe("MCP documentation contract", () => {
   });
 
   it("keeps the documented protocol, tools and resources aligned with implementation", () => {
-    const serverSource = read("server/mcp/tenderFlowMcp.js");
+    const modulesSource = fs.readdirSync(path.join(ROOT, "server/mcp/modules"))
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => read(`server/mcp/modules/${name}`))
+      .join("\n");
     const policySource = read("server/mcp/scopePolicy.js");
     const toolsReference = read("docs/mcp/tools-reference.md");
     const resourcesReference = read("docs/mcp/resources-reference.md");
     const architecture = read("docs/mcp/architecture.md");
 
-    expect(serverSource).toContain("protocolVersion: '2026-07-28'");
+    expect(modulesSource).toContain("protocolVersion: '2026-07-28'");
     expect(architecture).toContain("`2026-07-28`");
     expect(policySource).toContain("MCP_TOOL_CATALOG");
 
     for (const toolName of toolNames) {
-      expect(serverSource, `${toolName} registration`).toContain(`'${toolName}'`);
+      expect(modulesSource, `${toolName} registration`).toContain(`'${toolName}'`);
       expect(toolsReference, `${toolName} documentation`).toContain(`\`${toolName}\``);
     }
 
     for (const uri of resourceUris) {
-      expect(serverSource, `${uri} implementation`).toContain(uri);
+      expect(modulesSource, `${uri} implementation`).toContain(uri);
       expect(resourcesReference, `${uri} documentation`).toContain(`\`${uri}\``);
     }
   });

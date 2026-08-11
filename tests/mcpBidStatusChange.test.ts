@@ -78,7 +78,7 @@ describe("MCP bid status change", () => {
 
   it("accepts only a status-only update_bid payload", () => {
     const source = fs.readFileSync(
-      path.join(ROOT, "server/mcp/tenderFlowMcp.js"),
+      path.join(ROOT, "server/mcp/modules/changes.js"),
       "utf8",
     );
 
