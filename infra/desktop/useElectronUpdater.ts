@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { updaterAdapter, type UpdateStatusInfo } from "@/services/platformAdapter";
+import { updaterAdapter, type UpdateStatusInfo } from "@infra/platform/platformAdapter";
 
 export type UpdateStatus =
   | "checking"

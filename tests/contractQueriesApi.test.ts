@@ -17,7 +17,7 @@ vi.mock("@/services/contractService", () => ({
   contractService: contractServiceMock,
 }));
 
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   shellAdapter: shellAdapterMock,
 }));
 

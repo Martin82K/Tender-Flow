@@ -58,10 +58,12 @@ pouze API z preloadu; přímý import Electron main modulu je zakázaný.
 
 ## Platformní adaptér
 
-Legacy implementace je v `services/platformAdapter.ts`; kanonický infra export
-je `infra/platform/platformAdapter.ts`. Webové fallbacky vracejí bezpečný
-„unavailable“ výsledek nebo explicitní chybu. Desktop-specific chování musí být
-guardované `useDesktop()` nebo platformním příznakem.
+Kanonická implementace je v `infra/platform/platformAdapter.ts`.
+`services/platformAdapter.ts` zůstává pouze jako kompatibilní re-export pro
+legacy konzumenty. Nový kód importuje platformní adaptéry přes `@infra/platform`.
+Webové fallbacky vracejí bezpečný „unavailable“ výsledek nebo explicitní chybu.
+Desktop-specific chování musí být guardované `useDesktop()` nebo platformním
+příznakem.
 
 ## Lokální soubory
 

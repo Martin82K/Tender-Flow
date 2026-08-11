@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { fileSystemAdapter, isDesktop, storageAdapter } from "@/services/platformAdapter";
+import { fileSystemAdapter, isDesktop, storageAdapter } from "@infra/platform/platformAdapter";
 import type { ProjectDetails } from "@/types";
 import {
   buildDocHubPersonalLocationKey,

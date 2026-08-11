@@ -9,7 +9,7 @@ describe("runtimeDiagnostics", () => {
   it("rediguje citlivé hodnoty v payloadu", async () => {
     const storageMap: Record<string, string> = {};
 
-    vi.doMock("../services/platformAdapter", () => ({
+    vi.doMock("@infra/platform/platformAdapter", () => ({
       isDesktop: true,
       platformAdapter: {
         platform: { os: "darwin" },
@@ -53,7 +53,7 @@ describe("runtimeDiagnostics", () => {
   it("exportuje JSON přes desktop shell bridge", async () => {
     const openTempFile = vi.fn(async () => undefined);
 
-    vi.doMock("../services/platformAdapter", () => ({
+    vi.doMock("@infra/platform/platformAdapter", () => ({
       isDesktop: true,
       platformAdapter: {
         platform: { os: "darwin" },
@@ -89,7 +89,7 @@ describe("runtimeDiagnostics", () => {
 
     window.history.replaceState({}, "", "/reset-password?token=super-secret#access_token=very-secret");
 
-    vi.doMock("../services/platformAdapter", () => ({
+    vi.doMock("@infra/platform/platformAdapter", () => ({
       isDesktop: false,
       platformAdapter: {
         platform: { os: "unknown" },
@@ -119,4 +119,3 @@ describe("runtimeDiagnostics", () => {
   });
 
 });
-

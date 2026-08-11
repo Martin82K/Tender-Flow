@@ -1,4 +1,4 @@
-import { isDesktop, platformAdapter } from "@/services/platformAdapter";
+import { isDesktop, platformAdapter } from "@infra/platform/platformAdapter";
 import {
   SECRET_KEY_PATTERN,
   sanitizeLogText,

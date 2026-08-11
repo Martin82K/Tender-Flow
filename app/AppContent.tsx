@@ -18,7 +18,7 @@ import type {
   ProjectTab,
   View,
 } from "@/types";
-import { platformAdapter } from "@/services/platformAdapter";
+import { platformAdapter } from "@infra/platform/platformAdapter";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
 import { useCriticalLoadIncident } from "@app/hooks/useCriticalLoadIncident";

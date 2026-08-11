@@ -1,5 +1,5 @@
 import { contractService } from "@/services/contractService";
-import { shellAdapter } from "@/services/platformAdapter";
+import { shellAdapter } from "@infra/platform/platformAdapter";
 import type { ContractWithDetails } from "@/types";
 
 export const contractQueriesApi = {

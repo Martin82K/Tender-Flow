@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   readFile: vi.fn(),
 }));
 
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   isDesktop: true,
   storageAdapter: { get: mocks.storageGet },
   fileSystemAdapter: {
