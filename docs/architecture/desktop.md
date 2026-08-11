@@ -20,7 +20,11 @@ payloadu jen proto, že přišel z aplikace.
 - `desktop/main/preload.ts` – omezené API vystavené přes context bridge.
 - `desktop/main/ipc/contracts.ts` – IPC kontrakty.
 - `desktop/main/ipc/handlers.ts` a `ipc/modules/` – registrace handlerů.
-- `desktop/main/types.ts` a `shared/types/desktop` – sdílené serializovatelné typy.
+- `shared/types/desktop.contract.d.ts` – jediný kanonický kontrakt serializovatelných
+  typů pro renderer, preload a main proces.
+- `shared/types/desktop.ts` – stabilní rendererový type-only re-export kontraktu.
+- `desktop/main/types.ts` – CJS-safe type-only adaptér pro desktop kompilaci; nesmí
+  obsahovat vlastní kopie IPC datových tvarů.
 
 ## Bezpečnost BrowserWindow
 
