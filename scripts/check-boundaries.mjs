@@ -67,7 +67,7 @@ const extractSpecifiers = (content, fileName) => {
     } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
+      node.arguments.length >= 1 &&
       ts.isStringLiteralLike(node.arguments[0])
     ) {
       specs.push(node.arguments[0].text);
@@ -107,14 +107,15 @@ const resolveRepoPathFromRoot = (repoPath) => {
 };
 
 const resolveToRepoPath = (spec, fileAbs) => {
-  if (spec.startsWith("@/")) return resolveRepoPathFromRoot(spec.slice(2));
-  if (spec.startsWith("@app/")) return resolveRepoPathFromRoot(`app/${spec.slice(5)}`);
-  if (spec.startsWith("@features/")) return resolveRepoPathFromRoot(`features/${spec.slice(10)}`);
-  if (spec.startsWith("@shared/")) return resolveRepoPathFromRoot(`shared/${spec.slice(8)}`);
-  if (spec.startsWith("@infra/")) return resolveRepoPathFromRoot(`infra/${spec.slice(7)}`);
+  const modulePath = spec.split(/[?#]/, 1)[0];
+  if (modulePath.startsWith("@/")) return resolveRepoPathFromRoot(modulePath.slice(2));
+  if (modulePath.startsWith("@app/")) return resolveRepoPathFromRoot(`app/${modulePath.slice(5)}`);
+  if (modulePath.startsWith("@features/")) return resolveRepoPathFromRoot(`features/${modulePath.slice(10)}`);
+  if (modulePath.startsWith("@shared/")) return resolveRepoPathFromRoot(`shared/${modulePath.slice(8)}`);
+  if (modulePath.startsWith("@infra/")) return resolveRepoPathFromRoot(`infra/${modulePath.slice(7)}`);
 
-  if (spec.startsWith("./") || spec.startsWith("../")) {
-    const resolved = path.resolve(path.dirname(fileAbs), spec);
+  if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
+    const resolved = path.resolve(path.dirname(fileAbs), modulePath);
     const rel = toPosix(path.relative(root, resolved));
     if (!rel.startsWith("..")) return rel;
   }
