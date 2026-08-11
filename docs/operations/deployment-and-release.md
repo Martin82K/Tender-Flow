@@ -78,7 +78,11 @@ Release. CI artefakty slouží pouze k validaci nebo internímu stažení.
 Ověření:
 
 ```bash
+# prerelease
 npm run release:prepare
+
+# stabilní release (zahrnuje release:prepare)
+npm run release:prepare:stable
 npm run release:verify-artifacts
 ```
 
@@ -91,11 +95,14 @@ Typické artefakty:
 
 1. Změnit verzi přes `version:patch|minor|major`.
 2. Zkontrolovat synchronizované verze.
-3. Spustit úplné testy a buildy.
-4. Lokálně sestavit platformní artefakty.
-5. Ověřit jejich názvy, velikost a spustitelnost.
-6. Vytvořit tag/release podle release workflow.
-7. Nahrát pouze ověřené lokální artefakty.
+3. Pro stabilní release spustit `npm run release:prepare:stable`; příkaz
+   fail-closed ověří stabilní SemVer a shodu `package.json`, lockfile a
+   `config/version.ts`. Běžný `release:prepare` zůstává dostupný pro prerelease.
+4. Spustit úplné testy a buildy.
+5. Lokálně sestavit platformní artefakty.
+6. Ověřit jejich názvy, velikost a spustitelnost.
+7. Vytvořit tag/release podle release workflow.
+8. Nahrát pouze ověřené lokální artefakty.
 
 ## CI Quality Checks
 
