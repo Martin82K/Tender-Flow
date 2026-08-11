@@ -54,6 +54,12 @@ const extractSpecifiers = (content, fileName) => {
     ) {
       specs.push(node.moduleSpecifier.text);
     } else if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteralLike(node.argument.literal)
+    ) {
+      specs.push(node.argument.literal.text);
+    } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
       node.arguments.length === 1 &&

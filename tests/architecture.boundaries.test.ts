@@ -92,16 +92,26 @@ describe("Architecture Guardrails", () => {
       );
       const stringImportRejected = boundaryFails();
 
+      fs.writeFileSync(consumerPath, 'type Secret = import("@/server/private").Secret;\n');
+      const importTypeRejected = boundaryFails();
+
+      fs.writeFileSync(consumerPath, 'type SecretModule = typeof import("@/server/private");\n');
+      const typeofImportTypeRejected = boundaryFails();
+
       expect({
         aliasReentryRejected,
         trailingPublicEntrypointRejected,
         commentedImportRejected,
         stringImportRejected,
+        importTypeRejected,
+        typeofImportTypeRejected,
       }).toEqual({
         aliasReentryRejected: true,
         trailingPublicEntrypointRejected: false,
         commentedImportRejected: false,
         stringImportRejected: false,
+        importTypeRejected: true,
+        typeofImportTypeRejected: true,
       });
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
