@@ -49,9 +49,9 @@ import {
 import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
 import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
+import { BidCard } from "@features/projects/pipeline";
 import {
   Column,
-  BidCard,
   EditBidModal,
   CategoryCard,
   CreateContactModal,
