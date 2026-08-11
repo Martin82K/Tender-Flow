@@ -14,8 +14,8 @@ const mocks = vi.hoisted(() => ({
   writeFile: vi.fn(),
 }));
 
-vi.mock("../services/platformAdapter", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../services/platformAdapter")>();
+vi.mock("@infra/platform/platformAdapter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@infra/platform/platformAdapter")>();
   return {
     ...actual,
     isDesktop: true,

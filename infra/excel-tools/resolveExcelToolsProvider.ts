@@ -1,4 +1,4 @@
-import { isDesktop } from "@/services/platformAdapter";
+import { isDesktop } from "@infra/platform/platformAdapter";
 import { httpExcelToolsProvider } from "@infra/excel-tools/providers/httpExcelToolsProvider";
 import { nativeExcelToolsProvider } from "@infra/excel-tools/providers/nativeExcelToolsProvider";
 import type { ExcelToolsProvider } from "@infra/excel-tools/types";

@@ -15,7 +15,7 @@ vi.mock("@/services/contractService", () => ({
     getAmendmentDocumentUrl: documentMocks.getAmendmentDocumentUrl,
   },
 }));
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   shellAdapter: { openExternal: documentMocks.openExternal },
 }));
 import {

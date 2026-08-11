@@ -24,7 +24,7 @@ vi.mock('@/shared/routing/routeUtils', () => ({
   buildAppUrl: vi.fn(() => '/mock-path'),
 }));
 
-vi.mock('@/services/platformAdapter', () => ({
+vi.mock('@infra/platform/platformAdapter', () => ({
   default: {
     isDesktop: false,
     mcp: {
