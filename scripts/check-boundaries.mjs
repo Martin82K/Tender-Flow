@@ -99,16 +99,37 @@ const loadAllowlist = () => {
       .map((item) => ({
         type: typeof item?.type === "string" ? item.type : "",
         file: typeof item?.file === "string" ? item.file : "",
+        specifier: typeof item?.specifier === "string" ? item.specifier : null,
       }))
-      .filter((item) => item.type && item.file);
+      .filter(
+        (item) =>
+          item.type &&
+          item.file &&
+          (item.type !== "feature-private-import" || item.specifier !== null),
+      );
   } catch {
     return [];
   }
 };
 
 const allowedFindings = loadAllowlist();
+const allowedFindingMatches = (allowed, finding) =>
+  allowed.type === finding.type &&
+  allowed.file === finding.file &&
+  (allowed.specifier === null || allowed.specifier === finding.specifier);
+
 const isAllowedFinding = (finding) =>
-  allowedFindings.some((allowed) => allowed.type === finding.type && allowed.file === finding.file);
+  allowedFindings.some((allowed) => allowedFindingMatches(allowed, finding));
+
+const getFeatureName = (repoPath) => {
+  const match = /^features\/([^/]+)(?:\/|$)/.exec(repoPath);
+  return match?.[1] ?? null;
+};
+
+const isPublicFeatureEntrypoint = (repoPath, featureName) => {
+  const suffix = repoPath.slice(`features/${featureName}`.length);
+  return suffix === "" || /^\/index(?:\.[cm]?[jt]sx?)?$/.test(suffix);
+};
 
 const allFiles = scanRoots.flatMap((dir) => collectFiles(dir));
 
@@ -146,6 +167,22 @@ for (const fileAbs of allFiles) {
           type: "features-to-components",
           file: fileRel,
           detail: `features vrstva nesmí importovat legacy components: ${spec}`,
+        });
+      }
+
+      const sourceFeature = getFeatureName(fileRel);
+      const targetFeature = target ? getFeatureName(target) : null;
+      if (
+        sourceFeature &&
+        targetFeature &&
+        sourceFeature !== targetFeature &&
+        !isPublicFeatureEntrypoint(target, targetFeature)
+      ) {
+        findings.push({
+          type: "feature-private-import",
+          file: fileRel,
+          specifier: spec,
+          detail: `feature ${sourceFeature} smí importovat ${targetFeature} pouze přes veřejný entrypoint: ${spec}`,
         });
       }
     }
@@ -207,11 +244,24 @@ for (const fileAbs of allFiles) {
 }
 
 const unresolvedFindings = findings.filter((finding) => !isAllowedFinding(finding));
+const unusedAllowedFindings = allowedFindings.filter(
+  (allowed) => !findings.some((finding) => allowedFindingMatches(allowed, finding)),
+);
 
-if (unresolvedFindings.length > 0) {
-  console.error("Boundary check selhal. Nalezené problémy:\n");
-  for (const finding of unresolvedFindings) {
-    console.error(`- [${finding.type}] ${finding.file}: ${finding.detail}`);
+if (unresolvedFindings.length > 0 || unusedAllowedFindings.length > 0) {
+  if (unresolvedFindings.length > 0) {
+    console.error("Boundary check selhal. Nalezené problémy:\n");
+    for (const finding of unresolvedFindings) {
+      console.error(`- [${finding.type}] ${finding.file}: ${finding.detail}`);
+    }
+  }
+
+  if (unusedAllowedFindings.length > 0) {
+    console.error("Boundary allowlist obsahuje zastaralé výjimky:\n");
+    for (const allowed of unusedAllowedFindings) {
+      const specifier = allowed.specifier ? ` (${allowed.specifier})` : "";
+      console.error(`- [${allowed.type}] ${allowed.file}${specifier}`);
+    }
   }
   process.exit(1);
 }

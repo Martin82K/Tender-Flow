@@ -1,5 +1,6 @@
 import { execFileSync } from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { describe, expect, it } from "vitest";
 
@@ -32,6 +33,81 @@ const collectFiles = (dir: string): string[] => {
 };
 
 describe("Architecture Guardrails", () => {
+  it("rejects private cross-feature imports while allowing public feature entrypoints", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-feature-boundary-"));
+    const projectsDir = path.join(fixtureRoot, "features/projects");
+    const tasksDir = path.join(fixtureRoot, "features/tasks");
+    const configDir = path.join(fixtureRoot, "config");
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+
+    fs.mkdirSync(path.join(projectsDir, "model"), { recursive: true });
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(path.join(projectsDir, "index.ts"), 'export { value } from "./model/private";\n');
+    fs.writeFileSync(path.join(projectsDir, "model/private.ts"), "export const value = 1;\n");
+    fs.writeFileSync(path.join(projectsDir, "model/other.ts"), "export const other = 2;\n");
+
+    const runBoundaryCheck = () =>
+      execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+    try {
+      fs.writeFileSync(
+        path.join(tasksDir, "consumer.ts"),
+        'import { value } from "@features/projects/model/private";\nvoid value;\n',
+      );
+
+      let privateImportError: unknown;
+      try {
+        runBoundaryCheck();
+      } catch (error) {
+        privateImportError = error;
+      }
+
+      expect(privateImportError).toBeDefined();
+      expect(String((privateImportError as { stderr?: string }).stderr ?? privateImportError)).toContain(
+        "feature-private-import",
+      );
+
+      fs.writeFileSync(
+        path.join(configDir, "architecture-boundary-allowlist.json"),
+        JSON.stringify({
+          allowedFindings: [
+            {
+              type: "feature-private-import",
+              file: "features/tasks/consumer.ts",
+              specifier: "@features/projects/model/private",
+            },
+          ],
+        }),
+      );
+      expect(runBoundaryCheck).not.toThrow();
+
+      fs.writeFileSync(
+        path.join(tasksDir, "consumer.ts"),
+        'import { other } from "@features/projects/model/other";\nvoid other;\n',
+      );
+      expect(runBoundaryCheck).toThrow();
+
+      fs.writeFileSync(
+        path.join(tasksDir, "consumer.ts"),
+        'import { value } from "@features/projects";\nvoid value;\n',
+      );
+
+      expect(runBoundaryCheck).toThrow();
+      fs.writeFileSync(
+        path.join(configDir, "architecture-boundary-allowlist.json"),
+        JSON.stringify({ allowedFindings: [] }),
+      );
+      expect(runBoundaryCheck).not.toThrow();
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("boundary script passes", () => {
     expect(() => {
       execFileSync("node", ["scripts/check-boundaries.mjs"], {

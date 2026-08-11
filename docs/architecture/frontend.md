@@ -150,4 +150,12 @@ Preferované aliasy:
 ```
 
 Feature nesmí importovat legacy `components/`; shared nesmí importovat feature.
+Mezi dvěma různými features je povolen pouze import veřejného entrypointu
+`@features/<feature>` nebo `@/features/<feature>`. Přímé importy interních
+`model/`, `hooks/`, `api/`, `ui/` a dalších podcest jsou zakázané. Historické
+výjimky jsou v `config/architecture-boundary-allowlist.json` evidované přesnou
+dvojicí souboru a import specifieru, takže stejný soubor nemůže přidat další
+privátní vazbu. Po odstranění historického importu musí být odstraněna i jeho
+zastaralá allowlist výjimka. Nové výjimky vyžadují explicitní architektonické
+review.
 UI nesmí přímo importovat Supabase klienta ani přistupovat k main procesu.
