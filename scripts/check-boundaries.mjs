@@ -67,7 +67,9 @@ const extractSpecifiers = (content, fileName) => {
     ) {
       specs.push(node.arguments[0].text);
     }
-    ts.forEachChild(node, visit);
+    for (const child of node.getChildren(sourceFile)) {
+      visit(child);
+    }
   };
   visit(sourceFile);
   return specs;

@@ -98,6 +98,20 @@ describe("Architecture Guardrails", () => {
       fs.writeFileSync(consumerPath, 'type SecretModule = typeof import("@/server/private");\n');
       const typeofImportTypeRejected = boundaryFails();
 
+      fs.writeFileSync(consumerPath, "export const safe = 1;\n");
+      const jsConsumerPath = path.join(tasksDir, "consumer.js");
+      fs.writeFileSync(
+        jsConsumerPath,
+        '/** @type {import("@/server/private").Secret} */\nexport const value = {};\n',
+      );
+      const jsDocImportTypeRejected = boundaryFails();
+
+      fs.writeFileSync(
+        jsConsumerPath,
+        '/* Example: @type {import("@/server/private").Secret} */\nexport const value = {};\n',
+      );
+      const ordinaryBlockCommentRejected = boundaryFails();
+
       expect({
         aliasReentryRejected,
         trailingPublicEntrypointRejected,
@@ -105,6 +119,8 @@ describe("Architecture Guardrails", () => {
         stringImportRejected,
         importTypeRejected,
         typeofImportTypeRejected,
+        jsDocImportTypeRejected,
+        ordinaryBlockCommentRejected,
       }).toEqual({
         aliasReentryRejected: true,
         trailingPublicEntrypointRejected: false,
@@ -112,6 +128,8 @@ describe("Architecture Guardrails", () => {
         stringImportRejected: false,
         importTypeRejected: true,
         typeofImportTypeRejected: true,
+        jsDocImportTypeRejected: true,
+        ordinaryBlockCommentRejected: false,
       });
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
