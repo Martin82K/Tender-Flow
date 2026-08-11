@@ -1,8 +1,8 @@
 # MCP transporty
 
 Stav: implementované transporty k 2026-08-09
-Zdroj pravdy: `api/mcp.js`, `server/mcp/nodeHandler.js`,
-`scripts/mcp-stdio.js` a `desktop/main/services/mcpServer.ts`
+Zdroj pravdy: `api/mcp.js`, `server/mcp/nodeHandler.js` a
+`scripts/mcp-stdio.js`
 
 ## Remote stateless HTTP
 
@@ -35,12 +35,12 @@ Tokenové `tenderflow.*` scopes se ignorují. `TENDER_FLOW_MCP_READ_ONLY`
 zůstává dodatečný lokální kill switch a write katalog skryje i při aktivním
 grantu.
 
-## Desktop legacy
+## Electron aplikace
 
-`desktop MCP` je samostatná implementace a dosud není ekvivalent remote/stdio
-katalogu. Používá vlastní lifecycle, IPC guardy a starší protokolové chování.
-Dokud neproběhne sjednocovací loop, nelze výsledky testu remote serveru
-automaticky vztáhnout na desktop.
+Electron aplikace lokální MCP server nespouští. Neobsahuje MCP transport,
+localhost HTTP/SSE listener ani IPC kanály pro předávání uživatelského tokenu.
+Externí klienti používají remote HTTP; důvěryhodné lokální host procesy mohou
+explicitně spustit stdio adaptér nad stejnou MCP 2.0 factory.
 
 ## Zakázané předpoklady
 

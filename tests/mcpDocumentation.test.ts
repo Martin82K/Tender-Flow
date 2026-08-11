@@ -72,7 +72,7 @@ describe("MCP documentation contract", () => {
     const combined = requiredDocuments.map((document) => read(`docs/mcp/${document}`)).join("\n");
 
     expect(combined).toContain("Pouze `create_task`");
-    expect(combined).toContain("desktop MCP");
+    expect(combined).toContain("Electron aplikace lokální MCP server nespouští");
     expect(combined).toContain("in-memory");
     expect(combined).not.toMatch(/\b(?:TODO|TBD|FIXME)\b/);
     expect(combined).not.toMatch(/(?:service[_-]?role|access[_-]?token)\s*[:=]\s*[A-Za-z0-9._-]{16,}/i);

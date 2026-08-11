@@ -67,18 +67,6 @@ export interface IpcContractMap {
   "session:clearCredentials": { args: []; result: void };
   "session:setBiometricEnabled": { args: [enabled: boolean]; result: void };
   "session:isBiometricEnabled": { args: []; result: boolean };
-  "mcp:setCurrentProject": { args: [projectId: string | null]; result: void };
-  "mcp:setAuthToken": { args: [token: string | null]; result: void };
-  "mcp:getStatus": {
-    args: [];
-    result: {
-      port: number | null;
-      sseUrl: string | null;
-      currentProjectId: string | null;
-      hasAuthToken: boolean;
-      isConfigured: boolean;
-    };
-  };
   "oauth:googleLogin": {
     args: [args: { clientId: string; scopes: string[] }];
     result: {

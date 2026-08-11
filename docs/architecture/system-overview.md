@@ -13,10 +13,10 @@ izolované adaptéry a Electron IPC.
 | --- | --- | --- |
 | Web SPA | `index.tsx` → `app/AppShell.tsx` | UI, navigace, React Query, browser integrace |
 | Electron renderer | stejný webový build | UI s bezpečně vystaveným `window.electronAPI` |
-| Electron main | `desktop/main/main.ts` | okna, IPC, soubory, secure storage, updater, MCP |
+| Electron main | `desktop/main/main.ts` | okna, IPC, soubory, secure storage a updater |
 | Node server | `server.js` | statické hostování a serverové pomocné endpointy |
 | Supabase | `supabase/` | Auth, Postgres, RLS, Storage, Realtime, RPC a Edge Functions |
-| MCP server | `server/mcp/` a desktop služba | omezené nástroje pro externí klienty a desktop |
+| MCP server | `server/mcp/` + `mcp-service/` | kanonické MCP 2.0 nástroje pro remote HTTP a stdio klienty |
 | Excel pomocné služby | `server/excel_tools_api/`, `server_py/` | merge/unlock a specializované zpracování souborů |
 
 ## Hlavní tok webové aplikace

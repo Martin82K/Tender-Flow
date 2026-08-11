@@ -44,6 +44,7 @@ a changelogu, dostane náhradu a migrační příklad. Běžná lhůta je nejmé
 12 měsíců, pokud aktivní zranitelnost nevyžaduje rychlejší revokaci. Bezpečnostní
 revokace musí mít incidentní záznam, dopad a bezpečnou alternativu.
 
-Legacy stateless compatibility a samostatný `desktop MCP` nejsou bezčasá
-garance. Jejich sjednocení nebo ukončení vyžaduje inventuru klientů, telemetrii
-bez PII, migrační plán a explicitní release note.
+Legacy stateless kompatibilita není bezčasá garance. Její ukončení vyžaduje
+inventuru klientů, telemetrii bez PII, migrační plán a explicitní release note.
+Starý lokální desktop server byl odstraněn 2026-08-11; nebyl součástí veřejného
+MCP 2.0 kontraktu.

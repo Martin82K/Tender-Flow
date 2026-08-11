@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
-import { startMcpServer } from './services/mcpServer';
 import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
 import { buildMainWindowWebPreferences } from './services/windowSecurity';
 import { ipcAuthGuard } from './services/ipcAuthGuard';
@@ -17,7 +16,6 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let mcpServerStop: (() => Promise<void>) | null = null;
 const hasSingleInstanceLock = configureSingleInstance(app, () => mainWindow);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -216,14 +214,6 @@ if (hasSingleInstanceLock) {
     app.whenReady().then(async () => {
         await registerIpcHandlers();
         createWindow();
-        startMcpServer()
-            .then(({ sseUrl, close }) => {
-                mcpServerStop = close;
-                console.log(`[MCP] Server running at ${sseUrl}`);
-            })
-            .catch((error) => {
-                console.error('[MCP] Failed to start server:', error);
-            });
 
         app.on('activate', () => {
             // macOS: re-create window when clicking dock icon
@@ -240,13 +230,6 @@ if (hasSingleInstanceLock) {
         // macOS: keep app running until Cmd+Q
         if (process.platform !== 'darwin') {
             app.quit();
-        }
-    });
-
-    app.on('before-quit', async () => {
-        if (mcpServerStop) {
-            await mcpServerStop();
-            mcpServerStop = null;
         }
     });
 

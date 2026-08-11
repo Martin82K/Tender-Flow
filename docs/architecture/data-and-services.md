@@ -86,10 +86,9 @@ mezi uživateli/projekty. Při logoutu nebo kritické auth invalidaci se cache �
 
 ## MCP
 
-MCP implementace existuje ve dvou formách:
-
-- `server/mcp/` pro Node/hosting scénáře,
-- `desktop/main/services/mcpServer.ts` pro desktop.
+Kanonická MCP implementace je v `server/mcp/`. Remote HTTP ji publikuje přes
+samostatný `mcp-service/` deployment a lokální stdio přes
+`scripts/mcp-stdio.js`. Electron aplikace lokální MCP server nespouští.
 
 Remote server používá MCP 2.0 / protokol `2026-07-28`: `server/discover`,
 per-request `_meta` a stateless Streamable HTTP bez serverové MCP session.

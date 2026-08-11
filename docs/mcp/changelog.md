@@ -3,6 +3,16 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-11 — odstranění lokálního desktop serveru
+
+- Electron už nespouští starý localhost HTTP/SSE MCP server a nevystavuje jeho
+  lifecycle ani stav přes IPC/preload,
+- renderer už neposílá běžný Supabase session token ani vybraný projekt do
+  Electron main procesu kvůli MCP,
+- kanonickým runtime zůstává MCP 2.0 v `server/mcp/`: remote HTTP přes
+  `mcp-service/` a explicitní stdio adaptér používají stejnou factory,
+  permission resolver, audit, rate limit a databázovou hranici.
+
 ## 2026-08-11 — oddělené first-party a OAuth session limity
 
 - běžné webové/desktopové přihlášení už nepočítá MCP OAuth session do limitu

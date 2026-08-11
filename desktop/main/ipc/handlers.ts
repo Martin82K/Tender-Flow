@@ -7,7 +7,6 @@ import { SecureStorageService } from '../services/secureStorage';
 import { cleanupRetiredDesktopFeatureStorage } from '../services/retiredFeatureStorage';
 import { resolvePortablePath } from '../services/portablePathResolver';
 import { registerFsHandlers } from './modules/fsHandlers';
-import { registerMcpHandlers } from './modules/mcpHandlers';
 import { registerNetHandlers } from './modules/netHandlers';
 import { registerOAuthHandlers } from './modules/oauthHandlers';
 import { registerSessionHandlers } from './modules/sessionHandlers';
@@ -181,7 +180,6 @@ export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<v
     registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth, grantedRootsStorage: storageService });
     registerWatcherHandlers({ resolvePortableReadPath, requireAuth });
     registerSessionHandlers({ storageService, requireAuth });
-    registerMcpHandlers({ requireAuth });
     registerOAuthHandlers({
         parseUrl: (rawUrl: string) => parseExternalUrl(rawUrl, { allowHttp: true }),
         isAllowedExternalUrl,

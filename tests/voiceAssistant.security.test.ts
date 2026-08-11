@@ -65,18 +65,6 @@ describe("voice assistant security defaults", () => {
     expect(source).not.toContain("audio_base64");
   });
 
-  it("desktop MCP nepublikuje zápisový create bid tool", () => {
-    const source = readFileSync(
-      join(process.cwd(), "desktop/main/services/mcpServer.ts"),
-      "utf8",
-    );
-
-    expect(source).toContain("tf_get_tender_winner");
-    expect(source).toContain("tf_get_contract_detail");
-    expect(source).toContain("Write tools are disabled in Tender Flow MCP v1.");
-    expect(source).not.toContain("name: 'tf_create_bid'");
-  });
-
   it("textová Viky používá samostatný textový model a stejné read-only nástroje", () => {
     const source = readFileSync(
       join(process.cwd(), "supabase/functions/viky-text-response/index.ts"),
