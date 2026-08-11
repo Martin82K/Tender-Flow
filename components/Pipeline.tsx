@@ -49,12 +49,15 @@ import {
 import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
 import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
-import { BidCard, Column } from "@features/projects/pipeline";
+import {
+  BidCard,
+  Column,
+  SubcontractorSelectorModal,
+} from "@features/projects/pipeline";
 import {
   EditBidModal,
   CategoryCard,
   CreateContactModal,
-  SubcontractorSelectorModal,
   PipelineOverview,
   CategoryFormModal,
 } from "./pipelineComponents";

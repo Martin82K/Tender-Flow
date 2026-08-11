@@ -46,7 +46,7 @@ vi.mock("@infra/files/fileSystemService", () => ({
   folderExists: vi.fn().mockResolvedValue(false),
 }));
 
-vi.mock("../components/pipelineComponents", () => {
+vi.mock("@features/projects/pipeline", () => {
   const dummy = () => null;
   const baseContact: Subcontractor = {
     id: "edit-contact",
@@ -62,10 +62,6 @@ vi.mock("../components/pipelineComponents", () => {
   return {
     Column: dummy,
     BidCard: dummy,
-    EditBidModal: dummy,
-    CategoryCard: dummy,
-    PipelineOverview: dummy,
-    CategoryFormModal: dummy,
     SubcontractorSelectorModal: ({
       onAddContact,
       onEditContact,
@@ -82,6 +78,17 @@ vi.mock("../components/pipelineComponents", () => {
         </button>
       </div>
     ),
+  };
+});
+
+vi.mock("../components/pipelineComponents", () => {
+  const dummy = () => null;
+
+  return {
+    EditBidModal: dummy,
+    CategoryCard: dummy,
+    PipelineOverview: dummy,
+    CategoryFormModal: dummy,
     CreateContactModal: ({
       initialData,
       onSave,
