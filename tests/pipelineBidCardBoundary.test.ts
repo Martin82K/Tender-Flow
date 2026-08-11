@@ -26,8 +26,8 @@ describe("Pipeline BidCard module boundary", () => {
   it("routes the Pipeline composition through the feature-owned BidCard", () => {
     const pipelineSource = read("components/Pipeline.tsx");
 
-    expect(pipelineSource).toContain(
-      'import { BidCard } from "@features/projects/pipeline";',
+    expect(pipelineSource).toMatch(
+      /import\s*{[^}]*\bBidCard\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
     );
   });
 
