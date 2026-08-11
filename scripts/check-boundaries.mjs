@@ -41,6 +41,7 @@ const extractSpecifiers = (content) => {
     /\bimport\s+(?:[^'"()]*?\s+from\s+)?['"]([^'"]+)['"]/g,
     /\bexport\s+[^'"]*?\s+from\s+['"]([^'"]+)['"]/g,
     /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\bimport\(\s*`([^`${}]+)`\s*\)/g,
   ];
 
   const specs = [];
@@ -71,12 +72,20 @@ const isUiLayer = (fileRel) =>
   fileRel.startsWith("hooks/") ||
   fileRel.startsWith("context/");
 
+const normalizeRepoPath = (repoPath) => {
+  const normalized = path.posix.normalize(toPosix(repoPath));
+  if (normalized === ".." || normalized.startsWith("../") || path.posix.isAbsolute(normalized)) {
+    return null;
+  }
+  return normalized.replace(/^\.\//, "");
+};
+
 const resolveToRepoPath = (spec, fileAbs) => {
-  if (spec.startsWith("@/")) return spec.slice(2);
-  if (spec.startsWith("@app/")) return `app/${spec.slice(5)}`;
-  if (spec.startsWith("@features/")) return `features/${spec.slice(10)}`;
-  if (spec.startsWith("@shared/")) return `shared/${spec.slice(8)}`;
-  if (spec.startsWith("@infra/")) return `infra/${spec.slice(7)}`;
+  if (spec.startsWith("@/")) return normalizeRepoPath(spec.slice(2));
+  if (spec.startsWith("@app/")) return normalizeRepoPath(`app/${spec.slice(5)}`);
+  if (spec.startsWith("@features/")) return normalizeRepoPath(`features/${spec.slice(10)}`);
+  if (spec.startsWith("@shared/")) return normalizeRepoPath(`shared/${spec.slice(8)}`);
+  if (spec.startsWith("@infra/")) return normalizeRepoPath(`infra/${spec.slice(7)}`);
 
   if (spec.startsWith("./") || spec.startsWith("../")) {
     const resolved = path.resolve(path.dirname(fileAbs), spec);

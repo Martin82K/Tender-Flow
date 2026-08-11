@@ -33,6 +33,57 @@ const collectFiles = (dir: string): string[] => {
 };
 
 describe("Architecture Guardrails", () => {
+  it("rejects template-literal and normalized alias bypasses of feature boundaries", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-feature-boundary-bypass-"));
+    const projectsDir = path.join(fixtureRoot, "features/projects");
+    const tasksDir = path.join(fixtureRoot, "features/tasks");
+    const configDir = path.join(fixtureRoot, "config");
+    const consumerPath = path.join(tasksDir, "consumer.ts");
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+
+    fs.mkdirSync(path.join(projectsDir, "model"), { recursive: true });
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(path.join(projectsDir, "index.ts"), 'export { value } from "./model/private";\n');
+    fs.writeFileSync(path.join(projectsDir, "model/private.ts"), "export const value = 1;\n");
+    fs.writeFileSync(
+      path.join(configDir, "architecture-boundary-allowlist.json"),
+      JSON.stringify({ allowedFindings: [] }),
+    );
+
+    const runBoundaryCheck = () =>
+      execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+
+    try {
+      fs.writeFileSync(consumerPath, "const load = () => import(`@features/projects/model/private`);\nvoid load;\n");
+      expect(runBoundaryCheck).toThrow(/feature-private-import/);
+
+      fs.writeFileSync(
+        consumerPath,
+        'import { value } from "@features/tasks/../projects/model/private";\nvoid value;\n',
+      );
+      expect(runBoundaryCheck).toThrow(/feature-private-import/);
+
+      fs.writeFileSync(
+        consumerPath,
+        "const load = () => import(`@/features/tasks/../projects/model/private`);\nvoid load;\n",
+      );
+      expect(runBoundaryCheck).toThrow(/feature-private-import/);
+
+      fs.writeFileSync(
+        consumerPath,
+        "const load = () => import(`@features/tasks/../projects`);\nvoid load;\n",
+      );
+      expect(runBoundaryCheck).not.toThrow();
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rejects private cross-feature imports while allowing public feature entrypoints", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-feature-boundary-"));
     const projectsDir = path.join(fixtureRoot, "features/projects");
