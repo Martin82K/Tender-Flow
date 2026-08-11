@@ -4,7 +4,7 @@ export interface SubcontractorRow {
   id: string;
   company_name: string;
   specialization?: string | string[] | null;
-  contacts?: ContactPerson[] | null;
+  contacts?: unknown;
   contact_person_name?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -30,6 +30,35 @@ export interface VendorRatingRow {
 
 const createContactPersonId = (): string => globalThis.crypto.randomUUID();
 
+const normalizeContactPersonText = (value: unknown): string =>
+  typeof value === "string" && value.length > 0 ? value : "-";
+
+const normalizeContactPeople = (
+  value: unknown,
+  createId: () => string,
+): ContactPerson[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry): ContactPerson[] => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const raw = entry as Record<string, unknown>;
+    const contact: ContactPerson = {
+      id:
+        typeof raw.id === "string" && raw.id.length > 0
+          ? raw.id
+          : createId(),
+      name: normalizeContactPersonText(raw.name),
+      phone: normalizeContactPersonText(raw.phone),
+      email: normalizeContactPersonText(raw.email),
+    };
+
+    if (typeof raw.position === "string" && raw.position.length > 0) {
+      contact.position = raw.position;
+    }
+    return [contact];
+  });
+};
+
 export const mapSubcontractorRows = (
   rows: readonly SubcontractorRow[],
   createId: () => string = createContactPersonId,
@@ -40,7 +69,7 @@ export const mapSubcontractorRows = (
       : row.specialization
         ? [row.specialization]
         : ["Ostatní"];
-    const existingContacts = Array.isArray(row.contacts) ? row.contacts : [];
+    const existingContacts = normalizeContactPeople(row.contacts, createId);
     const contacts =
       existingContacts.length === 0 &&
       (row.contact_person_name || row.phone || row.email)
