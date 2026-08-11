@@ -3,6 +3,16 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-11 — doménové moduly MCP 2.0
+
+- centrální server factory již neobsahuje business tool handlery a skládá
+  explicitní moduly discovery, projekty, VŘ, smlouvy, subdodavatelé, úkoly,
+  Outlook a potvrzované změny,
+- všechny moduly používají jediný core runtime pro permission policy, OAuth
+  security metadata, distribuovaný rate limit a redigovaný audit,
+- resources jsou vlastněné příslušnou doménou; remote HTTP a stdio dál používají
+  stejnou MCP 2.0 factory a nezměnil se veřejný katalog ani wire kontrakt.
+
 ## 2026-08-11 — odstranění lokálního desktop serveru
 
 - Electron už nespouští starý localhost HTTP/SSE MCP server a nevystavuje jeho
