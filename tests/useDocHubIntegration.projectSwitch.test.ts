@@ -137,6 +137,28 @@ describe("useDocHubIntegration project identity", () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
+  it("cancels the delayed resolve reset when the hook unmounts", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    const { result, unmount } = renderHook(() => useDocHubIntegration(project("project-1"), vi.fn(), {
+      userId: "owner-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.setters.setOnlineRootLinkDraft("http://invalid.example.com"));
+      await act(async () => result.current.actions.resolveRoot());
+      expect(vi.getTimerCount()).toBe(1);
+
+      unmount();
+
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not let an older personal-root load overwrite a newly saved root", async () => {
     let resolveOld: ((value: string) => void) | undefined;
     mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));

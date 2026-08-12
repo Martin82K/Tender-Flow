@@ -182,6 +182,7 @@ export const useDocHubIntegration = (
     // Refs
     const autoCreateTimerRef = useRef<number | null>(null);
     const autoCreatePollRef = useRef<number | null>(null);
+    const resolveResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Track what we've loaded to prevent re-loading from stale project updates
     const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
     const personalLocationLoadedRef = useRef(false);
@@ -196,6 +197,15 @@ export const useDocHubIntegration = (
         if (projectActionIdentityRef.current !== expectedIdentity) {
             throw new StaleDocHubActionError();
         }
+    }, []);
+    const scheduleResolveReset = useCallback((expectedIdentity: string) => {
+        if (resolveResetTimerRef.current) clearTimeout(resolveResetTimerRef.current);
+        resolveResetTimerRef.current = setTimeout(() => {
+            resolveResetTimerRef.current = null;
+            if (projectActionIdentityRef.current !== expectedIdentity) return;
+            setIsConnecting(false);
+            setResolveProgress(0);
+        }, 500);
     }, []);
 
     useEffect(() => {
@@ -344,6 +354,7 @@ export const useDocHubIntegration = (
         return () => {
             if (autoCreateTimerRef.current) window.clearInterval(autoCreateTimerRef.current);
             if (autoCreatePollRef.current) window.clearInterval(autoCreatePollRef.current);
+            if (resolveResetTimerRef.current) clearTimeout(resolveResetTimerRef.current);
         };
     }, []);
 
@@ -955,7 +966,7 @@ export const useDocHubIntegration = (
                 showMessage("Chyba", e.message || "Nelze ověřit složku", "danger");
                 setResolveProgress(0);
             } finally {
-                setTimeout(() => { setIsConnecting(false); setResolveProgress(0); }, 500);
+                scheduleResolveReset(actionIdentity);
             }
             return;
         }
@@ -995,9 +1006,9 @@ export const useDocHubIntegration = (
             setResolveProgress(0);
         } finally {
             // Keep loading state briefly for UI effect
-            setTimeout(() => { setIsConnecting(false); setResolveProgress(0); }, 500);
+            scheduleResolveReset(actionIdentity);
         }
-    }, [canManageGlobal, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, showMessage, onUpdate]);
+    }, [canManageGlobal, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, scheduleResolveReset, showMessage, onUpdate]);
 
     const pickLocalFolder = useCallback(async () => {
         const actionIdentity = projectActionIdentityRef.current;
