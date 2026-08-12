@@ -105,20 +105,24 @@ describe("DocHub shared cloud links", () => {
   });
 
   it("hydrates a shared-user cache miss read-only from owner storage using database names", () => {
-    const source = fs.readFileSync(
+    const handlerSource = fs.readFileSync(
       path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
       "utf8",
     );
+    const recoverySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/sharedFolderRecovery.ts"),
+      "utf8",
+    );
 
-    expect(source).toContain("resolveSharedFolderLink");
-    expect(source).toContain("ownerId: project.owner_id");
-    expect(source).toContain("userId: args.ownerId");
-    expect(source).toContain('.from("demand_categories")');
-    expect(source).toContain('.from("subcontractors")');
-    expect(source).toContain("findGoogleFolder");
-    expect(source).toContain("findMicrosoftFolder");
-    expect(source).not.toContain("name: categoryTitle,\n        readOnly: true");
-    expect(source).not.toContain("name: supplierName,\n        readOnly: true");
+    expect(handlerSource).toContain("resolveSharedFolderLink");
+    expect(handlerSource).toContain("ownerId: project.owner_id");
+    expect(recoverySource).toContain("userId: args.ownerId");
+    expect(recoverySource).toContain('.from("demand_categories")');
+    expect(recoverySource).toContain('.from("subcontractors")');
+    expect(recoverySource).toContain("findGoogleFolder");
+    expect(recoverySource).toContain("findMicrosoftFolder");
+    expect(recoverySource).not.toContain("categoryTitle?:");
+    expect(recoverySource).not.toContain("supplierName?:");
   });
 
   it("requires project ownership in every authenticated global mutation endpoint", () => {

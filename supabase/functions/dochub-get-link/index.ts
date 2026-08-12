@@ -3,14 +3,13 @@ import { createAuthedUserClient, createServiceClient } from "../_shared/supabase
 import { getAccessTokenForUser } from "../_shared/tokens.ts";
 import { resolveCloudDocHubConnection } from "../_shared/dochub_connection.ts";
 import {
-  findGoogleFolder,
-  findMicrosoftFolder,
   findOrCreateGoogleFolder,
   findOrCreateMicrosoftFolder,
   getStructure,
   getTenderFolderName,
   type Provider,
 } from "../_shared/dochub_providers.ts";
+import { resolveSharedFolderLink } from "./sharedFolderRecovery.ts";
 
 type LinkKind =
   | "pd"
@@ -104,182 +103,6 @@ const getCachedFolderForRequest = async (args: {
     key = `${categoryId}:${supplierId}`;
   }
   return getStoredFolder({ ...args, key });
-};
-
-type ResolvedFolder = {
-  item_id: string;
-  drive_id: string | null;
-  web_url: string;
-};
-
-const findExistingFolder = async (args: {
-  provider: Provider;
-  accessToken: string;
-  driveId?: string | null;
-  parentId: string;
-  name: string;
-  appProperties?: Record<string, string>;
-}): Promise<ResolvedFolder | null> => {
-  if (args.provider === "gdrive") {
-    const folder = await findGoogleFolder({
-      accessToken: args.accessToken,
-      parentId: args.parentId,
-      name: args.name,
-      appProperties: args.appProperties,
-    });
-    return folder
-      ? { item_id: folder.id, drive_id: null, web_url: folder.webViewLink }
-      : null;
-  }
-
-  if (!args.driveId) return null;
-  const folder = await findMicrosoftFolder({
-    accessToken: args.accessToken,
-    driveId: args.driveId,
-    parentId: args.parentId,
-    name: args.name,
-  });
-  return folder
-    ? { item_id: folder.id, drive_id: args.driveId, web_url: folder.webUrl }
-    : null;
-};
-
-const cacheResolvedFolder = async (args: {
-  projectId: string;
-  rootId: string;
-  provider: Provider;
-  kind: string;
-  key: string | null;
-  folder: ResolvedFolder;
-}) => {
-  await upsertFolder({
-    projectId: args.projectId,
-    rootId: args.rootId,
-    provider: args.provider,
-    kind: args.kind,
-    key: args.key,
-    itemId: args.folder.item_id,
-    driveId: args.folder.drive_id,
-    webUrl: args.folder.web_url,
-  });
-};
-
-const resolveSharedFolderLink = async (args: {
-  projectId: string;
-  ownerId: string;
-  provider: Provider;
-  rootId: string;
-  driveId?: string | null;
-  kind: LinkKind;
-  categoryId?: string | null;
-  supplierId?: string | null;
-  structure: ReturnType<typeof getStructure>;
-}): Promise<ResolvedFolder | null> => {
-  if (!["tender", "tender_inquiries", "supplier"].includes(args.kind) || !args.categoryId) {
-    return null;
-  }
-
-  const service = createServiceClient();
-  const { data: category } = await service
-    .from("demand_categories")
-    .select("id,title")
-    .eq("id", args.categoryId)
-    .eq("project_id", args.projectId)
-    .maybeSingle();
-  if (!category?.id || typeof category.title !== "string") return null;
-
-  let supplierName: string | null = null;
-  if (args.kind === "supplier") {
-    if (!args.supplierId) return null;
-    const { data: bid } = await service
-      .from("bids")
-      .select("subcontractor_id")
-      .eq("category_id", args.categoryId)
-      .eq("subcontractor_id", args.supplierId)
-      .limit(1)
-      .maybeSingle();
-    if (!bid?.subcontractor_id) return null;
-    const { data: supplier } = await service
-      .from("subcontractors")
-      .select("company_name")
-      .eq("id", bid.subcontractor_id)
-      .maybeSingle();
-    if (typeof supplier?.company_name !== "string" || !supplier.company_name.trim()) return null;
-    supplierName = supplier.company_name;
-  }
-
-  const { accessToken } = await getAccessTokenForUser({
-    userId: args.ownerId,
-    provider: args.provider,
-  });
-  const find = (parentId: string, name: string, appProperties?: Record<string, string>) =>
-    findExistingFolder({
-      provider: args.provider,
-      accessToken,
-      driveId: args.driveId,
-      parentId,
-      name,
-      appProperties,
-    });
-
-  const tendersFolder = await find(args.rootId, args.structure.tenders, {
-    dochubProjectId: args.projectId,
-    dochubKind: "tenders",
-  });
-  if (!tendersFolder) return null;
-  await cacheResolvedFolder({ ...args, kind: "tenders", key: null, folder: tendersFolder });
-
-  const tenderFolder = await find(
-    tendersFolder.item_id,
-    getTenderFolderName(category.title),
-    {
-      dochubProjectId: args.projectId,
-      dochubKind: "tender",
-      dochubKey: args.categoryId,
-    },
-  );
-  if (!tenderFolder) return null;
-  await cacheResolvedFolder({
-    ...args,
-    kind: "tender",
-    key: args.categoryId,
-    folder: tenderFolder,
-  });
-  if (args.kind === "tender") return tenderFolder;
-
-  const inquiriesKey = `${args.categoryId}:inquiries`;
-  const inquiriesFolder = await find(tenderFolder.item_id, args.structure.tendersInquiries, {
-    dochubProjectId: args.projectId,
-    dochubKind: "tender_inquiries",
-    dochubKey: inquiriesKey,
-  });
-  if (!inquiriesFolder) return null;
-  await cacheResolvedFolder({
-    ...args,
-    kind: "tender_inquiries",
-    key: inquiriesKey,
-    folder: inquiriesFolder,
-  });
-  if (args.kind === "tender_inquiries") return inquiriesFolder;
-
-  const supplierKey = `${args.categoryId}:${args.supplierId}`;
-  const supplierFolder = await find(
-    inquiriesFolder.item_id,
-    getTenderFolderName(supplierName || ""),
-    {
-      dochubProjectId: args.projectId,
-      dochubKind: "supplier",
-      dochubKey: supplierKey,
-    },
-  );
-  if (!supplierFolder) return null;
-  await cacheResolvedFolder({
-    ...args,
-    kind: "supplier",
-    key: supplierKey,
-    folder: supplierFolder,
-  });
-  return supplierFolder;
 };
 
 const ensureProjectFolder = async (args: {
@@ -556,14 +379,20 @@ Deno.serve(async (req) => {
 
     const structure = getStructure((project.dochub_structure_v1 as any) || null);
     if (!isProjectOwner) {
-      if (!project.owner_id) return json(req, 404, { error: "Folder link not available" });
+      if (
+        !project.owner_id ||
+        !categoryId ||
+        !["tender", "tender_inquiries", "supplier"].includes(kind)
+      ) {
+        return json(req, 404, { error: "Folder link not available" });
+      }
       const sharedFolder = await resolveSharedFolderLink({
         projectId,
         ownerId: project.owner_id,
         provider,
         rootId,
         driveId,
-        kind,
+        kind: kind as "tender" | "tender_inquiries" | "supplier",
         categoryId,
         supplierId,
         structure,
