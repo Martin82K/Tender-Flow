@@ -9,6 +9,9 @@ describe("Pipeline contact modal boundary", () => {
   it("vlastní modal ve feature modulu", () => {
     const featureIndex = readSource("features/projects/pipeline/index.ts");
     const pipeline = readSource("components/Pipeline.tsx");
+    const contactModals = readSource(
+      "features/projects/pipeline/ui/PipelineContactModals.tsx",
+    );
 
     expect(featureIndex).toContain(
       'export { CreateContactModal } from "./ui/CreateContactModal"',
@@ -16,8 +19,14 @@ describe("Pipeline contact modal boundary", () => {
     expect(featureIndex).toContain(
       'export type { CreateContactModalProps } from "./ui/CreateContactModal"',
     );
-    expect(pipeline).toMatch(
-      /import \{[\s\S]*CreateContactModal[\s\S]*\} from "@features\/projects\/pipeline"/,
+    expect(featureIndex).toContain(
+      'export { PipelineContactModals } from "./ui/PipelineContactModals"',
     );
+    expect(pipeline).toContain("PipelineContactModals,");
+    expect(pipeline).not.toContain("<CreateContactModal");
+    expect(contactModals).toContain(
+      'import { CreateContactModal } from "./CreateContactModal"',
+    );
+    expect(contactModals).toContain("<CreateContactModal");
   });
 });
