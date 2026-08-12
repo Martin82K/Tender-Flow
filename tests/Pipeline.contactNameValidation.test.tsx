@@ -107,6 +107,7 @@ vi.mock("@features/projects/pipeline", () => {
         </button>
       </div>
     ),
+    EditBidModal: dummy,
   };
 });
 
@@ -114,7 +115,6 @@ vi.mock("../components/pipelineComponents", () => {
   const dummy = () => null;
 
   return {
-    EditBidModal: dummy,
     CategoryCard: dummy,
   };
 });

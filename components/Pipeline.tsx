@@ -49,14 +49,12 @@ import {
   CategoryFormModal,
   CategoryCard,
   CreateContactModal,
+  EditBidModal,
   PipelineDetailToolbar,
   PipelineKanbanBoard,
   PipelineOverview,
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
-import {
-  EditBidModal,
-} from "./pipelineComponents";
 
 // --- Components ---
 // All reusable components are now imported from pipelineComponents
