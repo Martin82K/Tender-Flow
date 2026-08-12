@@ -104,6 +104,57 @@ describe("DocHub shared cloud links", () => {
     expect(ensureIndex).toBeGreaterThan(cachedReturnIndex);
   });
 
+  it("hydrates a shared-user cache miss read-only from owner storage using database names", () => {
+    const handlerSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const recoverySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/sharedFolderRecovery.ts"),
+      "utf8",
+    );
+
+    expect(handlerSource).toContain("resolveSharedFolderLink");
+    expect(handlerSource).toContain("ownerId: project.owner_id");
+    expect(recoverySource).toContain("userId: args.ownerId");
+    expect(recoverySource).toContain('.from("demand_categories")');
+    expect(recoverySource).toContain('.from("subcontractors")');
+    expect(recoverySource).toContain('.eq("demand_category_id", categoryId)');
+    expect(recoverySource).toContain('.select("subcontractor_id,company_name")');
+    expect(recoverySource).toContain("findGoogleFolder");
+    expect(recoverySource).toContain("findMicrosoftFolder");
+    expect(recoverySource).not.toContain("categoryTitle?:");
+    expect(recoverySource).not.toContain("supplierName?:");
+  });
+
+  it("recovers every top-level shared folder without requiring a category", () => {
+    const handlerSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const recoverySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/sharedFolderRecovery.ts"),
+      "utf8",
+    );
+
+    expect(handlerSource).toContain("SHARED_RECOVERABLE_KINDS.includes(kind)");
+    expect(recoverySource).toContain("getBaseSharedFolderName(args.kind, args.structure)");
+    expect(recoverySource).toContain("if (baseFolderName)");
+    expect(recoverySource.indexOf("if (baseFolderName)")).toBeLessThan(
+      recoverySource.indexOf('.from("demand_categories")'),
+    );
+  });
+
+  it("recovers the legacy Google inquiry identity before returning 404", () => {
+    const recoverySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/sharedFolderRecovery.ts"),
+      "utf8",
+    );
+
+    expect(recoverySource).toContain("const inquiryKeys = getInquiryIdentityKeys");
+    expect(recoverySource).toContain("for (const inquiryKey of inquiryKeys)");
+  });
+
   it("requires project ownership in every authenticated global mutation endpoint", () => {
     const endpoints = [
       "dochub-auth-url",

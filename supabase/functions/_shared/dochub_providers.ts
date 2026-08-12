@@ -91,6 +91,66 @@ export const getGoogleFolderMeta = async (args: {
   return { id: json.id, name: json.name, webViewLink: json.webViewLink, driveId: json.driveId };
 };
 
+export const findGoogleFolder = async (args: {
+  accessToken: string;
+  parentId: string;
+  name: string;
+  appProperties?: Record<string, string> | null;
+}): Promise<{ id: string; name: string; webViewLink: string } | null> => {
+  const escapeQueryString = (value: string) => value.replace(/'/g, "\\'");
+  const appProps = args.appProperties || null;
+  const appQuery = appProps && Object.keys(appProps).length > 0
+    ? Object.entries(appProps)
+      .filter(([, value]) => value.length > 0)
+      .map(([key, value]) =>
+        `appProperties has { key='${escapeQueryString(key)}' and value='${escapeQueryString(value)}' }`
+      )
+      .join(" and ")
+    : null;
+  const nameQuery = `name='${escapeQueryString(args.name)}'`;
+  const query = [
+    "mimeType='application/vnd.google-apps.folder'",
+    `'${escapeQueryString(args.parentId)}' in parents`,
+    "trashed=false",
+    appQuery ? `(${appQuery} or ${nameQuery})` : nameQuery,
+  ].join(" and ");
+  const url = new URL(`${googleApi}/files`);
+  url.searchParams.set("supportsAllDrives", "true");
+  url.searchParams.set("includeItemsFromAllDrives", "true");
+  url.searchParams.set("corpora", "allDrives");
+  url.searchParams.set("q", query);
+  url.searchParams.set("pageSize", "10");
+  url.searchParams.set("orderBy", "createdTime");
+  url.searchParams.set("fields", "nextPageToken,files(id,name,webViewLink,createdTime,appProperties)");
+
+  let pageToken = "";
+  const legacyNameMatches: Array<{ id: string; name: string; webViewLink: string }> = [];
+  for (let page = 0; page < 100; page += 1) {
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${args.accessToken}` } });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
+    const folders = (json.files || []) as Array<{
+      id: string;
+      name: string;
+      webViewLink: string;
+      appProperties?: Record<string, string>;
+    }>;
+    if (!appProps && folders[0]) return folders[0];
+    legacyNameMatches.push(...folders.filter((folder) => {
+      const properties = folder.appProperties || {};
+      return !["dochubProjectId", "dochubKind", "dochubKey"].some((key) => key in properties);
+    }));
+    const stableMatch = folders.find((folder) =>
+      Object.entries(appProps || {}).every(([key, value]) => folder.appProperties?.[key] === value)
+    );
+    if (stableMatch) return stableMatch;
+    pageToken = typeof json.nextPageToken === "string" ? json.nextPageToken : "";
+    if (!pageToken) return legacyNameMatches.length === 1 ? legacyNameMatches[0] : null;
+  }
+  throw new Error("Drive pagination limit exceeded");
+};
+
 export const findOrCreateGoogleFolder = async (args: {
   accessToken: string;
   parentId: string;
@@ -236,6 +296,39 @@ export const findOrCreateMicrosoftFolder = async (args: {
     throw new Error(createJson?.error?.message || "Graph create failed");
   }
   return { id: createJson.id, name: createJson.name, webUrl: createJson.webUrl, created: true, duplicatesFound: 0 };
+};
+
+export const findMicrosoftFolder = async (args: {
+  accessToken: string;
+  driveId: string;
+  parentId: string;
+  name: string;
+}): Promise<{ id: string; name: string; webUrl: string } | null> => {
+  let pageUrl = `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
+    args.parentId
+  )}/children?$select=id,name,webUrl,folder&$top=200`;
+
+  for (let page = 0; page < 100 && pageUrl; page += 1) {
+    const parsedPageUrl = new URL(pageUrl);
+    if (parsedPageUrl.origin !== "https://graph.microsoft.com" || !parsedPageUrl.pathname.startsWith("/v1.0/")) {
+      throw new Error("Unsafe Graph pagination URL");
+    }
+    const res = await fetch(parsedPageUrl, {
+      headers: { Authorization: `Bearer ${args.accessToken}` },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || "Graph list failed");
+    const folder = ((json.value || []) as Array<{
+      id: string;
+      name: string;
+      webUrl: string;
+      folder?: unknown;
+    }>).find((item) => item.folder && item.name === args.name);
+    if (folder) return folder;
+    pageUrl = typeof json["@odata.nextLink"] === "string" ? json["@odata.nextLink"] : "";
+  }
+  if (pageUrl) throw new Error("Graph pagination limit exceeded");
+  return null;
 };
 
 export const getTenderFolderName = (title: string): string => slugifyDocHubSegment(title);
