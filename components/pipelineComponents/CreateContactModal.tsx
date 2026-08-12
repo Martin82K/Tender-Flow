@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useMemo } from "react";
-import type { ContactPerson, StatusConfig, Subcontractor } from "../../types";
+import type { StatusConfig, Subcontractor } from "../../types";
 import { CZ_REGIONS, DEFAULT_STATUSES } from "../../config/constants";
 import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
 import { AutocompleteInput } from "../../shared/ui/AutocompleteInput";
@@ -17,6 +17,7 @@ import { formatDecimal } from "../../utils/formatters";
 import { findCompanyRegistrationDetails } from "../../services/geminiService";
 import { shellAdapter, isDesktop } from "../../services/platformAdapter";
 import { PipelineRegistryLinks } from "@features/projects/pipeline/ui/PipelineRegistryLinks";
+import { PipelineContactPersonsEditor } from "@features/projects/pipeline/ui/PipelineContactPersonsEditor";
 import {
     createPipelineContactFormState,
     isBlankRegistrationValue,
@@ -84,36 +85,6 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
         setFormData(prev => ({
             ...prev,
             specialization: (prev.specialization || []).filter(s => s !== spec),
-        }));
-    };
-
-    const handleAddContactPerson = () => {
-        const newContact: ContactPerson = {
-            id: crypto.randomUUID(),
-            name: "",
-            phone: "",
-            email: "",
-            position: "",
-        };
-        setFormData(prev => ({
-            ...prev,
-            contacts: [...(prev.contacts || []), newContact],
-        }));
-    };
-
-    const handleRemoveContactPerson = (id: string) => {
-        setFormData(prev => ({
-            ...prev,
-            contacts: (prev.contacts || []).filter(c => c.id !== id),
-        }));
-    };
-
-    const handleUpdateContactPerson = (id: string, updates: Partial<ContactPerson>) => {
-        setFormData(prev => ({
-            ...prev,
-            contacts: (prev.contacts || []).map(c =>
-                c.id === id ? { ...c, ...updates } : c,
-            ),
         }));
     };
 
@@ -570,130 +541,13 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                             <PipelineRegistryLinks ico={formData.ico} />
 
                             {/* Kontaktní osoby */}
-                            <div className="col-span-2 mt-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                                        Kontaktní osoby
-                                    </h4>
-                                    <button
-                                        type="button"
-                                        onClick={handleAddContactPerson}
-                                        className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-[16px]">
-                                            add
-                                        </span>
-                                        Přidat osobu
-                                    </button>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {contactPersons.map(contact => (
-                                        <div
-                                            key={contact.id}
-                                            className="relative p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 group"
-                                        >
-                                            {contactPersons.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleRemoveContactPerson(contact.id)
-                                                    }
-                                                    className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">
-                                                        delete
-                                                    </span>
-                                                </button>
-                                            )}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                                                        Jméno
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={contact.name}
-                                                        onChange={e =>
-                                                            handleUpdateContactPerson(contact.id, {
-                                                                name: e.target.value,
-                                                            })
-                                                        }
-                                                        onKeyDown={e => e.stopPropagation()}
-                                                        className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                        placeholder="Jméno a Příjmení"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                                                        Pozice
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={contact.position || ""}
-                                                        onChange={e =>
-                                                            handleUpdateContactPerson(contact.id, {
-                                                                position: e.target.value,
-                                                            })
-                                                        }
-                                                        onKeyDown={e => e.stopPropagation()}
-                                                        className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                        placeholder="Např. Obchodní zástupce"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                                                        Telefon
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={contact.phone}
-                                                        onChange={e =>
-                                                            handleUpdateContactPerson(contact.id, {
-                                                                phone: e.target.value,
-                                                            })
-                                                        }
-                                                        onKeyDown={e => e.stopPropagation()}
-                                                        className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                        placeholder="+420 ..."
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                                                        Email
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        value={contact.email}
-                                                        onChange={e =>
-                                                            handleUpdateContactPerson(contact.id, {
-                                                                email: e.target.value,
-                                                            })
-                                                        }
-                                                        onKeyDown={e => e.stopPropagation()}
-                                                        className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
-                                                        placeholder="email@example.com"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {contactPersons.length === 0 && (
-                                        <div className="text-center py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                                            <p className="text-sm text-slate-500">
-                                                Žádné kontaktní osoby nebyly přidány.
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={handleAddContactPerson}
-                                                className="mt-2 text-xs font-bold text-primary"
-                                            >
-                                                Přidat první osobu
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <PipelineContactPersonsEditor
+                                contacts={contactPersons}
+                                onChange={contacts =>
+                                    setFormData(prev => ({ ...prev, contacts }))
+                                }
+                                createId={() => crypto.randomUUID()}
+                            />
 
                             {/* Hodnocení + Stav */}
                             <div className="col-span-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">

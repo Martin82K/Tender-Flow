@@ -132,6 +132,9 @@ nezávislých větví UI.
 - Odkazy kontaktního formuláře do ARES, RŽP a RES vlastní feature komponenta
   `features/projects/pipeline/ui/PipelineRegistryLinks.tsx`, včetně bezpečné
   desktop/web navigace a kódování hodnot query.
+- Řízený editor kontaktních osob je izolovaný v
+  `features/projects/pipeline/ui/PipelineContactPersonsEditor.tsx`; modal nadále
+  vlastní formulářový stav a editor pouze vrací nový seznam osob.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
