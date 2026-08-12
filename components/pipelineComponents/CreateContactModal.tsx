@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { Subcontractor, StatusConfig, ContactPerson } from "../../types";
+import type { ContactPerson, StatusConfig, Subcontractor } from "../../types";
 import { CZ_REGIONS, DEFAULT_STATUSES } from "../../config/constants";
 import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
 import { AutocompleteInput } from "../../shared/ui/AutocompleteInput";
@@ -16,6 +16,12 @@ import { StarRating } from "../../shared/ui/StarRating";
 import { formatDecimal } from "../../utils/formatters";
 import { findCompanyRegistrationDetails } from "../../services/geminiService";
 import { shellAdapter, isDesktop } from "../../services/platformAdapter";
+import {
+    createPipelineContactFormState,
+    isBlankRegistrationValue,
+    mergeRegistrationDetails,
+    type PipelineContactFormState,
+} from "@features/projects/pipeline/model/pipelineContactFormModel";
 
 export interface CreateContactModalProps {
     initialName: string;
@@ -25,60 +31,6 @@ export interface CreateContactModalProps {
     onClose: () => void;
     onSave: (contact: Subcontractor) => void;
 }
-
-type FormState = Partial<Subcontractor> & { specializationRaw?: string };
-
-const BLANK_LOOKUP_VALUES = new Set(["", "-", "–", "—", "―"]);
-const isBlankLookupValue = (value?: string | null): boolean => {
-    if (!value) return true;
-    return BLANK_LOOKUP_VALUES.has(value.trim().toLowerCase());
-};
-
-const createInitialFormState = (
-    initialData: Subcontractor | undefined,
-    initialName: string,
-): FormState => {
-    if (initialData) {
-        return {
-            ...initialData,
-            specializationRaw: "",
-            contacts:
-                initialData.contacts && initialData.contacts.length > 0
-                    ? initialData.contacts
-                    : [
-                          {
-                              id: crypto.randomUUID(),
-                              name: "",
-                              phone: "",
-                              email: "",
-                              position: "Hlavní kontakt",
-                          },
-                      ],
-        };
-    }
-    return {
-        company: initialName,
-        specialization: [],
-        specializationRaw: "",
-        contacts: [
-            {
-                id: crypto.randomUUID(),
-                name: "",
-                phone: "",
-                email: "",
-                position: "Hlavní kontakt",
-            },
-        ],
-        ico: "",
-        region: "",
-        address: "",
-        city: "",
-        web: "",
-        note: "",
-        regions: [],
-        status: "available",
-    };
-};
 
 export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     initialName,
@@ -90,8 +42,8 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
 }) => {
     const safeStatuses = statuses && statuses.length > 0 ? statuses : DEFAULT_STATUSES;
 
-    const [formData, setFormData] = useState<FormState>(() =>
-        createInitialFormState(initialData, initialName),
+    const [formData, setFormData] = useState<PipelineContactFormState>(() =>
+        createPipelineContactFormState(initialData, initialName, () => crypto.randomUUID()),
     );
     const [lookupLoading, setLookupLoading] = useState(false);
     const [lookupMessage, setLookupMessage] = useState<{
@@ -205,7 +157,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     ) => {
         const { overwriteExisting = false, showNoResultMessage = false } = options;
 
-        if (!formData.ico || isBlankLookupValue(formData.ico)) {
+        if (!formData.ico || isBlankRegistrationValue(formData.ico)) {
             if (showNoResultMessage) {
                 setLookupMessage({
                     kind: "error",
@@ -238,24 +190,9 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                 return;
             }
 
-            setFormData(prev => ({
-                ...prev,
-                region:
-                    registration.region &&
-                    (overwriteExisting || isBlankLookupValue(prev.region))
-                        ? registration.region
-                        : prev.region,
-                address:
-                    registration.address &&
-                    (overwriteExisting || isBlankLookupValue(prev.address))
-                        ? registration.address
-                        : prev.address,
-                city:
-                    registration.city &&
-                    (overwriteExisting || isBlankLookupValue(prev.city))
-                        ? registration.city
-                        : prev.city,
-            }));
+            setFormData(prev =>
+                mergeRegistrationDetails(prev, registration, overwriteExisting),
+            );
             setLookupMessage({
                 kind: "info",
                 text: "Registrační údaje byly dohledány.",
@@ -425,9 +362,9 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                         }
                                         onBlur={() => {
                                             if (
-                                                isBlankLookupValue(formData.region) ||
-                                                isBlankLookupValue(formData.address) ||
-                                                isBlankLookupValue(formData.city)
+                                                isBlankRegistrationValue(formData.region) ||
+                                                isBlankRegistrationValue(formData.address) ||
+                                                isBlankRegistrationValue(formData.city)
                                             ) {
                                                 void handleLookupRegistration({
                                                     overwriteExisting: false,
@@ -643,7 +580,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                             </div>
 
                             {/* Rejstříky */}
-                            {formData.ico && !isBlankLookupValue(formData.ico) && (
+                            {formData.ico && !isBlankRegistrationValue(formData.ico) && (
                                 <div className="col-span-2 flex items-center gap-1.5">
                                     <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-1">
                                         Rejstříky:

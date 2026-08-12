@@ -126,6 +126,9 @@ nezávislých větví UI.
   `features/projects/pipeline/index.ts`; původní cesta v
   `components/pipelineComponents/` je pouze kompatibilní re-export pro legacy
   konzumenty.
+- Čistá inicializace a ARES merge pravidla kontaktního formuláře Pipeline jsou
+  v `features/projects/pipeline/model/pipelineContactFormModel.ts`; modal drží
+  pouze UI stav a orchestrace lookupu.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
