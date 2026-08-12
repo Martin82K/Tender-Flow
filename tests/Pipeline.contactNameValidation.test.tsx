@@ -63,6 +63,31 @@ vi.mock("@features/projects/pipeline", () => {
     Column: dummy,
     BidCard: dummy,
     PipelineOverview: dummy,
+    CreateContactModal: ({
+      initialData,
+      onSave,
+    }: {
+      initialData?: Subcontractor;
+      onSave: (contact: Subcontractor) => void;
+    }) => (
+      <button
+        data-testid={initialData ? "save-invalid-edit" : "save-invalid-create"}
+        onClick={() =>
+          onSave({
+            id: initialData?.id || "new-contact",
+            company: "CON",
+            specialization: ["Elektro"],
+            contacts: [{ id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" }],
+            status: "available",
+            name: "Kontakt",
+            email: "x@y.cz",
+            phone: "123",
+          })
+        }
+      >
+        save
+      </button>
+    ),
     SubcontractorSelectorModal: ({
       onAddContact,
       onEditContact,
@@ -89,31 +114,6 @@ vi.mock("../components/pipelineComponents", () => {
     EditBidModal: dummy,
     CategoryCard: dummy,
     CategoryFormModal: dummy,
-    CreateContactModal: ({
-      initialData,
-      onSave,
-    }: {
-      initialData?: Subcontractor;
-      onSave: (contact: Subcontractor) => void;
-    }) => (
-      <button
-        data-testid={initialData ? "save-invalid-edit" : "save-invalid-create"}
-        onClick={() =>
-          onSave({
-            id: initialData?.id || "new-contact",
-            company: "CON",
-            specialization: ["Elektro"],
-            contacts: [{ id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" }],
-            status: "available",
-            name: "Kontakt",
-            email: "x@y.cz",
-            phone: "123",
-          })
-        }
-      >
-        save
-      </button>
-    ),
   };
 });
 
