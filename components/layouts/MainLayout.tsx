@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Sidebar } from '../Sidebar';
-import { ConfirmationModal } from '../ConfirmationModal';
+import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { AccountMenuProvider } from '@/shared/ui/AccountMenuContext';
