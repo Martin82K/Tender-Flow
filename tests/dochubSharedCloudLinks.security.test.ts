@@ -119,6 +119,8 @@ describe("DocHub shared cloud links", () => {
     expect(recoverySource).toContain("userId: args.ownerId");
     expect(recoverySource).toContain('.from("demand_categories")');
     expect(recoverySource).toContain('.from("subcontractors")');
+    expect(recoverySource).toContain('.eq("demand_category_id", args.categoryId)');
+    expect(recoverySource).toContain('.select("subcontractor_id,company_name")');
     expect(recoverySource).toContain("findGoogleFolder");
     expect(recoverySource).toContain("findMicrosoftFolder");
     expect(recoverySource).not.toContain("categoryTitle?:");

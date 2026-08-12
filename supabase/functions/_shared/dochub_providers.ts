@@ -292,20 +292,31 @@ export const findMicrosoftFolder = async (args: {
   parentId: string;
   name: string;
 }): Promise<{ id: string; name: string; webUrl: string } | null> => {
-  const res = await fetch(
-    `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
-      args.parentId
-    )}/children?$select=id,name,webUrl,folder&$top=200`,
-    { headers: { Authorization: `Bearer ${args.accessToken}` } },
-  );
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error?.message || "Graph list failed");
-  return ((json.value || []) as Array<{
-    id: string;
-    name: string;
-    webUrl: string;
-    folder?: unknown;
-  }>).find((item) => item.folder && item.name === args.name) || null;
+  let pageUrl = `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
+    args.parentId
+  )}/children?$select=id,name,webUrl,folder&$top=200`;
+
+  for (let page = 0; page < 100 && pageUrl; page += 1) {
+    const parsedPageUrl = new URL(pageUrl);
+    if (parsedPageUrl.origin !== "https://graph.microsoft.com" || !parsedPageUrl.pathname.startsWith("/v1.0/")) {
+      throw new Error("Unsafe Graph pagination URL");
+    }
+    const res = await fetch(parsedPageUrl, {
+      headers: { Authorization: `Bearer ${args.accessToken}` },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || "Graph list failed");
+    const folder = ((json.value || []) as Array<{
+      id: string;
+      name: string;
+      webUrl: string;
+      folder?: unknown;
+    }>).find((item) => item.folder && item.name === args.name);
+    if (folder) return folder;
+    pageUrl = typeof json["@odata.nextLink"] === "string" ? json["@odata.nextLink"] : "";
+  }
+  if (pageUrl) throw new Error("Graph pagination limit exceeded");
+  return null;
 };
 
 export const getTenderFolderName = (title: string): string => slugifyDocHubSegment(title);

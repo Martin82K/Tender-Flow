@@ -89,13 +89,13 @@ export const resolveSharedFolderLink = async (args: {
     .maybeSingle();
   if (!category?.id || typeof category.title !== "string") return null;
 
-  let supplierName: string | null = null;
+  const supplierFolderNames: string[] = [];
   if (args.kind === "supplier") {
     if (!args.supplierId) return null;
     const { data: bid } = await service
       .from("bids")
-      .select("subcontractor_id")
-      .eq("category_id", args.categoryId)
+      .select("subcontractor_id,company_name")
+      .eq("demand_category_id", args.categoryId)
       .eq("subcontractor_id", args.supplierId)
       .limit(1)
       .maybeSingle();
@@ -106,7 +106,10 @@ export const resolveSharedFolderLink = async (args: {
       .eq("id", bid.subcontractor_id)
       .maybeSingle();
     if (typeof supplier?.company_name !== "string" || !supplier.company_name.trim()) return null;
-    supplierName = supplier.company_name;
+    supplierFolderNames.push(supplier.company_name);
+    if (typeof bid.company_name === "string" && bid.company_name.trim()) {
+      supplierFolderNames.push(bid.company_name);
+    }
   }
 
   const { accessToken } = await getAccessTokenForUser({
@@ -143,11 +146,15 @@ export const resolveSharedFolderLink = async (args: {
   if (args.kind === "tender_inquiries") return inquiriesFolder;
 
   const supplierKey = `${args.categoryId}:${args.supplierId}`;
-  const supplierFolder = await find(inquiriesFolder.item_id, getTenderFolderName(supplierName || ""), {
-    dochubProjectId: args.projectId,
-    dochubKind: "supplier",
-    dochubKey: supplierKey,
-  });
+  let supplierFolder: ResolvedFolder | null = null;
+  for (const supplierName of [...new Set(supplierFolderNames)]) {
+    supplierFolder = await find(inquiriesFolder.item_id, getTenderFolderName(supplierName), {
+      dochubProjectId: args.projectId,
+      dochubKind: "supplier",
+      dochubKey: supplierKey,
+    });
+    if (supplierFolder) break;
+  }
   if (!supplierFolder) return null;
   await cacheResolvedFolder({ ...args, kind: "supplier", key: supplierKey, folder: supplierFolder });
   return supplierFolder;

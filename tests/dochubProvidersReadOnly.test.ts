@@ -42,4 +42,58 @@ describe("DocHub read-only folder lookup", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[1]).not.toMatchObject({ method: "POST" });
   });
+
+  it("follows safe Microsoft Graph pagination until the folder is found", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        value: [],
+        "@odata.nextLink": "https://graph.microsoft.com/v1.0/drives/drive-1/items/parent-1/children?$skiptoken=next",
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        value: [{ id: "folder-2", name: "Betony", webUrl: "https://tenant.sharepoint.com/folder-2", folder: {} }],
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findMicrosoftFolder({
+      accessToken: "secret-token",
+      driveId: "drive-1",
+      parentId: "parent-1",
+      name: "Betony",
+    })).resolves.toMatchObject({ id: "folder-2" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.every((call) => call[1]?.method !== "POST")).toBe(true);
+  });
+
+  it("rejects a Microsoft pagination link outside Graph", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      value: [],
+      "@odata.nextLink": "https://evil.example/steal-token",
+    }), { status: 200 })));
+
+    await expect(findMicrosoftFolder({
+      accessToken: "secret-token",
+      driveId: "drive-1",
+      parentId: "parent-1",
+      name: "Betony",
+    })).rejects.toThrow("Unsafe Graph pagination URL");
+  });
+
+  it("stops cyclic Microsoft pagination before unbounded requests", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({
+        value: [],
+        "@odata.nextLink": "https://graph.microsoft.com/v1.0/drives/drive-1/items/parent-1/children?$skiptoken=same",
+      }), { status: 200 }),
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findMicrosoftFolder({
+      accessToken: "secret-token",
+      driveId: "drive-1",
+      parentId: "parent-1",
+      name: "Betony",
+    })).rejects.toThrow("Graph pagination limit exceeded");
+    expect(fetchMock).toHaveBeenCalledTimes(100);
+  });
 });
