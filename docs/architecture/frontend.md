@@ -120,8 +120,8 @@ nezávislých větví UI.
   `utils/formatters.ts` je pouze kompatibilní re-export pro legacy konzumenty.
 - Feature specifické komponenty zůstávají u feature.
 - Pipeline UI se postupně přesouvá do `features/projects/pipeline/ui/`.
-  Kanonické `BidCard`, `CategoryCard`, kanbanový `Column` a
-  `SubcontractorSelectorModal` jsou
+  Kanonické `BidCard`, `CategoryCard`, kanbanový `Column`,
+  `PipelineOverview` a `SubcontractorSelectorModal` jsou
   vlastněné tímto modulem a zveřejněné přes jeho
   `features/projects/pipeline/index.ts`; původní cesta v
   `components/pipelineComponents/` je pouze kompatibilní re-export pro legacy

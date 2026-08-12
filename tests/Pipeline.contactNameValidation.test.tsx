@@ -62,6 +62,7 @@ vi.mock("@features/projects/pipeline", () => {
   return {
     Column: dummy,
     BidCard: dummy,
+    PipelineOverview: dummy,
     SubcontractorSelectorModal: ({
       onAddContact,
       onEditContact,
@@ -87,7 +88,6 @@ vi.mock("../components/pipelineComponents", () => {
   return {
     EditBidModal: dummy,
     CategoryCard: dummy,
-    PipelineOverview: dummy,
     CategoryFormModal: dummy,
     CreateContactModal: ({
       initialData,

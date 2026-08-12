@@ -58,6 +58,7 @@ describe("PipelineOverview layout", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -132,6 +133,45 @@ describe("PipelineOverview layout", () => {
     await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Smazat" })).toHaveFocus();
     });
+  });
+
+  it("otevře kategorii po krátkém rozlišení jednoduchého kliku", () => {
+    vi.useFakeTimers();
+    const onCategoryClick = vi.fn();
+    renderOverview({ onCategoryClick });
+
+    fireEvent.click(screen.getByRole("row", { name: /Zemni prace/i }));
+    expect(onCategoryClick).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(220);
+    expect(onCategoryClick).toHaveBeenCalledWith(categories[0]);
+  });
+
+  it("dvojklik otevře editaci a zruší čekající navigaci", () => {
+    vi.useFakeTimers();
+    const onCategoryClick = vi.fn();
+    const onEditCategory = vi.fn();
+    renderOverview({ onCategoryClick, onEditCategory });
+    const row = screen.getByRole("row", { name: /Fasada/i });
+
+    fireEvent.click(row);
+    fireEvent.doubleClick(row);
+    vi.runAllTimers();
+
+    expect(onEditCategory).toHaveBeenCalledWith(categories[1]);
+    expect(onCategoryClick).not.toHaveBeenCalled();
+  });
+
+  it("po odpojení komponenty nespustí čekající navigaci", () => {
+    vi.useFakeTimers();
+    const onCategoryClick = vi.fn();
+    const { unmount } = renderOverview({ onCategoryClick });
+
+    fireEvent.click(screen.getByRole("row", { name: /Zemni prace/i }));
+    unmount();
+    vi.runAllTimers();
+
+    expect(onCategoryClick).not.toHaveBeenCalled();
   });
 
   it("načte pouze validní číselné šířky aktuálního uživatele", () => {
