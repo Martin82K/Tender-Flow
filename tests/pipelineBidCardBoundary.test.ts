@@ -25,10 +25,15 @@ describe("Pipeline BidCard module boundary", () => {
 
   it("routes the Pipeline composition through the feature-owned BidCard", () => {
     const pipelineSource = read("components/Pipeline.tsx");
+    const boardSource = read(
+      "features/projects/pipeline/ui/PipelineKanbanBoard.tsx",
+    );
 
     expect(pipelineSource).toMatch(
-      /import\s*{[^}]*\bBidCard\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
+      /import\s*{[^}]*\bPipelineKanbanBoard\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
     );
+    expect(pipelineSource).not.toMatch(/\bBidCard\b/);
+    expect(boardSource).toContain('import { BidCard } from "./BidCard";');
   });
 
   it("preserves the legacy export identity", () => {

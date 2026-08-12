@@ -25,10 +25,15 @@ describe("Pipeline Column module boundary", () => {
 
   it("routes the Pipeline composition through the public feature module", () => {
     const pipelineSource = read("components/Pipeline.tsx");
+    const boardSource = read(
+      "features/projects/pipeline/ui/PipelineKanbanBoard.tsx",
+    );
 
     expect(pipelineSource).toMatch(
-      /import\s*{[^}]*\bColumn\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
+      /import\s*{[^}]*\bPipelineKanbanBoard\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
     );
+    expect(pipelineSource).not.toMatch(/\bColumn\b/);
+    expect(boardSource).toContain('import { Column } from "./Column";');
   });
 
   it("preserves the legacy export identity", () => {

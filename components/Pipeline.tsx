@@ -3,7 +3,6 @@ import { Header } from "./Header";
 import {
   DemandCategory,
   Bid,
-  BidStatus,
   Subcontractor,
   ProjectDetails,
   StatusConfig,
@@ -46,13 +45,11 @@ import {
   type PipelineBulkEmailKind,
 } from "@/features/projects/model/pipelineEmailModel";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
-import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
 import {
-  BidCard,
   CategoryCard,
-  Column,
   CreateContactModal,
   PipelineDetailToolbar,
+  PipelineKanbanBoard,
   PipelineOverview,
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
@@ -94,8 +91,6 @@ export const getTemplateLinksForInquiryKind = (
 ): string[] => {
   return getTemplateLinksForInquiryKindModel(project, kind);
 };
-
-const noopOpenContract = () => undefined;
 
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
@@ -433,10 +428,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
-  const getBidsForColumn = (categoryId: string, status: BidStatus) => {
-    return (bids[categoryId] || []).filter((bid) => bid.status === status);
-  };
-
   const handleDragStart = (e: React.DragEvent, bidId: string) => {
     e.dataTransfer.setData("bidId", bidId);
     e.dataTransfer.effectAllowed = "move";
@@ -563,179 +554,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         )}
 
-        <div data-help-id="pipeline-kanban" className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-          <div className="flex h-full space-x-4 min-w-max">
-            {/* 1. Oslovení (Contacted) */}
-            <Column
-              data-help-id="kanban-col-contacted"
-              title="Oslovení"
-              status="contacted"
-              color="slate"
-              count={getBidsForColumn(activeCategory.id, "contacted").length}
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "contacted").map((bid, idx) => (
-                <BidCard
-                  key={bid.id}
-                  bid={bid}
-                  data-help-id={idx === 0 ? "kanban-bid-card" : undefined}
-                  onDragStart={handleDragStart}
-                  onDoubleClick={setEditingBid}
-                  onEdit={setEditingBid}
-                  onDelete={handleDeleteBidRequest}
-                  onGenerateInquiry={handleGenerateInquiry}
-                  onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
-                  onOpenDocHubFolder={
-                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                  }
-                />
-              ))}
-              {getBidsForColumn(activeCategory.id, "contacted").length ===
-                0 && (
-                <div className="text-center p-4 text-slate-400 text-sm italic">
-                  Žádní dodavatelé v této fázi
-                </div>
-              )}
-            </Column>
-
-            {/* 2. Odesláno (Sent) */}
-            <Column
-              title="Odesláno"
-              status="sent"
-              color="blue"
-              count={getBidsForColumn(activeCategory.id, "sent").length}
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "sent").map((bid) => (
-                <BidCard
-                  key={bid.id}
-                  bid={bid}
-                  onDragStart={handleDragStart}
-                  onDoubleClick={setEditingBid}
-                  onEdit={setEditingBid}
-                  onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={
-                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                  }
-                />
-              ))}
-              {getBidsForColumn(activeCategory.id, "sent").length === 0 && (
-                <div className="text-center p-4 text-slate-400 text-sm italic">
-                  Žádní dodavatelé v této fázi
-                </div>
-              )}
-            </Column>
-
-            {/* 3. Cenová nabídka (Offers) */}
-            <Column
-              data-help-id="kanban-col-offer"
-              title="Cenová nabídka"
-              status="offer"
-              color="amber"
-              count={getBidsForColumn(activeCategory.id, "offer").length}
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "offer").map((bid) => (
-                <BidCard
-                  key={bid.id}
-                  bid={bid}
-                  onDragStart={handleDragStart}
-                  onDoubleClick={setEditingBid}
-                  onEdit={setEditingBid}
-                  onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={
-                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                  }
-                />
-              ))}
-            </Column>
-
-            {/* 4. Užší výběr (Shortlist) */}
-            <Column
-              title="Užší výběr"
-              status="shortlist"
-              color="blue"
-              count={getBidsForColumn(activeCategory.id, "shortlist").length}
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "shortlist").map((bid) => (
-                <BidCard
-                  key={bid.id}
-                  bid={bid}
-                  onDragStart={handleDragStart}
-                  onDoubleClick={setEditingBid}
-                  onEdit={setEditingBid}
-                  onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={
-                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                  }
-                />
-              ))}
-            </Column>
-
-            {/* 5. Jednání o SOD (Contract Negotiation) */}
-            <Column
-              data-help-id="kanban-col-sod"
-              title="Jednání o SOD"
-              status="sod"
-              color="green"
-              count={getBidsForColumn(activeCategory.id, "sod").length}
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "sod").map((bid) => (
-                <div key={bid.id} className="relative">
-                  {/* Trophy icon */}
-                  <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1 z-10 shadow-sm pointer-events-none">
-                    <span className="material-symbols-outlined text-[16px] block">
-                      trophy
-                    </span>
-                  </div>
-                  <WinnerContractButton
-                    bid={bid}
-                    contracts={contracts}
-                    onOpenContract={onOpenContract || noopOpenContract}
-                    onToggleContracted={handleToggleContracted}
-                    loading={contractsLoading}
-                    error={contractsError}
-                  />
-                  <BidCard
-                    bid={bid}
-                    priceDisplayMode="detail"
-                    onDragStart={handleDragStart}
-                    onDoubleClick={setEditingBid}
-                    onEdit={setEditingBid}
-                    onDelete={handleDeleteBid}
-                    onOpenDocHubFolder={
-                      canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                    }
-                  />
-                </div>
-              ))}
-            </Column>
-
-            {/* 6. Zamítnuto (Rejected) */}
-            <Column
-              title="Zamítnuto / Odstoupili"
-              status="rejected"
-              color="red"
-              onDrop={handleDrop}
-            >
-              {getBidsForColumn(activeCategory.id, "rejected").map((bid) => (
-                <BidCard
-                  key={bid.id}
-                  bid={bid}
-                  onDragStart={handleDragStart}
-                  onDoubleClick={setEditingBid}
-                  onEdit={setEditingBid}
-                  onDelete={handleDeleteBid}
-                  onOpenDocHubFolder={
-                    canOpenDocHub ? handleOpenSupplierDocHub : undefined
-                  }
-                />
-              ))}
-            </Column>
-          </div>
-        </div>
+        <PipelineKanbanBoard
+          category={activeCategory}
+          bids={categoryBids}
+          canOpenDocHub={canOpenDocHub}
+          contracts={contracts}
+          contractsLoading={contractsLoading}
+          contractsError={contractsError}
+          onDrop={handleDrop}
+          onDragStart={handleDragStart}
+          onEditBid={setEditingBid}
+          onDeleteBidRequest={handleDeleteBidRequest}
+          onDeleteBid={handleDeleteBid}
+          onGenerateInquiry={handleGenerateInquiry}
+          onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
+          onOpenSupplierDocHub={handleOpenSupplierDocHub}
+          onToggleContracted={handleToggleContracted}
+          onOpenContract={onOpenContract}
+        />
 
         <SubcontractorSelectorModal
           isOpen={isSubcontractorModalOpen}
