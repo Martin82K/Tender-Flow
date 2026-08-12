@@ -9,7 +9,6 @@
     "utils"
   ],
   "allowedFiles": [
-    "components/AlertModal.tsx",
     "components/ConstructionBackground.tsx",
     "components/Contacts.tsx",
     "components/ContactsImportWizard.tsx",
