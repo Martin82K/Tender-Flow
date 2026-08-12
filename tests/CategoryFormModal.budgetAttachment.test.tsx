@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CategoryFormModal } from "@/components/pipelineComponents/CategoryFormModal";
+import { CategoryFormModal } from "@features/projects/pipeline";
 
 const selectBudgetAttachmentMock = vi.hoisted(() => vi.fn());
 const selectPendingBudgetAttachmentMock = vi.hoisted(() => vi.fn());

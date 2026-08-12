@@ -1,5 +1,10 @@
 export { BidCard } from "./ui/BidCard";
 export type { BidCardProps } from "./ui/BidCard";
+export { CategoryFormModal } from "./ui/CategoryFormModal";
+export type {
+  CategoryFormData,
+  CategoryFormModalProps,
+} from "./ui/CategoryFormModal";
 export { CategoryCard } from "./ui/CategoryCard";
 export type { CategoryCardProps } from "./ui/CategoryCard";
 export { Column } from "./ui/Column";
