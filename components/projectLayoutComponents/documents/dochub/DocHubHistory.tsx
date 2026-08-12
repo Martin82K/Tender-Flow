@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ProjectDetails } from '../../../../types';
 import { dbAdapter } from '@/services/dbAdapter';
-import { AlertModal } from '../../../AlertModal';
+import { AlertModal } from '@shared/ui/AlertModal';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 
 interface DocHubHistoryProps {
