@@ -74,6 +74,11 @@ class StaleDocHubActionError extends Error {
     }
 }
 
+type DocHubProjectActionToken = {
+    identity: string;
+    generation: number;
+};
+
 const getDocHubConnectionSnapshot = (project: ProjectDetails): Partial<ProjectDetails> => ({
     docHubEnabled: project.docHubEnabled,
     docHubProvider: project.docHubProvider ?? null,
@@ -192,24 +197,34 @@ export const useDocHubIntegration = (
         project.ownerId ?? null,
     ]);
     const projectActionIdentityRef = useRef(projectActionIdentity);
+    const projectActionGenerationRef = useRef(0);
     projectActionIdentityRef.current = projectActionIdentity;
-    const assertCurrentProjectAction = useCallback((expectedIdentity: string) => {
-        if (projectActionIdentityRef.current !== expectedIdentity) {
+    const captureCurrentProjectAction = useCallback((): DocHubProjectActionToken => ({
+        identity: projectActionIdentityRef.current,
+        generation: projectActionGenerationRef.current,
+    }), []);
+    const isCurrentProjectAction = useCallback((action: DocHubProjectActionToken) => (
+        projectActionIdentityRef.current === action.identity &&
+        projectActionGenerationRef.current === action.generation
+    ), []);
+    const assertCurrentProjectAction = useCallback((action: DocHubProjectActionToken) => {
+        if (!isCurrentProjectAction(action)) {
             throw new StaleDocHubActionError();
         }
-    }, []);
-    const scheduleResolveReset = useCallback((expectedIdentity: string) => {
-        if (projectActionIdentityRef.current !== expectedIdentity) return;
+    }, [isCurrentProjectAction]);
+    const scheduleResolveReset = useCallback((action: DocHubProjectActionToken) => {
+        if (!isCurrentProjectAction(action)) return;
         if (resolveResetTimerRef.current) clearTimeout(resolveResetTimerRef.current);
         resolveResetTimerRef.current = setTimeout(() => {
             resolveResetTimerRef.current = null;
-            if (projectActionIdentityRef.current !== expectedIdentity) return;
+            if (!isCurrentProjectAction(action)) return;
             setIsConnecting(false);
             setResolveProgress(0);
         }, 500);
-    }, []);
+    }, [isCurrentProjectAction]);
 
     useEffect(() => {
+        projectActionGenerationRef.current += 1;
         if (resolveResetTimerRef.current) {
             clearTimeout(resolveResetTimerRef.current);
             resolveResetTimerRef.current = null;
@@ -549,7 +564,7 @@ export const useDocHubIntegration = (
     }, [canManageGlobal, onlineRootLinkDraft, onUpdate, project.docHubProvider, project.docHubRootId, project.docHubRootLink, project.docHubRootWebUrl, project.docHubSettings, provider, showMessage]);
 
     const handleDisconnect = useCallback(async () => {
-        const actionIdentity = projectActionIdentityRef.current;
+        const actionIdentity = captureCurrentProjectAction();
         personalLocationLoadSequenceRef.current += 1;
         const personalMappingIdentity = isDesktop && project.docHubProvider === "onedrive" && project.id && userId
             ? { projectId: project.id, userId }
@@ -611,7 +626,7 @@ export const useDocHubIntegration = (
         setMode(null);
         setStatus("disconnected");
         setIsEditingSetup(false);
-    }, [assertCurrentProjectAction, canManageGlobal, onUpdate, project.docHubProvider, project.docHubRootName, project.id, showMessage, userId]);
+    }, [assertCurrentProjectAction, canManageGlobal, captureCurrentProjectAction, onUpdate, project.docHubProvider, project.docHubRootName, project.id, showMessage, userId]);
 
     const handleConnect = useCallback(async () => {
         if (!canManageGlobal) {
@@ -766,7 +781,7 @@ export const useDocHubIntegration = (
         path: string,
         folderName: string,
         connectionId: string,
-        expectedProjectIdentity: string,
+        expectedProjectIdentity: DocHubProjectActionToken,
         globalUpdate?: {
             apply: () => void | Promise<void>;
             rollback: () => void | Promise<void>;
@@ -869,7 +884,7 @@ export const useDocHubIntegration = (
     }, [assertCurrentProjectAction, isProjectOwner, personalLocationIdentity, project.id, userId]);
 
     const resolveRoot = useCallback(async () => {
-        const actionIdentity = projectActionIdentityRef.current;
+        const actionIdentity = captureCurrentProjectAction();
         if (!provider || !rootLink.trim()) return;
         if (!canManageGlobal && provider !== 'onedrive') {
             showMessage("Složkomat", "Globální cloudové napojení může měnit pouze vlastník projektu.", "info");
@@ -1020,10 +1035,10 @@ export const useDocHubIntegration = (
             // Keep loading state briefly for UI effect
             scheduleResolveReset(actionIdentity);
         }
-    }, [assertCurrentProjectAction, canManageGlobal, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, scheduleResolveReset, showMessage, onUpdate]);
+    }, [assertCurrentProjectAction, canManageGlobal, captureCurrentProjectAction, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, scheduleResolveReset, showMessage, onUpdate]);
 
     const pickLocalFolder = useCallback(async () => {
-        const actionIdentity = projectActionIdentityRef.current;
+        const actionIdentity = captureCurrentProjectAction();
         if (provider !== "onedrive") {
             showMessage("DocHub", "Vyberte 'Tender Flow Desktop' jako provider.", "info");
             return;
@@ -1200,7 +1215,7 @@ export const useDocHubIntegration = (
         } finally {
             setIsConnecting(false);
         }
-    }, [assertCurrentProjectAction, canManageGlobal, onlineRootLinkDraft, project, provider, savePersonalLocalRoot, showMessage, onUpdate]);
+    }, [assertCurrentProjectAction, canManageGlobal, captureCurrentProjectAction, onlineRootLinkDraft, project, provider, savePersonalLocalRoot, showMessage, onUpdate]);
 
     const runAutoCreate = useCallback(async () => {
         if (!canManageGlobal) { showMessage("Složkomat", "Strukturu složek může synchronizovat pouze vlastník projektu.", "info"); return; }

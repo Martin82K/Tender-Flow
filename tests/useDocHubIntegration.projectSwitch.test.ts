@@ -190,16 +190,16 @@ describe("useDocHubIntegration project identity", () => {
     }
   });
 
-  it("does not let a stale cloud resolve cancel the current project's reset", async () => {
-    let resolveProjectA: ((value: Record<string, string>) => void) | undefined;
-    let resolveProjectB: ((value: Record<string, string>) => void) | undefined;
+  it("invalidates an old cloud resolve across an A-B-A project sequence", async () => {
+    let resolveOldProjectA: ((value: Record<string, string>) => void) | undefined;
+    let resolveCurrentProjectA: ((value: Record<string, string>) => void) | undefined;
     let resolveInvocationCount = 0;
     mocks.invokeAuthedFunction.mockImplementation((functionName: string) => {
       if (functionName === "dochub-get-link") return Promise.resolve({});
       resolveInvocationCount += 1;
       return new Promise((resolve) => {
-        if (resolveInvocationCount === 1) resolveProjectA = resolve;
-        else resolveProjectB = resolve;
+        if (resolveInvocationCount === 1) resolveOldProjectA = resolve;
+        else resolveCurrentProjectA = resolve;
       });
     });
     const cloudProject = (id: string): ProjectDetails => ({
@@ -218,38 +218,39 @@ describe("useDocHubIntegration project identity", () => {
 
     vi.useFakeTimers();
     try {
-      let actionA: Promise<void> | undefined;
-      act(() => { actionA = result.current.actions.resolveRoot(); });
+      let oldActionA: Promise<void> | undefined;
+      act(() => { oldActionA = result.current.actions.resolveRoot(); });
       expect(resolveInvocationCount).toBe(1);
 
       act(() => rerender({ currentProject: cloudProject("project-b") }));
-      let actionB: Promise<void> | undefined;
-      act(() => { actionB = result.current.actions.resolveRoot(); });
+      act(() => rerender({ currentProject: cloudProject("project-a") }));
+      let currentActionA: Promise<void> | undefined;
+      act(() => { currentActionA = result.current.actions.resolveRoot(); });
       expect(resolveInvocationCount).toBe(2);
 
       await act(async () => {
-        resolveProjectB?.({
-          rootName: "Project B",
-          rootWebUrl: "https://drive.google.com/drive/folders/project-b-root",
-          rootId: "project-b-root",
+        resolveCurrentProjectA?.({
+          rootName: "Project A current",
+          rootWebUrl: "https://drive.google.com/drive/folders/project-a-root",
+          rootId: "project-a-root",
         });
-        await actionB;
+        await currentActionA;
       });
       expect(result.current.state.isConnecting).toBe(true);
-      expect(result.current.state.rootName).toBe("Project B");
+      expect(result.current.state.rootName).toBe("Project A current");
 
       await act(async () => {
-        resolveProjectA?.({
+        resolveOldProjectA?.({
           rootName: "Project A stale",
           rootWebUrl: "https://drive.google.com/drive/folders/project-a-root",
           rootId: "project-a-root",
         });
-        await actionA;
+        await oldActionA;
       });
       act(() => vi.advanceTimersByTime(500));
 
       expect(result.current.state.isConnecting).toBe(false);
-      expect(result.current.state.rootName).toBe("Project B");
+      expect(result.current.state.rootName).toBe("Project A current");
       act(() => unmount());
     } finally {
       vi.useRealTimers();
