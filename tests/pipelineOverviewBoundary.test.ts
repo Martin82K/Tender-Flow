@@ -19,7 +19,7 @@ describe("PipelineOverview module boundary", () => {
   });
 
   it("routes Pipeline through the public feature module", () => {
-    const pipelineSource = read("components/Pipeline.tsx");
+    const pipelineSource = read("features/projects/pipeline/Pipeline.tsx");
 
     expect(pipelineSource).toMatch(
       /import\s*{[^}]*\bPipelineOverview\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,

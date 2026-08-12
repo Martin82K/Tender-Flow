@@ -8,7 +8,7 @@ const readSource = (path: string) =>
 describe("Pipeline contact modal boundary", () => {
   it("vlastní modal ve feature modulu", () => {
     const featureIndex = readSource("features/projects/pipeline/index.ts");
-    const pipeline = readSource("components/Pipeline.tsx");
+    const pipeline = readSource("features/projects/pipeline/Pipeline.tsx");
     const contactModals = readSource(
       "features/projects/pipeline/ui/PipelineContactModals.tsx",
     );

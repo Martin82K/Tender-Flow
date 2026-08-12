@@ -20,7 +20,7 @@ vi.mock("@/shared/ui/Header", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/projects/Pipeline", () => ({ Pipeline: () => <div /> }));
+vi.mock("@features/projects/pipeline/Pipeline", () => ({ Pipeline: () => <div /> }));
 vi.mock("@/features/projects/ui/TenderPlan", () => ({ TenderPlan: () => <div /> }));
 vi.mock("@/features/projects/ui/ProjectSchedule", () => ({ ProjectSchedule: () => <div /> }));
 vi.mock("@/features/projects/ui/ProjectOverviewNew", () => ({ ProjectOverviewNew: () => <div /> }));

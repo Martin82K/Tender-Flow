@@ -2,8 +2,8 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Pipeline } from "../components/Pipeline";
-import type { Bid, DemandCategory, ProjectDetails, Subcontractor } from "../types";
+import { Pipeline } from "@features/projects/pipeline/Pipeline";
+import type { Bid, DemandCategory, ProjectDetails, Subcontractor, User } from "../types";
 
 const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -14,15 +14,12 @@ const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
 }));
 
-vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: {
-      id: "u-1",
-      role: "user",
-      email: "user@example.com",
-    },
-  }),
-}));
+const currentUser: User = {
+  id: "u-1",
+  name: "Tester",
+  role: "user",
+  email: "user@example.com",
+};
 
 vi.mock("../services/supabase", () => ({
   supabase: {
@@ -186,6 +183,7 @@ const renderPipeline = () =>
     <Pipeline
       projectId="project-1"
       projectDetails={createProjectDetails()}
+      currentUser={currentUser}
       bids={{ "cat-1": [baseBid] }}
       contacts={[]}
       initialOpenCategoryId="cat-1"

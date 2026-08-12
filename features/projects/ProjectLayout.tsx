@@ -3,11 +3,11 @@ import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { TaskCreateButton } from "@features/tasks";
-import { Pipeline } from "@/shared/ui/projects/Pipeline";
+import { Pipeline } from "@features/projects/pipeline/Pipeline";
 import { TenderPlan } from "@/features/projects/ui/TenderPlan";
 import { ProjectSchedule } from "@/features/projects/ui/ProjectSchedule";
 import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
-import {
+import type {
   ProjectTab,
   ProjectDetails,
   DemandCategory,
@@ -16,6 +16,7 @@ import {
   StatusConfig,
   ProjectAccessKind,
   ProjectTeamRole,
+  User,
 } from "@/types";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
@@ -50,6 +51,7 @@ interface ProjectLayoutProps {
   onNavigateToContract?: (contractId: string) => void;
   skin?: ThemeSkin;
   currentUserId?: string;
+  currentUser?: User | null;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
@@ -73,6 +75,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   onNavigateToContract,
   skin = "industrial",
   currentUserId,
+  currentUser = null,
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
@@ -295,6 +298,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <Pipeline
             projectId={projectId}
             projectDetails={project}
+            currentUser={currentUser}
             bids={project.bids || {}}
             contacts={contacts}
             statuses={statuses}

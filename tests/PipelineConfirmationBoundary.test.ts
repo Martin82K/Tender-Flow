@@ -7,7 +7,7 @@ const readSource = (path: string) =>
 
 describe("Pipeline confirmation boundary", () => {
   it("drží confirmation orchestration ve feature modelu nad shared UI", () => {
-    const pipelineSource = readSource("components/Pipeline.tsx");
+    const pipelineSource = readSource("features/projects/pipeline/Pipeline.tsx");
     const hookSource = readSource(
       "features/projects/pipeline/model/usePipelineConfirmation.tsx",
     );

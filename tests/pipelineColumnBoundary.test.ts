@@ -14,7 +14,7 @@ describe("Pipeline Column module boundary", () => {
   });
 
   it("routes the Pipeline composition through the public feature module", () => {
-    const pipelineSource = read("components/Pipeline.tsx");
+    const pipelineSource = read("features/projects/pipeline/Pipeline.tsx");
     const boardSource = read(
       "features/projects/pipeline/ui/PipelineKanbanBoard.tsx",
     );

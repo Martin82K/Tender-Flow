@@ -20,7 +20,7 @@ const removedRuntimeFiles = [
 ];
 
 const integrationFiles = [
-  "components/Pipeline.tsx",
+  "features/projects/pipeline/Pipeline.tsx",
   "features/projects/model/usePipelineCategoryNavigation.ts",
   "features/settings/Settings.tsx",
   "config/navigation.ts",

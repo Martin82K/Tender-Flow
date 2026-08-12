@@ -8,7 +8,7 @@ const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx")
 const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/TenderPlan.tsx"), "utf8");
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
-const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const pipelineSource = readFileSync(join(process.cwd(), "features/projects/pipeline/Pipeline.tsx"), "utf8");
 const pipelineDetailToolbarSource = readFileSync(
   join(process.cwd(), "features/projects/pipeline/ui/PipelineDetailToolbar.tsx"),
   "utf8",

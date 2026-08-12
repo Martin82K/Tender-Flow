@@ -119,12 +119,15 @@ nezávislých větví UI.
 - Sdílené české číselné formátování vlastní `shared/formatting/`; původní
   `utils/formatters.ts` je pouze kompatibilní re-export pro legacy konzumenty.
 - Feature specifické komponenty zůstávají u feature.
-- Pipeline UI se postupně přesouvá do `features/projects/pipeline/ui/`.
-  Kanonické `BidCard`, `CategoryCard`, kanbanový `Column`,
+- Kompoziční kořen Pipeline vlastní
+  `features/projects/pipeline/Pipeline.tsx`; přihlášeného uživatele dostává
+  explicitně z app composition rootu a nečte legacy auth context. Pipeline UI
+  žije v `features/projects/pipeline/ui/`. Kanonické `BidCard`, `CategoryCard`, kanbanový `Column`,
   `PipelineOverview` a `SubcontractorSelectorModal` jsou
   vlastněné tímto modulem a zveřejněné výhradně přes jeho
   `features/projects/pipeline/index.ts`. Původní kompatibilní adresář
-  `components/pipelineComponents/` byl po migraci všech konzumentů odstraněn.
+  `components/pipelineComponents/`, kořen `components/Pipeline.tsx` i shared
+  re-export byly po migraci všech konzumentů odstraněny.
 - Čistá inicializace a ARES merge pravidla kontaktního formuláře Pipeline jsou
   v `features/projects/pipeline/model/pipelineContactFormModel.ts`; modal drží
   pouze UI stav a orchestrace lookupu.

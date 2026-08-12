@@ -18,7 +18,7 @@ describe("Pipeline EditBidModal feature boundary", () => {
   });
 
   it("imports the modal through the pipeline public API", () => {
-    const pipelineSource = readSource("components/Pipeline.tsx");
+    const pipelineSource = readSource("features/projects/pipeline/Pipeline.tsx");
     expect(pipelineSource).toMatch(
       /import\s*\{[\s\S]*?EditBidModal[\s\S]*?\}\s*from\s*["']@features\/projects\/pipeline["']/,
     );

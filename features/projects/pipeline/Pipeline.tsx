@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Header } from "./Header";
-import {
+import { Header } from "@shared/ui/Header";
+import type {
   DemandCategory,
   Bid,
   Subcontractor,
   ProjectDetails,
   StatusConfig,
   ContractWithDetails,
-} from "../types";
-import { useAuth } from "../context/AuthContext";
-import {
-  resolveDocHubStructureV1,
-} from "../utils/docHub";
-import platformAdapter from "../services/platformAdapter";
-import { DEFAULT_STATUSES } from "../config/constants";
+  User,
+} from "@/types";
+import { resolveDocHubStructureV1 } from "@shared/dochub/docHub";
+import platformAdapter from "@infra/platform/platformAdapter";
+import { DEFAULT_STATUSES } from "@/config/constants";
 import {
   getTemplateLinksForInquiryKindModel,
   type PipelineInquiryGenerationKind,
@@ -53,6 +51,7 @@ import {
 interface PipelineProps {
   projectId: string;
   projectDetails: ProjectDetails;
+  currentUser: User | null;
   bids: Record<string, Bid[]>;
   contacts: Subcontractor[];
   statuses?: StatusConfig[];
@@ -84,6 +83,7 @@ export const getTemplateLinksForInquiryKind = (
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
   projectDetails,
+  currentUser: user,
   bids: initialBids,
   contacts: externalContacts,
   statuses: externalStatuses = DEFAULT_STATUSES,
@@ -101,7 +101,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   contractsLoading = false,
   contractsError = null,
 }) => {
-  const { user } = useAuth();
   const { alertModalNode, showAlert } = usePipelineAlert();
   const { confirmationModalNode, requestConfirmation } =
     usePipelineConfirmation();
