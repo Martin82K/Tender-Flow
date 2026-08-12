@@ -155,24 +155,6 @@ export const usePipelineDocHubActions = ({
     }
   };
 
-  const openOnlineRootFallback = (): boolean => {
-    if (
-      projectDetails.docHubStatus === "disconnected" ||
-      projectDetails.docHubStatus === "error" ||
-      !projectDetails.docHubProvider
-    ) {
-      return false;
-    }
-    const onlineRoot = normalizeDocHubOnlineUrl(
-      projectDetails.docHubRootWebUrl ||
-      getDocHubCloudConnection(projectDetails)?.rootWebUrl ||
-      "",
-    );
-    if (!onlineRoot) return false;
-    window.open(onlineRoot, "_blank", "noopener,noreferrer");
-    return true;
-  };
-
   const showUnavailableFolder = () => {
     showAlert({
       title: "Složka není dostupná",
@@ -249,8 +231,6 @@ export const usePipelineDocHubActions = ({
       if (opened) return;
     }
 
-    if (openOnlineRootFallback()) return;
-
     if (!isLocalProvider && docHubRoot) {
       const links = getDocHubTenderLinks(
         docHubRoot,
@@ -298,8 +278,6 @@ export const usePipelineDocHubActions = ({
       });
       if (opened) return;
     }
-
-    if (openOnlineRootFallback()) return;
 
     if (!isLocalProvider && docHubRoot) {
       const links = getDocHubTenderLinks(
