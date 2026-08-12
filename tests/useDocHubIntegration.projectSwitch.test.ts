@@ -257,6 +257,117 @@ describe("useDocHubIntegration project identity", () => {
     }
   });
 
+  it("invalidates an old local resolve after its UI delay across an A-B-A sequence", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    const onUpdate = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender, unmount } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, onUpdate, { userId: "owner-1" }),
+      { initialProps: { currentProject: project("project-a") } },
+    );
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-a"));
+
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.setters.setRootLink("D:\\Owner\\Project A stale"));
+      let oldActionA: Promise<void> | undefined;
+      act(() => { oldActionA = result.current.actions.resolveRoot(); });
+      await act(async () => {
+        for (let index = 0; index < 10; index += 1) await Promise.resolve();
+      });
+      expect(result.current.state.resolveProgress).toBe(50);
+
+      act(() => vi.advanceTimersByTime(100));
+      act(() => rerender({ currentProject: project("project-b") }));
+      act(() => rerender({ currentProject: project("project-a") }));
+
+      await act(async () => {
+        vi.advanceTimersByTime(400);
+        await oldActionA;
+      });
+
+      expect(result.current.state.rootName).not.toBe("Project A stale");
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      act(() => unmount());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not let an old picker completion clear a newer project's loading state", async () => {
+    let resolvePickerA: ((value: null) => void) | undefined;
+    let resolvePickerB: ((value: null) => void) | undefined;
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.selectFolder
+      .mockReturnValueOnce(new Promise<null>((resolve) => { resolvePickerA = resolve; }))
+      .mockReturnValueOnce(new Promise<null>((resolve) => { resolvePickerB = resolve; }));
+    const { result, rerender } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, vi.fn(), { userId: "owner-1" }),
+      { initialProps: { currentProject: project("project-a") } },
+    );
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-a"));
+
+    let pickerA: Promise<void> | undefined;
+    act(() => { pickerA = result.current.actions.pickLocalFolder(); });
+    act(() => rerender({ currentProject: project("project-b") }));
+    let pickerB: Promise<void> | undefined;
+    act(() => { pickerB = result.current.actions.pickLocalFolder(); });
+    expect(result.current.state.isConnecting).toBe(true);
+
+    await act(async () => {
+      resolvePickerA?.(null);
+      await pickerA;
+    });
+    expect(result.current.state.isConnecting).toBe(true);
+
+    await act(async () => {
+      resolvePickerB?.(null);
+      await pickerB;
+    });
+    expect(result.current.state.isConnecting).toBe(false);
+  });
+
+  it("invalidates a pending cloud resolve when the hook unmounts", async () => {
+    let resolveCloud: ((value: Record<string, string>) => void) | undefined;
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.invokeAuthedFunction.mockImplementation((functionName: string) => {
+      if (functionName === "dochub-get-link") return Promise.resolve({});
+      return new Promise((resolve) => { resolveCloud = resolve; });
+    });
+    const cloudProject: ProjectDetails = {
+      ...project("project-a"),
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/project-a-root",
+      docHubRootWebUrl: "https://drive.google.com/drive/folders/project-a-root",
+      docHubRootId: "project-a-root",
+    };
+    const onUpdate = vi.fn();
+    const { result, unmount } = renderHook(() => useDocHubIntegration(cloudProject, onUpdate, {
+      userId: "owner-1",
+    }));
+
+    vi.useFakeTimers();
+    try {
+      let resolveAction: Promise<void> | undefined;
+      act(() => { resolveAction = result.current.actions.resolveRoot(); });
+      unmount();
+
+      await act(async () => {
+        resolveCloud?.({
+          rootName: "Project A stale",
+          rootWebUrl: "https://drive.google.com/drive/folders/project-a-root",
+          rootId: "project-a-root",
+        });
+        await resolveAction;
+      });
+
+      expect(onUpdate).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not let an older personal-root load overwrite a newly saved root", async () => {
     let resolveOld: ((value: string) => void) | undefined;
     mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));

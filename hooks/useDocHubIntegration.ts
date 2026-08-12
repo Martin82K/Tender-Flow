@@ -377,9 +377,13 @@ export const useDocHubIntegration = (
     // Cleanup timers
     useEffect(() => {
         return () => {
+            projectActionGenerationRef.current += 1;
             if (autoCreateTimerRef.current) window.clearInterval(autoCreateTimerRef.current);
             if (autoCreatePollRef.current) window.clearInterval(autoCreatePollRef.current);
-            if (resolveResetTimerRef.current) clearTimeout(resolveResetTimerRef.current);
+            if (resolveResetTimerRef.current) {
+                clearTimeout(resolveResetTimerRef.current);
+                resolveResetTimerRef.current = null;
+            }
         };
     }, []);
 
@@ -957,6 +961,7 @@ export const useDocHubIntegration = (
                 setResolveProgress(50);
 
                 await new Promise(r => setTimeout(r, 500)); // UI feel
+                assertCurrentProjectAction(actionIdentity);
 
                 setRootName(folderName);
                 setStatus("connected");
@@ -1213,9 +1218,11 @@ export const useDocHubIntegration = (
             }
             showMessage("Chyba výběru", e.message || "Nelze vybrat složku", "danger");
         } finally {
-            setIsConnecting(false);
+            if (isCurrentProjectAction(actionIdentity)) {
+                setIsConnecting(false);
+            }
         }
-    }, [assertCurrentProjectAction, canManageGlobal, captureCurrentProjectAction, onlineRootLinkDraft, project, provider, savePersonalLocalRoot, showMessage, onUpdate]);
+    }, [assertCurrentProjectAction, canManageGlobal, captureCurrentProjectAction, isCurrentProjectAction, onlineRootLinkDraft, project, provider, savePersonalLocalRoot, showMessage, onUpdate]);
 
     const runAutoCreate = useCallback(async () => {
         if (!canManageGlobal) { showMessage("Složkomat", "Strukturu složek může synchronizovat pouze vlastník projektu.", "info"); return; }
