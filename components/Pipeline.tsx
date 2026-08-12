@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import React, { useState, useEffect } from "react";
 import { Header } from "./Header";
 import {
   DemandCategory,
@@ -46,7 +45,6 @@ import {
   selectLoserEmailRecipients,
   type PipelineBulkEmailKind,
 } from "@/features/projects/model/pipelineEmailModel";
-import { PipelineBulkEmailMenu } from "@/features/projects/ui/PipelineBulkEmailMenu";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
 import { WinnerContractButton } from "@/features/projects/contracts/ui/WinnerContractButton";
 import {
@@ -54,6 +52,7 @@ import {
   CategoryCard,
   Column,
   CreateContactModal,
+  PipelineDetailToolbar,
   PipelineOverview,
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
@@ -311,9 +310,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     resolveDesktopTenderFolderPath,
     showAlert,
   });
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  const exportButtonRef = useRef<HTMLButtonElement>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [bulkEmailKind, setBulkEmailKind] =
     useState<PipelineBulkEmailKind | null>(null);
   const [isBulkEmailSubmitting, setIsBulkEmailSubmitting] = useState(false);
@@ -332,7 +328,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     userRole: user?.role,
     currentUser: user,
     updateBidsInternal,
-    setIsExportMenuOpen,
     showAlert,
     runDocHubFallbackForCategory,
     resolveDesktopTenderFolderPath,
@@ -483,142 +478,20 @@ export const Pipeline: React.FC<PipelineProps> = ({
           showSearch={false}
           showAccountMenu={false}
         >
-          <div className="flex max-w-full min-w-0 items-center gap-3 overflow-x-auto pb-1 [&>button]:shrink-0 [&>div]:shrink-0">
-            <button
-              onClick={() => {
-                setActiveCategory(null);
-                onCategoryNavigate?.(null);
-              }}
-              className="mr-auto flex items-center gap-2 px-2 text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
-              title="Vrátit se na přehled výběrových řízení"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-              <span className="text-sm font-medium">Zpět na přehled</span>
-            </button>
-            <button
-              data-help-id="kanban-add-supplier"
-              onClick={() => setIsSubcontractorModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90"
-              title="Přidat dodavatele do tohoto výběrového řízení"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              <span>Přidat dodavatele</span>
-            </button>
-
-            <PipelineBulkEmailMenu
-              inquiryRecipientCount={bulkInquirySelection.emails.length}
-              loserRecipientCount={loserEmailSelection.emails.length}
-              onSelect={openBulkEmailConfirmation}
-            />
-
-            {canOpenDocHub && (
-              <button
-                onClick={() => void handleOpenTenderDocHub()}
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-700 transition-colors hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
-                aria-label={`Otevřít složku: ${activeCategory.title}`}
-                title={`Otevřít složku: ${activeCategory.title}`}
-              >
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  aria-hidden="true"
-                >
-                  folder_open
-                </span>
-              </button>
-            )}
-
-            {/* Export Button with Dropdown */}
-            <div data-help-id="kanban-export" className="relative">
-              <button
-                ref={exportButtonRef}
-                data-help-id="pipeline-export-trigger"
-                onClick={() => {
-                  if (!isExportMenuOpen && exportButtonRef.current) {
-                    const rect = exportButtonRef.current.getBoundingClientRect();
-                    setMenuPosition({
-                      top: rect.bottom + 8,
-                      left: rect.right - 224, // w-56 = 14rem = 224px
-                    });
-                  }
-                  setIsExportMenuOpen(!isExportMenuOpen);
-                }}
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                aria-haspopup="menu"
-                aria-expanded={isExportMenuOpen}
-                aria-controls={isExportMenuOpen ? "pipeline-export-menu" : undefined}
-                aria-label="Otevřít nabídku exportních formátů"
-                title="Otevřít nabídku exportních formátů"
-              >
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  aria-hidden="true"
-                >
-                  download
-                </span>
-              </button>
-
-              {isExportMenuOpen &&
-                createPortal(
-                <>
-                  <div
-                    className="fixed inset-0 z-[9998] bg-transparent"
-                    onClick={() => setIsExportMenuOpen(false)}
-                  />
-                  <div
-                    id="pipeline-export-menu"
-                    data-help-id="pipeline-export-menu"
-                    role="menu"
-                    aria-label="Formáty exportu"
-                    className="tf-pipeline-popover fixed z-[9999] w-56 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
-                    style={{
-                      top: `${menuPosition.top}px`,
-                      left: `${menuPosition.left}px`,
-                    }}
-                  >
-                    <button
-                      onClick={() => handleExport("xlsx")}
-                      data-help-id="pipeline-popover-item"
-                      role="menuitem"
-                      className="tf-pipeline-popover-item flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700"
-                      title="Exportovat výběrové řízení do Excelu"
-                    >
-                      <span className="tf-pipeline-popover-icon material-symbols-outlined text-[20px] text-green-600">
-                        table_chart
-                      </span>
-                      <div>
-                        <div className="tf-pipeline-popover-label text-sm font-medium text-slate-900 dark:text-white">
-                          Excel
-                        </div>
-                        <div className="tf-pipeline-popover-description text-xs text-slate-500 dark:text-slate-400">
-                          .xlsx formát
-                        </div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => handleExport("pdf")}
-                      data-help-id="pipeline-popover-item"
-                      role="menuitem"
-                      className="tf-pipeline-popover-item flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                      title="Exportovat výběrové řízení do PDF"
-                    >
-                      <span className="tf-pipeline-popover-icon material-symbols-outlined text-[20px] text-red-600">
-                        picture_as_pdf
-                      </span>
-                      <div>
-                        <div className="tf-pipeline-popover-label text-sm font-medium text-slate-900 dark:text-white">
-                          PDF
-                        </div>
-                        <div className="tf-pipeline-popover-description text-xs text-slate-500 dark:text-slate-400">
-                          .pdf formát
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </>,
-                document.body,
-                )}
-            </div>
-          </div>
+          <PipelineDetailToolbar
+            categoryTitle={activeCategory.title}
+            canOpenDocHub={canOpenDocHub}
+            inquiryRecipientCount={bulkInquirySelection.emails.length}
+            loserRecipientCount={loserEmailSelection.emails.length}
+            onBack={() => {
+              setActiveCategory(null);
+              onCategoryNavigate?.(null);
+            }}
+            onAddSubcontractor={() => setIsSubcontractorModalOpen(true)}
+            onSelectBulkEmail={openBulkEmailConfirmation}
+            onOpenDocHub={handleOpenTenderDocHub}
+            onExport={handleExport}
+          />
         </Header>
 
         <div className="px-6 pt-4">
