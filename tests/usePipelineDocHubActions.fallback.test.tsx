@@ -214,6 +214,35 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     }));
   });
 
+  it("nevytváří syntetickou podadresu z cloudové webové URL po selhání backendu", async () => {
+    mocks.invokeAuthedFunction.mockRejectedValueOnce(new Error("Folder link not available"));
+    const cloudProject: ProjectDetails = {
+      ...project,
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootId: "cloud-root",
+    };
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: cloudProject,
+      projectDetails: cloudProject,
+      docHubRoot: cloudProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(window.open).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Složka není dostupná",
+      variant: "danger",
+    }));
+  });
+
   it("po selhání lokálního i online otevření zkopíruje lokální cestu VŘ", async () => {
     const localOnlyProject: ProjectDetails = {
       ...project,

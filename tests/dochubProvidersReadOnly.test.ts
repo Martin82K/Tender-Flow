@@ -26,6 +26,63 @@ describe("DocHub read-only folder lookup", () => {
     expect(fetchMock.mock.calls[0]?.[1]).not.toMatchObject({ method: "POST" });
   });
 
+  it("follows Google pagination until a stable appProperties match is found", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        files: [{
+          id: "name-only",
+          name: "Betony",
+          webViewLink: "https://drive.google.com/drive/folders/name-only",
+        }],
+        nextPageToken: "next-page",
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        files: [{
+          id: "stable-folder",
+          name: "Puvodni_nazev",
+          webViewLink: "https://drive.google.com/drive/folders/stable-folder",
+          appProperties: {
+            dochubProjectId: "project-1",
+            dochubKind: "tender",
+            dochubKey: "category-1",
+          },
+        }],
+      }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findGoogleFolder({
+      accessToken: "secret-token",
+      parentId: "parent-1",
+      name: "Betony",
+      appProperties: {
+        dochubProjectId: "project-1",
+        dochubKind: "tender",
+        dochubKey: "category-1",
+      },
+    })).resolves.toMatchObject({ id: "stable-folder" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const secondUrl = new URL(String(fetchMock.mock.calls[1]?.[0]));
+    expect(secondUrl.searchParams.get("pageToken")).toBe("next-page");
+    expect(fetchMock.mock.calls.every((call) => call[1]?.method !== "POST")).toBe(true);
+  });
+
+  it("stops cyclic Google pagination before unbounded requests", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({
+      files: [],
+      nextPageToken: "same-page",
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findGoogleFolder({
+      accessToken: "secret-token",
+      parentId: "parent-1",
+      name: "Betony",
+      appProperties: { dochubProjectId: "project-1" },
+    })).rejects.toThrow("Drive pagination limit exceeded");
+    expect(fetchMock).toHaveBeenCalledTimes(100);
+  });
+
   it("finds an existing Microsoft folder without issuing a write request", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       value: [{ id: "folder-1", name: "Betony", webUrl: "https://tenant.sharepoint.com/folder-1", folder: {} }],

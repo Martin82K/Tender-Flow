@@ -231,7 +231,7 @@ export const usePipelineDocHubActions = ({
       if (opened) return;
     }
 
-    if (!isLocalProvider && docHubRoot) {
+    if (!isLocalProvider && docHubRoot && !isProbablyUrl(docHubRoot)) {
       const links = getDocHubTenderLinks(
         docHubRoot,
         activeCategory.title,
@@ -279,7 +279,7 @@ export const usePipelineDocHubActions = ({
       if (opened) return;
     }
 
-    if (!isLocalProvider && docHubRoot) {
+    if (!isLocalProvider && docHubRoot && !isProbablyUrl(docHubRoot)) {
       const links = getDocHubTenderLinks(
         docHubRoot,
         activeCategory.title,

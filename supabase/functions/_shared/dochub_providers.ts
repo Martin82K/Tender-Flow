@@ -121,22 +121,31 @@ export const findGoogleFolder = async (args: {
   url.searchParams.set("q", query);
   url.searchParams.set("pageSize", "10");
   url.searchParams.set("orderBy", "createdTime");
-  url.searchParams.set("fields", "files(id,name,webViewLink,createdTime,appProperties)");
+  url.searchParams.set("fields", "nextPageToken,files(id,name,webViewLink,createdTime,appProperties)");
 
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${args.accessToken}` } });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
-  const folders = (json.files || []) as Array<{
-    id: string;
-    name: string;
-    webViewLink: string;
-    appProperties?: Record<string, string>;
-  }>;
-  if (folders.length === 0) return null;
-  if (!appProps) return folders[0];
-  return folders.find((folder) =>
-    Object.entries(appProps).every(([key, value]) => folder.appProperties?.[key] === value)
-  ) || folders[0];
+  let pageToken = "";
+  let nameFallback: { id: string; name: string; webViewLink: string } | null = null;
+  for (let page = 0; page < 100; page += 1) {
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${args.accessToken}` } });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
+    const folders = (json.files || []) as Array<{
+      id: string;
+      name: string;
+      webViewLink: string;
+      appProperties?: Record<string, string>;
+    }>;
+    if (!nameFallback && folders[0]) nameFallback = folders[0];
+    if (!appProps && nameFallback) return nameFallback;
+    const stableMatch = folders.find((folder) =>
+      Object.entries(appProps || {}).every(([key, value]) => folder.appProperties?.[key] === value)
+    );
+    if (stableMatch) return stableMatch;
+    pageToken = typeof json.nextPageToken === "string" ? json.nextPageToken : "";
+    if (!pageToken) return nameFallback;
+  }
+  throw new Error("Drive pagination limit exceeded");
 };
 
 export const findOrCreateGoogleFolder = async (args: {
