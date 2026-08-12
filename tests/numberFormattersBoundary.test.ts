@@ -23,7 +23,7 @@ describe("number formatter module boundary", () => {
       "shared/ui/AnimatedCounter.tsx",
       "shared/ui/NumericInput.tsx",
       "shared/ui/SubcontractorSelector.tsx",
-      "components/pipelineComponents/CategoryCard.tsx",
+      "features/projects/pipeline/ui/CategoryCard.tsx",
     ];
 
     for (const consumer of consumers) {
