@@ -11,7 +11,6 @@ import {
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import { formatFileSize, getDocumentUrl } from "../services/documentService";
 import {
   formatMoney,
   formatInputNumber,
@@ -50,6 +49,7 @@ import {
   CategoryCard,
   CreateContactModal,
   EditBidModal,
+  PipelineCategoryDocuments,
   PipelineDetailToolbar,
   PipelineKanbanBoard,
   PipelineOverview,
@@ -120,24 +120,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
-
-  const handleOpenDocument = async (
-    event: React.MouseEvent<HTMLAnchorElement>,
-    documentPath: string,
-  ) => {
-    event.preventDefault();
-    try {
-      const signedUrl = await getDocumentUrl(documentPath);
-      window.open(signedUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      console.error("Error opening document:", error);
-      showAlert({
-        title: "Chyba",
-        message: "Dokument se nepodařilo otevřít. Zkuste to prosím znovu.",
-        variant: "danger",
-      });
-    }
-  };
 
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -504,50 +486,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         </div>
 
-        {/* Document List Section */}
-        {activeCategory.documents && activeCategory.documents.length > 0 && (
-          <div className="px-6 pt-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-slate-600 dark:text-slate-400 text-[20px]">
-                  folder_open
-                </span>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Přiložené dokumenty
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {activeCategory.documents.map((doc) => (
-                  <a
-                    key={doc.id}
-                    href={doc.url}
-                    onClick={(event) => {
-                      void handleOpenDocument(event, doc.url);
-                    }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
-                  >
-                    <span className="material-symbols-outlined text-slate-400 text-[20px]">
-                      description
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate group-hover:text-primary">
-                        {doc.name}
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        {formatFileSize(doc.size)}
-                      </p>
-                    </div>
-                    <span className="material-symbols-outlined text-slate-400 group-hover:text-primary text-[16px]">
-                      download
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <PipelineCategoryDocuments
+          documents={activeCategory.documents || []}
+          onOpenError={(message) =>
+            showAlert({ title: "Chyba", message, variant: "danger" })
+          }
+        />
 
         <PipelineKanbanBoard
           category={activeCategory}

@@ -108,6 +108,7 @@ vi.mock("@features/projects/pipeline", () => {
       </div>
     ),
     EditBidModal: dummy,
+    PipelineCategoryDocuments: dummy,
   };
 });
 
