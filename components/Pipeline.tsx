@@ -8,7 +8,6 @@ import {
   StatusConfig,
   ContractWithDetails,
 } from "../types";
-import { ConfirmationModal } from "./ConfirmationModal";
 import { useAuth } from "../context/AuthContext";
 import {
   resolveDocHubStructureV1,
@@ -48,6 +47,7 @@ import {
   PipelineKanbanBoard,
   PipelineOverview,
   usePipelineAlert,
+  usePipelineConfirmation,
 } from "@features/projects/pipeline";
 
 interface PipelineProps {
@@ -103,6 +103,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
 }) => {
   const { user } = useAuth();
   const { alertModalNode, showAlert } = usePipelineAlert();
+  const { confirmationModalNode, requestConfirmation } =
+    usePipelineConfirmation();
 
   const projectData = projectDetails;
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
@@ -336,28 +338,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
       resolveDesktopTenderFolderPath,
     });
 
-  // Confirmation Modal State
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-
-  const closeConfirmModal = () => {
-    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
-  };
-
   const handleDeleteBidRequest = (bidId: string) => {
-    setConfirmModal({
-      isOpen: true,
+    requestConfirmation({
       title: "Odstranit nabídku",
       message:
         "Opravdu chcete odebrat tohoto dodavatele z výběrového řízení? Tato akce je nevratná.",
-      onConfirm: () => {
-        handleDeleteBid(bidId);
-        closeConfirmModal();
-      },
+      onConfirm: () => handleDeleteBid(bidId),
     });
   };
 
@@ -369,14 +355,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleDeleteCategory = (categoryId: string) => {
     if (!onDeleteCategory) return;
 
-    setConfirmModal({
-      isOpen: true,
+    requestConfirmation({
       title: "Smazat poptávku",
       message: "Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.",
-      onConfirm: () => {
-        onDeleteCategory(categoryId);
-        closeConfirmModal();
-      },
+      onConfirm: () => onDeleteCategory(categoryId),
     });
   };
 
@@ -488,16 +470,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           />
         )}
 
-        {/* Confirmation Modal - Shared */}
-        <ConfirmationModal
-          isOpen={confirmModal.isOpen}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          onConfirm={confirmModal.onConfirm}
-          onCancel={closeConfirmModal}
-          confirmLabel="Odstranit"
-          variant="danger"
-        />
+        {confirmationModalNode}
 
         <PipelineBulkEmailConfirmationModal
           isOpen={bulkEmailKind !== null}
@@ -558,16 +531,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         onClose={closeEditCategoryModal}
         onSubmit={handleEditCategoryFromModal}
       />
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={closeConfirmModal}
-        confirmLabel="Odstranit"
-        variant="danger"
-      />
+      {confirmationModalNode}
     </div>
   );
 };

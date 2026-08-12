@@ -2,6 +2,8 @@ export { BidCard } from "./ui/BidCard";
 export type { BidCardProps } from "./ui/BidCard";
 export { usePipelineAlert } from "./model/usePipelineAlert";
 export type { PipelineAlertOptions } from "./model/usePipelineAlert";
+export { usePipelineConfirmation } from "./model/usePipelineConfirmation";
+export type { PipelineConfirmationOptions } from "./model/usePipelineConfirmation";
 export { CategoryFormModal } from "./ui/CategoryFormModal";
 export type {
   CategoryFormData,

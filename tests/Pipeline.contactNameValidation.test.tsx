@@ -139,6 +139,10 @@ vi.mock("@features/projects/pipeline", () => {
         ) : null,
       };
     },
+    usePipelineConfirmation: () => ({
+      confirmationModalNode: null,
+      requestConfirmation: vi.fn(),
+    }),
   };
 });
 
