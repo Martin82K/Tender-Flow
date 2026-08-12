@@ -8,7 +8,7 @@ vi.mock('@/components/Sidebar', () => ({
   Sidebar: () => <aside data-testid="sidebar" />,
 }));
 
-vi.mock('@/components/ConfirmationModal', () => ({
+vi.mock('@shared/ui/ConfirmationModal', () => ({
   ConfirmationModal: () => null,
 }));
 

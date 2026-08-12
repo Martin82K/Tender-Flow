@@ -16,7 +16,7 @@ import { DocHubStructureEditor } from "./documents/dochub/DocHubStructureEditor"
 import { DocHubAutoCreateStatus } from "./documents/dochub/DocHubAutoCreateStatus";
 import { DocHubHistory } from "./documents/dochub/DocHubHistory";
 import { DocHubLinks } from "./documents/dochub/DocHubLinks";
-import { ConfirmationModal } from "../ConfirmationModal";
+import { ConfirmationModal } from "@shared/ui/ConfirmationModal";
 import { DocsLinkSection } from "./documents/DocsLinkSection";
 import { TemplatesSection } from "./documents/TemplatesSection";
 import { PriceListsSection } from "./documents/PriceListsSection";
