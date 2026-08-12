@@ -11,6 +11,8 @@ export { Column } from "./ui/Column";
 export type { ColumnProps } from "./ui/Column";
 export { CreateContactModal } from "./ui/CreateContactModal";
 export type { CreateContactModalProps } from "./ui/CreateContactModal";
+export { EditBidModal } from "./ui/EditBidModal";
+export type { EditBidModalProps } from "./ui/EditBidModal";
 export { PipelineDetailToolbar } from "./ui/PipelineDetailToolbar";
 export type { PipelineDetailToolbarProps } from "./ui/PipelineDetailToolbar";
 export { PipelineKanbanBoard } from "./ui/PipelineKanbanBoard";
