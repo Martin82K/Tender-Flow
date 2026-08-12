@@ -137,7 +137,7 @@ describe("pipeline contact form model", () => {
 
   it("modal používá feature model a neduplikuje rozhodovací logiku", () => {
     const source = readFileSync(
-      join(process.cwd(), "components/pipelineComponents/CreateContactModal.tsx"),
+      join(process.cwd(), "features/projects/pipeline/ui/CreateContactModal.tsx"),
       "utf8",
     );
 

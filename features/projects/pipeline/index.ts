@@ -4,6 +4,8 @@ export { CategoryCard } from "./ui/CategoryCard";
 export type { CategoryCardProps } from "./ui/CategoryCard";
 export { Column } from "./ui/Column";
 export type { ColumnProps } from "./ui/Column";
+export { CreateContactModal } from "./ui/CreateContactModal";
+export type { CreateContactModalProps } from "./ui/CreateContactModal";
 export { PipelineOverview } from "./ui/PipelineOverview";
 export type { PipelineOverviewProps } from "./ui/PipelineOverview";
 export { SubcontractorSelectorModal } from "./ui/SubcontractorSelectorModal";

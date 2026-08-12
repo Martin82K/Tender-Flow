@@ -135,6 +135,9 @@ nezávislých větví UI.
 - Řízený editor kontaktních osob je izolovaný v
   `features/projects/pipeline/ui/PipelineContactPersonsEditor.tsx`; modal nadále
   vlastní formulářový stav a editor pouze vrací nový seznam osob.
+- Orchestrátor kontaktního formuláře vlastní
+  `features/projects/pipeline/ui/CreateContactModal.tsx`; původní cesta v
+  `components/pipelineComponents/` je pouze kompatibilní re-export.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
