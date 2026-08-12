@@ -16,7 +16,7 @@ const tenderPlanModelSource = readSource(
   "features/projects/model/tenderPlanModel.ts",
 );
 const pipelineOverviewSource = readSource(
-  "components/pipelineComponents/PipelineOverview.tsx",
+  "features/projects/pipeline/ui/PipelineOverview.tsx",
 );
 const projectOverviewSource = readSource(
   "features/projects/ui/ProjectOverviewNew.tsx",

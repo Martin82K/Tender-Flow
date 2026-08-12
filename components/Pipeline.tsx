@@ -53,12 +53,12 @@ import {
   BidCard,
   CategoryCard,
   Column,
+  PipelineOverview,
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
 import {
   EditBidModal,
   CreateContactModal,
-  PipelineOverview,
   CategoryFormModal,
 } from "./pipelineComponents";
 
