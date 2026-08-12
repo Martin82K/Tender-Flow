@@ -8,6 +8,8 @@ export { CreateContactModal } from "./ui/CreateContactModal";
 export type { CreateContactModalProps } from "./ui/CreateContactModal";
 export { PipelineDetailToolbar } from "./ui/PipelineDetailToolbar";
 export type { PipelineDetailToolbarProps } from "./ui/PipelineDetailToolbar";
+export { PipelineKanbanBoard } from "./ui/PipelineKanbanBoard";
+export type { PipelineKanbanBoardProps } from "./ui/PipelineKanbanBoard";
 export { PipelineOverview } from "./ui/PipelineOverview";
 export type { PipelineOverviewProps } from "./ui/PipelineOverview";
 export { SubcontractorSelectorModal } from "./ui/SubcontractorSelectorModal";

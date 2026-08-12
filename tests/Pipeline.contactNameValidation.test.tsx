@@ -63,6 +63,7 @@ vi.mock("@features/projects/pipeline", () => {
     Column: dummy,
     BidCard: dummy,
     PipelineDetailToolbar: dummy,
+    PipelineKanbanBoard: dummy,
     PipelineOverview: dummy,
     CreateContactModal: ({
       initialData,
