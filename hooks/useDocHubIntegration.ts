@@ -199,6 +199,7 @@ export const useDocHubIntegration = (
         }
     }, []);
     const scheduleResolveReset = useCallback((expectedIdentity: string) => {
+        if (projectActionIdentityRef.current !== expectedIdentity) return;
         if (resolveResetTimerRef.current) clearTimeout(resolveResetTimerRef.current);
         resolveResetTimerRef.current = setTimeout(() => {
             resolveResetTimerRef.current = null;
@@ -985,6 +986,7 @@ export const useDocHubIntegration = (
             const resolved = await invokeAuthedFunction<any>("dochub-resolve-root", {
                 body: { provider, projectId: project.id, url: rootLink.trim() }
             });
+            assertCurrentProjectAction(actionIdentity);
             const rName = (resolved as any)?.rootName;
             const rWebUrl = (resolved as any)?.rootWebUrl;
             if (rName) setRootName(rName);
@@ -1011,13 +1013,14 @@ export const useDocHubIntegration = (
             });
             setResolveProgress(100);
         } catch (e: any) {
+            if (e instanceof StaleDocHubActionError) return;
             showMessage("Nelze získat odkaz", e.message || "Error", "danger");
             setResolveProgress(0);
         } finally {
             // Keep loading state briefly for UI effect
             scheduleResolveReset(actionIdentity);
         }
-    }, [canManageGlobal, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, scheduleResolveReset, showMessage, onUpdate]);
+    }, [assertCurrentProjectAction, canManageGlobal, onlineRootLinkDraft, provider, project, rootLink, savePersonalLocalRoot, scheduleResolveReset, showMessage, onUpdate]);
 
     const pickLocalFolder = useCallback(async () => {
         const actionIdentity = projectActionIdentityRef.current;

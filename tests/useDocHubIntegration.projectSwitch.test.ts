@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   folderExists: vi.fn(),
   readFile: vi.fn(),
   writeFile: vi.fn(),
+  invokeAuthedFunction: vi.fn(),
 }));
 
 vi.mock("@infra/platform/platformAdapter", async (importOriginal) => {
@@ -48,7 +49,7 @@ vi.mock("../services/supabase", () => ({
   },
 }));
 
-vi.mock("../services/functionsClient", () => ({ invokeAuthedFunction: vi.fn() }));
+vi.mock("../services/functionsClient", () => ({ invokeAuthedFunction: mocks.invokeAuthedFunction }));
 
 import { useDocHubIntegration } from "../hooks/useDocHubIntegration";
 
@@ -69,6 +70,7 @@ describe("useDocHubIntegration project identity", () => {
     vi.clearAllMocks();
     mocks.folderExists.mockResolvedValue(true);
     mocks.storageDelete.mockResolvedValue(undefined);
+    mocks.invokeAuthedFunction.mockReset();
     mocks.readFile.mockImplementation(async (markerPath: string) => new TextEncoder().encode(
       createDocHubProjectMarker(
         markerPath.includes("project-2") ? "project-2" : "project-1",
@@ -182,6 +184,72 @@ describe("useDocHubIntegration project identity", () => {
       expect(result.current.state.isConnecting).toBe(false);
       expect(result.current.state.resolveProgress).toBe(0);
       expect(vi.getTimerCount()).toBe(0);
+      act(() => unmount());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not let a stale cloud resolve cancel the current project's reset", async () => {
+    let resolveProjectA: ((value: Record<string, string>) => void) | undefined;
+    let resolveProjectB: ((value: Record<string, string>) => void) | undefined;
+    let resolveInvocationCount = 0;
+    mocks.invokeAuthedFunction.mockImplementation((functionName: string) => {
+      if (functionName === "dochub-get-link") return Promise.resolve({});
+      resolveInvocationCount += 1;
+      return new Promise((resolve) => {
+        if (resolveInvocationCount === 1) resolveProjectA = resolve;
+        else resolveProjectB = resolve;
+      });
+    });
+    const cloudProject = (id: string): ProjectDetails => ({
+      ...project(id),
+      docHubProvider: "gdrive",
+      docHubRootLink: `https://drive.google.com/drive/folders/${id}-root`,
+      docHubRootWebUrl: `https://drive.google.com/drive/folders/${id}-root`,
+      docHubRootId: `${id}-root`,
+    });
+    const onUpdate = vi.fn();
+    const { result, rerender, unmount } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, onUpdate, { userId: "owner-1" }),
+      { initialProps: { currentProject: cloudProject("project-a") } },
+    );
+    await waitFor(() => expect(result.current.state.rootLink).toContain("project-a-root"));
+
+    vi.useFakeTimers();
+    try {
+      let actionA: Promise<void> | undefined;
+      act(() => { actionA = result.current.actions.resolveRoot(); });
+      expect(resolveInvocationCount).toBe(1);
+
+      act(() => rerender({ currentProject: cloudProject("project-b") }));
+      let actionB: Promise<void> | undefined;
+      act(() => { actionB = result.current.actions.resolveRoot(); });
+      expect(resolveInvocationCount).toBe(2);
+
+      await act(async () => {
+        resolveProjectB?.({
+          rootName: "Project B",
+          rootWebUrl: "https://drive.google.com/drive/folders/project-b-root",
+          rootId: "project-b-root",
+        });
+        await actionB;
+      });
+      expect(result.current.state.isConnecting).toBe(true);
+      expect(result.current.state.rootName).toBe("Project B");
+
+      await act(async () => {
+        resolveProjectA?.({
+          rootName: "Project A stale",
+          rootWebUrl: "https://drive.google.com/drive/folders/project-a-root",
+          rootId: "project-a-root",
+        });
+        await actionA;
+      });
+      act(() => vi.advanceTimersByTime(500));
+
+      expect(result.current.state.isConnecting).toBe(false);
+      expect(result.current.state.rootName).toBe("Project B");
       act(() => unmount());
     } finally {
       vi.useRealTimers();
