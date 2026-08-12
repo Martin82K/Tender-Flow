@@ -5,26 +5,23 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ProjectDetails } from "../../types";
-import { uploadDocument, formatFileSize } from "../../services/documentService";
-import { TemplateManager } from "../TemplateManager";
-import { getTemplateById } from "../../services/templateService";
-import { useDocHubIntegration } from "../../hooks/useDocHubIntegration";
-import { DocHubStatusCard } from "./documents/dochub/DocHubStatusCard";
-import { DocHubSetupWizard } from "./documents/dochub/DocHubSetupWizard";
-import { DocHubStructureEditor } from "./documents/dochub/DocHubStructureEditor";
-import { DocHubAutoCreateStatus } from "./documents/dochub/DocHubAutoCreateStatus";
-import { DocHubHistory } from "./documents/dochub/DocHubHistory";
-import { DocHubLinks } from "./documents/dochub/DocHubLinks";
+import type { ProjectDetails } from "@/types";
+import { uploadDocument } from "@/services/documentService";
+import { getTemplateById } from "@/services/templateService";
+import { useDocHubIntegration } from "../model/useDocHubIntegration";
+import { DocHubStatusCard } from "./dochub/DocHubStatusCard";
+import { DocHubSetupWizard } from "./dochub/DocHubSetupWizard";
+import { DocHubStructureEditor } from "./dochub/DocHubStructureEditor";
+import { DocHubAutoCreateStatus } from "./dochub/DocHubAutoCreateStatus";
+import { DocHubHistory } from "./dochub/DocHubHistory";
+import { DocHubLinks } from "./dochub/DocHubLinks";
 import { ConfirmationModal } from "@shared/ui/ConfirmationModal";
-import { DocsLinkSection } from "./documents/DocsLinkSection";
-import { TemplatesSection } from "./documents/TemplatesSection";
-import { PriceListsSection } from "./documents/PriceListsSection";
-import { useFeatures } from "../../context/FeatureContext";
-import { FEATURES } from "../../config/features";
-import { useLocation } from "../../shared/routing/router";
-import { isProbablyUrl } from "../../utils/docHub";
-import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
+import { DocsLinkSection } from "./DocsLinkSection";
+import { TemplatesSection } from "./TemplatesSection";
+import { PriceListsSection } from "./PriceListsSection";
+import { TemplateManager } from "./TemplateManager";
+import { useLocation } from "@shared/routing/router";
+import { isProbablyUrl } from "@shared/dochub/docHub";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -69,23 +66,25 @@ const formatMoneyFull = (val: number): string => {
 export interface ProjectDocumentsProps {
   project: ProjectDetails;
   onUpdate: (updates: Partial<ProjectDetails>) => void | Promise<void>;
+  currentUserId?: string;
+  canDocHub: boolean;
+  canTemplates: boolean;
+  autoShortenProjectDocs: boolean;
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   project,
   onUpdate,
+  currentUserId,
+  canDocHub,
+  canTemplates,
+  autoShortenProjectDocs,
 }) => {
   type DocumentsSubTab = "pd" | "templates" | "dochub" | "ceniky";
   const [isEditingDocs, setIsEditingDocs] = useState(false);
   const [isEditingLetter, setIsEditingLetter] = useState(false);
   const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
   const { search } = useLocation();
-  const { hasFeature } = useFeatures();
-  const canDocHub = hasFeature(FEATURES.DOC_HUB);
-  const canTemplates =
-    hasFeature(FEATURES.DYNAMIC_TEMPLATES) ||
-    hasFeature(FEATURES.DEMAND_GENERATION) ||
-    hasFeature(FEATURES.LOSER_EMAIL);
   const availableSubTabs = useMemo(
     () =>
       [
@@ -99,9 +98,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [docsLinkValue, setDocsLinkValue] = useState("");
   const [priceListLinkValue, setPriceListLinkValue] = useState("");
   const [letterLinkValue, setLetterLinkValue] = useState("");
-  const identity = useAuthIdentity();
   // DocHub Integration Hook
-  const docHub = useDocHubIntegration(project, onUpdate, { userId: identity?.id });
+  const docHub = useDocHubIntegration(project, onUpdate, { userId: currentUserId });
   const {
     isConnected: isDocHubConnected,
     links: docHubProjectLinks,
@@ -422,6 +420,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
           >
             {documentsSubTab === "pd" && (
               <DocsLinkSection
+                autoShortenProjectDocs={autoShortenProjectDocs}
                 project={project}
                 hasDocsLink={hasDocsLink}
                 isEditing={isEditingDocs}

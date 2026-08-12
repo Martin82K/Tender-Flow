@@ -123,7 +123,7 @@ describe('redirect validation is applied in billing components', () => {
 
   it('useDocHubIntegration validates OAuth URL before redirect', () => {
     const source = fs.readFileSync(
-      path.resolve('hooks/useDocHubIntegration.ts'),
+      path.resolve('features/projects/documents/model/useDocHubIntegration.ts'),
       'utf-8',
     );
     expect(source).toContain('isRedirectUrlSafe');

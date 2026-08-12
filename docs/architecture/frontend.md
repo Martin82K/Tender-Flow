@@ -140,6 +140,13 @@ nezávislých větví UI.
 - Orchestrátor kontaktního formuláře vlastní
   `features/projects/pipeline/ui/CreateContactModal.tsx` a zveřejňuje jej
   pipeline feature public API.
+- Projektové dokumenty, šablony a Složkomat vlastní modul
+  `features/projects/documents/`. `ProjectLayout` mu explicitně předává identitu,
+  dostupné capabilities a preferenci zkracování odkazů; modul proto nečte
+  legacy auth ani feature context. UI je v `ui/`, stavová a provider orchestrace
+  Složkomatu v `model/useDocHubIntegration.ts`. Původní komponenty v
+  `components/projectLayoutComponents/documents/`, legacy hook i shared re-export
+  byly po migraci všech konzumentů odstraněny.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.

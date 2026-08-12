@@ -1,6 +1,6 @@
 import React from 'react';
-import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
-import { type DocHubHierarchyItem, DEFAULT_DOCHUB_HIERARCHY } from '../../../../utils/docHub';
+import type { useDocHubIntegration } from '../../model/useDocHubIntegration';
+import { type DocHubHierarchyItem, DEFAULT_DOCHUB_HIERARCHY } from '@shared/dochub/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 

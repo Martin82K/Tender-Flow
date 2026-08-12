@@ -51,7 +51,7 @@ vi.mock("../services/supabase", () => ({
 
 vi.mock("../services/functionsClient", () => ({ invokeAuthedFunction: mocks.invokeAuthedFunction }));
 
-import { useDocHubIntegration } from "../hooks/useDocHubIntegration";
+import { useDocHubIntegration } from "@features/projects/documents/model/useDocHubIntegration";
 
 const project = (id: string, ownerId = "owner-1"): ProjectDetails => ({
   id,

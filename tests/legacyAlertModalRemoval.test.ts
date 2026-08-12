@@ -9,7 +9,7 @@ describe("legacy AlertModal removal", () => {
     const source = readFileSync(
       join(
         root,
-        "components/projectLayoutComponents/documents/dochub/DocHubHistory.tsx",
+        "features/projects/documents/ui/dochub/DocHubHistory.tsx",
       ),
       "utf8",
     );

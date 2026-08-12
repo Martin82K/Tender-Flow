@@ -18,7 +18,7 @@ import type {
   ProjectTeamRole,
   User,
 } from "@/types";
-import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
+import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useContractsWithDetails } from "@features/projects/contracts/hooks/useContractsWithDetails";
 import { useFeatures } from "@/context/FeatureContext";
@@ -336,7 +336,18 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           />
         )}
         {activeTab === "documents" && (
-          <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
+          <ProjectDocuments
+            project={project}
+            onUpdate={onUpdateDetails}
+            currentUserId={currentUserId}
+            canDocHub={hasFeature(FEATURES.DOC_HUB)}
+            canTemplates={
+              hasFeature(FEATURES.DYNAMIC_TEMPLATES) ||
+              hasFeature(FEATURES.DEMAND_GENERATION) ||
+              hasFeature(FEATURES.LOSER_EMAIL)
+            }
+            autoShortenProjectDocs={currentUser?.preferences?.autoShortenProjectDocs ?? false}
+          />
         )}
         {activeTab === "contracts" && (
           <ContractsModule

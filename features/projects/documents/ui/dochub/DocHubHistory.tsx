@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ProjectDetails } from '../../../../types';
-import { dbAdapter } from '@/services/dbAdapter';
+import type { ProjectDetails } from '@/types';
+import { dbAdapter } from '@infra/db/dbAdapter';
 import { AlertModal } from '@shared/ui/AlertModal';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 

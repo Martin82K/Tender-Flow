@@ -1,10 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DocsLinkSection } from '../components/projectLayoutComponents/documents/DocsLinkSection';
+import { DocsLinkSection } from '@features/projects/documents/ui/DocsLinkSection';
 import type { ProjectDetails } from '../types';
 
-const mockUseAuth = vi.fn();
 const mockShortenUrl = vi.fn();
 const platformMocks = vi.hoisted(() => ({
     isDesktop: false,
@@ -12,15 +11,13 @@ const platformMocks = vi.hoisted(() => ({
 }));
 const mockOpenInExplorer = vi.hoisted(() => vi.fn());
 
-vi.mock('../context/AuthContext', () => ({
-    useAuth: () => mockUseAuth(),
+vi.mock('@features/tools', () => ({
+    ToolsApi: {
+        shortenUrl: (...args: any[]) => mockShortenUrl(...args),
+    },
 }));
 
-vi.mock('../services/urlShortenerService', () => ({
-    shortenUrl: (...args: any[]) => mockShortenUrl(...args),
-}));
-
-vi.mock('../services/platformAdapter', () => ({
+vi.mock('@infra/platform/platformAdapter', () => ({
     get isDesktop() {
         return platformMocks.isDesktop;
     },
@@ -29,7 +26,7 @@ vi.mock('../services/platformAdapter', () => ({
     },
 }));
 
-vi.mock('../services/fileSystemService', () => ({
+vi.mock('@infra/files/fileSystemService', () => ({
     openInExplorer: (...args: any[]) => mockOpenInExplorer(...args),
 }));
 
@@ -41,7 +38,6 @@ const mockProject = {
 describe('DocsLinkSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockUseAuth.mockReturnValue({ user: null });
         mockShortenUrl.mockResolvedValue({
             success: true,
             shortUrl: 'https://tinyurl.com/test',
@@ -54,6 +50,7 @@ describe('DocsLinkSection', () => {
     });
 
     const defaultProps = {
+        autoShortenProjectDocs: false,
         project: mockProject,
         hasDocsLink: true,
         isEditing: false,
@@ -244,11 +241,6 @@ describe('DocsLinkSection', () => {
     });
 
     it('auto-shortens when preference is enabled and URL is public', async () => {
-        mockUseAuth.mockReturnValue({
-            user: {
-                preferences: { autoShortenProjectDocs: true },
-            },
-        });
         mockShortenUrl.mockResolvedValueOnce({
             success: true,
             shortUrl: 'https://tinyurl.com/public',
@@ -261,7 +253,7 @@ describe('DocsLinkSection', () => {
             writable: true,
         });
 
-        render(<DocsLinkSection {...defaultProps} />);
+        render(<DocsLinkSection {...defaultProps} autoShortenProjectDocs />);
 
         fireEvent.click(screen.getByText('Přidat odkaz'));
         fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
@@ -287,18 +279,12 @@ describe('DocsLinkSection', () => {
     });
 
     it('does not auto-shorten local/internal URL even when preference is enabled', async () => {
-        mockUseAuth.mockReturnValue({
-            user: {
-                preferences: { autoShortenProjectDocs: true },
-            },
-        });
-
         Object.defineProperty(global, 'crypto', {
             value: { randomUUID: () => 'link-local' },
             writable: true,
         });
 
-        render(<DocsLinkSection {...defaultProps} />);
+        render(<DocsLinkSection {...defaultProps} autoShortenProjectDocs />);
 
         fireEvent.click(screen.getByText('Přidat odkaz'));
         fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {

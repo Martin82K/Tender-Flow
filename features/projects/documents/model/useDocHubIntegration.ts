@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ProjectDetails } from '../types';
-import { dbAdapter } from '../services/dbAdapter';
-import { invokeAuthedFunction } from '../services/functionsClient';
-import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
+import type { DocHubProviderSettings, ProjectDetails } from '@/types';
+import { dbAdapter } from '@infra/db/dbAdapter';
+import { invokeAuthedFunction } from '@infra/functions/functionsClient';
+import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, type DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '@shared/dochub/docHub';
 import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
-import { isDesktop, fileSystemAdapter, oauthAdapter, storageAdapter } from '../services/platformAdapter';
-import { openInExplorer } from '../services/fileSystemService';
+import { isDesktop, fileSystemAdapter, oauthAdapter, storageAdapter } from '@infra/platform/platformAdapter';
+import { ensureStructure, openInExplorer } from '@infra/files/fileSystemService';
 import {
     DOC_HUB_PROJECT_MARKER_FILENAME,
     buildDocHubPersonalLocationKey,
@@ -28,7 +28,6 @@ import {
     sanitizeDocHubSettings,
     snapshotActiveCloudSettings,
 } from '@shared/dochub/cloudConnection';
-import type { DocHubProviderSettings } from '../types';
 
 export interface DocHubModalRequest {
     title: string;
@@ -1051,8 +1050,6 @@ export const useDocHubIntegration = (
         setIsConnecting(true);
         try {
             // Try to use platform adapter for native folder selection (Electron)
-            const { fileSystemAdapter, isDesktop } = await import('../services/platformAdapter');
-
             if (isDesktop) {
                 // Use native Electron dialog
                 const folderInfo = await fileSystemAdapter.selectFolder();
@@ -1273,8 +1270,6 @@ export const useDocHubIntegration = (
         try {
             // Local Provider (Tender Flow Desktop with native fs) - handle via fileSystemService
             if (provider === "onedrive") {
-                const { isDesktop } = await import('../services/platformAdapter');
-
                 if (!isDesktop) {
                     throw new Error("Tender Flow Desktop provider vyžaduje desktopovou aplikaci.");
                 }
@@ -1294,7 +1289,6 @@ export const useDocHubIntegration = (
                 const hierarchyTree = buildHierarchyTree(hierarchyDraft);
 
                 // Use fileSystemService.ensureStructure
-                const { ensureStructure } = await import('../services/fileSystemService');
                 const result = await ensureStructure({
                     rootPath: rootLink.trim(),
                     structure: (project.docHubStructureV1 as any) || {},

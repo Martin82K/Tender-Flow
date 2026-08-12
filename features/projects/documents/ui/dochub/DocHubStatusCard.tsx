@@ -1,6 +1,6 @@
 import React from 'react';
-import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
-import { isProbablyUrl } from '../../../../utils/docHub';
+import type { useDocHubIntegration } from '../../model/useDocHubIntegration';
+import { isProbablyUrl } from '@shared/dochub/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
