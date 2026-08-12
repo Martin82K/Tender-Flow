@@ -114,7 +114,6 @@ const createActions = (
     currentUser: overrides.currentUser || currentUser,
     userRole: "user",
     updateBidsInternal,
-    setIsExportMenuOpen: vi.fn(),
     showAlert,
     runDocHubFallbackForCategory: vi.fn(),
   });
@@ -203,7 +202,6 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
       currentUser,
       userRole: "user",
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert: vi.fn(),
       runDocHubFallbackForCategory: vi.fn(),
     });

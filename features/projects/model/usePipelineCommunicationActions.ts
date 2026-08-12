@@ -55,7 +55,6 @@ interface UsePipelineCommunicationActionsInput {
   updateBidsInternal: (
     updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
   ) => void;
-  setIsExportMenuOpen: (value: boolean) => void;
   showAlert: (args: ShowAlertArgs) => void;
   runDocHubFallbackForCategory: (
     categoryId: string,
@@ -73,7 +72,6 @@ export const usePipelineCommunicationActions = ({
   userRole,
   currentUser,
   updateBidsInternal,
-  setIsExportMenuOpen,
   showAlert,
   runDocHubFallbackForCategory,
   resolveDesktopTenderFolderPath,
@@ -442,7 +440,6 @@ export const usePipelineCommunicationActions = ({
           );
           break;
       }
-      setIsExportMenuOpen(false);
     } catch (error) {
       console.error("Export error:", error);
       showAlert({

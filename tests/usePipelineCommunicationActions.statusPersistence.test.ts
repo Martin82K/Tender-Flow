@@ -130,7 +130,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal,
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory,
     });
@@ -175,7 +174,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal,
-      setIsExportMenuOpen: vi.fn(),
       showAlert: vi.fn(),
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -220,7 +218,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal: vi.fn((updater) => updater(bids)),
-      setIsExportMenuOpen: vi.fn(),
       showAlert: vi.fn(),
       runDocHubFallbackForCategory: vi.fn(),
       resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
@@ -272,7 +269,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal: vi.fn((updater) => updater(bids)),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
       resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
@@ -324,7 +320,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal: vi.fn((updater) => updater(bids)),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
       resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
@@ -370,7 +365,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal: vi.fn((updater) => updater(bids)),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
       resolveDesktopTenderFolderPath: vi.fn(),
@@ -412,7 +406,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal: vi.fn((updater) => updater(bids)),
-      setIsExportMenuOpen: vi.fn(),
       showAlert: vi.fn(),
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -454,7 +447,6 @@ describe("usePipelineCommunicationActions status persistence", () => {
       emailClientMode: "mailto",
       userRole: "admin",
       updateBidsInternal,
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory,
     });

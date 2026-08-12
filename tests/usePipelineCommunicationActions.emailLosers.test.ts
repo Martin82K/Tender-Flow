@@ -136,7 +136,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -193,7 +192,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       }),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -241,7 +239,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });

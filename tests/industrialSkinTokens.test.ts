@@ -9,6 +9,10 @@ const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const pipelineDetailToolbarSource = readFileSync(
+  join(process.cwd(), "features/projects/pipeline/ui/PipelineDetailToolbar.tsx"),
+  "utf8",
+);
 const pipelineOverviewSource = readFileSync(join(process.cwd(), "features/projects/pipeline/ui/PipelineOverview.tsx"), "utf8");
 const pipelineBulkEmailMenuSource = readFileSync(join(process.cwd(), "features/projects/ui/PipelineBulkEmailMenu.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
@@ -133,7 +137,8 @@ describe("industrial skin tokens", () => {
   it("industrial pipeline menu používají skin tokeny i mimo topbar portál", () => {
     expect(pipelineBulkEmailMenuSource).toContain('data-help-id="pipeline-bulk-email-menu"');
     expect(pipelineBulkEmailMenuSource).toContain("tf-pipeline-popover");
-    expect(pipelineSource).toContain('data-help-id="pipeline-export-menu"');
+    expect(pipelineSource).toContain("PipelineDetailToolbar");
+    expect(pipelineDetailToolbarSource).toContain('data-help-id="pipeline-export-menu"');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-popover');
     expect(css).toContain('html.dark[data-skin="industrial"] .tf-pipeline-popover');
     expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface) 97%, transparent) !important");
