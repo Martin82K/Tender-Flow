@@ -8,10 +8,8 @@ import {
   StatusConfig,
   ContractWithDetails,
 } from "../types";
-import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import { formatInputNumber } from "../utils/formatters";
 import { useAuth } from "../context/AuthContext";
 import {
   resolveDocHubStructureV1,
@@ -43,7 +41,6 @@ import {
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
 import {
   CategoryFormModal,
-  CategoryCard,
   EditBidModal,
   PipelineCategoryDocuments,
   PipelineCategorySummary,
@@ -105,9 +102,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   contractsError = null,
 }) => {
   const { user } = useAuth();
-  // ... (existing code omitted for brevity)
-
-  // ... inside the render, look for EditBidModal ...
 
   const projectData = projectDetails;
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
@@ -164,8 +158,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     initialBids,
     onBidsChange,
   });
-  // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
-  // The component modifies contacts (adding new ones). So we might need state, but initialized from prop.
   useEffect(() => {
     localStorage.setItem(PIPELINE_VIEW_MODE_STORAGE_KEY, viewMode);
   }, [viewMode]);
@@ -422,8 +414,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   if (activeCategory) {
-    const isDesktopMode =
-      platformAdapter.isDesktop;
     const categoryBids = bids[activeCategory.id] || [];
     const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
     const loserEmailSelection = selectLoserEmailRecipients(categoryBids);

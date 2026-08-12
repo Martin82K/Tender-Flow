@@ -12,12 +12,17 @@ describe("Pipeline CategoryCard module boundary", () => {
     expect(featureSource).not.toMatch(/from ["'](?:@\/)?components\//);
   });
 
-  it("routes Pipeline through the public feature module", () => {
+  it("keeps CategoryCard behind PipelineOverview", () => {
     const pipelineSource = read("components/Pipeline.tsx");
-
-    expect(pipelineSource).toMatch(
-      /import\s*{[^}]*\bCategoryCard\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
+    const overviewSource = read(
+      "features/projects/pipeline/ui/PipelineOverview.tsx",
     );
+
+    expect(pipelineSource).toContain("PipelineOverview,");
+    expect(pipelineSource).not.toMatch(/^\s*CategoryCard,\s*$/m);
+    expect(pipelineSource).not.toContain("<CategoryCard");
+    expect(overviewSource).toContain("import { CategoryCard } from './CategoryCard'");
+    expect(overviewSource).toContain("<CategoryCard");
   });
 
 });
