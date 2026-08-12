@@ -19,24 +19,10 @@ describe("Pipeline EditBidModal feature boundary", () => {
 
   it("imports the modal through the pipeline public API", () => {
     const pipelineSource = readSource("components/Pipeline.tsx");
-    const legacyImport = pipelineSource.match(
-      /import\s*\{[\s\S]*?EditBidModal[\s\S]*?\}\s*from\s*["']\.\/pipelineComponents["']/,
-    );
-
     expect(pipelineSource).toMatch(
       /import\s*\{[\s\S]*?EditBidModal[\s\S]*?\}\s*from\s*["']@features\/projects\/pipeline["']/,
     );
-    expect(legacyImport).toBeNull();
+    expect(pipelineSource).not.toMatch(/pipelineComponents/);
   });
 
-  it("keeps the legacy module as a compatibility shim", () => {
-    const legacySource = readSource(
-      "components/pipelineComponents/EditBidModal.tsx",
-    );
-
-    expect(legacySource).toContain(
-      'export { EditBidModal } from "@features/projects/pipeline";',
-    );
-    expect(legacySource).not.toContain("useState");
-  });
 });

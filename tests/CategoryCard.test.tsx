@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CategoryCard } from "../components/pipelineComponents/CategoryCard";
+import { CategoryCard } from "@features/projects/pipeline";
 import type { DemandCategory } from "../types";
 
 const baseCategory: DemandCategory = {

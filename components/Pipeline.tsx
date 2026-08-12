@@ -56,9 +56,6 @@ import {
   SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
 
-// --- Components ---
-// All reusable components are now imported from pipelineComponents
-
 interface PipelineProps {
   projectId: string;
   projectDetails: ProjectDetails;

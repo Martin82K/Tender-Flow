@@ -111,14 +111,6 @@ vi.mock("@features/projects/pipeline", () => {
   };
 });
 
-vi.mock("../components/pipelineComponents", () => {
-  const dummy = () => null;
-
-  return {
-    CategoryCard: dummy,
-  };
-});
-
 const baseCategory: DemandCategory = {
   id: "cat-1",
   title: "Elektroinstalace",

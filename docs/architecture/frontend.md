@@ -122,10 +122,9 @@ nezávislých větví UI.
 - Pipeline UI se postupně přesouvá do `features/projects/pipeline/ui/`.
   Kanonické `BidCard`, `CategoryCard`, kanbanový `Column`,
   `PipelineOverview` a `SubcontractorSelectorModal` jsou
-  vlastněné tímto modulem a zveřejněné přes jeho
-  `features/projects/pipeline/index.ts`; původní cesta v
-  `components/pipelineComponents/` je pouze kompatibilní re-export pro legacy
-  konzumenty.
+  vlastněné tímto modulem a zveřejněné výhradně přes jeho
+  `features/projects/pipeline/index.ts`. Původní kompatibilní adresář
+  `components/pipelineComponents/` byl po migraci všech konzumentů odstraněn.
 - Čistá inicializace a ARES merge pravidla kontaktního formuláře Pipeline jsou
   v `features/projects/pipeline/model/pipelineContactFormModel.ts`; modal drží
   pouze UI stav a orchestrace lookupu.
@@ -136,8 +135,8 @@ nezávislých větví UI.
   `features/projects/pipeline/ui/PipelineContactPersonsEditor.tsx`; modal nadále
   vlastní formulářový stav a editor pouze vrací nový seznam osob.
 - Orchestrátor kontaktního formuláře vlastní
-  `features/projects/pipeline/ui/CreateContactModal.tsx`; původní cesta v
-  `components/pipelineComponents/` je pouze kompatibilní re-export.
+  `features/projects/pipeline/ui/CreateContactModal.tsx` a zveřejňuje jej
+  pipeline feature public API.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.

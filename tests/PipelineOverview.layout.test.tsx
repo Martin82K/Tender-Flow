@@ -2,7 +2,7 @@ import React, { act } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PipelineOverview } from "@/components/pipelineComponents/PipelineOverview";
+import { PipelineOverview } from "@features/projects/pipeline";
 import { formatMoney } from "@/utils/formatters";
 import type { Bid, DemandCategory } from "@/types";
 
