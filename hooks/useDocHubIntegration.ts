@@ -209,6 +209,15 @@ export const useDocHubIntegration = (
     }, []);
 
     useEffect(() => {
+        if (resolveResetTimerRef.current) {
+            clearTimeout(resolveResetTimerRef.current);
+            resolveResetTimerRef.current = null;
+        }
+        setIsConnecting(false);
+        setResolveProgress(0);
+    }, [projectActionIdentity]);
+
+    useEffect(() => {
         personalLocationLoadedRef.current = false;
         if (!personalLocationIdentity) {
             setHasPersonalLocalRoot(false);

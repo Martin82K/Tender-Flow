@@ -159,6 +159,35 @@ describe("useDocHubIntegration project identity", () => {
     }
   });
 
+  it("resets resolve loading when the project identity changes", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    const { result, rerender, unmount } = renderHook(
+      ({ currentProject }) => useDocHubIntegration(currentProject, vi.fn(), { userId: "owner-1" }),
+      { initialProps: { currentProject: project("project-1") } },
+    );
+    await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+
+    vi.useFakeTimers();
+    try {
+      act(() => result.current.setters.setOnlineRootLinkDraft("http://invalid.example.com"));
+      await act(async () => result.current.actions.resolveRoot());
+      expect(result.current.state.isConnecting).toBe(true);
+
+      await act(async () => {
+        rerender({ currentProject: project("project-2") });
+        await Promise.resolve();
+      });
+
+      expect(result.current.state.isConnecting).toBe(false);
+      expect(result.current.state.resolveProgress).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+      act(() => unmount());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not let an older personal-root load overwrite a newly saved root", async () => {
     let resolveOld: ((value: string) => void) | undefined;
     mocks.storageGet.mockReturnValueOnce(new Promise<string>((resolve) => { resolveOld = resolve; }));
