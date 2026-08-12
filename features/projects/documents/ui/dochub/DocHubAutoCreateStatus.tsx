@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
+import type { useDocHubIntegration } from '../../model/useDocHubIntegration';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 

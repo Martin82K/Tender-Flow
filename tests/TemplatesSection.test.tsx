@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { TemplatesSection } from '../components/projectLayoutComponents/documents/TemplatesSection';
+import { TemplatesSection } from '@features/projects/documents/ui/TemplatesSection';
 import { ProjectDetails } from '../types';
 
 const mockProject = {

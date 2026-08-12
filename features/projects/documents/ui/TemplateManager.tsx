@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
-import { Template, ProjectDetails } from '../types';
+import type { ProjectDetails, Template } from '@/types';
 import { TEMPLATE_VARIABLES, getPreviewData, processTemplate, renderTemplateHtml } from '@/shared/email/templateUtils';
-import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
+import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '@/services/templateService';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 
 interface TemplateManagerProps {

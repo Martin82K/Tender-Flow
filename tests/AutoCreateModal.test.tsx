@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { AutoCreateModal } from '../components/projectLayoutComponents/documents/AutoCreateModal';
+import { AutoCreateModal } from '@features/projects/documents/ui/AutoCreateModal';
 
 describe('AutoCreateModal', () => {
     const defaultProps = {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { isProbablyUrl } from '../../../utils/docHub';
+import { isProbablyUrl } from '@shared/dochub/docHub';
 
 interface AutoCreateModalProps {
     result: { createdCount: number | null } | null;

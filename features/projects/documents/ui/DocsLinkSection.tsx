@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { ProjectDetails, DocumentLink } from "../../../types";
-import { isProbablyUrl, isSafePublicHttpUrlForExternalShortener } from "../../../utils/docHub";
-import { shortenUrl } from "../../../services/urlShortenerService";
-import { useAuth } from "../../../context/AuthContext";
-import { openInExplorer } from "../../../services/fileSystemService";
-import { isDesktop, shellAdapter } from "../../../services/platformAdapter";
+import type { DocumentLink, ProjectDetails } from "@/types";
+import { ToolsApi } from "@features/tools";
+import { openInExplorer } from "@infra/files/fileSystemService";
+import { isDesktop, shellAdapter } from "@infra/platform/platformAdapter";
+import { isProbablyUrl, isSafePublicHttpUrlForExternalShortener } from "@shared/dochub/docHub";
 
 interface DocsLinkSectionProps {
+  autoShortenProjectDocs: boolean;
   project: ProjectDetails;
   hasDocsLink: boolean;
   isEditing: boolean;
@@ -24,6 +24,7 @@ interface DocsLinkSectionProps {
 }
 
 export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
+  autoShortenProjectDocs,
   project,
   hasDocsLink,
   isEditing,
@@ -34,7 +35,6 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
   showModal,
   onUpdate,
 }) => {
-  const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newLink, setNewLink] = useState<{
     label: string;
@@ -60,12 +60,12 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
 
     // Auto-shorten if enabled in settings
     if (
-      user?.preferences?.autoShortenProjectDocs &&
+      autoShortenProjectDocs &&
       isSafePublicHttpUrlForExternalShortener(finalUrl)
     ) {
       setIsShortening(true);
       try {
-        const result = await shortenUrl(finalUrl);
+        const result = await ToolsApi.shortenUrl(finalUrl);
         if (result.success && result.shortUrl) {
           finalUrl = result.shortUrl;
         } else {

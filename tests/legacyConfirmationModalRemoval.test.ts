@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const consumers = [
   "components/layouts/MainLayout.tsx",
-  "components/TemplateManager.tsx",
-  "components/projectLayoutComponents/ProjectDocuments.tsx",
-  "components/projectLayoutComponents/documents/dochub/DocHubHistory.tsx",
+  "features/projects/documents/ui/TemplateManager.tsx",
+  "features/projects/documents/ui/ProjectDocuments.tsx",
+  "features/projects/documents/ui/dochub/DocHubHistory.tsx",
 ];
 
 describe("legacy ConfirmationModal removal", () => {

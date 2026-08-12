@@ -1,8 +1,8 @@
 import React from 'react';
-import { ProjectDetails } from '../../../types';
-import { openInExplorer } from '../../../services/fileSystemService';
-import { isDesktop } from '../../../services/platformAdapter';
-import { isProbablyUrl } from '../../../utils/docHub';
+import type { ProjectDetails } from '@/types';
+import { openInExplorer } from '@infra/files/fileSystemService';
+import { isDesktop } from '@infra/platform/platformAdapter';
+import { isProbablyUrl } from '@shared/dochub/docHub';
 
 const getSafeExternalUrl = (value: string | undefined): string | null => {
     const trimmed = value?.trim();

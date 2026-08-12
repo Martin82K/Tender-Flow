@@ -1,8 +1,8 @@
 import React from 'react';
-import type { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
-import { openInExplorer } from '../../../../services/fileSystemService';
-import { isDesktop } from '../../../../services/platformAdapter';
-import { isProbablyUrl, resolveDocHubStructureV1 } from '../../../../utils/docHub';
+import type { useDocHubIntegration } from '../../model/useDocHubIntegration';
+import { openInExplorer } from '@infra/files/fileSystemService';
+import { isDesktop } from '@infra/platform/platformAdapter';
+import { isProbablyUrl, resolveDocHubStructureV1 } from '@shared/dochub/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
