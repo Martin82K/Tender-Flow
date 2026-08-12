@@ -11,6 +11,7 @@ import infraPlatformAdapter, {
 
 const root = process.cwd();
 const read = (relativePath: string) => readFileSync(join(root, relativePath), "utf8");
+const normalizeLineEndings = (source: string) => source.replace(/\r\n?/g, "\n");
 
 const modernConsumers = [
   "app/AppContent.tsx",
@@ -26,7 +27,7 @@ const modernConsumers = [
 describe("infra platform adapter", () => {
   it("owns the implementation in infra and keeps legacy imports as a compatibility adapter", () => {
     const infraSource = read("infra/platform/platformAdapter.ts");
-    const legacySource = read("services/platformAdapter.ts");
+    const legacySource = normalizeLineEndings(read("services/platformAdapter.ts"));
 
     expect(infraSource).toContain("export const platformAdapter");
     expect(infraSource).not.toContain("@/services/platformAdapter");
@@ -36,6 +37,10 @@ describe("infra platform adapter", () => {
         'export { default } from "@infra/platform/platformAdapter";',
       ].join("\n"),
     );
+  });
+
+  it("normalizes Windows line endings before comparing adapter source", () => {
+    expect(normalizeLineEndings("first\r\nsecond\r")).toBe("first\nsecond\n");
   });
 
   it("routes modern consumers through the canonical infra module", () => {
