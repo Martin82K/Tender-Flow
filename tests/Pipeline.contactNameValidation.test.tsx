@@ -62,6 +62,7 @@ vi.mock("@features/projects/pipeline", () => {
   return {
     Column: dummy,
     BidCard: dummy,
+    CategoryFormModal: dummy,
     PipelineDetailToolbar: dummy,
     PipelineKanbanBoard: dummy,
     PipelineOverview: dummy,
@@ -115,7 +116,6 @@ vi.mock("../components/pipelineComponents", () => {
   return {
     EditBidModal: dummy,
     CategoryCard: dummy,
-    CategoryFormModal: dummy,
   };
 });
 

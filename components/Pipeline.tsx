@@ -46,6 +46,7 @@ import {
 } from "@/features/projects/model/pipelineEmailModel";
 import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/PipelineBulkEmailConfirmationModal";
 import {
+  CategoryFormModal,
   CategoryCard,
   CreateContactModal,
   PipelineDetailToolbar,
@@ -55,7 +56,6 @@ import {
 } from "@features/projects/pipeline";
 import {
   EditBidModal,
-  CategoryFormModal,
 } from "./pipelineComponents";
 
 // --- Components ---
