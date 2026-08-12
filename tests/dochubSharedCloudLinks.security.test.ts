@@ -104,6 +104,23 @@ describe("DocHub shared cloud links", () => {
     expect(ensureIndex).toBeGreaterThan(cachedReturnIndex);
   });
 
+  it("hydrates a shared-user cache miss read-only from owner storage using database names", () => {
+    const source = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("resolveSharedFolderLink");
+    expect(source).toContain("ownerId: project.owner_id");
+    expect(source).toContain("userId: args.ownerId");
+    expect(source).toContain('.from("demand_categories")');
+    expect(source).toContain('.from("subcontractors")');
+    expect(source).toContain("findGoogleFolder");
+    expect(source).toContain("findMicrosoftFolder");
+    expect(source).not.toContain("name: categoryTitle,\n        readOnly: true");
+    expect(source).not.toContain("name: supplierName,\n        readOnly: true");
+  });
+
   it("requires project ownership in every authenticated global mutation endpoint", () => {
     const endpoints = [
       "dochub-auth-url",
