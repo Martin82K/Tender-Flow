@@ -9,7 +9,6 @@ import {
   ContractWithDetails,
 } from "../types";
 import { ConfirmationModal } from "./ConfirmationModal";
-import { AlertModal } from "./AlertModal";
 import { useAuth } from "../context/AuthContext";
 import {
   resolveDocHubStructureV1,
@@ -48,6 +47,7 @@ import {
   PipelineDetailToolbar,
   PipelineKanbanBoard,
   PipelineOverview,
+  usePipelineAlert,
 } from "@features/projects/pipeline";
 
 interface PipelineProps {
@@ -102,6 +102,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   contractsError = null,
 }) => {
   const { user } = useAuth();
+  const { alertModalNode, showAlert } = usePipelineAlert();
 
   const projectData = projectDetails;
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
@@ -110,40 +111,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const canOpenDocHub = canOpenProjectDocHub(projectDetails, docHubRoot);
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
-  );
-
-  const [alertModal, setAlertModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    variant: "danger" | "info" | "success";
-    copyableText?: string;
-  }>({ isOpen: false, title: "", message: "", variant: "info" });
-
-  const showAlert = (args: {
-    title: string;
-    message: string;
-    variant?: "danger" | "info" | "success";
-    copyableText?: string;
-  }) => {
-    setAlertModal({
-      isOpen: true,
-      title: args.title,
-      message: args.message,
-      variant: args.variant ?? "info",
-      copyableText: args.copyableText,
-    });
-  };
-
-  const alertModalNode = (
-    <AlertModal
-      isOpen={alertModal.isOpen}
-      title={alertModal.title}
-      message={alertModal.message}
-      variant={alertModal.variant === "danger" ? "error" : alertModal.variant}
-      copyableText={alertModal.copyableText}
-      onClose={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
-    />
   );
 
   const [demandFilter, setDemandFilter] = useState<

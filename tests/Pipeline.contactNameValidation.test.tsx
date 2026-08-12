@@ -119,6 +119,26 @@ vi.mock("@features/projects/pipeline", () => {
     EditBidModal: dummy,
     PipelineCategoryDocuments: dummy,
     PipelineCategorySummary: dummy,
+    usePipelineAlert: () => {
+      const [alert, setAlert] = React.useState<{
+        title: string;
+        message: string;
+      } | null>(null);
+
+      return {
+        showAlert: React.useCallback(
+          ({ title, message }: { title: string; message: string }) =>
+            setAlert({ title, message }),
+          [],
+        ),
+        alertModalNode: alert ? (
+          <div role="alert">
+            <span>{alert.title}</span>
+            <span>{alert.message}</span>
+          </div>
+        ) : null,
+      };
+    },
   };
 });
 
