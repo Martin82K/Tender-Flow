@@ -7,8 +7,13 @@ import {
   type DocHubStructureV1,
   type Provider,
 } from "../_shared/dochub_providers.ts";
+import {
+  getBaseSharedFolderName,
+  getInquiryIdentityKeys,
+  type BaseSharedLinkKind,
+} from "./sharedFolderIdentity.ts";
 
-export type SharedLinkKind = "tender" | "tender_inquiries" | "supplier";
+export type SharedLinkKind = BaseSharedLinkKind | "tender" | "tender_inquiries" | "supplier";
 
 export type ResolvedFolder = {
   item_id: string;
@@ -76,15 +81,38 @@ export const resolveSharedFolderLink = async (args: {
   rootId: string;
   driveId?: string | null;
   kind: SharedLinkKind;
-  categoryId: string;
+  categoryId?: string | null;
   supplierId?: string | null;
   structure: DocHubStructureV1;
 }): Promise<ResolvedFolder | null> => {
   const service = createServiceClient();
+  const baseFolderName = getBaseSharedFolderName(args.kind, args.structure);
+  const getOwnerFolderFinder = async () => {
+    const { accessToken } = await getAccessTokenForUser({
+      userId: args.ownerId,
+      provider: args.provider,
+    });
+    return (parentId: string, name: string, appProperties?: Record<string, string>) =>
+      findExistingFolder({ ...args, accessToken, parentId, name, appProperties });
+  };
+
+  if (baseFolderName) {
+    const find = await getOwnerFolderFinder();
+    const baseFolder = await find(args.rootId, baseFolderName, {
+      dochubProjectId: args.projectId,
+      dochubKind: args.kind,
+    });
+    if (!baseFolder) return null;
+    await cacheResolvedFolder({ ...args, kind: args.kind, key: null, folder: baseFolder });
+    return baseFolder;
+  }
+
+  const categoryId = args.categoryId;
+  if (!categoryId) return null;
   const { data: category } = await service
     .from("demand_categories")
     .select("id,title")
-    .eq("id", args.categoryId)
+    .eq("id", categoryId)
     .eq("project_id", args.projectId)
     .maybeSingle();
   if (!category?.id || typeof category.title !== "string") return null;
@@ -95,7 +123,7 @@ export const resolveSharedFolderLink = async (args: {
     const { data: bid } = await service
       .from("bids")
       .select("subcontractor_id,company_name")
-      .eq("demand_category_id", args.categoryId)
+      .eq("demand_category_id", categoryId)
       .eq("subcontractor_id", args.supplierId)
       .limit(1)
       .maybeSingle();
@@ -112,12 +140,7 @@ export const resolveSharedFolderLink = async (args: {
     }
   }
 
-  const { accessToken } = await getAccessTokenForUser({
-    userId: args.ownerId,
-    provider: args.provider,
-  });
-  const find = (parentId: string, name: string, appProperties?: Record<string, string>) =>
-    findExistingFolder({ ...args, accessToken, parentId, name, appProperties });
+  const find = await getOwnerFolderFinder();
 
   const tendersFolder = await find(args.rootId, args.structure.tenders, {
     dochubProjectId: args.projectId,
@@ -129,23 +152,29 @@ export const resolveSharedFolderLink = async (args: {
   const tenderFolder = await find(tendersFolder.item_id, getTenderFolderName(category.title), {
     dochubProjectId: args.projectId,
     dochubKind: "tender",
-    dochubKey: args.categoryId,
+    dochubKey: categoryId,
   });
   if (!tenderFolder) return null;
-  await cacheResolvedFolder({ ...args, kind: "tender", key: args.categoryId, folder: tenderFolder });
+  await cacheResolvedFolder({ ...args, kind: "tender", key: categoryId, folder: tenderFolder });
   if (args.kind === "tender") return tenderFolder;
 
-  const inquiriesKey = `${args.categoryId}:inquiries`;
-  const inquiriesFolder = await find(tenderFolder.item_id, args.structure.tendersInquiries, {
-    dochubProjectId: args.projectId,
-    dochubKind: "tender_inquiries",
-    dochubKey: inquiriesKey,
-  });
+  const inquiriesKey = `${categoryId}:inquiries`;
+  const inquiryKeys = getInquiryIdentityKeys(args.provider, categoryId);
+  let inquiriesFolder: ResolvedFolder | null = null;
+  for (const inquiryKey of inquiryKeys) {
+    if (!inquiryKey) continue;
+    inquiriesFolder = await find(tenderFolder.item_id, args.structure.tendersInquiries, {
+      dochubProjectId: args.projectId,
+      dochubKind: "tender_inquiries",
+      dochubKey: inquiryKey,
+    });
+    if (inquiriesFolder) break;
+  }
   if (!inquiriesFolder) return null;
   await cacheResolvedFolder({ ...args, kind: "tender_inquiries", key: inquiriesKey, folder: inquiriesFolder });
   if (args.kind === "tender_inquiries") return inquiriesFolder;
 
-  const supplierKey = `${args.categoryId}:${args.supplierId}`;
+  const supplierKey = `${categoryId}:${args.supplierId}`;
   let supplierFolder: ResolvedFolder | null = null;
   for (const supplierName of [...new Set(supplierFolderNames)]) {
     supplierFolder = await find(inquiriesFolder.item_id, getTenderFolderName(supplierName), {

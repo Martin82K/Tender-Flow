@@ -9,7 +9,10 @@ import {
   getTenderFolderName,
   type Provider,
 } from "../_shared/dochub_providers.ts";
-import { resolveSharedFolderLink } from "./sharedFolderRecovery.ts";
+import {
+  resolveSharedFolderLink,
+  type SharedLinkKind,
+} from "./sharedFolderRecovery.ts";
 
 type LinkKind =
   | "pd"
@@ -20,6 +23,19 @@ type LinkKind =
   | "tender"
   | "tender_inquiries"
   | "supplier";
+
+const SHARED_RECOVERABLE_KINDS: readonly LinkKind[] = [
+  "pd",
+  "tenders",
+  "contracts",
+  "realization",
+  "archive",
+  "tender",
+  "tender_inquiries",
+  "supplier",
+];
+
+const SHARED_NESTED_KINDS: readonly LinkKind[] = ["tender", "tender_inquiries", "supplier"];
 
 const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
 
@@ -381,8 +397,8 @@ Deno.serve(async (req) => {
     if (!isProjectOwner) {
       if (
         !project.owner_id ||
-        !categoryId ||
-        !["tender", "tender_inquiries", "supplier"].includes(kind)
+        !SHARED_RECOVERABLE_KINDS.includes(kind) ||
+        (SHARED_NESTED_KINDS.includes(kind) && !categoryId)
       ) {
         return json(req, 404, { error: "Folder link not available" });
       }
@@ -392,7 +408,7 @@ Deno.serve(async (req) => {
         provider,
         rootId,
         driveId,
-        kind: kind as "tender" | "tender_inquiries" | "supplier",
+        kind: kind as SharedLinkKind,
         categoryId,
         supplierId,
         structure,
