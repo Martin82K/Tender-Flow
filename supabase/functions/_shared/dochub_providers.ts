@@ -91,6 +91,54 @@ export const getGoogleFolderMeta = async (args: {
   return { id: json.id, name: json.name, webViewLink: json.webViewLink, driveId: json.driveId };
 };
 
+export const findGoogleFolder = async (args: {
+  accessToken: string;
+  parentId: string;
+  name: string;
+  appProperties?: Record<string, string> | null;
+}): Promise<{ id: string; name: string; webViewLink: string } | null> => {
+  const escapeQueryString = (value: string) => value.replace(/'/g, "\\'");
+  const appProps = args.appProperties || null;
+  const appQuery = appProps && Object.keys(appProps).length > 0
+    ? Object.entries(appProps)
+      .filter(([, value]) => value.length > 0)
+      .map(([key, value]) =>
+        `appProperties has { key='${escapeQueryString(key)}' and value='${escapeQueryString(value)}' }`
+      )
+      .join(" and ")
+    : null;
+  const nameQuery = `name='${escapeQueryString(args.name)}'`;
+  const query = [
+    "mimeType='application/vnd.google-apps.folder'",
+    `'${escapeQueryString(args.parentId)}' in parents`,
+    "trashed=false",
+    appQuery ? `(${appQuery} or ${nameQuery})` : nameQuery,
+  ].join(" and ");
+  const url = new URL(`${googleApi}/files`);
+  url.searchParams.set("supportsAllDrives", "true");
+  url.searchParams.set("includeItemsFromAllDrives", "true");
+  url.searchParams.set("corpora", "allDrives");
+  url.searchParams.set("q", query);
+  url.searchParams.set("pageSize", "10");
+  url.searchParams.set("orderBy", "createdTime");
+  url.searchParams.set("fields", "files(id,name,webViewLink,createdTime,appProperties)");
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${args.accessToken}` } });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
+  const folders = (json.files || []) as Array<{
+    id: string;
+    name: string;
+    webViewLink: string;
+    appProperties?: Record<string, string>;
+  }>;
+  if (folders.length === 0) return null;
+  if (!appProps) return folders[0];
+  return folders.find((folder) =>
+    Object.entries(appProps).every(([key, value]) => folder.appProperties?.[key] === value)
+  ) || folders[0];
+};
+
 export const findOrCreateGoogleFolder = async (args: {
   accessToken: string;
   parentId: string;
@@ -236,6 +284,28 @@ export const findOrCreateMicrosoftFolder = async (args: {
     throw new Error(createJson?.error?.message || "Graph create failed");
   }
   return { id: createJson.id, name: createJson.name, webUrl: createJson.webUrl, created: true, duplicatesFound: 0 };
+};
+
+export const findMicrosoftFolder = async (args: {
+  accessToken: string;
+  driveId: string;
+  parentId: string;
+  name: string;
+}): Promise<{ id: string; name: string; webUrl: string } | null> => {
+  const res = await fetch(
+    `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
+      args.parentId
+    )}/children?$select=id,name,webUrl,folder&$top=200`,
+    { headers: { Authorization: `Bearer ${args.accessToken}` } },
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error?.message || "Graph list failed");
+  return ((json.value || []) as Array<{
+    id: string;
+    name: string;
+    webUrl: string;
+    folder?: unknown;
+  }>).find((item) => item.folder && item.name === args.name) || null;
 };
 
 export const getTenderFolderName = (title: string): string => slugifyDocHubSegment(title);
