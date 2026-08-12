@@ -11,10 +11,7 @@ import {
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import {
-  formatMoney,
-  formatInputNumber,
-} from "../utils/formatters";
+import { formatInputNumber } from "../utils/formatters";
 import { useAuth } from "../context/AuthContext";
 import {
   resolveDocHubStructureV1,
@@ -50,6 +47,7 @@ import {
   CreateContactModal,
   EditBidModal,
   PipelineCategoryDocuments,
+  PipelineCategorySummary,
   PipelineDetailToolbar,
   PipelineKanbanBoard,
   PipelineOverview,
@@ -462,29 +460,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
           />
         </Header>
 
-        <div className="px-6 pt-4">
-          <div data-help-id="kanban-info-bar" className="overflow-x-auto">
-            <div className="flex min-w-max items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {activeCategory.title}
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span className="font-medium text-slate-500 dark:text-slate-400">
-                Cena SOD:
-              </span>
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {formatMoney(activeCategory.sodBudget ?? 0)}
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span className="font-medium text-slate-500 dark:text-slate-400">
-                Interní plán:
-              </span>
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {formatMoney(activeCategory.planBudget ?? 0)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <PipelineCategorySummary
+          title={activeCategory.title}
+          sodBudget={activeCategory.sodBudget}
+          planBudget={activeCategory.planBudget}
+        />
 
         <PipelineCategoryDocuments
           documents={activeCategory.documents || []}
