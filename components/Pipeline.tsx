@@ -44,14 +44,13 @@ import { PipelineBulkEmailConfirmationModal } from "@/features/projects/ui/Pipel
 import {
   CategoryFormModal,
   CategoryCard,
-  CreateContactModal,
   EditBidModal,
   PipelineCategoryDocuments,
   PipelineCategorySummary,
+  PipelineContactModals,
   PipelineDetailToolbar,
   PipelineKanbanBoard,
   PipelineOverview,
-  SubcontractorSelectorModal,
 } from "@features/projects/pipeline";
 
 interface PipelineProps {
@@ -492,18 +491,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onOpenContract={onOpenContract}
         />
 
-        <SubcontractorSelectorModal
-          isOpen={isSubcontractorModalOpen}
-          isMaximized={isSubcontractorModalMaximized}
+        <PipelineContactModals
+          isSelectorOpen={isSubcontractorModalOpen}
+          isSelectorMaximized={isSubcontractorModalMaximized}
           contacts={localContacts}
-          statuses={DEFAULT_STATUSES}
+          selectorStatuses={DEFAULT_STATUSES}
+          contactStatuses={externalStatuses}
           selectedIds={selectedSubcontractorIds}
           onSelectionChange={setSelectedSubcontractorIds}
-          onToggleMaximize={() =>
+          onToggleSelectorMaximize={() =>
             setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)
           }
-          onClose={() => setIsSubcontractorModalOpen(false)}
-          onConfirm={() => handleAddSubcontractors(localContacts)}
+          onCloseSelector={() => setIsSubcontractorModalOpen(false)}
+          onConfirmSelection={() => handleAddSubcontractors(localContacts)}
           onAddContact={handleCreateContactRequest}
           onEditContact={setEditingContact}
           projectPosition={
@@ -511,19 +511,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
               ? { lat: projectData.latitude, lng: projectData.longitude }
               : null
           }
+          isCreateContactOpen={isCreateContactModalOpen}
+          newContactName={newContactName}
+          editingContact={editingContact}
+          existingSpecializations={Array.from(
+            new Set(localContacts.flatMap((contact) => contact.specialization)),
+          ).sort()}
+          onCloseContact={closeContactModal}
+          onSaveNewContact={handleSaveNewContact}
+          onUpdateContact={handleUpdateContact}
         />
-        {(isCreateContactModalOpen || editingContact) && (
-          <CreateContactModal
-            initialName={newContactName}
-            initialData={editingContact || undefined}
-            existingSpecializations={Array.from(
-              new Set(localContacts.flatMap((c) => c.specialization)),
-            ).sort()}
-            statuses={externalStatuses}
-            onClose={closeContactModal}
-            onSave={editingContact ? handleUpdateContact : handleSaveNewContact}
-          />
-        )}
 
         {/* Edit Bid Modal */}
         {editingBid && (

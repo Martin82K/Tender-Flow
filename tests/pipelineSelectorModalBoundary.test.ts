@@ -20,10 +20,16 @@ describe("Pipeline SubcontractorSelectorModal module boundary", () => {
 
   it("routes Pipeline through the public feature module", () => {
     const pipelineSource = read("components/Pipeline.tsx");
-
-    expect(pipelineSource).toMatch(
-      /import\s*{[^}]*\bSubcontractorSelectorModal\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,
+    const contactModalsSource = read(
+      "features/projects/pipeline/ui/PipelineContactModals.tsx",
     );
+
+    expect(pipelineSource).toContain("PipelineContactModals,");
+    expect(pipelineSource).not.toContain("<SubcontractorSelectorModal");
+    expect(contactModalsSource).toContain(
+      'import { SubcontractorSelectorModal } from "./SubcontractorSelectorModal"',
+    );
+    expect(contactModalsSource).toContain("<SubcontractorSelectorModal");
   });
 
 });

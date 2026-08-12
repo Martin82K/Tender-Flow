@@ -66,37 +66,20 @@ vi.mock("@features/projects/pipeline", () => {
     PipelineDetailToolbar: dummy,
     PipelineKanbanBoard: dummy,
     PipelineOverview: dummy,
-    CreateContactModal: ({
-      initialData,
-      onSave,
-    }: {
-      initialData?: Subcontractor;
-      onSave: (contact: Subcontractor) => void;
-    }) => (
-      <button
-        data-testid={initialData ? "save-invalid-edit" : "save-invalid-create"}
-        onClick={() =>
-          onSave({
-            id: initialData?.id || "new-contact",
-            company: "CON",
-            specialization: ["Elektro"],
-            contacts: [{ id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" }],
-            status: "available",
-            name: "Kontakt",
-            email: "x@y.cz",
-            phone: "123",
-          })
-        }
-      >
-        save
-      </button>
-    ),
-    SubcontractorSelectorModal: ({
+    PipelineContactModals: ({
+      isCreateContactOpen,
+      editingContact,
       onAddContact,
       onEditContact,
+      onSaveNewContact,
+      onUpdateContact,
     }: {
+      isCreateContactOpen: boolean;
+      editingContact: Subcontractor | null;
       onAddContact: (name: string) => void;
       onEditContact: (contact: Subcontractor) => void;
+      onSaveNewContact: (contact: Subcontractor) => void;
+      onUpdateContact: (contact: Subcontractor) => void;
     }) => (
       <div>
         <button onClick={() => onAddContact("CON")} data-testid="open-create">
@@ -105,6 +88,32 @@ vi.mock("@features/projects/pipeline", () => {
         <button onClick={() => onEditContact(baseContact)} data-testid="open-edit">
           open-edit
         </button>
+        {(isCreateContactOpen || editingContact) && (
+          <button
+            data-testid={editingContact ? "save-invalid-edit" : "save-invalid-create"}
+            onClick={() => {
+              const invalidContact = {
+                id: editingContact?.id || "new-contact",
+                company: "CON",
+                specialization: ["Elektro"],
+                contacts: [
+                  { id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" },
+                ],
+                status: "available",
+                name: "Kontakt",
+                email: "x@y.cz",
+                phone: "123",
+              } as Subcontractor;
+              if (editingContact) {
+                onUpdateContact(invalidContact);
+              } else {
+                onSaveNewContact(invalidContact);
+              }
+            }}
+          >
+            save
+          </button>
+        )}
       </div>
     ),
     EditBidModal: dummy,
