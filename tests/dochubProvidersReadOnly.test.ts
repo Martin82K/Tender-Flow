@@ -67,6 +67,62 @@ describe("DocHub read-only folder lookup", () => {
     expect(fetchMock.mock.calls.every((call) => call[1]?.method !== "POST")).toBe(true);
   });
 
+  it("does not fall back to a same-name Google folder owned by another stable identity", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      files: [{
+        id: "different-tender",
+        name: "Betony",
+        webViewLink: "https://drive.google.com/drive/folders/different-tender",
+        appProperties: {
+          dochubProjectId: "project-1",
+          dochubKind: "tender",
+          dochubKey: "category-2",
+        },
+      }],
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findGoogleFolder({
+      accessToken: "secret-token",
+      parentId: "parent-1",
+      name: "Betony",
+      appProperties: {
+        dochubProjectId: "project-1",
+        dochubKind: "tender",
+        dochubKey: "category-1",
+      },
+    })).resolves.toBeNull();
+  });
+
+  it("fails closed when multiple legacy Google folders have the same name", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      files: [
+        {
+          id: "legacy-1",
+          name: "Betony",
+          webViewLink: "https://drive.google.com/drive/folders/legacy-1",
+        },
+        {
+          id: "legacy-2",
+          name: "Betony",
+          webViewLink: "https://drive.google.com/drive/folders/legacy-2",
+        },
+      ],
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findGoogleFolder({
+      accessToken: "secret-token",
+      parentId: "parent-1",
+      name: "Betony",
+      appProperties: {
+        dochubProjectId: "project-1",
+        dochubKind: "tender",
+        dochubKey: "category-1",
+      },
+    })).resolves.toBeNull();
+  });
+
   it("stops cyclic Google pagination before unbounded requests", async () => {
     const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({
       files: [],

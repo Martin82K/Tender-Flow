@@ -124,7 +124,7 @@ export const findGoogleFolder = async (args: {
   url.searchParams.set("fields", "nextPageToken,files(id,name,webViewLink,createdTime,appProperties)");
 
   let pageToken = "";
-  let nameFallback: { id: string; name: string; webViewLink: string } | null = null;
+  const legacyNameMatches: Array<{ id: string; name: string; webViewLink: string }> = [];
   for (let page = 0; page < 100; page += 1) {
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${args.accessToken}` } });
@@ -136,14 +136,17 @@ export const findGoogleFolder = async (args: {
       webViewLink: string;
       appProperties?: Record<string, string>;
     }>;
-    if (!nameFallback && folders[0]) nameFallback = folders[0];
-    if (!appProps && nameFallback) return nameFallback;
+    if (!appProps && folders[0]) return folders[0];
+    legacyNameMatches.push(...folders.filter((folder) => {
+      const properties = folder.appProperties || {};
+      return !["dochubProjectId", "dochubKind", "dochubKey"].some((key) => key in properties);
+    }));
     const stableMatch = folders.find((folder) =>
       Object.entries(appProps || {}).every(([key, value]) => folder.appProperties?.[key] === value)
     );
     if (stableMatch) return stableMatch;
     pageToken = typeof json.nextPageToken === "string" ? json.nextPageToken : "";
-    if (!pageToken) return nameFallback;
+    if (!pageToken) return legacyNameMatches.length === 1 ? legacyNameMatches[0] : null;
   }
   throw new Error("Drive pagination limit exceeded");
 };
