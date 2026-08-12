@@ -129,6 +129,9 @@ nezávislých větví UI.
 - Čistá inicializace a ARES merge pravidla kontaktního formuláře Pipeline jsou
   v `features/projects/pipeline/model/pipelineContactFormModel.ts`; modal drží
   pouze UI stav a orchestrace lookupu.
+- Odkazy kontaktního formuláře do ARES, RŽP a RES vlastní feature komponenta
+  `features/projects/pipeline/ui/PipelineRegistryLinks.tsx`, včetně bezpečné
+  desktop/web navigace a kódování hodnot query.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
 - Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
