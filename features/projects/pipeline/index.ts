@@ -17,6 +17,8 @@ export { PipelineDetailToolbar } from "./ui/PipelineDetailToolbar";
 export type { PipelineDetailToolbarProps } from "./ui/PipelineDetailToolbar";
 export { PipelineCategoryDocuments } from "./ui/PipelineCategoryDocuments";
 export type { PipelineCategoryDocumentsProps } from "./ui/PipelineCategoryDocuments";
+export { PipelineCategorySummary } from "./ui/PipelineCategorySummary";
+export type { PipelineCategorySummaryProps } from "./ui/PipelineCategorySummary";
 export { PipelineKanbanBoard } from "./ui/PipelineKanbanBoard";
 export type { PipelineKanbanBoardProps } from "./ui/PipelineKanbanBoard";
 export { PipelineOverview } from "./ui/PipelineOverview";
