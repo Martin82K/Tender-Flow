@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Bid, DemandCategory, ProjectDetails } from "@/types";
+import type { Bid, DemandCategory, ProjectDetails, User } from "@/types";
 
 const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -20,17 +20,13 @@ vi.mock("@features/projects/dochub/model/personalRoot", () => ({
   useEffectiveProjectDocHubRoot: mocks.useEffectiveProjectDocHubRoot,
 }));
 
-vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({
-    user: {
-      id: "u-1",
-      name: "Tester",
-      email: "test@example.com",
-      role: "admin",
-      preferences: {},
-    },
-  }),
-}));
+const currentUser: User = {
+  id: "u-1",
+  name: "Tester",
+  email: "test@example.com",
+  role: "admin",
+  preferences: {},
+};
 
 vi.mock("@/services/functionsClient", () => ({
   invokeAuthedFunction: mocks.invokeAuthedFunction,
@@ -86,7 +82,7 @@ vi.mock("@/features/projects/model/usePipelineDocHubFallback", () => ({
   },
 }));
 
-import { Pipeline } from "@/components/Pipeline";
+import { Pipeline } from "@features/projects/pipeline/Pipeline";
 
 const baseCategory: DemandCategory = {
   id: "cat-1",
@@ -134,6 +130,7 @@ const renderPipeline = (
     <Pipeline
       projectId="project-1"
       projectDetails={projectDetails}
+      currentUser={currentUser}
       bids={{ "cat-1": [baseBid] }}
       contacts={[]}
       initialOpenCategoryId="cat-1"

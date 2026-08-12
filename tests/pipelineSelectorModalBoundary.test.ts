@@ -19,7 +19,7 @@ describe("Pipeline SubcontractorSelectorModal module boundary", () => {
   });
 
   it("routes Pipeline through the public feature module", () => {
-    const pipelineSource = read("components/Pipeline.tsx");
+    const pipelineSource = read("features/projects/pipeline/Pipeline.tsx");
     const contactModalsSource = read(
       "features/projects/pipeline/ui/PipelineContactModals.tsx",
     );

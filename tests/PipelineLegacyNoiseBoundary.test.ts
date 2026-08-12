@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const readPipeline = () =>
-  readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+  readFileSync(
+    join(process.cwd(), "features/projects/pipeline/Pipeline.tsx"),
+    "utf8",
+  );
 
 describe("Pipeline legacy noise boundary", () => {
   it("neobsahuje mrtvé importy, proměnné ani placeholder komentáře", () => {

@@ -402,6 +402,7 @@ export const AppContent: React.FC = () => {
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
               initialContractId={activeContractId ?? undefined}
               currentUserId={user?.id}
+              currentUser={user}
               onNavigateToPipeline={(catId: string) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);

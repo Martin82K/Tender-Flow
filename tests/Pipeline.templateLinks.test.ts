@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTemplateLinksForInquiryKind } from "../components/Pipeline";
+import { getTemplateLinksForInquiryKind } from "@features/projects/pipeline/Pipeline";
 import type { ProjectDetails } from "../types";
 
 const createProject = (overrides: Partial<ProjectDetails>): ProjectDetails =>

@@ -13,7 +13,7 @@ describe("Pipeline CategoryCard module boundary", () => {
   });
 
   it("keeps CategoryCard behind PipelineOverview", () => {
-    const pipelineSource = read("components/Pipeline.tsx");
+    const pipelineSource = read("features/projects/pipeline/Pipeline.tsx");
     const overviewSource = read(
       "features/projects/pipeline/ui/PipelineOverview.tsx",
     );

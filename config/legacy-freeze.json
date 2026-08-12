@@ -16,7 +16,6 @@
     "components/EmailWhitelistManagement.tsx",
     "components/Header.tsx",
     "components/LandingPage.tsx",
-    "components/Pipeline.tsx",
     "components/ProjectLayout.tsx",
     "components/ProjectManager.tsx",
     "components/ProjectOverview.tsx",

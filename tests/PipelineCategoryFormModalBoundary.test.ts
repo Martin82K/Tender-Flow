@@ -16,7 +16,7 @@ describe("Pipeline CategoryFormModal module boundary", () => {
   });
 
   it("skládá Pipeline přes veřejný feature modul", () => {
-    const pipelineSource = read("components/Pipeline.tsx");
+    const pipelineSource = read("features/projects/pipeline/Pipeline.tsx");
 
     expect(pipelineSource).toMatch(
       /import\s*{[^}]*\bCategoryFormModal\b[^}]*}\s*from\s*["']@features\/projects\/pipeline["'];/,

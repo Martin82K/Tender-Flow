@@ -20,7 +20,7 @@ describe("odstranění legacy pipelineComponents", () => {
     ).toEqual([]);
 
     const pipelineSource = readFileSync(
-      join(root, "components/Pipeline.tsx"),
+      join(root, "features/projects/pipeline/Pipeline.tsx"),
       "utf8",
     );
     expect(pipelineSource).not.toMatch(/pipelineComponents/);
