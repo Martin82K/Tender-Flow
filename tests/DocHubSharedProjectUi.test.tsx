@@ -59,12 +59,14 @@ describe("DocHub shared project UI", () => {
       />,
     );
 
-    expect(screen.getByText(/Globální napojení spravuje vlastník projektu/)).toBeVisible();
+    expect(screen.getByText(/Výběr se uloží jen pro váš účet a toto zařízení/)).toBeVisible();
     expect(screen.getByRole("button", { name: /Google Drive/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Tender Flow Desktop/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Procházet/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Lokální synchronizovaná složka/ })).toBeDisabled();
+    expect(screen.getByText("2) Moje cesta na tomto zařízení")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Vybrat složku na tomto zařízení/ })).toBeEnabled();
+    expect(screen.getByRole("textbox", { name: "Cesta k synchronizované složce" })).toHaveValue(sharedState.rootLink);
     expect(screen.getByRole("button", { name: "Odebrat moji cestu" })).toBeEnabled();
-    expect(screen.queryByText("Online odkaz pro sdílené uživatele")).not.toBeInTheDocument();
+    expect(screen.queryByText("Online otevření pro web a sdílené uživatele")).not.toBeInTheDocument();
   });
 
   it("offers the owner-provided online link as a fallback", () => {
@@ -84,6 +86,8 @@ describe("DocHub shared project UI", () => {
       "_blank",
       "noopener,noreferrer",
     );
+    expect(screen.getByText("Lokální synchronizovaná složka")).toBeVisible();
+    expect(screen.getByText("Používá se vaše osobní cesta na tomto zařízení.")).toBeVisible();
     openSpy.mockRestore();
   });
 
@@ -97,9 +101,10 @@ describe("DocHub shared project UI", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Přihlásit k Microsoftu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Přihlásit k Microsoftu pro online otevření" }));
     expect(actions.connectPersonalMicrosoft).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/Tender Flow použije přihlášení pouze k nalezení složek/)).toBeVisible();
+    expect(screen.getByText("Online otevření v prohlížeči (volitelné)")).toBeVisible();
+    expect(screen.getByText(/Ve webové verzi umožní otevřít správnou složku/)).toBeVisible();
   });
 
   it("validates a manually entered local path before opening it", () => {
@@ -117,5 +122,21 @@ describe("DocHub shared project UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Připojit složku" }));
     expect(actions.resolveRoot).toHaveBeenCalledTimes(1);
     expect(actions.openRoot).not.toHaveBeenCalled();
+  });
+
+  it("vysvětluje vlastníkovi rozdíl mezi lokální synchronizací a online odkazem", () => {
+    render(
+      <DocHubSetupWizard
+        state={{ ...sharedState, isSharedProject: false, canManageGlobal: true } as any}
+        actions={actions as any}
+        setters={setters as any}
+        showModal={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("2) Sdílená složka projektu")).toBeVisible();
+    expect(screen.getByText(/Synchronizaci souborů zajišťuje OneDrive/)).toBeVisible();
+    expect(screen.getByText("Online otevření pro web a sdílené uživatele")).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Online otevření pro web a sdílené uživatele" })).toHaveValue(sharedState.onlineRootLinkDraft);
   });
 });

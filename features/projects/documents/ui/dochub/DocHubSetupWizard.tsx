@@ -48,44 +48,15 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
       <div className="flex flex-col gap-4">
         {isSharedProject && (
           <div className="rounded-xl border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-700/50 dark:bg-blue-950/30 dark:text-blue-100">
-            Globální napojení spravuje vlastník projektu. Zde si můžete nastavit pouze vlastní cestu k synchronizované složce; cesta vlastníka se na tomto zařízení nepoužije.
-          </div>
-        )}
-        {isSharedProject && isMicrosoftOnlineRoot && (
-          <div className="rounded-xl border border-blue-300 bg-white p-4 dark:border-blue-700/50 dark:bg-slate-900/30">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">Moje připojení k Microsoftu</div>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  Tender Flow použije přihlášení pouze k nalezení složek. Po otevření rozhodují o nahrávání vaše oprávnění v SharePointu.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={personalMicrosoftStatus === "connected"
-                  ? actions.disconnectPersonalMicrosoft
-                  : actions.connectPersonalMicrosoft}
-                disabled={isConnecting || isLoadingPersonalMicrosoftStatus}
-                className="whitespace-nowrap rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoadingPersonalMicrosoftStatus
-                  ? "Ověřuji..."
-                  : personalMicrosoftStatus === "connected"
-                    ? "Odpojit můj Microsoft"
-                    : "Přihlásit k Microsoftu"}
-              </button>
-            </div>
-            {personalMicrosoftStatus === "connected" && (
-              <div className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Microsoft je připojen pro online mapování.</div>
-            )}
+            Globální napojení spravuje vlastník projektu. Výběr se uloží jen pro váš účet a toto zařízení. Cesta vlastníka ani cesty ostatních uživatelů se nezmění.
           </div>
         )}
         {/* Step 1 */}
         <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            1) Primární způsob práce
+            1) Způsob připojení dokumentů
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => setters.setProvider("gdrive")}
@@ -99,7 +70,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 Google Drive
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">
-                My Drive / Shared
+                Přímý online přístup přes Google účet
               </div>
             </button>
             <button
@@ -112,16 +83,18 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 }`}
             >
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                Tender Flow Desktop
+                Lokální synchronizovaná složka
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">
-                Lokální nebo síťový disk
+                OneDrive / SharePoint, síťový nebo místní disk
               </div>
             </button>
           </div>
-          <div className="text-[11px] text-slate-500 flex justify-between items-center">
+          <div className="flex flex-col gap-2 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <span>
-              Obě varianty lze kombinovat: lokální složka má přednost, online připojení slouží jako automatická záloha.
+              {isLocalProvider
+                ? "Tender Flow pracuje s místní kopií. Synchronizaci souborů zajišťuje OneDrive, SharePoint nebo správce síťového disku."
+                : "Tender Flow pracuje se složkou online prostřednictvím připojeného Google účtu."}
             </span>
             {isConnectedStatus && (
               <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
@@ -135,12 +108,16 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
 
 
         <div className={`space-y-2 border rounded-xl p-4 transition-all ${isConnectedStatus && !rootLink
-          ? "bg-violet-50 dark:bg-violet-900/10 border-violet-500ring-1 ring-violet-500/20"
+          ? "bg-violet-50 dark:bg-violet-900/10 border-violet-500 ring-1 ring-violet-500/20"
           : "bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-700/50"
           }`}>
           <div className="flex items-center justify-between">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-              2) Hlavní složka projektu
+              {isLocalProvider
+                ? isSharedProject
+                  ? "2) Moje cesta na tomto zařízení"
+                  : "2) Sdílená složka projektu"
+                : "2) Složka Google Drive"}
             </div>
             {isConnectedStatus && !rootLink && (
               <div className="text-xs font-bold text-violet-600 animate-pulse">
@@ -154,7 +131,8 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm text-slate-600 dark:text-slate-400">
                   <p className="font-semibold mb-1">Jak vybrat složku:</p>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
-                    <li>Klikněte na "Procházet" a vyberte složku z disku.</li>
+                    <li>Nechte složku synchronizovat aplikací OneDrive, případně ji zpřístupněte na síťovém disku.</li>
+                    <li>Klikněte na „Vybrat složku na tomto zařízení“ a vyberte její místní kopii.</li>
                     <li>Nebo zadejte cestu ke složce ručně do pole níže.</li>
                   </ol>
                 </div>
@@ -181,13 +159,14 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                     }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">folder_open</span>
-                  Procházet
+                  Vybrat složku na tomto zařízení
                 </button>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
+                  aria-label={isLocalProvider ? "Cesta k synchronizované složce" : "URL složky Google Drive"}
                   value={rootLink}
                   onChange={(e) => setters.setRootLink(e.target.value)}
                   disabled={isSharedProject && !isLocalProvider}
@@ -259,15 +238,18 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             )}
             <div className="text-[11px] text-slate-500">
               {isLocalProvider
-                ? "Vyberte složku přes Procházet nebo zadejte cestu ručně."
+                ? isSharedProject
+                  ? "Tato cesta je osobní pro váš účet a toto zařízení. Ostatním uživatelům se nepřepíše."
+                  : "Vyberte místní kopii synchronizované složky nebo zadejte její cestu ručně."
                 : "Vložte URL adresu složky z Google Drive."}
             </div>
             {isLocalProvider && canManageGlobal && (
               <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700/50">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Online záloha a přístup pro sdílené uživatele
+                <label htmlFor="dochub-online-root-url" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Online otevření pro web a sdílené uživatele
                 </label>
                 <input
+                  id="dochub-online-root-url"
                   type="url"
                   value={onlineRootLinkDraft}
                   onChange={(event) => setters.setOnlineRootLinkDraft(event.target.value)}
@@ -282,12 +264,41 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   Uložit online odkaz
                 </button>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Nepovinné. Pro SharePoint nejprve otevřete kořenovou složku a z adresního řádku zkopírujte finální adresu OneDrive obsahující parametr <code>id</code>; krátký sdílecí odkaz <code>/:f:/</code> neumí určit cesty podsložek. Tender Flow pak ze struktury Složkomatu otevře odpovídající VŘ, poptávku nebo složku subdodavatele online.
+                  Nepovinné. Tento odkaz nesynchronizuje ani nezálohuje soubory; umožní je otevřít ve webové verzi Tender Flow. Pro SharePoint nejprve otevřete kořenovou složku a z adresního řádku zkopírujte finální adresu OneDrive obsahující parametr <code>id</code>; krátký sdílecí odkaz <code>/:f:/</code> neumí určit cesty podsložek.
                 </p>
               </div>
             )}
           </div>
         </div>
+        {isSharedProject && isMicrosoftOnlineRoot && (
+          <div className="rounded-xl border border-blue-300 bg-white p-4 dark:border-blue-700/50 dark:bg-slate-900/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">Online otevření v prohlížeči (volitelné)</div>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                  Ve webové verzi umožní otevřít správnou složku v OneDrive nebo SharePointu. V desktopu není potřeba pro práci s místní kopií. Přihlášení nemění vaši lokální cestu a přístup stále řídí oprávnění Microsoft 365.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={personalMicrosoftStatus === "connected"
+                  ? actions.disconnectPersonalMicrosoft
+                  : actions.connectPersonalMicrosoft}
+                disabled={isConnecting || isLoadingPersonalMicrosoftStatus}
+                className="w-full rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:whitespace-nowrap"
+              >
+                {isLoadingPersonalMicrosoftStatus
+                  ? "Ověřuji..."
+                  : personalMicrosoftStatus === "connected"
+                    ? "Odpojit můj Microsoft"
+                    : "Přihlásit k Microsoftu pro online otevření"}
+              </button>
+            </div>
+            {personalMicrosoftStatus === "connected" && (
+              <div className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Microsoft je připojen pro online otevírání složek.</div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">

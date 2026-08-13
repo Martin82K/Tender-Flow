@@ -20,7 +20,7 @@ export const DocHubStatusCard: React.FC<DocHubStatusCardProps> = ({ state, actio
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-200">
-                            {provider === "gdrive" ? "Google Drive" : provider === "onedrive" ? "Tender Flow Desktop" : "Provider: neuvedeno"}
+                            {provider === "gdrive" ? "Google Drive" : provider === "onedrive" ? "Lokální synchronizovaná složka" : "Provider: neuvedeno"}
                         </span>
                         <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-200">
                             {mode === "user" ? "Můj účet" : mode === "org" ? "Organizační úložiště" : "Režim: neuvedeno"}
@@ -34,7 +34,7 @@ export const DocHubStatusCard: React.FC<DocHubStatusCardProps> = ({ state, actio
                     </div>
                     {isSharedProject && provider === "onedrive" && (
                         <div className="mt-2 text-xs text-slate-500">
-                            {hasPersonalLocalRoot ? "Používá se vaše osobní cesta." : "Vyberte lokálně synchronizovanou složku projektu."}
+                            {hasPersonalLocalRoot ? "Používá se vaše osobní cesta na tomto zařízení." : "Vyberte místní kopii synchronizované složky projektu."}
                         </div>
                     )}
                 </div>
