@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   canOpenProjectDocHub,
@@ -6,7 +6,10 @@ import {
   replaceDocHubCloudFallbackUrl,
   sanitizeDocHubSettings,
 } from "@shared/dochub/cloudConnection";
-import { resolveCloudDocHubConnection } from "../supabase/functions/_shared/dochub_connection";
+import {
+  recoverCloudDocHubConnection,
+  resolveCloudDocHubConnection,
+} from "../supabase/functions/_shared/dochub_connection";
 import type { ProjectDetails } from "@/types";
 
 describe("DocHub cloud connection fallback", () => {
@@ -54,6 +57,60 @@ describe("DocHub cloud connection fallback", () => {
       dochub_root_id: "local:connection-1",
       dochub_settings: { gdrive: { rootId: "local:spoofed" } },
     })).toBeNull();
+  });
+
+  it("obnoví chybějící OneDrive ID read-only z uložené SharePoint URL vlastníka", async () => {
+    const getAccessTokenForUser = vi.fn().mockResolvedValue({ accessToken: "owner-token" });
+    const resolveMicrosoftSharingUrl = vi.fn().mockResolvedValue({
+      id: "resolved-root",
+      driveId: "resolved-drive",
+    });
+    const project = {
+      owner_id: "owner-user",
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:owner-connection",
+      dochub_root_web_url: "https://baustavkv-my.sharepoint.com/shared/project-root",
+      dochub_settings: {
+        onedrive_cloud: {
+          rootWebUrl: "https://baustavkv-my.sharepoint.com/shared/project-root",
+        },
+      },
+    };
+
+    await expect(recoverCloudDocHubConnection(project, {
+      getAccessTokenForUser,
+      getGoogleFolderMeta: vi.fn(),
+      parseGoogleFolderId: vi.fn(),
+      resolveMicrosoftSharingUrl,
+    })).resolves.toEqual({
+      provider: "onedrive",
+      rootId: "resolved-root",
+      driveId: "resolved-drive",
+    });
+    expect(getAccessTokenForUser).toHaveBeenCalledWith({
+      userId: "owner-user",
+      provider: "onedrive",
+    });
+    expect(resolveMicrosoftSharingUrl).toHaveBeenCalledWith({
+      accessToken: "owner-token",
+      sharingUrl: "https://baustavkv-my.sharepoint.com/shared/project-root",
+    });
+  });
+
+  it("nepoužije owner token bez platné podporované fallback URL", async () => {
+    const getAccessTokenForUser = vi.fn();
+    await expect(recoverCloudDocHubConnection({
+      owner_id: "owner-user",
+      dochub_provider: "onedrive",
+      dochub_root_id: "local:owner-connection",
+      dochub_root_web_url: "https://evil.example/project-root",
+    }, {
+      getAccessTokenForUser,
+      getGoogleFolderMeta: vi.fn(),
+      parseGoogleFolderId: vi.fn(),
+      resolveMicrosoftSharingUrl: vi.fn(),
+    })).resolves.toBeNull();
+    expect(getAccessTokenForUser).not.toHaveBeenCalled();
   });
 
   it("nepovolí fallback po explicitním odpojení DocHubu", () => {

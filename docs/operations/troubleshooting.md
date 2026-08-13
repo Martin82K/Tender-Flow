@@ -67,8 +67,13 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
   napojení projektu, takže po změně kořenové složky musí sdílený uživatel novou
   synchronizovanou cestu znovu vybrat,
 - online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
-  samotná shoda e-mailu nezaručuje okamžitou synchronizaci — uživatel musí mít
-  cloudové oprávnění k úpravám a spuštěného synchronizačního klienta.
+  u explicitně sdíleného projektu může `dochub-get-link` chybějící cloudové
+  `rootId` read-only obnovit z uložené online URL pomocí připojení vlastníka a
+  následně dohledat pouze složku uvnitř autorizovaného projektového kořene,
+- pokud online fallback nefunguje, ověřit především platnost připojení vlastníka,
+  explicitní `project_shares` záznam a dostupnost uložené kořenové online URL;
+  lokální synchronizační klient sdíleného uživatele není pro otevření online
+  odkazu podmínkou.
 
 ## Excel tools
 

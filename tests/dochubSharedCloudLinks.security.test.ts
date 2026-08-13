@@ -104,6 +104,20 @@ describe("DocHub shared cloud links", () => {
     expect(ensureIndex).toBeGreaterThan(cachedReturnIndex);
   });
 
+  it("recovers a URL-only cloud root only after explicit project authorization", () => {
+    const source = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const shareGuardIndex = source.indexOf("if (!isProjectOwner && !hasExplicitProjectShare)");
+    const recoveryIndex = source.indexOf("await recoverCloudDocHubConnection");
+
+    expect(shareGuardIndex).toBeGreaterThan(-1);
+    expect(recoveryIndex).toBeGreaterThan(shareGuardIndex);
+    expect(source).toContain("getAccessTokenForUser,");
+    expect(source).toContain("resolveMicrosoftSharingUrl,");
+  });
+
   it("hydrates a shared-user cache miss read-only from owner storage using database names", () => {
     const handlerSource = fs.readFileSync(
       path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),

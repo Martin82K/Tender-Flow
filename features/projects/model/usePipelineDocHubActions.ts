@@ -8,7 +8,7 @@ import {
   isProbablyUrl,
   slugifyDocHubSegmentStrict,
 } from "@/shared/dochub/docHub";
-import { getDocHubCloudConnection } from "@shared/dochub/cloudConnection";
+import { hasDocHubOnlineFallback } from "@shared/dochub/cloudConnection";
 import { normalizeDocHubOnlineUrl } from "@shared/dochub/personalLocation";
 import { getDesktopTenderFolderPath } from "./usePipelineCategoryNavigation";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
@@ -42,7 +42,7 @@ export const usePipelineDocHubActions = ({
   resolveDesktopTenderFolderPath,
 }: UsePipelineDocHubActionsInput) => {
   const canUseDocHubBackend = Boolean(
-    getDocHubCloudConnection(projectDetails) &&
+    hasDocHubOnlineFallback(projectDetails) &&
     projectDetails.docHubStatus !== "disconnected" &&
     projectDetails.docHubStatus !== "error",
   );
@@ -55,8 +55,13 @@ export const usePipelineDocHubActions = ({
     }
     if (isProbablyUrl(path)) {
       console.log("[DocHub] Path is URL, opening in browser");
-      window.open(path, "_blank", "noopener,noreferrer");
-      return true;
+      try {
+        await platformAdapter.shell.openExternal(path);
+        return true;
+      } catch (error) {
+        console.warn("[DocHub] Online URL open failed", error);
+        return false;
+      }
     }
 
     console.log(
@@ -129,7 +134,7 @@ export const usePipelineDocHubActions = ({
       });
       const webUrl = normalizeDocHubOnlineUrl(data?.webUrl || "");
       if (!webUrl) throw new Error("Backend nevrátil bezpečný odkaz na podporované úložiště");
-      window.open(webUrl, "_blank", "noopener,noreferrer");
+      await platformAdapter.shell.openExternal(webUrl);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Neznámá chyba";

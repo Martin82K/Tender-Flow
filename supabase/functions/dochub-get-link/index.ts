@@ -1,12 +1,18 @@
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 import { getAccessTokenForUser } from "../_shared/tokens.ts";
-import { resolveCloudDocHubConnection } from "../_shared/dochub_connection.ts";
+import {
+  recoverCloudDocHubConnection,
+  resolveCloudDocHubConnection,
+} from "../_shared/dochub_connection.ts";
 import {
   findOrCreateGoogleFolder,
   findOrCreateMicrosoftFolder,
+  getGoogleFolderMeta,
   getStructure,
   getTenderFolderName,
+  parseGoogleFolderId,
+  resolveMicrosoftSharingUrl,
   type Provider,
 } from "../_shared/dochub_providers.ts";
 import {
@@ -359,10 +365,6 @@ Deno.serve(async (req) => {
       return json(req, 400, { error: "DocHub not connected" });
     }
 
-    const cloudConnection = resolveCloudDocHubConnection(project as Record<string, unknown>);
-    if (!cloudConnection) return json(req, 404, { error: "Online folder link not available" });
-    const { provider, rootId, driveId } = cloudConnection;
-
     const isProjectOwner = project.owner_id === userData.user.id;
     let hasExplicitProjectShare = false;
     if (!isProjectOwner) {
@@ -380,6 +382,29 @@ Deno.serve(async (req) => {
     if (!isProjectOwner && !hasExplicitProjectShare) {
       return json(req, 404, { error: "Folder link not available" });
     }
+
+    let cloudConnection = resolveCloudDocHubConnection(project as Record<string, unknown>);
+    if (!cloudConnection) {
+      try {
+        cloudConnection = await recoverCloudDocHubConnection(
+          project as Record<string, unknown>,
+          {
+            getAccessTokenForUser,
+            getGoogleFolderMeta,
+            parseGoogleFolderId,
+            resolveMicrosoftSharingUrl,
+          },
+        );
+      } catch (error) {
+        console.warn("[dochub-get-link] Read-only cloud root recovery failed", {
+          projectId,
+          provider: project.dochub_provider,
+          reason: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+    if (!cloudConnection) return json(req, 404, { error: "Online folder link not available" });
+    const { provider, rootId, driveId } = cloudConnection;
 
     const cachedFolder = await getCachedFolderForRequest({
       projectId,
