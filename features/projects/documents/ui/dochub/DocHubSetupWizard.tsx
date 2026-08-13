@@ -250,7 +250,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   Uložit online odkaz
                 </button>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Nepovinné. Když lokální složka není dostupná, Tender Flow otevře odpovídající VŘ, poptávku nebo složku subdodavatele online. Pokud přesný odkaz nelze získat, otevře kořenovou online složku projektu.
+                  Nepovinné. Pro SharePoint nejprve otevřete kořenovou složku a z adresního řádku zkopírujte finální adresu OneDrive obsahující parametr <code>id</code>; krátký sdílecí odkaz <code>/:f:/</code> neumí určit cesty podsložek. Tender Flow pak ze struktury Složkomatu otevře odpovídající VŘ, poptávku nebo složku subdodavatele online.
                 </p>
               </div>
             )}

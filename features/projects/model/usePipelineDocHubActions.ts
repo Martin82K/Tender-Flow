@@ -9,7 +9,11 @@ import {
   slugifyDocHubSegmentStrict,
 } from "@/shared/dochub/docHub";
 import { hasDocHubOnlineFallback } from "@shared/dochub/cloudConnection";
-import { normalizeDocHubOnlineUrl } from "@shared/dochub/personalLocation";
+import {
+  buildSharePointFolderUrl,
+  isSharePointSharingUrl,
+  normalizeDocHubOnlineUrl,
+} from "@shared/dochub/personalLocation";
 import { getDesktopTenderFolderPath } from "./usePipelineCategoryNavigation";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 
@@ -160,10 +164,25 @@ export const usePipelineDocHubActions = ({
     }
   };
 
+  const openMappedSharePointFolder = (relativePath: string): boolean => {
+    const webUrl = buildSharePointFolderUrl(
+      projectDetails.docHubRootWebUrl,
+      relativePath,
+    );
+    if (!webUrl) return false;
+    window.open(webUrl, "_blank", "noopener,noreferrer");
+    return true;
+  };
+
   const showUnavailableFolder = () => {
+    const hasOpaqueSharePointRoot = isSharePointSharingUrl(
+      projectDetails.docHubRootWebUrl,
+    );
     showAlert({
       title: "Složka není dostupná",
-      message: "Lokální složka není dostupná a online odkaz se nepodařilo otevřít.",
+      message: hasOpaqueSharePointRoot
+        ? "Uložený online kořen je pouze sdílecí odkaz SharePointu. Vlastník projektu musí otevřít kořen, zkopírovat finální adresu OneDrive s parametrem id a uložit ji ve Složkomatu jako online odkaz."
+        : "Lokální složka není dostupná a online odkaz se nepodařilo otevřít.",
       variant: "danger",
     });
   };
@@ -236,6 +255,14 @@ export const usePipelineDocHubActions = ({
       if (opened) return;
     }
 
+    const onlineSupplierPath = getDocHubTenderLinksDesktop(
+      "",
+      activeCategory.title,
+      bid.companyName,
+      projectDetails.docHubStructureV1,
+    );
+    if (openMappedSharePointFolder(onlineSupplierPath)) return;
+
     if (!isLocalProvider && docHubRoot && !isProbablyUrl(docHubRoot)) {
       const links = getDocHubTenderLinks(
         docHubRoot,
@@ -283,6 +310,13 @@ export const usePipelineDocHubActions = ({
       });
       if (opened) return;
     }
+
+    const onlineTenderPath = getDesktopTenderFolderPath(
+      "",
+      activeCategory.title,
+      projectDetails.docHubStructureV1,
+    );
+    if (openMappedSharePointFolder(onlineTenderPath)) return;
 
     if (!isLocalProvider && docHubRoot && !isProbablyUrl(docHubRoot)) {
       const links = getDocHubTenderLinks(

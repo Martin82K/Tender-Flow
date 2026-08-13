@@ -73,7 +73,16 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - pokud online fallback nefunguje, ověřit především platnost připojení vlastníka,
   explicitní `project_shares` záznam a dostupnost uložené kořenové online URL;
   lokální synchronizační klient sdíleného uživatele není pro otevření online
-  odkazu podmínkou.
+  odkazu podmínkou,
+- pokud cloudové připojení vlastníka není dostupné, lze u SharePointu použít
+  přímé mapování: vlastník uloží finální adresu OneDrive s parametrem `id`
+  (po otevření kořenové složky ji zkopíruje z adresního řádku), ze které Tender
+  Flow dopočítá VŘ nebo dodavatele podle stejné struktury jako lokální Složkomat;
+  krátké odkazy `/:f:/...` obsahují jen sdílecí token a pro výpočet podsložek se
+  nepoužívají,
+- samotná shoda e-mailu není oprávnění — online obsah zpřístupní až SharePoint
+  podle přihlášeného Microsoft účtu; synchronizační klient je nutný jen pro
+  lokální otevření a oprávnění k úpravám jen pro zápis.
 
 ## Excel tools
 
