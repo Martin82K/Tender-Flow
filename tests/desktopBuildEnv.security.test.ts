@@ -114,7 +114,7 @@ describe("desktop build env security", () => {
     );
 
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.3.md`",
+      "Aktuální release notes: `release_notes_v1.9.4.md`",
     );
   });
 
