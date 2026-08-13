@@ -7,8 +7,14 @@ const migrationPath = path.join(
   "supabase/migrations/20260813120000_personal_project_template_selections.sql",
 );
 
+const grantsMigrationPath = path.join(
+  process.cwd(),
+  "supabase/migrations/20260813131000_restrict_project_template_selection_grants.sql",
+);
+
 describe("personal project template selections migration", () => {
   const migration = fs.readFileSync(migrationPath, "utf8");
+  const grantsMigration = fs.readFileSync(grantsMigrationPath, "utf8");
 
   it("vynucuje jediný default pro uživatele a stavbu včetně legacy NULL scope", () => {
     expect(migration).toContain(
@@ -53,5 +59,10 @@ describe("personal project template selections migration", () => {
       "GRANT SELECT, INSERT, UPDATE, DELETE ON public.project_template_selections TO authenticated",
     );
     expect(migration).toContain("REVOKE ALL ON public.project_template_selections FROM anon");
+    expect(grantsMigration).toContain(
+      "REVOKE ALL ON public.project_template_selections FROM authenticated",
+    );
+    expect(grantsMigration).toContain("GRANT SELECT, INSERT, UPDATE, DELETE");
+    expect(grantsMigration).not.toMatch(/GRANT\s+(?:ALL|TRUNCATE|TRIGGER|REFERENCES)/i);
   });
 });
