@@ -161,3 +161,79 @@ export const normalizeDocHubOnlineUrl = (value: string): string | null => {
     return null;
   }
 };
+
+export const isSharePointSharingUrl = (value: string | null | undefined): boolean => {
+  const normalized = normalizeDocHubOnlineUrl(value || "");
+  if (!normalized) return false;
+  const url = new URL(normalized);
+  return url.hostname.toLowerCase().endsWith(".sharepoint.com") &&
+    /\/:[a-z]:\//i.test(url.pathname);
+};
+
+const BLOCKED_SHAREPOINT_QUERY_KEYS = new Set([
+  "authkey",
+  "id",
+  "resid",
+  "rootfolder",
+  "sourcedoc",
+]);
+
+const isSafeSharePointPathSegment = (segment: string): boolean => Boolean(
+  segment &&
+  segment !== "." &&
+  segment !== ".." &&
+  !/[\u0000-\u001f\u007f]/.test(segment) &&
+  !/%(?:2f|5c)/i.test(segment),
+);
+
+const hasUnsafePathSegment = (path: string): boolean => path
+  .split("/")
+  .some((segment) => segment === "." || segment === ".." || /[\\\u0000-\u001f\u007f]/.test(segment));
+
+export const buildSharePointFolderUrl = (
+  rootUrl: string | null | undefined,
+  relativePath: string,
+): string | null => {
+  const normalizedRoot = normalizeDocHubOnlineUrl(rootUrl || "");
+  if (!normalizedRoot) return null;
+
+  const url = new URL(normalizedRoot);
+  if (!url.hostname.toLowerCase().endsWith(".sharepoint.com")) return null;
+
+  const lowerPath = url.pathname.toLowerCase();
+  if (isSharePointSharingUrl(normalizedRoot)) return null;
+
+  const trimmedPath = relativePath.trim().replace(/^[\\/]+|[\\/]+$/g, "");
+  if (!trimmedPath) return null;
+  const segments = trimmedPath.split(/[\\/]/).map((segment) => segment.trim());
+  if (segments.some((segment) => !isSafeSharePointPathSegment(segment))) return null;
+
+  if (lowerPath.endsWith("/_layouts/15/onedrive.aspx")) {
+    if (url.searchParams.has("authkey")) return null;
+    const rootItemPath = url.searchParams.get("id");
+    if (
+      !rootItemPath ||
+      !rootItemPath.startsWith("/") ||
+      hasUnsafePathSegment(rootItemPath)
+    ) return null;
+
+    const childItemPath = `${rootItemPath.replace(/\/+$/, "")}/${segments.join("/")}`;
+    return `${url.origin}${url.pathname}?id=${encodeURIComponent(childItemPath)}`;
+  }
+
+  if (
+    lowerPath.includes("/_layouts/") ||
+    lowerPath.includes("/forms/") ||
+    lowerPath.endsWith("/allitems.aspx")
+  ) return null;
+
+  for (const key of url.searchParams.keys()) {
+    if (BLOCKED_SHAREPOINT_QUERY_KEYS.has(key.toLowerCase())) return null;
+  }
+
+  const basePath = url.pathname.replace(/\/+$/, "");
+  url.pathname = `${basePath}/${segments.map(encodeURIComponent).join("/")}`;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+};
