@@ -85,6 +85,12 @@ pod klíčem uživatele a projektu. Globální konfiguraci a strukturu mění po
 vlastník; sdílený uživatel vybírá vlastní synchronizovanou cestu ověřenou
 projektovým markerem. Cloudový provider zůstává zdrojem pravdy a jeho synchronizace
 je eventual-consistent, nikoli transakčně řízená aplikací Tender Flow.
+Pokud sdílený uživatel nemá lokální složku ani klientská cloudová ID, renderer
+pošle pouze projektový a doménový identifikátor do autorizovaného
+`dochub-get-link`. Edge Function nejprve ověří RLS a explicitní sdílení, potom
+může z uložené HTTPS Google Drive/OneDrive/SharePoint URL read-only obnovit kořen
+přes OAuth připojení vlastníka. Vrácená provider URL se v desktopu otevírá přes
+autentizované a host allowlistem omezené `shell:openExternal` IPC.
 
 ## Session a secure storage
 

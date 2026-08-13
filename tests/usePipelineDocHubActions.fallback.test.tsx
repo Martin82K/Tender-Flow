@@ -8,6 +8,7 @@ import { expectConsoleWarn } from "./utils/consoleGuard";
 const mocks = vi.hoisted(() => ({
   folderExists: vi.fn(),
   openInExplorer: vi.fn(),
+  openExternal: vi.fn(),
   invokeAuthedFunction: vi.fn(),
 }));
 
@@ -25,7 +26,10 @@ vi.mock("@infra/diagnostics/incidentLogger", () => ({
 }));
 
 vi.mock("@infra/platform/platformAdapter", () => ({
-  default: { isDesktop: true },
+  default: {
+    isDesktop: true,
+    shell: { openExternal: mocks.openExternal },
+  },
 }));
 
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
@@ -66,7 +70,8 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     vi.clearAllMocks();
     mocks.folderExists.mockResolvedValue(false);
     mocks.openInExplorer.mockResolvedValue({ success: false, error: "ENOENT" });
-    mocks.invokeAuthedFunction.mockResolvedValue({
+    mocks.openExternal.mockResolvedValue(undefined);
+    mocks.invokeAuthedFunction.mockReset().mockResolvedValue({
       webUrl: "https://drive.google.com/drive/folders/resolved-folder",
     });
     vi.spyOn(window, "open").mockImplementation(() => null);
@@ -95,10 +100,8 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
         categoryId: "category-1",
       }),
     });
-    expect(window.open).toHaveBeenCalledWith(
+    expect(mocks.openExternal).toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/resolved-folder",
-      "_blank",
-      "noopener,noreferrer",
     );
   });
 
@@ -124,11 +127,55 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       "dochub-get-link",
       expect.anything(),
     );
-    expect(window.open).toHaveBeenCalledWith(
+    expect(mocks.openExternal).toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/resolved-folder",
-      "_blank",
-      "noopener,noreferrer",
     );
+  });
+
+  it("otevře sdílený OneDrive fallback pouze z uložené SharePoint URL", async () => {
+    const sharedLocalProject: ProjectDetails = {
+      ...project,
+      title: "26034 Pyrum - spodní stavba",
+      docHubProvider: "onedrive",
+      docHubRootId: "local:owner-connection",
+      docHubRootWebUrl: "https://baustavkv-my.sharepoint.com/shared/project-root",
+      docHubSettings: {
+        onedrive_cloud: {
+          rootLink: "https://baustavkv-my.sharepoint.com/shared/project-root",
+          rootWebUrl: "https://baustavkv-my.sharepoint.com/shared/project-root",
+        },
+      },
+    };
+    mocks.invokeAuthedFunction.mockResolvedValueOnce({
+      webUrl: "https://baustavkv-my.sharepoint.com/shared/tender-folder",
+    });
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: sharedLocalProject,
+      projectDetails: sharedLocalProject,
+      docHubRoot: sharedLocalProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(mocks.invokeAuthedFunction).toHaveBeenCalledWith("dochub-get-link", {
+      body: expect.objectContaining({
+        projectId: "project-1",
+        kind: "tender",
+        categoryId: "category-1",
+      }),
+    });
+    expect(mocks.openExternal).toHaveBeenCalledWith(
+      "https://baustavkv-my.sharepoint.com/shared/tender-folder",
+    );
+    expect(showAlert).not.toHaveBeenCalledWith(expect.objectContaining({
+      title: "Složka není dostupná",
+    }));
   });
 
   it("přejde online i když složka existovala, ale její otevření mezitím selhalo", async () => {
@@ -154,10 +201,8 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       "dochub-get-link",
       expect.anything(),
     );
-    expect(window.open).toHaveBeenCalledWith(
+    expect(mocks.openExternal).toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/resolved-folder",
-      "_blank",
-      "noopener,noreferrer",
     );
   });
 
@@ -174,10 +219,8 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
         supplierId: "supplier-1",
       }),
     });
-    expect(window.open).toHaveBeenCalledWith(
+    expect(mocks.openExternal).toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/resolved-folder",
-      "_blank",
-      "noopener,noreferrer",
     );
   });
 
@@ -199,15 +242,9 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
 
     await act(async () => result.current.handleOpenTenderDocHub());
 
-    expect(window.open).not.toHaveBeenCalledWith(
-      "https://evil.example/phishing",
-      expect.anything(),
-      expect.anything(),
-    );
-    expect(window.open).not.toHaveBeenCalledWith(
+    expect(mocks.openExternal).not.toHaveBeenCalledWith("https://evil.example/phishing");
+    expect(mocks.openExternal).not.toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/cloud-root",
-      expect.anything(),
-      expect.anything(),
     );
     expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
       copyableText: expect.stringContaining("03_Vyberova_rizeni"),
@@ -236,7 +273,7 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
 
     await act(async () => result.current.handleOpenTenderDocHub());
 
-    expect(window.open).not.toHaveBeenCalled();
+    expect(mocks.openExternal).not.toHaveBeenCalled();
     expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
       title: "Složka není dostupná",
       variant: "danger",

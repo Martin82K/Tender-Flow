@@ -12,6 +12,28 @@ type FallbackTarget = {
   rootWebUrl: string;
 };
 
+export type CloudDocHubConnection = {
+  provider: Provider;
+  rootId: string;
+  driveId: string | null;
+};
+
+type CloudConnectionRecoveryDependencies = {
+  getAccessTokenForUser: (args: {
+    userId: string;
+    provider: Provider;
+  }) => Promise<{ accessToken: string }>;
+  getGoogleFolderMeta: (args: {
+    accessToken: string;
+    folderId: string;
+  }) => Promise<{ id: string; driveId?: string }>;
+  parseGoogleFolderId: (value: string) => string | null;
+  resolveMicrosoftSharingUrl: (args: {
+    accessToken: string;
+    sharingUrl: string;
+  }) => Promise<{ id: string; driveId: string }>;
+};
+
 const getFallbackTarget = (value: unknown): FallbackTarget | null => {
   if (typeof value !== "string") return null;
   try {
@@ -82,4 +104,36 @@ export const resolveCloudDocHubConnection = (project: Record<string, unknown>): 
     return { provider: candidate.provider, rootId, driveId };
   }
   return null;
+};
+
+export const recoverCloudDocHubConnection = async (
+  project: Record<string, unknown>,
+  dependencies: CloudConnectionRecoveryDependencies,
+): Promise<CloudDocHubConnection | null> => {
+  const storedConnection = resolveCloudDocHubConnection(project);
+  if (storedConnection) return storedConnection;
+
+  const ownerId = typeof project.owner_id === "string" ? project.owner_id.trim() : "";
+  const rawFallbackUrl = typeof project.dochub_root_web_url === "string"
+    ? project.dochub_root_web_url.trim()
+    : "";
+  const fallbackTarget = getFallbackTarget(rawFallbackUrl);
+  if (!ownerId || !fallbackTarget) return null;
+
+  const { accessToken } = await dependencies.getAccessTokenForUser({
+    userId: ownerId,
+    provider: fallbackTarget.provider,
+  });
+  if (fallbackTarget.provider === "gdrive") {
+    const folderId = dependencies.parseGoogleFolderId(fallbackTarget.rootWebUrl);
+    if (!folderId) return null;
+    const folder = await dependencies.getGoogleFolderMeta({ accessToken, folderId });
+    return { provider: "gdrive", rootId: folder.id, driveId: null };
+  }
+
+  const folder = await dependencies.resolveMicrosoftSharingUrl({
+    accessToken,
+    sharingUrl: fallbackTarget.rootWebUrl,
+  });
+  return { provider: "onedrive", rootId: folder.id, driveId: folder.driveId };
 };
