@@ -3,15 +3,31 @@
 ## Účel a stav
 
 E-mailové šablony v `public.templates` jsou uživatelská data chráněná RLS a
-feature flagem `dynamic_templates`. Připravované migrace přidávají volitelný
-`project_id`, aby bylo možné oddělit šablony jednotlivých staveb a přitom
-zachovat původní uživatelské šablony s `project_id IS NULL`.
+feature flagem `dynamic_templates`. Volitelný `project_id` odděluje šablony
+jednotlivých staveb a zachovává původní uživatelské šablony s
+`project_id IS NULL`.
 
 Migrace `20260605120000`, `20260605133000` a `20260605150000` tvoří jeden
-pořadově závislý rollout. K 11. červenci 2026 nebyly v propojeném produkčním
-projektu zaznamenány jako aplikované. Upravené historické soubory se nesmějí
-nasazovat do prostředí, kde už byla jejich původní verze aplikována. Takové
-prostředí vyžaduje novou dopřednou opravnou migraci.
+pořadově závislý rollout a v propojeném produkčním projektu už jsou aplikované.
+Upravené historické soubory se proto nesmějí znovu nasazovat; další změny musí
+být dopředné migrace.
+
+Migrace `20260813120000` přidává osobní aktivní volbu šablony v
+`project_template_selections`. Sdílený projekt už není zdrojem uživatelského
+UUID šablony. Klíč `(project_id, user_id, template_kind)` odděluje volbu pro
+poptávku, materiálovou poptávku a e-mail nevybraným.
+
+## Copy-on-write kontrakt
+
+- `default_templates` jsou neměnné systémové vzory dostupné pouze ke čtení.
+- První uložení nebo výběr vzoru vytvoří projektovou kopii vlastněnou aktuálním
+  uživatelem; další úpravy mění tutéž kopii.
+- Výběr aktivní šablony se ukládá osobně pro uživatele, stavbu a typ. Výběr
+  spolupracovníka nemění volbu jiného uživatele.
+- Složený foreign key vyžaduje, aby vybraná šablona patřila stejnému uživateli
+  i projektu.
+- Nejvýše jeden `is_default` je vynucen unikátními částečnými indexy. Změna
+  defaultu probíhá atomicky přes `save_scoped_template`.
 
 ## Autorizační kontrakt
 
@@ -47,7 +63,7 @@ scope.
 Před nasazením:
 
 1. Ověřit `supabase migration list` a `supabase db push --dry-run --include-all`.
-2. Potvrdit, že žádná ze tří šablonových migrací není v cílové historii.
+2. Potvrdit, že `20260813120000` ještě není v cílové historii.
 3. Zkontrolovat aktuální RLS politiky `templates`; nesmí se ztratit
    `user_has_feature('dynamic_templates')`.
 4. Agregovaně spočítat vlastníky/editory a očekávaný počet kopií, bez výpisu
@@ -60,6 +76,11 @@ Po nasazení ověřit:
 - existenci `templates.project_id` typu `varchar(36)` a foreign key do
   `projects(id)`,
 - indexy `idx_templates_user_project` a `idx_templates_project_default`,
+- unikátní indexy `uq_templates_one_project_default` a
+  `uq_templates_one_legacy_default`,
+- RLS a granty `project_template_selections`,
+- nulový počet osobních voleb odkazujících na šablonu jiného uživatele nebo
+  projektu,
 - existenci čtyř zamýšlených projektových politik a zachovaný feature gating,
 - nulový počet projektových kopií vytvořených pouze pro `view` sdílení,
 - přepsání existujících `template:<uuid>` odkazů na šablony stejného projektu,

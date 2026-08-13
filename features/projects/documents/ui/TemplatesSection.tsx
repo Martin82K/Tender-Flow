@@ -20,7 +20,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950/30">
             <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
                 <h3 className="font-semibold text-slate-900 dark:text-white">Šablony</h3>
-                <p className="text-xs text-slate-500 mt-1">Nastavení pro generování poptávky, materiálové poptávky a email nevybraným.</p>
+                <p className="text-xs text-slate-500 mt-1">Vaše osobní nastavení pro tuto stavbu. Volby ostatních uživatelů se tím nezmění.</p>
             </div>
 
             <div className="overflow-x-auto">

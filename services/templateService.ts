@@ -1,9 +1,11 @@
-import { Template } from '../types';
+import type { Template } from '../types';
 import { supabase } from './supabase';
 
 type TemplateScope = {
     projectId?: string | null;
 };
+
+export type TemplateSelectionKind = 'inquiry' | 'materialInquiry' | 'losers';
 
 type DbTemplate = {
     id: string;
@@ -108,6 +110,9 @@ const mapBuiltInTemplate = (template: TemplateSeed, scope?: TemplateScope): Temp
 
 const hasProjectScope = (scope?: TemplateScope): scope is { projectId: string } =>
     typeof scope?.projectId === 'string' && scope.projectId.trim().length > 0;
+
+const isUuid = (value: string): boolean =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 const isMissingProjectIdColumnError = (error: unknown): boolean => {
     const err = error as SupabaseErrorLike | null;
@@ -340,7 +345,11 @@ export const getDefaultTemplate = async (scope?: TemplateScope): Promise<Templat
             ? defaultQuery.eq('project_id', scope.projectId)
             : defaultQuery.is('project_id', null);
 
-        let { data, error } = await defaultQuery.limit(1).single();
+        let { data, error } = await defaultQuery
+            .order('updated_at', { ascending: false })
+            .order('id', { ascending: true })
+            .limit(1)
+            .single();
 
         if (hasProjectScope(scope) && isMissingProjectIdColumnError(error)) {
             const legacyTemplates = await getLegacyTemplatesForUser();
@@ -354,7 +363,11 @@ export const getDefaultTemplate = async (scope?: TemplateScope): Promise<Templat
                 .select('*')
                 .eq('is_default', true)
                 .eq('project_id', scope.projectId);
-            const retryResult = await retryDefaultQuery.limit(1).single();
+            const retryResult = await retryDefaultQuery
+                .order('updated_at', { ascending: false })
+                .order('id', { ascending: true })
+                .limit(1)
+                .single();
             data = retryResult.data;
             error = retryResult.error;
         }
@@ -364,7 +377,8 @@ export const getDefaultTemplate = async (scope?: TemplateScope): Promise<Templat
             let fallbackQuery = supabase
                 .from('templates')
                 .select('*')
-                .order('name');
+                .order('name')
+                .order('id');
 
             fallbackQuery = hasProjectScope(scope)
                 ? fallbackQuery.eq('project_id', scope.projectId)
@@ -417,9 +431,7 @@ export const getTemplateById = async (id: string, scope?: TemplateScope): Promis
             return undefined;
         }
 
-        if (!data) {
-            return hasProjectScope(scope) ? getLegacyTemplateById(id) : undefined;
-        }
+        if (!data) return undefined;
 
         return mapTemplateFromDb(data);
     } catch (e) {
@@ -432,66 +444,102 @@ export const getTemplateById = async (id: string, scope?: TemplateScope): Promis
 
 export const saveTemplate = async (template: Template, scope?: TemplateScope): Promise<Template | null> => {
     try {
-        // Get current user ID
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             console.error('No authenticated user found');
             return null;
         }
 
-        // Map frontend model to DB model
-        const dbTemplate = {
-            name: template.name,
-            subject: template.subject,
-            content: template.content,
-            is_default: template.isDefault,
-            project_id: hasProjectScope(scope) ? scope.projectId : null,
-            user_id: user.id, // Always set user_id to current user
-            updated_at: new Date().toISOString()
-        };
+        const { data: result, error } = await supabase.rpc('save_scoped_template', {
+            p_template_id: isUuid(template.id) ? template.id : null,
+            p_project_id: hasProjectScope(scope) ? scope.projectId : null,
+            p_name: template.name,
+            p_subject: template.subject,
+            p_content: template.content,
+            p_is_default: template.isDefault,
+        });
 
-        if (dbTemplate.is_default) {
-            // Unset other defaults first to ensure only one default exists per user
-            let unsetDefaultQuery = supabase
-                .from('templates')
-                .update({ is_default: false })
-                .eq('user_id', user.id);
+        if (error) throw error;
+        if (!result) return null;
 
-            unsetDefaultQuery = hasProjectScope(scope)
-                ? unsetDefaultQuery.eq('project_id', scope.projectId)
-                : unsetDefaultQuery.is('project_id', null);
-
-            await unsetDefaultQuery.eq('is_default', true);
-        }
-
-        let result;
-
-        // Check if it's a UUID
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(template.id);
-
-        if (isUUID) {
-            // Update existing template
-            const { data, error } = await supabase
-                .from('templates')
-                .upsert({ ...dbTemplate, id: template.id })
-                .select()
-                .single();
-            if (error) throw error;
-            result = data;
-        } else {
-            // It's a new template or legacy ID, insert as new
-            const { data, error } = await supabase
-                .from('templates')
-                .insert(dbTemplate)
-                .select()
-                .single();
-            if (error) throw error;
-            result = data;
-        }
-
-        return mapTemplateFromDb(result);
+        return mapTemplateFromDb(result as DbTemplate);
     } catch (e) {
         console.error('Failed to save template', e);
+        return null;
+    }
+};
+
+export const getProjectTemplateSelection = async (
+    projectId: string,
+    templateKind: TemplateSelectionKind,
+): Promise<Template | undefined> => {
+    try {
+        const userId = await getCurrentUserId();
+        if (!userId) return undefined;
+
+        const { data, error } = await supabase
+            .from('project_template_selections')
+            .select('template_id')
+            .eq('project_id', projectId)
+            .eq('user_id', userId)
+            .eq('template_kind', templateKind)
+            .maybeSingle();
+
+        if (error || !data?.template_id) {
+            if (error) console.error('Error fetching personal template selection:', error);
+            return undefined;
+        }
+
+        return getTemplateById(data.template_id, { projectId });
+    } catch (e) {
+        console.error('Failed to load personal template selection', e);
+        return undefined;
+    }
+};
+
+export const saveProjectTemplateSelection = async (
+    projectId: string,
+    templateKind: TemplateSelectionKind,
+    template: Template,
+): Promise<Template | null> => {
+    try {
+        const userId = await getCurrentUserId();
+        if (!userId) return null;
+
+        let personalTemplate =
+            isUuid(template.id) && template.projectId === projectId
+                ? await getTemplateById(template.id, { projectId })
+                : undefined;
+
+        if (!personalTemplate) {
+            personalTemplate = await saveTemplate(
+                {
+                    ...template,
+                    id: `personal-copy-${template.id}`,
+                    projectId,
+                },
+                { projectId },
+            ) ?? undefined;
+        }
+
+        if (!personalTemplate) return null;
+
+        const { error } = await supabase
+            .from('project_template_selections')
+            .upsert(
+                {
+                    project_id: projectId,
+                    user_id: userId,
+                    template_kind: templateKind,
+                    template_id: personalTemplate.id,
+                },
+                { onConflict: 'project_id,user_id,template_kind' },
+            );
+
+        if (error) throw error;
+        return personalTemplate;
+    } catch (e) {
+        console.error('Failed to save personal template selection', e);
         return null;
     }
 };

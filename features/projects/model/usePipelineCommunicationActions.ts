@@ -11,6 +11,7 @@ import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
   getTemplateById,
   getDefaultTemplate,
+  getProjectTemplateSelection,
 } from "@/services/templateService";
 import { userProfileService } from "@/services/userProfileService";
 import {
@@ -174,14 +175,16 @@ export const usePipelineCommunicationActions = ({
   };
 
   const loadInquiryTemplate = async (kind: PipelineInquiryGenerationKind) => {
-    let template;
+    let template = await getProjectTemplateSelection(projectId, kind);
     const templateLinks = getTemplateLinksForInquiryKindModel(projectDetails, kind);
 
-    for (const templateLink of templateLinks) {
-      const templateId = templateLink.split(":")[1];
-      if (!templateId) continue;
-      template = await getTemplateById(templateId, { projectId: projectDetails.id });
-      if (template) break;
+    if (!template) {
+      for (const templateLink of templateLinks) {
+        const templateId = templateLink.split(":")[1];
+        if (!templateId) continue;
+        template = await getTemplateById(templateId, { projectId: projectDetails.id });
+        if (template) break;
+      }
     }
 
     if (!template) {
@@ -488,8 +491,24 @@ export const usePipelineCommunicationActions = ({
       .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
       .join("");
 
+    const personalTemplate = await getProjectTemplateSelection(projectId, "losers");
     const templateLink = projectDetails.losersEmailTemplateLink || "";
-    if (templateLink.startsWith("template:")) {
+    if (personalTemplate) {
+      subject = processTemplate(
+        personalTemplate.subject,
+        projectDetails,
+        activeCategory,
+      );
+      htmlBody = processTemplate(
+        appendSignatureToTemplate(personalTemplate.content, "{PODPIS_UZIVATELE}", {
+          format: "html",
+        }),
+        projectDetails,
+        activeCategory,
+        "html",
+        signature.html,
+      );
+    } else if (templateLink.startsWith("template:")) {
       const templateId = templateLink.split(":")[1];
       const template = await getTemplateById(templateId, { projectId: projectDetails.id });
       if (template) {

@@ -5,9 +5,14 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { ProjectDetails } from "@/types";
+import type { ProjectDetails, Template } from "@/types";
 import { uploadDocument } from "@/services/documentService";
-import { getTemplateById } from "@/services/templateService";
+import {
+  getProjectTemplateSelection,
+  getTemplateById,
+  saveProjectTemplateSelection,
+} from "@/services/templateService";
+import type { TemplateSelectionKind } from "@/services/templateService";
 import { useDocHubIntegration } from "../model/useDocHubIntegration";
 import { DocHubStatusCard } from "./dochub/DocHubStatusCard";
 import { DocHubSetupWizard } from "./dochub/DocHubSetupWizard";
@@ -155,6 +160,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [losersTemplateName, setLosersTemplateName] = useState<string | null>(
     null
   );
+  const [personalTemplates, setPersonalTemplates] = useState<
+    Partial<Record<TemplateSelectionKind, Template>>
+  >({});
   const [templateManagerTarget, setTemplateManagerTarget] = useState<
     { kind: "inquiry" } | { kind: "materialInquiry" } | { kind: "losers" } | null
   >(null);
@@ -213,39 +221,64 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
 
   // Sync effect removed
 
-  // Load template name asynchronously
+  // Prefer the current user's personal selection. Existing shared project links
+  // remain a read-only compatibility fallback until their owner is backfilled.
   useEffect(() => {
-    if (project.inquiryLetterLink?.startsWith("template:")) {
-      const templateId = project.inquiryLetterLink.split(":")[1];
-      getTemplateById(templateId, { projectId: project.id }).then((template) => {
-        setTemplateName(template?.name || "Neznámá šablona");
-      });
-    } else {
+    const projectId = project.id;
+    if (!projectId) {
+      setPersonalTemplates({});
       setTemplateName(null);
-    }
-  }, [project.id, project.inquiryLetterLink]);
-
-  useEffect(() => {
-    if (project.materialInquiryTemplateLink?.startsWith("template:")) {
-      const templateId = project.materialInquiryTemplateLink.split(":")[1];
-      getTemplateById(templateId, { projectId: project.id }).then((template) => {
-        setMaterialTemplateName(template?.name || "Neznámá šablona");
-      });
-    } else {
       setMaterialTemplateName(null);
-    }
-  }, [project.id, project.materialInquiryTemplateLink]);
-
-  useEffect(() => {
-    if (project.losersEmailTemplateLink?.startsWith("template:")) {
-      const templateId = project.losersEmailTemplateLink.split(":")[1];
-      getTemplateById(templateId, { projectId: project.id }).then((template) => {
-        setLosersTemplateName(template?.name || "Neznámá šablona");
-      });
-    } else {
       setLosersTemplateName(null);
+      return;
     }
-  }, [project.id, project.losersEmailTemplateLink]);
+
+    let cancelled = false;
+    const legacyLinks: Record<TemplateSelectionKind, string | null | undefined> = {
+      inquiry: project.inquiryLetterLink,
+      materialInquiry: project.materialInquiryTemplateLink,
+      losers: project.losersEmailTemplateLink,
+    };
+
+    const loadSelection = async (kind: TemplateSelectionKind): Promise<Template | undefined> => {
+      const personalTemplate = await getProjectTemplateSelection(projectId, kind);
+      if (personalTemplate) return personalTemplate;
+
+      const legacyId = extractTemplateId(legacyLinks[kind]);
+      return legacyId
+        ? getTemplateById(legacyId, { projectId })
+        : undefined;
+    };
+
+    Promise.all([
+      loadSelection("inquiry"),
+      loadSelection("materialInquiry"),
+      loadSelection("losers"),
+    ]).then(([inquiry, materialInquiry, losers]) => {
+      if (cancelled) return;
+      setPersonalTemplates({ inquiry, materialInquiry, losers });
+      setTemplateName(inquiry?.name ?? null);
+      setMaterialTemplateName(materialInquiry?.name ?? null);
+      setLosersTemplateName(losers?.name ?? null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project.id, project.inquiryLetterLink, project.materialInquiryTemplateLink, project.losersEmailTemplateLink]);
+
+  const projectWithPersonalTemplateLinks = useMemo<ProjectDetails>(() => ({
+    ...project,
+    inquiryLetterLink: personalTemplates.inquiry
+      ? `template:${personalTemplates.inquiry.id}`
+      : project.inquiryLetterLink,
+    materialInquiryTemplateLink: personalTemplates.materialInquiry
+      ? `template:${personalTemplates.materialInquiry.id}`
+      : project.materialInquiryTemplateLink,
+    losersEmailTemplateLink: personalTemplates.losers
+      ? `template:${personalTemplates.losers.id}`
+      : project.losersEmailTemplateLink,
+  }), [project, personalTemplates]);
 
   const handleSaveDocs = () => {
     onUpdate({ documentationLink: docsLinkValue });
@@ -436,7 +469,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             {documentsSubTab === "templates" && canTemplates && (
               <div data-help-id="templates-section">
               <TemplatesSection
-                project={project}
+                project={projectWithPersonalTemplateLinks}
                 templateName={templateName}
                 materialTemplateName={materialTemplateName}
                 losersTemplateName={losersTemplateName}
@@ -551,20 +584,38 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
               }}
               onSelectTemplate={
                 templateManagerTarget
-                  ? (template) => {
-                    if (templateManagerTarget.kind === "inquiry") {
-                      onUpdate({
-                        inquiryLetterLink: `template:${template.id}`,
+                  ? async (template) => {
+                    const kind = templateManagerTarget.kind;
+                    const projectId = project.id;
+                    if (!projectId) {
+                      showModal({
+                        title: "Šablonu se nepodařilo vybrat",
+                        message: "Stavba nemá platný identifikátor.",
+                        variant: "danger",
                       });
-                    } else if (templateManagerTarget.kind === "materialInquiry") {
-                      onUpdate({
-                        materialInquiryTemplateLink: `template:${template.id}`,
-                      });
-                    } else if (templateManagerTarget.kind === "losers") {
-                      onUpdate({
-                        losersEmailTemplateLink: `template:${template.id}`,
-                      });
+                      return;
                     }
+                    const savedTemplate = await saveProjectTemplateSelection(
+                      projectId,
+                      kind,
+                      template,
+                    );
+                    if (!savedTemplate) {
+                      showModal({
+                        title: "Šablonu se nepodařilo vybrat",
+                        message: "Osobní volbu šablony se nepodařilo uložit. Zkuste to prosím znovu.",
+                        variant: "danger",
+                      });
+                      return;
+                    }
+
+                    setPersonalTemplates((current) => ({
+                      ...current,
+                      [kind]: savedTemplate,
+                    }));
+                    if (kind === "inquiry") setTemplateName(savedTemplate.name);
+                    if (kind === "materialInquiry") setMaterialTemplateName(savedTemplate.name);
+                    if (kind === "losers") setLosersTemplateName(savedTemplate.name);
                     setShowTemplateManager(false);
                     setTemplateManagerTarget(null);
                     setTemplateManagerInitialId(null);
