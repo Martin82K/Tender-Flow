@@ -174,7 +174,7 @@ describe("MCP proposal execution claim", () => {
     const testDirectory = path.dirname(fileURLToPath(import.meta.url));
     const migrationPath = path.join(
       testDirectory,
-      "../supabase/migrations/20260813102845_add_mcp_proposal_executing_status.sql",
+      "../supabase/migrations/20260813110433_add_mcp_proposal_executing_status.sql",
     );
     const migration = fs.readFileSync(migrationPath, "utf8");
 

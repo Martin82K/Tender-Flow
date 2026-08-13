@@ -3,10 +3,30 @@ import { createAuthedUserClient, createServiceClient } from "../_shared/supabase
 
 type Provider = "gdrive" | "onedrive";
 type Mode = "user" | "org";
+type AccessKind = "manage" | "personal_read";
+
+const PERSONAL_READ_SCOPES = [
+  "offline_access",
+  "openid",
+  "email",
+  "profile",
+  "User.Read",
+  "Files.Read.All",
+] as const;
+
+const MICROSOFT_MANAGE_SCOPES = [
+  "offline_access",
+  "openid",
+  "email",
+  "profile",
+  "User.Read",
+  "Files.ReadWrite",
+  "Sites.ReadWrite.All",
+] as const;
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-const json = (status: number, body: unknown) =>
+const json = (req: Request, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
@@ -120,6 +140,7 @@ const buildMicrosoftAuthUrl = (args: {
   tenant: string;
   redirectUri: string;
   state: string;
+  accessKind: AccessKind;
   loginHint?: string | null;
 }) => {
   const url = new URL(
@@ -130,15 +151,7 @@ const buildMicrosoftAuthUrl = (args: {
   url.searchParams.set("response_type", "code");
   url.searchParams.set(
     "scope",
-    [
-      "offline_access",
-      "openid",
-      "email",
-      "profile",
-      "User.Read",
-      "Files.ReadWrite",
-      "Sites.ReadWrite.All",
-    ].join(" ")
+    (args.accessKind === "personal_read" ? PERSONAL_READ_SCOPES : MICROSOFT_MANAGE_SCOPES).join(" ")
   );
   url.searchParams.set("response_mode", "query");
   url.searchParams.set("state", args.state);
@@ -159,22 +172,29 @@ Deno.serve(async (req) => {
   try {
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
-    if (userError || !userData.user) return json(401, { error: "Unauthorized" });
+    if (userError || !userData.user) return json(req, 401, { error: "Unauthorized" });
 
     const body = await req.json().catch(() => null);
     const provider = (body?.provider as Provider) || null;
     const mode = (body?.mode as Mode) || null;
     const projectId = (body?.projectId as string) || null;
+    const accessKind = (body?.accessKind as AccessKind) || "manage";
     const returnTo = sanitizeReturnTo(body?.returnTo as string);
 
     if (!provider || !["gdrive", "onedrive"].includes(provider)) {
-      return json(400, { error: "Invalid provider" });
+      return json(req, 400, { error: "Invalid provider" });
     }
     if (!mode || !["user", "org"].includes(mode)) {
-      return json(400, { error: "Invalid mode" });
+      return json(req, 400, { error: "Invalid mode" });
     }
     if (!projectId) {
-      return json(400, { error: "Missing projectId" });
+      return json(req, 400, { error: "Missing projectId" });
+    }
+    if (!(["manage", "personal_read"] as const).includes(accessKind)) {
+      return json(req, 400, { error: "Invalid access kind" });
+    }
+    if (accessKind === "personal_read" && provider !== "onedrive") {
+      return json(req, 400, { error: "Personal read access is only available for Microsoft" });
     }
 
     const { data: project, error: projectError } = await authed
@@ -183,13 +203,26 @@ Deno.serve(async (req) => {
       .eq("id", projectId)
       .maybeSingle();
     if (projectError) {
-      return json(500, { error: projectError.message });
+      return json(req, 500, { error: projectError.message });
     }
     if (!project) {
-      return json(403, { error: "Forbidden" });
+      return json(req, 403, { error: "Forbidden" });
     }
-    if (!project.owner_id || project.owner_id !== userData.user.id) {
-      return json(403, { error: "Project owner permission required" });
+    if (!project.owner_id) {
+      return json(req, 403, { error: "Project owner permission required" });
+    }
+    const isProjectOwner = project.owner_id === userData.user.id;
+    if (accessKind === "manage" && (!project.owner_id || project.owner_id !== userData.user.id)) {
+      return json(req, 403, { error: "Project owner permission required" });
+    }
+    if (accessKind === "personal_read" && !isProjectOwner) {
+      const { data: share, error: shareError } = await authed
+        .from("project_shares")
+        .select("project_id")
+        .eq("project_id", projectId)
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+      if (shareError || !share) return json(req, 403, { error: "Forbidden" });
     }
 
     const nonce = randomNonce();
@@ -205,8 +238,9 @@ Deno.serve(async (req) => {
       project_id: projectId,
       mode,
       return_to: returnTo,
+      access_kind: accessKind,
     });
-    if (insertError) return json(500, { error: insertError.message });
+    if (insertError) return json(req, 500, { error: insertError.message });
 
     if (provider === "gdrive") {
       const clientId =
@@ -219,9 +253,9 @@ Deno.serve(async (req) => {
         "dochub-google-callback"
       );
       if (!clientId || !redirectUri) {
-        return json(500, { error: "Missing GOOGLE_OAUTH_CLIENT_ID/GOOGLE_OAUTH_REDIRECT_URI" });
+        return json(req, 500, { error: "Missing GOOGLE_OAUTH_CLIENT_ID/GOOGLE_OAUTH_REDIRECT_URI" });
       }
-      return json(200, { url: buildGoogleAuthUrl({ clientId, redirectUri, state }) });
+      return json(req, 200, { url: buildGoogleAuthUrl({ clientId, redirectUri, state }) });
     }
 
     const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
@@ -234,18 +268,19 @@ Deno.serve(async (req) => {
       Deno.env.get("MS_OAUTH_TENANT_ID") ||
       "organizations";
     if (!clientId || !redirectUri) {
-      return json(500, { error: "Missing MS_OAUTH_CLIENT_ID/MS_OAUTH_REDIRECT_URI" });
+      return json(req, 500, { error: "Missing MS_OAUTH_CLIENT_ID/MS_OAUTH_REDIRECT_URI" });
     }
-    return json(200, {
+    return json(req, 200, {
       url: buildMicrosoftAuthUrl({
         clientId,
         tenant,
         redirectUri,
         state,
+        accessKind,
         loginHint: userData.user.email,
       }),
     });
   } catch (e) {
-    return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
+    return json(req, 500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });

@@ -77,6 +77,7 @@ const findExistingFolder = async (args: {
 export const resolveSharedFolderLink = async (args: {
   projectId: string;
   ownerId: string;
+  requestingUserId: string;
   provider: Provider;
   rootId: string;
   driveId?: string | null;
@@ -88,9 +89,11 @@ export const resolveSharedFolderLink = async (args: {
   const service = createServiceClient();
   const baseFolderName = getBaseSharedFolderName(args.kind, args.structure);
   const getOwnerFolderFinder = async () => {
+    const usePersonalMicrosoftGrant = args.provider === "onedrive";
     const { accessToken } = await getAccessTokenForUser({
-      userId: args.ownerId,
+      userId: usePersonalMicrosoftGrant ? args.requestingUserId : args.ownerId,
       provider: args.provider,
+      accessKind: usePersonalMicrosoftGrant ? "personal_read" : "manage",
     });
     return (parentId: string, name: string, appProperties?: Record<string, string>) =>
       findExistingFolder({ ...args, accessToken, parentId, name, appProperties });

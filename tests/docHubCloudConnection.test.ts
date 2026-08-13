@@ -90,6 +90,7 @@ describe("DocHub cloud connection fallback", () => {
     expect(getAccessTokenForUser).toHaveBeenCalledWith({
       userId: "owner-user",
       provider: "onedrive",
+      accessKind: "manage",
     });
     expect(resolveMicrosoftSharingUrl).toHaveBeenCalledWith({
       accessToken: "owner-token",

@@ -65,6 +65,7 @@ const refreshMicrosoft = async (args: {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  accessKind: "manage" | "personal_read";
 }) => {
   const body = new URLSearchParams();
   body.set("client_id", args.clientId);
@@ -74,7 +75,10 @@ const refreshMicrosoft = async (args: {
   body.set("grant_type", "refresh_token");
   body.set(
     "scope",
-    ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"].join(" ")
+    (args.accessKind === "personal_read"
+      ? ["offline_access", "User.Read", "Files.Read.All"]
+      : ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"]
+    ).join(" ")
   );
 
   const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
@@ -96,16 +100,19 @@ const refreshMicrosoft = async (args: {
 export const getAccessTokenForUser = async (args: {
   userId: string;
   provider: Provider;
+  accessKind?: "manage" | "personal_read";
 }): Promise<{ accessToken: string; provider: Provider }> => {
   const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
   if (!encKey) throw new Error("Missing DOCHUB_TOKEN_ENCRYPTION_KEY");
 
   const service = createServiceClient();
+  const accessKind = args.accessKind || "manage";
   const { data, error } = await service
     .from("dochub_user_tokens")
     .select("*")
     .eq("user_id", args.userId)
     .eq("provider", args.provider)
+    .eq("access_kind", accessKind)
     .single();
 
   if (error || !data) throw new Error("Token not found");
@@ -161,6 +168,7 @@ export const getAccessTokenForUser = async (args: {
     await service.from("dochub_user_tokens").upsert({
       user_id: args.userId,
       provider: args.provider,
+      access_kind: accessKind,
       token_ciphertext: tokenCiphertext,
       scopes: (newToken.scope || "").split(" ").filter(Boolean),
       expires_at: newExpiresAt,
@@ -180,6 +188,7 @@ export const getAccessTokenForUser = async (args: {
     clientId,
     clientSecret,
     redirectUri,
+    accessKind,
   });
 
   const newToken = {
@@ -195,6 +204,7 @@ export const getAccessTokenForUser = async (args: {
   await service.from("dochub_user_tokens").upsert({
     user_id: args.userId,
     provider: args.provider,
+    access_kind: accessKind,
     token_ciphertext: tokenCiphertext,
     scopes: (newToken.scope || "").split(" ").filter(Boolean),
     expires_at: newExpiresAt,

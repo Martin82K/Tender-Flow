@@ -394,6 +394,20 @@ Deno.serve(async (req) => {
             parseGoogleFolderId,
             resolveMicrosoftSharingUrl,
           },
+          !isProjectOwner && project.dochub_root_web_url
+            ? {
+                userId: project.dochub_root_web_url.includes("sharepoint.com") ||
+                    project.dochub_root_web_url.includes("onedrive.live.com") ||
+                    project.dochub_root_web_url.includes("1drv.ms")
+                  ? userData.user.id
+                  : project.owner_id,
+                accessKind: project.dochub_root_web_url.includes("sharepoint.com") ||
+                    project.dochub_root_web_url.includes("onedrive.live.com") ||
+                    project.dochub_root_web_url.includes("1drv.ms")
+                  ? "personal_read"
+                  : "manage",
+              }
+            : {},
         );
       } catch (error) {
         console.warn("[dochub-get-link] Read-only cloud root recovery failed", {
@@ -430,6 +444,7 @@ Deno.serve(async (req) => {
       const sharedFolder = await resolveSharedFolderLink({
         projectId,
         ownerId: project.owner_id,
+        requestingUserId: userData.user.id,
         provider,
         rootId,
         driveId,

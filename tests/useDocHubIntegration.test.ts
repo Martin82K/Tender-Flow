@@ -148,6 +148,64 @@ describe('useDocHubIntegration', () => {
         expect(onUpdateMock).not.toHaveBeenCalled();
     });
 
+    it('should start a personal read-only Microsoft OAuth flow for a shared project', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-microsoft-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootWebUrl: 'https://tenant.sharepoint.com/sites/project/root',
+        };
+        vi.mocked(invokeAuthedFunction).mockImplementation(async (name) => {
+            if (name === 'dochub-personal-microsoft') return { connected: false } as any;
+            return { url: 'https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize' } as any;
+        });
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.connectPersonalMicrosoft());
+
+        expect(invokeAuthedFunction).toHaveBeenCalledWith('dochub-auth-url', {
+            body: expect.objectContaining({
+                provider: 'onedrive',
+                accessKind: 'personal_read',
+                projectId: 'shared-microsoft-project',
+            }),
+        });
+        expect(window.location.href).toContain('login.microsoftonline.com');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should disconnect only the shared user personal Microsoft connection', async () => {
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-microsoft-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootWebUrl: 'https://tenant.sharepoint.com/sites/project/root',
+        };
+        vi.mocked(invokeAuthedFunction).mockResolvedValue({ connected: false } as any);
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.disconnectPersonalMicrosoft());
+
+        expect(invokeAuthedFunction).toHaveBeenCalledWith('dochub-personal-microsoft', {
+            body: { projectId: 'shared-microsoft-project', action: 'disconnect' },
+        });
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
     it('should never restore the owner local path for a shared user', async () => {
         const sharedProject = {
             ...mockProject,
