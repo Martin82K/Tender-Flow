@@ -130,7 +130,7 @@ describe("DocHub shared cloud links", () => {
 
     expect(handlerSource).toContain("resolveSharedFolderLink");
     expect(handlerSource).toContain("ownerId: project.owner_id");
-    expect(recoverySource).toContain("userId: args.ownerId");
+    expect(recoverySource).toContain("args.ownerId");
     expect(recoverySource).toContain('.from("demand_categories")');
     expect(recoverySource).toContain('.from("subcontractors")');
     expect(recoverySource).toContain('.eq("demand_category_id", categoryId)');
@@ -139,6 +139,22 @@ describe("DocHub shared cloud links", () => {
     expect(recoverySource).toContain("findMicrosoftFolder");
     expect(recoverySource).not.toContain("categoryTitle?:");
     expect(recoverySource).not.toContain("supplierName?:");
+  });
+
+  it("hydrates a Microsoft cache miss with the shared user's personal read token", () => {
+    const handlerSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/index.ts"),
+      "utf8",
+    );
+    const recoverySource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-get-link/sharedFolderRecovery.ts"),
+      "utf8",
+    );
+
+    expect(handlerSource).toContain("requestingUserId: userData.user.id");
+    expect(recoverySource).toContain("requestingUserId: string");
+    expect(recoverySource).toContain('? "personal_read" : "manage"');
+    expect(recoverySource).toContain("args.requestingUserId");
   });
 
   it("recovers every top-level shared folder without requiring a category", () => {

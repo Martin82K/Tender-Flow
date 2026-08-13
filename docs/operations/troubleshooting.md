@@ -68,10 +68,13 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
   synchronizovanou cestu znovu vybrat,
 - online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
   u explicitně sdíleného projektu může `dochub-get-link` chybějící cloudové
-  `rootId` read-only obnovit z uložené online URL pomocí připojení vlastníka a
-  následně dohledat pouze složku uvnitř autorizovaného projektového kořene,
-- pokud online fallback nefunguje, ověřit především platnost připojení vlastníka,
-  explicitní `project_shares` záznam a dostupnost uložené kořenové online URL;
+  `rootId` pro Microsoft read-only obnovit z uložené online URL pomocí osobního
+  delegovaného připojení sdíleného uživatele a následně dohledat pouze složku
+  uvnitř autorizovaného projektového kořene,
+- pokud Microsoft online fallback nefunguje, ověřit osobní stav „Moje připojení
+  k Microsoftu“, explicitní `project_shares` záznam, shodu Microsoft/Tender Flow
+  identity a dostupnost uložené kořenové online URL; tenant může uživatelský
+  OAuth souhlas omezit vlastní politikou,
   lokální synchronizační klient sdíleného uživatele není pro otevření online
   odkazu podmínkou,
 - pokud cloudové připojení vlastníka není dostupné, lze u SharePointu použít

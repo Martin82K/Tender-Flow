@@ -308,6 +308,7 @@ Deno.serve(async (req) => {
     await service.from("dochub_user_tokens").upsert({
       user_id: userData.user.id,
       provider: "gdrive",
+      access_kind: "manage",
       token_ciphertext: tokenCiphertext,
       scopes: verifiedToken.scopes,
       expires_at: expiresAt,

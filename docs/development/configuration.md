@@ -47,6 +47,13 @@ Podle nasazených funkcí mohou být potřeba:
 Tyto hodnoty se nastavují v secret managementu cílového runtime. Nikdy se
 nepřidávají do `VITE_*`.
 
+Microsoft DocHub OAuth používá registraci aplikace typu Web s callbackem
+`dochub-microsoft-callback`. Pro osobní připojení sdíleného uživatele žádá
+delegované scope `User.Read`, `Files.Read.All` a `offline_access`; správcovský
+token vlastníka zůstává uložen odděleně. Produkční nasazení musí nejprve použít
+migraci s `dochub_user_tokens.access_kind` a teprve potom nasadit související
+Edge Functions.
+
 ## Desktop/main a Node
 
 Používané provozní hodnoty zahrnují:

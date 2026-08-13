@@ -22,6 +22,7 @@ type CloudConnectionRecoveryDependencies = {
   getAccessTokenForUser: (args: {
     userId: string;
     provider: Provider;
+    accessKind?: "manage" | "personal_read";
   }) => Promise<{ accessToken: string }>;
   getGoogleFolderMeta: (args: {
     accessToken: string;
@@ -109,6 +110,7 @@ export const resolveCloudDocHubConnection = (project: Record<string, unknown>): 
 export const recoverCloudDocHubConnection = async (
   project: Record<string, unknown>,
   dependencies: CloudConnectionRecoveryDependencies,
+  options: { userId?: string; accessKind?: "manage" | "personal_read" } = {},
 ): Promise<CloudDocHubConnection | null> => {
   const storedConnection = resolveCloudDocHubConnection(project);
   if (storedConnection) return storedConnection;
@@ -121,8 +123,9 @@ export const recoverCloudDocHubConnection = async (
   if (!ownerId || !fallbackTarget) return null;
 
   const { accessToken } = await dependencies.getAccessTokenForUser({
-    userId: ownerId,
+    userId: options.userId || ownerId,
     provider: fallbackTarget.provider,
+    accessKind: options.accessKind || "manage",
   });
   if (fallbackTarget.provider === "gdrive") {
     const folderId = dependencies.parseGoogleFolderId(fallbackTarget.rootWebUrl);

@@ -12,7 +12,7 @@ pořadově závislý rollout a v propojeném produkčním projektu už jsou apli
 Upravené historické soubory se proto nesmějí znovu nasazovat; další změny musí
 být dopředné migrace.
 
-Migrace `20260813120000` přidává osobní aktivní volbu šablony v
+Migrace `20260813110454` přidává osobní aktivní volbu šablony v
 `project_template_selections`. Sdílený projekt už není zdrojem uživatelského
 UUID šablony. Klíč `(project_id, user_id, template_kind)` odděluje volbu pro
 poptávku, materiálovou poptávku a e-mail nevybraným.
@@ -63,7 +63,7 @@ scope.
 Před nasazením:
 
 1. Ověřit `supabase migration list` a `supabase db push --dry-run --include-all`.
-2. Potvrdit, že `20260813120000` ještě není v cílové historii.
+2. Potvrdit, že `20260813110454` ještě není v cílové historii.
 3. Zkontrolovat aktuální RLS politiky `templates`; nesmí se ztratit
    `user_has_feature('dynamic_templates')`.
 4. Agregovaně spočítat vlastníky/editory a očekávaný počet kopií, bez výpisu

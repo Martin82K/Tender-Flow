@@ -13,6 +13,8 @@ const actions = {
   disconnect: vi.fn(),
   connect: vi.fn(),
   saveSetup: vi.fn(),
+  connectPersonalMicrosoft: vi.fn(),
+  disconnectPersonalMicrosoft: vi.fn(),
 };
 
 const setters = {
@@ -29,8 +31,8 @@ const sharedState = {
   mode: "user",
   rootName: "Projekt 1",
   rootLink: "D:\\Shared\\Projekt 1",
-  onlineRootLink: "https://drive.google.com/drive/folders/project-1",
-  onlineRootLinkDraft: "https://drive.google.com/drive/folders/project-1",
+  onlineRootLink: "https://tenant.sharepoint.com/sites/project/shared-project-1",
+  onlineRootLinkDraft: "https://tenant.sharepoint.com/sites/project/shared-project-1",
   isConnecting: false,
   status: "connected",
   enabled: true,
@@ -41,6 +43,9 @@ const sharedState = {
   isSharedProject: true,
   canManageGlobal: false,
   hasPersonalLocalRoot: true,
+  personalMicrosoftStatus: "disconnected",
+  isLoadingPersonalMicrosoftStatus: false,
+  isMicrosoftOnlineRoot: true,
 };
 
 describe("DocHub shared project UI", () => {
@@ -80,6 +85,21 @@ describe("DocHub shared project UI", () => {
       "noopener,noreferrer",
     );
     openSpy.mockRestore();
+  });
+
+  it("nabizi sdilenemu uzivateli osobni Microsoft prihlaseni pro online mapovani", () => {
+    render(
+      <DocHubSetupWizard
+        state={{ ...sharedState, hasPersonalLocalRoot: false } as any}
+        actions={actions as any}
+        setters={setters as any}
+        showModal={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Přihlásit k Microsoftu" }));
+    expect(actions.connectPersonalMicrosoft).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/Tender Flow použije přihlášení pouze k nalezení složek/)).toBeVisible();
   });
 
   it("validates a manually entered local path before opening it", () => {

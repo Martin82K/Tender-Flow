@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 
 const migrationPath = path.join(
   process.cwd(),
-  "supabase/migrations/20260813120000_personal_project_template_selections.sql",
+  "supabase/migrations/20260813110454_personal_project_template_selections.sql",
 );
 
 const grantsMigrationPath = path.join(
   process.cwd(),
-  "supabase/migrations/20260813131000_restrict_project_template_selection_grants.sql",
+  "supabase/migrations/20260813111306_restrict_project_template_selection_grants.sql",
 );
 
 describe("personal project template selections migration", () => {

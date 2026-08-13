@@ -33,6 +33,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
     canManageGlobal,
     hasPersonalLocalRoot,
     onlineRootLinkDraft,
+    isMicrosoftOnlineRoot,
+    personalMicrosoftStatus,
+    isLoadingPersonalMicrosoftStatus,
   } = state;
 
   const isConnectedStatus = status === "connected";
@@ -46,6 +49,35 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
         {isSharedProject && (
           <div className="rounded-xl border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-700/50 dark:bg-blue-950/30 dark:text-blue-100">
             Globální napojení spravuje vlastník projektu. Zde si můžete nastavit pouze vlastní cestu k synchronizované složce; cesta vlastníka se na tomto zařízení nepoužije.
+          </div>
+        )}
+        {isSharedProject && isMicrosoftOnlineRoot && (
+          <div className="rounded-xl border border-blue-300 bg-white p-4 dark:border-blue-700/50 dark:bg-slate-900/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">Moje připojení k Microsoftu</div>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                  Tender Flow použije přihlášení pouze k nalezení složek. Po otevření rozhodují o nahrávání vaše oprávnění v SharePointu.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={personalMicrosoftStatus === "connected"
+                  ? actions.disconnectPersonalMicrosoft
+                  : actions.connectPersonalMicrosoft}
+                disabled={isConnecting || isLoadingPersonalMicrosoftStatus}
+                className="whitespace-nowrap rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingPersonalMicrosoftStatus
+                  ? "Ověřuji..."
+                  : personalMicrosoftStatus === "connected"
+                    ? "Odpojit můj Microsoft"
+                    : "Přihlásit k Microsoftu"}
+              </button>
+            </div>
+            {personalMicrosoftStatus === "connected" && (
+              <div className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Microsoft je připojen pro online mapování.</div>
+            )}
           </div>
         )}
         {/* Step 1 */}
