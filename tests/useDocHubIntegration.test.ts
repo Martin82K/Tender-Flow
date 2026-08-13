@@ -10,6 +10,11 @@ import { invokeAuthedFunction } from '../services/functionsClient';
 import { storageAdapter } from '../services/platformAdapter';
 import { createDocHubProjectMarker } from '@shared/dochub/personalLocation';
 
+const platformMocks = vi.hoisted(() => ({
+    isDesktop: false,
+    openExternal: vi.fn(),
+}));
+
 // Mock dependencies
 vi.mock('../services/supabase', () => ({
     supabase: {
@@ -26,6 +31,20 @@ vi.mock('../services/supabase', () => ({
 vi.mock('../services/functionsClient', () => ({
     invokeAuthedFunction: vi.fn(),
 }));
+
+vi.mock('@infra/platform/platformAdapter', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@infra/platform/platformAdapter')>();
+    return {
+        ...actual,
+        get isDesktop() {
+            return platformMocks.isDesktop;
+        },
+        shellAdapter: {
+            ...actual.shellAdapter,
+            openExternal: platformMocks.openExternal,
+        },
+    };
+});
 
 const mockProject = {
     id: 'test-project-id',
@@ -46,6 +65,8 @@ describe('useDocHubIntegration', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        platformMocks.isDesktop = false;
+        platformMocks.openExternal.mockResolvedValue(undefined);
         // Reset window mocks
         Object.defineProperty(window, 'location', {
             writable: true,
@@ -178,6 +199,68 @@ describe('useDocHubIntegration', () => {
             }),
         });
         expect(window.location.href).toContain('login.microsoftonline.com');
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should open personal Microsoft OAuth externally on desktop and release the pending state', async () => {
+        platformMocks.isDesktop = true;
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-microsoft-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootWebUrl: 'https://tenant.sharepoint.com/sites/project/root',
+        };
+        const oauthUrl = 'https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize';
+        vi.mocked(invokeAuthedFunction).mockImplementation(async (name) => {
+            if (name === 'dochub-personal-microsoft') return { connected: false } as any;
+            return { url: oauthUrl } as any;
+        });
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await act(async () => result.current.actions.connectPersonalMicrosoft());
+
+        expect(platformMocks.openExternal).toHaveBeenCalledWith(oauthUrl);
+        expect(window.location.href).toBe('');
+        expect(result.current.state.isConnecting).toBe(false);
+        expect(onUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it('should refresh the personal Microsoft connection after returning to the desktop app', async () => {
+        platformMocks.isDesktop = true;
+        let connected = false;
+        const sharedProject = {
+            ...mockProject,
+            id: 'shared-microsoft-project',
+            ownerId: 'owner-user',
+            docHubEnabled: true,
+            docHubStatus: 'connected',
+            docHubProvider: 'onedrive',
+            docHubRootWebUrl: 'https://tenant.sharepoint.com/sites/project/root',
+        };
+        vi.mocked(invokeAuthedFunction).mockImplementation(async (name) => {
+            if (name === 'dochub-personal-microsoft') return { connected } as any;
+            return { url: 'https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize' } as any;
+        });
+        const { result } = renderHook(() => useDocHubIntegration(
+            sharedProject as any,
+            onUpdateMock,
+            { userId: 'shared-user' },
+        ));
+
+        await waitFor(() => expect(result.current.state.personalMicrosoftStatus).toBe('disconnected'));
+        connected = true;
+        await act(async () => {
+            window.dispatchEvent(new Event('focus'));
+        });
+
+        await waitFor(() => expect(result.current.state.personalMicrosoftStatus).toBe('connected'));
         expect(onUpdateMock).not.toHaveBeenCalled();
     });
 

@@ -14,6 +14,7 @@ const ALLOWED_EXTERNAL_HOSTS = new Set([
 ]);
 
 const HTTPS_ONLY_HOST_SUFFIXES = ['.sharepoint.com'];
+const HTTPS_ONLY_EXTERNAL_HOSTS = new Set(['login.microsoftonline.com']);
 const CONTRACT_DOCUMENT_SIGNED_PATH = /^\/storage\/v1\/object\/sign\/contract-documents\/projects\/[A-Za-z0-9-]+\/contracts\/[A-Za-z0-9-]+\.(pdf|docx)$/i;
 
 type ExternalUrlPolicyOptions = {
@@ -75,6 +76,7 @@ export const isAllowedExternalUrl = (parsed: URL): boolean => {
 
     const hostname = parsed.hostname.toLowerCase();
     if (ALLOWED_EXTERNAL_HOSTS.has(hostname)) return true;
+    if (parsed.protocol === 'https:' && HTTPS_ONLY_EXTERNAL_HOSTS.has(hostname)) return true;
     if (parsed.protocol === 'https:' && isHttpsOnlyHost(hostname)) return true;
     if (isConfiguredContractDocumentUrl(parsed)) return true;
 
