@@ -33,14 +33,16 @@ vi.mock("@/services/organizationService", () => ({
 import { usePipelineCommunicationActions } from "../features/projects/model/usePipelineCommunicationActions";
 import type { Bid, DemandCategory, ProjectDetails, User } from "../types";
 
-const { mockGetDefaultTemplate, mockGetTemplateById } = vi.hoisted(() => ({
+const { mockGetDefaultTemplate, mockGetTemplateById, mockGetProjectTemplateSelection } = vi.hoisted(() => ({
   mockGetDefaultTemplate: vi.fn(),
   mockGetTemplateById: vi.fn(),
+  mockGetProjectTemplateSelection: vi.fn(),
 }));
 
 vi.mock("../services/templateService", () => ({
   getDefaultTemplate: mockGetDefaultTemplate,
   getTemplateById: mockGetTemplateById,
+  getProjectTemplateSelection: mockGetProjectTemplateSelection,
 }));
 
 const createProjectDetails = (
@@ -68,8 +70,8 @@ const createCategory = (): DemandCategory =>
 
 const currentUser: User = {
   id: "user-1",
-  name: "Martin Kalkuš",
-  email: "kalkus@baustav.cz",
+  name: "Testovací Uživatel",
+  email: "sender@example.com",
   role: "user",
   organizationId: "org-1",
 };
@@ -84,23 +86,24 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     profileServiceMock.getProfile.mockResolvedValue({
-      displayName: "Martin Kalkuš",
-      signatureName: "Martin Kalkuš",
+      displayName: "Testovací Uživatel",
+      signatureName: "Testovací Uživatel",
       signatureRole: "technik přípravy staveb",
-      signaturePhone: "+420 353 561 325",
-      signaturePhoneSecondary: "+420 777 300 042",
-      signatureEmail: "kalkus@baustav.cz",
+      signaturePhone: "+420 000 000 001",
+      signaturePhoneSecondary: "+420 000 000 002",
+      signatureEmail: "sender@example.com",
       signatureGreeting: "S pozdravem",
     });
     organizationServiceMock.getOrganizationEmailBranding.mockResolvedValue({
       emailLogoPath: "organizations/org-1/email-logo.png",
       emailLogoUrl: "https://cdn.example/email-logo.png",
-      companyName: "BAU-STAV a.s.",
-      companyAddress: "Loketská 344/12",
-      companyMeta: "IČ: 147 05 877",
+      companyName: "Example Build s.r.o.",
+      companyAddress: "Testovací 1",
+      companyMeta: "IČ: 000 00 000",
       disclaimerHtml: "<p>Disclaimer</p>",
     });
     mockGetTemplateById.mockResolvedValue(undefined);
+    mockGetProjectTemplateSelection.mockResolvedValue(undefined);
   });
 
   it("builds EML draft with encoded BCC list and signature", async () => {
@@ -112,7 +115,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
           subcontractorId: "s1",
           companyName: "A",
           contactPerson: "Kontakt A",
-          email: "a@x.cz",
+          email: "supplier-a@example.com",
           price: "1000",
           status: "offer",
         },
@@ -121,7 +124,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
           subcontractorId: "s2",
           companyName: "B",
           contactPerson: "Kontakt B",
-          email: "b@x.cz",
+          email: "supplier-b@example.com",
           price: "2000",
           status: "shortlist",
         },
@@ -136,7 +139,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -150,10 +152,10 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     );
     const decodedHtml = htmlPartBase64 ? decodeBase64Utf8(htmlPartBase64) : "";
     expect(filename).toMatch(/^Nevybrani_/);
-    expect(content).toContain("To: kalkus@baustav.cz");
-    expect(content).toContain("Bcc: a@x.cz;b@x.cz");
-    expect(decodedHtml).toContain("kalkus@baustav.cz");
-    expect(decodedHtml).toContain("BAU-STAV a.s.");
+    expect(content).toContain("To: sender@example.com");
+    expect(content).toContain("Bcc: supplier-a@example.com;supplier-b@example.com");
+    expect(decodedHtml).toContain("sender@example.com");
+    expect(decodedHtml).toContain("Example Build s.r.o.");
     expect(showAlert).not.toHaveBeenCalled();
   });
 
@@ -166,7 +168,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
           subcontractorId: "s1",
           companyName: "A",
           contactPerson: "Kontakt A",
-          email: "a@x.cz",
+          email: "supplier-a@example.com",
           price: "1000",
           status: "offer",
         },
@@ -193,7 +195,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       }),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -209,7 +210,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
 
     expect(decodedHtml).toContain("<p>Dobrý den,</p>");
     expect(decodedHtml).toContain("<p>děkujeme za nabídku.</p>");
-    expect(decodedHtml).toContain("Martin Kalkuš");
+    expect(decodedHtml).toContain("Testovací Uživatel");
     expect(decodedHtml).not.toContain("</p><br><p>");
     expect(mockGetTemplateById).toHaveBeenCalledWith("tpl-1", {
       projectId: "project-1",
@@ -241,7 +242,6 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       projectDetails: createProjectDetails(),
       currentUser,
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert,
       runDocHubFallbackForCategory: vi.fn(),
     });

@@ -6,17 +6,17 @@ const readSource = (path: string) =>
   readFileSync(join(process.cwd(), path), "utf8");
 
 const documentsSource = readSource(
-  "components/projectLayoutComponents/ProjectDocuments.tsx",
+  "features/projects/documents/ui/ProjectDocuments.tsx",
 );
 const documentLinksSource = readSource(
-  "components/projectLayoutComponents/documents/DocsLinkSection.tsx",
+  "features/projects/documents/ui/DocsLinkSection.tsx",
 );
 const tenderPlanSource = readSource("features/projects/ui/TenderPlan.tsx");
 const tenderPlanModelSource = readSource(
   "features/projects/model/tenderPlanModel.ts",
 );
 const pipelineOverviewSource = readSource(
-  "components/pipelineComponents/PipelineOverview.tsx",
+  "features/projects/pipeline/ui/PipelineOverview.tsx",
 );
 const projectOverviewSource = readSource(
   "features/projects/ui/ProjectOverviewNew.tsx",

@@ -2,9 +2,9 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
-import { Pipeline } from "../components/Pipeline";
+import { Pipeline } from "@features/projects/pipeline/Pipeline";
 import { formatMoney } from "../utils/formatters";
-import type { Bid, DemandCategory, ProjectDetails } from "../types";
+import type { Bid, DemandCategory, ProjectDetails, User } from "../types";
 
 const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -14,17 +14,13 @@ const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
 const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
   (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
 
-vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: {
-      id: "u-1",
-      name: "Tester",
-      email: "test@example.com",
-      role: "admin",
-      preferences: {},
-    },
-  }),
-}));
+const currentUser: User = {
+  id: "u-1",
+  name: "Tester",
+  email: "test@example.com",
+  role: "admin",
+  preferences: {},
+};
 
 vi.mock("../services/functionsClient", () => ({
   invokeAuthedFunction: vi.fn().mockResolvedValue({}),
@@ -133,6 +129,7 @@ const renderPipeline = (category: DemandCategory) =>
     <Pipeline
       projectId="project-1"
       projectDetails={createProjectDetails(category)}
+      currentUser={currentUser}
       bids={{ [category.id]: [baseBid] }}
       contacts={[]}
       initialOpenCategoryId={category.id}
@@ -145,6 +142,7 @@ const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =
     <Pipeline
       projectId="project-1"
       projectDetails={createProjectDetailsWithBids(category, categoryBids)}
+      currentUser={currentUser}
       bids={{ [category.id]: categoryBids }}
       contacts={[]}
       initialOpenCategoryId={category.id}
@@ -167,6 +165,7 @@ describe("Pipeline category summary", () => {
       <Pipeline
         projectId="project-1"
         projectDetails={projectDetails}
+        currentUser={currentUser}
         bids={{ [category.id]: [baseBid] }}
         contacts={[]}
         initialOpenCategoryId={category.id}

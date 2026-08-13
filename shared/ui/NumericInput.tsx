@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { formatDecimal, parseDecimal } from '@/utils/formatters';
+import { formatDecimal, parseDecimal } from '@/shared/formatting/decimalFormatters';
 
 type InputSize = 'sm' | 'md';
 

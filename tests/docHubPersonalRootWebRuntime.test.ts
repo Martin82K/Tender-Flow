@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ProjectDetails } from "@/types";
 
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   isDesktop: false,
   storageAdapter: { get: vi.fn() },
   fileSystemAdapter: {},

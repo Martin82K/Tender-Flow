@@ -133,15 +133,18 @@ describe("MCP Outlook message links", () => {
   });
 
   it("řadí Outlook link mezi fail-closed pre-audit zápisy", () => {
-    const source = fs.readFileSync(
-      path.join(ROOT, "server/mcp/tenderFlowMcp.js"),
+    const runtimeSource = fs.readFileSync(
+      path.join(ROOT, "server/mcp/core/toolRuntime.js"),
+      "utf8",
+    );
+    const moduleSource = fs.readFileSync(
+      path.join(ROOT, "server/mcp/modules/outlook.js"),
       "utf8",
     );
 
-    expect(source).toMatch(/WRITE_AUDIT_ACTIONS[\s\S]*'link_outlook_message'/);
-    expect(source).toContain(
-      "withAudit(auth, supabase, 'tf_link_outlook_message', 'link_outlook_message'",
-    );
+    expect(runtimeSource).toMatch(/WRITE_AUDIT_ACTIONS[\s\S]*'link_outlook_message'/);
+    expect(moduleSource).toContain("'tf_link_outlook_message'");
+    expect(moduleSource).toContain("{ action: 'link_outlook_message', riskLevel: 'medium' }");
   });
 
   it("ukládá vazby v privátním schématu přes úzce grantovaná RPC", () => {

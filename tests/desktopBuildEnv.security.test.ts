@@ -107,14 +107,14 @@ describe("desktop build env security", () => {
     expect(source).toContain("DESKTOP_BUILD_ENV_TEST_ROOT");
   });
 
-  it("směruje index release notes na aktuální patch", () => {
+  it("směruje index release notes na aktuální stabilní vydání", () => {
     const releaseIndex = readFileSync(
       join(process.cwd(), "docs", "releases", "README.md"),
       "utf-8",
     );
 
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.1.md`",
+      "Aktuální release notes: `release_notes_v1.9.3.md`",
     );
   });
 

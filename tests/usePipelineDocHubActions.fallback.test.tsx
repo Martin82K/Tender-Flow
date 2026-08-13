@@ -181,10 +181,11 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     );
   });
 
-  it("neotevře nepovolenou URL z backendu a použije bezpečný online root", async () => {
+  it("neotevře nepovolenou URL ani kořen, když selže přesný backend odkaz", async () => {
     mocks.invokeAuthedFunction.mockResolvedValueOnce({
       webUrl: "https://evil.example/phishing",
     });
+    const showAlert = vi.fn();
     const { result } = renderHook(() => usePipelineDocHubActions({
       activeCategory: category,
       projectData: project,
@@ -192,7 +193,7 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       docHubRoot: project.docHubRootLink || "",
       docHubStructure: resolveDocHubStructureV1(),
       isDocHubEnabled: true,
-      showAlert: vi.fn(),
+      showAlert,
       resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
     }));
 
@@ -203,11 +204,43 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
       expect.anything(),
       expect.anything(),
     );
-    expect(window.open).toHaveBeenCalledWith(
+    expect(window.open).not.toHaveBeenCalledWith(
       "https://drive.google.com/drive/folders/cloud-root",
-      "_blank",
-      "noopener,noreferrer",
+      expect.anything(),
+      expect.anything(),
     );
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      copyableText: expect.stringContaining("03_Vyberova_rizeni"),
+    }));
+  });
+
+  it("nevytváří syntetickou podadresu z cloudové webové URL po selhání backendu", async () => {
+    mocks.invokeAuthedFunction.mockRejectedValueOnce(new Error("Folder link not available"));
+    const cloudProject: ProjectDetails = {
+      ...project,
+      docHubProvider: "gdrive",
+      docHubRootLink: "https://drive.google.com/drive/folders/cloud-root",
+      docHubRootId: "cloud-root",
+    };
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: cloudProject,
+      projectDetails: cloudProject,
+      docHubRoot: cloudProject.docHubRootLink || "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(window.open).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Složka není dostupná",
+      variant: "danger",
+    }));
   });
 
   it("po selhání lokálního i online otevření zkopíruje lokální cestu VŘ", async () => {

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   updateBidStatusInMemory: vi.fn(),
   getDefaultTemplate: vi.fn(),
   getTemplateById: vi.fn(),
+  getProjectTemplateSelection: vi.fn(),
   getProfile: vi.fn(),
   getOrganizationEmailBranding: vi.fn(),
   loadBudgetAttachmentForEmail: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock("../services/inquiryService", () => ({
 vi.mock("../services/templateService", () => ({
   getDefaultTemplate: mocks.getDefaultTemplate,
   getTemplateById: mocks.getTemplateById,
+  getProjectTemplateSelection: mocks.getProjectTemplateSelection,
 }));
 
 vi.mock("@/services/budgetAttachmentService", () => ({
@@ -114,7 +116,6 @@ const createActions = (
     currentUser: overrides.currentUser || currentUser,
     userRole: "user",
     updateBidsInternal,
-    setIsExportMenuOpen: vi.fn(),
     showAlert,
     runDocHubFallbackForCategory: vi.fn(),
   });
@@ -130,6 +131,7 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
     mocks.persistBidStatusChange.mockResolvedValue({ error: null });
     mocks.updateBidStatusInMemory.mockImplementation((value) => value);
     mocks.getTemplateById.mockResolvedValue(undefined);
+    mocks.getProjectTemplateSelection.mockResolvedValue(undefined);
     mocks.getDefaultTemplate.mockResolvedValue({
       id: "template-1",
       name: "Poptávka",
@@ -203,7 +205,6 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
       currentUser,
       userRole: "user",
       updateBidsInternal: vi.fn(),
-      setIsExportMenuOpen: vi.fn(),
       showAlert: vi.fn(),
       runDocHubFallbackForCategory: vi.fn(),
     });
@@ -216,6 +217,44 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
     expect(mocks.openTempFile).toHaveBeenCalledWith(
       "EML",
       expect.stringMatching(/^Materialova_poptavka_hromadne_\d+\.eml$/),
+    );
+  });
+
+  it("upřednostní osobní volbu uživatele před starým sdíleným odkazem projektu", async () => {
+    mocks.getProjectTemplateSelection.mockResolvedValue({
+      id: "personal-template",
+      projectId: "project-1",
+      name: "Moje šablona",
+      subject: "Moje {KATEGORIE_NAZEV}",
+      content: "<p>Osobní text</p>",
+      isDefault: false,
+      lastModified: "2026-08-13",
+    });
+    const details = {
+      ...projectDetails,
+      inquiryLetterLink: "template:shared-template",
+    } as ProjectDetails;
+    const actions = usePipelineCommunicationActions({
+      activeCategory: category,
+      bids: { [category.id]: [createBid({ id: "a" })] },
+      projectId: "project-1",
+      projectDetails: details,
+      currentUser,
+      userRole: "user",
+      updateBidsInternal: vi.fn(),
+      showAlert: vi.fn(),
+      runDocHubFallbackForCategory: vi.fn(),
+    });
+
+    await actions.handleGenerateBulkInquiry("inquiry");
+
+    expect(mocks.getProjectTemplateSelection).toHaveBeenCalledWith("project-1", "inquiry");
+    expect(mocks.getTemplateById).not.toHaveBeenCalled();
+    expect(mocks.generateEmlContent).toHaveBeenCalledWith(
+      "sender@example.com",
+      "Moje Elektro",
+      expect.stringContaining("Osobní text"),
+      expect.any(Object),
     );
   });
 

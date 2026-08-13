@@ -1,6 +1,6 @@
 # Bezpečnostní model MCP
 
-Stav: obrany implementované k 2026-08-09; provozní mezery jsou uvedeny níže
+Stav: obrany implementované k 2026-08-11; provozní mezery jsou uvedeny níže
 Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 
 ## Chráněná aktiva
@@ -91,7 +91,6 @@ Zdroj pravdy: `server/mcp/`, MCP migrace a `docs/security/security-model.md`
 - Rotace proofu používá jeden aktivní singleton. Při změně secretu se nesmí
   dlouho překrývat instance s různými klíči; bezpečnost selže uzavřeně, ale
   střídavá registrace může dočasně odmítat legitimní MCP požadavky.
-- `desktop MCP` nepoužívá stejný katalog/protokol jako remote/stdio.
 - Živý produkční canary musí ještě ověřit expiraci a revokaci elevated grantu;
   statický migrační test ani rollback dry-run tuto provozní kontrolu nenahrazuje.
 

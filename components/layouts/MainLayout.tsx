@@ -1,12 +1,11 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { Sidebar } from '../Sidebar';
-import { ConfirmationModal } from '../ConfirmationModal';
+import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { AccountMenuProvider } from '@/shared/ui/AccountMenuContext';
 import { UserAccountMenu } from '@/shared/ui/UserAccountMenu';
 import { Project, View, User } from '../../types';
-import platformAdapter from '../../services/platformAdapter';
 import { normalizeUiScale } from '@/hooks/useTheme';
 import type { ThemeMode, ThemeSkin } from '@/shared/types/theme';
 
@@ -79,11 +78,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onReloadData,
     onHideBackgroundWarning
 }) => {
-    useEffect(() => {
-        if (!platformAdapter.isDesktop) return;
-        void platformAdapter.mcp.setCurrentProject(selectedProjectId || null);
-    }, [selectedProjectId]);
-
     const handleViewChange = (view: View, opts?: any) => {
         if (view === "project") {
             const targetId = selectedProjectId || projects.find((p) => p.status !== "archived")?.id;

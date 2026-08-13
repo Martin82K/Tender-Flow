@@ -8,7 +8,7 @@ vi.mock('@/components/Sidebar', () => ({
   Sidebar: () => <aside data-testid="sidebar" />,
 }));
 
-vi.mock('@/components/ConfirmationModal', () => ({
+vi.mock('@shared/ui/ConfirmationModal', () => ({
   ConfirmationModal: () => null,
 }));
 
@@ -24,7 +24,7 @@ vi.mock('@/shared/routing/routeUtils', () => ({
   buildAppUrl: vi.fn(() => '/mock-path'),
 }));
 
-vi.mock('@/services/platformAdapter', () => ({
+vi.mock('@infra/platform/platformAdapter', () => ({
   default: {
     isDesktop: false,
     mcp: {

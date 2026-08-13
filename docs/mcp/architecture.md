@@ -1,8 +1,8 @@
 # Architektura Tender Flow MCP
 
-Stav: popis aktuální implementace k 2026-08-09
-Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/data.js`,
-`server/mcp/supabaseAuth.js`
+Stav: popis aktuální implementace k 2026-08-11
+Zdroj pravdy: `server/mcp/tenderFlowMcp.js`, `server/mcp/core/`,
+`server/mcp/modules/`, `server/mcp/data.js` a `server/mcp/supabaseAuth.js`
 
 ## Kontext a tok požadavku
 
@@ -68,7 +68,9 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | --- | --- |
 | HTTP/stdio adaptér | transport, status kódy, protected-resource metadata |
 | Token validation | podpis JWT, issuer, audience/resource, client allowlist, expirace a standardní identity scopes |
-| MCP server factory | capabilities, schemas, podmíněná registrace tools/resources |
+| MCP server factory | capabilities a kompozice doménových modulů bez business handlerů |
+| Doménové MCP moduly | schemas a registrace tools/resources pro projekty, VŘ, smlouvy, subdodavatele, úkoly, Outlook a změny |
+| Core tool/resource runtime | jednotná permission kontrola, OAuth metadata, audit a rate limit pro všechny moduly |
 | Permission resolver | per-request RPC váže `auth.uid()`, JWT klienta, consent, expiraci a revokaci; fail-closed |
 | Permission policy | centrální mapování tool → interní permissions a riziko; neodvozuje je z tokenových `tenderflow.*` scopes |
 | Data adaptér | omezené selecty, mapování a minimalizace výsledků |
@@ -81,10 +83,26 @@ není závazek zachovat staré desktopové rozhraní; podmínky jsou v
 | --- | --- | --- |
 | Remote HTTP | `mcp-service/` + `server/mcp/` | samostatně nasaditelná MCP 2.0 cesta |
 | Veřejná kompatibilní proxy | `api/mcp.js` | zachovává kanonickou OAuth URL a umožňuje rollback |
+| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze dedikovaný MCP OAuth token; stejná DB hranice jako remote |
 
 Remote MCP má vlastní Vercel project root a produkční větev `release`. Webová
 aplikace a MCP používají oddělené path filtry, takže změna pouze v MCP runtime
 nespouští Vite ani Electron build. Konkrétní tool catalog není součástí UI
 aplikace; UI spravuje pouze stabilní skupiny oprávnění.
-| Lokální stdio | `scripts/mcp-stdio.js` + stejná factory | pouze dedikovaný MCP OAuth token; stejná DB hranice jako remote |
-| Desktop | `desktop/main/services/mcpServer.ts` | samostatný legacy server; plánované sjednocení |
+
+Electron aplikace lokální MCP server nespouští. Desktop renderer ani preload
+nevystavují MCP IPC API a uživatelský session token se kvůli MCP nepředává do
+main procesu.
+
+## Doménová modularita
+
+`server/mcp/tenderFlowMcp.js` je pouze composition root. Nástroje a resources
+registrují moduly v `server/mcp/modules/`; žádný modul neregistruje tool přímo
+na SDK serveru. Dostane úzký runtime z `server/mcp/core/`, který před každým
+voláním znovu ověří interní permissions, spotřebuje distribuovaný rate-limit
+bucket a provede redigovaný audit. Write moduly navíc nemohou obejít povinný
+pre-audit.
+
+Doménové dělení je: discovery, projekty, výběrová řízení, smlouvy,
+subdodavatelé, úkoly, Outlook integrace a potvrzované změny. Remote HTTP a stdio
+skládají stejné moduly přes tutéž server factory.

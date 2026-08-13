@@ -1,5 +1,5 @@
 import { supabase } from "@/services/supabase";
-import { isDesktop, platformAdapter } from "@/services/platformAdapter";
+import { isDesktop, platformAdapter } from "@infra/platform/platformAdapter";
 
 const INSTALLATION_ID_STORAGE_KEY = "tender_flow_installation_id_v1";
 

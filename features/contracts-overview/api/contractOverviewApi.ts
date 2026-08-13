@@ -1,6 +1,6 @@
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { contractService } from "@/services/contractService";
-import { shellAdapter } from "@/services/platformAdapter";
+import { shellAdapter } from "@infra/platform/platformAdapter";
 
 const normalizeCurrencyCode = (currency?: string): string => {
   const upper = currency?.trim().toUpperCase();

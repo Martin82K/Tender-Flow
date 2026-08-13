@@ -2,8 +2,8 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Pipeline } from "../components/Pipeline";
-import type { Bid, DemandCategory, ProjectDetails, Subcontractor } from "../types";
+import { Pipeline } from "@features/projects/pipeline/Pipeline";
+import type { Bid, DemandCategory, ProjectDetails, Subcontractor, User } from "../types";
 
 const QueryWrapper = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = React.useState(() => new QueryClient());
@@ -14,15 +14,12 @@ const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
 }));
 
-vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: {
-      id: "u-1",
-      role: "user",
-      email: "user@example.com",
-    },
-  }),
-}));
+const currentUser: User = {
+  id: "u-1",
+  name: "Tester",
+  role: "user",
+  email: "user@example.com",
+};
 
 vi.mock("../services/supabase", () => ({
   supabase: {
@@ -46,7 +43,7 @@ vi.mock("@infra/files/fileSystemService", () => ({
   folderExists: vi.fn().mockResolvedValue(false),
 }));
 
-vi.mock("../components/pipelineComponents", () => {
+vi.mock("@features/projects/pipeline", () => {
   const dummy = () => null;
   const baseContact: Subcontractor = {
     id: "edit-contact",
@@ -62,16 +59,24 @@ vi.mock("../components/pipelineComponents", () => {
   return {
     Column: dummy,
     BidCard: dummy,
-    EditBidModal: dummy,
-    CategoryCard: dummy,
-    PipelineOverview: dummy,
     CategoryFormModal: dummy,
-    SubcontractorSelectorModal: ({
+    PipelineDetailToolbar: dummy,
+    PipelineKanbanBoard: dummy,
+    PipelineOverview: dummy,
+    PipelineContactModals: ({
+      isCreateContactOpen,
+      editingContact,
       onAddContact,
       onEditContact,
+      onSaveNewContact,
+      onUpdateContact,
     }: {
+      isCreateContactOpen: boolean;
+      editingContact: Subcontractor | null;
       onAddContact: (name: string) => void;
       onEditContact: (contact: Subcontractor) => void;
+      onSaveNewContact: (contact: Subcontractor) => void;
+      onUpdateContact: (contact: Subcontractor) => void;
     }) => (
       <div>
         <button onClick={() => onAddContact("CON")} data-testid="open-create">
@@ -80,33 +85,61 @@ vi.mock("../components/pipelineComponents", () => {
         <button onClick={() => onEditContact(baseContact)} data-testid="open-edit">
           open-edit
         </button>
+        {(isCreateContactOpen || editingContact) && (
+          <button
+            data-testid={editingContact ? "save-invalid-edit" : "save-invalid-create"}
+            onClick={() => {
+              const invalidContact = {
+                id: editingContact?.id || "new-contact",
+                company: "CON",
+                specialization: ["Elektro"],
+                contacts: [
+                  { id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" },
+                ],
+                status: "available",
+                name: "Kontakt",
+                email: "x@y.cz",
+                phone: "123",
+              } as Subcontractor;
+              if (editingContact) {
+                onUpdateContact(invalidContact);
+              } else {
+                onSaveNewContact(invalidContact);
+              }
+            }}
+          >
+            save
+          </button>
+        )}
       </div>
     ),
-    CreateContactModal: ({
-      initialData,
-      onSave,
-    }: {
-      initialData?: Subcontractor;
-      onSave: (contact: Subcontractor) => void;
-    }) => (
-      <button
-        data-testid={initialData ? "save-invalid-edit" : "save-invalid-create"}
-        onClick={() =>
-          onSave({
-            id: initialData?.id || "new-contact",
-            company: "CON",
-            specialization: ["Elektro"],
-            contacts: [{ id: "p-2", name: "Kontakt", email: "x@y.cz", phone: "123" }],
-            status: "available",
-            name: "Kontakt",
-            email: "x@y.cz",
-            phone: "123",
-          })
-        }
-      >
-        save
-      </button>
-    ),
+    EditBidModal: dummy,
+    PipelineCategoryDocuments: dummy,
+    PipelineCategorySummary: dummy,
+    usePipelineAlert: () => {
+      const [alert, setAlert] = React.useState<{
+        title: string;
+        message: string;
+      } | null>(null);
+
+      return {
+        showAlert: React.useCallback(
+          ({ title, message }: { title: string; message: string }) =>
+            setAlert({ title, message }),
+          [],
+        ),
+        alertModalNode: alert ? (
+          <div role="alert">
+            <span>{alert.title}</span>
+            <span>{alert.message}</span>
+          </div>
+        ) : null,
+      };
+    },
+    usePipelineConfirmation: () => ({
+      confirmationModalNode: null,
+      requestConfirmation: vi.fn(),
+    }),
   };
 });
 
@@ -150,6 +183,7 @@ const renderPipeline = () =>
     <Pipeline
       projectId="project-1"
       projectDetails={createProjectDetails()}
+      currentUser={currentUser}
       bids={{ "cat-1": [baseBid] }}
       contacts={[]}
       initialOpenCategoryId="cat-1"

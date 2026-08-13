@@ -49,7 +49,6 @@ vi.mock("../desktop/main/services/retiredFeatureStorage", () => ({
 vi.mock("../desktop/main/ipc/modules/fsHandlers", () => ({
   registerFsHandlers: mocks.registerFsHandlers,
 }));
-vi.mock("../desktop/main/ipc/modules/mcpHandlers", () => ({ registerMcpHandlers: vi.fn() }));
 vi.mock("../desktop/main/ipc/modules/netHandlers", () => ({ registerNetHandlers: vi.fn() }));
 vi.mock("../desktop/main/ipc/modules/oauthHandlers", () => ({ registerOAuthHandlers: vi.fn() }));
 vi.mock("../desktop/main/ipc/modules/sessionHandlers", () => ({ registerSessionHandlers: vi.fn() }));

@@ -20,7 +20,11 @@ payloadu jen proto, že přišel z aplikace.
 - `desktop/main/preload.ts` – omezené API vystavené přes context bridge.
 - `desktop/main/ipc/contracts.ts` – IPC kontrakty.
 - `desktop/main/ipc/handlers.ts` a `ipc/modules/` – registrace handlerů.
-- `desktop/main/types.ts` a `shared/types/desktop` – sdílené serializovatelné typy.
+- `shared/types/desktop.contract.d.ts` – jediný kanonický kontrakt serializovatelných
+  typů pro renderer, preload a main proces.
+- `shared/types/desktop.ts` – stabilní rendererový type-only re-export kontraktu.
+- `desktop/main/types.ts` – CJS-safe type-only adaptér pro desktop kompilaci; nesmí
+  obsahovat vlastní kopie IPC datových tvarů.
 
 ## Bezpečnost BrowserWindow
 
@@ -47,7 +51,6 @@ Vite/HMR na lokálních hostech.
 | `oauthHandlers` | externí OAuth toky |
 | `notificationHandlers` | nativní notifikace |
 | `watcherHandlers` | hlídání složek |
-| `mcpHandlers` | MCP lifecycle a konfigurace |
 | `docxConversion` | lokální konverze dokumentů |
 
 Handler musí validovat typy, oprávnění, velikost vstupu a cestu. Renderer používá
@@ -55,10 +58,12 @@ pouze API z preloadu; přímý import Electron main modulu je zakázaný.
 
 ## Platformní adaptér
 
-Legacy implementace je v `services/platformAdapter.ts`; kanonický infra export
-je `infra/platform/platformAdapter.ts`. Webové fallbacky vracejí bezpečný
-„unavailable“ výsledek nebo explicitní chybu. Desktop-specific chování musí být
-guardované `useDesktop()` nebo platformním příznakem.
+Kanonická implementace je v `infra/platform/platformAdapter.ts`.
+`services/platformAdapter.ts` zůstává pouze jako kompatibilní re-export pro
+legacy konzumenty. Nový kód importuje platformní adaptéry přes `@infra/platform`.
+Webové fallbacky vracejí bezpečný „unavailable“ výsledek nebo explicitní chybu.
+Desktop-specific chování musí být guardované `useDesktop()` nebo platformním
+příznakem.
 
 ## Lokální soubory
 

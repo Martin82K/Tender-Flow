@@ -336,10 +336,15 @@ describe("remote MCP server", () => {
   });
 
   it("registruje read-only discovery nástroje a oddělený třífázový zápis", () => {
-    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
+    const modulesDir = path.join(ROOT, "server/mcp/modules");
+    const source = fs.readdirSync(modulesDir)
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => fs.readFileSync(path.join(modulesDir, name), "utf8"))
+      .join("\n")
+      .replace(/\r\n/g, "\n");
 
-    expect(source).toContain("registerScopedTool(server, auth,\n    'search'");
-    expect(source).toContain("registerScopedTool(server, auth,\n    'fetch'");
+    expect(source).toContain("tools.register(\n    'search'");
+    expect(source).toContain("tools.register(\n    'fetch'");
     expect(source).toContain("tf_prepare_bid_status_change");
     expect(source).toContain("tf_prepare_change");
     expect(source).toContain("tf_confirm_change");
@@ -676,7 +681,7 @@ describe("remote MCP server", () => {
 
     expect(pkg.dependencies["@modelcontextprotocol/server"]).toBe("2.0.0");
     expect(pkg.dependencies["@modelcontextprotocol/sdk"]).toBeUndefined();
-    expect(source).toContain("import { createMcpHandler, McpServer, ResourceTemplate } from '@modelcontextprotocol/server';");
+    expect(source).toContain("import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';");
     expect(source).toContain("createMcpHandler");
     expect(stdioSource).toContain("serveStdio");
   });
@@ -759,6 +764,7 @@ describe("remote MCP server", () => {
     const source = fs.readFileSync(path.join(ROOT, "scripts/mcp-stdio.js"), "utf8").replace(/\r\n/g, "\n");
     const mcpConfig = JSON.parse(fs.readFileSync(path.join(ROOT, ".mcp.json"), "utf8"));
     const serverSource = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
+    const changesSource = fs.readFileSync(path.join(ROOT, "server/mcp/modules/changes.js"), "utf8").replace(/\r\n/g, "\n");
 
     expect(pkg.scripts["mcp:stdio"]).toBe("node scripts/mcp-stdio.js");
     expect(mcpConfig.mcpServers["tender-flow"]).toEqual({
@@ -770,7 +776,7 @@ describe("remote MCP server", () => {
     expect(source).not.toContain("process.env.SUPABASE_ACCESS_TOKEN");
     expect(source).toContain("const includeWriteTools = !readOnly");
     expect(serverSource).toContain("const includeWriteTools = options.includeWriteTools !== false;");
-    expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
+    expect(changesSource).toContain("if (!includeWriteTools) return;");
   });
 
   it("omezuje volání distribuovaně per user/client/risk bucket", async () => {

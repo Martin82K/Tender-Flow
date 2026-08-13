@@ -18,8 +18,7 @@ import type {
   ProjectTab,
   View,
 } from "@/types";
-import { platformAdapter } from "@/services/platformAdapter";
-import { useDesktopMcpTokenSync } from "@app/hooks/useDesktopMcpTokenSync";
+import { platformAdapter } from "@infra/platform/platformAdapter";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
 import { useCriticalLoadIncident } from "@app/hooks/useCriticalLoadIncident";
@@ -177,7 +176,6 @@ export const AppContent: React.FC = () => {
     };
   }, [showUiModal]);
 
-  useDesktopMcpTokenSync();
   usePosthogIdentity();
   useAppUsageHeartbeat({
     enabled: isAuthenticated && !authLoading && user?.role !== "demo" && user?.isOrgMemberActive !== false,
@@ -404,6 +402,7 @@ export const AppContent: React.FC = () => {
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
               initialContractId={activeContractId ?? undefined}
               currentUserId={user?.id}
+              currentUser={user}
               onNavigateToPipeline={(catId: string) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);

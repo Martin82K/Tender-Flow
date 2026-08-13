@@ -34,9 +34,16 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - `typecheck` zachytí kontraktové chyby,
 - web build ověří bundling a prerender,
 - desktop compile ověří main/preload TypeScript,
-- boundaries zakazují nebezpečné importy,
+- boundaries zakazují nebezpečné importy a nové privátní cross-feature vazby;
+  existující privátní vazby jsou ratchetované přes přesný soubor a specifier a
+  zastaralá výjimka po odstranění dluhu kontrolu také shodí,
 - legacy structure brání růstu frozen kořenů,
 - docs checker ověřuje interní odkazy.
+
+Regresní test boundary pravidla vytváří izolovanou dočasnou strukturu features.
+Ověřuje RED výsledek privátního importu, přesnou allowlist výjimku, odmítnutí
+jiného privátního importu ve stejném souboru a průchod veřejného entrypointu.
+Nejde tedy pouze o kontrolu textu architektonického skriptu.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně

@@ -4,11 +4,12 @@ import { APP_VERSION } from "@/config/version";
 import { shouldShowWhatsNew, useWhatsNew } from "@/features/whats-new/useWhatsNew";
 
 describe("shouldShowWhatsNew", () => {
-  it("nezobrazí novinky pro přeskočenou verzi 1.7.0", () => {
+  it("nezobrazí novinky pro přeskočené verze", () => {
     expect(shouldShowWhatsNew("1.7.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.7.0", "1.6.3")).toBe(false);
     expect(shouldShowWhatsNew("1.9.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.9.1", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.2", null)).toBe(false);
     expect(shouldShowWhatsNew(APP_VERSION, null)).toBe(false);
   });
 

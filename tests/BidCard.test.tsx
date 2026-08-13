@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { BidCard } from "../components/pipelineComponents/BidCard";
+import { BidCard } from "@features/projects/pipeline";
 import type { Bid } from "../types";
 
 const baseBid: Bid = {

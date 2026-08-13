@@ -9,6 +9,10 @@ import {
   getTenderFolderName,
   type Provider,
 } from "../_shared/dochub_providers.ts";
+import {
+  resolveSharedFolderLink,
+  type SharedLinkKind,
+} from "./sharedFolderRecovery.ts";
 
 type LinkKind =
   | "pd"
@@ -19,6 +23,19 @@ type LinkKind =
   | "tender"
   | "tender_inquiries"
   | "supplier";
+
+const SHARED_RECOVERABLE_KINDS: readonly LinkKind[] = [
+  "pd",
+  "tenders",
+  "contracts",
+  "realization",
+  "archive",
+  "tender",
+  "tender_inquiries",
+  "supplier",
+];
+
+const SHARED_NESTED_KINDS: readonly LinkKind[] = ["tender", "tender_inquiries", "supplier"];
 
 const normalizeFolderKey = (key: string | null | undefined): string => key ?? "";
 
@@ -376,11 +393,32 @@ Deno.serve(async (req) => {
       return json(req, 200, { webUrl: cachedFolder.web_url, itemId: cachedFolder.item_id });
     }
 
+    const structure = getStructure((project.dochub_structure_v1 as any) || null);
     if (!isProjectOwner) {
-      return json(req, 404, { error: "Folder link not available" });
+      if (
+        !project.owner_id ||
+        !SHARED_RECOVERABLE_KINDS.includes(kind) ||
+        (SHARED_NESTED_KINDS.includes(kind) && !categoryId)
+      ) {
+        return json(req, 404, { error: "Folder link not available" });
+      }
+      const sharedFolder = await resolveSharedFolderLink({
+        projectId,
+        ownerId: project.owner_id,
+        provider,
+        rootId,
+        driveId,
+        kind: kind as SharedLinkKind,
+        categoryId,
+        supplierId,
+        structure,
+      });
+      if (!sharedFolder?.web_url) {
+        return json(req, 404, { error: "Folder link not available" });
+      }
+      return json(req, 200, { webUrl: sharedFolder.web_url, itemId: sharedFolder.item_id });
     }
 
-    const structure = getStructure((project.dochub_structure_v1 as any) || null);
     const { accessToken } = await getAccessTokenForUser({
       userId: userData.user.id,
       provider,

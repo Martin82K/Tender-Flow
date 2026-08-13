@@ -1,7 +1,8 @@
 # Reference MCP resources
 
 Stav: 4 resource rodiny k 2026-08-09
-Zdroj pravdy: `registerTenderFlowResources` v `server/mcp/tenderFlowMcp.js`
+Zdroj pravdy: doménové registrace v `server/mcp/modules/` a společný auditní
+runtime v `server/mcp/core/resourceRuntime.js`
 
 Resources vracejí `application/json`. Všechny používají `cacheScope: private`,
 proto jejich obsah nesmí klient sdílet mezi uživateli ani OAuth klienty.

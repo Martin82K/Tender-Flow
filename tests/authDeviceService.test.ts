@@ -10,7 +10,7 @@ vi.mock("@/services/supabase", () => ({
   },
 }));
 
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   isDesktop: false,
   platformAdapter: {
     platform: {

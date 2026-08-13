@@ -1,44 +1,269 @@
 {
   "allowedFindings": [
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/AutoCreateModal.tsx"
+      "type": "feature-private-import",
+      "file": "features/auth/ui/ForgotPasswordPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubAutoCreateStatus.tsx"
+      "type": "feature-private-import",
+      "file": "features/auth/ui/LoginPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubHistory.tsx"
+      "type": "feature-private-import",
+      "file": "features/auth/ui/MfaPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubLinks.tsx"
+      "type": "feature-private-import",
+      "file": "features/auth/ui/RegisterPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubSetupWizard.tsx"
+      "type": "feature-private-import",
+      "file": "features/auth/ui/ResetPasswordPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubStatusCard.tsx"
+      "type": "feature-private-import",
+      "file": "features/command-center/CommandCenter.tsx",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/dochub/DocHubStructureEditor.tsx"
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useActivityFeedData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/DocsLinkSection.tsx"
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useCalendarData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/PriceListsSection.tsx"
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useCalendarData.ts",
+      "specifier": "@features/tasks/api/tasksApi"
     },
     {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/documents/TemplatesSection.tsx"
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useCalendarData.ts",
+      "specifier": "@features/tasks/hooks/useTasksQuery"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useCalendarData.ts",
+      "specifier": "@features/tasks/types"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useCommandCenterKpis.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useDerivedActions.ts",
+      "specifier": "@features/projects/contracts/hooks/useAllContractsQuery"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useDerivedActions.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useFinanceGaugeData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useMatrixHealthData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/usePipelineFunnelData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/hooks/useProjectsPanelData.ts",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/modules/action-queue/ActionQueueModule.tsx",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/command-center/modules/filter-bar/FilterBarModule.tsx",
+      "specifier": "@features/projects/model/useProjectPortfolioState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@features/maps/components/SubcontractorMapView"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/contracts-overview/ContractOverview.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/help/context/HelpContext.tsx",
+      "specifier": "@features/notifications/context/ToastContext"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/api/generateContractProtocol.ts",
+      "specifier": "@features/organization/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/api/pipelineApi.ts",
+      "specifier": "@features/contacts/model/contactPersistence"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/model/usePipelineBidActions.ts",
+      "specifier": "@features/notifications/api/notificationEmitter"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@features/organization/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/model/useProjectOverviewController.ts",
+      "specifier": "@features/contacts/hooks/useContactsQuery"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@features/maps/components/ProjectMapView"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@features/maps/services/geocodingService"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@features/organization/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/ProjectOverview.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/projects/team/ProjectTeamSettings.tsx",
+      "specifier": "@features/organization/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/AdminSettings.tsx",
+      "specifier": "@features/auth/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/NotificationSettings.tsx",
+      "specifier": "@features/notifications/api/notificationApi"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/NotificationSettings.tsx",
+      "specifier": "@features/notifications/api/notificationPreferencesApi"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/NotificationSettings.tsx",
+      "specifier": "@features/notifications/types"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/features/backup/ui/BackupSettings"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/features/organization/model/types"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/features/organization/ui/OrganizationDashboard"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/features/tools/UrlShortener"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/SubscriptionFeaturesManagement.tsx",
+      "specifier": "@features/subscription/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/settings/SubscriptionSettings.tsx",
+      "specifier": "@/features/subscription/api"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/subscription/api/subscriptionState.ts",
+      "specifier": "@/features/organization/model/types"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/subscription/ui/index.ts",
+      "specifier": "@/features/settings/SubscriptionSettings"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/tasks/model/actionQueueMerge.ts",
+      "specifier": "@features/command-center/types"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/tasks/ui/TaskFormModal.tsx",
+      "specifier": "@features/projects/model/useProjectsState"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/tasks/ui/TasksPage.tsx",
+      "specifier": "@features/notifications/ui/NotificationBell"
+    },
+    {
+      "type": "feature-private-import",
+      "file": "features/tasks/ui/TasksPage.tsx",
+      "specifier": "@features/projects/model/useProjectsState"
     }
   ]
 }

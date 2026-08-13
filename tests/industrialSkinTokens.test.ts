@@ -8,20 +8,24 @@ const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx")
 const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/TenderPlan.tsx"), "utf8");
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const projectScheduleSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSchedule.tsx"), "utf8");
-const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
-const pipelineOverviewSource = readFileSync(join(process.cwd(), "components/pipelineComponents/PipelineOverview.tsx"), "utf8");
+const pipelineSource = readFileSync(join(process.cwd(), "features/projects/pipeline/Pipeline.tsx"), "utf8");
+const pipelineDetailToolbarSource = readFileSync(
+  join(process.cwd(), "features/projects/pipeline/ui/PipelineDetailToolbar.tsx"),
+  "utf8",
+);
+const pipelineOverviewSource = readFileSync(join(process.cwd(), "features/projects/pipeline/ui/PipelineOverview.tsx"), "utf8");
 const pipelineBulkEmailMenuSource = readFileSync(join(process.cwd(), "features/projects/ui/PipelineBulkEmailMenu.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
-const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
-const docsLinkSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/DocsLinkSection.tsx"), "utf8");
-const priceListsSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/PriceListsSection.tsx"), "utf8");
+const documentsSource = readFileSync(join(process.cwd(), "features/projects/documents/ui/ProjectDocuments.tsx"), "utf8");
+const docsLinkSectionSource = readFileSync(join(process.cwd(), "features/projects/documents/ui/DocsLinkSection.tsx"), "utf8");
+const priceListsSectionSource = readFileSync(join(process.cwd(), "features/projects/documents/ui/PriceListsSection.tsx"), "utf8");
 const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccountMenu.tsx"), "utf8");
 const appearancePickerSource = readFileSync(join(process.cwd(), "shared/ui/AppearancePicker.tsx"), "utf8");
 const notificationBellSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationBell.tsx"), "utf8");
 const notificationCenterSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationCenter.tsx"), "utf8");
 const notificationItemSource = readFileSync(join(process.cwd(), "features/notifications/ui/NotificationItem.tsx"), "utf8");
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
-const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
+const categoryFormModalSource = readFileSync(join(process.cwd(), "features/projects/pipeline/ui/CategoryFormModal.tsx"), "utf8");
 const contractEditDialogSource = readFileSync(join(process.cwd(), "features/projects/contracts/forms/ContractEditDialog.tsx"), "utf8");
 const contractsDashboardSource = readFileSync(join(process.cwd(), "features/projects/contracts/dashboard/ContractsDashboard.tsx"), "utf8");
 const contractListPanelSource = readFileSync(join(process.cwd(), "features/projects/contracts/list/ContractListPanel.tsx"), "utf8");
@@ -133,7 +137,8 @@ describe("industrial skin tokens", () => {
   it("industrial pipeline menu používají skin tokeny i mimo topbar portál", () => {
     expect(pipelineBulkEmailMenuSource).toContain('data-help-id="pipeline-bulk-email-menu"');
     expect(pipelineBulkEmailMenuSource).toContain("tf-pipeline-popover");
-    expect(pipelineSource).toContain('data-help-id="pipeline-export-menu"');
+    expect(pipelineSource).toContain("PipelineDetailToolbar");
+    expect(pipelineDetailToolbarSource).toContain('data-help-id="pipeline-export-menu"');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-popover');
     expect(css).toContain('html.dark[data-skin="industrial"] .tf-pipeline-popover');
     expect(css).toContain("background: color-mix(in srgb, var(--tf-skin-surface) 97%, transparent) !important");

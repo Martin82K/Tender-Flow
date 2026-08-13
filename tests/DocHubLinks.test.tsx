@@ -9,7 +9,7 @@ vi.mock("@/services/platformAdapter", () => ({
   isDesktop: false,
 }));
 
-import { DocHubLinks } from "@/components/projectLayoutComponents/documents/dochub/DocHubLinks";
+import { DocHubLinks } from "@features/projects/documents/ui/dochub/DocHubLinks";
 
 const projectLinks = {
   pd: "C:\\TenderFlow\\01_PD",

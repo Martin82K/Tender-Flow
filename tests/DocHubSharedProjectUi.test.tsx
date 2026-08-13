@@ -2,8 +2,8 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { DocHubSetupWizard } from "@/components/projectLayoutComponents/documents/dochub/DocHubSetupWizard";
-import { DocHubStatusCard } from "@/components/projectLayoutComponents/documents/dochub/DocHubStatusCard";
+import { DocHubSetupWizard } from "@features/projects/documents/ui/dochub/DocHubSetupWizard";
+import { DocHubStatusCard } from "@features/projects/documents/ui/dochub/DocHubStatusCard";
 
 const actions = {
   pickLocalFolder: vi.fn(),
