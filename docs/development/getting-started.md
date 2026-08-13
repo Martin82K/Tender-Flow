@@ -71,6 +71,11 @@ Příkaz spustí Vite na `127.0.0.1:3000`, zkompiluje desktop TypeScript a otev�
 Electron. Desktop může vyžadovat OS oprávnění pro biometriku, notifikace nebo
 filesystem.
 
+Port 3000 je pro tento příkaz pevný. Pokud ho používá starší Vite/Electron běh,
+preflight skončí s chybou dříve, než otevře nový Electron. Ukončete původní běh
+a spusťte `npm run desktop:dev` znovu; nepřesměrovávejte desktop na automaticky
+zvolený náhradní port.
+
 Samostatná kompilace:
 
 ```bash

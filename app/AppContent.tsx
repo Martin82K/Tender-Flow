@@ -26,6 +26,7 @@ import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
+import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import {
   INCIDENT_FATAL_EVENT_NAME,
@@ -589,7 +590,13 @@ export const AppContent: React.FC = () => {
             onReloadData={() => actions.loadInitialData(true)}
             onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
           >
-            <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+            <LazyViewErrorBoundary
+              key={currentView}
+              onReload={() => window.location.reload()}
+              onLogout={() => logout()}
+            >
+              <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+            </LazyViewErrorBoundary>
 
             {isDesktop && <UpdateBanner />}
           </MainLayout>

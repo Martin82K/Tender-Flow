@@ -1,4 +1,5 @@
 export const APP_CORE_DATA_LOAD_ERROR_CODE = "APP_CORE_DATA_LOAD_FAILED";
+export const APP_LAZY_MODULE_LOAD_ERROR_CODE = "APP_LAZY_MODULE_LOAD_FAILED";
 export const APP_CORE_DATA_LOAD_ERROR_MESSAGE =
   "Nepodařilo se načíst základní data aplikace. Zkuste obnovit stránku nebo se znovu přihlásit.";
 
