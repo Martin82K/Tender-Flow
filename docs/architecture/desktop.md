@@ -131,6 +131,12 @@ npm run desktop:build:win
 a generuje veřejné build env. `desktop:build` nejprve vytvoří webový produkční
 bundle a potom balí Electron přes electron-builder.
 
+`desktop:dev` před startem ověřuje pevný port 3000 a Vite používá `strictPort`,
+aby se Electron nikdy tiše nepřipojil k jiné instanci dev serveru. Renderer má
+jednorázové zotavení z `vite:preloadError` a lazy route error boundary; druhé
+selhání během cooldownu proto skončí použitelnou chybovou obrazovkou místo
+prázdného okna.
+
 Výstup:
 
 - `desktop/dist/` – generovaný main/preload JavaScript,

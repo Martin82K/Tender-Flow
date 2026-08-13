@@ -127,8 +127,15 @@ Potom ověřit:
 - `desktop/dist/` existuje,
 - preload cesta odpovídá buildu,
 - veřejné build env byly zapsané,
-- port 3000 není obsazený při desktop dev,
+- port 3000 není obsazený při desktop dev; preflight záměrně odmítne spuštění,
+  aby se Electron nepřipojil ke starému Vite serveru,
 - native modul odpovídá platformě/architektuře.
+
+Při `504 Outdated Optimize Dep` ukončete celý starý `desktop:dev` běh a spusťte
+jej znovu. Renderer při prvním selhání dynamického importu provede jeden řízený
+reload; opakované selhání během cooldownu zobrazí chybu
+`APP_LAZY_MODULE_LOAD_FAILED` místo bílé obrazovky. Nekonečný reload ani ruční
+mazání aplikačních dat nejsou očekávané řešení.
 
 ## CSP nebo externí odkaz
 

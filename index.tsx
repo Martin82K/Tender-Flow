@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import { initIncidentGlobalHandlers } from './services/incidentLogger';
 import { initRuntimeDiagnostics, logRuntimeEvent } from './infra/diagnostics/runtimeDiagnostics';
+import { installVitePreloadRecovery } from './app/runtime/vitePreloadRecovery';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,6 +12,7 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+installVitePreloadRecovery();
 initRuntimeDiagnostics();
 initIncidentGlobalHandlers();
 logRuntimeEvent("runtime", "react_root_mount_start");
