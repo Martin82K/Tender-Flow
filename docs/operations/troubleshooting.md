@@ -30,6 +30,13 @@ Klientská filtrace nesmí být rozšiřovaná jako náhrada DB politiky.
   bucketu; nové běžné přihlášení nesmí zneplatnit MCP refresh-token chain,
 - opakované auth chyby: query client spustí centralizovaný recovery,
 - desktop biometrika: ověřit OS podporu a uložené credentials,
+- `SECURE_STORAGE_UNAVAILABLE`: běžná aktivní relace může pokračovat, ale
+  automatické/biometrické přihlášení po restartu je bezpečně vypnuté; na macOS
+  ověřit dostupnost a odemčení Keychain, na Windows uživatelský DPAPI profil a
+  na Linuxu Secret Service/KWallet (backend `basic_text` není povolen),
+- po první očekávané nedostupnosti se zápis v daném spuštění už neopakuje;
+  opakovaný spam stejné zprávy proto značí starší build nebo nesoulad
+  renderer/main procesu a vyžaduje úplný restart desktop aplikace,
 - MFA: ověřit pending MFA stav a aktuální assurance flow.
 
 Tokeny nikdy nekopírujte do ticketu; použijte incident referenci.

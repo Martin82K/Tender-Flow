@@ -123,8 +123,9 @@ describe('secureStorage plaintext fallback removal', () => {
     expect(storageSource).toContain('encryptString');
   });
 
-  it('get() refuses to read when encryption is unavailable', () => {
-    expect(storageSource).toContain('refusing to read potentially unencrypted data');
+  it('get() refuses insecure legacy encryption and Linux basic_text backend', () => {
+    expect(storageSource).toContain('if (!this.isLegacyEncryptionSecure()) return null');
+    expect(storageSource).toContain("getSelectedStorageBackend() !== 'basic_text'");
   });
 
   it('does not log raw error objects or sensitive values', () => {

@@ -133,8 +133,12 @@ export interface BiometricAPI {
     prompt: (reason: string) => Promise<boolean>;
 }
 
+export type SessionCredentialsSaveResult =
+    | { status: 'saved' }
+    | { status: 'unavailable' };
+
 export interface SessionAPI {
-    saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
+    saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<SessionCredentialsSaveResult>;
     getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
     getCredentialsWithBiometric: (reason: string) => Promise<{ refreshToken: string; email: string } | null>;
     clearCredentials: () => Promise<void>;

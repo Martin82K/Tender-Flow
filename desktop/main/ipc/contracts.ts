@@ -4,6 +4,7 @@ import type {
   FileInfo,
   FolderInfo,
   FolderSnapshot,
+  SessionCredentialsSaveResult,
   UpdateStatus,
 } from "../types";
 
@@ -54,7 +55,7 @@ export interface IpcContractMap {
   "watcher:getSnapshot": { args: []; result: FolderSnapshot | null };
   "session:saveCredentials": {
     args: [credentials: { refreshToken: string; email: string }];
-    result: void;
+    result: SessionCredentialsSaveResult;
   };
   "session:getCredentials": {
     args: [];

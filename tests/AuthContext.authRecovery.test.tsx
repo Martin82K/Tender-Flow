@@ -16,6 +16,7 @@ interface SetupOptions {
   currentUser?: any;
   storedSessionRaw?: string | null;
   rememberMe?: boolean;
+  saveCredentialsResult?: { status: "saved" | "unavailable" };
 }
 
 const setup = async (options: SetupOptions) => {
@@ -62,7 +63,9 @@ const setup = async (options: SetupOptions) => {
     queryClientClear: vi.fn(),
     setAuthenticated: vi.fn().mockResolvedValue(undefined),
     endDemoSession: vi.fn(),
-    saveCredentials: vi.fn().mockResolvedValue(undefined),
+    saveCredentials: vi.fn().mockResolvedValue(
+      options.saveCredentialsResult ?? { status: "saved" },
+    ),
     getCredentialsWithBiometric: vi.fn().mockResolvedValue(
       options.biometricPromptResult === false ? null : options.credentials,
     ),
@@ -504,6 +507,52 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
       mockState.saveCredentials.mock.invocationCallOrder[0],
     );
+  });
+
+  it("nedostupné secure storage nezahlcuje log ani opakovanými zápisy", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+      saveCredentialsResult: { status: "unavailable" },
+    });
+
+    await waitFor(() => {
+      expect(mockState.subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    const session = {
+      access_token: "refreshed-access-token",
+      refresh_token: "refreshed-refresh-token-123456",
+      expires_at: 1924992000,
+      user: { email: "test@example.com" },
+    };
+
+    act(() => {
+      mockState.authListener?.({ event: "TOKEN_REFRESHED", session });
+    });
+    await waitFor(() => {
+      expect(mockState.saveCredentials).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      mockState.authListener?.({ event: "TOKEN_REFRESHED", session });
+    });
+    await waitFor(() => {
+      expect(mockState.setAuthenticated).toHaveBeenCalledWith(true, {
+        accessToken: "refreshed-access-token",
+        expiresAt: 1924992000,
+      });
+    });
+
+    expect(mockState.saveCredentials).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      "[AuthContext] Bezpečné úložiště relace není dostupné; automatické přihlášení je pro toto spuštění vypnuté.",
+    );
+    warn.mockRestore();
   });
 
   it("SIGNED_OUT event neaktivuje retry loop", async () => {

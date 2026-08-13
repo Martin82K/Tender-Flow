@@ -10,6 +10,7 @@ import type {
     FolderSnapshot,
     BackupSettingsInfo,
     BackupFileEntry,
+    SessionCredentialsSaveResult,
 } from '@shared/types/desktop';
 
 // Extend Window interface for TypeScript
@@ -481,7 +482,7 @@ export const sessionAdapter = {
     /**
      * Save session credentials securely
      */
-    async saveCredentials(credentials: { refreshToken: string; email: string }): Promise<void> {
+    async saveCredentials(credentials: { refreshToken: string; email: string }): Promise<SessionCredentialsSaveResult> {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.saveCredentials(credentials);
         }
@@ -489,6 +490,7 @@ export const sessionAdapter = {
         // Web fallback: use sessionStorage and explicitly clear any legacy localStorage copy.
         sessionStorage.setItem(WEB_SESSION_CREDENTIALS_KEY, JSON.stringify(credentials));
         localStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
+        return { status: 'saved' };
     },
 
     /**

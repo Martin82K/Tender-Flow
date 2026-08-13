@@ -34,3 +34,7 @@ export type BackupFileEntry = import(
     "../../shared/types/desktop.contract.js",
     { with: { "resolution-mode": "import" } }
 ).BackupFileEntry;
+export type SessionCredentialsSaveResult = import(
+    "../../shared/types/desktop.contract.js",
+    { with: { "resolution-mode": "import" } }
+).SessionCredentialsSaveResult;
