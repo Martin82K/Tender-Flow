@@ -31,8 +31,9 @@ změn. GitHub Release zůstává před publikací v režimu draft.
 
 - `20260813102845_add_mcp_proposal_executing_status.sql`
 - `20260813120000_personal_project_template_selections.sql`
+- `20260813131000_restrict_project_template_selection_grants.sql`
 
-Před vydáním musí být obě dopředné migrace nasazené ve stejném pořadí a
+Před vydáním musí být všechny tři dopředné migrace nasazené ve stejném pořadí a
 ověřené kontrolou constraintů, RLS, grantů, indexů, foreign keys a hosted
 security/performance advisors.
 
