@@ -111,6 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const authEventRef = useRef(false);
   const lastHydratedTokenRef = useRef<string | null>(null);
   const biometricLoginAttemptedRef = useRef(false);
+  const desktopCredentialStorageUnavailableRef = useRef(false);
   const preferencesUpdateQueueRef = useRef<Promise<void>>(Promise.resolve());
   const pendingMfaRef = useRef<MfaLoginChallenge | null>(null);
   const pendingMfaContextRef = useRef<{
@@ -177,27 +178,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     async (
       session: any,
       options?: { email?: string; rememberMe?: boolean },
-    ): Promise<void> => {
-      if (!isDesktop) return;
-      if (!session?.refresh_token) return;
+    ): Promise<boolean> => {
+      if (!isDesktop) return false;
+      if (!session?.refresh_token) return false;
+      if (desktopCredentialStorageUnavailableRef.current) return false;
 
       const shouldSave = options?.rememberMe ?? authSessionService.shouldPersistSession();
-      if (!shouldSave) return;
+      if (!shouldSave) return false;
 
       const email = options?.email || session.user?.email;
       if (!email) {
         console.warn("[AuthContext] Cannot sync desktop credentials without session email.");
-        return;
+        return false;
       }
 
       try {
-        await platformAdapter.session.saveCredentials({
+        const result = await platformAdapter.session.saveCredentials({
           refreshToken: session.refresh_token,
           email,
         });
+
+        if (result.status === "unavailable") {
+          desktopCredentialStorageUnavailableRef.current = true;
+          setHasSavedCredentials(false);
+          setCanUseBiometric(false);
+          console.warn(
+            "[AuthContext] Bezpečné úložiště relace není dostupné; automatické přihlášení je pro toto spuštění vypnuté.",
+          );
+          return false;
+        }
+
         setHasSavedCredentials(true);
+        return true;
       } catch (error) {
         console.warn("[AuthContext] Failed to sync desktop session credentials:", error);
+        return false;
       }
     },
     [],
@@ -691,18 +706,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (isDesktop && rememberMe) {
         if (activeSession?.refresh_token) {
           try {
-            await platformAdapter.session.saveCredentials({
-              refreshToken: activeSession.refresh_token,
+            const credentialsStored = await syncDesktopSessionCredentials(activeSession, {
               email,
+              rememberMe,
             });
 
             // Enable biometric by default on first login
-            const biometricAvailable = await platformAdapter.biometric.isAvailable();
-            if (biometricAvailable) {
+            const biometricAvailable = credentialsStored
+              ? await platformAdapter.biometric.isAvailable()
+              : false;
+            if (credentialsStored && biometricAvailable) {
               await platformAdapter.session.setBiometricEnabled(true);
               setCanUseBiometric(true);
             }
-            setHasSavedCredentials(true);
           } catch (saveError) {
             console.error("[AuthContext] Failed to save credentials:", saveError);
           }

@@ -4,6 +4,16 @@ import * as path from 'path';
 import { app } from 'electron';
 
 let mutationQueue: Promise<void> = Promise.resolve();
+const ASYNC_CIPHERTEXT_PREFIX = 'async:v1:';
+
+export class SecureStorageUnavailableError extends Error {
+    readonly code = 'SECURE_STORAGE_UNAVAILABLE';
+
+    constructor() {
+        super('SECURE_STORAGE_UNAVAILABLE');
+        this.name = 'SecureStorageUnavailableError';
+    }
+}
 
 const enqueueMutation = <T>(mutation: () => Promise<T>): Promise<T> => {
     const result = mutationQueue.then(mutation);
@@ -38,14 +48,17 @@ export class SecureStorageService {
 
         if (!encryptedValue) return null;
 
-        if (!safeStorage.isEncryptionAvailable()) {
-            console.error('[SecureStorage] OS encryption not available — refusing to read potentially unencrypted data');
-            return null;
-        }
-
         try {
-            const buffer = Buffer.from(encryptedValue, 'base64');
-            const decrypted = safeStorage.decryptString(buffer);
+            const isAsyncCiphertext = encryptedValue.startsWith(ASYNC_CIPHERTEXT_PREFIX);
+            const encodedValue = isAsyncCiphertext
+                ? encryptedValue.slice(ASYNC_CIPHERTEXT_PREFIX.length)
+                : encryptedValue;
+            const buffer = Buffer.from(encodedValue, 'base64');
+            const decrypted = isAsyncCiphertext
+                ? await this.decryptAsync(buffer)
+                : this.decryptLegacy(buffer);
+
+            if (decrypted === null) return null;
             this.cache.set(key, decrypted);
             return decrypted;
         } catch (error) {
@@ -55,19 +68,58 @@ export class SecureStorageService {
     }
 
     async set(key: string, value: string): Promise<void> {
-        if (!safeStorage.isEncryptionAvailable()) {
-            console.error('[SecureStorage] OS encryption not available — refusing to store credentials in plaintext');
-            throw new Error('SECURE_STORAGE_UNAVAILABLE');
-        }
+        const encryptedValue = await this.encrypt(value);
 
         await enqueueMutation(async () => {
             const data = await this.loadStorage();
-            const encrypted = safeStorage.encryptString(value);
-            data[key] = encrypted.toString('base64');
+            data[key] = encryptedValue;
 
             await this.saveStorage(data);
             this.cache.set(key, value);
         });
+    }
+
+    private async encrypt(value: string): Promise<string> {
+        try {
+            if (await safeStorage.isAsyncEncryptionAvailable()) {
+                const encrypted = await safeStorage.encryptStringAsync(value);
+                return `${ASYNC_CIPHERTEXT_PREFIX}${encrypted.toString('base64')}`;
+            }
+        } catch {
+            throw new SecureStorageUnavailableError();
+        }
+
+        if (this.isLegacyEncryptionSecure()) {
+            try {
+                return safeStorage.encryptString(value).toString('base64');
+            } catch {
+                throw new SecureStorageUnavailableError();
+            }
+        }
+
+        throw new SecureStorageUnavailableError();
+    }
+
+    private async decryptAsync(buffer: Buffer): Promise<string | null> {
+        if (!(await safeStorage.isAsyncEncryptionAvailable())) return null;
+        const decrypted = await safeStorage.decryptStringAsync(buffer);
+        return decrypted.result;
+    }
+
+    private decryptLegacy(buffer: Buffer): string | null {
+        if (!this.isLegacyEncryptionSecure()) return null;
+        return safeStorage.decryptString(buffer);
+    }
+
+    private isLegacyEncryptionSecure(): boolean {
+        if (!safeStorage.isEncryptionAvailable()) return false;
+        if (process.platform !== 'linux') return true;
+
+        try {
+            return safeStorage.getSelectedStorageBackend() !== 'basic_text';
+        } catch {
+            return false;
+        }
     }
 
     async delete(key: string): Promise<void> {

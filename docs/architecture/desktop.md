@@ -97,6 +97,12 @@ autentizované a host allowlistem omezené `shell:openExternal` IPC.
 Citlivé credentials ukládá main proces prostřednictvím secure storage.
 Biometrika je dostupná podle OS a konfigurace. Renderer předává main procesu
 minimální session snapshot jen přes auth IPC; tokeny se nesmějí logovat.
+Nové záznamy používají asynchronní OS provider a zůstávají čitelné vedle
+staršího synchronního formátu. Pokud OS Keychain/DPAPI/Secret Service není
+skutečně použitelný, zápis selže uzavřeně: IPC vrátí stav `unavailable`, renderer
+pro dané spuštění vypne ukládání relace a biometrii a nikdy nepoužije plaintext
+fallback. Linux backend `basic_text` se pro citlivé hodnoty nepovažuje za
+bezpečné úložiště.
 
 ## Deep links a password reset
 
