@@ -4,7 +4,7 @@ import { dbAdapter } from '@infra/db/dbAdapter';
 import { invokeAuthedFunction } from '@infra/functions/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, type DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '@shared/dochub/docHub';
 import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
-import { isDesktop, fileSystemAdapter, oauthAdapter, storageAdapter } from '@infra/platform/platformAdapter';
+import { isDesktop, fileSystemAdapter, oauthAdapter, shellAdapter, storageAdapter } from '@infra/platform/platformAdapter';
 import { ensureStructure, openInExplorer } from '@infra/files/fileSystemService';
 import {
     DOC_HUB_PROJECT_MARKER_FILENAME,
@@ -193,6 +193,7 @@ export const useDocHubIntegration = (
     const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
     const personalLocationLoadedRef = useRef(false);
     const personalLocationLoadSequenceRef = useRef(0);
+    const personalMicrosoftStatusSequenceRef = useRef(0);
     const projectActionIdentity = JSON.stringify([
         project.id ?? null,
         project.ownerId ?? null,
@@ -384,25 +385,50 @@ export const useDocHubIntegration = (
     })();
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
 
-    useEffect(() => {
+    const refreshPersonalMicrosoftStatus = useCallback(async () => {
         if (!isSharedProject || !project.id || !isMicrosoftOnlineRoot) {
+            personalMicrosoftStatusSequenceRef.current += 1;
             setPersonalMicrosoftStatus("disconnected");
             setIsLoadingPersonalMicrosoftStatus(false);
             return;
         }
-        let cancelled = false;
+
+        const sequence = ++personalMicrosoftStatusSequenceRef.current;
         setIsLoadingPersonalMicrosoftStatus(true);
-        void invokeAuthedFunction<{ connected?: boolean }>("dochub-personal-microsoft", {
-            body: { projectId: project.id, action: "status" },
-        }).then((result) => {
-            if (!cancelled) setPersonalMicrosoftStatus(result?.connected ? "connected" : "disconnected");
-        }).catch(() => {
-            if (!cancelled) setPersonalMicrosoftStatus("error");
-        }).finally(() => {
-            if (!cancelled) setIsLoadingPersonalMicrosoftStatus(false);
-        });
-        return () => { cancelled = true; };
+        try {
+            const result = await invokeAuthedFunction<{ connected?: boolean }>("dochub-personal-microsoft", {
+                body: { projectId: project.id, action: "status" },
+            });
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setPersonalMicrosoftStatus(result?.connected ? "connected" : "disconnected");
+            }
+        } catch {
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setPersonalMicrosoftStatus("error");
+            }
+        } finally {
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setIsLoadingPersonalMicrosoftStatus(false);
+            }
+        }
     }, [isMicrosoftOnlineRoot, isSharedProject, project.id]);
+
+    useEffect(() => {
+        void refreshPersonalMicrosoftStatus();
+
+        const refreshOnFocus = () => void refreshPersonalMicrosoftStatus();
+        const refreshOnVisibility = () => {
+            if (document.visibilityState === "visible") void refreshPersonalMicrosoftStatus();
+        };
+        window.addEventListener("focus", refreshOnFocus);
+        document.addEventListener("visibilitychange", refreshOnVisibility);
+
+        return () => {
+            personalMicrosoftStatusSequenceRef.current += 1;
+            window.removeEventListener("focus", refreshOnFocus);
+            document.removeEventListener("visibilitychange", refreshOnVisibility);
+        };
+    }, [refreshPersonalMicrosoftStatus]);
 
     // Cleanup timers
     useEffect(() => {
@@ -770,6 +796,11 @@ export const useDocHubIntegration = (
             });
             if (!data?.url) throw new Error("Backend nevrátil autorizační URL.");
             if (!isRedirectUrlSafe(data.url)) throw new Error("Neplatná autorizační URL.");
+            if (isDesktop) {
+                await shellAdapter.openExternal(data.url);
+                setIsConnecting(false);
+                return;
+            }
             window.location.href = data.url;
         } catch (error) {
             setIsConnecting(false);
