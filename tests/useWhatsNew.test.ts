@@ -10,6 +10,7 @@ describe("shouldShowWhatsNew", () => {
     expect(shouldShowWhatsNew("1.9.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.9.1", null)).toBe(false);
     expect(shouldShowWhatsNew("1.9.2", null)).toBe(false);
+    expect(shouldShowWhatsNew("1.9.4", null)).toBe(false);
     expect(shouldShowWhatsNew(APP_VERSION, null)).toBe(false);
   });
 
