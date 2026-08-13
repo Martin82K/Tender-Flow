@@ -220,6 +220,24 @@ export const isExecutionConfirmed = async (proposal, args) => {
   return proposal.execute_token_hash === await hashToken(args.executeToken);
 };
 
+export const claimProposalExecution = async (supabase, proposal, auth) => {
+  const { data: claimed, error } = await supabase
+    .from('mcp_change_proposals')
+    .update({ status: 'executing' })
+    .eq('id', proposal.id)
+    .eq('user_id', auth.userId)
+    .eq('client_id', auth.clientId)
+    .eq('status', 'confirmed')
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!claimed) {
+    throw new Error('Proposal execution is already in progress or was completed.');
+  }
+  return claimed;
+};
+
 export const executeProposal = async (supabase, auth, args) => {
   const { data: proposal, error } = await supabase
     .from('mcp_change_proposals')
@@ -234,6 +252,19 @@ export const executeProposal = async (supabase, auth, args) => {
   if (proposal.status === 'executed') {
     return { ok: true, data: { proposalId: proposal.id, status: 'executed', result: proposal.execution_result } };
   }
+  if (proposal.status === 'executing') {
+    const { data: existing, error: existingError } = await supabase
+      .from('mcp_idempotency_keys')
+      .select('result')
+      .eq('user_id', auth.userId)
+      .eq('client_id', auth.clientId)
+      .eq('proposal_id', proposal.id)
+      .eq('idempotency_key', args.idempotencyKey)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existing?.result) return { ok: true, data: existing.result };
+    throw new Error('Proposal execution is already in progress.');
+  }
   if (proposal.status !== 'confirmed') throw new Error(`Proposal is not executable in status ${proposal.status}.`);
   if (!await isExecutionConfirmed(proposal, args)) {
     throw new Error('Invalid execution confirmation.');
@@ -247,17 +278,21 @@ export const executeProposal = async (supabase, auth, args) => {
     ? storedUpdateBidProposalSchema.parse(proposal.change_payload).payload
     : createTaskProposalSchema.parse(proposal.change_payload);
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('mcp_idempotency_keys')
     .select('result')
     .eq('user_id', auth.userId)
     .eq('client_id', auth.clientId)
+    .eq('proposal_id', proposal.id)
     .eq('idempotency_key', args.idempotencyKey)
     .maybeSingle();
+  if (existingError) throw existingError;
   if (existing?.result) return { ok: true, data: existing.result };
 
+  const claimedProposal = await claimProposalExecution(supabase, proposal, auth);
+
   let result;
-  if (proposal.change_type === 'create_task') {
+  if (claimedProposal.change_type === 'create_task') {
     await assertProjectVisible(supabase, payload.projectId);
     const taskPayload = {
       title: boundedText(payload.title, 500),
@@ -275,7 +310,7 @@ export const executeProposal = async (supabase, auth, args) => {
       .select('*')
       .single();
     if (taskError) throw taskError;
-    result = { proposalId: proposal.id, status: 'executed', task };
+    result = { proposalId: claimedProposal.id, status: 'executed', task };
   } else {
     const bid = await changeBidStatus(supabase, {
       bidId: payload.bidId,
@@ -283,16 +318,18 @@ export const executeProposal = async (supabase, auth, args) => {
       expectedStatus: payload.expectedStatus,
       dryRun: false,
     });
-    result = { proposalId: proposal.id, status: 'executed', bid };
+    result = { proposalId: claimedProposal.id, status: 'executed', bid };
   }
-  await supabase.from('mcp_idempotency_keys').insert({
+  const { error: idempotencyError } = await supabase.from('mcp_idempotency_keys').insert({
     user_id: auth.userId,
     client_id: auth.clientId,
     idempotency_key: args.idempotencyKey,
-    proposal_id: proposal.id,
+    proposal_id: claimedProposal.id,
     result,
   });
-  await supabase
+  if (idempotencyError) throw idempotencyError;
+
+  const { data: finalized, error: finalizationError } = await supabase
     .from('mcp_change_proposals')
     .update({
       status: 'executed',
@@ -300,7 +337,14 @@ export const executeProposal = async (supabase, auth, args) => {
       execution_result: result,
       execute_token_hash: null,
     })
-    .eq('id', proposal.id);
+    .eq('id', claimedProposal.id)
+    .eq('user_id', auth.userId)
+    .eq('client_id', auth.clientId)
+    .eq('status', 'executing')
+    .select('id')
+    .maybeSingle();
+  if (finalizationError) throw finalizationError;
+  if (!finalized) throw new Error('Proposal execution could not be finalized safely.');
 
   return { ok: true, data: result };
 };
