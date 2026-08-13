@@ -54,6 +54,11 @@ class QueryBuilderMock {
     return this;
   }
 
+  rpc(...args: unknown[]) {
+    this.calls.push({ method: "rpc", args });
+    return this;
+  }
+
   delete(...args: unknown[]) {
     this.calls.push({ method: "delete", args });
     return this;
@@ -109,13 +114,33 @@ const supabaseMock = vi.hoisted(() => ({
       }),
     ),
   },
+  rpc: vi.fn(() =>
+    Promise.resolve({
+      data: {
+        id: "saved-template-1",
+        project_id: "project-a",
+        name: "Nová šablona",
+        subject: "Poptávka",
+        content: "Text",
+        is_default: true,
+        updated_at: "2026-08-13T10:00:00.000Z",
+      },
+      error: null,
+    }),
+  ),
 }));
 
 vi.mock("../services/supabase", () => ({
   supabase: supabaseMock,
 }));
 
-import { getTemplateById, getTemplates, saveTemplate } from "../services/templateService";
+import {
+  getProjectTemplateSelection,
+  getTemplateById,
+  getTemplates,
+  saveProjectTemplateSelection,
+  saveTemplate,
+} from "../services/templateService";
 
 const callsFor = (builder: QueryBuilderMock, method: string) =>
   builder.calls.filter((call) => call.method === method).map((call) => call.args);
@@ -137,11 +162,14 @@ describe("templateService project scope", () => {
   });
 
   it("nepoužije šablonu ze stejného uživatele bez shody project_id", async () => {
-    await getTemplateById("tpl-1", { projectId: "project-b" });
+    supabaseMock.results.push({ data: null, error: null });
 
-    const templatesQuery = supabaseMock.builders.find((builder) => builder.table === "templates");
+    await expect(getTemplateById("tpl-1", { projectId: "project-b" })).resolves.toBeUndefined();
+
+    const templatesQuery = supabaseMock.builders[0];
     expect(callsFor(templatesQuery!, "eq")).toContainEqual(["id", "tpl-1"]);
     expect(callsFor(templatesQuery!, "eq")).toContainEqual(["project_id", "project-b"]);
+    expect(supabaseMock.builders).toHaveLength(1);
   });
 
   it("ukládá novou výchozí šablonu do scope stavby a ruší default jen ve stejné stavbě", async () => {
@@ -158,19 +186,66 @@ describe("templateService project scope", () => {
       { projectId: "project-a" },
     );
 
-    const updateQuery = supabaseMock.builders.find((builder) =>
-      builder.calls.some((call) => call.method === "update"),
-    );
-    const insertQuery = supabaseMock.builders.find((builder) =>
-      builder.calls.some((call) => call.method === "insert"),
+    expect(supabaseMock.rpc).toHaveBeenCalledWith("save_scoped_template", {
+      p_template_id: null,
+      p_project_id: "project-a",
+      p_name: "Nová šablona",
+      p_subject: "Poptávka",
+      p_content: "Text",
+      p_is_default: true,
+    });
+  });
+
+  it("ukládá osobní volbu šablony odděleně podle uživatele, stavby a typu", async () => {
+    const templateId = "11111111-1111-4111-8111-111111111111";
+    supabaseMock.results.push(
+      {
+        data: {
+          id: templateId,
+          project_id: "project-a",
+          name: "Projektová šablona",
+          subject: "Poptávka",
+          content: "Text",
+          is_default: true,
+        },
+        error: null,
+      },
+      { data: null, error: null },
     );
 
-    expect(callsFor(updateQuery!, "eq")).toContainEqual(["project_id", "project-a"]);
-    expect(callsFor(updateQuery!, "eq")).toContainEqual(["is_default", true]);
-    expect(callsFor(insertQuery!, "insert")[0]?.[0]).toMatchObject({
+    await expect(
+      saveProjectTemplateSelection("project-a", "inquiry", {
+        id: templateId,
+        projectId: "project-a",
+        name: "Projektová šablona",
+        subject: "Poptávka",
+        content: "Text",
+        isDefault: true,
+        lastModified: "2026-08-13",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ id: templateId }));
+
+    const selectionWrite = supabaseMock.builders.find(
+      (builder) => builder.table === "project_template_selections",
+    );
+    expect(callsFor(selectionWrite!, "upsert")[0]?.[0]).toEqual({
       project_id: "project-a",
       user_id: "user-1",
+      template_kind: "inquiry",
+      template_id: templateId,
     });
+  });
+
+  it("načítá pouze osobní volbu aktuálního uživatele", async () => {
+    supabaseMock.results.push({ data: { template_id: "tpl-1" }, error: null });
+
+    await getProjectTemplateSelection("project-a", "materialInquiry");
+
+    const selectionRead = supabaseMock.builders[0];
+    expect(selectionRead.table).toBe("project_template_selections");
+    expect(callsFor(selectionRead, "eq")).toContainEqual(["project_id", "project-a"]);
+    expect(callsFor(selectionRead, "eq")).toContainEqual(["user_id", "user-1"]);
+    expect(callsFor(selectionRead, "eq")).toContainEqual(["template_kind", "materialInquiry"]);
   });
 
   it("při prázdné stavbě nejdřív zkopíruje původní uživatelské šablony", async () => {

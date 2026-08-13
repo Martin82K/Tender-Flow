@@ -7,7 +7,7 @@ import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 
 interface TemplateManagerProps {
     project: ProjectDetails;
-    onSelectTemplate?: (template: Template) => void;
+    onSelectTemplate?: (template: Template) => void | Promise<void>;
     onClose?: () => void;
     initialTemplateId?: string | null;
 }
@@ -25,6 +25,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
     const [previewMode, setPreviewMode] = useState(false);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [selecting, setSelecting] = useState(false);
 
     // Editor State
     const [editedName, setEditedName] = useState('');
@@ -97,6 +98,16 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             setSelectedTemplateId(saved.id);
         }
         setSaving(false);
+    };
+
+    const handleSelectTemplate = async () => {
+        if (!selectedTemplate || !onSelectTemplate || selecting) return;
+        setSelecting(true);
+        try {
+            await onSelectTemplate(selectedTemplate);
+        } finally {
+            setSelecting(false);
+        }
     };
 
     const handleCreateNew = () => {
@@ -310,11 +321,14 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                             </button>
                                             {onSelectTemplate && (
                                                 <button
-                                                    onClick={() => onSelectTemplate(selectedTemplate)}
-                                                    className="ml-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 flex items-center gap-2"
+                                                    onClick={handleSelectTemplate}
+                                                    disabled={selecting}
+                                                    className="ml-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 flex items-center gap-2 disabled:cursor-wait disabled:opacity-60"
                                                 >
-                                                    <span className="material-symbols-outlined text-[18px]">check</span>
-                                                    Použít tuto šablonu
+                                                    <span className={`material-symbols-outlined text-[18px] ${selecting ? 'animate-spin' : ''}`}>
+                                                        {selecting ? 'refresh' : 'check'}
+                                                    </span>
+                                                    {selecting ? 'Ukládám volbu...' : 'Použít tuto šablonu'}
                                                 </button>
                                             )}
                                         </>

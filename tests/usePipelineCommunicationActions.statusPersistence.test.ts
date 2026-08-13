@@ -9,6 +9,7 @@ const {
   mockUpdateBidStatusInMemory,
   mockGetDefaultTemplate,
   mockGetTemplateById,
+  mockGetProjectTemplateSelection,
   mockCreateMailtoLink,
   mockGenerateEmlContent,
   mockDownloadEmlFile,
@@ -25,6 +26,7 @@ const {
   mockUpdateBidStatusInMemory: vi.fn(),
   mockGetDefaultTemplate: vi.fn(),
   mockGetTemplateById: vi.fn(),
+  mockGetProjectTemplateSelection: vi.fn(),
   mockCreateMailtoLink: vi.fn(),
   mockGenerateEmlContent: vi.fn(),
   mockDownloadEmlFile: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock("../features/projects/model/pipelineBidStatusModel", () => ({
 vi.mock("../services/templateService", () => ({
   getDefaultTemplate: mockGetDefaultTemplate,
   getTemplateById: mockGetTemplateById,
+  getProjectTemplateSelection: mockGetProjectTemplateSelection,
 }));
 
 vi.mock("../services/inquiryService", () => ({
@@ -95,6 +98,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     vi.clearAllMocks();
     mockPlatformAdapter.isDesktop = false;
     mockGetTemplateById.mockResolvedValue(undefined);
+    mockGetProjectTemplateSelection.mockResolvedValue(undefined);
     mockGetDefaultTemplate.mockResolvedValue({
       id: "tpl-1",
       name: "Default",
