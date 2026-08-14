@@ -69,10 +69,10 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - při sync chybě prověřit root folder vazbu a Edge log.
 - u sdíleného projektu je lokální cesta osobní pro konkrétního uživatele a zařízení;
   cesta vlastníka se ostatním uživatelům nepřebírá,
-- sdílená lokální složka musí obsahovat marker `.tenderflow-project.json`, který
-  vytvoří vlastník při připojení složky; marker je svázaný s konkrétní generací
-  napojení projektu, takže po změně kořenové složky musí sdílený uživatel novou
-  synchronizovanou cestu znovu vybrat,
+- vlastník při připojení lokální složky vytváří pomocný marker
+  `.tenderflow-project.json`; jeho chybění neblokuje uživatelem vybranou a
+  dostupnou synchronizovanou složku, ale marker jiného projektu nebo starší
+  generace připojení se odmítne, aby se automaticky nepoužila nesprávná složka,
 - online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
   u explicitně sdíleného projektu může `dochub-get-link` chybějící cloudové
   `rootId` pro Microsoft read-only obnovit z uložené online URL pomocí osobního

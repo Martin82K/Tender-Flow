@@ -921,8 +921,8 @@ export const useDocHubIntegration = (
 
         const validMarker = marker?.projectId === project.id && marker.connectionId === connectionId;
 
-        if (!validMarker && !isProjectOwner) {
-            throw new Error("Vybraná složka nepatří k tomuto projektu. Vlastník ji musí nejprve připojit v Tender Flow.");
+        if (marker && !validMarker && !isProjectOwner) {
+            throw new Error("Vybraná složka patří ke staršímu připojení tohoto projektu. Ověřte prosím, že vybíráte jeho aktuální synchronizovanou složku.");
         }
         const storageKey = buildDocHubPersonalLocationKey(userId, project.id);
         const previousStoredLocation = await storageAdapter.get(storageKey);
@@ -943,7 +943,7 @@ export const useDocHubIntegration = (
             await globalUpdate?.apply();
             globalUpdated = !!globalUpdate;
             assertCurrentProjectAction(expectedProjectIdentity);
-            if (!validMarker) {
+            if (!validMarker && isProjectOwner) {
                 await fileSystemAdapter.writeFile(markerPath, createDocHubProjectMarker(project.id, connectionId));
                 markerUpdated = true;
             }

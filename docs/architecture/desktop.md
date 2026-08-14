@@ -82,8 +82,10 @@ Node filesystem přístup.
 
 DocHub u sdílených projektů ukládá mapování lokálního kořene do secure storage
 pod klíčem uživatele a projektu. Globální konfiguraci a strukturu mění pouze
-vlastník; sdílený uživatel vybírá vlastní synchronizovanou cestu ověřenou
-projektovým markerem. Cloudový provider zůstává zdrojem pravdy a jeho synchronizace
+vlastník; sdílený uživatel vybírá vlastní synchronizovanou cestu. Projektový
+marker je doplňková kontrola identity: jeho chybění lokální přístup neblokuje,
+ale prokazatelný nesoulad projektu nebo generace připojení se odmítne. Cloudový
+provider zůstává zdrojem pravdy a jeho synchronizace
 je eventual-consistent, nikoli transakčně řízená aplikací Tender Flow.
 Pokud sdílený uživatel nemá lokální složku ani klientská cloudová ID, renderer
 pošle pouze projektový a doménový identifikátor do autorizovaného
