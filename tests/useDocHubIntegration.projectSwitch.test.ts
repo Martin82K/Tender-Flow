@@ -394,6 +394,27 @@ describe("useDocHubIntegration project identity", () => {
     expect(result.current.state.rootLink).toBe("D:\\Shared\\New Project");
   });
 
+  it("allows a shared user to select an accessible synchronized folder without a marker", async () => {
+    mocks.storageGet.mockResolvedValue(null);
+    mocks.readFile.mockRejectedValue(new Error("marker missing"));
+    mocks.selectFolder.mockResolvedValue({ path: "D:\\Shared\\Project", name: "Project" });
+    const onUpdate = vi.fn();
+    const { result } = renderHook(() => useDocHubIntegration(project("project-1"), onUpdate, {
+      userId: "shared-1",
+    }));
+    await waitFor(() => expect(result.current.state.rootLink).toBe(""));
+
+    await act(async () => result.current.actions.pickLocalFolder());
+
+    expect(mocks.storageSet).toHaveBeenCalledWith(
+      expect.stringContaining("shared-1"),
+      expect.stringContaining('"rootPath":"D:\\\\Shared\\\\Project"'),
+    );
+    expect(mocks.writeFile).not.toHaveBeenCalled();
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(result.current.state.rootLink).toBe("D:\\Shared\\Project");
+  });
+
   it("does not persist an owner's personal root when the global update fails", async () => {
     mocks.storageGet.mockResolvedValue(null);
     mocks.readFile.mockRejectedValue(new Error("marker missing"));

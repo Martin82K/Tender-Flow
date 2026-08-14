@@ -134,11 +134,12 @@ export const validateDocHubPersonalLocation = async (
   try {
     const markerPath = joinDocHubPath(location.rootPath, DOC_HUB_PROJECT_MARKER_FILENAME);
     const marker = parseDocHubProjectMarkerValue(await dependencies.readMarker(markerPath));
+    if (!marker) return location;
     return marker?.projectId === expectedProjectId && marker.connectionId === expectedConnectionId
       ? location
       : null;
   } catch {
-    return null;
+    return location;
   }
 };
 

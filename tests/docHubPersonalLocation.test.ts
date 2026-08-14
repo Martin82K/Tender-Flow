@@ -116,6 +116,23 @@ describe("DocHub personal location", () => {
     })).resolves.toEqual(location);
   });
 
+  it("keeps an accessible personal location usable when the optional marker is missing", async () => {
+    const location = {
+      version: 2 as const,
+      userId: "user-a",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+      connectionId: "root-generation-1",
+    };
+
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
+      folderExists: async () => true,
+      readMarker: async () => { throw new Error("marker missing"); },
+    })).resolves.toEqual(location);
+  });
+
   it("accepts only HTTPS links from supported cloud folder providers", () => {
     expect(normalizeDocHubOnlineUrl("https://drive.google.com/drive/folders/abc")).toContain("drive.google.com");
     expect(normalizeDocHubOnlineUrl("https://tenant.sharepoint.com/shared/folder")).toContain("sharepoint.com");
