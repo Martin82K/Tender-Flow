@@ -59,11 +59,11 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     // Default: v2 RPC path resolves successfully
     mocks.getEffectiveUserTier.mockResolvedValue({ tier: "pro" });
     mocks.getEnabledFeaturesV2.mockResolvedValue([
-      { key: "module_command_center", name: "CC", description: null, category: null },
+      { key: "module_tasks", name: "Tasks", description: null, category: null },
     ]);
     mocks.getCurrentTier.mockResolvedValue("pro");
     mocks.getEnabledFeatures.mockResolvedValue([
-      { key: "module_command_center", name: "CC", description: null, category: null },
+      { key: "module_tasks", name: "Tasks", description: null, category: null },
     ]);
     // Reset shared auth state to user A
     authState.current = {

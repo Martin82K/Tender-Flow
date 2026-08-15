@@ -59,7 +59,7 @@ describe("FeatureProvider — relogin-after-logout race", () => {
 
   it("po odhlášení a novém loginu drží isLoading=true, dokud neproběhne fresh fetch (aby desktop plan blocker nevystřelil)", async () => {
     mocks.getEnabledFeaturesV2.mockResolvedValue([
-      { key: "module_command_center", name: "CC", description: null, category: null },
+      { key: "module_tasks", name: "Tasks", description: null, category: null },
     ]);
     let resolveSecondTier: ((value: { tier: string }) => void) | undefined;
     mocks.getEffectiveUserTier.mockImplementationOnce(async () => ({ tier: "pro" }));
@@ -158,7 +158,7 @@ describe("FeatureProvider — relogin-after-logout race", () => {
         }),
     );
     mocks.getEnabledFeaturesV2.mockResolvedValue([
-      { key: "module_command_center", name: "CC", description: null, category: null },
+      { key: "module_tasks", name: "Tasks", description: null, category: null },
     ]);
 
     // Start: uživatel nepřihlášen
