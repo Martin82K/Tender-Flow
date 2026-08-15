@@ -102,3 +102,15 @@ pro desktop build nebo upload.
 | Úložiště tokenů | OS Keychain | localStorage |
 | Auto-update | electron-updater | ❌ |
 | Folder watcher | ✅ | ❌ |
+
+### Průběh automatické aktualizace
+
+- Windows klient kontroluje novou verzi po spuštění a následně každých 6 hodin.
+- Dostupná verze se automaticky stahuje na pozadí. Průběh je vidět ve footeru
+  sidebaru a neblokuje práci v aplikaci.
+- Po ověřeném stažení footer nabídne jedinou akci **Restartovat**. Aktualizace se
+  nainstaluje tiše a aplikace se znovu spustí.
+- Když uživatel restart odloží, stažená aktualizace se automaticky nainstaluje při
+  běžném ukončení aplikace.
+- macOS arm64 zůstává v manuálním režimu, dokud release nemá ověřený Developer ID
+  podpis, notarizaci a kompletní `latest-mac.yml` metadata.
