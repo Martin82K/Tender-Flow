@@ -43,6 +43,9 @@ const PRE_AUTH_CHANNELS = new Set([
   'auth:setAuthenticated',
   // Narrow pre-auth proxy limited to password reset Edge Functions.
   'auth:invokePublicFunction',
+  // Narrow PKCE broker. It opens only the configured Supabase Azure authorize URL.
+  'oauth:startSupabaseFlow',
+  'oauth:completeSupabaseFlow',
 ]);
 
 type PathAccessMode = 'read' | 'write';

@@ -24,9 +24,10 @@ describe("dochub oauth flow project access hardening", () => {
     expect(authUrlSource).toContain('return json(req, 403, { error: "Forbidden" });');
     expect(authUrlSource).toContain('return json(req, 403, { error: "Project owner permission required" });');
 
+    expect(googleCallbackSource).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
+    expect(microsoftCallbackSource).toContain('const requiresProject = accessKind === "manage"');
     for (const source of [googleCallbackSource, microsoftCallbackSource]) {
       expect(source).toContain('.select("id, owner_id")');
-      expect(source).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
       expect(source).toContain('withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project")');
     }
     expect(googleCallbackSource).not.toContain('.from("project_shares")');
@@ -86,6 +87,51 @@ describe("dochub oauth flow project access hardening", () => {
     expect(source).toContain('.eq("access_kind", "personal_read")');
     expect(source).toContain('.select("user_id")');
     expect(source).not.toContain('select("token_ciphertext")');
+  });
+
+  it("umožňuje globální osobní Microsoft připojení bez vazby na projekt", () => {
+    const authUrlSource = fs.readFileSync(
+      path.join(ROOT, "supabase/functions/dochub-auth-url/index.ts"),
+      "utf8",
+    );
+    const microsoftCallbackSource = fs.readFileSync(
+      path.join(ROOT, "supabase/functions/dochub-microsoft-callback/index.ts"),
+      "utf8",
+    );
+    const personalSource = fs.readFileSync(
+      path.join(ROOT, "supabase/functions/dochub-personal-microsoft/index.ts"),
+      "utf8",
+    );
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260814221751_global_dochub_personal_microsoft.sql"),
+      "utf8",
+    );
+
+    expect(authUrlSource).toContain("const isGlobalPersonalRead");
+    expect(authUrlSource).toContain("project_id: isGlobalPersonalRead ? null : projectId");
+    expect(microsoftCallbackSource).toContain("const requiresProject = accessKind === \"manage\"");
+    expect(personalSource).toContain("if (projectId)");
+    expect(personalSource).not.toContain('if (!projectId) return json(req, 400, { error: "Missing projectId" });');
+    expect(migration).toContain("ALTER COLUMN project_id DROP NOT NULL");
+    expect(migration).toContain("access_kind = 'personal_read'");
+  });
+
+  it("blokuje vytvoření nového účtu přes Microsoft a nevystavuje auth hook klientům", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260814222418_restrict_microsoft_login_to_existing_users.sql"),
+      "utf8",
+    );
+    const config = fs.readFileSync(path.join(ROOT, "supabase/config.toml"), "utf8");
+
+    expect(migration).toContain("provider_name <> 'azure'");
+    expect(migration).toContain("FROM auth.users");
+    expect(migration).toContain("deleted_at IS NULL");
+    expect(migration).toContain("SECURITY DEFINER");
+    expect(migration).toContain("SET search_path = ''");
+    expect(migration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(migration).toContain("TO supabase_auth_admin");
+    expect(config).toContain("[auth.hook.before_user_created]");
+    expect(config).toContain("hook_restrict_microsoft_login_to_existing_users");
   });
 
   it("spotrebovava OAuth state atomicky pred token exchange a omezuje ho TTL", () => {

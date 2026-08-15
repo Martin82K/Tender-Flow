@@ -232,6 +232,9 @@ const electronAPI: ElectronAPI = {
             // Security: clientSecret is never sent from renderer — main process reads it from env
             return invokeTyped('oauth:googleLogin', args);
         },
+        startSupabaseFlow: () => invokeTyped('oauth:startSupabaseFlow'),
+        completeSupabaseFlow: (args: { flowId: string; authorizeUrl: string }) =>
+            invokeTyped('oauth:completeSupabaseFlow', args),
     },
 
     shell: {
