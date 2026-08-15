@@ -41,7 +41,6 @@ const collectFiles = (dir) => {
         continue;
       }
       if (entry.isDirectory()) {
-        if (entry.name === "node_modules") continue;
         stack.push(next);
         continue;
       }
@@ -241,7 +240,13 @@ const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(r
 
 const normalizeRepoGlob = (repoPattern) => {
   const normalized = path.posix.normalize(toPosix(repoPattern));
-  if (normalized === ".." || normalized.startsWith("../")) return null;
+  if (
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    normalized.startsWith("/")
+  ) {
+    return null;
+  }
   return normalized.startsWith("./") ? normalized.slice(2) : normalized;
 };
 
@@ -267,6 +272,11 @@ const containsExtglob = (globPattern) => {
 const containsUnsupportedGlobSyntax = (globPattern) => /[\[\]{}]/.test(globPattern);
 
 const matchesSupportedGlob = (repoPath, globPattern) => {
+  if (globPattern.endsWith("/**")) {
+    const prefixPattern = globPattern.slice(0, -3);
+    if (matchesSupportedGlob(repoPath, prefixPattern)) return true;
+  }
+
   let source = "^";
   let segmentStart = true;
   for (let index = 0; index < globPattern.length; index += 1) {
@@ -489,7 +499,7 @@ const allRegularFiles = scanRoots.flatMap((dir) => collectFiles(dir));
 const allFiles = allRegularFiles.filter((fileAbs) => allowedExt.has(path.extname(fileAbs)));
 const legacyFiles = allRegularFiles
   .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
-  .filter(isLegacyPath);
+  .filter((fileRel) => isLegacyPath(fileRel) && !fileRel.split("/").includes("node_modules"));
 
 for (const fileAbs of allFiles) {
   const fileRel = toPosix(path.relative(root, fileAbs));
@@ -503,9 +513,11 @@ for (const fileAbs of allFiles) {
 
     const normalizedGlobCalls = globCalls.map(({ patterns, base }) =>
       patterns.map((globPattern) => {
+        const unsignedPattern = globPattern.startsWith("!") ? globPattern.slice(1) : globPattern;
         const hasBackslash = globPattern.includes("\\");
         const hasExtglob = containsExtglob(globPattern);
         const hasUnsupportedSyntax = containsUnsupportedGlobSyntax(globPattern);
+        const hasRepeatedLeadingSlash = unsignedPattern.startsWith("//");
         return {
           original: globPattern,
           error: hasBackslash
@@ -514,8 +526,10 @@ for (const fileAbs of allFiles) {
               ? "extglob syntax není povolena, protože Vite ji vyhodnocuje odlišně"
               : hasUnsupportedSyntax
                 ? "pokročilá syntax [] a {} není podporována fail-closed matcherem"
-                : null,
-          normalized: hasBackslash || hasExtglob || hasUnsupportedSyntax
+                : hasRepeatedLeadingSlash
+                  ? "opakované úvodní lomítko není podporováno"
+                  : null,
+          normalized: hasBackslash || hasExtglob || hasUnsupportedSyntax || hasRepeatedLeadingSlash
             ? null
             : normalizeGlobPattern(globPattern, fileAbs, base),
         };

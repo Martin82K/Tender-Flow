@@ -90,6 +90,25 @@ describe("legacy import baseline guard", () => {
     }
   });
 
+  it("scans explicitly imported modern sources inside node_modules", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "app/node_modules"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureRoot, "app/node_modules/bridge.ts"),
+      'export { exampleService } from "@/services/exampleService";\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("app/node_modules/bridge.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a root-absolute Vite glob that reaches legacy modules", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
@@ -291,6 +310,76 @@ describe("legacy import baseline guard", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("modern-to-legacy-import");
       expect(result.stderr).toContain("hooks/queries/useContactsQuery.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("matches the file prefix of a trailing Vite globstar", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/exampleService.ts/**");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("matches a wildcard file prefix before a trailing Vite globstar", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/*.ts/**");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects repeated leading slashes fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("//services/*.ts");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("opakované úvodní lomítko");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects repeated slashes after the root alias fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("@//services/*.ts");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("nelze bezpečně vyhodnotit");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
