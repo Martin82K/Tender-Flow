@@ -37,13 +37,19 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - boundaries zakazují nebezpečné importy a nové privátní cross-feature vazby;
   existující privátní vazby jsou ratchetované přes přesný soubor a specifier a
   zastaralá výjimka po odstranění dluhu kontrolu také shodí,
-- legacy structure brání růstu frozen kořenů,
+- stejný boundary guard ratchetuje všechny importy z moderních vrstev do legacy
+  přes přesnou trojici soubor, specifier a cíl; v CI se baseline smí proti base
+  revizi pouze zmenšit,
+- legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
+  tracked soubor i zastaralou výjimku po odstraněném souboru,
 - docs checker ověřuje interní odkazy.
 
 Regresní test boundary pravidla vytváří izolovanou dočasnou strukturu features.
 Ověřuje RED výsledek privátního importu, přesnou allowlist výjimku, odmítnutí
 jiného privátního importu ve stejném souboru a průchod veřejného entrypointu.
-Nejde tedy pouze o kontrolu textu architektonického skriptu.
+Samostatné fixture testy stejně ověřují nový modern-to-legacy import, zastaralý
+importní baseline a symetrii legacy freeze snapshotu. Nejde tedy pouze o
+kontrolu textu architektonických skriptů.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
