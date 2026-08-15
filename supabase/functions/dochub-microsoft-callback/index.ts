@@ -3,6 +3,10 @@ import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "onedrive";
+type AccessKind = "manage" | "personal_read";
+
+const PERSONAL_READ_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.Read.All"];
+const MICROSOFT_MANAGE_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"];
 type ProviderIdentity = {
   audience: string;
   email: string;
@@ -33,7 +37,7 @@ const siteBaseUrl = () => {
 
 const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
-const redirect = (to: string) =>
+const redirect = (req: Request, to: string) =>
   new Response(null, { status: 302, headers: { ...buildCorsHeaders(req), location: to } });
 
 const withQueryParam = (to: string, key: string, value: string) => {
@@ -96,6 +100,7 @@ const tokenExchangeMicrosoft = async (args: {
   clientSecret: string;
   redirectUri: string;
   tenant: string;
+  accessKind: AccessKind;
 }) => {
   const body = new URLSearchParams();
   body.set("client_id", args.clientId);
@@ -105,7 +110,7 @@ const tokenExchangeMicrosoft = async (args: {
   body.set("grant_type", "authorization_code");
   body.set(
     "scope",
-    ["offline_access", "openid", "email", "profile", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"].join(" ")
+    (args.accessKind === "personal_read" ? PERSONAL_READ_SCOPES : MICROSOFT_MANAGE_SCOPES).join(" ")
   );
 
   const res = await fetch(
@@ -297,15 +302,15 @@ Deno.serve(async (req) => {
         const trimmed = errorDescription.length > 600 ? `${errorDescription.slice(0, 600)}…` : errorDescription;
         to = withQueryParam(to, "dochub_error_description", trimmed);
       }
-      return redirect(to);
+      return redirect(req, to);
     }
     if (!code || !state) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
     }
 
     const [provider, nonce] = state.split(".", 2);
     if (provider !== "onedrive" || !nonce) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
     }
 
     const service = createServiceClient();
@@ -316,20 +321,38 @@ Deno.serve(async (req) => {
     });
 
     if (!stateRow) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const { data: project, error: projectAccessError } = await service
-      .from("projects")
-      .select("id, owner_id")
-      .eq("id", stateRow.project_id)
-      .maybeSingle();
-    if (projectAccessError || !project) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
-    }
+    const accessKind: AccessKind = stateRow.access_kind === "personal_read" ? "personal_read" : "manage";
+    const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id);
+    const skipProjectMutation = accessKind === "personal_read";
+    let project: { id: string; owner_id: string | null } | null = null;
 
-    if (!project.owner_id || project.owner_id !== stateRow.user_id) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+    if (requiresProject) {
+      const { data: projectData, error: projectAccessError } = await service
+        .from("projects")
+        .select("id, owner_id")
+        .eq("id", stateRow.project_id)
+        .maybeSingle();
+      project = projectData;
+      if (projectAccessError || !project?.owner_id) {
+        return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
+      if (!skipProjectMutation && project.owner_id !== stateRow.user_id) {
+        return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
+      if (skipProjectMutation && project.owner_id !== stateRow.user_id) {
+        const { data: share, error: shareError } = await service
+          .from("project_shares")
+          .select("project_id")
+          .eq("project_id", project.id)
+          .eq("user_id", stateRow.user_id)
+          .maybeSingle();
+        if (shareError || !share) {
+          return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+        }
+      }
     }
 
     const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
@@ -342,10 +365,10 @@ Deno.serve(async (req) => {
     const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
 
     if (!clientId || !clientSecret || !redirectUri || !encKey) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
     }
 
-    const token = await tokenExchangeMicrosoft({ code, clientId, clientSecret, redirectUri, tenant });
+    const token = await tokenExchangeMicrosoft({ code, clientId, clientSecret, redirectUri, tenant, accessKind });
     const stateUser = await getStateUser(service, stateRow.user_id);
     const providerIdentity = await verifyMicrosoftIdentity({ token, clientId, user: stateUser });
     const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
@@ -363,30 +386,39 @@ Deno.serve(async (req) => {
       encKey
     );
 
-    await service.from("dochub_user_tokens").upsert({
+    const { error: tokenStoreError } = await service.from("dochub_user_tokens").upsert({
       user_id: stateRow.user_id,
       provider: "onedrive",
+      access_kind: accessKind,
       token_ciphertext: tokenCiphertext,
       scopes: token.scope ? token.scope.split(" ") : [],
       expires_at: expiresAt,
       updated_at: new Date().toISOString(),
     });
+    if (tokenStoreError) {
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "token_store_failed"));
+    }
 
-    await service
-      .from("projects")
-      .update({
-        dochub_enabled: true,
-        dochub_provider: "onedrive",
-        dochub_mode: stateRow.mode,
-        dochub_status: "connected",
-        dochub_last_error: null,
-      })
-      .eq("id", stateRow.project_id);
+    if (!skipProjectMutation && project) {
+      const { error: projectUpdateError } = await service
+        .from("projects")
+        .update({
+          dochub_enabled: true,
+          dochub_provider: "onedrive",
+          dochub_mode: stateRow.mode,
+          dochub_status: "connected",
+          dochub_last_error: null,
+        })
+        .eq("id", stateRow.project_id);
+      if (projectUpdateError) {
+        return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "project_update_failed"));
+      }
+    }
 
     const returnTo = sanitizeReturnTo(stateRow.return_to);
-    return redirect(returnTo);
+    return redirect(req, returnTo);
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown_error";
-    return redirect(withQueryParam(defaultReturnTo(), "dochub_error", message));
+    return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", message));
   }
 });

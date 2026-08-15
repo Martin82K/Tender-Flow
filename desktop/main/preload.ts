@@ -7,6 +7,7 @@ import type {
     UpdateStatus,
     BackupSettingsInfo,
     BackupFileEntry,
+    SessionCredentialsSaveResult,
 } from './types';
 import type { IpcChannel, IpcContractMap } from './ipc/contracts';
 
@@ -197,7 +198,7 @@ const electronAPI: ElectronAPI = {
 
     // Session credential management
     session: {
-        saveCredentials: (credentials: { refreshToken: string; email: string }): Promise<void> =>
+        saveCredentials: (credentials: { refreshToken: string; email: string }): Promise<SessionCredentialsSaveResult> =>
             invokeTyped('session:saveCredentials', credentials),
 
         getCredentials: (): Promise<{ refreshToken: string; email: string } | null> =>
@@ -231,6 +232,9 @@ const electronAPI: ElectronAPI = {
             // Security: clientSecret is never sent from renderer — main process reads it from env
             return invokeTyped('oauth:googleLogin', args);
         },
+        startSupabaseFlow: () => invokeTyped('oauth:startSupabaseFlow'),
+        completeSupabaseFlow: (args: { flowId: string; authorizeUrl: string }) =>
+            invokeTyped('oauth:completeSupabaseFlow', args),
     },
 
     shell: {

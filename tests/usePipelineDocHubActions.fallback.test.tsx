@@ -224,6 +224,87 @@ describe("usePipelineDocHubActions lokální → online fallback", () => {
     );
   });
 
+  it("odvodí online složku VŘ z kanonického SharePoint kořene sdíleného projektu", async () => {
+    mocks.invokeAuthedFunction.mockRejectedValueOnce(new Error("Owner connection unavailable"));
+    const sharedProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum&ga=1",
+      docHubSettings: null,
+    };
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: sharedProject,
+      projectDetails: sharedProject,
+      docHubRoot: "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(window.open).toHaveBeenCalledWith(
+      "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum%2F03_Vyberova_rizeni%2FBetony",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  it("odvodí online složku dodavatele z kanonického SharePoint kořene sdíleného projektu", async () => {
+    mocks.invokeAuthedFunction.mockRejectedValueOnce(new Error("Owner connection unavailable"));
+    const sharedProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum&ga=1",
+      docHubSettings: null,
+    };
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: sharedProject,
+      projectDetails: sharedProject,
+      docHubRoot: "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenSupplierDocHub(bid));
+
+    expect(window.open).toHaveBeenCalledWith(
+      "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum%2F03_Vyberova_rizeni%2FBetony%2FPoptavky%2FDodavatel%20s.r.o.",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
+  it("vysvětlí vlastníkovi nutnost kanonické adresy u SharePoint sharing odkazu", async () => {
+    mocks.invokeAuthedFunction.mockRejectedValueOnce(new Error("Owner connection unavailable"));
+    const sharingProject: ProjectDetails = {
+      ...project,
+      docHubRootWebUrl: "https://tenant.sharepoint.com/:f:/g/personal/user_tenant_cz/opaque-share-token",
+      docHubSettings: null,
+    };
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineDocHubActions({
+      activeCategory: category,
+      projectData: sharingProject,
+      projectDetails: sharingProject,
+      docHubRoot: "",
+      docHubStructure: resolveDocHubStructureV1(),
+      isDocHubEnabled: true,
+      showAlert,
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue(null),
+    }));
+
+    await act(async () => result.current.handleOpenTenderDocHub());
+
+    expect(window.open).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining("finální adresu OneDrive s parametrem id"),
+    }));
+  });
+
   it("neotevře nepovolenou URL ani kořen, když selže přesný backend odkaz", async () => {
     mocks.invokeAuthedFunction.mockResolvedValueOnce({
       webUrl: "https://evil.example/phishing",

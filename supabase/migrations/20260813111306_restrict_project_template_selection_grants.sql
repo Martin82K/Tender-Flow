@@ -5,4 +5,3 @@ REVOKE ALL ON public.project_template_selections FROM authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON public.project_template_selections
   TO authenticated;
-

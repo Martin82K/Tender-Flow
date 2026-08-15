@@ -5,6 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const electronMock = vi.hoisted(() => ({
   userDataPath: "",
+  asyncEncryptionAvailable: true,
+  syncEncryptionAvailable: true,
+  storageBackend: "gnome_libsecret",
+  asyncEncryptError: null as Error | null,
 }));
 
 vi.mock("electron", () => ({
@@ -12,15 +16,30 @@ vi.mock("electron", () => ({
     getPath: vi.fn(() => electronMock.userDataPath),
   },
   safeStorage: {
+    decryptStringAsync: vi.fn(async (value: Buffer) => ({
+      result: value.toString("utf8"),
+      shouldReEncrypt: false,
+    })),
     decryptString: vi.fn((value: Buffer) => value.toString("utf8")),
+    encryptStringAsync: vi.fn(async (value: string) => {
+      if (electronMock.asyncEncryptError) throw electronMock.asyncEncryptError;
+      return Buffer.from(value, "utf8");
+    }),
+    getSelectedStorageBackend: vi.fn(() => electronMock.storageBackend),
     encryptString: vi.fn((value: string) => Buffer.from(value, "utf8")),
-    isEncryptionAvailable: vi.fn(() => true),
+    isAsyncEncryptionAvailable: vi.fn(async () => electronMock.asyncEncryptionAvailable),
+    isEncryptionAvailable: vi.fn(() => electronMock.syncEncryptionAvailable),
   },
 }));
 
 describe("SecureStorageService", () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     electronMock.userDataPath = await mkdtemp(join(tmpdir(), "tender-flow-secure-storage-"));
+    electronMock.asyncEncryptionAvailable = true;
+    electronMock.syncEncryptionAvailable = true;
+    electronMock.storageBackend = "gnome_libsecret";
+    electronMock.asyncEncryptError = null;
   });
 
   afterEach(async () => {
@@ -81,8 +100,8 @@ describe("SecureStorageService", () => {
     ]);
 
     await expect(readFile(storagePath, "utf8").then(JSON.parse)).resolves.toEqual({
-      session: "c2Vzc2lvbi12YWx1ZQ==",
-      settings: "c2V0dGluZ3MtdmFsdWU=",
+      session: "async:v1:c2Vzc2lvbi12YWx1ZQ==",
+      settings: "async:v1:c2V0dGluZ3MtdmFsdWU=",
     });
   });
 
@@ -93,6 +112,57 @@ describe("SecureStorageService", () => {
 
     await storage.set("session", "encrypted-value");
 
-    await expect(readFile(storagePath, "utf8")).resolves.toContain('"session": "ZW5jcnlwdGVkLXZhbHVl"');
+    await expect(readFile(storagePath, "utf8")).resolves.toContain(
+      '"session": "async:v1:ZW5jcnlwdGVkLXZhbHVl"',
+    );
+  });
+
+  it("přečte starší synchronně šifrovaný záznam bez migrace do plaintextu", async () => {
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    await writeFile(storagePath, '{"session":"bGVnYWN5LXNlY3JldA=="}', "utf8");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await expect(storage.get("session")).resolves.toBe("legacy-secret");
+  });
+
+  it("použije stále bezpečný synchronní fallback, když async provider není dostupný", async () => {
+    electronMock.asyncEncryptionAvailable = false;
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await storage.set("session", "sync-fallback-secret");
+
+    await expect(readFile(storagePath, "utf8").then(JSON.parse)).resolves.toEqual({
+      session: "c3luYy1mYWxsYmFjay1zZWNyZXQ=",
+    });
+  });
+
+  it("odmítne zápis bez OS šifrování a nevytvoří plaintext soubor", async () => {
+    electronMock.asyncEncryptionAvailable = false;
+    electronMock.syncEncryptionAvailable = false;
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await expect(storage.set("session", "refresh-token-secret")).rejects.toMatchObject({
+      code: "SECURE_STORAGE_UNAVAILABLE",
+    });
+
+    await expect(readFile(storagePath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("odmítne zápis i když async provider dostupnost ohlásí, ale šifrování selže", async () => {
+    electronMock.asyncEncryptError = new Error("Keychain operation failed");
+    const storagePath = join(electronMock.userDataPath, "secure-storage.json");
+    const { SecureStorageService } = await import("../desktop/main/services/secureStorage");
+    const storage = new SecureStorageService();
+
+    await expect(storage.set("session", "refresh-token-secret")).rejects.toMatchObject({
+      code: "SECURE_STORAGE_UNAVAILABLE",
+    });
+
+    await expect(readFile(storagePath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

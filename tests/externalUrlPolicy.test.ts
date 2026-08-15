@@ -31,6 +31,19 @@ describe('externalUrlPolicy', () => {
         expect(isAllowedExternalUrl(parsed)).toBe(false);
     });
 
+    it('allows only HTTPS on the exact Microsoft OAuth host', () => {
+        expect(canOpenExternalUrl(
+            'https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize',
+        )).toBe(true);
+        expect(canOpenExternalUrl(
+            'http://login.microsoftonline.com/organizations/oauth2/v2.0/authorize',
+            { allowHttp: true },
+        )).toBe(false);
+        expect(canOpenExternalUrl(
+            'https://login.microsoftonline.com.evil.example/organizations/oauth2/v2.0/authorize',
+        )).toBe(false);
+    });
+
     it('blocks unapproved HTTPS hosts', () => {
         expect(canOpenExternalUrl('https://example.com/docs')).toBe(false);
     });

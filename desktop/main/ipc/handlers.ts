@@ -187,6 +187,8 @@ export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<v
         createCodeChallenge,
         startLoopbackServer,
         requireAuth,
+        isTrustedSender: (sender) => ipcAuthGuard.isTrustedSender(sender),
+        getSupabaseUrl: () => getSupabasePublicConfig().url,
     });
     registerNetHandlers({ isAllowedProxyUrl, requireAuth });
     registerPublicAuthHandlers({

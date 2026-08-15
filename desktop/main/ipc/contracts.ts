@@ -4,6 +4,7 @@ import type {
   FileInfo,
   FolderInfo,
   FolderSnapshot,
+  SessionCredentialsSaveResult,
   UpdateStatus,
 } from "../types";
 
@@ -54,7 +55,7 @@ export interface IpcContractMap {
   "watcher:getSnapshot": { args: []; result: FolderSnapshot | null };
   "session:saveCredentials": {
     args: [credentials: { refreshToken: string; email: string }];
-    result: void;
+    result: SessionCredentialsSaveResult;
   };
   "session:getCredentials": {
     args: [];
@@ -77,6 +78,14 @@ export interface IpcContractMap {
       tokenType: string;
       idToken?: string | null;
     };
+  };
+  "oauth:startSupabaseFlow": {
+    args: [];
+    result: { flowId: string; redirectTo: string };
+  };
+  "oauth:completeSupabaseFlow": {
+    args: [args: { flowId: string; authorizeUrl: string }];
+    result: { code: string };
   };
   "net:request": {
     args: [url: string, options?: RequestInit];

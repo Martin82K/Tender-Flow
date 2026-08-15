@@ -4,7 +4,7 @@ import { dbAdapter } from '@infra/db/dbAdapter';
 import { invokeAuthedFunction } from '@infra/functions/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, type DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '@shared/dochub/docHub';
 import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
-import { isDesktop, fileSystemAdapter, oauthAdapter, storageAdapter } from '@infra/platform/platformAdapter';
+import { isDesktop, fileSystemAdapter, oauthAdapter, shellAdapter, storageAdapter } from '@infra/platform/platformAdapter';
 import { ensureStructure, openInExplorer } from '@infra/files/fileSystemService';
 import {
     DOC_HUB_PROJECT_MARKER_FILENAME,
@@ -139,6 +139,8 @@ export const useDocHubIntegration = (
     const [isEditingSetup, setIsEditingSetup] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const [hasPersonalLocalRoot, setHasPersonalLocalRoot] = useState(false);
+    const [personalMicrosoftStatus, setPersonalMicrosoftStatus] = useState<"disconnected" | "connected" | "error">("disconnected");
+    const [isLoadingPersonalMicrosoftStatus, setIsLoadingPersonalMicrosoftStatus] = useState(false);
     const [validatedPersonalLocationIdentity, setValidatedPersonalLocationIdentity] = useState<string | null>(null);
     const [onlineRootLinkDraft, setOnlineRootLinkDraft] = useState(project.docHubRootWebUrl || '');
 
@@ -191,6 +193,7 @@ export const useDocHubIntegration = (
     const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
     const personalLocationLoadedRef = useRef(false);
     const personalLocationLoadSequenceRef = useRef(0);
+    const personalMicrosoftStatusSequenceRef = useRef(0);
     const projectActionIdentity = JSON.stringify([
         project.id ?? null,
         project.ownerId ?? null,
@@ -371,7 +374,61 @@ export const useDocHubIntegration = (
     }, [provider]);
     const onlineRootLink = normalizeDocHubOnlineUrl(project.docHubRootWebUrl || '') ||
         normalizeDocHubOnlineUrl(project.docHubRootLink || '') || '';
+    const isMicrosoftOnlineRoot = (() => {
+        if (!onlineRootLink) return false;
+        try {
+            const hostname = new URL(onlineRootLink).hostname.toLowerCase();
+            return hostname === "onedrive.live.com" || hostname === "1drv.ms" || hostname.endsWith(".sharepoint.com");
+        } catch {
+            return false;
+        }
+    })();
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
+
+    const refreshPersonalMicrosoftStatus = useCallback(async () => {
+        if (!isSharedProject || !project.id || !isMicrosoftOnlineRoot) {
+            personalMicrosoftStatusSequenceRef.current += 1;
+            setPersonalMicrosoftStatus("disconnected");
+            setIsLoadingPersonalMicrosoftStatus(false);
+            return;
+        }
+
+        const sequence = ++personalMicrosoftStatusSequenceRef.current;
+        setIsLoadingPersonalMicrosoftStatus(true);
+        try {
+            const result = await invokeAuthedFunction<{ connected?: boolean }>("dochub-personal-microsoft", {
+                body: { projectId: project.id, action: "status" },
+            });
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setPersonalMicrosoftStatus(result?.connected ? "connected" : "disconnected");
+            }
+        } catch {
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setPersonalMicrosoftStatus("error");
+            }
+        } finally {
+            if (sequence === personalMicrosoftStatusSequenceRef.current) {
+                setIsLoadingPersonalMicrosoftStatus(false);
+            }
+        }
+    }, [isMicrosoftOnlineRoot, isSharedProject, project.id]);
+
+    useEffect(() => {
+        void refreshPersonalMicrosoftStatus();
+
+        const refreshOnFocus = () => void refreshPersonalMicrosoftStatus();
+        const refreshOnVisibility = () => {
+            if (document.visibilityState === "visible") void refreshPersonalMicrosoftStatus();
+        };
+        window.addEventListener("focus", refreshOnFocus);
+        document.addEventListener("visibilitychange", refreshOnVisibility);
+
+        return () => {
+            personalMicrosoftStatusSequenceRef.current += 1;
+            window.removeEventListener("focus", refreshOnFocus);
+            document.removeEventListener("visibilitychange", refreshOnVisibility);
+        };
+    }, [refreshPersonalMicrosoftStatus]);
 
     // Cleanup timers
     useEffect(() => {
@@ -720,6 +777,53 @@ export const useDocHubIntegration = (
         }
     }, [canManageGlobal, provider, mode, project.id, showMessage]);
 
+    const connectPersonalMicrosoft = useCallback(async () => {
+        if (!isSharedProject || !project.id || !isMicrosoftOnlineRoot) {
+            showMessage("Microsoft", "Osobní připojení je dostupné pouze pro nasdílený projekt se složkou OneDrive nebo SharePoint.", "info");
+            return;
+        }
+        setIsConnecting(true);
+        try {
+            const returnTo = `${window.location.origin}/app?dochub=1`;
+            const data = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
+                body: {
+                    provider: "onedrive",
+                    mode: "user",
+                    accessKind: "personal_read",
+                    projectId: project.id,
+                    returnTo,
+                },
+            });
+            if (!data?.url) throw new Error("Backend nevrátil autorizační URL.");
+            if (!isRedirectUrlSafe(data.url)) throw new Error("Neplatná autorizační URL.");
+            if (isDesktop) {
+                await shellAdapter.openExternal(data.url);
+                setIsConnecting(false);
+                return;
+            }
+            window.location.href = data.url;
+        } catch (error) {
+            setIsConnecting(false);
+            showMessage("Microsoft přihlášení selhalo", error instanceof Error ? error.message : String(error), "danger");
+        }
+    }, [isMicrosoftOnlineRoot, isSharedProject, project.id, showMessage]);
+
+    const disconnectPersonalMicrosoft = useCallback(async () => {
+        if (!project.id) return;
+        setIsConnecting(true);
+        try {
+            await invokeAuthedFunction("dochub-personal-microsoft", {
+                body: { projectId: project.id, action: "disconnect" },
+            });
+            setPersonalMicrosoftStatus("disconnected");
+            showMessage("Microsoft", "Osobní Microsoft připojení bylo odebráno.", "success");
+        } catch (error) {
+            showMessage("Microsoft", error instanceof Error ? error.message : "Připojení se nepodařilo odebrat.", "danger");
+        } finally {
+            setIsConnecting(false);
+        }
+    }, [project.id, showMessage]);
+
     const loadHistory = useCallback(async () => {
         if (!project.id) return;
         setIsLoadingHistory(true);
@@ -817,8 +921,8 @@ export const useDocHubIntegration = (
 
         const validMarker = marker?.projectId === project.id && marker.connectionId === connectionId;
 
-        if (!validMarker && !isProjectOwner) {
-            throw new Error("Vybraná složka nepatří k tomuto projektu. Vlastník ji musí nejprve připojit v Tender Flow.");
+        if (marker && !validMarker && !isProjectOwner) {
+            throw new Error("Vybraná složka patří ke staršímu připojení tohoto projektu. Ověřte prosím, že vybíráte jeho aktuální synchronizovanou složku.");
         }
         const storageKey = buildDocHubPersonalLocationKey(userId, project.id);
         const previousStoredLocation = await storageAdapter.get(storageKey);
@@ -839,7 +943,7 @@ export const useDocHubIntegration = (
             await globalUpdate?.apply();
             globalUpdated = !!globalUpdate;
             assertCurrentProjectAction(expectedProjectIdentity);
-            if (!validMarker) {
+            if (!validMarker && isProjectOwner) {
                 await fileSystemAdapter.writeFile(markerPath, createDocHubProjectMarker(project.id, connectionId));
                 markerUpdated = true;
             }
@@ -1422,7 +1526,8 @@ export const useDocHubIntegration = (
             structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
             newFolderName, resolveProgress, links, isConnected, isLocalProvider,
-            onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot: effectiveHasPersonalLocalRoot
+            onlineRootLink, onlineRootLinkDraft, isProjectOwner, isSharedProject, canManageGlobal, hasPersonalLocalRoot: effectiveHasPersonalLocalRoot,
+            isMicrosoftOnlineRoot, personalMicrosoftStatus, isLoadingPersonalMicrosoftStatus
         },
         setters: {
             setEnabled, setRootLink: setRootLinkDraft, setRootName, setProvider, setMode, setStatus, setIsEditingSetup, setOnlineRootLinkDraft,
@@ -1434,6 +1539,8 @@ export const useDocHubIntegration = (
             saveOnlineLink: handleSaveOnlineLink,
             disconnect: handleDisconnect,
             connect: handleConnect,
+            connectPersonalMicrosoft,
+            disconnectPersonalMicrosoft,
             openRoot: useCallback(async () => {
                 const link = effectiveRootLink?.trim();
                 if (!link) return;

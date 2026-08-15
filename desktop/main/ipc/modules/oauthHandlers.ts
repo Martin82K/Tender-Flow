@@ -10,6 +10,8 @@ interface OAuthHandlerDependencies {
     timeoutMs: number,
   ) => Promise<{ port: number; waitForCode: Promise<{ code: string; state: string | null }> }>;
   requireAuth: (sender: Electron.WebContents, channel?: string) => void;
+  isTrustedSender: (sender: Electron.WebContents) => boolean;
+  getSupabaseUrl: () => string;
 }
 
 export const registerOAuthHandlers = ({
@@ -19,7 +21,60 @@ export const registerOAuthHandlers = ({
   createCodeChallenge,
   startLoopbackServer,
   requireAuth,
+  isTrustedSender,
+  getSupabaseUrl,
 }: OAuthHandlerDependencies): void => {
+  const supabaseFlows = new Map<string, {
+    redirectTo: string;
+    waitForCode: Promise<{ code: string; state: string | null }>;
+  }>();
+
+  ipcMain.handle("oauth:startSupabaseFlow", async (event) => {
+    if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
+    if (supabaseFlows.size >= 1) throw new Error("Another Microsoft OAuth flow is already active");
+    const { port, waitForCode } = await startLoopbackServer(120_000);
+    const flowId = crypto.randomUUID();
+    const redirectTo = `http://127.0.0.1:${port}/oauth2/callback`;
+    supabaseFlows.set(flowId, { redirectTo, waitForCode });
+    void waitForCode.finally(() => supabaseFlows.delete(flowId)).catch(() => undefined);
+    return { flowId, redirectTo };
+  });
+
+  ipcMain.handle(
+    "oauth:completeSupabaseFlow",
+    async (event, args: { flowId: string; authorizeUrl: string }) => {
+      if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
+      const flow = supabaseFlows.get(args?.flowId || "");
+      if (!flow) throw new Error("OAuth flow not found or expired");
+
+      const configuredUrl = getSupabaseUrl();
+      const configuredOrigin = new URL(configuredUrl).origin;
+      const authorizeUrl = new URL(args?.authorizeUrl || "");
+      const allowedAuthorizePaths = new Set([
+        "/auth/v1/authorize",
+        "/auth/v1/user/identities/authorize",
+      ]);
+      if (
+        authorizeUrl.protocol !== "https:" ||
+        authorizeUrl.origin !== configuredOrigin ||
+        !allowedAuthorizePaths.has(authorizeUrl.pathname) ||
+        authorizeUrl.searchParams.get("provider") !== "azure" ||
+        authorizeUrl.searchParams.get("redirect_to") !== flow.redirectTo
+      ) {
+        throw new Error("Blocked Supabase OAuth authorize URL");
+      }
+
+      supabaseFlows.delete(args.flowId);
+      await shell.openExternal(authorizeUrl.toString());
+      const expectedState = authorizeUrl.searchParams.get("state");
+      const result = await flow.waitForCode;
+      if (expectedState && result.state !== expectedState) {
+        throw new Error("Invalid OAuth state");
+      }
+      return { code: result.code };
+    },
+  );
+
   ipcMain.handle(
     "oauth:googleLogin",
     async (

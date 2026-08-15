@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDocHubPersonalLocationKey,
+  buildSharePointFolderUrl,
   createDocHubProjectMarker,
+  isSharePointSharingUrl,
   isDocHubProjectMarkerForDifferentProject,
   parseDocHubPersonalLocation,
   parseDocHubProjectMarker,
@@ -114,10 +116,66 @@ describe("DocHub personal location", () => {
     })).resolves.toEqual(location);
   });
 
+  it("keeps an accessible personal location usable when the optional marker is missing", async () => {
+    const location = {
+      version: 2 as const,
+      userId: "user-a",
+      projectId: "project-1",
+      rootPath: "D:\\Shared\\Project",
+      rootName: "Project",
+      savedAt: "2026-08-07T12:00:00.000Z",
+      connectionId: "root-generation-1",
+    };
+
+    await expect(validateDocHubPersonalLocation(location, "project-1", "root-generation-1", {
+      folderExists: async () => true,
+      readMarker: async () => { throw new Error("marker missing"); },
+    })).resolves.toEqual(location);
+  });
+
   it("accepts only HTTPS links from supported cloud folder providers", () => {
     expect(normalizeDocHubOnlineUrl("https://drive.google.com/drive/folders/abc")).toContain("drive.google.com");
     expect(normalizeDocHubOnlineUrl("https://tenant.sharepoint.com/shared/folder")).toContain("sharepoint.com");
     expect(normalizeDocHubOnlineUrl("javascript:alert(1)")).toBeNull();
     expect(normalizeDocHubOnlineUrl("https://evil.example/folder")).toBeNull();
+  });
+
+  it("builds a SharePoint child URL from a canonical OneDrive folder route", () => {
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum&ga=1",
+      "03_Vyberova_rizeni/Haly/Poptávky/Dodavatel s.r.o.",
+    )).toBe(
+      "https://tenant.sharepoint.com/personal/user_tenant_cz/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fuser_tenant_cz%2FDocuments%2FPyrum%2F03_Vyberova_rizeni%2FHaly%2FPopt%C3%A1vky%2FDodavatel%20s.r.o.",
+    );
+  });
+
+  it("rejects sharing routes, traversal and non-SharePoint roots", () => {
+    expect(isSharePointSharingUrl(
+      "https://tenant.sharepoint.com/:f:/g/personal/user_tenant_cz/opaque-share-token",
+    )).toBe(true);
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/sites/baustav/Forms/AllItems.aspx?id=%2Fsecret",
+      "03_Vyberova_rizeni/Haly",
+    )).toBeNull();
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/:f:/g/personal/user_tenant_cz/opaque-share-token",
+      "03_Vyberova_rizeni/Haly",
+    )).toBeNull();
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/personal/user/_layouts/15/onedrive.aspx?id=%2FDocuments%2F..%2FSecret",
+      "03_Vyberova_rizeni/Haly",
+    )).toBeNull();
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/personal/user/_layouts/15/onedrive.aspx?id=%2FDocuments%2FPyrum&authkey=secret",
+      "03_Vyberova_rizeni/Haly",
+    )).toBeNull();
+    expect(buildSharePointFolderUrl(
+      "https://tenant.sharepoint.com/sites/baustav/Shared%20Documents/Pyrum",
+      "03_Vyberova_rizeni/../Secret",
+    )).toBeNull();
+    expect(buildSharePointFolderUrl(
+      "https://drive.google.com/drive/folders/root",
+      "03_Vyberova_rizeni/Haly",
+    )).toBeNull();
   });
 });

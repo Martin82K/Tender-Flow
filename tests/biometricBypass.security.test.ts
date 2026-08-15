@@ -46,6 +46,13 @@ describe('Biometric bypass prevention', () => {
     mockStorageData.clear();
     mockBiometricPrompt.mockReset();
     mockRequireAuth.mockReset();
+    mockStorageService.get.mockImplementation(async (key: string) => mockStorageData.get(key) ?? null);
+    mockStorageService.set.mockImplementation(async (key: string, value: string) => {
+      mockStorageData.set(key, value);
+    });
+    mockStorageService.delete.mockImplementation(async (key: string) => {
+      mockStorageData.delete(key);
+    });
     vi.mocked(ipcMain.handle).mockClear();
 
     // Register session handlers fresh
@@ -152,6 +159,35 @@ describe('Biometric bypass prevention', () => {
     await expect(
       handler!(mockEvent, { refreshToken: 'malicious-token', email: 'attacker@evil.com' }),
     ).rejects.toThrow('IPC_AUTH_DENIED');
+  });
+
+  it('saveCredentials returns unavailable without leaking the main-process error', async () => {
+    const { SecureStorageUnavailableError } = await import(
+      '../desktop/main/services/secureStorage'
+    );
+    mockStorageService.set.mockRejectedValueOnce(new SecureStorageUnavailableError());
+
+    const handler = handlers.get('session:saveCredentials');
+    const result = await handler!(
+      { sender: {} } as any,
+      { refreshToken: 'secret-token-12345', email: 'user@test.com' },
+    );
+
+    expect(result).toEqual({ status: 'unavailable' });
+    expect(mockRequireAuth).toHaveBeenCalledWith(expect.anything(), 'session:saveCredentials');
+  });
+
+  it('saveCredentials propagates unexpected storage failures', async () => {
+    mockStorageService.set.mockRejectedValueOnce(new Error('DISK_IO_FAILURE'));
+
+    const handler = handlers.get('session:saveCredentials');
+
+    await expect(
+      handler!(
+        { sender: {} } as any,
+        { refreshToken: 'secret-token-12345', email: 'user@test.com' },
+      ),
+    ).rejects.toThrow('DISK_IO_FAILURE');
   });
 
   it('clearCredentials is pre-auth (needed for startup cleanup)', async () => {

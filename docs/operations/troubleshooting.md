@@ -30,6 +30,13 @@ Klientská filtrace nesmí být rozšiřovaná jako náhrada DB politiky.
   bucketu; nové běžné přihlášení nesmí zneplatnit MCP refresh-token chain,
 - opakované auth chyby: query client spustí centralizovaný recovery,
 - desktop biometrika: ověřit OS podporu a uložené credentials,
+- `SECURE_STORAGE_UNAVAILABLE`: běžná aktivní relace může pokračovat, ale
+  automatické/biometrické přihlášení po restartu je bezpečně vypnuté; na macOS
+  ověřit dostupnost a odemčení Keychain, na Windows uživatelský DPAPI profil a
+  na Linuxu Secret Service/KWallet (backend `basic_text` není povolen),
+- po první očekávané nedostupnosti se zápis v daném spuštění už neopakuje;
+  opakovaný spam stejné zprávy proto značí starší build nebo nesoulad
+  renderer/main procesu a vyžaduje úplný restart desktop aplikace,
 - MFA: ověřit pending MFA stav a aktuální assurance flow.
 
 Tokeny nikdy nekopírujte do ticketu; použijte incident referenci.
@@ -62,18 +69,30 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 - při sync chybě prověřit root folder vazbu a Edge log.
 - u sdíleného projektu je lokální cesta osobní pro konkrétního uživatele a zařízení;
   cesta vlastníka se ostatním uživatelům nepřebírá,
-- sdílená lokální složka musí obsahovat marker `.tenderflow-project.json`, který
-  vytvoří vlastník při připojení složky; marker je svázaný s konkrétní generací
-  napojení projektu, takže po změně kořenové složky musí sdílený uživatel novou
-  synchronizovanou cestu znovu vybrat,
+- vlastník při připojení lokální složky vytváří pomocný marker
+  `.tenderflow-project.json`; jeho chybění neblokuje uživatelem vybranou a
+  dostupnou synchronizovanou složku, ale marker jiného projektu nebo starší
+  generace připojení se odmítne, aby se automaticky nepoužila nesprávná složka,
 - online fallback přijímá pouze HTTPS odkaz Google Drive, OneDrive nebo SharePoint;
   u explicitně sdíleného projektu může `dochub-get-link` chybějící cloudové
-  `rootId` read-only obnovit z uložené online URL pomocí připojení vlastníka a
-  následně dohledat pouze složku uvnitř autorizovaného projektového kořene,
-- pokud online fallback nefunguje, ověřit především platnost připojení vlastníka,
-  explicitní `project_shares` záznam a dostupnost uložené kořenové online URL;
+  `rootId` pro Microsoft read-only obnovit z uložené online URL pomocí osobního
+  delegovaného připojení sdíleného uživatele a následně dohledat pouze složku
+  uvnitř autorizovaného projektového kořene,
+- pokud Microsoft online fallback nefunguje, ověřit osobní stav „Moje připojení
+  k Microsoftu“, explicitní `project_shares` záznam, shodu Microsoft/Tender Flow
+  identity a dostupnost uložené kořenové online URL; tenant může uživatelský
+  OAuth souhlas omezit vlastní politikou,
   lokální synchronizační klient sdíleného uživatele není pro otevření online
-  odkazu podmínkou.
+  odkazu podmínkou,
+- pokud cloudové připojení vlastníka není dostupné, lze u SharePointu použít
+  přímé mapování: vlastník uloží finální adresu OneDrive s parametrem `id`
+  (po otevření kořenové složky ji zkopíruje z adresního řádku), ze které Tender
+  Flow dopočítá VŘ nebo dodavatele podle stejné struktury jako lokální Složkomat;
+  krátké odkazy `/:f:/...` obsahují jen sdílecí token a pro výpočet podsložek se
+  nepoužívají,
+- samotná shoda e-mailu není oprávnění — online obsah zpřístupní až SharePoint
+  podle přihlášeného Microsoft účtu; synchronizační klient je nutný jen pro
+  lokální otevření a oprávnění k úpravám jen pro zápis.
 
 ## Excel tools
 
@@ -108,8 +127,15 @@ Potom ověřit:
 - `desktop/dist/` existuje,
 - preload cesta odpovídá buildu,
 - veřejné build env byly zapsané,
-- port 3000 není obsazený při desktop dev,
+- port 3000 není obsazený při desktop dev; preflight záměrně odmítne spuštění,
+  aby se Electron nepřipojil ke starému Vite serveru,
 - native modul odpovídá platformě/architektuře.
+
+Při `504 Outdated Optimize Dep` ukončete celý starý `desktop:dev` běh a spusťte
+jej znovu. Renderer při prvním selhání dynamického importu provede jeden řízený
+reload; opakované selhání během cooldownu zobrazí chybu
+`APP_LAZY_MODULE_LOAD_FAILED` místo bílé obrazovky. Nekonečný reload ani ruční
+mazání aplikačních dat nejsou očekávané řešení.
 
 ## CSP nebo externí odkaz
 

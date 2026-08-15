@@ -1,6 +1,10 @@
 import { ipcMain, BrowserWindow } from "electron";
-import { SecureStorageService } from "../../services/secureStorage";
+import {
+  SecureStorageService,
+  SecureStorageUnavailableError,
+} from "../../services/secureStorage";
 import { getBiometricAuthService } from "../../services/biometricAuth";
+import type { SessionCredentialsSaveResult } from "../../types";
 
 interface SessionHandlerDependencies {
   storageService: SecureStorageService;
@@ -17,9 +21,17 @@ export const registerSessionHandlers = ({
   // Auth required: writing credentials
   ipcMain.handle(
     "session:saveCredentials",
-    async (event, credentials: { refreshToken: string; email: string }): Promise<void> => {
+    async (event, credentials: { refreshToken: string; email: string }): Promise<SessionCredentialsSaveResult> => {
       requireAuth(event.sender, 'session:saveCredentials');
-      await storageService.set(SESSION_CREDENTIALS_KEY, JSON.stringify(credentials));
+      try {
+        await storageService.set(SESSION_CREDENTIALS_KEY, JSON.stringify(credentials));
+        return { status: "saved" };
+      } catch (error) {
+        if (error instanceof SecureStorageUnavailableError) {
+          return { status: "unavailable" };
+        }
+        throw error;
+      }
     },
   );
 

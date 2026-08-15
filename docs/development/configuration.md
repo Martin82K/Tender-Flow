@@ -28,6 +28,14 @@ nebudou fungovat.
 | `VITE_EXCEL_TOOLS_URL` | endpoint Excel tools služby |
 | `VITE_EXCEL_MERGER_MIRROR_URL` | alternativní endpoint/mirror |
 | `VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP` | veřejné desktop OAuth client ID |
+| `VITE_MICROSOFT_LOGIN_ENABLED` | bezpečnostní release přepínač; nastavte na `true` až po aktivaci Azure provideru, Before User Created hooku, ručního linkování a povolených návratových URL |
+
+Microsoft přihlášení je určeno pouze existujícím účtům. Před zapnutím přepínače
+musí být v Supabase Authentication nastaven Azure provider, povoleno ruční
+linkování identit, aktivován hook
+`hook_restrict_microsoft_login_to_existing_users` a přidány webové i desktopové
+loopback návratové URL. Azure callback v Entra ID zůstává HTTPS callback Supabase;
+loopback `127.0.0.1` je až interní návrat Supabase do desktopové aplikace.
 
 Veřejné hodnoty nesmějí obsahovat client secret ani service role key.
 
@@ -46,6 +54,13 @@ Podle nasazených funkcí mohou být potřeba:
 
 Tyto hodnoty se nastavují v secret managementu cílového runtime. Nikdy se
 nepřidávají do `VITE_*`.
+
+Microsoft DocHub OAuth používá registraci aplikace typu Web s callbackem
+`dochub-microsoft-callback`. Pro osobní připojení sdíleného uživatele žádá
+delegované scope `User.Read`, `Files.Read.All` a `offline_access`; správcovský
+token vlastníka zůstává uložen odděleně. Produkční nasazení musí nejprve použít
+migraci s `dochub_user_tokens.access_kind` a teprve potom nasadit související
+Edge Functions.
 
 ## Desktop/main a Node
 

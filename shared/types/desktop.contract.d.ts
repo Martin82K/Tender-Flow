@@ -25,7 +25,8 @@ export interface ElectronAPI {
 export type PublicEnvKey =
     | 'VITE_SUPABASE_URL'
     | 'VITE_SUPABASE_ANON_KEY'
-    | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP';
+    | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP'
+    | 'VITE_MICROSOFT_LOGIN_ENABLED';
 
 export type PublicEnvAPI = Partial<Record<PublicEnvKey, string>>;
 
@@ -133,8 +134,12 @@ export interface BiometricAPI {
     prompt: (reason: string) => Promise<boolean>;
 }
 
+export type SessionCredentialsSaveResult =
+    | { status: 'saved' }
+    | { status: 'unavailable' };
+
 export interface SessionAPI {
-    saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
+    saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<SessionCredentialsSaveResult>;
     getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
     getCredentialsWithBiometric: (reason: string) => Promise<{ refreshToken: string; email: string } | null>;
     clearCredentials: () => Promise<void>;
@@ -161,6 +166,8 @@ export interface OAuthAPI {
         tokenType: string;
         idToken?: string | null;
     }>;
+    startSupabaseFlow: () => Promise<{ flowId: string; redirectTo: string }>;
+    completeSupabaseFlow: (args: { flowId: string; authorizeUrl: string }) => Promise<{ code: string }>;
 }
 
 export interface BackupAPI {

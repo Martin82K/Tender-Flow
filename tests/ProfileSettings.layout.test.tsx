@@ -71,6 +71,10 @@ vi.mock("../features/settings/BiometricSettings", () => ({
   ),
 }));
 
+vi.mock("../features/settings/MicrosoftAccountSettings", () => ({
+  MicrosoftAccountSettings: () => <div>Microsoft účet</div>,
+}));
+
 describe("ProfileSettings layout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +128,42 @@ describe("ProfileSettings layout", () => {
       "true",
     );
     expect(screen.getByText("Biometrické přihlášení")).toBeInTheDocument();
+    expect(screen.getByText("Microsoft účet")).toBeInTheDocument();
     expect(screen.queryByText("Barva pozadí")).not.toBeInTheDocument();
+  });
+
+  it("řadí účet a profil před podpis a méně častá nastavení", async () => {
+    render(
+      <ProfileSettings
+        theme="system"
+        skin="industrial"
+        onSetTheme={vi.fn()}
+        onSetSkin={vi.fn()}
+        primaryColor="#607AFB"
+        onSetPrimaryColor={vi.fn()}
+        contactStatuses={[]}
+        onUpdateStatuses={vi.fn()}
+        onDeleteContacts={vi.fn()}
+        contacts={[]}
+        user={{
+          id: "user-1",
+          email: "martin@example.com",
+          role: "admin",
+          preferences: { autoShortenProjectDocs: false },
+        }}
+      />
+    );
+
+    expect(await screen.findByRole("heading", { name: "Profil a účet", level: 1 })).toBeVisible();
+    const overview = screen.getByTestId("profile-account-overview");
+    expect(overview).toContainElement(screen.getByText("Microsoft účet"));
+    expect(overview).toContainElement(screen.getByRole("heading", { name: "Můj profil" }));
+    expect(overview).toHaveClass("xl:grid-cols-2");
+    expect(overview).not.toHaveClass("lg:grid-cols-2");
+
+    const signature = screen.getByTestId("profile-signature");
+    const secondary = screen.getByTestId("profile-secondary-settings");
+    expect(overview.compareDocumentPosition(signature) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(signature.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

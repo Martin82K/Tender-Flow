@@ -26,6 +26,7 @@ import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
+import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import {
   INCIDENT_FATAL_EVENT_NAME,
@@ -48,8 +49,6 @@ import { getLegalPage } from "@app/views/LegalPageRouter";
 import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
 import { McpOAuthConsentPage } from "@/app/views/McpOAuthConsentPage";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
-import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
-import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
 import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
 import { TopbarActionsProvider } from "@/shared/ui/TopbarActionsContext";
 import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
@@ -98,7 +97,6 @@ export const AppContent: React.FC = () => {
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
-  const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
 
   useAutoBackupScheduler();
 
@@ -589,7 +587,13 @@ export const AppContent: React.FC = () => {
             onReloadData={() => actions.loadInitialData(true)}
             onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
           >
-            <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+            <LazyViewErrorBoundary
+              key={currentView}
+              onReload={() => window.location.reload()}
+              onLogout={() => logout()}
+            >
+              <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+            </LazyViewErrorBoundary>
 
             {isDesktop && <UpdateBanner />}
           </MainLayout>
@@ -601,9 +605,6 @@ export const AppContent: React.FC = () => {
         isSubmitting={isLegalAcceptanceSaving}
         onAccept={handleAcceptLegalDocuments}
       />
-      {!shouldRequireLegalAcceptance && (
-        <WhatsNewModal isOpen={isWhatsNewOpen} onClose={dismissWhatsNew} />
-      )}
       <GlobalSearchModal />
     </GlobalSearchProvider>
   );

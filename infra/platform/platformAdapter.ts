@@ -10,6 +10,7 @@ import type {
     FolderSnapshot,
     BackupSettingsInfo,
     BackupFileEntry,
+    SessionCredentialsSaveResult,
 } from '@shared/types/desktop';
 
 // Extend Window interface for TypeScript
@@ -420,6 +421,20 @@ export const oauthAdapter = {
         }
         throw new Error('Desktop OAuth není dostupný.');
     },
+
+    async startSupabaseFlow(): Promise<{ flowId: string; redirectTo: string } | null> {
+        if (isDesktop && window.electronAPI?.oauth?.startSupabaseFlow) {
+            return window.electronAPI.oauth.startSupabaseFlow();
+        }
+        return null;
+    },
+
+    async completeSupabaseFlow(args: { flowId: string; authorizeUrl: string }): Promise<{ code: string }> {
+        if (isDesktop && window.electronAPI?.oauth?.completeSupabaseFlow) {
+            return window.electronAPI.oauth.completeSupabaseFlow(args);
+        }
+        throw new Error('Desktop Microsoft OAuth není dostupný.');
+    },
 };
 
 /**
@@ -481,7 +496,7 @@ export const sessionAdapter = {
     /**
      * Save session credentials securely
      */
-    async saveCredentials(credentials: { refreshToken: string; email: string }): Promise<void> {
+    async saveCredentials(credentials: { refreshToken: string; email: string }): Promise<SessionCredentialsSaveResult> {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.saveCredentials(credentials);
         }
@@ -489,6 +504,7 @@ export const sessionAdapter = {
         // Web fallback: use sessionStorage and explicitly clear any legacy localStorage copy.
         sessionStorage.setItem(WEB_SESSION_CREDENTIALS_KEY, JSON.stringify(credentials));
         localStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
+        return { status: 'saved' };
     },
 
     /**
