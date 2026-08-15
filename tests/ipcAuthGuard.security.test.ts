@@ -111,6 +111,8 @@ describe('IPC Auth Guard security', () => {
     expect(ipcAuthGuard.isPreAuthChannel('dialog:showMessage')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('auth:setAuthenticated')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('auth:invokePublicFunction')).toBe(true);
+    expect(ipcAuthGuard.isPreAuthChannel('oauth:startSupabaseFlow')).toBe(true);
+    expect(ipcAuthGuard.isPreAuthChannel('oauth:completeSupabaseFlow')).toBe(true);
   });
 
   it('protected channels are NOT pre-auth', () => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
@@ -8,6 +8,7 @@ import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
+import { microsoftLoginService } from "@/infra/auth/microsoftAccountService";
 
 const getNext = (search: string) => {
   const raw = new URLSearchParams(search).get("next") || DEFAULT_APP_URL;
@@ -32,6 +33,8 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [microsoftAvailable, setMicrosoftAvailable] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
 
   const nextPath = getNext(search);
   const registerHref = `/register?next=${encodeURIComponent(nextPath)}`;
@@ -39,6 +42,30 @@ export const LoginPage: React.FC = () => {
   const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
 
   const showBiometricButton = isDesktop && canUseBiometric && hasSavedCredentials;
+
+  useEffect(() => {
+    let active = true;
+    void microsoftLoginService.isAvailable().then((available) => {
+      if (active) setMicrosoftAvailable(available);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleMicrosoftLogin = async () => {
+    if (microsoftLoading) return;
+    setError("");
+    setMicrosoftLoading(true);
+    try {
+      await microsoftLoginService.login(nextPath);
+      navigate(nextPath, { replace: true });
+    } catch (err: any) {
+      setError(err?.message || "Přihlášení přes Microsoft se nezdařilo");
+    } finally {
+      setMicrosoftLoading(false);
+    }
+  };
 
   const handleBiometricLogin = async () => {
     if (biometricLoading) return;
@@ -159,11 +186,25 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading || biometricLoading}
+            disabled={loading || biometricLoading || microsoftLoading}
             className="auth-btn-primary"
           >
             {loading ? "Pracuji..." : "Přihlásit se"}
           </button>
+
+          {microsoftAvailable ? (
+            <>
+              <div className="auth-divider"><span>nebo</span></div>
+              <button
+                type="button"
+                onClick={handleMicrosoftLogin}
+                disabled={loading || biometricLoading || microsoftLoading}
+                className="auth-btn-secondary"
+              >
+                {microsoftLoading ? "Otevírám Microsoft…" : "Přihlásit přes Microsoft"}
+              </button>
+            </>
+          ) : null}
 
           {showBiometricButton && (
             <>

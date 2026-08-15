@@ -1,7 +1,8 @@
 export type PublicEnvKey =
   | "VITE_SUPABASE_URL"
   | "VITE_SUPABASE_ANON_KEY"
-  | "VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP";
+  | "VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP"
+  | "VITE_MICROSOFT_LOGIN_ENABLED";
 
 type DesktopPublicEnvBridge = {
   publicEnv?: Partial<Record<PublicEnvKey, unknown>>;

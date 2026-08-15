@@ -12,6 +12,7 @@ import {
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
+import { MicrosoftAccountSettings } from "./MicrosoftAccountSettings";
 import { useElectronUpdater } from "@/infra/desktop/useElectronUpdater";
 import { organizationService } from "@features/settings/api";
 import { formatOrgRequestStatus } from "@/shared/organization/organizationUtils";
@@ -371,18 +372,88 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto space-y-5 animate-fadeIn">
-      {/* Main Grid: Profile, Appearance and Quick Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
-        {/* User Profile Section */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-2">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-xl">person</span>
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Profil a účet</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Spravujte své údaje, připojení účtu a osobní nastavení.
+        </p>
+      </header>
+
+      <div data-testid="profile-account-overview" className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <MicrosoftAccountSettings />
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
+          <h2 className="mb-5 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+            <span aria-hidden="true" className="material-symbols-outlined text-primary text-xl">person</span>
             Můj profil
+          </h2>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Zobrazované jméno
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder="Vaše jméno"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 outline-none transition-all focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+              />
+            </div>
+            <dl className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-sm dark:border-slate-800/50">
+              <div className="min-w-0">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">E-mail</dt>
+                <dd className="truncate text-slate-700 dark:text-slate-300" title={user?.email}>{user?.email}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Role</dt>
+                <dd className="text-slate-700 dark:text-slate-300">{user?.role || "user"}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Organizace</dt>
+                <dd className="text-slate-700 dark:text-slate-300">
+                  {orgLoading ? "Načítám stav…" : orgStatus
+                    ? `${orgStatus.organization_name} · ${formatOrgRequestStatus(orgStatus.status)}`
+                    : "Bez připojené organizace"}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {!orgStatus ? (
+                <button
+                  type="button"
+                  onClick={handleRequestOrgJoin}
+                  disabled={orgRequesting}
+                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-600 disabled:opacity-50 dark:text-emerald-400"
+                >
+                  {orgRequesting ? "Odesílám…" : "Požádat o přidání do organizace"}
+                </button>
+              ) : <span />}
+              <button
+                type="button"
+                onClick={handleSaveDisplayName}
+                disabled={isSavingDisplayName}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+              >
+                {isSavingDisplayName ? "Ukládám…" : "Uložit změny"}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Main Grid: signature and lower-frequency settings */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        {/* User Profile Section */}
+        <section data-testid="profile-signature" className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-2">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+            <span aria-hidden="true" className="material-symbols-outlined text-primary text-xl">signature</span>
+            Podpis do e-mailu
           </h2>
 
           <div className="space-y-5">
             <div className="flex flex-col gap-4">
-              <div className="space-y-1.5">
+              <div hidden className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Zobrazované jméno
                 </label>
@@ -407,8 +478,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-slate-50/60 dark:bg-slate-950/40 p-4 space-y-4">
-                <div>
+              <div className="space-y-4">
+                <div hidden>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                     Podpis do e-mailu
                   </h3>
@@ -546,7 +617,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800/50">
+              <div hidden className="grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800/50">
                 <div className="space-y-1">
                   <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Email
@@ -565,7 +636,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/50 space-y-3">
+              <div hidden className="pt-4 border-t border-slate-100 dark:border-slate-800/50 space-y-3">
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Organizace
@@ -596,6 +667,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           </div>
         </section>
 
+        <div data-testid="profile-secondary-settings" className="contents">
         {/* Appearance Settings */}
         <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
@@ -689,9 +761,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </section>
 
         {/* App Update Section */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm lg:col-span-2 xl:col-span-1">
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
           <AppUpdateSection />
         </section>
+        </div>
       </div>
 
       {/* Contact Statuses Management */}

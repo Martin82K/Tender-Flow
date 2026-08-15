@@ -324,32 +324,34 @@ Deno.serve(async (req) => {
       return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const { data: project, error: projectAccessError } = await service
-      .from("projects")
-      .select("id, owner_id")
-      .eq("id", stateRow.project_id)
-      .maybeSingle();
-    if (projectAccessError || !project) {
-      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
-    }
-    if (!project.owner_id) {
-      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
-    }
-
     const accessKind: AccessKind = stateRow.access_kind === "personal_read" ? "personal_read" : "manage";
+    const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id);
     const skipProjectMutation = accessKind === "personal_read";
-    if (!skipProjectMutation && (!project.owner_id || project.owner_id !== stateRow.user_id)) {
-      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
-    }
-    if (skipProjectMutation && project.owner_id !== stateRow.user_id) {
-      const { data: share, error: shareError } = await service
-        .from("project_shares")
-        .select("project_id")
-        .eq("project_id", project.id)
-        .eq("user_id", stateRow.user_id)
+    let project: { id: string; owner_id: string | null } | null = null;
+
+    if (requiresProject) {
+      const { data: projectData, error: projectAccessError } = await service
+        .from("projects")
+        .select("id, owner_id")
+        .eq("id", stateRow.project_id)
         .maybeSingle();
-      if (shareError || !share) {
+      project = projectData;
+      if (projectAccessError || !project?.owner_id) {
         return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
+      if (!skipProjectMutation && project.owner_id !== stateRow.user_id) {
+        return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
+      if (skipProjectMutation && project.owner_id !== stateRow.user_id) {
+        const { data: share, error: shareError } = await service
+          .from("project_shares")
+          .select("project_id")
+          .eq("project_id", project.id)
+          .eq("user_id", stateRow.user_id)
+          .maybeSingle();
+        if (shareError || !share) {
+          return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+        }
       }
     }
 
@@ -397,7 +399,7 @@ Deno.serve(async (req) => {
       return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "token_store_failed"));
     }
 
-    if (!skipProjectMutation) {
+    if (!skipProjectMutation && project) {
       const { error: projectUpdateError } = await service
         .from("projects")
         .update({

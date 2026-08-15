@@ -4,7 +4,8 @@ import * as path from 'path';
 type PublicEnvKey =
     | 'VITE_SUPABASE_URL'
     | 'VITE_SUPABASE_ANON_KEY'
-    | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP';
+    | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP'
+    | 'VITE_MICROSOFT_LOGIN_ENABLED';
 
 type DesktopBuildEnvFile = {
     schemaVersion?: number;
@@ -37,6 +38,7 @@ export const getDesktopRendererPublicEnv = (): Partial<Record<PublicEnvKey, stri
         'VITE_SUPABASE_URL',
         'VITE_SUPABASE_ANON_KEY',
         'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP',
+        'VITE_MICROSOFT_LOGIN_ENABLED',
     ] as const) {
         const value = getPublicEnvValue(key);
         if (value) values[key] = value;

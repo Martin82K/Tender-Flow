@@ -33,9 +33,6 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
     canManageGlobal,
     hasPersonalLocalRoot,
     onlineRootLinkDraft,
-    isMicrosoftOnlineRoot,
-    personalMicrosoftStatus,
-    isLoadingPersonalMicrosoftStatus,
   } = state;
 
   const isConnectedStatus = status === "connected";
@@ -270,35 +267,6 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             )}
           </div>
         </div>
-        {isSharedProject && isMicrosoftOnlineRoot && (
-          <div className="rounded-xl border border-blue-300 bg-white p-4 dark:border-blue-700/50 dark:bg-slate-900/30">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">Online otevření v prohlížeči (volitelné)</div>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                  Ve webové verzi umožní otevřít správnou složku v OneDrive nebo SharePointu. V desktopu není potřeba pro práci s místní kopií. Přihlášení nemění vaši lokální cestu a přístup stále řídí oprávnění Microsoft 365.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={personalMicrosoftStatus === "connected"
-                  ? actions.disconnectPersonalMicrosoft
-                  : actions.connectPersonalMicrosoft}
-                disabled={isConnecting || isLoadingPersonalMicrosoftStatus}
-                className="w-full rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:whitespace-nowrap"
-              >
-                {isLoadingPersonalMicrosoftStatus
-                  ? "Ověřuji..."
-                  : personalMicrosoftStatus === "connected"
-                    ? "Odpojit můj Microsoft"
-                    : "Přihlásit k Microsoftu pro online otevření"}
-              </button>
-            </div>
-            {personalMicrosoftStatus === "connected" && (
-              <div className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">Microsoft je připojen pro online otevírání složek.</div>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">

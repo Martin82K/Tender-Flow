@@ -28,6 +28,14 @@ nebudou fungovat.
 | `VITE_EXCEL_TOOLS_URL` | endpoint Excel tools služby |
 | `VITE_EXCEL_MERGER_MIRROR_URL` | alternativní endpoint/mirror |
 | `VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP` | veřejné desktop OAuth client ID |
+| `VITE_MICROSOFT_LOGIN_ENABLED` | bezpečnostní release přepínač; nastavte na `true` až po aktivaci Azure provideru, Before User Created hooku, ručního linkování a povolených návratových URL |
+
+Microsoft přihlášení je určeno pouze existujícím účtům. Před zapnutím přepínače
+musí být v Supabase Authentication nastaven Azure provider, povoleno ruční
+linkování identit, aktivován hook
+`hook_restrict_microsoft_login_to_existing_users` a přidány webové i desktopové
+loopback návratové URL. Azure callback v Entra ID zůstává HTTPS callback Supabase;
+loopback `127.0.0.1` je až interní návrat Supabase do desktopové aplikace.
 
 Veřejné hodnoty nesmějí obsahovat client secret ani service role key.
 

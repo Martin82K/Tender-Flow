@@ -645,7 +645,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     <span className="material-symbols-outlined text-[20px]">
                       person
                     </span>
-                    Profil a Vzhled
+                    Profil a účet
                   </div>
                 </button>
 

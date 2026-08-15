@@ -180,6 +180,7 @@ Deno.serve(async (req) => {
     const projectId = (body?.projectId as string) || null;
     const accessKind = (body?.accessKind as AccessKind) || "manage";
     const returnTo = sanitizeReturnTo(body?.returnTo as string);
+    const isGlobalPersonalRead = accessKind === "personal_read" && provider === "onedrive" && !projectId;
 
     if (!provider || !["gdrive", "onedrive"].includes(provider)) {
       return json(req, 400, { error: "Invalid provider" });
@@ -187,7 +188,7 @@ Deno.serve(async (req) => {
     if (!mode || !["user", "org"].includes(mode)) {
       return json(req, 400, { error: "Invalid mode" });
     }
-    if (!projectId) {
+    if (!projectId && !isGlobalPersonalRead) {
       return json(req, 400, { error: "Missing projectId" });
     }
     if (!(["manage", "personal_read"] as const).includes(accessKind)) {
@@ -197,32 +198,34 @@ Deno.serve(async (req) => {
       return json(req, 400, { error: "Personal read access is only available for Microsoft" });
     }
 
-    const { data: project, error: projectError } = await authed
-      .from("projects")
-      .select("id, owner_id")
-      .eq("id", projectId)
-      .maybeSingle();
-    if (projectError) {
-      return json(req, 500, { error: projectError.message });
-    }
-    if (!project) {
-      return json(req, 403, { error: "Forbidden" });
-    }
-    if (!project.owner_id) {
-      return json(req, 403, { error: "Project owner permission required" });
-    }
-    const isProjectOwner = project.owner_id === userData.user.id;
-    if (accessKind === "manage" && (!project.owner_id || project.owner_id !== userData.user.id)) {
-      return json(req, 403, { error: "Project owner permission required" });
-    }
-    if (accessKind === "personal_read" && !isProjectOwner) {
-      const { data: share, error: shareError } = await authed
-        .from("project_shares")
-        .select("project_id")
-        .eq("project_id", projectId)
-        .eq("user_id", userData.user.id)
+    if (!isGlobalPersonalRead) {
+      const { data: project, error: projectError } = await authed
+        .from("projects")
+        .select("id, owner_id")
+        .eq("id", projectId)
         .maybeSingle();
-      if (shareError || !share) return json(req, 403, { error: "Forbidden" });
+      if (projectError) {
+        return json(req, 500, { error: projectError.message });
+      }
+      if (!project) {
+        return json(req, 403, { error: "Forbidden" });
+      }
+      if (!project.owner_id) {
+        return json(req, 403, { error: "Project owner permission required" });
+      }
+      const isProjectOwner = project.owner_id === userData.user.id;
+      if (accessKind === "manage" && project.owner_id !== userData.user.id) {
+        return json(req, 403, { error: "Project owner permission required" });
+      }
+      if (accessKind === "personal_read" && !isProjectOwner) {
+        const { data: share, error: shareError } = await authed
+          .from("project_shares")
+          .select("project_id")
+          .eq("project_id", projectId)
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        if (shareError || !share) return json(req, 403, { error: "Forbidden" });
+      }
     }
 
     const nonce = randomNonce();
@@ -235,7 +238,7 @@ Deno.serve(async (req) => {
       nonce,
       provider,
       user_id: userData.user.id,
-      project_id: projectId,
+      project_id: isGlobalPersonalRead ? null : projectId,
       mode,
       return_to: returnTo,
       access_kind: accessKind,

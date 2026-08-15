@@ -47,6 +47,7 @@ describe("desktop build env security", () => {
       "VITE_SUPABASE_URL",
       "VITE_SUPABASE_ANON_KEY",
       "VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP",
+      "VITE_MICROSOFT_LOGIN_ENABLED",
     ]);
     expect(publicKeys.every((key) => key.startsWith("VITE_"))).toBe(true);
     expect(publicKeys.some((key) => /(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD|TOKEN)/i.test(key))).toBe(false);

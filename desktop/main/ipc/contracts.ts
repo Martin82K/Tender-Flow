@@ -79,6 +79,14 @@ export interface IpcContractMap {
       idToken?: string | null;
     };
   };
+  "oauth:startSupabaseFlow": {
+    args: [];
+    result: { flowId: string; redirectTo: string };
+  };
+  "oauth:completeSupabaseFlow": {
+    args: [args: { flowId: string; authorizeUrl: string }];
+    result: { code: string };
+  };
   "net:request": {
     args: [url: string, options?: RequestInit];
     result: {

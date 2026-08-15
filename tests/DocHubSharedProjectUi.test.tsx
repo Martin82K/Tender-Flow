@@ -91,7 +91,8 @@ describe("DocHub shared project UI", () => {
     openSpy.mockRestore();
   });
 
-  it("nabizi sdilenemu uzivateli osobni Microsoft prihlaseni pro online mapovani", () => {
+  it("nezobrazuje Microsoft přihlášení v nastavení konkrétní stavby", () => {
+    actions.connectPersonalMicrosoft.mockClear();
     render(
       <DocHubSetupWizard
         state={{ ...sharedState, hasPersonalLocalRoot: false } as any}
@@ -101,10 +102,9 @@ describe("DocHub shared project UI", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Přihlásit k Microsoftu pro online otevření" }));
-    expect(actions.connectPersonalMicrosoft).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Online otevření v prohlížeči (volitelné)")).toBeVisible();
-    expect(screen.getByText(/Ve webové verzi umožní otevřít správnou složku/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Přihlásit k Microsoftu pro online otevření" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Online otevření v prohlížeči (volitelné)")).not.toBeInTheDocument();
+    expect(actions.connectPersonalMicrosoft).not.toHaveBeenCalled();
   });
 
   it("validates a manually entered local path before opening it", () => {

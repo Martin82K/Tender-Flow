@@ -421,6 +421,20 @@ export const oauthAdapter = {
         }
         throw new Error('Desktop OAuth není dostupný.');
     },
+
+    async startSupabaseFlow(): Promise<{ flowId: string; redirectTo: string } | null> {
+        if (isDesktop && window.electronAPI?.oauth?.startSupabaseFlow) {
+            return window.electronAPI.oauth.startSupabaseFlow();
+        }
+        return null;
+    },
+
+    async completeSupabaseFlow(args: { flowId: string; authorizeUrl: string }): Promise<{ code: string }> {
+        if (isDesktop && window.electronAPI?.oauth?.completeSupabaseFlow) {
+            return window.electronAPI.oauth.completeSupabaseFlow(args);
+        }
+        throw new Error('Desktop Microsoft OAuth není dostupný.');
+    },
 };
 
 /**

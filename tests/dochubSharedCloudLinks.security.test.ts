@@ -207,18 +207,30 @@ describe("DocHub shared cloud links", () => {
   });
 
   it("rejects an OAuth callback when its state user is not the project owner", () => {
-    for (const endpoint of ["dochub-google-callback", "dochub-microsoft-callback"]) {
-      const source = fs.readFileSync(
-        path.join(repoRoot, `supabase/functions/${endpoint}/index.ts`),
-        "utf8",
-      );
-      expect(source, endpoint).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
-    }
+    const googleSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-google-callback/index.ts"),
+      "utf8",
+    );
+    expect(googleSource).toContain("!project.owner_id || project.owner_id !== stateRow.user_id");
+
+    const microsoftSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-microsoft-callback/index.ts"),
+      "utf8",
+    );
+    expect(microsoftSource).toContain('const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id)');
+    expect(microsoftSource).toContain("if (projectAccessError || !project?.owner_id)");
+    expect(microsoftSource).toContain("if (!skipProjectMutation && project.owner_id !== stateRow.user_id)");
   });
 
   it("fails closed for ownerless projects in global mutation endpoints", () => {
+    const authUrlSource = fs.readFileSync(
+      path.join(repoRoot, "supabase/functions/dochub-auth-url/index.ts"),
+      "utf8",
+    );
+    expect(authUrlSource).toContain("if (!project.owner_id)");
+    expect(authUrlSource).toContain("project.owner_id !== userData.user.id");
+
     for (const endpoint of [
-      "dochub-auth-url",
       "dochub-autocreate",
       "dochub-google-create-root",
       "dochub-google-desktop-token",
