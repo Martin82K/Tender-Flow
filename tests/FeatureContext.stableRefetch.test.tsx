@@ -99,7 +99,7 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
         ...authState.current,
         user: {
           ...authState.current.user!,
-          preferences: { commandCenter: { autoLayout: false } },
+          preferences: { primaryColor: "#112233" },
         },
       };
     });
@@ -126,7 +126,7 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
         }),
     );
     mocks.getEnabledFeaturesV2.mockImplementation(async () => [
-      { key: "module_command_center", name: "CC", description: null, category: null },
+      { key: "module_tasks", name: "Tasks", description: null, category: null },
     ]);
 
     const { rerender } = render(

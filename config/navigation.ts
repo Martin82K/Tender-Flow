@@ -79,13 +79,6 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     feature: FEATURES.MODULE_TASKS,
   },
   {
-    id: 'command-center',
-    label: 'Command Center',
-    icon: 'radar',
-    view: 'command-center',
-    feature: FEATURES.MODULE_COMMAND_CENTER,
-  },
-  {
     id: 'contacts',
     label: 'Subdodavatelé',
     icon: 'handshake',

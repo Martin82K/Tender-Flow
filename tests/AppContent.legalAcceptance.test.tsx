@@ -133,7 +133,6 @@ vi.mock("@/config/features", () => ({
   FEATURES: {
     MODULE_PROJECTS: "projects",
     MODULE_CONTACTS: "contacts",
-    MODULE_COMMAND_CENTER: "command-center",
     MODULE_TASKS: "tasks",
     FEATURE_ADVANCED_REPORTING: "reporting",
     URL_SHORTENER: "shortener",
@@ -172,7 +171,6 @@ vi.mock("@/services/incidentLogger", () => ({
 
 vi.mock("@app/views/LazyViews", () => ({
   AppLazyFallback: () => <div>fallback</div>,
-  CommandCenterView: () => <div>command-center</div>,
   Contacts: () => <div>contacts</div>,
   ProjectLayout: () => <div>project</div>,
   ProjectManager: () => <div>project-manager</div>,

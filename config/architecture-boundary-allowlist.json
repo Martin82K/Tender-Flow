@@ -27,81 +27,6 @@
     },
     {
       "type": "feature-private-import",
-      "file": "features/command-center/CommandCenter.tsx",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useActivityFeedData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useCalendarData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useCalendarData.ts",
-      "specifier": "@features/tasks/api/tasksApi"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useCalendarData.ts",
-      "specifier": "@features/tasks/hooks/useTasksQuery"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useCalendarData.ts",
-      "specifier": "@features/tasks/types"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useCommandCenterKpis.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useDerivedActions.ts",
-      "specifier": "@features/projects/contracts/hooks/useAllContractsQuery"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useDerivedActions.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useFinanceGaugeData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useMatrixHealthData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/usePipelineFunnelData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/hooks/useProjectsPanelData.ts",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/modules/action-queue/ActionQueueModule.tsx",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/command-center/modules/filter-bar/FilterBarModule.tsx",
-      "specifier": "@features/projects/model/useProjectPortfolioState"
-    },
-    {
-      "type": "feature-private-import",
       "file": "features/contacts/Contacts.tsx",
       "specifier": "@features/maps/components/SubcontractorMapView"
     },
@@ -244,11 +169,6 @@
       "type": "feature-private-import",
       "file": "features/subscription/ui/index.ts",
       "specifier": "@/features/settings/SubscriptionSettings"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/tasks/model/actionQueueMerge.ts",
-      "specifier": "@features/command-center/types"
     },
     {
       "type": "feature-private-import",

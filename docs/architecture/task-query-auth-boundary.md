@@ -11,7 +11,7 @@ cache a síťový kontrakt a zabránit backendovému requestu bez běžného už
 
 ## Datový tok
 
-`AuthProvider` → `AuthIdentityContext` → `TasksPage` / `ActionQueueModule` →
+`AuthProvider` → `AuthIdentityContext` → `TasksPage` →
 `useTasksQuery` / `useTaskProjectsQuery` → task API → databázový adaptér
 
 Consumer přečte read-only projekci `id`, `email`, `role` na hranici UI a předá
@@ -46,7 +46,6 @@ ji query hooku. Hooky neimportují legacy context, session ani auth akce.
 - [x] `null` a demo identita jsou disabled a fail-closed bez API volání.
 - [x] Minutový `staleTime` se nezmění.
 - [x] Tasks předá jednu identitu oběma query.
-- [x] Command Center předá identitu a filtr nedokončených úkolů.
 - [x] Projdou cílené UI testy, úplný Vitest, typecheck, dokumentace, guardy,
   web build, desktop compile a dependency audit.
 
@@ -65,7 +64,7 @@ zůstane v historii navazujícího PR.
 ## Rollback a manuální ověření
 
 Změna nevyžaduje migraci dat a lze ji vrátit jedním revertem. Ručně je potřeba
-ověřit Inbox/Kalendář úkolů, osobní TODO projekty, Akční frontu Command Center,
+ověřit Inbox/Kalendář úkolů, osobní TODO projekty,
 demo účet a přepnutí dvou běžných účtů bez promíchání cache.
 
 Navazující create operace a jejich odlišný fail-closed kontrakt popisuje

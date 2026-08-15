@@ -10,7 +10,6 @@
     { "id": "routing", "label": "Routing", "group": "app", "paths": ["shared/routing/routeUtils.ts", "app/featureRegistry/manifests.ts"] },
     { "id": "projects", "label": "Stavby", "group": "app", "paths": ["features/projects", "shared/ui/projects"] },
     { "id": "contacts", "label": "Subdodavatelé", "group": "app", "paths": ["features/contacts"] },
-    { "id": "command-center", "label": "Command Center", "group": "app", "paths": ["features/command-center"] },
     { "id": "tasks", "label": "TODO", "group": "app", "paths": ["features/tasks", "supabase/migrations/20260420100000_tasks.sql"] },
     { "id": "supabase", "label": "Supabase", "group": "data", "paths": ["services/supabase.ts", "infra/db/dbAdapter.ts", "supabase/migrations"] },
     { "id": "settings", "label": "Nastavení", "group": "app", "paths": ["features/settings", "context/FeatureContext.tsx"] },
@@ -46,16 +45,16 @@
       ]
     },
     {
-      "id": "task-to-command-center",
-      "label": "TODO to Command Center",
-      "summary": "Personal úkol se uloží a propíše do Command Center akční fronty i kalendáře.",
+      "id": "create-todo",
+      "label": "Create TODO",
+      "summary": "Osobní úkol se uloží a zobrazí v TODO seznamu i kalendáři.",
       "entryAction": "create todo",
       "risk": "Personal scope nesmí zobrazit úkol jiného uživatele.",
       "aliases": ["todo", "úkol", "podúkol"],
       "steps": [
         { "from": "tasks", "to": "supabase", "label": "Persist task", "detail": "TODO modul uloží root úkol nebo podúkol.", "data": "title, created_by, parent_task_id, due_at" },
-        { "from": "supabase", "to": "tasks", "label": "Invalidate query", "detail": "React Query obnoví osobní task list.", "data": "tasks query key" },
-        { "from": "tasks", "to": "command-center", "label": "Merge actions", "detail": "Command Center smíchá tasky s derivovanými akcemi.", "data": "open personal tasks, priority, due_at" }
+        { "from": "supabase", "to": "tasks", "label": "Invalidate query", "detail": "React Query obnoví osobní task list a kalendář.", "data": "tasks query key" },
+        { "from": "tasks", "to": "tasks", "label": "Render task views", "detail": "TODO modul promítne obnovená data do Inboxu, seznamů a kalendáře.", "data": "tasks, filters, calendar range" }
       ]
     },
     {
@@ -81,7 +80,7 @@
       "steps": [
         { "from": "projects", "to": "supabase", "label": "Update bid", "detail": "Pipeline uloží změnu nabídky.", "data": "bid_id, status, price" },
         { "from": "supabase", "to": "projects", "label": "Reload project details", "detail": "Projektový stav se znovu načte.", "data": "ProjectDetails" },
-        { "from": "projects", "to": "command-center", "label": "Derived signals", "detail": "Command Center přepočítá rizika a deadline.", "data": "categories, bids, deadlines" }
+        { "from": "projects", "to": "projects", "label": "Refresh project views", "detail": "Projektové přehledy přepočítají stav nabídky a související souhrny.", "data": "categories, bids, contracts" }
       ]
     },
     {

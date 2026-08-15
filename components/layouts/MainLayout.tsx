@@ -84,7 +84,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             if (targetId) {
                 navigate(buildAppUrl("project", { projectId: targetId, tab: activeProjectTab as any }));
             } else {
-                navigate(buildAppUrl("command-center"));
+                navigate(buildAppUrl("project-management"));
             }
             return;
         }

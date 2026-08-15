@@ -13,7 +13,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 const viewLabels: Record<string, string> = {
-  dashboard: "Command Center",
+  dashboard: "Přehled",
   project: "Projekt",
   contacts: "Kontakty",
   settings: "Nastavení",

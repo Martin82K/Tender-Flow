@@ -16,7 +16,6 @@ const user: User = {
 const enabledFeatures: FeatureKey[] = [
   FEATURES.MODULE_PROJECTS,
   FEATURES.MODULE_CONTACTS,
-  FEATURES.MODULE_COMMAND_CENTER,
   FEATURES.MODULE_TASKS,
   FEATURES.FEATURE_ADVANCED_REPORTING,
   FEATURES.CONTACTS_IMPORT,
@@ -78,6 +77,7 @@ describe('Sidebar navigation', () => {
     const { container } = renderSidebar();
 
     expect(screen.getByRole('button', { name: /TODO Osobní/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Command Center/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Správa staveb/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Přehledy/i })).toBeInTheDocument();
 

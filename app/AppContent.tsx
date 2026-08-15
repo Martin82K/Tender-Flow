@@ -34,7 +34,6 @@ import {
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
 import {
   AppLazyFallback,
-  CommandCenterView,
   ContractOverview,
   Contacts,
   ProjectLayout,
@@ -332,12 +331,6 @@ export const AppContent: React.FC = () => {
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case "command-center":
-        return (
-          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
-            <CommandCenterView />
-          </RequireFeature>
-        );
       case "todo":
         return (
           <RequireFeature feature={FEATURES.MODULE_TASKS}>
@@ -515,8 +508,8 @@ export const AppContent: React.FC = () => {
         );
       default:
         return (
-          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
-            <CommandCenterView />
+          <RequireFeature feature={FEATURES.MODULE_TASKS}>
+            <TasksPage skin={skin} />
           </RequireFeature>
         );
     }

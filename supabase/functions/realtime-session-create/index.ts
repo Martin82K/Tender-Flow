@@ -11,7 +11,7 @@ const ASSISTANT_NAME = "Viky";
 const VIKY_REALTIME_VOICE = "marin";
 
 const allowedViews = new Set([
-  "command-center",
+  "todo",
   "project",
   "contacts",
   "settings",
@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const currentProjectId = sanitizeString(body?.currentProjectId, 80);
     const requestedView = sanitizeString(body?.currentView, 80);
-    const currentView = requestedView && allowedViews.has(requestedView) ? requestedView : "command-center";
+    const currentView = requestedView && allowedViews.has(requestedView) ? requestedView : "todo";
     const realtimeModel = resolveRealtimeModel(body?.realtimeModel);
 
     const { data: membership, error: membershipError } = await service
