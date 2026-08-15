@@ -203,7 +203,6 @@ export const LandingPage: React.FC = () => {
             "Pipeline tendrů",
             "Správa kontaktů",
             "AI analýza smluv",
-            "Command Center",
             "TODO Osobní",
             "Dokumentový hub",
             "Harmonogram",
@@ -215,7 +214,6 @@ export const LandingPage: React.FC = () => {
               "Pipeline tendrů",
               "Správa kontaktů",
               "AI analýza smluv",
-              "Command Center",
               "TODO Osobní",
               "Dokumentový hub",
               "Harmonogram",
@@ -239,7 +237,7 @@ export const LandingPage: React.FC = () => {
             Vše co potřebujete pro <span className="serif">Vaše v&iacute;tězstv&iacute;</span>
           </h2>
           <p className="sec-desc">
-            Osm modulů navržen&yacute;ch specificky pro česk&eacute; a
+            Sedm modulů navržen&yacute;ch specificky pro česk&eacute; a
             slovensk&eacute; stavebn&iacute; firmy.
           </p>
 
@@ -317,35 +315,12 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
             <div className="f-card f-6">
-              <div className="f-tag">Nov&eacute;</div>
-              <h3>Command Center</h3>
-              <p>
-                Denn&iacute; operačn&iacute; přehled spojuje term&iacute;ny,
-                rizika, akce z tendrů a osobn&iacute; &uacute;koly do jednoho
-                prioritn&iacute;ho frontu.
-              </p>
-              <div className="command-preview" aria-hidden="true">
-                <div className="command-preview-row urgent">
-                  <span>!</span>
-                  <strong>Dnes odeslat poptávku</strong>
-                </div>
-                <div className="command-preview-row">
-                  <span>✓</span>
-                  <strong>Zkontrolovat smlouvu</strong>
-                </div>
-                <div className="command-preview-row muted">
-                  <span>•</span>
-                  <strong>Navázat kontakt s dodavatelem</strong>
-                </div>
-              </div>
-            </div>
-            <div className="f-card f-7">
               <div className="f-tag">Produktivita</div>
               <h3>TODO Osobn&iacute;</h3>
               <p>
                 Osobn&iacute; seznamy, pod&uacute;koly, připom&iacute;nky a
-                kalend&aacute;ř drž&iacute; vlastn&iacute; pr&aacute;ci oddělenou
-                od projektů, ale viditelnou v Command Center.
+                kalend&aacute;ř drž&iacute; vlastn&iacute; pr&aacute;ci přehledně oddělenou
+                od projektů.
               </p>
               <div className="todo-preview" aria-hidden="true">
                 <div className="todo-preview-item done">Připravit rozpočet</div>
@@ -376,17 +351,9 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>Command Center</strong> — prioritn&iacute; fronta
-                    akc&iacute;, term&iacute;nů a osobn&iacute;ch TODO na jednom
-                    m&iacute;stě
-                  </span>
-                </li>
-                <li>
-                  <div className="check-icon">&#10003;</div>
-                  <span>
                     <strong>TODO Osobn&iacute;</strong> — soukrom&eacute;
                     &uacute;koly, pod&uacute;koly, projekty a připom&iacute;nky
-                    napojen&eacute; na denn&iacute; přehled
+                    v samostatn&eacute;m pracovn&iacute;m prostoru
                   </span>
                 </li>
                 <li>
@@ -439,9 +406,6 @@ export const LandingPage: React.FC = () => {
               <div className="app-body">
                 <div className="app-sidebar">
                   <div className="app-nav-item active">
-                    <span className="dot" /> Command Center
-                  </div>
-                  <div className="app-nav-item">
                     <span className="dot" /> TODO Osobn&iacute;
                   </div>
                   <div className="app-nav-item">
@@ -465,7 +429,7 @@ export const LandingPage: React.FC = () => {
                 </div>
                 <div className="app-main">
                   <div className="app-header-row">
-                    <div className="app-page-title">Command Center</div>
+                  <div className="app-page-title">TODO Osobn&iacute;</div>
                     <div className="app-mini-btn">+ Rychl&yacute; &uacute;kol</div>
                   </div>
                   <div className="app-kpi-row">

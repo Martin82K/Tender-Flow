@@ -3,10 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "index.css"), "utf8");
-const commandCenterCss = readFileSync(
-  join(process.cwd(), "features/command-center/command-center.css"),
-  "utf8",
-);
 const lightArt = readFileSync(
   join(process.cwd(), "assets/themes/botanica/botanical-relief-light.svg"),
   "utf8",
@@ -121,9 +117,4 @@ describe("Botanica skin", () => {
     expect(css).toContain('[data-help-id="overview-kpi-cards"]');
   });
 
-  it("přenáší botanickou paletu do Command Center a zachovává čisté panely", () => {
-    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-root`);
-    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-panel`);
-    expect(commandCenterCss).toContain("var(--tf-skin-panel-opacity, 88%)");
-  });
 });

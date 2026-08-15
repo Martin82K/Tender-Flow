@@ -34,10 +34,6 @@ export {
 } from "./api/taskProjectsApi";
 
 export {
-  mergeActionQueue,
-  classifyTaskSeverity,
-} from "./model/actionQueueMerge";
-export {
   buildTaskTree,
   findTaskSelection,
   filterTaskTreeByTodoProject,
@@ -48,13 +44,6 @@ export {
   matchesTaskView,
 } from "./model/taskTree";
 export type { TaskSelection, TaskViewFilter, TaskWithSubtasks } from "./model/taskTree";
-export type {
-  ActionQueueItem,
-  ActionQueueItemKind,
-  DerivedActionQueueItem,
-  TaskQueueItem,
-} from "./model/actionQueueMerge";
-
 export { TaskFormModal } from "./ui/TaskFormModal";
 export { TaskQuickAdd } from "./ui/TaskQuickAdd";
 export { TaskCreateButton } from "./ui/TaskCreateButton";

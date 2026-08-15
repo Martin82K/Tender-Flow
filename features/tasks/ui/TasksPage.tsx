@@ -3421,7 +3421,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
     <div className="tf-tasks-view flex h-full min-h-0 flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Header
         title="TODO Osobní"
-        subtitle="Osobní úkoly, podúkoly a propis do Command Center"
+        subtitle="Osobní úkoly, podúkoly, připomínky a kalendář"
         helpSlot={<HelpButton />}
         notificationSlot={<NotificationBell />}
         skin={skin}

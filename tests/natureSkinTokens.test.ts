@@ -3,10 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "index.css"), "utf8");
-const commandCenterCss = readFileSync(
-  join(process.cwd(), "features/command-center/command-center.css"),
-  "utf8",
-);
 const lightAssetPath = join(process.cwd(), "assets/themes/nature/forest-light.jpg");
 const darkAssetPath = join(process.cwd(), "assets/themes/nature/forest-dark.jpg");
 
@@ -94,7 +90,7 @@ describe("Nature skin", () => {
     expect(dark.toString("latin1")).not.toMatch(/https?:\/\/|<script|<svg/i);
   });
 
-  it("sdílí data-safe shell a Command Center bez zásahu do ostatních skinů", () => {
+  it("sdílí data-safe shell bez zásahu do ostatních skinů", () => {
     const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"])';
 
     expect(css).toContain(`${sharedSkinSelector} .tf-app-main::before`);
@@ -102,8 +98,6 @@ describe("Nature skin", () => {
     expect(css).toContain(`${sharedSkinSelector} table`);
     expect(css).toContain("var(--tf-skin-data-opacity, 94%)");
     expect(css).toContain("(forced-colors: active), (prefers-contrast: more)");
-    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-root`);
-    expect(commandCenterCss).toContain(`${sharedSkinSelector} .cc-panel`);
     expect(css).toContain('html[data-skin="botanica"]');
     expect(css).toContain('html[data-skin="industrial"]');
   });

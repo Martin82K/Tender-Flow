@@ -28,8 +28,6 @@ export const buildAppUrl = (
     }
 ): string => {
     switch (view) {
-        case "command-center":
-            return `${APP_BASE}/command-center`;
         case "contacts":
             return `${APP_BASE}/contacts`;
         case "todo":
@@ -70,7 +68,7 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
+    | { isApp: true; view: "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
@@ -92,7 +90,7 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     }
 
     const sub = parts[1];
-    if (sub === "command-center") return { isApp: true as const, view: "command-center" as const };
+    if (sub === "command-center") return { isApp: true as const, redirectTo: DEFAULT_APP_URL };
     if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
     if (sub === "todo") return { isApp: true as const, view: "todo" as const };
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };

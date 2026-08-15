@@ -23,7 +23,7 @@ describe("shouldEnableVoiceAssistantForRoute", () => {
   it("ponechá Viky mimo projektový pohled", () => {
     expect(
       shouldEnableVoiceAssistantForRoute({
-        currentView: "command-center",
+        currentView: "todo",
         activeProjectTab: "pipeline",
       }),
     ).toBe(true);

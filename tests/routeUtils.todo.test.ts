@@ -19,4 +19,11 @@ describe("TODO routing", () => {
       view: "todo",
     });
   });
+
+  it("přesměruje historickou Command Center routu na TODO modul", () => {
+    expect(parseAppRoute("/app/command-center", "")).toEqual({
+      isApp: true,
+      redirectTo: "/app/todo",
+    });
+  });
 });

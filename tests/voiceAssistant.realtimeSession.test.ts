@@ -61,7 +61,7 @@ describe("createRealtimeVoiceSession", () => {
     await expect(
       createRealtimeVoiceSession({
         currentProjectId: null,
-        currentView: "command-center",
+        currentView: "todo",
         realtimeModel: "gpt-realtime",
       }),
     ).resolves.toEqual(expect.objectContaining({ model: "gpt-realtime" }));
@@ -69,7 +69,7 @@ describe("createRealtimeVoiceSession", () => {
     expect(invokeAuthedFunction).toHaveBeenCalledWith("realtime-session-create", {
       body: {
         currentProjectId: null,
-        currentView: "command-center",
+        currentView: "todo",
         realtimeModel: "gpt-realtime",
       },
       timeoutMs: 15_000,
@@ -91,7 +91,7 @@ describe("createRealtimeVoiceSession", () => {
     await expect(
       createRealtimeVoiceSession({
         currentProjectId: null,
-        currentView: "command-center",
+        currentView: "todo",
         realtimeModel: "gpt-realtime-2",
       }),
     ).rejects.toThrow(/neplatný realtime token/i);
@@ -112,7 +112,7 @@ describe("createRealtimeVoiceSession", () => {
     await expect(
       createRealtimeVoiceSession({
         currentProjectId: null,
-        currentView: "command-center",
+        currentView: "todo",
         realtimeModel: "gpt-realtime-2",
       }),
     ).rejects.toThrow(/gpt-realtime.*gpt-realtime-2/i);
