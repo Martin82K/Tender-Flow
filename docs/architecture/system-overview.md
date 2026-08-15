@@ -50,8 +50,13 @@ index.tsx
 | Server | `server/`, `server_py/`, `supabase/functions/` | neveřejné runtime implementace |
 
 Webové vrstvy nesmí importovat `desktop/main/`, `server/` ani `server_py/`.
-Kontroluje to `npm run check:boundaries`. Přidání souboru do legacy kořene
-kontroluje `npm run check:legacy-structure`.
+Kontroluje to `npm run check:boundaries`. Stejný guard porovnává každou přesnou
+vazbu z `app/features/shared/infra` do legacy kořenů s ratchet baseline v
+`config/legacy-import-baseline.json`. Nová vazba i zastaralá baseline položka
+kontrolu shodí. Quality workflow navíc porovnává baseline s výchozí Git revizí,
+takže ji PR smí pouze zmenšit. Přesný snapshot tracked souborů v legacy kořenech kontroluje
+`npm run check:legacy-structure`; odstraněný soubor proto musí být současně
+odebrán z `config/legacy-freeze.json`.
 
 ## Stav a data
 
@@ -89,6 +94,8 @@ handler validuje vstup i autorizaci; výsledek vrací serializovatelný kontrakt
 ## Architektonický přechod
 
 Repozitář je v postupné migraci z legacy kořenů do `app/features/shared/infra`.
-Audit je informativní a spouští se přes `npm run audit:architecture`. Nové změny
-nemají zvyšovat počet přechodových vazeb ani přidávat další soubory do frozen
-legacy kořenů bez explicitního rozhodnutí.
+Audit přes `npm run audit:architecture` zůstává informativním rozborem známých
+kategorií dluhu. Vynucovaný importní baseline je přesná množina souboru,
+specifieru a cíle, nikoli pouze celkový počet; migrace jej musí zmenšovat a
+nemůže starou vazbu vyměnit za novou. Nové soubory ve frozen legacy kořenech
+nejsou povolené bez explicitního rozhodnutí.

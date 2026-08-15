@@ -1,0 +1,675 @@
+{
+  "version": 1,
+  "allowedImports": [
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/components/layouts/MainLayout",
+      "target": "components/layouts/MainLayout"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/hooks/useAppData",
+      "target": "hooks/useAppData"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/hooks/useDesktop",
+      "target": "hooks/useDesktop"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/hooks/useTheme",
+      "target": "hooks/useTheme"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
+      "file": "app/AppShell.tsx",
+      "specifier": "@/components/providers/AppProviders",
+      "target": "components/providers/AppProviders"
+    },
+    {
+      "file": "app/hooks/useCriticalLoadIncident.ts",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
+      "file": "app/hooks/usePosthogIdentity.ts",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "app/hooks/usePosthogIdentity.ts",
+      "specifier": "@/services/dbAdapter",
+      "target": "services/dbAdapter"
+    },
+    {
+      "file": "app/views/AuthGate.tsx",
+      "specifier": "@/components/LandingPage",
+      "target": "components/LandingPage"
+    },
+    {
+      "file": "app/views/AuthGate.tsx",
+      "specifier": "@/components/layouts/AuthLayout",
+      "target": "components/layouts/AuthLayout"
+    },
+    {
+      "file": "app/views/AuthGate.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "app/views/LazyViewErrorBoundary.tsx",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
+      "file": "app/views/McpOAuthConsentPage.tsx",
+      "specifier": "@/components/layouts/AuthLayout",
+      "target": "components/layouts/AuthLayout"
+    },
+    {
+      "file": "features/auth/api/index.ts",
+      "specifier": "@/services/authService",
+      "target": "services/authService"
+    },
+    {
+      "file": "features/auth/ui/LoginPage.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/auth/ui/MfaPage.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/auth/ui/RegisterPage.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/backup/hooks/useAutoBackupScheduler.ts",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/backup/ui/BackupSettings.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/backup/ui/BackupSettings.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@/services/geminiService",
+      "target": "services/geminiService"
+    },
+    {
+      "file": "features/contacts/model/contactQuickPaste.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "features/contacts/model/contactQuickPaste.ts",
+      "specifier": "@/services/geminiService",
+      "target": "services/geminiService"
+    },
+    {
+      "file": "features/contracts-overview/api/contractOverviewApi.ts",
+      "specifier": "@/services/contractService",
+      "target": "services/contractService"
+    },
+    {
+      "file": "features/contracts-overview/ContractOverview.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/contracts-overview/ContractOverview.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/maps/components/ProjectMapView.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/notifications/api/notificationApi.ts",
+      "specifier": "@/services/notificationService",
+      "target": "services/notificationService"
+    },
+    {
+      "file": "features/organization/api/index.ts",
+      "specifier": "@/services/organizationService",
+      "target": "services/organizationService"
+    },
+    {
+      "file": "features/organization/ui/OrgBrandingTab.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/organization/ui/OrgMembersTab.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/projects/api/projectDemoDataApi.ts",
+      "specifier": "@/services/demoData",
+      "target": "services/demoData"
+    },
+    {
+      "file": "features/projects/contracts/api/contractMutationsApi.ts",
+      "specifier": "@/services/contractService",
+      "target": "services/contractService"
+    },
+    {
+      "file": "features/projects/contracts/api/contractQueriesApi.ts",
+      "specifier": "@/services/contractService",
+      "target": "services/contractService"
+    },
+    {
+      "file": "features/projects/contracts/forms/ContractEditDialog.tsx",
+      "specifier": "@/services/contractExtractionService",
+      "target": "services/contractExtractionService"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsListPage.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsListPage.tsx",
+      "specifier": "@/services/exportService",
+      "target": "services/exportService"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/OcrDocumentSection.tsx",
+      "specifier": "@/services/contractExtractionService",
+      "target": "services/contractExtractionService"
+    },
+    {
+      "file": "features/projects/documents/ui/ProjectDocuments.tsx",
+      "specifier": "@/services/documentService",
+      "target": "services/documentService"
+    },
+    {
+      "file": "features/projects/documents/ui/ProjectDocuments.tsx",
+      "specifier": "@/services/templateService",
+      "target": "services/templateService"
+    },
+    {
+      "file": "features/projects/documents/ui/TemplateManager.tsx",
+      "specifier": "@/services/templateService",
+      "target": "services/templateService"
+    },
+    {
+      "file": "features/projects/model/usePipelineCategoryForms.ts",
+      "specifier": "@/services/budgetAttachmentService",
+      "target": "services/budgetAttachmentService"
+    },
+    {
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@/services/budgetAttachmentService",
+      "target": "services/budgetAttachmentService"
+    },
+    {
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@/services/inquiryService",
+      "target": "services/inquiryService"
+    },
+    {
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@/services/templateService",
+      "target": "services/templateService"
+    },
+    {
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@/services/userProfileService",
+      "target": "services/userProfileService"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CategoryFormModal.tsx",
+      "specifier": "@/services/budgetAttachmentService",
+      "target": "services/budgetAttachmentService"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CategoryFormModal.tsx",
+      "specifier": "@/services/documentService",
+      "target": "services/documentService"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CreateContactModal.tsx",
+      "specifier": "@/services/geminiService",
+      "target": "services/geminiService"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineCategoryDocuments.tsx",
+      "specifier": "@/services/documentService",
+      "target": "services/documentService"
+    },
+    {
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@/services/projectService",
+      "target": "services/projectService"
+    },
+    {
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@/services/projectService",
+      "target": "services/projectService"
+    },
+    {
+      "file": "features/projects/team/ProjectTeamSettings.tsx",
+      "specifier": "@/services/projectService",
+      "target": "services/projectService"
+    },
+    {
+      "file": "features/settings/AdminMfaGuard.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/AdminSettings.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/api/adminMfaResetService.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "features/settings/api/complianceAdminService.ts",
+      "specifier": "@/services/incidentAdminService",
+      "target": "services/incidentAdminService"
+    },
+    {
+      "file": "features/settings/api/featureUsageApi.ts",
+      "specifier": "@/services/featureUsageService",
+      "target": "services/featureUsageService"
+    },
+    {
+      "file": "features/settings/api/index.ts",
+      "specifier": "@/services/emailService",
+      "target": "services/emailService"
+    },
+    {
+      "file": "features/settings/api/index.ts",
+      "specifier": "@/services/organizationService",
+      "target": "services/organizationService"
+    },
+    {
+      "file": "features/settings/api/index.ts",
+      "specifier": "@/services/userManagementService",
+      "target": "services/userManagementService"
+    },
+    {
+      "file": "features/settings/api/mcpGrantService.ts",
+      "specifier": "@/services/dbAdapter",
+      "target": "services/dbAdapter"
+    },
+    {
+      "file": "features/settings/AppUsageAdmin.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/ComplianceAdmin.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/EmailTestPanel.tsx",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/settings/EmailTestPanel.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/EmailWhitelistManagement.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/ExcelIndexerSettings.tsx",
+      "specifier": "@/services/indexerService",
+      "target": "services/indexerService"
+    },
+    {
+      "file": "features/settings/ExcelMergerProSettings.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/ExcelMergerProSettings.tsx",
+      "specifier": "../../services/excelMergerService",
+      "target": "services/excelMergerService"
+    },
+    {
+      "file": "features/settings/ExcelUnlockerProSettings.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/IncidentLogsAdmin.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/OrganizationSettings.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "../../services/contactStatusService",
+      "target": "services/contactStatusService"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "../../services/userProfileService",
+      "target": "services/userProfileService"
+    },
+    {
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/settings/SubscriptionFeaturesManagement.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/UserManagement.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/settings/UserSecuritySettings.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "features/settings/UserSecuritySettings.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "features/tasks/ui/TaskCreateButton.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "features/tools/api/index.ts",
+      "specifier": "@/services/urlShortenerService",
+      "target": "services/urlShortenerService"
+    },
+    {
+      "file": "features/voice-assistant/api/realtimeSession.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "features/voice-assistant/api/textResponse.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "features/voice-assistant/context/VoiceAssistantContext.tsx",
+      "specifier": "@/context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "infra/auth/authSessionStore.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/auth/deviceService.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/auth/mcpOAuthConsentService.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/auth/mfaService.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/auth/microsoftAccountService.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "infra/auth/microsoftAccountService.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/auth/stuckLoadingRecovery.ts",
+      "specifier": "@/services/authSessionService",
+      "target": "services/authSessionService"
+    },
+    {
+      "file": "infra/billing/billingService.ts",
+      "specifier": "@/services/billingService",
+      "target": "services/billingService"
+    },
+    {
+      "file": "infra/billing/paymentProviderService.ts",
+      "specifier": "@/services/paymentProviderService",
+      "target": "services/paymentProviderService"
+    },
+    {
+      "file": "infra/billing/subscriptionFeaturesService.ts",
+      "specifier": "@/services/subscriptionFeaturesService",
+      "target": "services/subscriptionFeaturesService"
+    },
+    {
+      "file": "infra/billing/userSubscriptionService.ts",
+      "specifier": "@/services/userSubscriptionService",
+      "target": "services/userSubscriptionService"
+    },
+    {
+      "file": "infra/db/dbAdapter.ts",
+      "specifier": "@/services/dbAdapter",
+      "target": "services/dbAdapter"
+    },
+    {
+      "file": "infra/demo/demoDataAdapter.ts",
+      "specifier": "@/services/demoData",
+      "target": "services/demoData"
+    },
+    {
+      "file": "infra/diagnostics/incidentLogger.ts",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
+      "file": "infra/excel-tools/providers/httpExcelToolsProvider.ts",
+      "specifier": "@/services/excelMergerService",
+      "target": "services/excelMergerService"
+    },
+    {
+      "file": "infra/excel-tools/providers/nativeExcelToolsProvider.ts",
+      "specifier": "@/services/excelMergerService",
+      "target": "services/excelMergerService"
+    },
+    {
+      "file": "infra/excel-tools/providers/nativeExcelToolsProvider.ts",
+      "specifier": "@/utils/excelUnlockZip",
+      "target": "utils/excelUnlockZip"
+    },
+    {
+      "file": "infra/excel-tools/types.ts",
+      "specifier": "@/services/excelMergerTypes",
+      "target": "services/excelMergerTypes"
+    },
+    {
+      "file": "infra/export/exportService.ts",
+      "specifier": "@/services/exportService",
+      "target": "services/exportService"
+    },
+    {
+      "file": "infra/files/fileSystemService.ts",
+      "specifier": "@/services/fileSystemService",
+      "target": "services/fileSystemService"
+    },
+    {
+      "file": "infra/functions/functionsClient.ts",
+      "specifier": "@/services/functionsClient",
+      "target": "services/functionsClient"
+    },
+    {
+      "file": "infra/org-billing/orgSubscriptionRpc.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/organization/rolePermissionsRpc.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/projects/pipelineRepository.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/projects/tenderPlanRepository.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "infra/usage/appUsageService.ts",
+      "specifier": "@/services/supabase",
+      "target": "services/supabase"
+    },
+    {
+      "file": "shared/contracts/MarkdownDocumentPanel.tsx",
+      "specifier": "../../services/contractService",
+      "target": "services/contractService"
+    },
+    {
+      "file": "shared/contracts/MarkdownDocumentPanel.tsx",
+      "specifier": "../../services/exportService",
+      "target": "services/exportService"
+    },
+    {
+      "file": "shared/routing/RequireFeature.tsx",
+      "specifier": "../../context/FeatureContext",
+      "target": "context/FeatureContext"
+    },
+    {
+      "file": "shared/routing/ShortUrlRedirect.tsx",
+      "specifier": "../../services/urlShortenerService",
+      "target": "services/urlShortenerService"
+    },
+    {
+      "file": "shared/ui/ContactsImportWizard.tsx",
+      "specifier": "@/context/UIContext",
+      "target": "context/UIContext"
+    },
+    {
+      "file": "shared/ui/ContactsImportWizard.tsx",
+      "specifier": "@/services/contactsImportWizardService",
+      "target": "services/contactsImportWizardService"
+    },
+    {
+      "file": "shared/ui/projects/ContractsSummaryView.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext"
+    },
+    {
+      "file": "shared/ui/projects/ContractsSummaryView.tsx",
+      "specifier": "@/services/exportService",
+      "target": "services/exportService"
+    },
+    {
+      "file": "shared/ui/projects/ContractsSummaryView.tsx",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
+      "file": "shared/ui/projects/ContractsSummaryView.tsx",
+      "specifier": "@/services/organizationService",
+      "target": "services/organizationService"
+    },
+    {
+      "file": "shared/ui/UserAccountMenu.tsx",
+      "specifier": "@/hooks/useTheme",
+      "target": "hooks/useTheme"
+    },
+    {
+      "file": "shared/ui/UserAccountMenu.tsx",
+      "specifier": "@/services/platformAdapter",
+      "target": "services/platformAdapter"
+    },
+    {
+      "file": "shared/ui/UserAccountMenu.tsx",
+      "specifier": "@/services/userProfileService",
+      "target": "services/userProfileService"
+    }
+  ]
+}
