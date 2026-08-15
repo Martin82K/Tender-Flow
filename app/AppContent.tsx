@@ -1,6 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
-import { UpdateBanner } from "@/components/desktop";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
@@ -595,7 +594,6 @@ export const AppContent: React.FC = () => {
               <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
             </LazyViewErrorBoundary>
 
-            {isDesktop && <UpdateBanner />}
           </MainLayout>
         </TopbarActionsProvider>
         {shouldEnableVoiceAssistantRoute && <VoiceAssistantPanel />}

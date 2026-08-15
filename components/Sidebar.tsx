@@ -6,6 +6,7 @@ import { SIDEBAR_NAVIGATION, type NavItemConfig } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
+import { SidebarUpdateStatus } from "@features/desktop-updater/ui/SidebarUpdateStatus";
 import type { ThemeSkin } from "@/shared/types/theme";
 
 import { APP_VERSION } from "../config/version";
@@ -629,9 +630,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <div className={`mt-auto border-t p-3 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-200 dark:border-slate-700/50"}`}>
               <div className="flex items-center justify-between gap-3">
-                <span className={`text-xs font-mono ${isIndustrialSkin ? "text-[#9c9684]" : "text-slate-400 dark:text-slate-500"}`}>
-                  v{APP_VERSION}
-                </span>
+                <SidebarUpdateStatus
+                  currentVersion={APP_VERSION}
+                  isIndustrialSkin={isIndustrialSkin}
+                />
                 <button
                   onClick={onToggle}
                   className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
