@@ -343,6 +343,34 @@ describe("legacy import baseline guard", () => {
     }
   });
 
+  it("excludes nested node_modules like Vite exhaustive false", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "services/node_modules"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureRoot, "services/node_modules/vendor.ts"),
+      "export default true;\n",
+    );
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/**/*.ts");\nvoid modules;\n',
+    );
+    writeBaseline(fixtureRoot, [
+      {
+        file: "app/consumer.ts",
+        specifier: "/services/**/*.ts",
+        target: "services/exampleService.ts",
+      },
+    ]);
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(0);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("allows an explicit hidden directory in a Vite glob", () => {
     const fixtureRoot = createFixture();
     fs.mkdirSync(path.join(fixtureRoot, "services/.private"), { recursive: true });

@@ -41,6 +41,7 @@ const collectFiles = (dir) => {
         continue;
       }
       if (entry.isDirectory()) {
+        if (entry.name === "node_modules") continue;
         stack.push(next);
         continue;
       }

@@ -42,7 +42,8 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
   revizi pouze zmenšit; statické Vite `import.meta.glob` vzory se rozbalí na
   konkrétní regulární soubory bez omezení přípony. Guard páruje case-sensitive
   POSIX podmnožinu `*`, `**` a `?`, respektuje explicitní tečku pro skryté cesty
-  a globstar dovolí překročit adresář jen jako celý segment; dynamické argumenty
+  a globstar dovolí překročit adresář jen jako celý segment. Při podporovaném
+  `exhaustive: false` stejně jako Vite vynechává `node_modules`; dynamické argumenty
   a pokročilou nebo nejednoznačnou glob syntaxi odmítne fail-closed. Moderní
   zdroje skenuje ve variantách TS/TSX/MTS/CTS a JS/JSX/MJS/CJS,
 - legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
