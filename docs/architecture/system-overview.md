@@ -54,7 +54,11 @@ Kontroluje to `npm run check:boundaries`. Stejný guard porovnává každou pře
 vazbu z `app/features/shared/infra` do legacy kořenů s ratchet baseline v
 `config/legacy-import-baseline.json`. Nová vazba i zastaralá baseline položka
 kontrolu shodí. Quality workflow navíc porovnává baseline s výchozí Git revizí,
-takže ji PR smí pouze zmenšit. Přesný snapshot tracked souborů v legacy kořenech kontroluje
+takže ji PR smí pouze zmenšit. Statické Vite `import.meta.glob` vzory guard
+rozbalí case-sensitive matcherem na konkrétní legacy cíle; dynamický nebo mimo
+podporovanou bezpečnou POSIX podmnožinu vzor odmítne fail-closed. Rozbalení
+zahrnuje všechny regulární soubory v legacy kořenech, ne pouze TS/JS moduly.
+Přesný snapshot tracked souborů v legacy kořenech kontroluje
 `npm run check:legacy-structure`; odstraněný soubor proto musí být současně
 odebrán z `config/legacy-freeze.json`.
 

@@ -7,7 +7,7 @@ const root = process.cwd();
 const scanRoots = ["app", "features", "shared", "components", "hooks", "context", "services", "utils", "infra"];
 const modernRoots = ["app", "features", "shared", "infra"];
 const legacyRoots = ["components", "hooks", "services", "context", "utils"];
-const allowedExt = new Set([".ts", ".tsx", ".js", ".mjs"]);
+const allowedExt = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
 const legacyImportBaselinePath = path.join(root, "config", "legacy-import-baseline.json");
@@ -44,7 +44,7 @@ const collectFiles = (dir) => {
         stack.push(next);
         continue;
       }
-      if (allowedExt.has(path.extname(entry.name))) {
+      if (entry.isFile()) {
         out.push(next);
       }
     }
@@ -53,15 +53,27 @@ const collectFiles = (dir) => {
   return out;
 };
 
-const extractSpecifiers = (content, fileName) => {
+const isImportMetaGlobCall = (node) =>
+  ts.isCallExpression(node) &&
+  ts.isPropertyAccessExpression(node.expression) &&
+  ts.isMetaProperty(node.expression.expression) &&
+  node.expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword &&
+  node.expression.expression.name.text === "meta" &&
+  (node.expression.name.text === "glob" || node.expression.name.text === "globEager");
+
+const extractDependencies = (content, fileName) => {
   const extension = path.extname(fileName);
   const scriptKind = extension === ".tsx"
     ? ts.ScriptKind.TSX
-    : extension === ".js" || extension === ".mjs"
+    : extension === ".jsx"
+      ? ts.ScriptKind.JSX
+      : extension === ".js" || extension === ".mjs" || extension === ".cjs"
       ? ts.ScriptKind.JS
       : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, scriptKind);
   const specs = [];
+  const globCalls = [];
+  const globErrors = [];
   const visit = (node) => {
     if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -87,13 +99,91 @@ const extractSpecifiers = (content, fileName) => {
       ts.isStringLiteralLike(node.arguments[0])
     ) {
       specs.push(node.arguments[0].text);
+    } else if (isImportMetaGlobCall(node)) {
+      const argument = node.arguments[0];
+      let patterns = null;
+      if (argument && ts.isStringLiteralLike(argument)) {
+        patterns = [argument.text];
+      } else if (
+        argument &&
+        ts.isArrayLiteralExpression(argument) &&
+        argument.elements.every((element) => ts.isStringLiteralLike(element))
+      ) {
+        patterns = argument.elements.map((element) => element.text);
+      } else {
+        globErrors.push("import.meta.glob musí používat statický literál nebo pole statických literálů.");
+      }
+
+      let base = null;
+      let optionsValid = true;
+      const options = node.arguments[1];
+      if (options) {
+        if (!ts.isObjectLiteralExpression(options)) {
+          globErrors.push("import.meta.glob options musí být statický objektový literál.");
+          optionsValid = false;
+        } else {
+          for (const property of options.properties) {
+            if (ts.isSpreadAssignment(property) || !property.name) {
+              globErrors.push("import.meta.glob options nesmí dynamicky měnit base ani způsob párování.");
+              optionsValid = false;
+              continue;
+            }
+
+            const name = ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
+              ? property.name.text
+              : null;
+            if (!name) {
+              globErrors.push("import.meta.glob options musí mít statické názvy vlastností.");
+              optionsValid = false;
+              continue;
+            }
+
+            if (name === "base") {
+              if (ts.isPropertyAssignment(property) && ts.isStringLiteralLike(property.initializer)) {
+                base = property.initializer.text;
+                if (
+                  !base.startsWith("/") &&
+                  !base.startsWith("./") &&
+                  !base.startsWith("../")
+                ) {
+                  globErrors.push("import.meta.glob base musí začínat /, ./ nebo ../.");
+                  optionsValid = false;
+                }
+              } else {
+                globErrors.push("import.meta.glob base musí být statický řetězec.");
+                optionsValid = false;
+              }
+            }
+
+            if (
+              name === "exhaustive" &&
+              (!ts.isPropertyAssignment(property) || property.initializer.kind !== ts.SyntaxKind.FalseKeyword)
+            ) {
+              globErrors.push("import.meta.glob exhaustive je podporováno pouze s hodnotou false.");
+              optionsValid = false;
+            }
+
+            if (
+              name === "caseSensitive" &&
+              (!ts.isPropertyAssignment(property) || property.initializer.kind !== ts.SyntaxKind.TrueKeyword)
+            ) {
+              globErrors.push("import.meta.glob caseSensitive je podporováno pouze s hodnotou true.");
+              optionsValid = false;
+            }
+          }
+        }
+      }
+
+      if (patterns && optionsValid) {
+        globCalls.push({ patterns, base });
+      }
     }
     for (const child of node.getChildren(sourceFile)) {
       visit(child);
     }
   };
   visit(sourceFile);
-  return specs;
+  return { specs, globCalls, globErrors };
 };
 
 const isWebLayer = (fileRel) =>
@@ -147,6 +237,100 @@ const isWithinRoot = (repoPath, rootPath) =>
 
 const isModernPath = (repoPath) => modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
+
+const normalizeRepoGlob = (repoPattern) => {
+  const normalized = path.posix.normalize(toPosix(repoPattern));
+  if (
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    normalized.startsWith("/")
+  ) {
+    return null;
+  }
+  return normalized.startsWith("./") ? normalized.slice(2) : normalized;
+};
+
+const resolveGlobBase = (base, fileAbs) => {
+  if (!base) return toPosix(path.relative(root, path.dirname(fileAbs)));
+  if (!base.startsWith("/") && !base.startsWith("./") && !base.startsWith("../")) {
+    return null;
+  }
+
+  const resolved = base.startsWith("/")
+    ? path.resolve(root, `.${base}`)
+    : path.resolve(path.dirname(fileAbs), base);
+  const relative = toPosix(path.relative(root, resolved));
+  if (relative === ".." || relative.startsWith("../")) return null;
+  return relative;
+};
+
+const containsExtglob = (globPattern) => {
+  const pattern = globPattern.startsWith("!") ? globPattern.slice(1) : globPattern;
+  return /(?:^|[^\\])[?*+@!]\(/.test(pattern);
+};
+
+const containsUnsupportedGlobSyntax = (globPattern) => /[\[\]{}]/.test(globPattern);
+
+const matchesSupportedGlob = (repoPath, globPattern) => {
+  if (globPattern.endsWith("/**") && repoPath === globPattern.slice(0, -3)) {
+    return true;
+  }
+
+  let source = "^";
+  let segmentStart = true;
+  for (let index = 0; index < globPattern.length; index += 1) {
+    const character = globPattern[index];
+    if (character === "*") {
+      const isWholeSegmentGlobstar =
+        globPattern[index + 1] === "*" &&
+        (index === 0 || globPattern[index - 1] === "/") &&
+        (index + 2 === globPattern.length || globPattern[index + 2] === "/");
+      if (isWholeSegmentGlobstar) {
+        index += 1;
+        if (globPattern[index + 1] === "/") {
+          index += 1;
+          source += "(?:(?!\\.)[^/]+/)*";
+          segmentStart = true;
+        } else {
+          source += "(?:(?!\\.)[^/]+(?:/(?!\\.)[^/]+)*)?";
+          segmentStart = false;
+        }
+      } else {
+        source += `${segmentStart ? "(?!\\.)" : ""}[^/]*`;
+        segmentStart = false;
+      }
+    } else if (character === "?") {
+      source += `${segmentStart ? "(?!\\.)" : ""}[^/]`;
+      segmentStart = false;
+    } else {
+      source += character.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+      segmentStart = character === "/";
+    }
+  }
+  return new RegExp(`${source}$`, "u").test(repoPath);
+};
+
+const normalizeGlobPattern = (globPattern, fileAbs, base) => {
+  const negative = globPattern.startsWith("!");
+  const pattern = negative ? globPattern.slice(1) : globPattern;
+  let repoPattern = null;
+
+  if (pattern.startsWith("@/")) repoPattern = pattern.slice(2);
+  else if (pattern.startsWith("@app/")) repoPattern = `app/${pattern.slice(5)}`;
+  else if (pattern.startsWith("@features/")) repoPattern = `features/${pattern.slice(10)}`;
+  else if (pattern.startsWith("@shared/")) repoPattern = `shared/${pattern.slice(8)}`;
+  else if (pattern.startsWith("@infra/")) repoPattern = `infra/${pattern.slice(7)}`;
+  else if (pattern.startsWith("/")) repoPattern = pattern.slice(1);
+  else if (pattern.startsWith("**")) repoPattern = pattern;
+  else if (pattern.startsWith("./") || pattern.startsWith("../")) {
+    const basePath = resolveGlobBase(base, fileAbs);
+    if (basePath === null) return null;
+    repoPattern = path.posix.join(basePath, pattern);
+  }
+
+  const normalized = repoPattern ? normalizeRepoGlob(repoPattern) : null;
+  return normalized ? { negative, pattern: normalized, specifier: globPattern } : null;
+};
 
 const loadAllowlist = () => {
   if (!fs.existsSync(allowlistPath)) return [];
@@ -310,12 +494,97 @@ const isPublicFeatureEntrypoint = (repoPath, featureName) => {
   return suffix === "" || /^\/index(?:\.[cm]?[jt]sx?)?$/.test(suffix);
 };
 
-const allFiles = scanRoots.flatMap((dir) => collectFiles(dir));
+const allRegularFiles = scanRoots.flatMap((dir) => collectFiles(dir));
+const allFiles = allRegularFiles.filter((fileAbs) => allowedExt.has(path.extname(fileAbs)));
+const legacyFiles = allRegularFiles
+  .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
+  .filter((fileRel) => isLegacyPath(fileRel) && !fileRel.split("/").includes("node_modules"));
 
 for (const fileAbs of allFiles) {
   const fileRel = toPosix(path.relative(root, fileAbs));
   const content = fs.readFileSync(fileAbs, "utf8");
-  const specs = extractSpecifiers(content, fileAbs);
+  const { specs, globCalls, globErrors } = extractDependencies(content, fileAbs);
+
+  if (isModernPath(fileRel)) {
+    for (const error of globErrors) {
+      collectionErrors.push(`${fileRel}: ${error}`);
+    }
+
+    const normalizedGlobCalls = globCalls.map(({ patterns, base }) =>
+      patterns.map((globPattern) => {
+        const unsignedPattern = globPattern.startsWith("!") ? globPattern.slice(1) : globPattern;
+        const hasBackslash = globPattern.includes("\\");
+        const hasExtglob = containsExtglob(globPattern);
+        const hasUnsupportedSyntax = containsUnsupportedGlobSyntax(globPattern);
+        const hasRepeatedLeadingSlash = unsignedPattern.startsWith("//");
+        const hasTrailingSlash = unsignedPattern.endsWith("/");
+        const trailingGlobstarPrefix = unsignedPattern.endsWith("/**")
+          ? unsignedPattern.slice(0, -3)
+          : null;
+        const hasWildcardTrailingGlobstar =
+          trailingGlobstarPrefix !== null && /[*?]/.test(trailingGlobstarPrefix);
+        return {
+          original: globPattern,
+          error: hasBackslash
+            ? "backslash není povolen; Vite glob musí používat POSIX oddělovače"
+            : hasExtglob
+              ? "extglob syntax není povolena, protože Vite ji vyhodnocuje odlišně"
+              : hasUnsupportedSyntax
+                ? "pokročilá syntax [] a {} není podporována fail-closed matcherem"
+                : hasRepeatedLeadingSlash
+                  ? "opakované úvodní lomítko není podporováno"
+                  : hasTrailingSlash
+                    ? "koncové lomítko není podporováno"
+                    : hasWildcardTrailingGlobstar
+                      ? "wildcard prefix před koncovým globstarem není podporován"
+                      : null,
+          normalized: hasBackslash || hasExtglob || hasUnsupportedSyntax ||
+              hasRepeatedLeadingSlash || hasTrailingSlash || hasWildcardTrailingGlobstar
+            ? null
+            : normalizeGlobPattern(globPattern, fileAbs, base),
+        };
+      }),
+    );
+    for (const normalizedGlobs of normalizedGlobCalls) {
+      for (const item of normalizedGlobs) {
+        if (item.error) {
+          collectionErrors.push(`${fileRel}: import.meta.glob ${item.error}: ${item.original}`);
+        } else if (!item.normalized) {
+          collectionErrors.push(
+            `${fileRel}: import.meta.glob vzor nelze bezpečně vyhodnotit: ${item.original}`,
+          );
+        }
+      }
+
+      const validGlobs = normalizedGlobs
+        .map((item) => item.normalized)
+        .filter(Boolean);
+      const positiveGlobs = validGlobs.filter((item) => !item.negative);
+      const negativeGlobs = validGlobs.filter((item) => item.negative);
+
+      for (const glob of positiveGlobs) {
+        for (const target of legacyFiles) {
+          let matches = matchesSupportedGlob(target, glob.pattern);
+          if (
+            matches &&
+            negativeGlobs.some((excluded) => matchesSupportedGlob(target, excluded.pattern))
+          ) {
+            matches = false;
+          }
+
+          if (matches) {
+            legacyImportFindings.push({
+              type: "modern-to-legacy-import",
+              file: fileRel,
+              specifier: glob.specifier,
+              target,
+              detail: `Moderní vrstva globem importuje legacy modul: ${target} (z ${glob.specifier})`,
+            });
+          }
+        }
+      }
+    }
+  }
 
   for (const spec of specs) {
     if (!isWebLayer(fileRel)) continue;
@@ -465,7 +734,7 @@ if (
   collectionErrors.length > 0
 ) {
   if (collectionErrors.length > 0) {
-    console.error("Boundary scan obsahuje nepovolené souborové položky:\n");
+    console.error("Boundary scan nelze bezpečně dokončit:\n");
     for (const error of collectionErrors) {
       console.error(`- ${error}`);
     }

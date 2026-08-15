@@ -39,7 +39,16 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
   zastaralá výjimka po odstranění dluhu kontrolu také shodí,
 - stejný boundary guard ratchetuje všechny importy z moderních vrstev do legacy
   přes přesnou trojici soubor, specifier a cíl; v CI se baseline smí proti base
-  revizi pouze zmenšit,
+  revizi pouze zmenšit; statické Vite `import.meta.glob` vzory se rozbalí na
+  konkrétní regulární soubory bez omezení přípony. Guard páruje case-sensitive
+  POSIX podmnožinu `*`, `**` a `?`, respektuje explicitní tečku pro skryté cesty
+  a globstar dovolí překročit adresář jen jako celý segment. Při podporovaném
+  `exhaustive: false` stejně jako Vite vynechává `node_modules` z glob cílů,
+  nikoli ze statického source skenu; dynamické argumenty a pokročilou nebo
+  nejednoznačnou glob syntaxi odmítne fail-closed. To zahrnuje koncové lomítko
+  a wildcard prefix před koncovým `/**`; doslovný prefix před `/**` podporuje.
+  Moderní
+  zdroje skenuje ve variantách TS/TSX/MTS/CTS a JS/JSX/MJS/CJS,
 - legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
   tracked soubor i zastaralou výjimku po odstraněném souboru,
 - docs checker ověřuje interní odkazy.
@@ -48,8 +57,10 @@ Regresní test boundary pravidla vytváří izolovanou dočasnou strukturu featu
 Ověřuje RED výsledek privátního importu, přesnou allowlist výjimku, odmítnutí
 jiného privátního importu ve stejném souboru a průchod veřejného entrypointu.
 Samostatné fixture testy stejně ověřují nový modern-to-legacy import, zastaralý
-importní baseline a symetrii legacy freeze snapshotu. Nejde tedy pouze o
-kontrolu textu architektonických skriptů.
+importní baseline, Vite glob importy a symetrii legacy freeze snapshotu. Symlink
+scénáře se na Windows přeskočí pouze tehdy, když prostředí jejich vytvoření
+výslovně nepovoluje; ostatní chyby zůstávají selháním. Nejde tedy pouze o kontrolu
+textu architektonických skriptů.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
