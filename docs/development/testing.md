@@ -45,7 +45,9 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
   a globstar dovolí překročit adresář jen jako celý segment. Při podporovaném
   `exhaustive: false` stejně jako Vite vynechává `node_modules` z glob cílů,
   nikoli ze statického source skenu; dynamické argumenty a pokročilou nebo
-  nejednoznačnou glob syntaxi odmítne fail-closed. Moderní
+  nejednoznačnou glob syntaxi odmítne fail-closed. To zahrnuje koncové lomítko
+  a wildcard prefix před koncovým `/**`; doslovný prefix před `/**` podporuje.
+  Moderní
   zdroje skenuje ve variantách TS/TSX/MTS/CTS a JS/JSX/MJS/CJS,
 - legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
   tracked soubor i zastaralou výjimku po odstraněném souboru,

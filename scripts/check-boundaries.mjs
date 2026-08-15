@@ -272,9 +272,8 @@ const containsExtglob = (globPattern) => {
 const containsUnsupportedGlobSyntax = (globPattern) => /[\[\]{}]/.test(globPattern);
 
 const matchesSupportedGlob = (repoPath, globPattern) => {
-  if (globPattern.endsWith("/**")) {
-    const prefixPattern = globPattern.slice(0, -3);
-    if (matchesSupportedGlob(repoPath, prefixPattern)) return true;
+  if (globPattern.endsWith("/**") && repoPath === globPattern.slice(0, -3)) {
+    return true;
   }
 
   let source = "^";
@@ -518,6 +517,12 @@ for (const fileAbs of allFiles) {
         const hasExtglob = containsExtglob(globPattern);
         const hasUnsupportedSyntax = containsUnsupportedGlobSyntax(globPattern);
         const hasRepeatedLeadingSlash = unsignedPattern.startsWith("//");
+        const hasTrailingSlash = unsignedPattern.endsWith("/");
+        const trailingGlobstarPrefix = unsignedPattern.endsWith("/**")
+          ? unsignedPattern.slice(0, -3)
+          : null;
+        const hasWildcardTrailingGlobstar =
+          trailingGlobstarPrefix !== null && /[*?]/.test(trailingGlobstarPrefix);
         return {
           original: globPattern,
           error: hasBackslash
@@ -528,8 +533,13 @@ for (const fileAbs of allFiles) {
                 ? "pokročilá syntax [] a {} není podporována fail-closed matcherem"
                 : hasRepeatedLeadingSlash
                   ? "opakované úvodní lomítko není podporováno"
-                  : null,
-          normalized: hasBackslash || hasExtglob || hasUnsupportedSyntax || hasRepeatedLeadingSlash
+                  : hasTrailingSlash
+                    ? "koncové lomítko není podporováno"
+                    : hasWildcardTrailingGlobstar
+                      ? "wildcard prefix před koncovým globstarem není podporován"
+                      : null,
+          normalized: hasBackslash || hasExtglob || hasUnsupportedSyntax ||
+              hasRepeatedLeadingSlash || hasTrailingSlash || hasWildcardTrailingGlobstar
             ? null
             : normalizeGlobPattern(globPattern, fileAbs, base),
         };

@@ -333,7 +333,7 @@ describe("legacy import baseline guard", () => {
     }
   });
 
-  it("matches a wildcard file prefix before a trailing Vite globstar", () => {
+  it("rejects a wildcard file prefix before a trailing Vite globstar", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
       fixtureRoot,
@@ -344,8 +344,41 @@ describe("legacy import baseline guard", () => {
       const result = runBoundary(fixtureRoot);
 
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("modern-to-legacy-import");
-      expect(result.stderr).toContain("services/exampleService.ts");
+      expect(result.stderr).toContain("wildcard prefix před koncovým globstarem");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a trailing slash whose Vite matching semantics are ambiguous", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/**/");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("koncové lomítko");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a wildcard prefix before a trailing globstar fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/*/**");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("wildcard prefix před koncovým globstarem");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
