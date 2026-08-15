@@ -56,7 +56,8 @@ vazbu z `app/features/shared/infra` do legacy kořenů s ratchet baseline v
 kontrolu shodí. Quality workflow navíc porovnává baseline s výchozí Git revizí,
 takže ji PR smí pouze zmenšit. Statické Vite `import.meta.glob` vzory guard
 rozbalí case-sensitive matcherem na konkrétní legacy cíle; dynamický nebo mimo
-podporovanou bezpečnou POSIX podmnožinu vzor odmítne fail-closed.
+podporovanou bezpečnou POSIX podmnožinu vzor odmítne fail-closed. Rozbalení
+zahrnuje všechny regulární soubory v legacy kořenech, ne pouze TS/JS moduly.
 Přesný snapshot tracked souborů v legacy kořenech kontroluje
 `npm run check:legacy-structure`; odstraněný soubor proto musí být současně
 odebrán z `config/legacy-freeze.json`.

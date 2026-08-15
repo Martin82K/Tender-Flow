@@ -7,7 +7,7 @@ const root = process.cwd();
 const scanRoots = ["app", "features", "shared", "components", "hooks", "context", "services", "utils", "infra"];
 const modernRoots = ["app", "features", "shared", "infra"];
 const legacyRoots = ["components", "hooks", "services", "context", "utils"];
-const allowedExt = new Set([".ts", ".tsx", ".js", ".mjs"]);
+const allowedExt = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
 const legacyImportBaselinePath = path.join(root, "config", "legacy-import-baseline.json");
@@ -44,7 +44,7 @@ const collectFiles = (dir) => {
         stack.push(next);
         continue;
       }
-      if (allowedExt.has(path.extname(entry.name))) {
+      if (entry.isFile()) {
         out.push(next);
       }
     }
@@ -65,7 +65,9 @@ const extractDependencies = (content, fileName) => {
   const extension = path.extname(fileName);
   const scriptKind = extension === ".tsx"
     ? ts.ScriptKind.TSX
-    : extension === ".js" || extension === ".mjs"
+    : extension === ".jsx"
+      ? ts.ScriptKind.JSX
+      : extension === ".js" || extension === ".mjs" || extension === ".cjs"
       ? ts.ScriptKind.JS
       : ts.ScriptKind.TS;
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, scriptKind);
@@ -265,24 +267,34 @@ const containsUnsupportedGlobSyntax = (globPattern) => /[\[\]{}]/.test(globPatte
 
 const matchesSupportedGlob = (repoPath, globPattern) => {
   let source = "^";
+  let segmentStart = true;
   for (let index = 0; index < globPattern.length; index += 1) {
     const character = globPattern[index];
     if (character === "*") {
-      if (globPattern[index + 1] === "*") {
+      const isWholeSegmentGlobstar =
+        globPattern[index + 1] === "*" &&
+        (index === 0 || globPattern[index - 1] === "/") &&
+        (index + 2 === globPattern.length || globPattern[index + 2] === "/");
+      if (isWholeSegmentGlobstar) {
         index += 1;
         if (globPattern[index + 1] === "/") {
           index += 1;
-          source += "(?:[^/]+/)*";
+          source += "(?:(?!\\.)[^/]+/)*";
+          segmentStart = true;
         } else {
-          source += ".*";
+          source += "(?:(?!\\.)[^/]+(?:/(?!\\.)[^/]+)*)?";
+          segmentStart = false;
         }
       } else {
-        source += "[^/]*";
+        source += `${segmentStart ? "(?!\\.)" : ""}[^/]*`;
+        segmentStart = false;
       }
     } else if (character === "?") {
-      source += "[^/]";
+      source += `${segmentStart ? "(?!\\.)" : ""}[^/]`;
+      segmentStart = false;
     } else {
       source += character.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+      segmentStart = character === "/";
     }
   }
   return new RegExp(`${source}$`, "u").test(repoPath);
@@ -472,8 +484,9 @@ const isPublicFeatureEntrypoint = (repoPath, featureName) => {
   return suffix === "" || /^\/index(?:\.[cm]?[jt]sx?)?$/.test(suffix);
 };
 
-const allFiles = scanRoots.flatMap((dir) => collectFiles(dir));
-const legacyFiles = allFiles
+const allRegularFiles = scanRoots.flatMap((dir) => collectFiles(dir));
+const allFiles = allRegularFiles.filter((fileAbs) => allowedExt.has(path.extname(fileAbs)));
+const legacyFiles = allRegularFiles
   .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
   .filter(isLegacyPath);
 

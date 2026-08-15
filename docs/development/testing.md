@@ -40,9 +40,11 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - stejný boundary guard ratchetuje všechny importy z moderních vrstev do legacy
   přes přesnou trojici soubor, specifier a cíl; v CI se baseline smí proti base
   revizi pouze zmenšit; statické Vite `import.meta.glob` vzory se rozbalí na
-  konkrétní soubory. Guard páruje case-sensitive POSIX podmnožinu `*`, `**` a
-  `?`; dynamické argumenty a pokročilou nebo nejednoznačnou glob syntaxi odmítne
-  fail-closed,
+  konkrétní regulární soubory bez omezení přípony. Guard páruje case-sensitive
+  POSIX podmnožinu `*`, `**` a `?`, respektuje explicitní tečku pro skryté cesty
+  a globstar dovolí překročit adresář jen jako celý segment; dynamické argumenty
+  a pokročilou nebo nejednoznačnou glob syntaxi odmítne fail-closed. Moderní
+  zdroje skenuje ve variantách TS/TSX/MTS/CTS a JS/JSX/MJS/CJS,
 - legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
   tracked soubor i zastaralou výjimku po odstraněném souboru,
 - docs checker ověřuje interní odkazy.

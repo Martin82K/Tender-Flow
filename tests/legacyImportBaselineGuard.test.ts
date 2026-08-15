@@ -71,6 +71,25 @@ const createSymlinkOrSkip = (
 };
 
 describe("legacy import baseline guard", () => {
+  it("scans Vite glob imports in JSX source files", () => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(
+      path.join(fixtureRoot, "app/legacy-loader.jsx"),
+      'export const modules = import.meta.glob("/services/*.ts");\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("app/legacy-loader.jsx");
+      expect(result.stderr).toContain("services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a root-absolute Vite glob that reaches legacy modules", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
@@ -249,6 +268,117 @@ describe("legacy import baseline guard", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("modern-to-legacy-import");
       expect(result.stderr).toContain("services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat globstar inside a segment as crossing directories", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "hooks/queries"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureRoot, "hooks/queries/useContactsQuery.ts"),
+      "export const useContactsQuery = true;\n",
+    );
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob(["/hooks/**/useContactsQuery.ts", "!/hooks/q**Query.ts"]);\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("hooks/queries/useContactsQuery.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("requires an explicit dot to match hidden legacy files", () => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(path.join(fixtureRoot, "services/.secret.ts"), "export default true;\n");
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob(["/services/.*.ts", "!/services/*.ts"]);\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("services/.secret.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("does not traverse hidden directories through globstar", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "services/.private"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureRoot, "services/.private/secret.ts"),
+      "export default true;\n",
+    );
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/**/*.ts");\nvoid modules;\n',
+    );
+    writeBaseline(fixtureRoot, [
+      {
+        file: "app/consumer.ts",
+        specifier: "/services/**/*.ts",
+        target: "services/exampleService.ts",
+      },
+    ]);
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(0);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("allows an explicit hidden directory in a Vite glob", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "services/.private"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureRoot, "services/.private/secret.ts"),
+      "export default true;\n",
+    );
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/.private/*.ts");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("services/.private/secret.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("expands Vite globs to non-source files in legacy roots", () => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(path.join(fixtureRoot, "services/rules.json"), '{"enabled":true}\n');
+    writeConsumer(
+      fixtureRoot,
+      'const modules = import.meta.glob("/services/*.json");\nvoid modules;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("services/rules.json");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
