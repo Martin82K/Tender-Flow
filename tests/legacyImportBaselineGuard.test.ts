@@ -549,6 +549,105 @@ describe("legacy import baseline guard", () => {
     }
   });
 
+  it("rejects a repo-local dependency that traverses a symlink", ({ skip }) => {
+    const fixtureRoot = createFixture();
+    const outsideRoot = `${fixtureRoot}-outside-assets`;
+    fs.mkdirSync(outsideRoot, { recursive: true });
+    fs.writeFileSync(path.join(outsideRoot, "canary.txt"), "outside fixture canary\n");
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("../leak/canary.txt", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      createSymlinkOrSkip(
+        skip,
+        `../${path.basename(outsideRoot)}`,
+        path.join(fixtureRoot, "leak"),
+        "dir",
+      );
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Symbolický odkaz není v produkčním zdrojovém stromu povolen");
+      expect(result.stderr).toContain("leak");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      fs.rmSync(outsideRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an extensionless module import resolved through a file symlink", ({ skip }) => {
+    const fixtureRoot = createFixture();
+    const outsideRoot = `${fixtureRoot}-outside-module`;
+    fs.mkdirSync(outsideRoot, { recursive: true });
+    fs.writeFileSync(path.join(outsideRoot, "leak.ts"), "export const leak = true;\n");
+    writeConsumer(fixtureRoot, 'import { leak } from "@/leak";\nvoid leak;\n');
+
+    try {
+      createSymlinkOrSkip(
+        skip,
+        `../${path.basename(outsideRoot)}/leak.ts`,
+        path.join(fixtureRoot, "leak.ts"),
+        "file",
+      );
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Symbolický odkaz není v produkčním zdrojovém stromu povolen");
+      expect(result.stderr).toContain("leak.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      fs.rmSync(outsideRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a dependency symlink nested in a tooling root", ({ skip }) => {
+    const fixtureRoot = createFixture();
+    const outsideRoot = `${fixtureRoot}-outside-tooling`;
+    fs.mkdirSync(path.join(fixtureRoot, "scripts/nested"), { recursive: true });
+    fs.mkdirSync(outsideRoot, { recursive: true });
+    fs.writeFileSync(path.join(outsideRoot, "canary.txt"), "outside fixture canary\n");
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("../scripts/nested/leak.txt", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      createSymlinkOrSkip(
+        skip,
+        `../../../${path.basename(outsideRoot)}/canary.txt`,
+        path.join(fixtureRoot, "scripts/nested/leak.txt"),
+        "file",
+      );
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Symbolický odkaz není v produkčním zdrojovém stromu povolen");
+      expect(result.stderr).toContain("scripts/nested/leak.txt");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      fs.rmSync(outsideRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects dependencies into pruned generated roots", () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "dist-electron"), { recursive: true });
+    fs.writeFileSync(path.join(fixtureRoot, "dist-electron/generated.js"), "export default true;\n");
+    writeConsumer(fixtureRoot, 'import generated from "@/dist-electron/generated.js";\nvoid generated;\n');
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("lokální dependency míří do vynechaného nebo generovaného stromu");
+      expect(result.stderr).toContain("dist-electron/generated.js");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("canonicalizes parent segments in Vite glob patterns", () => {
     const fixtureRoot = createFixture();
     writeConsumer(

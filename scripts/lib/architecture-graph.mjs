@@ -37,20 +37,28 @@ export const ARCHITECTURE_SOURCE_EXTENSIONS = Object.freeze([
 
 const sourceExtensions = new Set(ARCHITECTURE_SOURCE_EXTENSIONS);
 const declarationPattern = /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/;
-const ambientExcludedRoots = Object.freeze([
+const filesystemTraversalExcludedRoots = Object.freeze([
   ".git",
-  "node_modules",
+  "dist",
+  "dist-electron",
+  "coverage",
+]);
+const ambientClassificationExcludedRoots = Object.freeze([
   "desktop",
   "server",
   "server_py",
   "supabase/functions",
-  "dist",
-  "dist-electron",
-  "coverage",
   "scripts",
   "tests",
   ".github",
 ]);
+
+const isAtOrBelowRoot = (repoPath, roots) => roots.some((candidate) =>
+  repoPath === candidate || repoPath.startsWith(`${candidate}/`));
+
+const isFilesystemTraversalExcluded = (repoPath) =>
+  repoPath.split("/").includes("node_modules") ||
+  isAtOrBelowRoot(repoPath, filesystemTraversalExcludedRoots);
 
 const defaultGraphLimits = Object.freeze({
   maxRegularFiles: 10_000,
@@ -730,6 +738,7 @@ export const collectArchitectureGraph = ({
   const ambientDiscoveryErrors = [];
   let declarationFiles = [];
   const ambientPackageManifests = [];
+  let symlinkDiagnosticCount = 0;
   try {
     const stack = [""];
     let visitedEntries = 0;
@@ -741,22 +750,27 @@ export const collectArchitectureGraph = ({
           throw new RangeError("Ambient discovery překročil bezpečnostní limit položek.");
         }
         const relativePath = toPosix(path.join(directory, entry.name));
-        if (
-          relativePath.split("/").includes("node_modules") ||
-          ambientExcludedRoots.some((excluded) =>
-            relativePath === excluded || relativePath.startsWith(`${excluded}/`))
-        ) {
+        if (isFilesystemTraversalExcluded(relativePath)) continue;
+        if (entry.isSymbolicLink()) {
+          if (symlinkDiagnosticCount < 100) {
+            ambientDiscoveryErrors.push(
+              `Symbolický odkaz není v produkčním zdrojovém stromu povolen: ${relativePath}`,
+            );
+          } else if (symlinkDiagnosticCount === 100) {
+            ambientDiscoveryErrors.push("Další symbolické odkazy byly vynechány z diagnostiky.");
+          }
+          symlinkDiagnosticCount += 1;
           continue;
         }
         if (entry.isDirectory()) {
           stack.push(relativePath);
-        } else if (
-          entry.name === "package.json" &&
-          (entry.isFile() || entry.isSymbolicLink())
-        ) {
+          continue;
+        }
+        if (isAtOrBelowRoot(relativePath, ambientClassificationExcludedRoots)) continue;
+        if (entry.name === "package.json" && entry.isFile()) {
           ambientPackageManifests.push(relativePath);
         } else if (
-          declarationPattern.test(relativePath) && (entry.isFile() || entry.isSymbolicLink())
+          declarationPattern.test(relativePath) && entry.isFile()
         ) {
           declarationFiles.push(relativePath);
         }
@@ -823,6 +837,7 @@ export const collectArchitectureGraph = ({
   const edges = [];
   let totalSourceBytes = 0;
   let globPatternCount = 0;
+  let rawEdgeCount = 0;
   let rawEdgeLimitReached = false;
   let totalEdgeBytes = 0;
   let globMatchWork = 0;
@@ -830,11 +845,12 @@ export const collectArchitectureGraph = ({
 
   const addEdge = (edge) => {
     if (rawEdgeLimitReached) return false;
-    if (edges.length >= graphLimits.maxRawEdges) {
+    if (rawEdgeCount >= graphLimits.maxRawEdges) {
       collectionErrors.push(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
       rawEdgeLimitReached = true;
       return false;
     }
+    rawEdgeCount += 1;
     const edgeBytes = Buffer.byteLength(edge.file, "utf8") +
       Buffer.byteLength(edge.specifier, "utf8") +
       Buffer.byteLength(edge.target, "utf8") +
@@ -845,6 +861,13 @@ export const collectArchitectureGraph = ({
       );
       rawEdgeLimitReached = true;
       return false;
+    }
+    if (isFilesystemTraversalExcluded(edge.target)) {
+      const message =
+        `${edge.file}: lokální dependency míří do vynechaného nebo generovaného stromu: ` +
+        `${JSON.stringify(edge.specifier)} -> ${JSON.stringify(edge.target)}.`;
+      if (!collectionErrors.includes(message)) collectionErrors.push(message);
+      return true;
     }
     totalEdgeBytes += edgeBytes;
     edges.push(edge);
