@@ -116,6 +116,28 @@ describe("Architecture Guardrails", () => {
     }
   });
 
+  it.each([
+    "/server/private.ts",
+    "/desktop/main/private.ts",
+    "/server_py/private.ts",
+  ])("rejects Vite root-absolute imports into forbidden roots: %s", (specifier) => {
+    const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
+    try {
+      if (specifier.startsWith("/desktop/")) {
+        fs.mkdirSync(path.join(fixtureRoot, "desktop/main"), { recursive: true });
+        fs.writeFileSync(path.join(fixtureRoot, "desktop/main/private.ts"), "export const secret = 1;\n");
+      } else if (specifier.startsWith("/server_py/")) {
+        fs.mkdirSync(path.join(fixtureRoot, "server_py"), { recursive: true });
+        fs.writeFileSync(path.join(fixtureRoot, "server_py/private.ts"), "export const secret = 1;\n");
+      }
+      fs.writeFileSync(consumerPath, `import { secret } from "${specifier}";\nvoid secret;\n`);
+
+      expect(boundaryFails()).toBe(true);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rejects query-suffix boundary bypasses while allowing public entrypoints", () => {
     const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
     try {

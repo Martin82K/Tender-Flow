@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readRegularFileLimited } from "./safe-file-read.mjs";
 
 export const ARCHITECTURE_SCAN_ROOTS = Object.freeze([
   "index.tsx",
@@ -83,6 +84,41 @@ const isImportMetaGlobCall = (node) =>
   node.expression.expression.keywordToken === ts.SyntaxKind.ImportKeyword &&
   node.expression.expression.name.text === "meta" &&
   (node.expression.name.text === "glob" || node.expression.name.text === "globEager");
+
+const isImportMetaUrl = (node) =>
+  ts.isPropertyAccessExpression(node) &&
+  ts.isMetaProperty(node.expression) &&
+  node.expression.keywordToken === ts.SyntaxKind.ImportKeyword &&
+  node.expression.name.text === "meta" &&
+  node.name.text === "url";
+
+const viteImportMetaUrlDependency = (node) => {
+  if (
+    !ts.isNewExpression(node) ||
+    !ts.isIdentifier(node.expression) ||
+    node.expression.text !== "URL" ||
+    !node.arguments?.[1] ||
+    !isImportMetaUrl(node.arguments[1])
+  ) {
+    return null;
+  }
+
+  if (
+    node.arguments.length !== 2 ||
+    !ts.isStringLiteralLike(node.arguments[0])
+  ) {
+    return { error: "new URL s import.meta.url musí používat statický literál." };
+  }
+
+  if (
+    node.arguments[0].text.includes("%") &&
+    !/^(?:https?:|data:|blob:)/iu.test(node.arguments[0].text)
+  ) {
+    return { error: "new URL s import.meta.url nesmí používat percent-encoding." };
+  }
+
+  return { specifier: node.arguments[0].text };
+};
 
 const commonJsBindingIdentifier = (node) => {
   if (!ts.isCallExpression(node)) return null;
@@ -172,7 +208,11 @@ export const extractModuleDependencies = (content, fileName) => {
   }
 
   const visit = (node) => {
-    if (
+    const importMetaUrlDependency = viteImportMetaUrlDependency(node);
+    if (importMetaUrlDependency) {
+      if (importMetaUrlDependency.error) globErrors.push(importMetaUrlDependency.error);
+      else specs.push(importMetaUrlDependency.specifier);
+    } else if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
       node.moduleSpecifier &&
       ts.isStringLiteralLike(node.moduleSpecifier)
@@ -310,9 +350,11 @@ export const extractModuleDependencies = (content, fileName) => {
 };
 
 const resolveRepoPathFromRoot = (repoPath, root) => {
-  const resolved = path.resolve(root, ...toPosix(repoPath).split("/"));
+  const posixRepoPath = toPosix(repoPath);
+  if (/(?:^|\/)[A-Za-z]:(?:\/|$)/u.test(posixRepoPath)) return null;
+  const resolved = path.resolve(root, ...posixRepoPath.split("/"));
   const relative = toPosix(path.relative(root, resolved));
-  if (relative === ".." || relative.startsWith("../")) return null;
+  if (path.isAbsolute(relative) || relative === ".." || relative.startsWith("../")) return null;
   return relative;
 };
 
@@ -324,8 +366,51 @@ const resolvesLocalSpecifierToRepoRoot = (specifier, fileAbs, root) => {
   return path.resolve(path.dirname(fileAbs), modulePath) === path.resolve(root);
 };
 
+const isWindowsFilesystemSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    /^[A-Za-z]:/u.test(modulePath) ||
+    modulePath.includes("\\") ||
+    (!modulePath.startsWith("/") && path.win32.isAbsolute(modulePath))
+  );
+};
+
+const isFileUrlSpecifier = (specifier) => /^file:/iu.test(specifier.split(/[?#]/, 1)[0]);
+
+const isUnsafePercentEncodedSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    modulePath.includes("%") &&
+    !/^(?:https?:|data:|blob:)/iu.test(modulePath)
+  );
+};
+
 export const resolveModuleSpecifier = (spec, fileAbs, root) => {
   const modulePath = spec.split(/[?#]/, 1)[0];
+  if (
+    isWindowsFilesystemSpecifier(spec) ||
+    isFileUrlSpecifier(spec) ||
+    isUnsafePercentEncodedSpecifier(spec)
+  ) return null;
+  if (modulePath.startsWith("/")) {
+    const normalized = path.posix.normalize(modulePath);
+    if (
+      modulePath.startsWith("//") ||
+      modulePath.includes("\\") ||
+      modulePath.includes("%") ||
+      normalized === "/@fs" ||
+      normalized.startsWith("/@fs/") ||
+      normalized === "/@id" ||
+      normalized.startsWith("/@id/") ||
+      normalized === "/@vite" ||
+      normalized.startsWith("/@vite/") ||
+      normalized === "/@react-refresh" ||
+      normalized.startsWith("/@react-refresh/")
+    ) {
+      return null;
+    }
+    return resolveRepoPathFromRoot(normalized.slice(1), root);
+  }
   if (modulePath === "@" || /^@\/+$/u.test(modulePath)) return "";
   if (modulePath.startsWith("@/")) {
     return resolveRepoPathFromRoot(modulePath.slice(2), root);
@@ -621,10 +706,12 @@ export const collectArchitectureGraph = ({
       declaration === scanRoot || declaration.startsWith(`${scanRoot}/`)));
   const effectiveScanRoots = [...new Set([...scanRoots, ...additionalDeclarations])];
   const existingScanRoots = [];
+  const globScopeRoots = [];
   for (const scanRoot of effectiveScanRoots) {
     try {
-      fs.lstatSync(path.join(root, scanRoot));
+      const scanRootStat = fs.lstatSync(path.join(root, scanRoot));
       existingScanRoots.push(scanRoot);
+      if (scanRootStat.isDirectory()) globScopeRoots.push(scanRoot);
     } catch (error) {
       if (error?.code !== "ENOENT") {
         ambientDiscoveryErrors.push(`Nelze bezpečně ověřit scan root: ${scanRoot}`);
@@ -717,13 +804,16 @@ export const collectArchitectureGraph = ({
     if (!sourceExtensions.has(path.extname(fileAbs))) continue;
 
     const file = toPosix(path.relative(root, fileAbs));
-    const sourceBytes = fs.statSync(fileAbs).size;
-    if (sourceBytes > graphLimits.maxSourceFileBytes) {
+    let sourceBuffer;
+    try {
+      sourceBuffer = readRegularFileLimited(fileAbs, file, graphLimits.maxSourceFileBytes);
+    } catch (error) {
       collectionErrors.push(
-        `${file}: zdrojový soubor překračuje limit ${graphLimits.maxSourceFileBytes} bajtů.`,
+        error instanceof Error ? error.message : `${file}: zdrojový soubor nelze bezpečně načíst.`,
       );
       continue;
     }
+    const sourceBytes = sourceBuffer.length;
     totalSourceBytes += sourceBytes;
     if (totalSourceBytes > graphLimits.maxTotalSourceBytes) {
       collectionErrors.push(
@@ -731,7 +821,7 @@ export const collectArchitectureGraph = ({
       );
       break;
     }
-    const content = fs.readFileSync(fileAbs, "utf8");
+    const content = sourceBuffer.toString("utf8");
     const { specs, globCalls, globErrors } = extractModuleDependencies(content, fileAbs);
     const globDiagnostics = [];
 
@@ -773,6 +863,20 @@ export const collectArchitectureGraph = ({
         .filter(Boolean);
       const positiveGlobs = validGlobs.filter((item) => !item.negative);
       const negativeGlobs = validGlobs.filter((item) => item.negative);
+      const safePositiveGlobs = positiveGlobs.filter((item) => {
+        const firstSegment = item.pattern.split("/", 1)[0];
+        const safelyContained =
+          firstSegment.length > 0 &&
+          !/[*?]/u.test(firstSegment) &&
+          globScopeRoots.some((scanRoot) =>
+            item.pattern === scanRoot || item.pattern.startsWith(`${scanRoot}/`));
+        if (!safelyContained) {
+          globDiagnostics.push(
+            `import.meta.glob vzor není uzavřen uvnitř skenovaných vrstev: ${item.specifier}`,
+          );
+        }
+        return safelyContained;
+      });
       const excludedTargets = new Set();
 
       for (const target of globTargets) {
@@ -783,7 +887,7 @@ export const collectArchitectureGraph = ({
         }
       }
 
-      for (const glob of positiveGlobs) {
+      for (const glob of safePositiveGlobs) {
         if (rawEdgeLimitReached || globMatchLimitReached) break;
         for (const target of globTargets) {
           if (globMatchLimitReached) break;
@@ -815,6 +919,22 @@ export const collectArchitectureGraph = ({
       if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
         collectionErrors.push(
           `${file}: import adresáře kořene repozitáře není podporován: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isWindowsFilesystemSpecifier(specifier)) {
+        collectionErrors.push(
+          `${file}: lokální Windows cesta není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && specifier.split(/[?#]/, 1)[0].startsWith("/")) {
+        collectionErrors.push(
+          `${file}: root-absolute import nelze bezpečně rozřešit: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isFileUrlSpecifier(specifier)) {
+        collectionErrors.push(
+          `${file}: file URL není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isUnsafePercentEncodedSpecifier(specifier)) {
+        collectionErrors.push(
+          `${file}: lokální import nesmí používat percent-encoding: ${JSON.stringify(specifier)}.`,
         );
       } else if (target) {
         addEdge({ file, specifier, target, kind: "static" });

@@ -128,6 +128,297 @@ describe("legacy import baseline guard", () => {
     }
   });
 
+  it("rejects a root-absolute Vite module import that reaches legacy modules", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'import { exampleService } from "/services/exampleService";\nvoid exampleService;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("app/consumer.ts");
+      expect(result.stderr).toContain("services/exampleService");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("collects a safe root-absolute Vite module import as a graph edge", async () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "shared"), { recursive: true });
+    fs.writeFileSync(path.join(fixtureRoot, "shared/example.ts"), "export const example = true;\n");
+    writeConsumer(
+      fixtureRoot,
+      'import { example } from "/shared/example";\nvoid example;\n',
+    );
+
+    try {
+      const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
+      const graph = collectArchitectureGraph({ root: fixtureRoot });
+
+      expect(graph.collectionErrors).toEqual([]);
+      expect(graph.edges).toContainEqual({
+        file: "app/consumer.ts",
+        specifier: "/shared/example",
+        target: "shared/example",
+        kind: "static",
+      });
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects root-only Vite module imports fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(fixtureRoot, 'import "/?raw";\n');
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("import adresáře kořene repozitáře není podporován");
+      expect(result.stderr).toContain('"/?raw"');
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("canonicalizes root-absolute module imports before classifying them", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const load = () => import("/shared/../services/exampleService?raw");\nvoid load;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("services/exampleService");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "//services/exampleService",
+    "/@fs/tmp/example.ts",
+    "/@id/example",
+    "/x/../@fs/tmp/example.ts",
+    "/x/../@id/example",
+    "/@vite/client",
+    "/@react-refresh",
+    "/C:/tmp/example.ts",
+    "/shared/%2e%2e/services/exampleService.ts",
+    "/x/%2e%2e/@fs/tmp/example.ts",
+  ])(
+    "rejects unsupported Vite internal or ambiguous absolute imports: %s",
+    (specifier) => {
+      const fixtureRoot = createFixture();
+      writeConsumer(fixtureRoot, `import "${specifier}";\n`);
+
+      try {
+        const result = runBoundary(fixtureRoot);
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain("root-absolute import nelze bezpečně rozřešit");
+        expect(result.stderr).toContain(JSON.stringify(specifier));
+      } finally {
+        fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("classifies Vite Worker and SharedWorker entrypoints as module imports", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      [
+        'const worker = new Worker(new URL("/services/exampleService.ts?worker", import.meta.url), { type: "module" });',
+        "const shared = new SharedWorker(new URL(`../services/exampleService.ts`, import.meta.url));",
+        "void worker; void shared;",
+        "",
+      ].join("\n"),
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("/services/exampleService.ts?worker");
+      expect(result.stderr).toContain("../services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects percent-encoded local dynamic imports even with vite-ignore", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const load = () => import(/* @vite-ignore */ "./%2e%2e/services/exampleService.ts");\nvoid load;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("lokální import nesmí používat percent-encoding");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects file URL dependencies fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("file:///Users/runneradmin/.npmrc", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("file URL není podporována");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("allows percent-encoding in an explicitly external import.meta.url asset", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("https://cdn.example.invalid/a%20b.png", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(0);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "C:/Users/runneradmin/.npmrc",
+    "C:\\Users\\runneradmin\\.npmrc",
+    "\\\\attacker\\share\\payload.js",
+  ])("rejects Windows filesystem specifiers on every host: %s", (specifier) => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(
+      path.join(fixtureRoot, "app/static.ts"),
+      `import ${JSON.stringify(specifier)};\n`,
+    );
+    fs.writeFileSync(
+      path.join(fixtureRoot, "app/asset.ts"),
+      `const asset = new URL(${JSON.stringify(specifier)}, import.meta.url);\nvoid asset;\n`,
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("lokální Windows cesta není podporována");
+      expect(result.stderr).toContain("app/static.ts");
+      expect(result.stderr).toContain("app/asset.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a nonliteral Vite Worker entrypoint fail-closed", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      [
+        'const target = "/services/exampleService.ts";',
+        "const worker = new Worker(new URL(target, import.meta.url));",
+        "void worker;",
+        "",
+      ].join("\n"),
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("new URL s import.meta.url musí používat statický literál");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "%2e%2e/services/exampleService.ts",
+    "./%2e%2e/services/exampleService.ts",
+    "../shared/%2e%2e/services/exampleService.ts",
+  ])("rejects percent-encoded import.meta.url paths fail-closed: %s", (specifier) => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      `const asset = new URL("${specifier}", import.meta.url);\nvoid asset;\n`,
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("new URL s import.meta.url nesmí používat percent-encoding");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("classifies an ordinary import.meta.url asset URL as a module dependency", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("/services/exampleService.ts", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("/services/exampleService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("records root-local import.meta.url assets even when they are outside scan roots", async () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("/.env.local", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
+      const graph = collectArchitectureGraph({ root: fixtureRoot });
+
+      expect(graph.collectionErrors).toEqual([]);
+      expect(graph.edges).toContainEqual({
+        file: "app/consumer.ts",
+        specifier: "/.env.local",
+        target: ".env.local",
+        kind: "static",
+      });
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("canonicalizes parent segments in Vite glob patterns", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
@@ -175,8 +466,8 @@ describe("legacy import baseline guard", () => {
       const result = runBoundary(fixtureRoot);
 
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("modern-to-legacy-import");
-      expect(result.stderr).toContain("services/exampleService.ts");
+      expect(result.stderr).toContain("import.meta.glob vzor není uzavřen uvnitř skenovaných vrstev");
+      expect(result.stderr).toContain("@/**/*.ts");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
@@ -204,7 +495,7 @@ describe("legacy import baseline guard", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
       fixtureRoot,
-      'const modules = import.meta.glob(["@/**/*.ts", "!@/services/*.ts"]);\nvoid modules;\n',
+      'const modules = import.meta.glob(["@/services/*.ts", "!@/services/*.ts"]);\nvoid modules;\n',
     );
 
     try {
@@ -215,6 +506,29 @@ describe("legacy import baseline guard", () => {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
   });
+
+  it.each(["/server/private.ts", "../server/private.ts"])(
+    "rejects Vite globs that can reach outside scanned architecture roots: %s",
+    (specifier) => {
+      const fixtureRoot = createFixture();
+      fs.mkdirSync(path.join(fixtureRoot, "server"), { recursive: true });
+      fs.writeFileSync(path.join(fixtureRoot, "server/private.ts"), "export const privateValue = true;\n");
+      writeConsumer(
+        fixtureRoot,
+        `const modules = import.meta.glob("${specifier}", { eager: true });\nvoid modules;\n`,
+      );
+
+      try {
+        const result = runBoundary(fixtureRoot);
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain("import.meta.glob vzor není uzavřen uvnitř skenovaných vrstev");
+        expect(result.stderr).toContain(specifier);
+      } finally {
+        fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("does not apply a negative pattern to a separate Vite glob call", () => {
     const fixtureRoot = createFixture();
@@ -650,6 +964,89 @@ describe("legacy import baseline guard", () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("Symbolický odkaz");
       expect(result.stderr).toContain("app/linkedService.ts");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects symlinked boundary configs before parsing", ({ skip }) => {
+    const configs = [
+      ["architecture-boundary-allowlist.json", JSON.stringify({ allowedFindings: [] })],
+      ["legacy-import-baseline.json", JSON.stringify({ version: 2, allowedImports: [] })],
+    ] as const;
+
+    for (const [fileName, content] of configs) {
+      const fixtureRoot = createFixture();
+      const configPath = path.join(fixtureRoot, "config", fileName);
+      const outsidePath = path.join(fixtureRoot, `outside-${fileName}`);
+
+      try {
+        fs.writeFileSync(outsidePath, content);
+        fs.rmSync(configPath);
+        createSymlinkOrSkip(skip, `../outside-${fileName}`, configPath, "file");
+
+        const result = runBoundary(fixtureRoot);
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain(`config/${fileName} musí být regulární soubor`);
+      } finally {
+        fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it.each([
+    ["architecture-boundary-allowlist.json", JSON.stringify({ allowedFindings: [] })],
+    ["legacy-import-baseline.json", JSON.stringify({ version: 2, allowedImports: [] })],
+  ])("rejects an oversized boundary config before JSON parsing: %s", (fileName, content) => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(
+      path.join(fixtureRoot, "config", fileName),
+      `${content}${" ".repeat(1024 * 1024)}`,
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(`config/${fileName} překračuje limit`);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a dangling boundary config symlink instead of treating it as absent", ({ skip }) => {
+    const fixtureRoot = createFixture();
+    const configPath = path.join(fixtureRoot, "config/architecture-boundary-allowlist.json");
+
+    try {
+      fs.rmSync(configPath);
+      createSymlinkOrSkip(skip, "../missing-allowlist.json", configPath, "file");
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        "config/architecture-boundary-allowlist.json musí být regulární soubor",
+      );
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an invalid boundary allowlist schema fail-closed", () => {
+    const fixtureRoot = createFixture();
+    fs.writeFileSync(
+      path.join(fixtureRoot, "config/architecture-boundary-allowlist.json"),
+      JSON.stringify({ allowedFindings: "not-an-array" }),
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        "config/architecture-boundary-allowlist.json musí obsahovat pole allowedFindings",
+      );
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }

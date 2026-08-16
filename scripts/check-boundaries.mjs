@@ -6,6 +6,7 @@ import {
   collectArchitectureGraph,
   resolveModuleSpecifier,
 } from "./lib/architecture-graph.mjs";
+import { readRegularTextFileLimited } from "./lib/safe-file-read.mjs";
 
 const root = process.cwd();
 const scanRoots = ARCHITECTURE_SCAN_ROOTS;
@@ -24,6 +25,7 @@ const legacyRoots = ["components", "hooks", "services", "context", "utils"];
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
 const legacyImportBaselinePath = path.join(root, "config", "legacy-import-baseline.json");
+const MAX_BOUNDARY_CONFIG_BYTES = 1024 * 1024;
 
 const findings = [];
 const legacyImportFindings = [];
@@ -67,11 +69,30 @@ const isModernPath = (repoPath) =>
   !isLegacyPath(repoPath) &&
   (isModernEntryFile(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath)));
 
-const loadAllowlist = () => {
-  if (!fs.existsSync(allowlistPath)) return [];
+const readOptionalBoundaryConfig = (absolutePath, relativePath) => {
   try {
-    const parsed = JSON.parse(fs.readFileSync(allowlistPath, "utf8"));
-    if (!Array.isArray(parsed?.allowedFindings)) return [];
+    fs.lstatSync(absolutePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw new TypeError(`Nelze bezpečně načíst ${relativePath}.`);
+  }
+  return readRegularTextFileLimited(absolutePath, relativePath, MAX_BOUNDARY_CONFIG_BYTES);
+};
+
+const loadAllowlist = () => {
+  try {
+    const content = readOptionalBoundaryConfig(
+      allowlistPath,
+      "config/architecture-boundary-allowlist.json",
+    );
+    if (content === null) return [];
+    const parsed = JSON.parse(content);
+    if (!Array.isArray(parsed?.allowedFindings)) {
+      collectionErrors.push(
+        "config/architecture-boundary-allowlist.json musí obsahovat pole allowedFindings.",
+      );
+      return [];
+    }
     return parsed.allowedFindings
       .map((item) => ({
         type: typeof item?.type === "string" ? item.type : "",
@@ -84,7 +105,14 @@ const loadAllowlist = () => {
           item.file &&
           (item.type !== "feature-private-import" || item.specifier !== null),
       );
-  } catch {
+  } catch (error) {
+    collectionErrors.push(
+      error instanceof SyntaxError
+        ? "config/architecture-boundary-allowlist.json není platný JSON."
+        : error instanceof Error
+          ? error.message
+          : "config/architecture-boundary-allowlist.json nelze bezpečně načíst.",
+    );
     return [];
   }
 };
@@ -109,10 +137,13 @@ const modernEntryScopeBootstrapKeys = new Set([
 ]);
 
 const loadLegacyImportBaseline = () => {
-  if (!fs.existsSync(legacyImportBaselinePath)) return { allowedImports: [], errors: [] };
-
   try {
-    const parsed = JSON.parse(fs.readFileSync(legacyImportBaselinePath, "utf8"));
+    const content = readOptionalBoundaryConfig(
+      legacyImportBaselinePath,
+      "config/legacy-import-baseline.json",
+    );
+    if (content === null) return { allowedImports: [], errors: [] };
+    const parsed = JSON.parse(content);
     if (parsed?.version !== 2 || !Array.isArray(parsed?.allowedImports)) {
       return {
         allowedImports: [],
@@ -148,11 +179,17 @@ const loadLegacyImportBaseline = () => {
     }
 
     return { version: parsed.version, allowedImports, errors };
-  } catch {
+  } catch (error) {
     return {
       version: null,
       allowedImports: [],
-      errors: ["config/legacy-import-baseline.json není platný JSON."],
+      errors: [
+        error instanceof SyntaxError
+          ? "config/legacy-import-baseline.json není platný JSON."
+          : error instanceof Error
+            ? error.message
+            : "config/legacy-import-baseline.json nelze bezpečně načíst.",
+      ],
     };
   }
 };
@@ -192,8 +229,21 @@ const loadPreviousLegacyImportBaseline = () => {
     content = execFileSync(
       "git",
       ["show", `${baselineRef}:config/legacy-import-baseline.json`],
-      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: MAX_BOUNDARY_CONFIG_BYTES + 1,
+      },
     );
+    if (Buffer.byteLength(content, "utf8") > MAX_BOUNDARY_CONFIG_BYTES) {
+      return {
+        available: false,
+        version: null,
+        allowedImports: [],
+        errors: [`Git baseline config/legacy-import-baseline.json překračuje limit ${MAX_BOUNDARY_CONFIG_BYTES} bajtů.`],
+      };
+    }
   } catch {
     return {
       available: false,
