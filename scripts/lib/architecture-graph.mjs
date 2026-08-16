@@ -69,6 +69,7 @@ const defaultGraphLimits = Object.freeze({
   maxDependencyBytes: 4_096,
   maxTotalEdgeBytes: 32 * 1024 * 1024,
   maxGlobMatchWork: 50_000_000,
+  maxRejectedDependencyDiagnostics: 100,
 });
 
 const normalizeGraphLimits = (limits = {}) => Object.fromEntries(
@@ -842,6 +843,8 @@ export const collectArchitectureGraph = ({
   let totalEdgeBytes = 0;
   let globMatchWork = 0;
   let globMatchLimitReached = false;
+  const rejectedDependencyDiagnostics = new Set();
+  let suppressedRejectedDependencyDiagnostics = 0;
 
   const addEdge = (edge) => {
     if (rawEdgeLimitReached) return false;
@@ -862,14 +865,22 @@ export const collectArchitectureGraph = ({
       rawEdgeLimitReached = true;
       return false;
     }
+    totalEdgeBytes += edgeBytes;
     if (isFilesystemTraversalExcluded(edge.target)) {
       const message =
         `${edge.file}: lokální dependency míří do vynechaného nebo generovaného stromu: ` +
         `${JSON.stringify(edge.specifier)} -> ${JSON.stringify(edge.target)}.`;
-      if (!collectionErrors.includes(message)) collectionErrors.push(message);
+      if (rejectedDependencyDiagnostics.has(message)) return true;
+      if (
+        rejectedDependencyDiagnostics.size < graphLimits.maxRejectedDependencyDiagnostics
+      ) {
+        rejectedDependencyDiagnostics.add(message);
+        collectionErrors.push(message);
+      } else {
+        suppressedRejectedDependencyDiagnostics += 1;
+      }
       return true;
     }
-    totalEdgeBytes += edgeBytes;
     edges.push(edge);
     return true;
   };
@@ -1067,6 +1078,12 @@ export const collectArchitectureGraph = ({
       globErrors,
       globDiagnostics,
     });
+  }
+
+  if (suppressedRejectedDependencyDiagnostics > 0) {
+    collectionErrors.push(
+      `Dalších ${suppressedRejectedDependencyDiagnostics} odmítnutých dependency diagnostik bylo sloučeno.`,
+    );
   }
 
   const uniqueEdges = [];

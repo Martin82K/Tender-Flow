@@ -648,6 +648,30 @@ describe("legacy import baseline guard", () => {
     }
   });
 
+  it("bounds diagnostics for many rejected generated-root dependencies", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      Array.from(
+        { length: 150 },
+        (_, index) => `import "/dist/generated-${index}.js";`,
+      ).join("\n"),
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+      const diagnostics = result.stderr.match(
+        /lokální dependency míří do vynechaného nebo generovaného stromu/g,
+      ) ?? [];
+
+      expect(result.status).toBe(1);
+      expect(diagnostics).toHaveLength(100);
+      expect(result.stderr).toContain("Dalších 50 odmítnutých dependency diagnostik bylo sloučeno");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("canonicalizes parent segments in Vite glob patterns", () => {
     const fixtureRoot = createFixture();
     writeConsumer(
