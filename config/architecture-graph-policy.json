@@ -160,6 +160,11 @@
       "file": "shared/theme/skinRegistry.ts",
       "specifier": "@/assets/themes/nature/forest-light.jpg?no-inline",
       "target": "assets/themes/nature/forest-light.jpg"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/space/tf-space-canvas.webp?no-inline",
+      "target": "assets/themes/space/tf-space-canvas.webp"
     }
   ],
   "allowedCycles": [

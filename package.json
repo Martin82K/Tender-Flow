@@ -44,6 +44,8 @@
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs"
   },
   "dependencies": {
+    "@appica/icons-react": "1.0.0",
+    "@appica/ui-react": "1.1.0",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/server": "2.0.0",

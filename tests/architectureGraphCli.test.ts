@@ -1445,12 +1445,12 @@ describe("architecture graph CLI", () => {
     expect(result.stderr).toBe("");
     const report = JSON.parse(result.stdout) as Record<string, any>;
     expect(report.summary).toEqual({
-      sourceNodes: 611,
-      rawImports: 1757,
-      resolvedImports: 1725,
-      unresolvedImports: 32,
+      sourceNodes: 612,
+      rawImports: 1759,
+      resolvedImports: 1726,
+      unresolvedImports: 33,
       ambiguousImports: 0,
-      stronglyConnectedComponents: 609,
+      stronglyConnectedComponents: 610,
       cyclicComponents: 1,
       dependencyBatches: 24,
       legacyNodes: 113,
