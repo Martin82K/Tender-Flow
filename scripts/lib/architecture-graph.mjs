@@ -5,6 +5,13 @@ import ts from "typescript";
 export const ARCHITECTURE_SCAN_ROOTS = Object.freeze([
   "index.tsx",
   "App.tsx",
+  "env.d.ts",
+  "window.d.ts",
+  "declarations.d.ts",
+  "types.ts",
+  "types",
+  "config",
+  "fonts",
   "app",
   "features",
   "shared",
@@ -28,6 +35,21 @@ export const ARCHITECTURE_SOURCE_EXTENSIONS = Object.freeze([
 ]);
 
 const sourceExtensions = new Set(ARCHITECTURE_SOURCE_EXTENSIONS);
+const declarationPattern = /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/;
+const ambientExcludedRoots = Object.freeze([
+  ".git",
+  "node_modules",
+  "desktop",
+  "server",
+  "server_py",
+  "supabase/functions",
+  "dist",
+  "dist-electron",
+  "coverage",
+  "scripts",
+  "tests",
+  ".github",
+]);
 
 const defaultGraphLimits = Object.freeze({
   maxRegularFiles: 10_000,
@@ -140,6 +162,14 @@ export const extractModuleDependencies = (content, fileName) => {
   const globCalls = [];
   const globErrors = [];
   const hasLocalBinding = createLocalBindingLookup(sourceFile, fileName);
+
+  for (const reference of sourceFile.referencedFiles) specs.push(reference.fileName);
+  for (const reference of sourceFile.typeReferenceDirectives) {
+    if (reference.fileName.startsWith(".")) specs.push(reference.fileName);
+    if (reference.fileName.startsWith("/")) {
+      globErrors.push("/// <reference types> nesmí používat absolutní cestu.");
+    }
+  }
 
   const visit = (node) => {
     if (
@@ -523,11 +553,73 @@ export const collectArchitectureGraph = ({
   limits,
 } = {}) => {
   const graphLimits = normalizeGraphLimits(limits);
-  const { regularFiles: regularFilePaths, collectionErrors } = collectRegularFiles(
+  const ambientDiscoveryErrors = [];
+  let declarationFiles = [];
+  try {
+    const stack = [""];
+    let visitedEntries = 0;
+    while (stack.length > 0) {
+      const directory = stack.pop();
+      for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
+        visitedEntries += 1;
+        if (visitedEntries > graphLimits.maxRegularFiles * 5) {
+          throw new RangeError("Ambient discovery překročil bezpečnostní limit položek.");
+        }
+        const relativePath = toPosix(path.join(directory, entry.name));
+        if (
+          relativePath.split("/").includes("node_modules") ||
+          ambientExcludedRoots.some((excluded) =>
+            relativePath === excluded || relativePath.startsWith(`${excluded}/`))
+        ) {
+          continue;
+        }
+        if (entry.isDirectory()) {
+          stack.push(relativePath);
+        } else if (
+          declarationPattern.test(relativePath) && (entry.isFile() || entry.isSymbolicLink())
+        ) {
+          declarationFiles.push(relativePath);
+        }
+      }
+    }
+  } catch {
+    ambientDiscoveryErrors.push("Nelze bezpečně zjistit produkční ambient deklarace.");
+  }
+  const additionalDeclarations = declarationFiles.filter((declaration) =>
+    !scanRoots.some((scanRoot) =>
+      declaration === scanRoot || declaration.startsWith(`${scanRoot}/`)));
+  const effectiveScanRoots = [...new Set([...scanRoots, ...additionalDeclarations])];
+  const { regularFiles: regularFilePaths, collectionErrors: traversalErrors } = collectRegularFiles(
     root,
-    scanRoots,
+    effectiveScanRoots,
     graphLimits,
   );
+  const collectionErrors = [...ambientDiscoveryErrors, ...traversalErrors];
+  try {
+    fs.lstatSync(path.join(root, "types", "package.json"));
+    collectionErrors.push(
+      "types/package.json není povolen: kořenový type kontrakt nesmí přesměrovat rozlišení mimo types.ts nebo types/.",
+    );
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      collectionErrors.push("Nelze bezpečně ověřit nepřítomnost types/package.json.");
+    }
+  }
+  try {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+      if (
+        entry.name !== "types.ts" &&
+        entry.name.startsWith("types.") &&
+        (entry.isFile() || entry.isSymbolicLink())
+      ) {
+        collectionErrors.push(
+          `Nekánonický kořenový type kontrakt ${entry.name} není povolen vedle types.ts/types/.`,
+        );
+      }
+    }
+  } catch {
+    collectionErrors.push("Nelze bezpečně ověřit kořenové types.* kandidáty.");
+  }
   const regularFiles = regularFilePaths.map((fileAbs) => toPosix(path.relative(root, fileAbs)));
   const globTargets = regularFiles.filter((file) => !file.split("/").includes("node_modules"));
   const nodes = [];

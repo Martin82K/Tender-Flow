@@ -14,6 +14,13 @@ export const ARCHITECTURE_GRAPH_REPORT_SCHEMA_VERSION = 1;
 export const ARCHITECTURE_GRAPH_REPORT_ROOTS = Object.freeze([
   "index.tsx",
   "App.tsx",
+  "env.d.ts",
+  "window.d.ts",
+  "declarations.d.ts",
+  "types.ts",
+  "types",
+  "config",
+  "fonts",
   "app",
   "features",
   "shared",
@@ -30,6 +37,9 @@ export const ARCHITECTURE_GRAPH_MODERN_ROOTS = Object.freeze([
   "features",
   "shared",
   "infra",
+  "types",
+  "config",
+  "fonts",
 ]);
 
 export const ARCHITECTURE_GRAPH_LEGACY_ROOTS = Object.freeze([
@@ -49,6 +59,17 @@ const DEBT_METRIC_KEYS = Object.freeze([
   "legacyInternalImports",
   "cyclicComponents",
 ]);
+const INITIAL_DEBT_EVIDENCE = Object.freeze({
+  fingerprint: "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+  metrics: Object.freeze({
+    legacyNodes: 113,
+    modernToLegacyImports: 135,
+    legacyInternalImports: 137,
+    cyclicComponents: 1,
+  }),
+});
+const TRUSTED_V1_PLAN_DIGEST = "cfa1b32c58c7bcb692f010b9782c2f4131e836ac09ab124fcfb1bb48852d6901";
+const TRUSTED_V2_PLAN_DIGEST = "47fffd71cdbb68b4b636da30f271fdad7695ec83a0c96956390e00b0a8804de5";
 
 const compareCodePoint = (left, right) => left < right ? -1 : left > right ? 1 : 0;
 
@@ -98,10 +119,16 @@ const isWithinRoot = (moduleId, root) =>
 
 const isWithinRoots = (moduleId, roots) =>
   roots.some((root) => isWithinRoot(moduleId, root));
+const isDeclarationFile = (moduleId) => /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/.test(moduleId);
 
 const layerOf = (moduleId) => isWithinRoots(moduleId, ARCHITECTURE_GRAPH_MODERN_ROOTS)
   || moduleId === "index.tsx"
   || moduleId === "App.tsx"
+  || moduleId === "types.ts"
+  || moduleId === "env.d.ts"
+  || moduleId === "window.d.ts"
+  || moduleId === "declarations.d.ts"
+  || isDeclarationFile(moduleId)
   ? "modern"
   : isWithinRoots(moduleId, ARCHITECTURE_GRAPH_LEGACY_ROOTS)
     ? "legacy"
@@ -175,11 +202,21 @@ export const validateArchitectureGraphPolicy = (policy) => {
 
   const normalizedUnresolvedImports = unresolvedImports.map((edge, index) => {
     assertPlainObject(edge, `allowedUnresolvedImports[${index}]`);
-    return {
+    const normalized = {
       file: assertRepoPath(edge.file, `allowedUnresolvedImports[${index}].file`),
       specifier: assertText(edge.specifier, `allowedUnresolvedImports[${index}].specifier`),
       target: assertRepoPath(edge.target, `allowedUnresolvedImports[${index}].target`),
     };
+    if (normalized.file === "types.ts" || normalized.file.startsWith("types/")) {
+      throw new TypeError("Importy z types kontraktu nesmí být povoleny jako unresolved.");
+    }
+    const assetExtension = path.posix.extname(normalized.target);
+    if (!new Set([".css", ".svg", ".png", ".webp", ".jpg"]).has(assetExtension)) {
+      throw new TypeError(
+        `${normalized.target} není podporované nezdrojové aktivum pro allowedUnresolvedImports.`,
+      );
+    }
+    return normalized;
   });
   assertSortedUnique(
     normalizedUnresolvedImports,
@@ -329,6 +366,46 @@ export const validateArchitectureMigrationPlan = (plan) => {
   return { version: 2, baselineDebt, loops: normalizedLoops };
 };
 
+const normalizePreviousArchitectureMigrationPlan = (previousPlan, currentPlan) => {
+  if (previousPlan?.version === 2) return validateArchitectureMigrationPlan(previousPlan);
+  assertPlainObject(previousPlan, "Předchozí architecture migration plan");
+  const trustedDigest = previousPlan.__trustedSourceDigest;
+  if (
+    !(
+      (previousPlan.version === 0 && trustedDigest === TRUSTED_V2_PLAN_DIGEST) ||
+      (previousPlan.version === 1 && trustedDigest === TRUSTED_V1_PLAN_DIGEST)
+    )
+  ) {
+    throw new TypeError("Předchozí architecture migration plan musí mít version 1 nebo 2.");
+  }
+  if (previousPlan.version === 1) {
+    if (!Array.isArray(previousPlan.loops) || previousPlan.loops.length !== REQUIRED_PLAN_LOOPS) {
+      throw new TypeError(`Předchozí plan v1 musí obsahovat ${REQUIRED_PLAN_LOOPS} smyček.`);
+    }
+    for (const [index, loop] of previousPlan.loops.entries()) {
+      const expectedId = `loop-${String(index + 1).padStart(2, "0")}`;
+      const expectedStatus = index === 0 ? "in_progress" : "planned";
+      if (loop?.id !== expectedId || loop?.status !== expectedStatus || loop?.completionEvidence != null) {
+        throw new TypeError(
+          "Předchozí plan v1 lze migrovat jen z původního stavu loop-01 in_progress a ostatní planned.",
+        );
+      }
+    }
+  }
+  if (JSON.stringify(currentPlan.baselineDebt) !== JSON.stringify(INITIAL_DEBT_EVIDENCE)) {
+    throw new TypeError("Jednorázová migrace plánu musí zachovat připnutý initial baselineDebt.");
+  }
+  return validateArchitectureMigrationPlan({
+    version: 2,
+    baselineDebt: INITIAL_DEBT_EVIDENCE,
+    loops: currentPlan.loops.map((loop, index) => ({
+      ...loop,
+      status: index === 0 ? "in_progress" : "planned",
+      completionEvidence: undefined,
+    })),
+  });
+};
+
 export const summarizeArchitectureMigrationPlan = (plan) => {
   const validated = validateArchitectureMigrationPlan(plan);
   return {
@@ -445,6 +522,7 @@ export const assembleArchitectureGraphReport = ({
   rawGraph,
   policy,
   plan,
+  previousPlan,
   roots = ARCHITECTURE_GRAPH_REPORT_ROOTS,
 }) => {
   const validatedPolicy = validateArchitectureGraphPolicy(policy);
@@ -488,6 +566,48 @@ export const assembleArchitectureGraphReport = ({
   const debtCeiling = completedLoops.at(-1)?.completionEvidence ?? validatedPlan.baselineDebt;
   const activeLoop = validatedPlan.loops.find(({ status }) => status === "in_progress");
   const progressViolations = [];
+  if (previousPlan !== undefined) {
+    const validatedPreviousPlan = normalizePreviousArchitectureMigrationPlan(
+      previousPlan,
+      validatedPlan,
+    );
+    if (JSON.stringify(validatedPlan.baselineDebt) !== JSON.stringify(validatedPreviousPlan.baselineDebt)) {
+      progressViolations.push(violation(
+        "migration-checkpoint-regression",
+        "Výchozí baselineDebt se proti Git baseline nesmí měnit.",
+      ));
+    }
+    const previousCompletedLoops = validatedPreviousPlan.loops.filter(
+      ({ status }) => status === "complete",
+    );
+    for (const [index, previousLoop] of previousCompletedLoops.entries()) {
+      const currentLoop = completedLoops[index];
+      if (
+        currentLoop?.id !== previousLoop.id ||
+        JSON.stringify(currentLoop.completionEvidence) !== JSON.stringify(previousLoop.completionEvidence)
+      ) {
+        progressViolations.push(violation(
+          "migration-checkpoint-regression",
+          `Dokončená evidence ${previousLoop.id} se proti Git baseline nesmí měnit.`,
+        ));
+      }
+    }
+    const newlyCompleted = completedLoops.length - previousCompletedLoops.length;
+    if (newlyCompleted < 0 || newlyCompleted > 1) {
+      progressViolations.push(violation(
+        "migration-checkpoint-regression",
+        "Jeden Git krok smí dokončit nejvýše jednu migrační smyčku.",
+        { previousComplete: previousCompletedLoops.length, currentComplete: completedLoops.length },
+      ));
+    }
+    if (newlyCompleted > 0 && activeLoop) {
+      progressViolations.push(violation(
+        "migration-checkpoint-required",
+        `Po dokončení smyčky musí vzniknout idle checkpoint před spuštěním ${activeLoop.id}.`,
+        { previousComplete: previousCompletedLoops.length, currentComplete: completedLoops.length },
+      ));
+    }
+  }
   if (activeLoop) {
     if (
       completedLoops.length === 0 &&
@@ -632,9 +752,10 @@ export const buildArchitectureGraphReport = ({
   root,
   policy,
   plan,
+  previousPlan,
   roots = ARCHITECTURE_GRAPH_REPORT_ROOTS,
   limits,
 } = {}) => {
   const rawGraph = collectArchitectureGraph({ root, scanRoots: roots, limits });
-  return assembleArchitectureGraphReport({ rawGraph, policy, plan, roots });
+  return assembleArchitectureGraphReport({ rawGraph, policy, plan, previousPlan, roots });
 };

@@ -1,4 +1,4 @@
-import { spawnSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -67,13 +67,12 @@ const createFixture = () => {
   fs.writeFileSync(path.join(fixture, "features/a.ts"), 'import "@shared/api";\n');
   fs.writeFileSync(path.join(fixture, "shared/api.ts"), 'import "@infra/client";\n');
   fs.writeFileSync(path.join(fixture, "infra/client.ts"), "export const client = true;\n");
+  fs.writeFileSync(path.join(fixture, "types.ts"), "export type Root = string;\n");
   fs.writeFileSync(
     path.join(fixture, "config/architecture-graph-policy.json"),
     `${JSON.stringify({
       version: 1,
-      allowedUnresolvedImports: [
-        { file: "app/root.ts", specifier: "@/types", target: "types" },
-      ],
+      allowedUnresolvedImports: [],
       allowedCycles: [],
       allowedLegacyInternalImports: [],
     }, null, 2)}\n`,
@@ -101,29 +100,29 @@ describe("architecture graph CLI", () => {
       expect(report.schemaVersion).toBe(1);
       expect(report.status).toBe("ok");
       expect(report.scope.roots).toEqual([
-        "index.tsx", "App.tsx", "app", "features", "shared", "infra",
+        "index.tsx", "App.tsx", "env.d.ts", "window.d.ts", "declarations.d.ts",
+        "types.ts", "types", "config", "fonts",
+        "app", "features", "shared", "infra",
         "components", "hooks", "services", "context", "utils",
       ]);
       expect(report.summary).toMatchObject({
-        sourceNodes: 4,
+        sourceNodes: 5,
         rawImports: 4,
-        resolvedImports: 3,
-        unresolvedImports: 1,
+        resolvedImports: 4,
+        unresolvedImports: 0,
         ambiguousImports: 0,
-        stronglyConnectedComponents: 4,
+        stronglyConnectedComponents: 5,
         cyclicComponents: 0,
         dependencyBatches: 4,
         legacyNodes: 0,
         modernToLegacyImports: 0,
         legacyInternalImports: 0,
       });
-      expect(report.resolution.unresolved).toEqual([
-        expect.objectContaining({ file: "app/root.ts", specifier: "@/types", target: "types" }),
-      ]);
+      expect(report.resolution.unresolved).toEqual([]);
       expect(report.resolution.unexpectedUnresolved).toEqual([]);
       expect(report.resolution.ambiguous).toEqual([]);
       expect(report.migrationBatches).toEqual([
-        ["infra/client.ts"],
+        ["infra/client.ts", "types.ts"],
         ["shared/api.ts"],
         ["features/a.ts"],
         ["app/root.ts"],
@@ -156,13 +155,13 @@ describe("architecture graph CLI", () => {
   it("ratchets unresolved imports by exact edge rather than target only", () => {
     const fixture = createFixture();
     try {
-      fs.writeFileSync(path.join(fixture, "app/another.ts"), 'import type { Root } from "@/types";\n');
+      fs.writeFileSync(path.join(fixture, "app/another.ts"), 'import type { Missing } from "@/missing-types";\n');
       const result = runCli(fixture, "--check");
 
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("app/another.ts");
-      expect(result.stderr).toContain('"@/types"');
-      expect(result.stderr).toContain("types");
+      expect(result.stderr).toContain('"@/missing-types"');
+      expect(result.stderr).toContain("missing-types");
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
@@ -189,13 +188,217 @@ describe("architecture graph CLI", () => {
       expect(result.status).toBe(0);
       const report = JSON.parse(result.stdout) as Record<string, any>;
       expect(report.summary).toMatchObject({
-        sourceNodes: 6,
-        resolvedImports: 4,
+        sourceNodes: 7,
+        resolvedImports: 5,
         modernToLegacyImports: 1,
       });
       expect(report.modules).toContainEqual(
         expect.objectContaining({ id: "index.tsx", layer: "modern" }),
       );
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("includes root types.ts and its dependencies in the modern graph", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "types.ts"), 'export type { Legacy } from "@/services/legacy";\n');
+      fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
+      const payload = {
+        legacyNodes: ["services/legacy.ts"],
+        modernToLegacyImports: [{
+          file: "types.ts",
+          specifier: "@/services/legacy",
+          target: "services/legacy.ts",
+        }],
+        legacyInternalImports: [],
+        cycles: [],
+      };
+      writePlan(fixture, createPlan(debtEvidence(payload)));
+      fs.writeFileSync(
+        path.join(fixture, "config/architecture-graph-policy.json"),
+        `${JSON.stringify({
+          version: 1,
+          allowedUnresolvedImports: [],
+          allowedCycles: [],
+          allowedLegacyInternalImports: [],
+        }, null, 2)}\n`,
+      );
+
+      const result = runCli(fixture, "--json", "--check");
+      expect(result.status).toBe(0);
+      const report = JSON.parse(result.stdout) as Record<string, any>;
+      expect(report.modules).toContainEqual(
+        expect.objectContaining({ id: "types.ts", layer: "modern" }),
+      );
+      expect(report.debt.payload.modernToLegacyImports).toEqual(payload.modernToLegacyImports);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("protects the directory-index form of the root types contract", () => {
+    const fixture = createFixture();
+    try {
+      fs.rmSync(path.join(fixture, "types.ts"));
+      fs.mkdirSync(path.join(fixture, "types"));
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "types/index.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
+      const payload = {
+        legacyNodes: ["services/legacy.ts"],
+        modernToLegacyImports: [{
+          file: "types/index.ts",
+          specifier: "@/services/legacy",
+          target: "services/legacy.ts",
+        }],
+        legacyInternalImports: [],
+        cycles: [],
+      };
+      writePlan(fixture, createPlan(debtEvidence(payload)));
+      fs.writeFileSync(
+        path.join(fixture, "config/architecture-graph-policy.json"),
+        `${JSON.stringify({
+          version: 1,
+          allowedUnresolvedImports: [],
+          allowedCycles: [],
+          allowedLegacyInternalImports: [],
+        }, null, 2)}\n`,
+      );
+
+      const result = runCli(fixture, "--json", "--check");
+      expect(result.status).toBe(0);
+      const report = JSON.parse(result.stdout) as Record<string, any>;
+      expect(report.modules).toContainEqual(
+        expect.objectContaining({ id: "types/index.ts", layer: "modern" }),
+      );
+      expect(report.debt.payload.modernToLegacyImports).toEqual(payload.modernToLegacyImports);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects package redirects from the canonical types contract", () => {
+    const fixture = createFixture();
+    try {
+      fs.rmSync(path.join(fixture, "types.ts"));
+      fs.mkdirSync(path.join(fixture, "types"));
+      fs.writeFileSync(path.join(fixture, "types/package.json"), '{"types":"../hidden.ts"}\n');
+      fs.writeFileSync(path.join(fixture, "hidden.ts"), "export type Hidden = string;\n");
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("types/package.json není povolen");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects types resolver shadows and local scope escapes", () => {
+    const shadowFixture = createFixture();
+    const escapeFixture = createFixture();
+    const referenceFixture = createFixture();
+    try {
+      fs.writeFileSync(shadowFixture + "/types.js", "export const shadow = true;\n");
+      const shadow = runCli(shadowFixture, "--check");
+      expect(shadow.status).toBe(1);
+      expect(shadow.stderr).toContain("Nekánonický kořenový type kontrakt types.js");
+
+      fs.rmSync(path.join(escapeFixture, "types.ts"));
+      fs.mkdirSync(path.join(escapeFixture, "types"));
+      fs.writeFileSync(
+        path.join(escapeFixture, "types/index.ts"),
+        '/// <reference path="../hidden.ts" />\nexport type { Hidden } from "../hidden";\n',
+      );
+      fs.writeFileSync(path.join(escapeFixture, "hidden.ts"), "export type Hidden = string;\n");
+      fs.writeFileSync(
+        path.join(escapeFixture, "config/architecture-graph-policy.json"),
+        `${JSON.stringify({
+          version: 1,
+          allowedUnresolvedImports: [{
+            file: "types/index.ts",
+            specifier: "../hidden",
+            target: "hidden",
+          }],
+          allowedCycles: [],
+          allowedLegacyInternalImports: [],
+        }, null, 2)}\n`,
+      );
+      const escape = runCli(escapeFixture, "--check");
+      expect(escape.status).toBe(2);
+      expect(escape.stderr).toContain("Importy z types kontraktu nesmí být povoleny jako unresolved");
+
+      fs.rmSync(path.join(referenceFixture, "types.ts"));
+      fs.mkdirSync(path.join(referenceFixture, "types"));
+      fs.writeFileSync(
+        path.join(referenceFixture, "types/index.ts"),
+        '/// <reference types="../hidden" />\nexport type Visible = string;\n',
+      );
+      fs.mkdirSync(path.join(referenceFixture, "services"), { recursive: true });
+      fs.writeFileSync(
+        path.join(referenceFixture, "hidden.d.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(
+        path.join(referenceFixture, "services/legacy.ts"),
+        "export type Legacy = string;\n",
+      );
+      const reference = runCli(referenceFixture, "--json", "--check");
+      expect(reference.status).toBe(1);
+      expect(JSON.parse(reference.stdout).debt.payload.modernToLegacyImports).toContainEqual({
+        file: "hidden.d.ts",
+        specifier: "@/services/legacy",
+        target: "services/legacy.ts",
+      });
+    } finally {
+      fs.rmSync(shadowFixture, { recursive: true, force: true });
+      fs.rmSync(escapeFixture, { recursive: true, force: true });
+      fs.rmSync(referenceFixture, { recursive: true, force: true });
+    }
+  });
+
+  it("includes root ambient declaration entrypoints in the modern graph", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.mkdirSync(path.join(fixture, "ambient"), { recursive: true });
+      fs.mkdirSync(path.join(fixture, "scripts"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "ambient/globals.d.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
+      fs.writeFileSync(
+        path.join(fixture, "scripts/tool.d.mts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      const payload = {
+        legacyNodes: ["services/legacy.ts"],
+        modernToLegacyImports: [{
+          file: "ambient/globals.d.ts",
+          specifier: "@/services/legacy",
+          target: "services/legacy.ts",
+        }],
+        legacyInternalImports: [],
+        cycles: [],
+      };
+      writePlan(fixture, createPlan(debtEvidence(payload)));
+      const result = runCli(fixture, "--json", "--check");
+      expect(result.status).toBe(0);
+      const report = JSON.parse(result.stdout) as Record<string, any>;
+      expect(report.modules).toContainEqual(
+        expect.objectContaining({ id: "ambient/globals.d.ts", layer: "modern" }),
+      );
+      expect(report.modules).not.toContainEqual(
+        expect.objectContaining({ id: "scripts/tool.d.mts" }),
+      );
+      expect(report.debt.payload.modernToLegacyImports).toEqual(payload.modernToLegacyImports);
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
@@ -260,9 +463,9 @@ describe("architecture graph CLI", () => {
       expect(result.status).toBe(0);
       expect(result.stderr).toBe("");
       expect(result.stdout).toContain("Architecture graph OK");
-      expect(result.stdout).toContain("Source nodes: 4");
-      expect(result.stdout).toContain("Resolved imports: 3");
-      expect(result.stdout).toContain("Unresolved imports: 1 (expected: 1, unexpected: 0)");
+      expect(result.stdout).toContain("Source nodes: 5");
+      expect(result.stdout).toContain("Resolved imports: 4");
+      expect(result.stdout).toContain("Unresolved imports: 0 (expected: 0, unexpected: 0)");
       expect(result.stdout).toContain("Legacy: 0 nodes, 0 incoming imports, 0 internal imports");
       expect(result.stdout).toContain("Migration plan: 0/16 complete, loop-01 in progress");
     } finally {
@@ -279,7 +482,7 @@ describe("architecture graph CLI", () => {
 
       expect(diagnostic.status).toBe(0);
       expect(diagnostic.stdout).toContain("Architecture graph FAILED");
-      expect(diagnostic.stdout).toContain("Source nodes: 4");
+      expect(diagnostic.stdout).toContain("Source nodes: 5");
       expect(diagnostic.stderr).toContain("Nečekaně nerozřešené zdrojové importy:");
       expect(gate.status).toBe(1);
       expect(gate.stdout).toBe("");
@@ -327,9 +530,7 @@ describe("architecture graph CLI", () => {
         path.join(fixture, "config/architecture-graph-policy.json"),
         `${JSON.stringify({
           version: 1,
-          allowedUnresolvedImports: [
-            { file: "app/root.ts", specifier: "@/types", target: "types" },
-          ],
+          allowedUnresolvedImports: [],
           allowedCycles: [["services/a.ts", "services/b.ts"]],
           allowedLegacyInternalImports: [
             { file: "services/a.ts", specifier: "@/services/b", target: "services/b.ts" },
@@ -405,6 +606,19 @@ describe("architecture graph CLI", () => {
       expect(legacy.stderr).toContain("services/a.ts -> services/b.ts");
 
       fs.writeFileSync(path.join(staleFixture, "app/root.ts"), 'import "@features/a";\n');
+      fs.writeFileSync(
+        path.join(staleFixture, "config/architecture-graph-policy.json"),
+        `${JSON.stringify({
+          version: 1,
+          allowedUnresolvedImports: [{
+            file: "app/root.ts",
+            specifier: "@/assets/missing.svg",
+            target: "assets/missing.svg",
+          }],
+          allowedCycles: [],
+          allowedLegacyInternalImports: [],
+        }, null, 2)}\n`,
+      );
       const stale = runCli(staleFixture, "--check");
       expect(stale.status).toBe(1);
       expect(stale.stderr).toContain("Povolený unresolved import již není používán");
@@ -429,18 +643,45 @@ describe("architecture graph CLI", () => {
     }
   });
 
+  it("fails closed when an explicit Git baseline has no migration plan", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      writePlan(fixture);
+
+      const result = spawnSync(process.execPath, [cli, "--check"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: "HEAD" },
+      });
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("neobsahuje config/architecture-migration-plan.json");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
   it("ratchets the current repository graph and its only known cycle", () => {
     const result = runCli(root, "--json", "--check");
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     const report = JSON.parse(result.stdout) as Record<string, any>;
     expect(report.summary).toEqual({
-      sourceNodes: 599,
-      rawImports: 1752,
-      resolvedImports: 1467,
-      unresolvedImports: 285,
+      sourceNodes: 611,
+      rawImports: 1757,
+      resolvedImports: 1725,
+      unresolvedImports: 32,
       ambiguousImports: 0,
-      stronglyConnectedComponents: 597,
+      stronglyConnectedComponents: 609,
       cyclicComponents: 1,
       dependencyBatches: 24,
       legacyNodes: 113,

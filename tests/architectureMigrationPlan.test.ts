@@ -116,6 +116,7 @@ describe("architecture migration plan", () => {
       "node scripts/report-architecture-graph.mjs --check",
     );
     expect(workflow).toContain("npm run check:architecture-graph");
+    expect(workflow).toContain("ARCHITECTURE_GRAPH_BASELINE_REF:");
     expect(workflow).toMatch(/branches:\s+[\s\S]*- new_architekt/);
   });
 
@@ -150,6 +151,77 @@ describe("architecture migration plan", () => {
     const invalid = structuredClone(idle);
     invalid.loops[2].status = "in_progress";
     expect(() => validateArchitectureMigrationPlan(invalid)).toThrow(/první nedokončená smyčka/i);
+  });
+
+  it("requires an idle checkpoint before the next loop may start", () => {
+    const plan = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "config/architecture-migration-plan.json"), "utf8"),
+    ) as MigrationPlan;
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "config/architecture-graph-policy.json"), "utf8"),
+    );
+    const previousPlan = structuredClone(plan);
+    previousPlan.loops[0].status = "in_progress";
+    delete previousPlan.loops[0].completionEvidence;
+    const currentPlan = structuredClone(plan);
+    currentPlan.loops[1].status = "in_progress";
+    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
+
+    const report = assembleArchitectureGraphReport({
+      rawGraph,
+      policy,
+      plan: currentPlan,
+      previousPlan,
+    });
+
+    expect(report.violations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "migration-checkpoint-required" }),
+    ]));
+
+    const rewrittenBaseline = structuredClone(plan);
+    rewrittenBaseline.baselineDebt.fingerprint = `sha256:${"0".repeat(64)}`;
+    expect(assembleArchitectureGraphReport({
+      rawGraph,
+      policy,
+      plan: rewrittenBaseline,
+      previousPlan: plan,
+    }).violations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "migration-checkpoint-regression" }),
+    ]));
+  });
+
+  it("accepts only the original version 1 plan as a one-time checkpoint migration", () => {
+    const plan = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "config/architecture-migration-plan.json"), "utf8"),
+    ) as MigrationPlan;
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "config/architecture-graph-policy.json"), "utf8"),
+    );
+    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
+    const previousV1 = {
+      version: 1,
+      __trustedSourceDigest: "cfa1b32c58c7bcb692f010b9782c2f4131e836ac09ab124fcfb1bb48852d6901",
+      loops: plan.loops.map((loop, index) => ({
+        ...loop,
+        status: index === 0 ? "in_progress" : "planned",
+        completionEvidence: undefined,
+      })),
+    };
+
+    expect(assembleArchitectureGraphReport({
+      rawGraph,
+      policy,
+      plan,
+      previousPlan: previousV1,
+    }).status).toBe("ok");
+
+    previousV1.loops[0].status = "complete";
+    expect(() => assembleArchitectureGraphReport({
+      rawGraph,
+      policy,
+      plan,
+      previousPlan: previousV1,
+    })).toThrow(/plan v1 lze migrovat jen/);
   });
 
   it("rejects fake completion without measured monotonic debt evidence", () => {

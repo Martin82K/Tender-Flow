@@ -64,8 +64,11 @@ textu architektonických skriptů. `tests/architectureGraphResolver.test.ts`
 navíc dokládá, že audit i boundary guard používají společný AST graf: porovnává
 statický import, export, type import, TypeScript import type, JSDoc, dynamický
 import a Vite glob, současně odmítá falešné importy z komentářů a řetězců.
-Reálný repozitář ratchetuje přesnou shodou 599 zdrojových uzlů včetně
-`index.tsx` a `App.tsx`. Boundary baseline eviduje všech 135 modern-to-legacy
+Reálný repozitář ratchetuje přesnou shodou 611 zdrojových uzlů včetně
+`index.tsx`, `App.tsx`, kořenových ambient deklarací, `config/`, `fonts/` a
+kontraktu `types.ts`/`types/`. Soubor
+`types/package.json` je odmítnut fail-closed, aby package redirect nemohl typový
+kontrakt vyvést mimo měřený graf. Boundary baseline eviduje všech 135 modern-to-legacy
 hran včetně composition hrany z `index.tsx`.
 
 `tests/architectureGraphAnalysis.test.ts` ověřuje další čistou vrstvu nad tímto
@@ -88,6 +91,10 @@ Plán ve schema verzi 2 navíc váže stav `complete` na SHA-256 fingerprint
 přesného legacy grafu a jeho metriky. První reportovací smyčka smí založit
 baseline beze změny dluhu, každá další dokončená smyčka musí prokázat monotónní
 pokles a finální smyčka vyžaduje nulové legacy metriky.
+Quality gate porovnává plán s Git base revizí: v jednom kroku lze uzavřít
+nejvýše jednu smyčku a před otevřením další musí existovat idle checkpoint.
+Jednorázové zavedení schema v2 je připnuté na konkrétní revize a SHA-256
+digesty původního i nového plánu.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně

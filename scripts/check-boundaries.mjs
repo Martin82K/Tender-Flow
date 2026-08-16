@@ -9,8 +9,17 @@ import {
 
 const root = process.cwd();
 const scanRoots = ARCHITECTURE_SCAN_ROOTS;
-const modernRoots = ["app", "features", "shared", "infra"];
-const modernEntryFiles = new Set(["index.tsx", "App.tsx"]);
+const modernRoots = ["app", "features", "shared", "infra", "types", "config", "fonts"];
+const modernEntryFiles = new Set([
+  "index.tsx",
+  "App.tsx",
+  "types.ts",
+  "env.d.ts",
+  "window.d.ts",
+  "declarations.d.ts",
+]);
+const isModernEntryFile = (fileRel) =>
+  modernEntryFiles.has(fileRel) || /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/.test(fileRel);
 const legacyRoots = ["components", "hooks", "services", "context", "utils"];
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
@@ -21,7 +30,7 @@ const legacyImportFindings = [];
 const collectionErrors = [];
 
 const isWebLayer = (fileRel) =>
-  modernEntryFiles.has(fileRel) ||
+  isModernEntryFile(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
@@ -30,16 +39,22 @@ const isWebLayer = (fileRel) =>
   fileRel.startsWith("context/") ||
   fileRel.startsWith("services/") ||
   fileRel.startsWith("utils/") ||
-  fileRel.startsWith("infra/");
+  fileRel.startsWith("infra/") ||
+  fileRel.startsWith("types/") ||
+  fileRel.startsWith("config/") ||
+  fileRel.startsWith("fonts/");
 
 const isUiLayer = (fileRel) =>
-  modernEntryFiles.has(fileRel) ||
+  isModernEntryFile(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
   fileRel.startsWith("components/") ||
   fileRel.startsWith("hooks/") ||
-  fileRel.startsWith("context/");
+  fileRel.startsWith("context/") ||
+  fileRel.startsWith("types/") ||
+  fileRel.startsWith("config/") ||
+  fileRel.startsWith("fonts/");
 
 const isForbiddenRepoTarget = (repoPath) =>
   forbiddenRoots.some((rootPath) => repoPath === rootPath || repoPath.startsWith(`${rootPath}/`));
@@ -48,7 +63,7 @@ const isWithinRoot = (repoPath, rootPath) =>
   repoPath === rootPath || repoPath.startsWith(`${rootPath}/`);
 
 const isModernPath = (repoPath) =>
-  modernEntryFiles.has(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
+  isModernEntryFile(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 
 const loadAllowlist = () => {
@@ -97,10 +112,11 @@ const loadLegacyImportBaseline = () => {
 
   try {
     const parsed = JSON.parse(fs.readFileSync(legacyImportBaselinePath, "utf8"));
-    if (parsed?.version !== 1 || !Array.isArray(parsed?.allowedImports)) {
+    if (parsed?.version !== 2 || !Array.isArray(parsed?.allowedImports)) {
       return {
         allowedImports: [],
-        errors: ["config/legacy-import-baseline.json musí mít version 1 a pole allowedImports."],
+        version: null,
+        errors: ["config/legacy-import-baseline.json musí mít version 2 a pole allowedImports."],
       };
     }
 
@@ -130,9 +146,10 @@ const loadLegacyImportBaseline = () => {
       errors.push("Legacy import baseline musí být deterministicky seřazený.");
     }
 
-    return { allowedImports, errors };
+    return { version: parsed.version, allowedImports, errors };
   } catch {
     return {
+      version: null,
       allowedImports: [],
       errors: ["config/legacy-import-baseline.json není platný JSON."],
     };
@@ -155,8 +172,8 @@ const loadPreviousLegacyImportBaseline = () => {
     });
   } catch {
     return configuredRef
-      ? { available: false, allowedImports: [], errors: [`Nelze načíst Git baseline ref ${baselineRef}.`] }
-      : { available: false, allowedImports: [], errors: [] };
+      ? { available: false, version: null, allowedImports: [], errors: [`Nelze načíst Git baseline ref ${baselineRef}.`] }
+      : { available: false, version: null, allowedImports: [], errors: [] };
   }
 
   let content = "";
@@ -167,7 +184,7 @@ const loadPreviousLegacyImportBaseline = () => {
       { cwd: root, stdio: "pipe" },
     );
   } catch {
-    return { available: false, allowedImports: [], errors: [] };
+    return { available: false, version: null, allowedImports: [], errors: [] };
   }
 
   try {
@@ -179,6 +196,7 @@ const loadPreviousLegacyImportBaseline = () => {
   } catch {
     return {
       available: false,
+      version: null,
       allowedImports: [],
       errors: [`Git baseline ${baselineRef} obsahuje baseline soubor, ale nelze jej načíst.`],
     };
@@ -186,9 +204,10 @@ const loadPreviousLegacyImportBaseline = () => {
 
   try {
     const parsed = JSON.parse(content);
-    if (parsed?.version !== 1 || !Array.isArray(parsed?.allowedImports)) {
+    if (![1, 2].includes(parsed?.version) || !Array.isArray(parsed?.allowedImports)) {
       return {
         available: false,
+        version: null,
         allowedImports: [],
         errors: [`Git baseline ${baselineRef} nemá platné schema.`],
       };
@@ -198,10 +217,11 @@ const loadPreviousLegacyImportBaseline = () => {
       specifier: typeof item?.specifier === "string" ? item.specifier : "",
       target: typeof item?.target === "string" ? item.target : "",
     }));
-    return { available: true, allowedImports, errors: [] };
+    return { available: true, version: parsed.version, allowedImports, errors: [] };
   } catch {
     return {
       available: false,
+      version: null,
       allowedImports: [],
       errors: [`Git baseline ${baselineRef} není platný JSON.`],
     };
@@ -374,7 +394,7 @@ const previousLegacyImportKeys = new Set(
 );
 const bootstrapsModernEntryScope =
   previousLegacyImportBaseline.available &&
-  !previousLegacyImportBaseline.allowedImports.some(({ file }) => modernEntryFiles.has(file));
+  previousLegacyImportBaseline.version === 1;
 const addedLegacyBaselineImports = previousLegacyImportBaseline.available
   ? allowedLegacyImports.filter((allowed) =>
       !previousLegacyImportKeys.has(legacyImportKey(allowed)) &&

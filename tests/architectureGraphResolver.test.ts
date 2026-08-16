@@ -207,7 +207,7 @@ const createFixture = () => {
   fs.writeFileSync(
     path.join(fixtureRoot, "config/legacy-import-baseline.json"),
     `${JSON.stringify({
-      version: 1,
+      version: 2,
       allowedImports: expectedEdges.map(({ file, specifier, target }) => ({ file, specifier, target })),
     }, null, 2)}\n`,
   );
@@ -265,7 +265,7 @@ describe("architecture graph resolver", () => {
         .filter(
           (edge) =>
             (/^(?:app|features|shared|infra)\//.test(edge.file) ||
-              edge.file === "index.tsx" || edge.file === "App.tsx") &&
+              edge.file === "index.tsx" || edge.file === "App.tsx" || edge.file === "types.ts") &&
             /^(?:components|hooks|services|context|utils)(?:\/|$)/.test(edge.target),
         )
         .sort(compareEdge);
@@ -312,7 +312,7 @@ describe("architecture graph resolver", () => {
       .filter(
         (edge) =>
           (/^(?:app|features|shared|infra)\//.test(edge.file) ||
-            edge.file === "index.tsx" || edge.file === "App.tsx") &&
+            edge.file === "index.tsx" || edge.file === "App.tsx" || edge.file === "types.ts") &&
           /^(?:components|hooks|services|context|utils)(?:\/|$)/.test(edge.target),
       )
       .map(({ file, specifier, target }) => ({ file, specifier, target }))
@@ -323,7 +323,7 @@ describe("architecture graph resolver", () => {
       );
 
     expect(graph.collectionErrors).toEqual([]);
-    expect(graph.nodes).toHaveLength(599);
+    expect(graph.nodes).toHaveLength(611);
     expect(actual).toEqual(baseline.allowedImports);
     expect(actual).toHaveLength(135);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(37);

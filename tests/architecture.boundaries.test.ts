@@ -332,7 +332,7 @@ describe("Architecture Guardrails", () => {
       );
       fs.writeFileSync(
         path.join(fixtureRoot, "config/legacy-import-baseline.json"),
-        JSON.stringify({ version: 1, allowedImports: [] }),
+        JSON.stringify({ version: 2, allowedImports: [] }),
       );
 
       expect(() => execFileSync(process.execPath, [boundaryScript], {
@@ -344,7 +344,7 @@ describe("Architecture Guardrails", () => {
       fs.writeFileSync(
         path.join(fixtureRoot, "config/legacy-import-baseline.json"),
         JSON.stringify({
-          version: 1,
+          version: 2,
           allowedImports: [{
             file: "index.tsx",
             specifier: "./services/bootstrap",
@@ -357,6 +357,142 @@ describe("Architecture Guardrails", () => {
         encoding: "utf8",
         stdio: "pipe",
       })).not.toThrow();
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("allows the composition bootstrap only for the version 1 to version 2 transition", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-bootstrap-boundary-"));
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+    const baselinePath = path.join(fixtureRoot, "config/legacy-import-baseline.json");
+    const edge = {
+      file: "index.tsx",
+      specifier: "./services/incidentLogger",
+      target: "services/incidentLogger",
+    };
+    const run = () => execFileSync(process.execPath, [boundaryScript], {
+      cwd: fixtureRoot,
+      encoding: "utf8",
+      stdio: "pipe",
+      env: { ...process.env, LEGACY_IMPORT_BASELINE_REF: "HEAD" },
+    });
+
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "config"), { recursive: true });
+      fs.writeFileSync(path.join(fixtureRoot, "index.tsx"), 'import "./services/incidentLogger";\n');
+      fs.writeFileSync(path.join(fixtureRoot, "services/incidentLogger.ts"), "export {};\n");
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-boundary-allowlist.json"),
+        JSON.stringify({ allowedFindings: [] }),
+      );
+      fs.writeFileSync(baselinePath, JSON.stringify({ version: 1, allowedImports: [] }));
+      execFileSync("git", ["init", "--quiet"], { cwd: fixtureRoot });
+      execFileSync("git", ["add", "."], { cwd: fixtureRoot });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "v1"],
+        { cwd: fixtureRoot },
+      );
+
+      fs.writeFileSync(baselinePath, JSON.stringify({ version: 2, allowedImports: [edge] }));
+      expect(run).not.toThrow();
+
+      fs.writeFileSync(baselinePath, JSON.stringify({ version: 2, allowedImports: [] }));
+      execFileSync("git", ["add", "config/legacy-import-baseline.json"], { cwd: fixtureRoot });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "v2"],
+        { cwd: fixtureRoot },
+      );
+      fs.writeFileSync(baselinePath, JSON.stringify({ version: 2, allowedImports: [edge] }));
+      expect(run).toThrow(/Legacy import baseline se nesmí rozšiřovat/);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("treats types/index.ts as a protected modern root", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-types-boundary-"));
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "types"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "server"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "config"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixtureRoot, "types/index.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixtureRoot, "services/legacy.ts"), "export type Legacy = string;\n");
+      fs.writeFileSync(path.join(fixtureRoot, "server/private.ts"), "export type Private = string;\n");
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-boundary-allowlist.json"),
+        JSON.stringify({ allowedFindings: [] }),
+      );
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/legacy-import-baseline.json"),
+        JSON.stringify({ version: 2, allowedImports: [] }),
+      );
+
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).toThrow(/modern-to-legacy-import/);
+
+      fs.writeFileSync(
+        path.join(fixtureRoot, "types/index.ts"),
+        'export type { Private } from "@/server/private";\n',
+      );
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).toThrow(/forbidden-web-import/);
+
+      fs.writeFileSync(path.join(fixtureRoot, "types/index.ts"), "export {};\n");
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/runtime.ts"),
+        "void window.electronAPI;\n",
+      );
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).toThrow(/renderer-bypass-platform-adapter/);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("discovers arbitrary root ambient declarations as modern entrypoints", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-ambient-boundary-"));
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "ambient"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "config"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixtureRoot, "ambient/globals.d.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixtureRoot, "services/legacy.ts"), "export type Legacy = string;\n");
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-boundary-allowlist.json"),
+        JSON.stringify({ allowedFindings: [] }),
+      );
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/legacy-import-baseline.json"),
+        JSON.stringify({ version: 2, allowedImports: [] }),
+      );
+
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).toThrow(/modern-to-legacy-import/);
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }

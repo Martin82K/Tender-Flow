@@ -56,6 +56,8 @@ jobs:
 
       - name: Check architecture graph
         run: npm run check:architecture-graph
+        env:
+          ARCHITECTURE_GRAPH_BASELINE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
 
       - name: Smoke build (web)
         run: npm run build

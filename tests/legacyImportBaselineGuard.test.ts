@@ -24,7 +24,7 @@ const createFixture = () => {
   );
   fs.writeFileSync(
     path.join(fixtureRoot, "config/legacy-import-baseline.json"),
-    JSON.stringify({ version: 1, allowedImports: [] }),
+    JSON.stringify({ version: 2, allowedImports: [] }),
   );
   return fixtureRoot;
 };
@@ -39,7 +39,7 @@ const writeBaseline = (
 ) => {
   fs.writeFileSync(
     path.join(fixtureRoot, "config/legacy-import-baseline.json"),
-    JSON.stringify({ version: 1, allowedImports }),
+    JSON.stringify({ version: 2, allowedImports }),
   );
 };
 
