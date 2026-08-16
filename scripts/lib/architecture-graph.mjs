@@ -316,8 +316,17 @@ const resolveRepoPathFromRoot = (repoPath, root) => {
   return relative;
 };
 
+const resolvesLocalSpecifierToRepoRoot = (specifier, fileAbs, root) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  if (!(modulePath === "." || modulePath === ".." || modulePath.startsWith("./") || modulePath.startsWith("../"))) {
+    return false;
+  }
+  return path.resolve(path.dirname(fileAbs), modulePath) === path.resolve(root);
+};
+
 export const resolveModuleSpecifier = (spec, fileAbs, root) => {
   const modulePath = spec.split(/[?#]/, 1)[0];
+  if (modulePath === "@" || /^@\/+$/u.test(modulePath)) return "";
   if (modulePath.startsWith("@/")) {
     return resolveRepoPathFromRoot(modulePath.slice(2), root);
   }
@@ -547,6 +556,22 @@ const collectRegularFiles = (root, scanRoots, limits) => {
   return { regularFiles, collectionErrors };
 };
 
+export const findAncestorPackageManifests = (declarations, manifests) => {
+  const manifestSet = new Set(manifests);
+  const matches = new Set();
+  for (const declaration of declarations) {
+    let directory = path.posix.dirname(declaration);
+    while (directory !== ".") {
+      const candidate = `${directory}/package.json`;
+      if (manifestSet.has(candidate)) matches.add(candidate);
+      const parent = path.posix.dirname(directory);
+      if (parent === directory) break;
+      directory = parent;
+    }
+  }
+  return [...matches].sort();
+};
+
 export const collectArchitectureGraph = ({
   root = process.cwd(),
   scanRoots = ARCHITECTURE_SCAN_ROOTS,
@@ -555,6 +580,7 @@ export const collectArchitectureGraph = ({
   const graphLimits = normalizeGraphLimits(limits);
   const ambientDiscoveryErrors = [];
   let declarationFiles = [];
+  const ambientPackageManifests = [];
   try {
     const stack = [""];
     let visitedEntries = 0;
@@ -576,6 +602,11 @@ export const collectArchitectureGraph = ({
         if (entry.isDirectory()) {
           stack.push(relativePath);
         } else if (
+          entry.name === "package.json" &&
+          (entry.isFile() || entry.isSymbolicLink())
+        ) {
+          ambientPackageManifests.push(relativePath);
+        } else if (
           declarationPattern.test(relativePath) && (entry.isFile() || entry.isSymbolicLink())
         ) {
           declarationFiles.push(relativePath);
@@ -589,21 +620,36 @@ export const collectArchitectureGraph = ({
     !scanRoots.some((scanRoot) =>
       declaration === scanRoot || declaration.startsWith(`${scanRoot}/`)));
   const effectiveScanRoots = [...new Set([...scanRoots, ...additionalDeclarations])];
+  const existingScanRoots = [];
+  for (const scanRoot of effectiveScanRoots) {
+    try {
+      fs.lstatSync(path.join(root, scanRoot));
+      existingScanRoots.push(scanRoot);
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        ambientDiscoveryErrors.push(`Nelze bezpečně ověřit scan root: ${scanRoot}`);
+      }
+    }
+  }
   const { regularFiles: regularFilePaths, collectionErrors: traversalErrors } = collectRegularFiles(
     root,
     effectiveScanRoots,
     graphLimits,
   );
   const collectionErrors = [...ambientDiscoveryErrors, ...traversalErrors];
-  try {
-    fs.lstatSync(path.join(root, "types", "package.json"));
+  const forbiddenPackageManifests = new Set(
+    regularFilePaths
+      .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
+      .filter((file) => path.posix.basename(file) === "package.json"),
+  );
+  for (const manifest of findAncestorPackageManifests(
+    additionalDeclarations,
+    ambientPackageManifests,
+  )) forbiddenPackageManifests.add(manifest);
+  for (const manifest of [...forbiddenPackageManifests].sort()) {
     collectionErrors.push(
-      "types/package.json není povolen: kořenový type kontrakt nesmí přesměrovat rozlišení mimo types.ts nebo types/.",
+      `${manifest}: package.json není ve skenovaných vrstvách povolen, protože může přesměrovat rozlišení modulů.`,
     );
-  } catch (error) {
-    if (error?.code !== "ENOENT") {
-      collectionErrors.push("Nelze bezpečně ověřit nepřítomnost types/package.json.");
-    }
   }
   try {
     for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
@@ -766,7 +812,11 @@ export const collectArchitectureGraph = ({
         continue;
       }
       const target = resolveModuleSpecifier(specifier, fileAbs, root);
-      if (target) {
+      if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
+        collectionErrors.push(
+          `${file}: import adresáře kořene repozitáře není podporován: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target) {
         addEdge({ file, specifier, target, kind: "static" });
       }
     }
@@ -795,5 +845,5 @@ export const collectArchitectureGraph = ({
     seenEdges.set(edge.file, specifiers);
   }
 
-  return { nodes, edges: uniqueEdges, regularFiles, collectionErrors };
+  return { nodes, edges: uniqueEdges, regularFiles, existingScanRoots, collectionErrors };
 };

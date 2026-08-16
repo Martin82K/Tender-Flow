@@ -16,14 +16,31 @@ const readCurrentPlanDigest = () => sha256(
 );
 
 const parseArguments = (args) => {
-  const allowed = new Set(["--check", "--json"]);
+  const allowed = new Set([
+    "--check",
+    "--json",
+    "--final-integration",
+    "--post-merge-integration",
+  ]);
   const seen = new Set();
   for (const argument of args) {
     if (!allowed.has(argument)) throw new TypeError(`Neznámý argument ${JSON.stringify(argument)}.`);
     if (seen.has(argument)) throw new TypeError(`Duplicitní argument ${JSON.stringify(argument)}.`);
     seen.add(argument);
   }
-  return { check: seen.has("--check"), json: seen.has("--json") };
+  const options = {
+    check: seen.has("--check"),
+    json: seen.has("--json"),
+    finalIntegration: seen.has("--final-integration"),
+    postMergeIntegration: seen.has("--post-merge-integration"),
+  };
+  if ((options.finalIntegration || options.postMergeIntegration) && !options.check) {
+    throw new TypeError("Integrační režim lze použít pouze společně s --check.");
+  }
+  if (options.finalIntegration && options.postMergeIntegration) {
+    throw new TypeError("Lze použít pouze jeden integrační režim.");
+  }
+  return options;
 };
 
 const readJsonConfig = (relativePath) => {
@@ -45,9 +62,85 @@ const readJsonConfig = (relativePath) => {
   }
 };
 
-const readPreviousPlan = () => {
+const assertFinalIntegrationPlan = (plan) => {
+  if (
+    plan?.version !== 2 ||
+    !Array.isArray(plan.loops) ||
+    plan.loops.length !== 16 ||
+    plan.loops.some((loop) => loop?.status !== "complete")
+  ) {
+    throw new TypeError("Final integration vyžaduje dokončených všech 16 smyček.");
+  }
+  const finalMetrics = plan.loops.at(-1)?.completionEvidence?.metrics;
+  if (
+    !finalMetrics ||
+    [
+      "legacyNodes",
+      "modernToLegacyImports",
+      "legacyInternalImports",
+      "cyclicComponents",
+    ].some((key) => finalMetrics[key] !== 0)
+  ) {
+    throw new TypeError("Final integration vyžaduje nulovou completionEvidence loop-16.");
+  }
+};
+
+const assertBaselineIsFirstParent = (baselineRef) => {
+  let baselineSha;
+  let firstParentSha;
+  try {
+    baselineSha = execFileSync("git", ["rev-parse", `${baselineRef}^{commit}`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    firstParentSha = execFileSync("git", ["rev-parse", "HEAD^1"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    throw new TypeError("Final integration baseline musí být prvním rodičem kontrolovaného HEAD.");
+  }
+  if (baselineSha !== firstParentSha) {
+    throw new TypeError("Final integration baseline musí být prvním rodičem kontrolovaného HEAD.");
+  }
+};
+
+const assertBaselineIsStrictFirstParentAncestor = (baselineRef) => {
+  let baselineSha;
+  let headSha;
+  try {
+    baselineSha = execFileSync("git", ["rev-parse", `${baselineRef}^{commit}`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    headSha = execFileSync("git", ["rev-parse", "HEAD^{commit}"], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    const firstParentHistory = execFileSync(
+      "git",
+      ["rev-list", "--first-parent", "HEAD"],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim().split("\n");
+    if (baselineSha === headSha || !firstParentHistory.includes(baselineSha)) throw new Error();
+  } catch {
+    throw new TypeError(
+      "Post-merge integration baseline musí být striktním předkem na first-parent historii HEAD.",
+    );
+  }
+};
+
+const readPreviousPlan = ({ finalIntegration, postMergeIntegration, plan }) => {
+  const integrationTransition = finalIntegration || postMergeIntegration;
   const baselineRef = process.env.ARCHITECTURE_GRAPH_BASELINE_REF;
-  if (!baselineRef) return undefined;
+  if (!baselineRef) {
+    if (integrationTransition) throw new TypeError("Integrační režim vyžaduje Git baseline ref.");
+    return undefined;
+  }
   try {
     execFileSync("git", ["cat-file", "-e", `${baselineRef}^{commit}`], {
       cwd: root,
@@ -63,6 +156,12 @@ const readPreviousPlan = () => {
       { cwd: root, stdio: "pipe" },
     );
   } catch {
+    if (integrationTransition) {
+      assertFinalIntegrationPlan(plan);
+      if (finalIntegration) assertBaselineIsFirstParent(baselineRef);
+      else assertBaselineIsStrictFirstParentAncestor(baselineRef);
+      return undefined;
+    }
     if (
       baselineRef === INITIAL_PLAN_BOOTSTRAP_REF &&
       readCurrentPlanDigest() === INITIAL_V2_PLAN_DIGEST
@@ -160,7 +259,11 @@ const main = () => {
   const options = parseArguments(process.argv.slice(2));
   const policy = readJsonConfig("config/architecture-graph-policy.json");
   const plan = readJsonConfig("config/architecture-migration-plan.json");
-  const previousPlan = readPreviousPlan();
+  const previousPlan = readPreviousPlan({
+    finalIntegration: options.finalIntegration,
+    postMergeIntegration: options.postMergeIntegration,
+    plan,
+  });
   const report = buildArchitectureGraphReport({ root, policy, plan, previousPlan });
 
   if (options.json) {

@@ -73,6 +73,22 @@ const createBoundaryReviewFixture = () => {
 };
 
 describe("Architecture Guardrails", () => {
+  it("does not treat declarations inside legacy roots as modern importers", () => {
+    const { fixtureRoot, boundaryFails } = createBoundaryReviewFixture();
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixtureRoot, "services/contracts.d.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixtureRoot, "services/legacy.ts"), "export type Legacy = string;\n");
+
+      expect(boundaryFails()).toBe(false);
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rejects normalized alias escape and re-entry", () => {
     const { fixtureRoot, consumerPath, boundaryFails } = createBoundaryReviewFixture();
     try {

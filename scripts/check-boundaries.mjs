@@ -62,9 +62,10 @@ const isForbiddenRepoTarget = (repoPath) =>
 const isWithinRoot = (repoPath, rootPath) =>
   repoPath === rootPath || repoPath.startsWith(`${rootPath}/`);
 
-const isModernPath = (repoPath) =>
-  isModernEntryFile(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
+const isModernPath = (repoPath) =>
+  !isLegacyPath(repoPath) &&
+  (isModernEntryFile(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath)));
 
 const loadAllowlist = () => {
   if (!fs.existsSync(allowlistPath)) return [];

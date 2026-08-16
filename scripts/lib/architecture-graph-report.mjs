@@ -121,18 +121,20 @@ const isWithinRoots = (moduleId, roots) =>
   roots.some((root) => isWithinRoot(moduleId, root));
 const isDeclarationFile = (moduleId) => /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/.test(moduleId);
 
-const layerOf = (moduleId) => isWithinRoots(moduleId, ARCHITECTURE_GRAPH_MODERN_ROOTS)
-  || moduleId === "index.tsx"
-  || moduleId === "App.tsx"
-  || moduleId === "types.ts"
-  || moduleId === "env.d.ts"
-  || moduleId === "window.d.ts"
-  || moduleId === "declarations.d.ts"
-  || isDeclarationFile(moduleId)
-  ? "modern"
-  : isWithinRoots(moduleId, ARCHITECTURE_GRAPH_LEGACY_ROOTS)
-    ? "legacy"
-    : "other";
+const layerOf = (moduleId) => {
+  if (isWithinRoots(moduleId, ARCHITECTURE_GRAPH_LEGACY_ROOTS)) return "legacy";
+  if (
+    isWithinRoots(moduleId, ARCHITECTURE_GRAPH_MODERN_ROOTS) ||
+    moduleId === "index.tsx" ||
+    moduleId === "App.tsx" ||
+    moduleId === "types.ts" ||
+    moduleId === "env.d.ts" ||
+    moduleId === "window.d.ts" ||
+    moduleId === "declarations.d.ts" ||
+    isDeclarationFile(moduleId)
+  ) return "modern";
+  return "other";
+};
 
 const importKey = ({ file, specifier, target }) => `${file}\u0000${specifier}\u0000${target}`;
 
@@ -658,6 +660,16 @@ export const assembleArchitectureGraphReport = ({
       "legacy-closeout-incomplete",
       "Plán je označen jako dokončený, ale legacy dluh není nulový.",
       { actual: debt.metrics },
+    ));
+  }
+  const remainingLegacyRoots = (rawGraph.existingScanRoots ?? [])
+    .filter((scanRoot) => ARCHITECTURE_GRAPH_LEGACY_ROOTS.includes(scanRoot))
+    .sort(compareCodePoint);
+  if (completedLoops.length === REQUIRED_PLAN_LOOPS && remainingLegacyRoots.length > 0) {
+    progressViolations.push(violation(
+      "legacy-closeout-structure-incomplete",
+      `Plán je dokončený, ale legacy roots stále existují: ${remainingLegacyRoots.join(", ")}.`,
+      { roots: remainingLegacyRoots },
     ));
   }
 

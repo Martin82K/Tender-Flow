@@ -117,6 +117,13 @@ describe("architecture migration plan", () => {
     );
     expect(workflow).toContain("npm run check:architecture-graph");
     expect(workflow).toContain("ARCHITECTURE_GRAPH_BASELINE_REF:");
+    expect(workflow).toContain("--final-integration");
+    expect(workflow).toContain("github.base_ref == 'main'");
+    expect(workflow).toContain("github.head_ref == 'new_architekt'");
+    expect(workflow).toContain("github.event.pull_request.head.repo.full_name == github.repository");
+    expect(workflow).toContain("github.event_name == 'push' && github.ref == 'refs/heads/main'");
+    expect(workflow).toContain("--post-merge-integration");
+    expect(workflow).toContain("ARCHITECTURE_GRAPH_BASELINE_REF: ${{ github.event.before }}");
     expect(workflow).toMatch(/branches:\s+[\s\S]*- new_architekt/);
   });
 

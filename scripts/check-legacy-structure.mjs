@@ -2,8 +2,12 @@ import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
 
+import { validateArchitectureMigrationPlan } from "./lib/architecture-graph-report.mjs";
+
 const root = process.cwd();
 const configPath = path.join(root, "config", "legacy-freeze.json");
+const migrationPlanPath = path.join(root, "config", "architecture-migration-plan.json");
+const canonicalFrozenRoots = ["components", "hooks", "services", "context", "utils"];
 
 if (!fs.existsSync(configPath)) {
   console.error("Chybí config/legacy-freeze.json");
@@ -33,6 +37,47 @@ if (frozenRoots.length === 0) {
 if (!frozenRoots.every(isSafeRepoPath) || !allowedFiles.every(isSafeRepoPath)) {
   console.error("legacy-freeze.json obsahuje neplatnou nebo nebezpečnou cestu.");
   process.exit(1);
+}
+
+if (
+  config.version !== 1 ||
+  JSON.stringify(frozenRoots) !== JSON.stringify(canonicalFrozenRoots)
+) {
+  console.error(
+    `legacy-freeze.json musí mít version 1 a kanonické frozenRoots: ${canonicalFrozenRoots.join(", ")}.`,
+  );
+  process.exit(1);
+}
+
+let migrationPlan;
+try {
+  migrationPlan = validateArchitectureMigrationPlan(
+    JSON.parse(fs.readFileSync(migrationPlanPath, "utf8")),
+  );
+} catch (error) {
+  console.error(
+    `Chybí nebo není validní config/architecture-migration-plan.json: ${error?.message ?? "neznámá chyba"}`,
+  );
+  process.exit(1);
+}
+const finalCloseout = migrationPlan.loops.at(-1)?.status === "complete";
+if (finalCloseout && allowedFiles.length > 0) {
+  console.error("Dokončený loop-16 vyžaduje prázdné allowedFiles v legacy-freeze.json.");
+  process.exit(1);
+}
+if (finalCloseout) {
+  for (const legacyRoot of canonicalFrozenRoots) {
+    try {
+      fs.lstatSync(path.join(root, legacyRoot));
+      console.error(`Legacy root stále existuje: ${legacyRoot}`);
+      process.exit(1);
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        console.error(`Nelze bezpečně ověřit nepřítomnost legacy rootu: ${legacyRoot}`);
+        process.exit(1);
+      }
+    }
+  }
 }
 
 const duplicateAllowedFiles = allowedFiles.filter(

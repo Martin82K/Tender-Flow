@@ -8,6 +8,7 @@ import {
   fingerprintArchitectureDebt,
   makeComponentCandidates,
 } from "../scripts/lib/architecture-graph-report.mjs";
+import { findAncestorPackageManifests } from "../scripts/lib/architecture-graph.mjs";
 
 const root = process.cwd();
 const cli = path.join(root, "scripts/report-architecture-graph.mjs");
@@ -50,6 +51,30 @@ const createPlan = (baselineDebt = debtEvidence(emptyDebt)) => ({
     testGates: ["Focused a full test suite."],
   })),
 });
+
+const createFinalPlan = () => {
+  const baselineDebt = {
+    fingerprint: `sha256:${"f".repeat(64)}`,
+    metrics: {
+      legacyNodes: 15,
+      modernToLegacyImports: 0,
+      legacyInternalImports: 0,
+      cyclicComponents: 0,
+    },
+  };
+  const plan = createPlan(baselineDebt);
+  for (const [index, loop] of plan.loops.entries()) {
+    const legacyNodes = 15 - index;
+    loop.status = "complete";
+    loop.completionEvidence = legacyNodes === 0
+      ? debtEvidence(emptyDebt)
+      : {
+          fingerprint: `sha256:${String(index + 1).padStart(64, "0")}`,
+          metrics: { ...baselineDebt.metrics, legacyNodes },
+        };
+  }
+  return plan;
+};
 
 const writePlan = (fixture: string, plan = createPlan()) => {
   fs.writeFileSync(
@@ -114,6 +139,148 @@ describe("architecture graph CLI", () => {
 
     expect(iterations).toBe(1);
     expect(candidates).toHaveLength(2);
+  });
+
+  it("keeps declaration files inside legacy roots in the legacy layer", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "services/contracts.d.ts"),
+        'export type { Legacy } from "@/services/legacy";\n',
+      );
+      fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
+      fs.writeFileSync(
+        path.join(fixture, "config/architecture-graph-policy.json"),
+        `${JSON.stringify({
+          version: 1,
+          allowedUnresolvedImports: [],
+          allowedCycles: [],
+          allowedLegacyInternalImports: [{
+            file: "services/contracts.d.ts",
+            specifier: "@/services/legacy",
+            target: "services/legacy.ts",
+          }],
+        }, null, 2)}\n`,
+      );
+      writePlan(fixture, createPlan(debtEvidence({
+        legacyNodes: ["services/contracts.d.ts", "services/legacy.ts"],
+        modernToLegacyImports: [],
+        legacyInternalImports: [{
+          file: "services/contracts.d.ts",
+          specifier: "@/services/legacy",
+          target: "services/legacy.ts",
+        }],
+        cycles: [],
+      })));
+
+      const result = runCli(fixture, "--json");
+      const report = JSON.parse(result.stdout);
+
+      expect(report.status).toBe("ok");
+      expect(report.modules).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "services/contracts.d.ts", layer: "legacy" }),
+        expect.objectContaining({ id: "services/legacy.ts", layer: "legacy" }),
+      ]));
+      expect(report.summary.legacyNodes).toBe(2);
+      expect(report.summary.modernToLegacyImports).toBe(0);
+      expect(report.summary.legacyInternalImports).toBe(1);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on package redirects inside scanned layers", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "features/pkg"), { recursive: true });
+      fs.mkdirSync(path.join(fixture, "services/pkg"), { recursive: true });
+      fs.mkdirSync(path.join(fixture, "ambient/pkg"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "features/pkg/index.ts"), "export type Safe = string;\n");
+      fs.writeFileSync(path.join(fixture, "features/pkg/package.json"), '{"types":"../../hidden.ts"}\n');
+      fs.writeFileSync(path.join(fixture, "services/pkg/package.json"), "{}\n");
+      fs.writeFileSync(path.join(fixture, "ambient/pkg/package.json"), '{"types":"../../hidden.ts"}\n');
+      fs.writeFileSync(path.join(fixture, "ambient/pkg/globals.d.ts"), "export type Global = string;\n");
+      fs.writeFileSync(path.join(fixture, "hidden.ts"), 'export type { Hidden } from "@/services/legacy";\n');
+      fs.appendFileSync(path.join(fixture, "app/root.ts"), 'import type { Safe } from "@features/pkg";\n');
+
+      const result = runCli(fixture, "--check");
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("package.json není ve skenovaných vrstvách povolen");
+      expect(result.stderr).toContain("features/pkg/package.json");
+      expect(result.stderr).toContain("services/pkg/package.json");
+      expect(result.stderr).toContain("ambient/pkg/package.json");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("finds package manifests through ancestor lookup without a declarations-by-manifests scan", () => {
+    const declarations = ["ambient/a/one.d.ts", "ambient/b/two.d.ts"];
+    const manifests = ["ambient/package.json", "ambient/a/package.json", "other/package.json"];
+    let declarationIterations = 0;
+    let manifestIterations = 0;
+    const singlePassDeclarations = {
+      [Symbol.iterator]() {
+        declarationIterations += 1;
+        return declarations[Symbol.iterator]();
+      },
+    };
+    const singlePassManifests = {
+      [Symbol.iterator]() {
+        manifestIterations += 1;
+        return manifests[Symbol.iterator]();
+      },
+    };
+
+    expect(findAncestorPackageManifests(singlePassDeclarations, singlePassManifests)).toEqual([
+      "ambient/a/package.json",
+      "ambient/package.json",
+    ]);
+    expect(declarationIterations).toBe(1);
+    expect(manifestIterations).toBe(1);
+  });
+
+  it.each([
+    { source: "app/root.ts", specifier: "../" },
+    { source: "app/root.ts", specifier: ".." },
+    { source: "index.tsx", specifier: "./" },
+    { source: "app/root.ts", specifier: "@" },
+    { source: "app/root.ts", specifier: "@/" },
+    { source: "app/root.ts", specifier: "@//" },
+    { source: "app/root.ts", specifier: "@///?raw" },
+    { source: "app/root.ts", specifier: "@app/.." },
+    { source: "app/root.ts", specifier: "@features/.." },
+    { source: "app/root.ts", specifier: "@shared/.." },
+    { source: "app/root.ts", specifier: "@infra/.." },
+  ])("fails closed on a root package directory import $specifier from $source", ({ source, specifier }) => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(path.join(fixture, "package.json"), '{"types":"hidden.ts"}\n');
+      fs.writeFileSync(path.join(fixture, "hidden.ts"), 'export type { Legacy } from "./services/legacy";\n');
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
+      writePlan(fixture, createPlan(debtEvidence({
+        legacyNodes: ["services/legacy.ts"],
+        modernToLegacyImports: [],
+        legacyInternalImports: [],
+        cycles: [],
+      })));
+      fs.writeFileSync(
+        path.join(fixture, source),
+        `import type { Hidden } from ${JSON.stringify(specifier)};\nvoid 0;\n`,
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("import adresáře kořene repozitáře není podporován");
+      expect(result.stderr).toContain(source);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
   });
 
   it("emits a deterministic JSON report and dependency-first batches", () => {
@@ -323,7 +490,7 @@ describe("architecture graph CLI", () => {
       const result = runCli(fixture, "--check");
       expect(result.status).toBe(1);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toContain("types/package.json není povolen");
+      expect(result.stderr).toContain("types/package.json: package.json není ve skenovaných vrstvách povolen");
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
@@ -694,6 +861,276 @@ describe("architecture graph CLI", () => {
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
       expect(result.stderr).toContain("neobsahuje config/architecture-migration-plan.json");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("allows a clean final integration against an ancestor without a migration plan", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      const baselineRef = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      writePlan(fixture, createFinalPlan());
+      execFileSync("git", ["add", "config/architecture-migration-plan.json"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "final"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: baselineRef },
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("Migration plan: 16/16 complete");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects final integration before all loops and structural closeout are complete", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      const baselineRef = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      writePlan(fixture);
+      execFileSync("git", ["add", "config/architecture-migration-plan.json"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "incomplete"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: baselineRef },
+      });
+
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("Final integration vyžaduje dokončených všech 16 smyček");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("continues the regular checkpoint after integration when the baseline already has a plan", () => {
+    const fixture = createFixture();
+    try {
+      writePlan(fixture, createFinalPlan());
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      const baselineRef = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      fs.appendFileSync(path.join(fixture, "app/root.ts"), "void 1;\n");
+      execFileSync("git", ["add", "app/root.ts"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "head"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: baselineRef },
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("Migration plan: 16/16 complete");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a final transition baseline that is an ancestor but not the first parent", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      const oldAncestor = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      fs.writeFileSync(path.join(fixture, "app/intermediate.ts"), "export const value = true;\n");
+      execFileSync("git", ["add", "app/intermediate.ts"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "intermediate"],
+        { cwd: fixture },
+      );
+      writePlan(fixture, createFinalPlan());
+      execFileSync("git", ["add", "config/architecture-migration-plan.json"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "final"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: oldAncestor },
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("prvním rodičem kontrolovaného HEAD");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("allows a multi-commit first-parent range after a rebase merge to main", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "main-before"],
+        { cwd: fixture },
+      );
+      const beforeRef = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      writePlan(fixture, createFinalPlan());
+      execFileSync("git", ["add", "config/architecture-migration-plan.json"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "rebased-1"],
+        { cwd: fixture },
+      );
+      fs.appendFileSync(path.join(fixture, "app/root.ts"), "void 2;\n");
+      execFileSync("git", ["add", "app/root.ts"], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "rebased-2"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(
+        process.execPath,
+        [cli, "--check", "--post-merge-integration"],
+        {
+          cwd: fixture,
+          encoding: "utf8",
+          env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: beforeRef },
+        },
+      );
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("Migration plan: 16/16 complete");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a final transition baseline equal to HEAD", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      writePlan(fixture, createFinalPlan());
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: "HEAD" },
+      });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("prvním rodičem kontrolovaného HEAD");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a final graph closeout while any legacy root still exists", () => {
+    const fixture = createFixture();
+    const planPath = path.join(fixture, "config/architecture-migration-plan.json");
+    try {
+      fs.rmSync(planPath);
+      execFileSync("git", ["init", "--quiet"], { cwd: fixture });
+      execFileSync("git", ["add", "."], { cwd: fixture });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "base"],
+        { cwd: fixture },
+      );
+      const baselineRef = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture,
+        encoding: "utf8",
+      }).trim();
+      writePlan(fixture, createFinalPlan());
+      fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "services/README.md"), "legacy\n");
+      execFileSync("git", ["add", "config/architecture-migration-plan.json", "services/README.md"], {
+        cwd: fixture,
+      });
+      execFileSync(
+        "git",
+        ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", "final"],
+        { cwd: fixture },
+      );
+
+      const result = spawnSync(process.execPath, [cli, "--check", "--final-integration"], {
+        cwd: fixture,
+        encoding: "utf8",
+        env: { ...process.env, ARCHITECTURE_GRAPH_BASELINE_REF: baselineRef },
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("legacy roots stále existují: services");
     } finally {
       fs.rmSync(fixture, { recursive: true, force: true });
     }
