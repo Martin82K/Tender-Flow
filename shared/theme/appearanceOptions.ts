@@ -17,4 +17,5 @@ export const themeSkinOptions: ReadonlyArray<AppearanceOption<ThemeSkin>> = [
   { id: "classic", icon: "dashboard_customize", label: "Classic" },
   { id: "botanica", icon: "local_florist", label: "Botanica" },
   { id: "nature", icon: "forest", label: "Nature" },
+  { id: "space", icon: "rocket_launch", label: "TF Space" },
 ];

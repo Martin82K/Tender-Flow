@@ -118,6 +118,21 @@ describe("normalizeUiScale", () => {
     expect(localStorage.getItem("projectDetailSkin")).toBe("nature");
   });
 
+  it("přijme a uloží motiv TF Space", async () => {
+    localStorage.setItem("skin", "space");
+
+    const { result } = renderHook(() => useTheme());
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.skin).toBe("space");
+    });
+
+    act(() => result.current.setSkin("space"));
+
+    expect(localStorage.getItem("skin")).toBe("space");
+    expect(localStorage.getItem("projectDetailSkin")).toBe("space");
+  });
+
   it("v tmavém classic režimu neodvozuje canvas ze světlé barvy pozadí", async () => {
     const { result } = renderHook(() => useTheme());
 
