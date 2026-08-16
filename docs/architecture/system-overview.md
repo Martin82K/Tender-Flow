@@ -99,7 +99,11 @@ handler validuje vstup i autorizaci; výsledek vrací serializovatelný kontrakt
 
 Repozitář je v postupné migraci z legacy kořenů do `app/features/shared/infra`.
 Audit přes `npm run audit:architecture` zůstává informativním rozborem známých
-kategorií dluhu. Vynucovaný importní baseline je přesná množina souboru,
-specifieru a cíle, nikoli pouze celkový počet; migrace jej musí zmenšovat a
-nemůže starou vazbu vyměnit za novou. Nové soubory ve frozen legacy kořenech
-nejsou povolené bez explicitního rozhodnutí.
+kategorií dluhu. Audit i vynucovaný boundary guard staví nad jediným AST
+kolektorem `scripts/lib/architecture-graph.mjs`; statické, typové, JSDoc,
+dynamické a Vite glob importy proto interpretují stejným způsobem. Tento
+normalizovaný graf je zároveň vstupem pro další migrační metriky, nikoli druhou
+paralelní implementací resolveru. Vynucovaný importní baseline je přesná množina
+souboru, specifieru a cíle, nikoli pouze celkový počet; migrace jej musí
+zmenšovat a nemůže starou vazbu vyměnit za novou. Nové soubory ve frozen legacy
+kořenech nejsou povolené bez explicitního rozhodnutí.

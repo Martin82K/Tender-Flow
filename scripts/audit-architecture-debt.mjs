@@ -1,10 +1,13 @@
 import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import {
+  ARCHITECTURE_SCAN_ROOTS,
+  collectArchitectureGraph,
+} from "./lib/architecture-graph.mjs";
 
 const root = process.cwd();
-const scanRoots = ["app", "features", "shared", "components", "hooks", "context", "services", "utils", "infra"];
-const codeExt = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
+const scanRoots = ARCHITECTURE_SCAN_ROOTS;
 const largeFileLineThreshold = 800;
 
 const trackedRootKeepFiles = new Set([
@@ -56,66 +59,6 @@ const ignoredLocalRootPatterns = [
   "dist-electron/",
 ];
 
-const toPosix = (value) => value.replace(/\\/g, "/");
-
-const collectFiles = (dir) => {
-  const absDir = path.join(root, dir);
-  if (!fs.existsSync(absDir)) return [];
-
-  const out = [];
-  const stack = [absDir];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-    for (const entry of entries) {
-      const next = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(next);
-        continue;
-      }
-      if (codeExt.has(path.extname(entry.name))) {
-        out.push(next);
-      }
-    }
-  }
-
-  return out.sort();
-};
-
-const extractSpecifiers = (content) => {
-  const patterns = [
-    /\bimport\s+(?:[^'"()]*?\s+from\s+)?['"]([^'"]+)['"]/g,
-    /\bexport\s+[^'"]*?\s+from\s+['"]([^'"]+)['"]/g,
-    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
-  ];
-
-  const specs = [];
-  for (const pattern of patterns) {
-    for (const match of content.matchAll(pattern)) {
-      specs.push(match[1]);
-    }
-  }
-  return specs;
-};
-
-const resolveToRepoPath = (spec, fileAbs) => {
-  if (spec.startsWith("@/")) return spec.slice(2);
-  if (spec.startsWith("@app/")) return `app/${spec.slice(5)}`;
-  if (spec.startsWith("@components/")) return `components/${spec.slice(12)}`;
-  if (spec.startsWith("@features/")) return `features/${spec.slice(10)}`;
-  if (spec.startsWith("@shared/")) return `shared/${spec.slice(8)}`;
-  if (spec.startsWith("@infra/")) return `infra/${spec.slice(7)}`;
-
-  if (spec.startsWith("./") || spec.startsWith("../")) {
-    const resolved = path.resolve(path.dirname(fileAbs), spec);
-    const rel = toPosix(path.relative(root, resolved));
-    if (!rel.startsWith("..")) return rel;
-  }
-
-  return null;
-};
-
 const readTrackedFiles = () => {
   try {
     return execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" })
@@ -156,18 +99,38 @@ const sharedUi = {
 };
 
 const largeFiles = [];
-const allFiles = scanRoots.flatMap((dir) => collectFiles(dir));
+const architectureGraph = collectArchitectureGraph({ root, scanRoots });
+const architectureGraphErrors = [...architectureGraph.collectionErrors];
 
-for (const fileAbs of allFiles) {
-  const file = toPosix(path.relative(root, fileAbs));
-  const content = fs.readFileSync(fileAbs, "utf8");
-  const specs = extractSpecifiers(content);
-  const resolvedImports = specs
-    .map((specifier) => ({
-      specifier,
-      target: resolveToRepoPath(specifier, fileAbs),
-    }))
-    .filter((item) => item.target);
+for (const node of architectureGraph.nodes) {
+  if (!/^(?:app|features|shared|infra)\//.test(node.file)) continue;
+  for (const error of node.globErrors) {
+    architectureGraphErrors.push(`${node.file}: ${error}`);
+  }
+  for (const diagnostic of node.globDiagnostics) {
+    architectureGraphErrors.push(`${node.file}: ${diagnostic}`);
+  }
+}
+
+if (architectureGraphErrors.length > 0) {
+  console.error("Audit architektury nelze bezpečně dokončit:\n");
+  for (const error of architectureGraphErrors) {
+    console.error(`- ${error}`);
+  }
+  process.exit(1);
+}
+
+const edgesByFile = new Map();
+
+for (const edge of architectureGraph.edges) {
+  const fileEdges = edgesByFile.get(edge.file) ?? [];
+  fileEdges.push(edge);
+  edgesByFile.set(edge.file, fileEdges);
+}
+
+for (const node of architectureGraph.nodes) {
+  const { file, content } = node;
+  const resolvedImports = edgesByFile.get(file) ?? [];
 
   if (file.startsWith("shared/")) {
     for (const item of resolvedImports) {
@@ -264,7 +227,7 @@ const report = {
     largeFileLineThreshold,
   },
   totals: {
-    scannedCodeFiles: allFiles.length,
+    scannedCodeFiles: architectureGraph.nodes.length,
     dependencyFindings: totalDependencyFindings,
     sharedUiTemporaryShims: sharedUi.temporaryShims.length,
     sharedUiPrimitives: sharedUi.primitives.length,
