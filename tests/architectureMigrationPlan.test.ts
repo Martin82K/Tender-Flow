@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   assembleArchitectureGraphReport,
   buildArchitectureDebtSnapshot,
-  buildArchitectureGraphReport,
   validateArchitectureMigrationPlan,
 } from "../scripts/lib/architecture-graph-report.mjs";
 import { collectArchitectureGraph } from "../scripts/lib/architecture-graph.mjs";
@@ -34,6 +33,12 @@ type DebtEvidence = {
 };
 
 type MigrationPlan = { version: number; baselineDebt: DebtEvidence; loops: MigrationLoop[] };
+
+let repositoryRawGraph: ReturnType<typeof collectArchitectureGraph>;
+
+beforeAll(() => {
+  repositoryRawGraph = collectArchitectureGraph({ root: process.cwd() });
+}, 15_000);
 
 describe("architecture migration plan", () => {
   it("counts modern cycles in the final zero-debt contract", () => {
@@ -144,13 +149,12 @@ describe("architecture migration plan", () => {
     const policy = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), "config/architecture-graph-policy.json"), "utf8"),
     );
-    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
-    expect(assembleArchitectureGraphReport({ rawGraph, policy, plan: idle }).status).toBe("ok");
+    expect(assembleArchitectureGraphReport({ rawGraph: repositoryRawGraph, policy, plan: idle }).status).toBe("ok");
 
     const wrongFingerprint = structuredClone(idle);
     wrongFingerprint.loops[0].completionEvidence!.fingerprint = `sha256:${"0".repeat(64)}`;
     expect(
-      assembleArchitectureGraphReport({ rawGraph, policy, plan: wrongFingerprint }).violations,
+      assembleArchitectureGraphReport({ rawGraph: repositoryRawGraph, policy, plan: wrongFingerprint }).violations,
     ).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "migration-debt-mismatch" }),
     ]));
@@ -172,10 +176,8 @@ describe("architecture migration plan", () => {
     delete previousPlan.loops[0].completionEvidence;
     const currentPlan = structuredClone(plan);
     currentPlan.loops[1].status = "in_progress";
-    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
-
     const report = assembleArchitectureGraphReport({
-      rawGraph,
+      rawGraph: repositoryRawGraph,
       policy,
       plan: currentPlan,
       previousPlan,
@@ -188,7 +190,7 @@ describe("architecture migration plan", () => {
     const rewrittenBaseline = structuredClone(plan);
     rewrittenBaseline.baselineDebt.fingerprint = `sha256:${"0".repeat(64)}`;
     expect(assembleArchitectureGraphReport({
-      rawGraph,
+      rawGraph: repositoryRawGraph,
       policy,
       plan: rewrittenBaseline,
       previousPlan: plan,
@@ -204,7 +206,6 @@ describe("architecture migration plan", () => {
     const policy = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), "config/architecture-graph-policy.json"), "utf8"),
     );
-    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
     const previousV1 = {
       version: 1,
       __trustedSourceDigest: "cfa1b32c58c7bcb692f010b9782c2f4131e836ac09ab124fcfb1bb48852d6901",
@@ -216,7 +217,7 @@ describe("architecture migration plan", () => {
     };
 
     expect(assembleArchitectureGraphReport({
-      rawGraph,
+      rawGraph: repositoryRawGraph,
       policy,
       plan,
       previousPlan: previousV1,
@@ -224,7 +225,7 @@ describe("architecture migration plan", () => {
 
     previousV1.loops[0].status = "complete";
     expect(() => assembleArchitectureGraphReport({
-      rawGraph,
+      rawGraph: repositoryRawGraph,
       policy,
       plan,
       previousPlan: previousV1,
@@ -271,7 +272,11 @@ describe("architecture migration plan", () => {
       previous = loop.completionEvidence;
     }
 
-    const report = buildArchitectureGraphReport({ root, policy, plan: fakeComplete });
+    const report = assembleArchitectureGraphReport({
+      rawGraph: repositoryRawGraph,
+      policy,
+      plan: fakeComplete,
+    });
     expect(report.status).toBe("failed");
     expect(report.violations.map(({ code }: { code: string }) => code)).toEqual(
       expect.arrayContaining(["migration-debt-mismatch", "legacy-closeout-incomplete"]),
