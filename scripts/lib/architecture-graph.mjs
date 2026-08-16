@@ -69,7 +69,7 @@ const defaultGraphLimits = Object.freeze({
   maxDependencyBytes: 4_096,
   maxTotalEdgeBytes: 32 * 1024 * 1024,
   maxGlobMatchWork: 50_000_000,
-  maxRejectedDependencyDiagnostics: 100,
+  maxDiagnostics: 100,
 });
 
 const normalizeGraphLimits = (limits = {}) => Object.fromEntries(
@@ -187,7 +187,7 @@ const createLocalBindingLookup = (sourceFile, fileName) => {
   };
 };
 
-export const extractModuleDependencies = (content, fileName) => {
+export const extractModuleDependencies = (content, fileName, { maxDiagnostics = Infinity } = {}) => {
   const extension = path.extname(fileName);
   const scriptKind = extension === ".tsx"
     ? ts.ScriptKind.TSX
@@ -207,6 +207,11 @@ export const extractModuleDependencies = (content, fileName) => {
   const dependencies = [];
   const globCalls = [];
   const globErrors = [];
+  let suppressedDiagnostics = 0;
+  const addGlobError = (message) => {
+    if (globErrors.length < maxDiagnostics) globErrors.push(message);
+    else suppressedDiagnostics += 1;
+  };
   const hasLocalBinding = createLocalBindingLookup(sourceFile, fileName);
   const addDependency = (specifier, origin = "module") => {
     specs.push(specifier);
@@ -217,14 +222,14 @@ export const extractModuleDependencies = (content, fileName) => {
   for (const reference of sourceFile.typeReferenceDirectives) {
     if (reference.fileName.startsWith(".")) addDependency(reference.fileName);
     if (reference.fileName.startsWith("/")) {
-      globErrors.push("/// <reference types> nesmí používat absolutní cestu.");
+      addGlobError("/// <reference types> nesmí používat absolutní cestu.");
     }
   }
 
   const visit = (node) => {
     const importMetaUrlDependency = viteImportMetaUrlDependency(node);
     if (importMetaUrlDependency) {
-      if (importMetaUrlDependency.error) globErrors.push(importMetaUrlDependency.error);
+      if (importMetaUrlDependency.error) addGlobError(importMetaUrlDependency.error);
       else {
         addDependency(importMetaUrlDependency.specifier, "import-meta-url");
       }
@@ -241,7 +246,7 @@ export const extractModuleDependencies = (content, fileName) => {
       if (node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) {
         addDependency(node.moduleReference.expression.text);
       } else {
-        globErrors.push("import = require musí používat jeden statický literál.");
+        addGlobError("import = require musí používat jeden statický literál.");
       }
     } else if (
       ts.isImportTypeNode(node) &&
@@ -261,7 +266,7 @@ export const extractModuleDependencies = (content, fileName) => {
       if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
         addDependency(node.arguments[0].text);
       } else {
-        globErrors.push("import() musí používat jeden statický literál.");
+        addGlobError("import() musí používat jeden statický literál.");
       }
     } else if (commonJsBindingIdentifier(node)) {
       const bindingIdentifier = commonJsBindingIdentifier(node);
@@ -272,7 +277,7 @@ export const extractModuleDependencies = (content, fileName) => {
       if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
         addDependency(node.arguments[0].text);
       } else {
-        globErrors.push("require musí používat jeden statický literál.");
+        addGlobError("require musí používat jeden statický literál.");
       }
     } else if (isImportMetaGlobCall(node)) {
       const argument = node.arguments[0];
@@ -286,7 +291,7 @@ export const extractModuleDependencies = (content, fileName) => {
       ) {
         patterns = argument.elements.map((element) => element.text);
       } else {
-        globErrors.push("import.meta.glob musí používat statický literál nebo pole statických literálů.");
+        addGlobError("import.meta.glob musí používat statický literál nebo pole statických literálů.");
       }
 
       let base = null;
@@ -294,12 +299,12 @@ export const extractModuleDependencies = (content, fileName) => {
       const options = node.arguments[1];
       if (options) {
         if (!ts.isObjectLiteralExpression(options)) {
-          globErrors.push("import.meta.glob options musí být statický objektový literál.");
+          addGlobError("import.meta.glob options musí být statický objektový literál.");
           optionsValid = false;
         } else {
           for (const property of options.properties) {
             if (ts.isSpreadAssignment(property) || !property.name) {
-              globErrors.push("import.meta.glob options nesmí dynamicky měnit base ani způsob párování.");
+              addGlobError("import.meta.glob options nesmí dynamicky měnit base ani způsob párování.");
               optionsValid = false;
               continue;
             }
@@ -308,7 +313,7 @@ export const extractModuleDependencies = (content, fileName) => {
               ? property.name.text
               : null;
             if (!name) {
-              globErrors.push("import.meta.glob options musí mít statické názvy vlastností.");
+              addGlobError("import.meta.glob options musí mít statické názvy vlastností.");
               optionsValid = false;
               continue;
             }
@@ -321,11 +326,11 @@ export const extractModuleDependencies = (content, fileName) => {
                   !base.startsWith("./") &&
                   !base.startsWith("../")
                 ) {
-                  globErrors.push("import.meta.glob base musí začínat /, ./ nebo ../.");
+                  addGlobError("import.meta.glob base musí začínat /, ./ nebo ../.");
                   optionsValid = false;
                 }
               } else {
-                globErrors.push("import.meta.glob base musí být statický řetězec.");
+                addGlobError("import.meta.glob base musí být statický řetězec.");
                 optionsValid = false;
               }
             }
@@ -335,7 +340,7 @@ export const extractModuleDependencies = (content, fileName) => {
               (!ts.isPropertyAssignment(property) ||
                 property.initializer.kind !== ts.SyntaxKind.FalseKeyword)
             ) {
-              globErrors.push("import.meta.glob exhaustive je podporováno pouze s hodnotou false.");
+              addGlobError("import.meta.glob exhaustive je podporováno pouze s hodnotou false.");
               optionsValid = false;
             }
 
@@ -344,7 +349,7 @@ export const extractModuleDependencies = (content, fileName) => {
               (!ts.isPropertyAssignment(property) ||
                 property.initializer.kind !== ts.SyntaxKind.TrueKeyword)
             ) {
-              globErrors.push("import.meta.glob caseSensitive je podporováno pouze s hodnotou true.");
+              addGlobError("import.meta.glob caseSensitive je podporováno pouze s hodnotou true.");
               optionsValid = false;
             }
           }
@@ -362,7 +367,7 @@ export const extractModuleDependencies = (content, fileName) => {
   };
 
   visit(sourceFile);
-  return { specs, dependencies, globCalls, globErrors };
+  return { specs, dependencies, globCalls, globErrors, suppressedDiagnostics };
 };
 
 const resolveRepoPathFromRoot = (repoPath, root) => {
@@ -656,25 +661,42 @@ const normalizeGlobCalls = (globCalls, fileAbs, root) =>
     }),
   );
 
-const collectRegularFiles = (root, scanRoots, limits) => {
+const visitDirectoryEntries = (directory, visitEntry) => {
+  const handle = fs.opendirSync(directory);
+  try {
+    while (true) {
+      const entry = handle.readSync();
+      if (entry === null || visitEntry(entry) === false) break;
+    }
+  } finally {
+    try {
+      handle.closeSync();
+    } catch (error) {
+      if (error?.code !== "ERR_DIR_CLOSED") throw error;
+    }
+  }
+};
+
+const collectRegularFiles = (root, scanRoots, limits, addCollectionError) => {
   const regularFiles = [];
-  const collectionErrors = [];
+  let visitedEntries = 0;
+  const maxVisitedEntries = limits.maxRegularFiles * 5;
 
   for (const scanRoot of scanRoots) {
     const absDir = path.join(root, scanRoot);
     if (!fs.existsSync(absDir)) continue;
     const scanRootStat = fs.lstatSync(absDir);
     if (scanRootStat.isSymbolicLink()) {
-      collectionErrors.push(`Symbolický odkaz není povolen jako scan root: ${scanRoot}`);
+      addCollectionError(`Symbolický odkaz není povolen jako scan root: ${scanRoot}`);
       continue;
     }
 
     if (scanRootStat.isFile()) {
       if (regularFiles.length >= limits.maxRegularFiles) {
-        collectionErrors.push(
+        addCollectionError(
           `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
         );
-        return { regularFiles, collectionErrors };
+        return regularFiles;
       }
       regularFiles.push(absDir);
       continue;
@@ -685,33 +707,44 @@ const collectRegularFiles = (root, scanRoots, limits) => {
     const stack = [absDir];
     while (stack.length > 0) {
       const current = stack.pop();
-      const entries = fs.readdirSync(current, { withFileTypes: true });
-      for (const entry of entries) {
+      let traversalLimitReached = false;
+      visitDirectoryEntries(current, (entry) => {
+        visitedEntries += 1;
+        if (visitedEntries > maxVisitedEntries) {
+          addCollectionError(
+            `Graf překračuje limit ${maxVisitedEntries} navštívených položek při skenování souborů.`,
+          );
+          traversalLimitReached = true;
+          return false;
+        }
         const next = path.join(current, entry.name);
         if (entry.isSymbolicLink()) {
-          collectionErrors.push(
+          addCollectionError(
             `Symbolický odkaz není ve skenovaných vrstvách povolen: ${toPosix(path.relative(root, next))}`,
           );
-          continue;
+          return true;
         }
         if (entry.isDirectory()) {
           stack.push(next);
-          continue;
+          return true;
         }
         if (entry.isFile()) {
           if (regularFiles.length >= limits.maxRegularFiles) {
-            collectionErrors.push(
+            addCollectionError(
               `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
             );
-            return { regularFiles, collectionErrors };
+            traversalLimitReached = true;
+            return false;
           }
           regularFiles.push(next);
         }
-      }
+        return true;
+      });
+      if (traversalLimitReached) return regularFiles;
     }
   }
 
-  return { regularFiles, collectionErrors };
+  return regularFiles;
 };
 
 export const findAncestorPackageManifests = (declarations, manifests) => {
@@ -736,38 +769,43 @@ export const collectArchitectureGraph = ({
   limits,
 } = {}) => {
   const graphLimits = normalizeGraphLimits(limits);
-  const ambientDiscoveryErrors = [];
+  const collectionErrors = [];
+  let retainedDiagnosticCount = 0;
+  let suppressedDiagnosticCount = 0;
+  const addDiagnostic = (target, message) => {
+    if (retainedDiagnosticCount < graphLimits.maxDiagnostics) {
+      target.push(message);
+      retainedDiagnosticCount += 1;
+    } else {
+      suppressedDiagnosticCount += 1;
+    }
+  };
+  const addCollectionError = (message) => addDiagnostic(collectionErrors, message);
   let declarationFiles = [];
   const ambientPackageManifests = [];
-  let symlinkDiagnosticCount = 0;
   try {
     const stack = [""];
     let visitedEntries = 0;
     while (stack.length > 0) {
       const directory = stack.pop();
-      for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
+      visitDirectoryEntries(path.join(root, directory), (entry) => {
         visitedEntries += 1;
         if (visitedEntries > graphLimits.maxRegularFiles * 5) {
           throw new RangeError("Ambient discovery překročil bezpečnostní limit položek.");
         }
         const relativePath = toPosix(path.join(directory, entry.name));
-        if (isFilesystemTraversalExcluded(relativePath)) continue;
+        if (isFilesystemTraversalExcluded(relativePath)) return true;
         if (entry.isSymbolicLink()) {
-          if (symlinkDiagnosticCount < 100) {
-            ambientDiscoveryErrors.push(
-              `Symbolický odkaz není v produkčním zdrojovém stromu povolen: ${relativePath}`,
-            );
-          } else if (symlinkDiagnosticCount === 100) {
-            ambientDiscoveryErrors.push("Další symbolické odkazy byly vynechány z diagnostiky.");
-          }
-          symlinkDiagnosticCount += 1;
-          continue;
+          addCollectionError(
+            `Symbolický odkaz není v produkčním zdrojovém stromu povolen: ${relativePath}`,
+          );
+          return true;
         }
         if (entry.isDirectory()) {
           stack.push(relativePath);
-          continue;
+          return true;
         }
-        if (isAtOrBelowRoot(relativePath, ambientClassificationExcludedRoots)) continue;
+        if (isAtOrBelowRoot(relativePath, ambientClassificationExcludedRoots)) return true;
         if (entry.name === "package.json" && entry.isFile()) {
           ambientPackageManifests.push(relativePath);
         } else if (
@@ -775,10 +813,11 @@ export const collectArchitectureGraph = ({
         ) {
           declarationFiles.push(relativePath);
         }
-      }
+        return true;
+      });
     }
   } catch {
-    ambientDiscoveryErrors.push("Nelze bezpečně zjistit produkční ambient deklarace.");
+    addCollectionError("Nelze bezpečně zjistit produkční ambient deklarace.");
   }
   const additionalDeclarations = declarationFiles.filter((declaration) =>
     !scanRoots.some((scanRoot) =>
@@ -793,16 +832,16 @@ export const collectArchitectureGraph = ({
       if (scanRootStat.isDirectory()) globScopeRoots.push(scanRoot);
     } catch (error) {
       if (error?.code !== "ENOENT") {
-        ambientDiscoveryErrors.push(`Nelze bezpečně ověřit scan root: ${scanRoot}`);
+        addCollectionError(`Nelze bezpečně ověřit scan root: ${scanRoot}`);
       }
     }
   }
-  const { regularFiles: regularFilePaths, collectionErrors: traversalErrors } = collectRegularFiles(
+  const regularFilePaths = collectRegularFiles(
     root,
     effectiveScanRoots,
     graphLimits,
+    addCollectionError,
   );
-  const collectionErrors = [...ambientDiscoveryErrors, ...traversalErrors];
   const forbiddenPackageManifests = new Set(
     regularFilePaths
       .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
@@ -813,24 +852,34 @@ export const collectArchitectureGraph = ({
     ambientPackageManifests,
   )) forbiddenPackageManifests.add(manifest);
   for (const manifest of [...forbiddenPackageManifests].sort()) {
-    collectionErrors.push(
+    addCollectionError(
       `${manifest}: package.json není ve skenovaných vrstvách povolen, protože může přesměrovat rozlišení modulů.`,
     );
   }
   try {
-    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    let rootEntryCount = 0;
+    const maxRootEntries = graphLimits.maxRegularFiles * 5;
+    visitDirectoryEntries(root, (entry) => {
+      rootEntryCount += 1;
+      if (rootEntryCount > maxRootEntries) {
+        addCollectionError(
+          `Graf překračuje limit ${maxRootEntries} kořenových položek při ověřování types.* kandidátů.`,
+        );
+        return false;
+      }
       if (
         entry.name !== "types.ts" &&
         entry.name.startsWith("types.") &&
         (entry.isFile() || entry.isSymbolicLink())
       ) {
-        collectionErrors.push(
+        addCollectionError(
           `Nekánonický kořenový type kontrakt ${entry.name} není povolen vedle types.ts/types/.`,
         );
       }
-    }
+      return true;
+    });
   } catch {
-    collectionErrors.push("Nelze bezpečně ověřit kořenové types.* kandidáty.");
+    addCollectionError("Nelze bezpečně ověřit kořenové types.* kandidáty.");
   }
   const regularFiles = regularFilePaths.map((fileAbs) => toPosix(path.relative(root, fileAbs)));
   const globTargets = regularFiles.filter((file) => !file.split("/").includes("node_modules"));
@@ -843,13 +892,11 @@ export const collectArchitectureGraph = ({
   let totalEdgeBytes = 0;
   let globMatchWork = 0;
   let globMatchLimitReached = false;
-  const rejectedDependencyDiagnostics = new Set();
-  let suppressedRejectedDependencyDiagnostics = 0;
 
   const addEdge = (edge) => {
     if (rawEdgeLimitReached) return false;
     if (rawEdgeCount >= graphLimits.maxRawEdges) {
-      collectionErrors.push(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
+      addCollectionError(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
       rawEdgeLimitReached = true;
       return false;
     }
@@ -859,7 +906,7 @@ export const collectArchitectureGraph = ({
       Buffer.byteLength(edge.target, "utf8") +
       Buffer.byteLength(edge.kind, "utf8");
     if (totalEdgeBytes + edgeBytes > graphLimits.maxTotalEdgeBytes) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje celkový limit ${graphLimits.maxTotalEdgeBytes} bajtů hran.`,
       );
       rawEdgeLimitReached = true;
@@ -870,15 +917,7 @@ export const collectArchitectureGraph = ({
       const message =
         `${edge.file}: lokální dependency míří do vynechaného nebo generovaného stromu: ` +
         `${JSON.stringify(edge.specifier)} -> ${JSON.stringify(edge.target)}.`;
-      if (rejectedDependencyDiagnostics.has(message)) return true;
-      if (
-        rejectedDependencyDiagnostics.size < graphLimits.maxRejectedDependencyDiagnostics
-      ) {
-        rejectedDependencyDiagnostics.add(message);
-        collectionErrors.push(message);
-      } else {
-        suppressedRejectedDependencyDiagnostics += 1;
-      }
+      addCollectionError(message);
       return true;
     }
     edges.push(edge);
@@ -889,7 +928,7 @@ export const collectArchitectureGraph = ({
     if (globMatchLimitReached) return false;
     globMatchWork += target.length * pattern.length;
     if (globMatchWork > graphLimits.maxGlobMatchWork) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje limit ${graphLimits.maxGlobMatchWork} jednotek glob párování.`,
       );
       globMatchLimitReached = true;
@@ -906,7 +945,7 @@ export const collectArchitectureGraph = ({
     try {
       sourceBuffer = readRegularFileLimited(fileAbs, file, graphLimits.maxSourceFileBytes);
     } catch (error) {
-      collectionErrors.push(
+      addCollectionError(
         error instanceof Error ? error.message : `${file}: zdrojový soubor nelze bezpečně načíst.`,
       );
       continue;
@@ -914,21 +953,28 @@ export const collectArchitectureGraph = ({
     const sourceBytes = sourceBuffer.length;
     totalSourceBytes += sourceBytes;
     if (totalSourceBytes > graphLimits.maxTotalSourceBytes) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje celkový limit ${graphLimits.maxTotalSourceBytes} bajtů zdrojového kódu.`,
       );
       break;
     }
     const content = sourceBuffer.toString("utf8");
-    const { specs, dependencies, globCalls, globErrors } =
-      extractModuleDependencies(content, fileAbs);
+    const remainingDiagnostics = Math.max(
+      0,
+      graphLimits.maxDiagnostics - retainedDiagnosticCount,
+    );
+    const { specs, dependencies, globCalls, globErrors, suppressedDiagnostics } =
+      extractModuleDependencies(content, fileAbs, { maxDiagnostics: remainingDiagnostics });
+    retainedDiagnosticCount += globErrors.length;
+    suppressedDiagnosticCount += suppressedDiagnostics;
     const globDiagnostics = [];
+    const addGlobDiagnostic = (message) => addDiagnostic(globDiagnostics, message);
 
     globPatternCount += globCalls.reduce((count, call) => count + call.patterns.length, 0);
     const globPatternLimitExceeded = globPatternCount > graphLimits.maxGlobPatterns;
     if (globPatternLimitExceeded) {
       const message = `Graf překračuje limit ${graphLimits.maxGlobPatterns} glob vzorů.`;
-      if (!collectionErrors.includes(message)) collectionErrors.push(message);
+      if (!collectionErrors.includes(message)) addCollectionError(message);
     }
     let oversizedGlobPattern = null;
     for (const call of globCalls) {
@@ -938,7 +984,7 @@ export const collectArchitectureGraph = ({
       if (oversizedGlobPattern) break;
     }
     if (oversizedGlobPattern) {
-      collectionErrors.push(
+      addCollectionError(
         `${file}: glob vzor překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
         JSON.stringify(oversizedGlobPattern),
       );
@@ -951,9 +997,9 @@ export const collectArchitectureGraph = ({
       if (rawEdgeLimitReached) break;
       for (const item of normalizedGlobs) {
         if (item.error) {
-          globDiagnostics.push(`import.meta.glob ${item.error}: ${item.original}`);
+          addGlobDiagnostic(`import.meta.glob ${item.error}: ${item.original}`);
         } else if (!item.normalized) {
-          globDiagnostics.push(`import.meta.glob vzor nelze bezpečně vyhodnotit: ${item.original}`);
+          addGlobDiagnostic(`import.meta.glob vzor nelze bezpečně vyhodnotit: ${item.original}`);
         }
       }
 
@@ -970,7 +1016,7 @@ export const collectArchitectureGraph = ({
           globScopeRoots.some((scanRoot) =>
             item.pattern === scanRoot || item.pattern.startsWith(`${scanRoot}/`));
         if (!safelyContained) {
-          globDiagnostics.push(
+          addGlobDiagnostic(
             `import.meta.glob vzor není uzavřen uvnitř skenovaných vrstev: ${item.specifier}`,
           );
         }
@@ -1009,7 +1055,7 @@ export const collectArchitectureGraph = ({
       if (rawEdgeLimitReached) break;
       const { specifier, origin } = dependency;
       if (Buffer.byteLength(specifier, "utf8") > graphLimits.maxDependencyBytes) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: import specifier překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
           JSON.stringify(specifier),
         );
@@ -1023,27 +1069,27 @@ export const collectArchitectureGraph = ({
         isImportMetaUrlSpecifier &&
         specifier.split(/[?#]/, 1)[0].startsWith("/")
       ) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: root-absolute new URL s import.meta.url není podporována: ${JSON.stringify(specifier)}.`,
         );
       } else if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: import adresáře kořene repozitáře není podporován: ${JSON.stringify(specifier)}.`,
         );
       } else if (target === null && isWindowsFilesystemSpecifier(specifier)) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: lokální Windows cesta není podporována: ${JSON.stringify(specifier)}.`,
         );
       } else if (target === null && specifier.split(/[?#]/, 1)[0].startsWith("/")) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: root-absolute import nelze bezpečně rozřešit: ${JSON.stringify(specifier)}.`,
         );
       } else if (target === null && isFileUrlSpecifier(specifier)) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: file URL není podporována: ${JSON.stringify(specifier)}.`,
         );
       } else if (target === null && isUnsafePercentEncodedSpecifier(specifier)) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: lokální import nesmí používat percent-encoding: ${JSON.stringify(specifier)}.`,
         );
       } else if (
@@ -1052,7 +1098,7 @@ export const collectArchitectureGraph = ({
         hasUrlScheme(specifier) &&
         !isExplicitExternalUrlSpecifier(specifier)
       ) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: new URL s import.meta.url používá nepodporované URL schéma: ${JSON.stringify(specifier)}.`,
         );
       } else if (
@@ -1060,7 +1106,7 @@ export const collectArchitectureGraph = ({
         (isRepoLocalSpecifier(specifier) ||
           (isImportMetaUrlSpecifier && !isExplicitExternalUrlSpecifier(specifier)))
       ) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: lokální import uniká mimo kořen repozitáře: ${JSON.stringify(specifier)}.`,
         );
       } else if (target) {
@@ -1080,9 +1126,9 @@ export const collectArchitectureGraph = ({
     });
   }
 
-  if (suppressedRejectedDependencyDiagnostics > 0) {
+  if (suppressedDiagnosticCount > 0) {
     collectionErrors.push(
-      `Dalších ${suppressedRejectedDependencyDiagnostics} odmítnutých dependency diagnostik bylo sloučeno.`,
+      `Dalších ${suppressedDiagnosticCount} architektonických diagnostik bylo sloučeno.`,
     );
   }
 

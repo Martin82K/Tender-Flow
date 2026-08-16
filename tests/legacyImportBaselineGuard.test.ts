@@ -666,7 +666,40 @@ describe("legacy import baseline guard", () => {
 
       expect(result.status).toBe(1);
       expect(diagnostics).toHaveLength(100);
-      expect(result.stderr).toContain("Dalších 50 odmítnutých dependency diagnostik bylo sloučeno");
+      expect(result.stderr).toContain("Dalších 50 architektonických diagnostik bylo sloučeno");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    {
+      name: "Windows filesystem imports",
+      source: Array.from(
+        { length: 150 },
+        (_, index) => `import "C:/generated/path-${index}.js";`,
+      ).join("\n"),
+      diagnostic: "lokální Windows cesta není podporována",
+    },
+    {
+      name: "nonliteral dynamic imports",
+      source: [
+        'const target = "@/shared/example";',
+        ...Array.from({ length: 150 }, () => "void import(target);"),
+      ].join("\n"),
+      diagnostic: "import() musí používat jeden statický literál",
+    },
+  ])("bounds all architecture diagnostics for $name", ({ source, diagnostic }) => {
+    const fixtureRoot = createFixture();
+    writeConsumer(fixtureRoot, source);
+
+    try {
+      const result = runBoundary(fixtureRoot);
+      const diagnosticCount = result.stderr.split(diagnostic).length - 1;
+
+      expect(result.status).toBe(1);
+      expect(diagnosticCount).toBe(100);
+      expect(result.stderr).toContain("Dalších 50 architektonických diagnostik bylo sloučeno");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }

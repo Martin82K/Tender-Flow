@@ -216,6 +216,33 @@ const createFixture = () => {
 };
 
 describe("architecture graph resolver", () => {
+  it("bounds diagnostics and traversal work for directory-only source trees", async () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-graph-budget-"));
+    fs.mkdirSync(path.join(fixtureRoot, "app"), { recursive: true });
+    for (let index = 0; index < 8; index += 1) {
+      fs.mkdirSync(path.join(fixtureRoot, `app/empty-${index}`));
+    }
+
+    try {
+      const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
+      const graph = collectArchitectureGraph({
+        root: fixtureRoot,
+        scanRoots: ["app"],
+        limits: { maxRegularFiles: 1, maxDiagnostics: 1 },
+      });
+
+      expect(graph.collectionErrors).toHaveLength(2);
+      expect(graph.collectionErrors[0]).toBe(
+        "Nelze bezpečně zjistit produkční ambient deklarace.",
+      );
+      expect(graph.collectionErrors[1]).toBe(
+        "Dalších 1 architektonických diagnostik bylo sloučeno.",
+      );
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("gives the audit and boundary guard one AST-derived dependency corpus", async () => {
     const fixtureRoot = createFixture();
 
