@@ -59,7 +59,10 @@ export const AppearancePicker = <T extends string>({
         onValueChange={setInputValue}
         open={isOpen}
         onOpenChange={handleOpenChange}
-        itemToStringValue={(option) => option.label}
+        itemToStringValue={(option) => {
+          if (typeof option !== "object" || option === null || !("label" in option)) return "";
+          return String(option.label);
+        }}
         openOnInputClick
         size="sm"
         variant="soft"
