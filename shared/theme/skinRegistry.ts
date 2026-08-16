@@ -4,6 +4,7 @@ import botanicaLightFallbackAsset from "@/assets/themes/botanica/botanical-relie
 import botanicaLightAsset from "@/assets/themes/botanica/botanical-relief-light.webp?no-inline";
 import natureDarkAsset from "@/assets/themes/nature/forest-dark.jpg?no-inline";
 import natureLightAsset from "@/assets/themes/nature/forest-light.jpg?no-inline";
+import spaceCanvasAsset from "@/assets/themes/space/tf-space-canvas.webp?no-inline";
 import type { ThemeSkin } from "@/shared/types/theme";
 
 export type ResolvedThemeMode = "light" | "dark";
@@ -83,11 +84,29 @@ const natureDefinitions: Record<ResolvedThemeMode, SkinVisualDefinition> = {
   },
 };
 
+const spaceDefinitions: Record<ResolvedThemeMode, SkinVisualDefinition> = {
+  light: {
+    asset: spaceCanvasAsset,
+    sidebar: { opacity: 0.58, position: "12% center", size: "cover" },
+    header: { opacity: 0.46, position: "center 20%", size: "cover" },
+    canvas: { opacity: 0.42, position: "center", size: "cover" },
+    surface: { panelOpacity: 0.86, dataOpacity: 0.95, blur: 14 },
+  },
+  dark: {
+    asset: spaceCanvasAsset,
+    sidebar: { opacity: 0.72, position: "10% center", size: "cover" },
+    header: { opacity: 0.58, position: "center 18%", size: "cover" },
+    canvas: { opacity: 0.58, position: "center", size: "cover" },
+    surface: { panelOpacity: 0.84, dataOpacity: 0.96, blur: 16 },
+  },
+};
+
 const registry: Record<ThemeSkin, Record<ResolvedThemeMode, SkinVisualDefinition>> = {
   classic: { light: fallbackDefinition, dark: fallbackDefinition },
   industrial: { light: fallbackDefinition, dark: fallbackDefinition },
   botanica: botanicaDefinitions,
   nature: natureDefinitions,
+  space: spaceDefinitions,
 };
 
 export const getSkinVisualDefinition = (

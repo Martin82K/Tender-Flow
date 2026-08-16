@@ -5,6 +5,8 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '@appica/ui-react';
+import { BuildingPlus } from '@appica/icons-react';
 import type { Bid, DemandCategory } from '@/types';
 import { parseFormattedNumber } from '@shared/formatting/decimalFormatters';
 import { formatMoney } from '@shared/formatting/numberFormatters';
@@ -432,16 +434,16 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                         </div>
                     </div>
 
-                    <button
+                    <Button
                         data-help-id="pipeline-add-category"
                         onClick={onAddClick}
+                        variant="primary"
+                        size="md"
                         className="flex min-h-10 items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                        <span className="material-symbols-outlined text-[20px]">
-                            add_home_work
-                        </span>
+                        <BuildingPlus aria-hidden="true" size={20} strokeWidth={1.7} />
                         <span className="hidden sm:inline">Nová Poptávka</span>
-                    </button>
+                    </Button>
                 </div>
             </div>
 

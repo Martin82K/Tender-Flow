@@ -39,7 +39,7 @@ describe("shared Settings skin tokens", () => {
     expect(cssBlock(":root")).toContain("--tf-settings-primary: rgb(var(--tf-color-primary-rgb))");
     expect(cssBlock("html.dark")).toContain("--tf-settings-primary-strong: #a5b4fc");
 
-    for (const skin of ["industrial", "botanica", "nature"]) {
+    for (const skin of ["industrial", "botanica", "nature", "space"]) {
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary:");
       expect(cssBlock(`html.dark[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary-strong:");
     }
@@ -84,6 +84,8 @@ describe("shared Settings skin tokens", () => {
       ["#e2a0b2", "#171113"],
       ["#14532d", "#fbfdfb"],
       ["#7dd6a0", "#0e1c14"],
+      ["#f43f5e", "#080b14"],
+      ["#67e8f9", "#080b14"],
     ] as const;
 
     for (const [foreground, background] of pairs) {

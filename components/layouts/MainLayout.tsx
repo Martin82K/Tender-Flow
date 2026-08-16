@@ -1,10 +1,12 @@
 import React, { Suspense } from 'react';
+import { Menu } from '@appica/icons-react';
 import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { AccountMenuProvider } from '@/shared/ui/AccountMenuContext';
 import { UserAccountMenu } from '@/shared/ui/UserAccountMenu';
+import { SpaceBackdrop, SpaceBeamFrame } from '@/shared/ui/SpaceShellDecor';
 import { Project, View, User } from '../../types';
 import { normalizeUiScale } from '@/hooks/useTheme';
 import type { ThemeMode, ThemeSkin } from '@/shared/types/theme';
@@ -159,6 +161,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     id="main-scroll-container" // Replaces mainScrollRef usage with ID or pass ref? Pass ref is better but ID is easier for decoupled components
                     className="tf-app-main flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
                 >
+                    {skin === 'space' && <SpaceBackdrop />}
                     {/* Toggle Button for Mobile/Hidden Sidebar */}
 
                     {(isBackgroundLoading || backgroundWarning) && (
@@ -217,6 +220,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     )}
 
                     {/* Toggle Button for Desktop when Sidebar is hidden */}
+                    {skin === 'space' ? (
+                    <SpaceBeamFrame className={`tf-space-sidebar-reveal hidden md:flex fixed top-24 left-4 z-30 rounded-lg ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="flex items-center justify-center rounded-lg border border-white/15 bg-[#080b14]/90 p-1.5 text-white shadow-lg transition-all hover:bg-white/10"
+                        title="Zobrazit sidebar"
+                    >
+                        <Menu aria-hidden="true" size={20} strokeWidth={1.7} />
+                    </button>
+                    </SpaceBeamFrame>
+                    ) : (
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
@@ -224,6 +238,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     >
                         <span className="material-symbols-outlined text-[20px]">menu</span>
                     </button>
+                    )}
 
                     <Suspense fallback={
                         <div className="flex items-center justify-center h-full">
