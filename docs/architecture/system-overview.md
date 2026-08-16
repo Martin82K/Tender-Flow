@@ -107,3 +107,18 @@ paralelní implementací resolveru. Vynucovaný importní baseline je přesná m
 souboru, specifieru a cíle, nikoli pouze celkový počet; migrace jej musí
 zmenšovat a nemůže starou vazbu vyměnit za novou. Nové soubory ve frozen legacy
 kořenech nejsou povolené bez explicitního rozhodnutí.
+
+Čistá analytická vrstva `scripts/lib/architecture-graph-analysis.mjs` převádí
+normalizované cíle na konkrétní existující moduly bez změny hran používaných
+baseline. Statický import se vyhodnotí přes přesný soubor, podporovanou příponu
+nebo `index.*`; glob musí odpovídat konkrétnímu uzlu. Nejednoznačné cíle se
+nevybírají podle pořadí přípon, ale zůstávají explicitní fail-closed diagnostikou.
+Nad grafem indukovaným nakonfigurovanými source roots počítá deduplikovaný
+fan-in/fan-out, silně souvislé komponenty, kondenzační DAG a deterministické
+migrační dávky od závislostí k importérům. Cíle v kořeni repozitáře nebo v
+`config/` zůstávají evidované jako mimo tento migrační scope; nesmí být vydávány
+za analyzované uzly. Cyklus je vždy jedna nedělitelná dávka. Collector zastaví
+sběr při překročení limitu souborů, jejich velikosti, glob vzorů, glob párovací
+práce nebo surových hran. Následné algoritmy jsou iterativní a navíc omezují počet uzlů, hran,
+délku polí a celkový byte budget, aby graf z nedůvěryhodné PR změny nemohl
+neomezeně spotřebovat zásobník nebo paměť CI.

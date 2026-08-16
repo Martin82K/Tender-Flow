@@ -27,6 +27,29 @@ export const ARCHITECTURE_SOURCE_EXTENSIONS = Object.freeze([
 
 const sourceExtensions = new Set(ARCHITECTURE_SOURCE_EXTENSIONS);
 
+const defaultGraphLimits = Object.freeze({
+  maxRegularFiles: 10_000,
+  maxSourceFileBytes: 2 * 1024 * 1024,
+  maxTotalSourceBytes: 64 * 1024 * 1024,
+  maxGlobPatterns: 1_000,
+  maxRawEdges: 250_000,
+  maxDependencyBytes: 4_096,
+  maxTotalEdgeBytes: 32 * 1024 * 1024,
+  maxGlobMatchWork: 50_000_000,
+});
+
+const normalizeGraphLimits = (limits = {}) => Object.fromEntries(
+  Object.entries(defaultGraphLimits).map(([name, maximum]) => {
+    const requested = limits[name];
+    return [
+      name,
+      Number.isSafeInteger(requested) && requested > 0
+        ? Math.min(requested, maximum)
+        : maximum,
+    ];
+  }),
+);
+
 export const toPosix = (value) => value.replace(/\\/g, "/");
 
 const isImportMetaGlobCall = (node) =>
@@ -243,43 +266,56 @@ const containsExtglob = (globPattern) => {
 
 const containsUnsupportedGlobSyntax = (globPattern) => /[\[\]{}]/.test(globPattern);
 
-const matchesSupportedGlob = (repoPath, globPattern) => {
-  if (globPattern.endsWith("/**") && repoPath === globPattern.slice(0, -3)) {
-    return true;
+const matchesGlobSegment = (value, pattern) => {
+  if (value.startsWith(".") && (pattern.startsWith("*") || pattern.startsWith("?"))) {
+    return false;
   }
 
-  let source = "^";
-  let segmentStart = true;
-  for (let index = 0; index < globPattern.length; index += 1) {
-    const character = globPattern[index];
-    if (character === "*") {
-      const isWholeSegmentGlobstar =
-        globPattern[index + 1] === "*" &&
-        (index === 0 || globPattern[index - 1] === "/") &&
-        (index + 2 === globPattern.length || globPattern[index + 2] === "/");
-      if (isWholeSegmentGlobstar) {
-        index += 1;
-        if (globPattern[index + 1] === "/") {
-          index += 1;
-          source += "(?:(?!\\.)[^/]+/)*";
-          segmentStart = true;
-        } else {
-          source += "(?:(?!\\.)[^/]+(?:/(?!\\.)[^/]+)*)?";
-          segmentStart = false;
-        }
-      } else {
-        source += `${segmentStart ? "(?!\\.)" : ""}[^/]*`;
-        segmentStart = false;
+  const valueCharacters = [...value];
+  let previous = new Uint8Array(valueCharacters.length + 1);
+  previous[0] = 1;
+  for (const token of pattern) {
+    const current = new Uint8Array(valueCharacters.length + 1);
+    if (token === "*") current[0] = previous[0];
+    for (let index = 1; index <= valueCharacters.length; index += 1) {
+      if (token === "*") {
+        current[index] = previous[index] || current[index - 1] ? 1 : 0;
+      } else if (token === "?" || token === valueCharacters[index - 1]) {
+        current[index] = previous[index - 1];
       }
-    } else if (character === "?") {
-      source += `${segmentStart ? "(?!\\.)" : ""}[^/]`;
-      segmentStart = false;
-    } else {
-      source += character.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
-      segmentStart = character === "/";
     }
+    previous = current;
   }
-  return new RegExp(`${source}$`, "u").test(repoPath);
+  return previous[valueCharacters.length] === 1;
+};
+
+export const matchesSupportedGlob = (repoPath, globPattern) => {
+  const pathSegments = repoPath.split("/");
+  const patternSegments = globPattern.split("/");
+  let previous = new Uint8Array(pathSegments.length + 1);
+  previous[0] = 1;
+
+  for (const patternSegment of patternSegments) {
+    const current = new Uint8Array(pathSegments.length + 1);
+    if (patternSegment === "**") {
+      current[0] = previous[0];
+      for (let index = 1; index <= pathSegments.length; index += 1) {
+        current[index] = previous[index] ||
+          (current[index - 1] && !pathSegments[index - 1].startsWith("."))
+          ? 1
+          : 0;
+      }
+    } else {
+      for (let index = 1; index <= pathSegments.length; index += 1) {
+        if (previous[index - 1] && matchesGlobSegment(pathSegments[index - 1], patternSegment)) {
+          current[index] = 1;
+        }
+      }
+    }
+    previous = current;
+  }
+
+  return previous[pathSegments.length] === 1;
 };
 
 const normalizeGlobPattern = (globPattern, fileAbs, base, root) => {
@@ -340,7 +376,7 @@ const normalizeGlobCalls = (globCalls, fileAbs, root) =>
     }),
   );
 
-const collectRegularFiles = (root, scanRoots) => {
+const collectRegularFiles = (root, scanRoots, limits) => {
   const regularFiles = [];
   const collectionErrors = [];
 
@@ -369,6 +405,12 @@ const collectRegularFiles = (root, scanRoots) => {
           continue;
         }
         if (entry.isFile()) {
+          if (regularFiles.length >= limits.maxRegularFiles) {
+            collectionErrors.push(
+              `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
+            );
+            return { regularFiles, collectionErrors };
+          }
           regularFiles.push(next);
         }
       }
@@ -381,23 +423,108 @@ const collectRegularFiles = (root, scanRoots) => {
 export const collectArchitectureGraph = ({
   root = process.cwd(),
   scanRoots = ARCHITECTURE_SCAN_ROOTS,
+  limits,
 } = {}) => {
-  const { regularFiles: regularFilePaths, collectionErrors } = collectRegularFiles(root, scanRoots);
+  const graphLimits = normalizeGraphLimits(limits);
+  const { regularFiles: regularFilePaths, collectionErrors } = collectRegularFiles(
+    root,
+    scanRoots,
+    graphLimits,
+  );
   const regularFiles = regularFilePaths.map((fileAbs) => toPosix(path.relative(root, fileAbs)));
   const globTargets = regularFiles.filter((file) => !file.split("/").includes("node_modules"));
   const nodes = [];
   const edges = [];
+  let totalSourceBytes = 0;
+  let globPatternCount = 0;
+  let rawEdgeLimitReached = false;
+  let totalEdgeBytes = 0;
+  let globMatchWork = 0;
+  let globMatchLimitReached = false;
+
+  const addEdge = (edge) => {
+    if (rawEdgeLimitReached) return false;
+    if (edges.length >= graphLimits.maxRawEdges) {
+      collectionErrors.push(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
+      rawEdgeLimitReached = true;
+      return false;
+    }
+    const edgeBytes = Buffer.byteLength(edge.file, "utf8") +
+      Buffer.byteLength(edge.specifier, "utf8") +
+      Buffer.byteLength(edge.target, "utf8") +
+      Buffer.byteLength(edge.kind, "utf8");
+    if (totalEdgeBytes + edgeBytes > graphLimits.maxTotalEdgeBytes) {
+      collectionErrors.push(
+        `Graf překračuje celkový limit ${graphLimits.maxTotalEdgeBytes} bajtů hran.`,
+      );
+      rawEdgeLimitReached = true;
+      return false;
+    }
+    totalEdgeBytes += edgeBytes;
+    edges.push(edge);
+    return true;
+  };
+
+  const matchesGlobWithinBudget = (target, pattern) => {
+    if (globMatchLimitReached) return false;
+    globMatchWork += target.length * pattern.length;
+    if (globMatchWork > graphLimits.maxGlobMatchWork) {
+      collectionErrors.push(
+        `Graf překračuje limit ${graphLimits.maxGlobMatchWork} jednotek glob párování.`,
+      );
+      globMatchLimitReached = true;
+      return false;
+    }
+    return matchesSupportedGlob(target, pattern);
+  };
 
   for (const fileAbs of regularFilePaths) {
     if (!sourceExtensions.has(path.extname(fileAbs))) continue;
 
     const file = toPosix(path.relative(root, fileAbs));
+    const sourceBytes = fs.statSync(fileAbs).size;
+    if (sourceBytes > graphLimits.maxSourceFileBytes) {
+      collectionErrors.push(
+        `${file}: zdrojový soubor překračuje limit ${graphLimits.maxSourceFileBytes} bajtů.`,
+      );
+      continue;
+    }
+    totalSourceBytes += sourceBytes;
+    if (totalSourceBytes > graphLimits.maxTotalSourceBytes) {
+      collectionErrors.push(
+        `Graf překračuje celkový limit ${graphLimits.maxTotalSourceBytes} bajtů zdrojového kódu.`,
+      );
+      break;
+    }
     const content = fs.readFileSync(fileAbs, "utf8");
     const { specs, globCalls, globErrors } = extractModuleDependencies(content, fileAbs);
-    const normalizedGlobCalls = normalizeGlobCalls(globCalls, fileAbs, root);
     const globDiagnostics = [];
 
+    globPatternCount += globCalls.reduce((count, call) => count + call.patterns.length, 0);
+    const globPatternLimitExceeded = globPatternCount > graphLimits.maxGlobPatterns;
+    if (globPatternLimitExceeded) {
+      const message = `Graf překračuje limit ${graphLimits.maxGlobPatterns} glob vzorů.`;
+      if (!collectionErrors.includes(message)) collectionErrors.push(message);
+    }
+    let oversizedGlobPattern = null;
+    for (const call of globCalls) {
+      oversizedGlobPattern = call.patterns.find(
+        (pattern) => Buffer.byteLength(pattern, "utf8") > graphLimits.maxDependencyBytes,
+      ) ?? null;
+      if (oversizedGlobPattern) break;
+    }
+    if (oversizedGlobPattern) {
+      collectionErrors.push(
+        `${file}: glob vzor překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
+        JSON.stringify(oversizedGlobPattern),
+      );
+    }
+    const normalizedGlobCalls = globPatternLimitExceeded || oversizedGlobPattern
+      ? []
+      : normalizeGlobCalls(globCalls, fileAbs, root);
+
     for (const normalizedGlobs of normalizedGlobCalls) {
+      if (rawEdgeLimitReached) break;
       for (const item of normalizedGlobs) {
         if (item.error) {
           globDiagnostics.push(`import.meta.glob ${item.error}: ${item.original}`);
@@ -411,33 +538,47 @@ export const collectArchitectureGraph = ({
         .filter(Boolean);
       const positiveGlobs = validGlobs.filter((item) => !item.negative);
       const negativeGlobs = validGlobs.filter((item) => item.negative);
+      const excludedTargets = new Set();
+
+      for (const target of globTargets) {
+        if (globMatchLimitReached) break;
+        if (negativeGlobs.some((excluded) =>
+          globMatchLimitReached || matchesGlobWithinBudget(target, excluded.pattern))) {
+          excludedTargets.add(target);
+        }
+      }
 
       for (const glob of positiveGlobs) {
+        if (rawEdgeLimitReached || globMatchLimitReached) break;
         for (const target of globTargets) {
-          let matches = matchesSupportedGlob(target, glob.pattern);
-          if (
-            matches &&
-            negativeGlobs.some((excluded) => matchesSupportedGlob(target, excluded.pattern))
-          ) {
-            matches = false;
-          }
+          if (globMatchLimitReached) break;
+          let matches = matchesGlobWithinBudget(target, glob.pattern);
+          if (matches && excludedTargets.has(target)) matches = false;
 
           if (matches) {
-            edges.push({
+            if (!addEdge({
               file,
               specifier: glob.specifier,
               target,
               kind: "glob",
-            });
+            })) break;
           }
         }
       }
     }
 
     for (const specifier of specs) {
+      if (rawEdgeLimitReached) break;
+      if (Buffer.byteLength(specifier, "utf8") > graphLimits.maxDependencyBytes) {
+        collectionErrors.push(
+          `${file}: import specifier překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
+          JSON.stringify(specifier),
+        );
+        continue;
+      }
       const target = resolveModuleSpecifier(specifier, fileAbs, root);
       if (target) {
-        edges.push({ file, specifier, target, kind: "static" });
+        addEdge({ file, specifier, target, kind: "static" });
       }
     }
 
@@ -452,14 +593,18 @@ export const collectArchitectureGraph = ({
     });
   }
 
-  const uniqueEdges = [
-    ...new Map(
-      edges.map((edge) => [
-        `${edge.file}\0${edge.specifier}\0${edge.target}`,
-        edge,
-      ]),
-    ).values(),
-  ];
+  const uniqueEdges = [];
+  const seenEdges = new Map();
+  for (const edge of edges) {
+    const specifiers = seenEdges.get(edge.file) ?? new Map();
+    const targets = specifiers.get(edge.specifier) ?? new Set();
+    if (!targets.has(edge.target)) {
+      targets.add(edge.target);
+      uniqueEdges.push(edge);
+    }
+    specifiers.set(edge.specifier, targets);
+    seenEdges.set(edge.file, specifiers);
+  }
 
   return { nodes, edges: uniqueEdges, regularFiles, collectionErrors };
 };

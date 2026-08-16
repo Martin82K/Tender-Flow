@@ -67,6 +67,16 @@ import a Vite glob, současně odmítá falešné importy z komentářů a řet�
 Reálný repozitář ratchetuje přesnou shodou 597 zdrojových uzlů a 134
 modern-to-legacy hran s verzovanou baseline.
 
+`tests/architectureGraphAnalysis.test.ts` ověřuje další čistou vrstvu nad tímto
+grafem: rozlišení přípon a `index.*`, fail-closed nejednoznačnost, unikátní
+fan-in/fan-out, self-loop, víceuzlové cykly, kondenzační DAG a dependency-first
+migrační dávky. Permutace vstupu musí dát totožný výstup a 20 000uzlový řetězec
+ověřuje iterativní průchod bez přetečení zásobníku. Integrační ratchet současně
+hlídá úplný graf indukovaný nakonfigurovanými source roots, explicitně eviduje
+cíle mimo tento scope a chrání dnes známou třímodulovou cyklickou komponentu.
+Nízký testovací edge budget navíc dokládá, že collector zastaví expanzi ještě
+před neomezeným naplněním pole hran.
+
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
 `strictNullChecks`, `noImplicitAny` a `strictPropertyInitialization`, aby byl
