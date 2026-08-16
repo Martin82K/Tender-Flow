@@ -6,20 +6,33 @@ import {
   collectArchitectureGraph,
   resolveModuleSpecifier,
 } from "./lib/architecture-graph.mjs";
+import { readRegularTextFileLimited } from "./lib/safe-file-read.mjs";
 
 const root = process.cwd();
 const scanRoots = ARCHITECTURE_SCAN_ROOTS;
-const modernRoots = ["app", "features", "shared", "infra"];
+const modernRoots = ["app", "features", "shared", "infra", "types", "config", "fonts"];
+const modernEntryFiles = new Set([
+  "index.tsx",
+  "App.tsx",
+  "types.ts",
+  "env.d.ts",
+  "window.d.ts",
+  "declarations.d.ts",
+]);
+const isModernEntryFile = (fileRel) =>
+  modernEntryFiles.has(fileRel) || /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/.test(fileRel);
 const legacyRoots = ["components", "hooks", "services", "context", "utils"];
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
 const legacyImportBaselinePath = path.join(root, "config", "legacy-import-baseline.json");
+const MAX_BOUNDARY_CONFIG_BYTES = 1024 * 1024;
 
 const findings = [];
 const legacyImportFindings = [];
 const collectionErrors = [];
 
 const isWebLayer = (fileRel) =>
+  isModernEntryFile(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
@@ -28,15 +41,22 @@ const isWebLayer = (fileRel) =>
   fileRel.startsWith("context/") ||
   fileRel.startsWith("services/") ||
   fileRel.startsWith("utils/") ||
-  fileRel.startsWith("infra/");
+  fileRel.startsWith("infra/") ||
+  fileRel.startsWith("types/") ||
+  fileRel.startsWith("config/") ||
+  fileRel.startsWith("fonts/");
 
 const isUiLayer = (fileRel) =>
+  isModernEntryFile(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
   fileRel.startsWith("components/") ||
   fileRel.startsWith("hooks/") ||
-  fileRel.startsWith("context/");
+  fileRel.startsWith("context/") ||
+  fileRel.startsWith("types/") ||
+  fileRel.startsWith("config/") ||
+  fileRel.startsWith("fonts/");
 
 const isForbiddenRepoTarget = (repoPath) =>
   forbiddenRoots.some((rootPath) => repoPath === rootPath || repoPath.startsWith(`${rootPath}/`));
@@ -44,14 +64,35 @@ const isForbiddenRepoTarget = (repoPath) =>
 const isWithinRoot = (repoPath, rootPath) =>
   repoPath === rootPath || repoPath.startsWith(`${rootPath}/`);
 
-const isModernPath = (repoPath) => modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
+const isModernPath = (repoPath) =>
+  !isLegacyPath(repoPath) &&
+  (isModernEntryFile(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath)));
+
+const readOptionalBoundaryConfig = (absolutePath, relativePath) => {
+  try {
+    fs.lstatSync(absolutePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw new TypeError(`Nelze bezpečně načíst ${relativePath}.`);
+  }
+  return readRegularTextFileLimited(absolutePath, relativePath, MAX_BOUNDARY_CONFIG_BYTES);
+};
 
 const loadAllowlist = () => {
-  if (!fs.existsSync(allowlistPath)) return [];
   try {
-    const parsed = JSON.parse(fs.readFileSync(allowlistPath, "utf8"));
-    if (!Array.isArray(parsed?.allowedFindings)) return [];
+    const content = readOptionalBoundaryConfig(
+      allowlistPath,
+      "config/architecture-boundary-allowlist.json",
+    );
+    if (content === null) return [];
+    const parsed = JSON.parse(content);
+    if (!Array.isArray(parsed?.allowedFindings)) {
+      collectionErrors.push(
+        "config/architecture-boundary-allowlist.json musí obsahovat pole allowedFindings.",
+      );
+      return [];
+    }
     return parsed.allowedFindings
       .map((item) => ({
         type: typeof item?.type === "string" ? item.type : "",
@@ -64,7 +105,14 @@ const loadAllowlist = () => {
           item.file &&
           (item.type !== "feature-private-import" || item.specifier !== null),
       );
-  } catch {
+  } catch (error) {
+    collectionErrors.push(
+      error instanceof SyntaxError
+        ? "config/architecture-boundary-allowlist.json není platný JSON."
+        : error instanceof Error
+          ? error.message
+          : "config/architecture-boundary-allowlist.json nelze bezpečně načíst.",
+    );
     return [];
   }
 };
@@ -80,16 +128,27 @@ const isAllowedFinding = (finding) =>
 
 const legacyImportKey = (item) => `${item.file}\0${item.specifier}\0${item.target}`;
 const compareLegacyImports = (left, right) => legacyImportKey(left).localeCompare(legacyImportKey(right));
+const modernEntryScopeBootstrapKeys = new Set([
+  legacyImportKey({
+    file: "index.tsx",
+    specifier: "./services/incidentLogger",
+    target: "services/incidentLogger",
+  }),
+]);
 
 const loadLegacyImportBaseline = () => {
-  if (!fs.existsSync(legacyImportBaselinePath)) return { allowedImports: [], errors: [] };
-
   try {
-    const parsed = JSON.parse(fs.readFileSync(legacyImportBaselinePath, "utf8"));
-    if (parsed?.version !== 1 || !Array.isArray(parsed?.allowedImports)) {
+    const content = readOptionalBoundaryConfig(
+      legacyImportBaselinePath,
+      "config/legacy-import-baseline.json",
+    );
+    if (content === null) return { allowedImports: [], errors: [] };
+    const parsed = JSON.parse(content);
+    if (parsed?.version !== 2 || !Array.isArray(parsed?.allowedImports)) {
       return {
         allowedImports: [],
-        errors: ["config/legacy-import-baseline.json musí mít version 1 a pole allowedImports."],
+        version: null,
+        errors: ["config/legacy-import-baseline.json musí mít version 2 a pole allowedImports."],
       };
     }
 
@@ -119,11 +178,18 @@ const loadLegacyImportBaseline = () => {
       errors.push("Legacy import baseline musí být deterministicky seřazený.");
     }
 
-    return { allowedImports, errors };
-  } catch {
+    return { version: parsed.version, allowedImports, errors };
+  } catch (error) {
     return {
+      version: null,
       allowedImports: [],
-      errors: ["config/legacy-import-baseline.json není platný JSON."],
+      errors: [
+        error instanceof SyntaxError
+          ? "config/legacy-import-baseline.json není platný JSON."
+          : error instanceof Error
+            ? error.message
+            : "config/legacy-import-baseline.json nelze bezpečně načíst.",
+      ],
     };
   }
 };
@@ -144,8 +210,8 @@ const loadPreviousLegacyImportBaseline = () => {
     });
   } catch {
     return configuredRef
-      ? { available: false, allowedImports: [], errors: [`Nelze načíst Git baseline ref ${baselineRef}.`] }
-      : { available: false, allowedImports: [], errors: [] };
+      ? { available: false, version: null, allowedImports: [], errors: [`Nelze načíst Git baseline ref ${baselineRef}.`] }
+      : { available: false, version: null, allowedImports: [], errors: [] };
   }
 
   let content = "";
@@ -156,18 +222,32 @@ const loadPreviousLegacyImportBaseline = () => {
       { cwd: root, stdio: "pipe" },
     );
   } catch {
-    return { available: false, allowedImports: [], errors: [] };
+    return { available: false, version: null, allowedImports: [], errors: [] };
   }
 
   try {
     content = execFileSync(
       "git",
       ["show", `${baselineRef}:config/legacy-import-baseline.json`],
-      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: MAX_BOUNDARY_CONFIG_BYTES + 1,
+      },
     );
+    if (Buffer.byteLength(content, "utf8") > MAX_BOUNDARY_CONFIG_BYTES) {
+      return {
+        available: false,
+        version: null,
+        allowedImports: [],
+        errors: [`Git baseline config/legacy-import-baseline.json překračuje limit ${MAX_BOUNDARY_CONFIG_BYTES} bajtů.`],
+      };
+    }
   } catch {
     return {
       available: false,
+      version: null,
       allowedImports: [],
       errors: [`Git baseline ${baselineRef} obsahuje baseline soubor, ale nelze jej načíst.`],
     };
@@ -175,9 +255,10 @@ const loadPreviousLegacyImportBaseline = () => {
 
   try {
     const parsed = JSON.parse(content);
-    if (parsed?.version !== 1 || !Array.isArray(parsed?.allowedImports)) {
+    if (![1, 2].includes(parsed?.version) || !Array.isArray(parsed?.allowedImports)) {
       return {
         available: false,
+        version: null,
         allowedImports: [],
         errors: [`Git baseline ${baselineRef} nemá platné schema.`],
       };
@@ -187,10 +268,11 @@ const loadPreviousLegacyImportBaseline = () => {
       specifier: typeof item?.specifier === "string" ? item.specifier : "",
       target: typeof item?.target === "string" ? item.target : "",
     }));
-    return { available: true, allowedImports, errors: [] };
+    return { available: true, version: parsed.version, allowedImports, errors: [] };
   } catch {
     return {
       available: false,
+      version: null,
       allowedImports: [],
       errors: [`Git baseline ${baselineRef} není platný JSON.`],
     };
@@ -361,8 +443,16 @@ const unusedLegacyImports = allowedLegacyImports.filter(
 const previousLegacyImportKeys = new Set(
   previousLegacyImportBaseline.allowedImports.map(legacyImportKey),
 );
+const bootstrapsModernEntryScope =
+  previousLegacyImportBaseline.available &&
+  previousLegacyImportBaseline.version === 1;
 const addedLegacyBaselineImports = previousLegacyImportBaseline.available
-  ? allowedLegacyImports.filter((allowed) => !previousLegacyImportKeys.has(legacyImportKey(allowed)))
+  ? allowedLegacyImports.filter((allowed) =>
+      !previousLegacyImportKeys.has(legacyImportKey(allowed)) &&
+      !(
+        bootstrapsModernEntryScope &&
+        modernEntryScopeBootstrapKeys.has(legacyImportKey(allowed))
+      ))
   : [];
 
 if (

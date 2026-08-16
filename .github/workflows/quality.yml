@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - new_architekt
 
 jobs:
   quality:
@@ -52,6 +53,24 @@ jobs:
 
       - name: Check legacy structure freeze
         run: npm run check:legacy-structure
+
+      - name: Check architecture graph
+        if: ${{ (github.event_name != 'pull_request' || github.base_ref != 'main' || github.head_ref != 'new_architekt' || github.event.pull_request.head.repo.full_name != github.repository) && (github.event_name != 'push' || github.ref != 'refs/heads/main') }}
+        run: node scripts/report-architecture-graph.mjs --check
+        env:
+          ARCHITECTURE_GRAPH_BASELINE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+
+      - name: Check architecture graph for final integration
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && github.head_ref == 'new_architekt' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: node scripts/report-architecture-graph.mjs --check --final-integration
+        env:
+          ARCHITECTURE_GRAPH_BASELINE_REF: ${{ github.event.pull_request.base.sha }}
+
+      - name: Check architecture graph after main integration
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: node scripts/report-architecture-graph.mjs --check --post-merge-integration
+        env:
+          ARCHITECTURE_GRAPH_BASELINE_REF: ${{ github.event.before }}
 
       - name: Smoke build (web)
         run: npm run build

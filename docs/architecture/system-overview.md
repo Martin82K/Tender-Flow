@@ -43,7 +43,7 @@ index.tsx
 | --- | --- | --- |
 | Composition root | `app/` | skládá providers, views a globální lifecycle |
 | Doménové features | `features/` | vlastní UI, modely, hooky a feature API |
-| Sdílené moduly | `shared/` | typy, UI primitiva a doménově neutrální utility |
+| Sdílené moduly | `shared/`, `types.ts`, `types/`, root `*.d.ts`, `config/`, `fonts/` | typy, konfigurace, statické fontové moduly, UI primitiva a doménově neutrální utility |
 | Infrastruktura | `infra/` | platformní, databázové a externí adaptéry |
 | Legacy vrstva | `components/`, `hooks/`, `services/`, `context/`, `utils/` | freeze; pouze řízená migrace a kompatibilní shimy |
 | Desktop main | `desktop/main/` | důvěryhodný Electron proces, mimo webový bundle |
@@ -51,7 +51,7 @@ index.tsx
 
 Webové vrstvy nesmí importovat `desktop/main/`, `server/` ani `server_py/`.
 Kontroluje to `npm run check:boundaries`. Stejný guard porovnává každou přesnou
-vazbu z `app/features/shared/infra` do legacy kořenů s ratchet baseline v
+vazbu z `app/features/shared/infra/types/config/fonts` do legacy kořenů s ratchet baseline v
 `config/legacy-import-baseline.json`. Nová vazba i zastaralá baseline položka
 kontrolu shodí. Quality workflow navíc porovnává baseline s výchozí Git revizí,
 takže ji PR smí pouze zmenšit. Statické Vite `import.meta.glob` vzory guard
@@ -98,6 +98,8 @@ handler validuje vstup i autorizaci; výsledek vrací serializovatelný kontrakt
 ## Architektonický přechod
 
 Repozitář je v postupné migraci z legacy kořenů do `app/features/shared/infra`.
+Řízení šestnácti migračních smyček, jejich stav a společná exit kritéria popisuje
+[plán odstranění legacy architektury](legacy-modernization-plan.md).
 Audit přes `npm run audit:architecture` zůstává informativním rozborem známých
 kategorií dluhu. Audit i vynucovaný boundary guard staví nad jediným AST
 kolektorem `scripts/lib/architecture-graph.mjs`; statické, typové, JSDoc,

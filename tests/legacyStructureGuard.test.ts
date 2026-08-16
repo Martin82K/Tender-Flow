@@ -2,21 +2,66 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, type TestContext } from "vitest";
 
 const root = process.cwd();
 const guardScript = path.join(root, "scripts/check-legacy-structure.mjs");
+const canonicalRoots = ["components", "hooks", "services", "context", "utils"];
+const createMigrationPlan = (finalCloseout: boolean) => {
+  const baselineDebt = {
+    fingerprint: `sha256:${"f".repeat(64)}`,
+    metrics: {
+      legacyNodes: 15,
+      modernToLegacyImports: 0,
+      legacyInternalImports: 0,
+      cyclicComponents: 0,
+    },
+  };
+  return {
+    version: 2,
+    baselineDebt,
+    loops: Array.from({ length: 16 }, (_, index) => {
+      const legacyNodes = 15 - index;
+      return {
+        id: `loop-${String(index + 1).padStart(2, "0")}`,
+        title: `Loop ${index + 1}`,
+        status: finalCloseout ? "complete" : index === 0 ? "in_progress" : "planned",
+        objective: "Ověřit migrační krok.",
+        dependencies: index === 0 ? [] : [`loop-${String(index).padStart(2, "0")}`],
+        exitCriteria: ["Legacy dluh je změřen."],
+        riskChecks: ["Bezpečnostní review."],
+        testGates: ["Focused testy."],
+        ...(finalCloseout
+          ? {
+              completionEvidence: {
+                fingerprint: `sha256:${String(index + 1).padStart(64, "0")}`,
+                metrics: { ...baselineDebt.metrics, legacyNodes },
+              },
+            }
+          : {}),
+      };
+    }),
+  };
+};
 
-const createFixture = (allowedFiles: string[], trackedFiles: string[]) => {
+const createFixture = (
+  allowedFiles: string[],
+  trackedFiles: string[],
+  { finalCloseout = false, frozenRoots = canonicalRoots } = {},
+) => {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-legacy-structure-"));
   fs.mkdirSync(path.join(fixtureRoot, "config"), { recursive: true });
   fs.writeFileSync(
     path.join(fixtureRoot, "config/legacy-freeze.json"),
     JSON.stringify({
       version: 1,
-      frozenRoots: ["components"],
+      frozenRoots,
       allowedFiles,
     }),
+  );
+  fs.writeFileSync(
+    path.join(fixtureRoot, "config/architecture-migration-plan.json"),
+    JSON.stringify(createMigrationPlan(finalCloseout)),
   );
 
   execFileSync("git", ["init", "--quiet"], { cwd: fixtureRoot });
@@ -38,6 +83,27 @@ const runGuard = (cwd: string) =>
     encoding: "utf8",
   });
 
+const createSymlinkOrSkip = (
+  skip: TestContext["skip"],
+  target: string,
+  linkPath: string,
+  type: "file" | "dir" = "file",
+) => {
+  try {
+    fs.symlinkSync(target, linkPath, type);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (
+      process.platform === "win32" &&
+      (code === "EPERM" || code === "EACCES" || code === "ENOSYS")
+    ) {
+      skip(`Windows prostředí nepovoluje vytvoření symlinku (${code}).`);
+      return;
+    }
+    throw error;
+  }
+};
+
 describe("legacy structure guard", () => {
   it("rejects Git pathspec magic in frozen roots", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-legacy-pathspec-"));
@@ -49,6 +115,10 @@ describe("legacy structure guard", () => {
         frozenRoots: [":(exclude)**"],
         allowedFiles: [],
       }),
+    );
+    fs.writeFileSync(
+      path.join(fixtureRoot, "config/architecture-migration-plan.json"),
+      JSON.stringify({ version: 2, loops: [] }),
     );
     execFileSync("git", ["init", "--quiet"], { cwd: fixtureRoot });
 
@@ -90,6 +160,141 @@ describe("legacy structure guard", () => {
 
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("Legacy structure check OK (1 souborů ve frozen roots).");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects noncanonical frozen roots", () => {
+    const fixtureRoot = createFixture([], [], { frozenRoots: ["app"] });
+    try {
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("kanonické frozenRoots");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("requires absent legacy roots and an empty snapshot at final closeout", () => {
+    const fixtureRoot = createFixture(["components/legacy.ts"], ["components/legacy.ts"], {
+      finalCloseout: true,
+    });
+    try {
+      const withAllowedFile = runGuard(fixtureRoot);
+      expect(withAllowedFile.status).toBe(1);
+      expect(withAllowedFile.stderr).toContain("loop-16 vyžaduje prázdné allowedFiles");
+
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/legacy-freeze.json"),
+        JSON.stringify({ version: 1, frozenRoots: canonicalRoots, allowedFiles: [] }),
+      );
+      fs.rmSync(path.join(fixtureRoot, "components/legacy.ts"));
+      const withDirectory = runGuard(fixtureRoot);
+      expect(withDirectory.status).toBe(1);
+      expect(withDirectory.stderr).toContain("Legacy root stále existuje: components");
+
+      fs.rmSync(path.join(fixtureRoot, "components"), { recursive: true, force: true });
+      execFileSync("git", ["add", "-u", "--", "components"], { cwd: fixtureRoot });
+      const clean = runGuard(fixtureRoot);
+      expect(clean.status).toBe(0);
+      expect(clean.stdout).toContain("Legacy structure check OK (0 souborů");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a malformed status sequence instead of skipping loop-16 closeout", () => {
+    const fixtureRoot = createFixture([], []);
+    try {
+      const plan = createMigrationPlan(true);
+      plan.loops[0].status = "planned";
+      delete plan.loops[0].completionEvidence;
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-migration-plan.json"),
+        JSON.stringify(plan),
+      );
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Stavy smyček musí postupovat");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an untracked non-source file in a legacy root at final closeout", () => {
+    const fixtureRoot = createFixture([], [], { finalCloseout: true });
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.writeFileSync(path.join(fixtureRoot, "services/README.md"), "legacy\n");
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Legacy root stále existuje: services");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlink used as a legacy root at final closeout", ({ skip }) => {
+    const fixtureRoot = createFixture([], [], { finalCloseout: true });
+    const target = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-legacy-target-"));
+    try {
+      createSymlinkOrSkip(skip, target, path.join(fixtureRoot, "services"), "dir");
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Legacy root stále existuje: services");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      fs.rmSync(target, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked migration plan before reading its target", ({ skip }) => {
+    const fixtureRoot = createFixture([], []);
+    const planPath = path.join(fixtureRoot, "config/architecture-migration-plan.json");
+    const targetPath = path.join(fixtureRoot, "migration-plan-target.json");
+    try {
+      fs.renameSync(planPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, planPath);
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked legacy freeze config before reading its target", ({ skip }) => {
+    const fixtureRoot = createFixture([], []);
+    const configPath = path.join(fixtureRoot, "config/legacy-freeze.json");
+    const targetPath = path.join(fixtureRoot, "legacy-freeze-target.json");
+    try {
+      fs.renameSync(configPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, configPath);
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an oversized migration plan before JSON parsing", () => {
+    const fixtureRoot = createFixture([], []);
+    try {
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-migration-plan.json"),
+        " ".repeat(1024 * 1024 + 1),
+      );
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("překračuje limit");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }

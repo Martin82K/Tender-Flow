@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "allowedImports": [
     {
       "file": "app/AppContent.tsx",
@@ -475,6 +475,11 @@
       "file": "features/voice-assistant/context/VoiceAssistantContext.tsx",
       "specifier": "@/context/FeatureContext",
       "target": "context/FeatureContext"
+    },
+    {
+      "file": "index.tsx",
+      "specifier": "./services/incidentLogger",
+      "target": "services/incidentLogger"
     },
     {
       "file": "infra/auth/authSessionStore.ts",

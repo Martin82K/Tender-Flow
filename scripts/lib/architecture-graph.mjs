@@ -1,8 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { readRegularFileLimited } from "./safe-file-read.mjs";
 
 export const ARCHITECTURE_SCAN_ROOTS = Object.freeze([
+  "index.tsx",
+  "App.tsx",
+  "env.d.ts",
+  "window.d.ts",
+  "declarations.d.ts",
+  "types.ts",
+  "types",
+  "config",
+  "fonts",
   "app",
   "features",
   "shared",
@@ -26,6 +36,29 @@ export const ARCHITECTURE_SOURCE_EXTENSIONS = Object.freeze([
 ]);
 
 const sourceExtensions = new Set(ARCHITECTURE_SOURCE_EXTENSIONS);
+const declarationPattern = /(?:^|\/)[^/]+\.d\.(?:ts|mts|cts)$/;
+const filesystemTraversalExcludedRoots = Object.freeze([
+  ".git",
+  "dist",
+  "dist-electron",
+  "coverage",
+]);
+const ambientClassificationExcludedRoots = Object.freeze([
+  "desktop",
+  "server",
+  "server_py",
+  "supabase/functions",
+  "scripts",
+  "tests",
+  ".github",
+]);
+
+const isAtOrBelowRoot = (repoPath, roots) => roots.some((candidate) =>
+  repoPath === candidate || repoPath.startsWith(`${candidate}/`));
+
+const isFilesystemTraversalExcluded = (repoPath) =>
+  repoPath.split("/").includes("node_modules") ||
+  isAtOrBelowRoot(repoPath, filesystemTraversalExcludedRoots);
 
 const defaultGraphLimits = Object.freeze({
   maxRegularFiles: 10_000,
@@ -36,6 +69,7 @@ const defaultGraphLimits = Object.freeze({
   maxDependencyBytes: 4_096,
   maxTotalEdgeBytes: 32 * 1024 * 1024,
   maxGlobMatchWork: 50_000_000,
+  maxDiagnostics: 100,
 });
 
 const normalizeGraphLimits = (limits = {}) => Object.fromEntries(
@@ -60,7 +94,100 @@ const isImportMetaGlobCall = (node) =>
   node.expression.expression.name.text === "meta" &&
   (node.expression.name.text === "glob" || node.expression.name.text === "globEager");
 
-export const extractModuleDependencies = (content, fileName) => {
+const isImportMetaUrl = (node) =>
+  ts.isPropertyAccessExpression(node) &&
+  ts.isMetaProperty(node.expression) &&
+  node.expression.keywordToken === ts.SyntaxKind.ImportKeyword &&
+  node.expression.name.text === "meta" &&
+  node.name.text === "url";
+
+const viteImportMetaUrlDependency = (node) => {
+  if (
+    !ts.isNewExpression(node) ||
+    !ts.isIdentifier(node.expression) ||
+    node.expression.text !== "URL" ||
+    !node.arguments?.[1] ||
+    !isImportMetaUrl(node.arguments[1])
+  ) {
+    return null;
+  }
+
+  if (
+    node.arguments.length !== 2 ||
+    !ts.isStringLiteralLike(node.arguments[0])
+  ) {
+    return { error: "new URL s import.meta.url musí používat statický literál." };
+  }
+
+  if (
+    node.arguments[0].text.includes("%") &&
+    !/^(?:https?:|data:|blob:)/iu.test(node.arguments[0].text)
+  ) {
+    return { error: "new URL s import.meta.url nesmí používat percent-encoding." };
+  }
+
+  return { specifier: node.arguments[0].text };
+};
+
+const commonJsBindingIdentifier = (node) => {
+  if (!ts.isCallExpression(node)) return null;
+  if (ts.isIdentifier(node.expression) && node.expression.text === "require") {
+    return node.expression;
+  }
+  if (
+    ts.isPropertyAccessExpression(node.expression) &&
+    ts.isIdentifier(node.expression.expression) &&
+    (
+      (node.expression.expression.text === "require" && node.expression.name.text === "resolve") ||
+      (node.expression.expression.text === "module" && node.expression.name.text === "require")
+    )
+  ) {
+    return node.expression.expression;
+  }
+  return null;
+};
+
+const createLocalBindingLookup = (sourceFile, fileName) => {
+  let checker = null;
+  const isRuntimeDeclaration = (declaration) => {
+    if (declaration.getSourceFile().isDeclarationFile) return false;
+    for (let current = declaration; current && !ts.isSourceFile(current); current = current.parent) {
+      if (ts.canHaveModifiers(current)) {
+        const modifiers = ts.getModifiers(current) ?? [];
+        if (modifiers.some(({ kind }) => kind === ts.SyntaxKind.DeclareKeyword)) return false;
+      }
+    }
+    return true;
+  };
+
+  return (identifier) => {
+    if (checker === null) {
+      const compilerHost = {
+        directoryExists: () => true,
+        fileExists: (candidate) => candidate === fileName,
+        getCanonicalFileName: (candidate) => candidate,
+        getCurrentDirectory: () => "",
+        getDefaultLibFileName: () => "",
+        getDirectories: () => [],
+        getNewLine: () => "\n",
+        getSourceFile: (candidate) => candidate === fileName ? sourceFile : undefined,
+        readFile: (candidate) => candidate === fileName ? sourceFile.text : undefined,
+        useCaseSensitiveFileNames: () => true,
+        writeFile: () => {},
+      };
+      const program = ts.createProgram({
+        rootNames: [fileName],
+        options: { allowJs: true, checkJs: true, noLib: true, noResolve: true, types: [] },
+        host: compilerHost,
+      });
+      checker = program.getTypeChecker();
+    }
+    const symbol = checker.getSymbolAtLocation(identifier);
+    return symbol?.declarations?.some(isRuntimeDeclaration) ?? false;
+  };
+};
+
+export const extractModuleDependencies = (content, fileName, { maxDiagnostics = Infinity } = {}) => {
   const extension = path.extname(fileName);
   const scriptKind = extension === ".tsx"
     ? ts.ScriptKind.TSX
@@ -77,34 +204,81 @@ export const extractModuleDependencies = (content, fileName) => {
     scriptKind,
   );
   const specs = [];
+  const dependencies = [];
   const globCalls = [];
   const globErrors = [];
+  let suppressedDiagnostics = 0;
+  const addGlobError = (message) => {
+    if (globErrors.length < maxDiagnostics) globErrors.push(message);
+    else suppressedDiagnostics += 1;
+  };
+  const hasLocalBinding = createLocalBindingLookup(sourceFile, fileName);
+  const addDependency = (specifier, origin = "module") => {
+    specs.push(specifier);
+    dependencies.push({ specifier, origin });
+  };
+
+  for (const reference of sourceFile.referencedFiles) addDependency(reference.fileName);
+  for (const reference of sourceFile.typeReferenceDirectives) {
+    if (reference.fileName.startsWith(".")) addDependency(reference.fileName);
+    if (reference.fileName.startsWith("/")) {
+      addGlobError("/// <reference types> nesmí používat absolutní cestu.");
+    }
+  }
 
   const visit = (node) => {
-    if (
+    const importMetaUrlDependency = viteImportMetaUrlDependency(node);
+    if (importMetaUrlDependency) {
+      if (importMetaUrlDependency.error) addGlobError(importMetaUrlDependency.error);
+      else {
+        addDependency(importMetaUrlDependency.specifier, "import-meta-url");
+      }
+    } else if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
       node.moduleSpecifier &&
       ts.isStringLiteralLike(node.moduleSpecifier)
     ) {
-      specs.push(node.moduleSpecifier.text);
+      addDependency(node.moduleSpecifier.text);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      if (node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) {
+        addDependency(node.moduleReference.expression.text);
+      } else {
+        addGlobError("import = require musí používat jeden statický literál.");
+      }
     } else if (
       ts.isImportTypeNode(node) &&
       ts.isLiteralTypeNode(node.argument) &&
       ts.isStringLiteralLike(node.argument.literal)
     ) {
-      specs.push(node.argument.literal.text);
+      addDependency(node.argument.literal.text);
     } else if (
       ts.isJSDocImportTag(node) &&
       ts.isStringLiteralLike(node.moduleSpecifier)
     ) {
-      specs.push(node.moduleSpecifier.text);
+      addDependency(node.moduleSpecifier.text);
     } else if (
       ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length >= 1 &&
-      ts.isStringLiteralLike(node.arguments[0])
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
     ) {
-      specs.push(node.arguments[0].text);
+      if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+        addDependency(node.arguments[0].text);
+      } else {
+        addGlobError("import() musí používat jeden statický literál.");
+      }
+    } else if (commonJsBindingIdentifier(node)) {
+      const bindingIdentifier = commonJsBindingIdentifier(node);
+      if (hasLocalBinding(bindingIdentifier)) {
+        for (const child of node.getChildren(sourceFile)) visit(child);
+        return;
+      }
+      if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+        addDependency(node.arguments[0].text);
+      } else {
+        addGlobError("require musí používat jeden statický literál.");
+      }
     } else if (isImportMetaGlobCall(node)) {
       const argument = node.arguments[0];
       let patterns = null;
@@ -117,7 +291,7 @@ export const extractModuleDependencies = (content, fileName) => {
       ) {
         patterns = argument.elements.map((element) => element.text);
       } else {
-        globErrors.push("import.meta.glob musí používat statický literál nebo pole statických literálů.");
+        addGlobError("import.meta.glob musí používat statický literál nebo pole statických literálů.");
       }
 
       let base = null;
@@ -125,12 +299,12 @@ export const extractModuleDependencies = (content, fileName) => {
       const options = node.arguments[1];
       if (options) {
         if (!ts.isObjectLiteralExpression(options)) {
-          globErrors.push("import.meta.glob options musí být statický objektový literál.");
+          addGlobError("import.meta.glob options musí být statický objektový literál.");
           optionsValid = false;
         } else {
           for (const property of options.properties) {
             if (ts.isSpreadAssignment(property) || !property.name) {
-              globErrors.push("import.meta.glob options nesmí dynamicky měnit base ani způsob párování.");
+              addGlobError("import.meta.glob options nesmí dynamicky měnit base ani způsob párování.");
               optionsValid = false;
               continue;
             }
@@ -139,7 +313,7 @@ export const extractModuleDependencies = (content, fileName) => {
               ? property.name.text
               : null;
             if (!name) {
-              globErrors.push("import.meta.glob options musí mít statické názvy vlastností.");
+              addGlobError("import.meta.glob options musí mít statické názvy vlastností.");
               optionsValid = false;
               continue;
             }
@@ -152,11 +326,11 @@ export const extractModuleDependencies = (content, fileName) => {
                   !base.startsWith("./") &&
                   !base.startsWith("../")
                 ) {
-                  globErrors.push("import.meta.glob base musí začínat /, ./ nebo ../.");
+                  addGlobError("import.meta.glob base musí začínat /, ./ nebo ../.");
                   optionsValid = false;
                 }
               } else {
-                globErrors.push("import.meta.glob base musí být statický řetězec.");
+                addGlobError("import.meta.glob base musí být statický řetězec.");
                 optionsValid = false;
               }
             }
@@ -166,7 +340,7 @@ export const extractModuleDependencies = (content, fileName) => {
               (!ts.isPropertyAssignment(property) ||
                 property.initializer.kind !== ts.SyntaxKind.FalseKeyword)
             ) {
-              globErrors.push("import.meta.glob exhaustive je podporováno pouze s hodnotou false.");
+              addGlobError("import.meta.glob exhaustive je podporováno pouze s hodnotou false.");
               optionsValid = false;
             }
 
@@ -175,7 +349,7 @@ export const extractModuleDependencies = (content, fileName) => {
               (!ts.isPropertyAssignment(property) ||
                 property.initializer.kind !== ts.SyntaxKind.TrueKeyword)
             ) {
-              globErrors.push("import.meta.glob caseSensitive je podporováno pouze s hodnotou true.");
+              addGlobError("import.meta.glob caseSensitive je podporováno pouze s hodnotou true.");
               optionsValid = false;
             }
           }
@@ -193,18 +367,101 @@ export const extractModuleDependencies = (content, fileName) => {
   };
 
   visit(sourceFile);
-  return { specs, globCalls, globErrors };
+  return { specs, dependencies, globCalls, globErrors, suppressedDiagnostics };
 };
 
 const resolveRepoPathFromRoot = (repoPath, root) => {
-  const resolved = path.resolve(root, ...toPosix(repoPath).split("/"));
+  const posixRepoPath = toPosix(repoPath);
+  if (/(?:^|\/)[A-Za-z]:(?:\/|$)/u.test(posixRepoPath)) return null;
+  const resolved = path.resolve(root, ...posixRepoPath.split("/"));
   const relative = toPosix(path.relative(root, resolved));
-  if (relative === ".." || relative.startsWith("../")) return null;
+  if (path.isAbsolute(relative) || relative === ".." || relative.startsWith("../")) return null;
   return relative;
+};
+
+const resolvesLocalSpecifierToRepoRoot = (specifier, fileAbs, root) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  if (!(modulePath === "." || modulePath === ".." || modulePath.startsWith("./") || modulePath.startsWith("../"))) {
+    return false;
+  }
+  return path.resolve(path.dirname(fileAbs), modulePath) === path.resolve(root);
+};
+
+const isWindowsFilesystemSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    /^[A-Za-z]:/u.test(modulePath) ||
+    modulePath.includes("\\") ||
+    (!modulePath.startsWith("/") && path.win32.isAbsolute(modulePath))
+  );
+};
+
+const isFileUrlSpecifier = (specifier) => /^file:/iu.test(specifier.split(/[?#]/, 1)[0]);
+
+const isUnsafePercentEncodedSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    modulePath.includes("%") &&
+    !/^(?:https?:|data:|blob:)/iu.test(modulePath)
+  );
+};
+
+const isExplicitExternalUrlSpecifier = (specifier) =>
+  /^(?:https?:|data:|blob:)/iu.test(specifier.split(/[?#]/, 1)[0]);
+
+const hasUrlScheme = (specifier) =>
+  /^[A-Za-z][A-Za-z0-9+.-]*:/u.test(specifier.split(/[?#]/, 1)[0]);
+
+const repoAliasPrefixes = Object.freeze([
+  "@/",
+  "@app/",
+  "@components/",
+  "@features/",
+  "@shared/",
+  "@infra/",
+]);
+
+const hasRepoAliasPrefix = (modulePath) =>
+  repoAliasPrefixes.some((prefix) => modulePath.startsWith(prefix));
+
+const isRepoLocalSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    modulePath === "." ||
+    modulePath === ".." ||
+    modulePath.startsWith("./") ||
+    modulePath.startsWith("../") ||
+    hasRepoAliasPrefix(modulePath)
+  );
 };
 
 export const resolveModuleSpecifier = (spec, fileAbs, root) => {
   const modulePath = spec.split(/[?#]/, 1)[0];
+  if (
+    isWindowsFilesystemSpecifier(spec) ||
+    isFileUrlSpecifier(spec) ||
+    isUnsafePercentEncodedSpecifier(spec)
+  ) return null;
+  if (modulePath.startsWith("/")) {
+    const normalized = path.posix.normalize(modulePath);
+    if (
+      modulePath.startsWith("//") ||
+      modulePath.includes("\\") ||
+      modulePath.includes("%") ||
+      normalized === "/@fs" ||
+      normalized.startsWith("/@fs/") ||
+      normalized === "/@id" ||
+      normalized.startsWith("/@id/") ||
+      normalized === "/@vite" ||
+      normalized.startsWith("/@vite/") ||
+      normalized === "/@react-refresh" ||
+      normalized.startsWith("/@react-refresh/")
+    ) {
+      return null;
+    }
+    return resolveRepoPathFromRoot(normalized.slice(1), root);
+  }
+  if (modulePath === "@" || /^@\/+$/u.test(modulePath)) return "";
   if (modulePath.startsWith("@/")) {
     return resolveRepoPathFromRoot(modulePath.slice(2), root);
   }
@@ -227,10 +484,38 @@ export const resolveModuleSpecifier = (spec, fileAbs, root) => {
   if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
     const resolved = path.resolve(path.dirname(fileAbs), modulePath);
     const relative = toPosix(path.relative(root, resolved));
-    if (!relative.startsWith("..")) return relative;
+    if (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith("../")) {
+      return relative;
+    }
   }
 
   return null;
+};
+
+const resolveImportMetaUrlSpecifier = (specifier, fileAbs, root) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  if (isExplicitExternalUrlSpecifier(specifier)) return null;
+  if (
+    isWindowsFilesystemSpecifier(specifier) ||
+    isFileUrlSpecifier(specifier) ||
+    isUnsafePercentEncodedSpecifier(specifier) ||
+    hasUrlScheme(specifier)
+  ) return null;
+  if (
+    modulePath.startsWith("/") ||
+    modulePath === "@" ||
+    /^@\/+$/u.test(modulePath) ||
+    hasRepoAliasPrefix(modulePath)
+  ) {
+    return resolveModuleSpecifier(specifier, fileAbs, root);
+  }
+
+  const resolved = path.resolve(path.dirname(fileAbs), modulePath);
+  const relative = toPosix(path.relative(root, resolved));
+  if (path.isAbsolute(relative) || relative === ".." || relative.startsWith("../")) {
+    return null;
+  }
+  return relative;
 };
 
 const normalizeRepoGlob = (repoPattern) => {
@@ -376,48 +661,106 @@ const normalizeGlobCalls = (globCalls, fileAbs, root) =>
     }),
   );
 
-const collectRegularFiles = (root, scanRoots, limits) => {
+const visitDirectoryEntries = (directory, visitEntry) => {
+  const handle = fs.opendirSync(directory);
+  try {
+    while (true) {
+      const entry = handle.readSync();
+      if (entry === null || visitEntry(entry) === false) break;
+    }
+  } finally {
+    try {
+      handle.closeSync();
+    } catch (error) {
+      if (error?.code !== "ERR_DIR_CLOSED") throw error;
+    }
+  }
+};
+
+const collectRegularFiles = (root, scanRoots, limits, addCollectionError) => {
   const regularFiles = [];
-  const collectionErrors = [];
+  let visitedEntries = 0;
+  const maxVisitedEntries = limits.maxRegularFiles * 5;
 
   for (const scanRoot of scanRoots) {
     const absDir = path.join(root, scanRoot);
     if (!fs.existsSync(absDir)) continue;
-    if (fs.lstatSync(absDir).isSymbolicLink()) {
-      collectionErrors.push(`Symbolický odkaz není povolen jako scan root: ${scanRoot}`);
+    const scanRootStat = fs.lstatSync(absDir);
+    if (scanRootStat.isSymbolicLink()) {
+      addCollectionError(`Symbolický odkaz není povolen jako scan root: ${scanRoot}`);
       continue;
     }
+
+    if (scanRootStat.isFile()) {
+      if (regularFiles.length >= limits.maxRegularFiles) {
+        addCollectionError(
+          `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
+        );
+        return regularFiles;
+      }
+      regularFiles.push(absDir);
+      continue;
+    }
+
+    if (!scanRootStat.isDirectory()) continue;
 
     const stack = [absDir];
     while (stack.length > 0) {
       const current = stack.pop();
-      const entries = fs.readdirSync(current, { withFileTypes: true });
-      for (const entry of entries) {
+      let traversalLimitReached = false;
+      visitDirectoryEntries(current, (entry) => {
+        visitedEntries += 1;
+        if (visitedEntries > maxVisitedEntries) {
+          addCollectionError(
+            `Graf překračuje limit ${maxVisitedEntries} navštívených položek při skenování souborů.`,
+          );
+          traversalLimitReached = true;
+          return false;
+        }
         const next = path.join(current, entry.name);
         if (entry.isSymbolicLink()) {
-          collectionErrors.push(
+          addCollectionError(
             `Symbolický odkaz není ve skenovaných vrstvách povolen: ${toPosix(path.relative(root, next))}`,
           );
-          continue;
+          return true;
         }
         if (entry.isDirectory()) {
           stack.push(next);
-          continue;
+          return true;
         }
         if (entry.isFile()) {
           if (regularFiles.length >= limits.maxRegularFiles) {
-            collectionErrors.push(
+            addCollectionError(
               `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
             );
-            return { regularFiles, collectionErrors };
+            traversalLimitReached = true;
+            return false;
           }
           regularFiles.push(next);
         }
-      }
+        return true;
+      });
+      if (traversalLimitReached) return regularFiles;
     }
   }
 
-  return { regularFiles, collectionErrors };
+  return regularFiles;
+};
+
+export const findAncestorPackageManifests = (declarations, manifests) => {
+  const manifestSet = new Set(manifests);
+  const matches = new Set();
+  for (const declaration of declarations) {
+    let directory = path.posix.dirname(declaration);
+    while (directory !== ".") {
+      const candidate = `${directory}/package.json`;
+      if (manifestSet.has(candidate)) matches.add(candidate);
+      const parent = path.posix.dirname(directory);
+      if (parent === directory) break;
+      directory = parent;
+    }
+  }
+  return [...matches].sort();
 };
 
 export const collectArchitectureGraph = ({
@@ -426,17 +769,125 @@ export const collectArchitectureGraph = ({
   limits,
 } = {}) => {
   const graphLimits = normalizeGraphLimits(limits);
-  const { regularFiles: regularFilePaths, collectionErrors } = collectRegularFiles(
+  const collectionErrors = [];
+  let retainedDiagnosticCount = 0;
+  let suppressedDiagnosticCount = 0;
+  const addDiagnostic = (target, message) => {
+    if (retainedDiagnosticCount < graphLimits.maxDiagnostics) {
+      target.push(message);
+      retainedDiagnosticCount += 1;
+    } else {
+      suppressedDiagnosticCount += 1;
+    }
+  };
+  const addCollectionError = (message) => addDiagnostic(collectionErrors, message);
+  let declarationFiles = [];
+  const ambientPackageManifests = [];
+  try {
+    const stack = [""];
+    let visitedEntries = 0;
+    while (stack.length > 0) {
+      const directory = stack.pop();
+      visitDirectoryEntries(path.join(root, directory), (entry) => {
+        visitedEntries += 1;
+        if (visitedEntries > graphLimits.maxRegularFiles * 5) {
+          throw new RangeError("Ambient discovery překročil bezpečnostní limit položek.");
+        }
+        const relativePath = toPosix(path.join(directory, entry.name));
+        if (isFilesystemTraversalExcluded(relativePath)) return true;
+        if (entry.isSymbolicLink()) {
+          addCollectionError(
+            `Symbolický odkaz není v produkčním zdrojovém stromu povolen: ${relativePath}`,
+          );
+          return true;
+        }
+        if (entry.isDirectory()) {
+          stack.push(relativePath);
+          return true;
+        }
+        if (isAtOrBelowRoot(relativePath, ambientClassificationExcludedRoots)) return true;
+        if (entry.name === "package.json" && entry.isFile()) {
+          ambientPackageManifests.push(relativePath);
+        } else if (
+          declarationPattern.test(relativePath) && entry.isFile()
+        ) {
+          declarationFiles.push(relativePath);
+        }
+        return true;
+      });
+    }
+  } catch {
+    addCollectionError("Nelze bezpečně zjistit produkční ambient deklarace.");
+  }
+  const additionalDeclarations = declarationFiles.filter((declaration) =>
+    !scanRoots.some((scanRoot) =>
+      declaration === scanRoot || declaration.startsWith(`${scanRoot}/`)));
+  const effectiveScanRoots = [...new Set([...scanRoots, ...additionalDeclarations])];
+  const existingScanRoots = [];
+  const globScopeRoots = [];
+  for (const scanRoot of effectiveScanRoots) {
+    try {
+      const scanRootStat = fs.lstatSync(path.join(root, scanRoot));
+      existingScanRoots.push(scanRoot);
+      if (scanRootStat.isDirectory()) globScopeRoots.push(scanRoot);
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        addCollectionError(`Nelze bezpečně ověřit scan root: ${scanRoot}`);
+      }
+    }
+  }
+  const regularFilePaths = collectRegularFiles(
     root,
-    scanRoots,
+    effectiveScanRoots,
     graphLimits,
+    addCollectionError,
   );
+  const forbiddenPackageManifests = new Set(
+    regularFilePaths
+      .map((fileAbs) => toPosix(path.relative(root, fileAbs)))
+      .filter((file) => path.posix.basename(file) === "package.json"),
+  );
+  for (const manifest of findAncestorPackageManifests(
+    additionalDeclarations,
+    ambientPackageManifests,
+  )) forbiddenPackageManifests.add(manifest);
+  for (const manifest of [...forbiddenPackageManifests].sort()) {
+    addCollectionError(
+      `${manifest}: package.json není ve skenovaných vrstvách povolen, protože může přesměrovat rozlišení modulů.`,
+    );
+  }
+  try {
+    let rootEntryCount = 0;
+    const maxRootEntries = graphLimits.maxRegularFiles * 5;
+    visitDirectoryEntries(root, (entry) => {
+      rootEntryCount += 1;
+      if (rootEntryCount > maxRootEntries) {
+        addCollectionError(
+          `Graf překračuje limit ${maxRootEntries} kořenových položek při ověřování types.* kandidátů.`,
+        );
+        return false;
+      }
+      if (
+        entry.name !== "types.ts" &&
+        entry.name.startsWith("types.") &&
+        (entry.isFile() || entry.isSymbolicLink())
+      ) {
+        addCollectionError(
+          `Nekánonický kořenový type kontrakt ${entry.name} není povolen vedle types.ts/types/.`,
+        );
+      }
+      return true;
+    });
+  } catch {
+    addCollectionError("Nelze bezpečně ověřit kořenové types.* kandidáty.");
+  }
   const regularFiles = regularFilePaths.map((fileAbs) => toPosix(path.relative(root, fileAbs)));
   const globTargets = regularFiles.filter((file) => !file.split("/").includes("node_modules"));
   const nodes = [];
   const edges = [];
   let totalSourceBytes = 0;
   let globPatternCount = 0;
+  let rawEdgeCount = 0;
   let rawEdgeLimitReached = false;
   let totalEdgeBytes = 0;
   let globMatchWork = 0;
@@ -444,23 +895,31 @@ export const collectArchitectureGraph = ({
 
   const addEdge = (edge) => {
     if (rawEdgeLimitReached) return false;
-    if (edges.length >= graphLimits.maxRawEdges) {
-      collectionErrors.push(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
+    if (rawEdgeCount >= graphLimits.maxRawEdges) {
+      addCollectionError(`Graf překračuje limit ${graphLimits.maxRawEdges} surových hran.`);
       rawEdgeLimitReached = true;
       return false;
     }
+    rawEdgeCount += 1;
     const edgeBytes = Buffer.byteLength(edge.file, "utf8") +
       Buffer.byteLength(edge.specifier, "utf8") +
       Buffer.byteLength(edge.target, "utf8") +
       Buffer.byteLength(edge.kind, "utf8");
     if (totalEdgeBytes + edgeBytes > graphLimits.maxTotalEdgeBytes) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje celkový limit ${graphLimits.maxTotalEdgeBytes} bajtů hran.`,
       );
       rawEdgeLimitReached = true;
       return false;
     }
     totalEdgeBytes += edgeBytes;
+    if (isFilesystemTraversalExcluded(edge.target)) {
+      const message =
+        `${edge.file}: lokální dependency míří do vynechaného nebo generovaného stromu: ` +
+        `${JSON.stringify(edge.specifier)} -> ${JSON.stringify(edge.target)}.`;
+      addCollectionError(message);
+      return true;
+    }
     edges.push(edge);
     return true;
   };
@@ -469,7 +928,7 @@ export const collectArchitectureGraph = ({
     if (globMatchLimitReached) return false;
     globMatchWork += target.length * pattern.length;
     if (globMatchWork > graphLimits.maxGlobMatchWork) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje limit ${graphLimits.maxGlobMatchWork} jednotek glob párování.`,
       );
       globMatchLimitReached = true;
@@ -482,29 +941,40 @@ export const collectArchitectureGraph = ({
     if (!sourceExtensions.has(path.extname(fileAbs))) continue;
 
     const file = toPosix(path.relative(root, fileAbs));
-    const sourceBytes = fs.statSync(fileAbs).size;
-    if (sourceBytes > graphLimits.maxSourceFileBytes) {
-      collectionErrors.push(
-        `${file}: zdrojový soubor překračuje limit ${graphLimits.maxSourceFileBytes} bajtů.`,
+    let sourceBuffer;
+    try {
+      sourceBuffer = readRegularFileLimited(fileAbs, file, graphLimits.maxSourceFileBytes);
+    } catch (error) {
+      addCollectionError(
+        error instanceof Error ? error.message : `${file}: zdrojový soubor nelze bezpečně načíst.`,
       );
       continue;
     }
+    const sourceBytes = sourceBuffer.length;
     totalSourceBytes += sourceBytes;
     if (totalSourceBytes > graphLimits.maxTotalSourceBytes) {
-      collectionErrors.push(
+      addCollectionError(
         `Graf překračuje celkový limit ${graphLimits.maxTotalSourceBytes} bajtů zdrojového kódu.`,
       );
       break;
     }
-    const content = fs.readFileSync(fileAbs, "utf8");
-    const { specs, globCalls, globErrors } = extractModuleDependencies(content, fileAbs);
+    const content = sourceBuffer.toString("utf8");
+    const remainingDiagnostics = Math.max(
+      0,
+      graphLimits.maxDiagnostics - retainedDiagnosticCount,
+    );
+    const { specs, dependencies, globCalls, globErrors, suppressedDiagnostics } =
+      extractModuleDependencies(content, fileAbs, { maxDiagnostics: remainingDiagnostics });
+    retainedDiagnosticCount += globErrors.length;
+    suppressedDiagnosticCount += suppressedDiagnostics;
     const globDiagnostics = [];
+    const addGlobDiagnostic = (message) => addDiagnostic(globDiagnostics, message);
 
     globPatternCount += globCalls.reduce((count, call) => count + call.patterns.length, 0);
     const globPatternLimitExceeded = globPatternCount > graphLimits.maxGlobPatterns;
     if (globPatternLimitExceeded) {
       const message = `Graf překračuje limit ${graphLimits.maxGlobPatterns} glob vzorů.`;
-      if (!collectionErrors.includes(message)) collectionErrors.push(message);
+      if (!collectionErrors.includes(message)) addCollectionError(message);
     }
     let oversizedGlobPattern = null;
     for (const call of globCalls) {
@@ -514,7 +984,7 @@ export const collectArchitectureGraph = ({
       if (oversizedGlobPattern) break;
     }
     if (oversizedGlobPattern) {
-      collectionErrors.push(
+      addCollectionError(
         `${file}: glob vzor překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
         JSON.stringify(oversizedGlobPattern),
       );
@@ -527,9 +997,9 @@ export const collectArchitectureGraph = ({
       if (rawEdgeLimitReached) break;
       for (const item of normalizedGlobs) {
         if (item.error) {
-          globDiagnostics.push(`import.meta.glob ${item.error}: ${item.original}`);
+          addGlobDiagnostic(`import.meta.glob ${item.error}: ${item.original}`);
         } else if (!item.normalized) {
-          globDiagnostics.push(`import.meta.glob vzor nelze bezpečně vyhodnotit: ${item.original}`);
+          addGlobDiagnostic(`import.meta.glob vzor nelze bezpečně vyhodnotit: ${item.original}`);
         }
       }
 
@@ -538,6 +1008,20 @@ export const collectArchitectureGraph = ({
         .filter(Boolean);
       const positiveGlobs = validGlobs.filter((item) => !item.negative);
       const negativeGlobs = validGlobs.filter((item) => item.negative);
+      const safePositiveGlobs = positiveGlobs.filter((item) => {
+        const firstSegment = item.pattern.split("/", 1)[0];
+        const safelyContained =
+          firstSegment.length > 0 &&
+          !/[*?]/u.test(firstSegment) &&
+          globScopeRoots.some((scanRoot) =>
+            item.pattern === scanRoot || item.pattern.startsWith(`${scanRoot}/`));
+        if (!safelyContained) {
+          addGlobDiagnostic(
+            `import.meta.glob vzor není uzavřen uvnitř skenovaných vrstev: ${item.specifier}`,
+          );
+        }
+        return safelyContained;
+      });
       const excludedTargets = new Set();
 
       for (const target of globTargets) {
@@ -548,7 +1032,7 @@ export const collectArchitectureGraph = ({
         }
       }
 
-      for (const glob of positiveGlobs) {
+      for (const glob of safePositiveGlobs) {
         if (rawEdgeLimitReached || globMatchLimitReached) break;
         for (const target of globTargets) {
           if (globMatchLimitReached) break;
@@ -567,17 +1051,65 @@ export const collectArchitectureGraph = ({
       }
     }
 
-    for (const specifier of specs) {
+    for (const dependency of dependencies) {
       if (rawEdgeLimitReached) break;
+      const { specifier, origin } = dependency;
       if (Buffer.byteLength(specifier, "utf8") > graphLimits.maxDependencyBytes) {
-        collectionErrors.push(
+        addCollectionError(
           `${file}: import specifier překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
           JSON.stringify(specifier),
         );
         continue;
       }
-      const target = resolveModuleSpecifier(specifier, fileAbs, root);
-      if (target) {
+      const isImportMetaUrlSpecifier = origin === "import-meta-url";
+      const target = isImportMetaUrlSpecifier
+        ? resolveImportMetaUrlSpecifier(specifier, fileAbs, root)
+        : resolveModuleSpecifier(specifier, fileAbs, root);
+      if (
+        isImportMetaUrlSpecifier &&
+        specifier.split(/[?#]/, 1)[0].startsWith("/")
+      ) {
+        addCollectionError(
+          `${file}: root-absolute new URL s import.meta.url není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
+        addCollectionError(
+          `${file}: import adresáře kořene repozitáře není podporován: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isWindowsFilesystemSpecifier(specifier)) {
+        addCollectionError(
+          `${file}: lokální Windows cesta není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && specifier.split(/[?#]/, 1)[0].startsWith("/")) {
+        addCollectionError(
+          `${file}: root-absolute import nelze bezpečně rozřešit: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isFileUrlSpecifier(specifier)) {
+        addCollectionError(
+          `${file}: file URL není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === null && isUnsafePercentEncodedSpecifier(specifier)) {
+        addCollectionError(
+          `${file}: lokální import nesmí používat percent-encoding: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (
+        target === null &&
+        isImportMetaUrlSpecifier &&
+        hasUrlScheme(specifier) &&
+        !isExplicitExternalUrlSpecifier(specifier)
+      ) {
+        addCollectionError(
+          `${file}: new URL s import.meta.url používá nepodporované URL schéma: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (
+        target === null &&
+        (isRepoLocalSpecifier(specifier) ||
+          (isImportMetaUrlSpecifier && !isExplicitExternalUrlSpecifier(specifier)))
+      ) {
+        addCollectionError(
+          `${file}: lokální import uniká mimo kořen repozitáře: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target) {
         addEdge({ file, specifier, target, kind: "static" });
       }
     }
@@ -587,10 +1119,17 @@ export const collectArchitectureGraph = ({
       fileAbs,
       content,
       specs,
+      dependencies,
       globCalls,
       globErrors,
       globDiagnostics,
     });
+  }
+
+  if (suppressedDiagnosticCount > 0) {
+    collectionErrors.push(
+      `Dalších ${suppressedDiagnosticCount} architektonických diagnostik bylo sloučeno.`,
+    );
   }
 
   const uniqueEdges = [];
@@ -606,5 +1145,5 @@ export const collectArchitectureGraph = ({
     seenEdges.set(edge.file, specifiers);
   }
 
-  return { nodes, edges: uniqueEdges, regularFiles, collectionErrors };
+  return { nodes, edges: uniqueEdges, regularFiles, existingScanRoots, collectionErrors };
 };

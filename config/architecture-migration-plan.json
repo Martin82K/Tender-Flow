@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "description": "Řízený přechod Tender Flow z legacy roots do app/features/shared/infra.",
+  "baselineDebt": {
+    "fingerprint": "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+    "metrics": {
+      "legacyNodes": 113,
+      "modernToLegacyImports": 135,
+      "legacyInternalImports": 137,
+      "cyclicComponents": 1
+    }
+  },
+  "loops": [
+    {
+      "id": "loop-01",
+      "title": "Grafový report a progress gate",
+      "status": "complete",
+      "objective": "Zpřístupnit deterministický graf, priority, stav plánu a fail-closed CI kontrolu.",
+      "dependencies": [],
+      "exitCriteria": ["CLI i CI reportují úplný graf, přesné výjimky a stav všech smyček."],
+      "riskChecks": ["Odmítnout neúplný graf, ambiguity, nové cykly a resource-exhaustion vstupy."],
+      "testGates": ["Fixture RED/GREEN, real-repo ratchet, full Vitest, build a Electron smoke."],
+      "completionEvidence": {
+        "fingerprint": "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+        "metrics": {
+          "legacyNodes": 113,
+          "modernToLegacyImports": 135,
+          "legacyInternalImports": 137,
+          "cyclicComponents": 1
+        }
+      }
+    },
+    {
+      "id": "loop-02",
+      "title": "Mrtvé shimy a re-exporty",
+      "status": "planned",
+      "objective": "Odstranit prokazatelně nepoužívané compatibility soubory bez změny chování.",
+      "dependencies": ["loop-01"],
+      "exitCriteria": ["Freeze i graf klesnou o ověřené mrtvé moduly a neexistuje dynamický odběratel."],
+      "riskChecks": ["Prověřit lazy importy, entrypointy, Electron a runtime registrace."],
+      "testGates": ["Import search, focused testy dotčených entrypointů a plná validační sada."]
+    },
+    {
+      "id": "loop-03",
+      "title": "Utility do shared a features",
+      "status": "planned",
+      "objective": "Přesunout utils do shared/lib nebo vlastnící feature vrstvy.",
+      "dependencies": ["loop-02"],
+      "exitCriteria": ["Legacy utils root je prázdný a modern-to-legacy utils importy jsou nula."],
+      "riskChecks": ["Zachovat formátování, Excel transformace a determinismus helperů."],
+      "testGates": ["Kontraktové utility testy, typecheck, build a desktop smoke relevantních nástrojů."]
+    },
+    {
+      "id": "loop-04",
+      "title": "Malé UI a compatibility komponenty",
+      "status": "planned",
+      "objective": "Přesunout leaf komponenty do shared/ui nebo příslušných features.",
+      "dependencies": ["loop-03"],
+      "exitCriteria": ["Moderní vrstvy již neimportují leaf komponenty z legacy components."],
+      "riskChecks": ["Zachovat accessibility, témata, responzivitu a veřejné entrypointy."],
+      "testGates": ["Testing Library, vizuální Electron smoke a plná validační sada."]
+    },
+    {
+      "id": "loop-05",
+      "title": "Generické a desktop hooky",
+      "status": "planned",
+      "objective": "Přesunout obecné, theme, storage, updater a desktop hooky do shared/infra.",
+      "dependencies": ["loop-04"],
+      "exitCriteria": ["Root hooks obsahuje jen dočasné doménové adaptéry."],
+      "riskChecks": ["Prověřit cleanup efektů, IPC dostupnost a webové fallbacky."],
+      "testGates": ["Hook testy, web smoke, Electron updater/platform smoke a desktop compile."]
+    },
+    {
+      "id": "loop-06",
+      "title": "Query, mutation a pipeline hooky",
+      "status": "planned",
+      "objective": "Přesunout datové hooky do feature model/api vrstev s explicitní identitou.",
+      "dependencies": ["loop-05"],
+      "exitCriteria": ["Kanonické query a mutation implementace nejsou v legacy hooks."],
+      "riskChecks": ["Zachovat query keys, invalidace, optimistic updates a tenant izolaci."],
+      "testGates": ["React Query kontrakty, auth identity scénáře a plná validační sada."]
+    },
+    {
+      "id": "loop-07",
+      "title": "Infra základy",
+      "status": "planned",
+      "objective": "Převést query client, DB, functions a platform adaptéry pod vlastnictví infra.",
+      "dependencies": ["loop-06"],
+      "exitCriteria": ["Infra veřejná API vlastní implementaci a legacy soubory jsou pouze dočasné shimy."],
+      "riskChecks": ["Prověřit secrets, síťové hranice, IPC autorizaci a Supabase klienty."],
+      "testGates": ["Adapter kontrakty, network mocks, desktop IPC testy a security diff scan."]
+    },
+    {
+      "id": "loop-08",
+      "title": "Rozpojení session, logger a Supabase SCC",
+      "status": "planned",
+      "objective": "Rozbít jedinou cyklickou komponentu přes explicitní session a telemetry porty.",
+      "dependencies": ["loop-07"],
+      "exitCriteria": ["Legacy graf nemá cyklus authSessionService/incidentLogger/supabase."],
+      "riskChecks": ["Fail-closed session, logout, refresh, incident redaction a žádný únik tokenů."],
+      "testGates": ["Session lifecycle, MFA/login/logout, telemetry a skutečný Electron auth smoke."]
+    },
+    {
+      "id": "loop-09",
+      "title": "Identity, organizace a subscription služby",
+      "status": "planned",
+      "objective": "Přesunout organization, users, billing, subscription, email a notification služby.",
+      "dependencies": ["loop-08"],
+      "exitCriteria": ["Dotčené modern-to-legacy service importy jsou nula."],
+      "riskChecks": ["Tenant izolace, role, entitlement, platby, notifikace a auditovatelnost."],
+      "testGates": ["Authz kontrakty, RLS evidence, billing mocks a security review."]
+    },
+    {
+      "id": "loop-10",
+      "title": "Project a dokumentové služby",
+      "status": "planned",
+      "objective": "Přesunout projects, contracts, documents, templates, budget a inquiry služby.",
+      "dependencies": ["loop-09"],
+      "exitCriteria": ["Project/doménové implementace vlastní features a legacy importy této skupiny jsou nula."],
+      "riskChecks": ["Storage scope, RLS, uploady, exportní konzistence a velké soubory."],
+      "testGates": ["Doménové kontrakty, storage mocks, hlavní project flow a Electron smoke."]
+    },
+    {
+      "id": "loop-11",
+      "title": "Import, export, Excel, filesystem a AI nástroje",
+      "status": "planned",
+      "objective": "Přesunout desktopové a nástrojové služby do infra nebo vlastnících features.",
+      "dependencies": ["loop-10"],
+      "exitCriteria": ["Zbývající ne-auth legacy services jsou odstraněné nebo tenké shimy bez moderních odběratelů."],
+      "riskChecks": ["Filesystem oprávnění, path traversal, nedůvěryhodné dokumenty, AI data a exporty."],
+      "testGates": ["Malicious fixtures, import/export roundtrip, desktop filesystem smoke a security scan."]
+    },
+    {
+      "id": "loop-12",
+      "title": "Odstranění UIContext",
+      "status": "planned",
+      "objective": "Přesunout UI stav do app providers a shared UI kontraktů.",
+      "dependencies": ["loop-11"],
+      "exitCriteria": ["UIContext legacy soubor a všechny jeho moderní importy jsou odstraněné."],
+      "riskChecks": ["Modal, toast, navigace, theme a souběžné UI akce zachovají chování."],
+      "testGates": ["Provider testy, navigace, modaly a vizuální Electron smoke."]
+    },
+    {
+      "id": "loop-13",
+      "title": "Auth služby a session infrastruktura",
+      "status": "planned",
+      "objective": "Přesunout authService a zbylé session implementace do features/auth a infra/auth.",
+      "dependencies": ["loop-12"],
+      "exitCriteria": ["Auth provider již neimportuje legacy services."],
+      "riskChecks": ["OAuth, MFA, biometrie, demo režim, refresh a bezpečné ukládání tokenů."],
+      "testGates": ["Auth kontrakty, desktop callback, negative authz scénáře a security scan."]
+    },
+    {
+      "id": "loop-14",
+      "title": "Rozdělení a odstranění AuthContext",
+      "status": "planned",
+      "objective": "Rozdělit velký AuthContext na explicitní identity, session a action providery.",
+      "dependencies": ["loop-13"],
+      "exitCriteria": ["AuthContext legacy soubor i modern-to-legacy auth context importy jsou nula."],
+      "riskChecks": ["Žádný permissive fallback, cross-tenant stav ani závod při obnově session."],
+      "testGates": ["Login/logout/MFA/OAuth/demo/tenant runtime scénáře a full security review."]
+    },
+    {
+      "id": "loop-15",
+      "title": "FeatureContext a composition root",
+      "status": "planned",
+      "objective": "Přesunout FeatureContext, AppProviders, layouty a useAppData do moderních vrstev.",
+      "dependencies": ["loop-14"],
+      "exitCriteria": ["Context root je prázdný a aplikace startuje výhradně přes moderní composition root."],
+      "riskChecks": ["Feature gating, subscription oprávnění, lazy routes a desktop-only větve."],
+      "testGates": ["App bootstrap, routování, feature gates, hlavní flow a Electron smoke."]
+    },
+    {
+      "id": "loop-16",
+      "title": "Nulový legacy closeout",
+      "status": "planned",
+      "objective": "Odstranit poslední shimy, legacy roots, baseline a přechodovou dokumentaci.",
+      "dependencies": ["loop-15"],
+      "exitCriteria": ["Legacy roots, legacy uzly, legacy importy, interní hrany a cykly jsou nula."],
+      "riskChecks": ["Finální Codex Security scan, secrets, tenant izolace a supply-chain kontroly jsou čisté."],
+      "testGates": ["Full Vitest bez nových skip/todo, typecheck, build, CI a úplný Electron runtime smoke."]
+    }
+  ]
+}
