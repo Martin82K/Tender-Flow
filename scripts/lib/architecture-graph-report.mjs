@@ -462,41 +462,53 @@ export const buildArchitectureDebtSnapshot = ({ resolved, analysis }) => {
   };
 };
 
-const makeComponentCandidates = (analysis, resolvedEdges) => {
+export const makeComponentCandidates = (analysis, resolvedEdges) => {
   const componentByNode = new Map();
   const batchByComponent = new Map();
+  const candidateStateByComponent = new Map();
   for (const [batch, componentIds] of analysis.dependencyFirstBatches.entries()) {
     for (const id of componentIds) batchByComponent.set(id, batch);
   }
   for (const component of analysis.stronglyConnectedComponents) {
     for (const node of component.nodes) componentByNode.set(node, component.id);
+    if (component.nodes.some((node) => layerOf(node) === "legacy")) {
+      candidateStateByComponent.set(component.id, {
+        modernImporters: new Set(),
+        legacyImporters: new Set(),
+        dependencies: new Set(),
+      });
+    }
+  }
+
+  for (const edge of resolvedEdges) {
+    const sourceComponent = componentByNode.get(edge.file);
+    const targetComponent = componentByNode.get(edge.target);
+    if (sourceComponent === targetComponent) continue;
+
+    const targetState = candidateStateByComponent.get(targetComponent);
+    if (targetState) {
+      if (layerOf(edge.file) === "modern") targetState.modernImporters.add(edge.file);
+      if (layerOf(edge.file) === "legacy") targetState.legacyImporters.add(edge.file);
+    }
+    const sourceState = candidateStateByComponent.get(sourceComponent);
+    if (sourceState && targetComponent !== undefined) {
+      sourceState.dependencies.add(targetComponent);
+    }
   }
 
   const candidates = [];
   for (const component of analysis.stronglyConnectedComponents) {
-    if (!component.nodes.some((node) => layerOf(node) === "legacy")) continue;
-    const memberSet = new Set(component.nodes);
-    const modernImporters = new Set();
-    const legacyImporters = new Set();
-    const dependencies = new Set();
-    for (const edge of resolvedEdges) {
-      if (memberSet.has(edge.target) && !memberSet.has(edge.file)) {
-        if (layerOf(edge.file) === "modern") modernImporters.add(edge.file);
-        if (layerOf(edge.file) === "legacy") legacyImporters.add(edge.file);
-      }
-      if (memberSet.has(edge.file) && !memberSet.has(edge.target)) {
-        dependencies.add(componentByNode.get(edge.target));
-      }
-    }
+    const state = candidateStateByComponent.get(component.id);
+    if (!state) continue;
     candidates.push({
       id: component.id,
       nodes: component.nodes,
       cyclic: component.cyclic,
       dependencyBatch: batchByComponent.get(component.id),
-      modernImporterCount: modernImporters.size,
-      legacyImporterCount: legacyImporters.size,
-      dependencyCount: dependencies.size,
-      modernImporters: [...modernImporters].sort(compareCodePoint),
+      modernImporterCount: state.modernImporters.size,
+      legacyImporterCount: state.legacyImporters.size,
+      dependencyCount: state.dependencies.size,
+      modernImporters: [...state.modernImporters].sort(compareCodePoint),
     });
   }
   return candidates;

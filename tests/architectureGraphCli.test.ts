@@ -4,7 +4,10 @@ import os from "os";
 import path from "path";
 import { describe, expect, it } from "vitest";
 
-import { fingerprintArchitectureDebt } from "../scripts/lib/architecture-graph-report.mjs";
+import {
+  fingerprintArchitectureDebt,
+  makeComponentCandidates,
+} from "../scripts/lib/architecture-graph-report.mjs";
 
 const root = process.cwd();
 const cli = path.join(root, "scripts/report-architecture-graph.mjs");
@@ -87,6 +90,32 @@ const runCli = (cwd: string, ...args: string[]) => spawnSync(process.execPath, [
 });
 
 describe("architecture graph CLI", () => {
+  it("builds migration candidates with a single pass over resolved imports", () => {
+    const edges = [
+      { file: "app/root.ts", target: "services/a.ts", specifier: "@/services/a", kind: "static" },
+      { file: "services/a.ts", target: "services/b.ts", specifier: "./b", kind: "static" },
+    ];
+    let iterations = 0;
+    const singlePassEdges = {
+      [Symbol.iterator]() {
+        iterations += 1;
+        return edges[Symbol.iterator]();
+      },
+    };
+    const analysis = {
+      stronglyConnectedComponents: [
+        { id: "component-a", nodes: ["services/a.ts"], cyclic: false },
+        { id: "component-b", nodes: ["services/b.ts"], cyclic: false },
+      ],
+      dependencyFirstBatches: [["component-b"], ["component-a"]],
+    };
+
+    const candidates = makeComponentCandidates(analysis, singlePassEdges);
+
+    expect(iterations).toBe(1);
+    expect(candidates).toHaveLength(2);
+  });
+
   it("emits a deterministic JSON report and dependency-first batches", () => {
     const fixture = createFixture();
     try {
