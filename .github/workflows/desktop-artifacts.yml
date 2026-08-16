@@ -47,7 +47,7 @@ jobs:
         run: npm run check:legacy-structure
 
       - name: Check architecture graph
-        run: npm run check:architecture-graph
+        run: node scripts/report-architecture-graph.mjs --check
 
       - name: Build Windows desktop app
         run: npm run desktop:build:win

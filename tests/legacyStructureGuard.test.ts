@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, type TestContext } from "vitest";
 
 const root = process.cwd();
 const guardScript = path.join(root, "scripts/check-legacy-structure.mjs");
@@ -82,6 +82,27 @@ const runGuard = (cwd: string) =>
     cwd,
     encoding: "utf8",
   });
+
+const createSymlinkOrSkip = (
+  skip: TestContext["skip"],
+  target: string,
+  linkPath: string,
+  type: "file" | "dir" = "file",
+) => {
+  try {
+    fs.symlinkSync(target, linkPath, type);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (
+      process.platform === "win32" &&
+      (code === "EPERM" || code === "EACCES" || code === "ENOSYS")
+    ) {
+      skip(`Windows prostředí nepovoluje vytvoření symlinku (${code}).`);
+      return;
+    }
+    throw error;
+  }
+};
 
 describe("legacy structure guard", () => {
   it("rejects Git pathspec magic in frozen roots", () => {
@@ -216,11 +237,11 @@ describe("legacy structure guard", () => {
     }
   });
 
-  it("rejects a symlink used as a legacy root at final closeout", () => {
+  it("rejects a symlink used as a legacy root at final closeout", ({ skip }) => {
     const fixtureRoot = createFixture([], [], { finalCloseout: true });
     const target = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-legacy-target-"));
     try {
-      fs.symlinkSync(target, path.join(fixtureRoot, "services"), "dir");
+      createSymlinkOrSkip(skip, target, path.join(fixtureRoot, "services"), "dir");
 
       const result = runGuard(fixtureRoot);
       expect(result.status).toBe(1);
@@ -228,6 +249,54 @@ describe("legacy structure guard", () => {
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
       fs.rmSync(target, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked migration plan before reading its target", ({ skip }) => {
+    const fixtureRoot = createFixture([], []);
+    const planPath = path.join(fixtureRoot, "config/architecture-migration-plan.json");
+    const targetPath = path.join(fixtureRoot, "migration-plan-target.json");
+    try {
+      fs.renameSync(planPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, planPath);
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked legacy freeze config before reading its target", ({ skip }) => {
+    const fixtureRoot = createFixture([], []);
+    const configPath = path.join(fixtureRoot, "config/legacy-freeze.json");
+    const targetPath = path.join(fixtureRoot, "legacy-freeze-target.json");
+    try {
+      fs.renameSync(configPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, configPath);
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an oversized migration plan before JSON parsing", () => {
+    const fixtureRoot = createFixture([], []);
+    try {
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-migration-plan.json"),
+        " ".repeat(1024 * 1024 + 1),
+      );
+
+      const result = runGuard(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("překračuje limit");
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
   });
 });

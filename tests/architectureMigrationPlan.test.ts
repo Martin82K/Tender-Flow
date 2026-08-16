@@ -115,7 +115,7 @@ describe("architecture migration plan", () => {
     expect(packageJson.scripts["check:architecture-graph"]).toBe(
       "node scripts/report-architecture-graph.mjs --check",
     );
-    expect(workflow).toContain("npm run check:architecture-graph");
+    expect(workflow).toContain("node scripts/report-architecture-graph.mjs --check");
     expect(workflow).toContain("ARCHITECTURE_GRAPH_BASELINE_REF:");
     expect(workflow).toContain("--final-integration");
     expect(workflow).toContain("github.base_ref == 'main'");

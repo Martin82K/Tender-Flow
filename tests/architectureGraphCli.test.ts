@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, type TestContext } from "vitest";
 
 import {
   fingerprintArchitectureDebt,
@@ -36,6 +36,14 @@ const emptyDebt: DebtPayload = {
   legacyInternalImports: [],
   cycles: [],
 };
+
+const graphScripts = {
+  "architecture:graph": "node scripts/report-architecture-graph.mjs",
+  "check:architecture-graph": "node scripts/report-architecture-graph.mjs --check",
+};
+
+const fixturePackage = (scripts: Record<string, string>, extra: Record<string, unknown> = {}) =>
+  `${JSON.stringify({ ...extra, scripts: { ...graphScripts, ...scripts } })}\n`;
 
 const createPlan = (baselineDebt = debtEvidence(emptyDebt)) => ({
   version: 2,
@@ -97,6 +105,16 @@ const createFixture = () => {
   fs.writeFileSync(path.join(fixture, "infra/client.ts"), "export const client = true;\n");
   fs.writeFileSync(path.join(fixture, "types.ts"), "export type Root = string;\n");
   fs.writeFileSync(
+    path.join(fixture, "index.html"),
+    '<div id="root"></div><script type="module" src="/index.tsx"></script>\n',
+  );
+  fs.writeFileSync(path.join(fixture, "index.tsx"), "export {};\n");
+  fs.writeFileSync(path.join(fixture, "App.tsx"), "export {};\n");
+  fs.writeFileSync(
+    path.join(fixture, "package.json"),
+    fixturePackage({ build: "vite build", "build:web": "vite build" }),
+  );
+  fs.writeFileSync(
     path.join(fixture, "config/architecture-graph-policy.json"),
     `${JSON.stringify({
       version: 1,
@@ -113,6 +131,23 @@ const runCli = (cwd: string, ...args: string[]) => spawnSync(process.execPath, [
   cwd,
   encoding: "utf8",
 });
+
+const createSymlinkOrSkip = (
+  skip: TestContext["skip"],
+  target: string,
+  linkPath: string,
+) => {
+  try {
+    fs.symlinkSync(target, linkPath, "file");
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (process.platform === "win32" && ["EPERM", "EACCES", "ENOSYS"].includes(code ?? "")) {
+      skip(`Windows prostředí nepovoluje vytvoření symlinku (${code}).`);
+      return;
+    }
+    throw error;
+  }
+};
 
 describe("architecture graph CLI", () => {
   it("builds migration candidates with a single pass over resolved imports", () => {
@@ -139,6 +174,268 @@ describe("architecture graph CLI", () => {
 
     expect(iterations).toBe(1);
     expect(candidates).toHaveLength(2);
+  });
+
+  it("fails closed when index.html relocates the production entrypoint outside the graph", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "src"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "index.html"),
+        '<div id="root"></div><script type="module" src="/src/main.ts"></script>\n',
+      );
+      fs.writeFileSync(path.join(fixture, "src/main.ts"), "export const relocated = true;\n");
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("kanonický module entrypoint /index.tsx");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when index.html adds a second production module entrypoint", () => {
+    const fixture = createFixture();
+    try {
+      fs.appendFileSync(
+        path.join(fixture, "index.html"),
+        '<script type="module" src="/src/main.ts"></script>\n',
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("právě jeden kanonický module entrypoint /index.tsx");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on an unquoted secondary module entrypoint", () => {
+    const fixture = createFixture();
+    try {
+      fs.appendFileSync(path.join(fixture, "index.html"), "<script type=module src=/src/main.ts></script>\n");
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("právě jeden kanonický module entrypoint /index.tsx");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed linearly on many unterminated HTML comment starts", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(path.join(fixture, "index.html"), "<!--".repeat(50_000));
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("neukončený HTML komentář");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when Vite relocates its effective build root", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "src"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "vite.config.ts"),
+        'export default { root: "src" };\n',
+      );
+      fs.writeFileSync(
+        path.join(fixture, "src/index.html"),
+        '<script type="module" src="/main.ts"></script>\n',
+      );
+      fs.writeFileSync(path.join(fixture, "src/main.ts"), "export {};\n");
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("Vite build root musí zůstat v kořeni repozitáře");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when Vite overrides the HTML build input", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "src"), { recursive: true });
+      fs.writeFileSync(path.join(fixture, "src/main.ts"), "export {};\n");
+      fs.writeFileSync(
+        path.join(fixture, "vite.config.ts"),
+        'export default { build: { rolldownOptions: { input: "src/main.ts" } } };\n',
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("kanonický HTML entrypoint bez input override");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when the build script passes a different Vite root", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        fixturePackage({ build: "vite build src", "build:web": "vite build" }),
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("script build musí používat kanonický příkaz vite build");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a package graph command no longer points to the gate", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        fixturePackage({
+          build: "vite build",
+          "build:web": "vite build",
+          "check:architecture-graph": "true",
+        }),
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("graph příkazy neodpovídají kanonickému kontraktu");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a later build command can replace the canonical output", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        fixturePackage({ build: "vite build && vite build src", "build:web": "vite build" }),
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("script build musí používat kanonický příkaz vite build");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when an npm lifecycle hook can replace the canonical output", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        fixturePackage({
+          prebuild: "node replace-entry.mjs",
+          build: "vite build",
+          "build:web": "vite build",
+        }),
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("script prebuild není během migrace povolen");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when only the Electron build relocates the Vite root", () => {
+    const fixture = createFixture();
+    try {
+      fs.mkdirSync(path.join(fixture, "src"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, "vite.config.ts"),
+        'export default { root: process.env.ELECTRON_BUILD === "true" ? "src" : "." };\n',
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("Vite build root musí zůstat v kořeni repozitáře");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when the Tender Flow desktop build wrapper changes its renderer root", () => {
+    const fixture = createFixture();
+    try {
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        `${JSON.stringify({
+          name: "tender-flow",
+          scripts: {
+            ...graphScripts,
+            build: "vite build && node scripts/prerender-public.mjs",
+            "build:web": "vite build && node scripts/prerender-public.mjs",
+            "desktop:install": "cd desktop && npm install --ignore-scripts",
+            "desktop:compile": "node scripts/clean-desktop-dist.mjs && npm run desktop:install && cd desktop && tsc && cd .. && node scripts/write-desktop-build-env.mjs",
+            "desktop:build": "cross-env ELECTRON_BUILD=true vite build src --outDir dist",
+            "desktop:build:mac": "npm run desktop:build -- --mac",
+            "desktop:build:win": "npm run desktop:build -- --win",
+          },
+        })}\n`,
+      );
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("desktop:build neodpovídá kanonickému build kontraktu");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a canonical production entrypoint is a symlink", ({ skip }) => {
+    const fixture = createFixture();
+    const entryPath = path.join(fixture, "index.tsx");
+    const targetPath = path.join(fixture, "entry-target.tsx");
+    try {
+      fs.renameSync(entryPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, entryPath);
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("index.tsx musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlinked graph policy before reading its target", ({ skip }) => {
+    const fixture = createFixture();
+    const configPath = path.join(fixture, "config/architecture-graph-policy.json");
+    const targetPath = path.join(fixture, "graph-policy-target.json");
+    try {
+      fs.renameSync(configPath, targetPath);
+      createSymlinkOrSkip(skip, targetPath, configPath);
+
+      const result = runCli(fixture, "--check");
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("musí být regulární soubor");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
   });
 
   it("keeps declaration files inside legacy roots in the legacy layer", () => {
@@ -258,7 +555,13 @@ describe("architecture graph CLI", () => {
   ])("fails closed on a root package directory import $specifier from $source", ({ source, specifier }) => {
     const fixture = createFixture();
     try {
-      fs.writeFileSync(path.join(fixture, "package.json"), '{"types":"hidden.ts"}\n');
+      fs.writeFileSync(
+        path.join(fixture, "package.json"),
+        fixturePackage(
+          { build: "vite build", "build:web": "vite build" },
+          { types: "hidden.ts" },
+        ),
+      );
       fs.writeFileSync(path.join(fixture, "hidden.ts"), 'export type { Legacy } from "./services/legacy";\n');
       fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
       fs.writeFileSync(path.join(fixture, "services/legacy.ts"), "export type Legacy = string;\n");
@@ -302,12 +605,12 @@ describe("architecture graph CLI", () => {
         "components", "hooks", "services", "context", "utils",
       ]);
       expect(report.summary).toMatchObject({
-        sourceNodes: 5,
+        sourceNodes: 7,
         rawImports: 4,
         resolvedImports: 4,
         unresolvedImports: 0,
         ambiguousImports: 0,
-        stronglyConnectedComponents: 5,
+        stronglyConnectedComponents: 7,
         cyclicComponents: 0,
         dependencyBatches: 4,
         legacyNodes: 0,
@@ -318,7 +621,7 @@ describe("architecture graph CLI", () => {
       expect(report.resolution.unexpectedUnresolved).toEqual([]);
       expect(report.resolution.ambiguous).toEqual([]);
       expect(report.migrationBatches).toEqual([
-        ["infra/client.ts", "types.ts"],
+        ["App.tsx", "index.tsx", "infra/client.ts", "types.ts"],
         ["shared/api.ts"],
         ["features/a.ts"],
         ["app/root.ts"],
@@ -384,7 +687,7 @@ describe("architecture graph CLI", () => {
       expect(result.status).toBe(0);
       const report = JSON.parse(result.stdout) as Record<string, any>;
       expect(report.summary).toMatchObject({
-        sourceNodes: 7,
+        sourceNodes: 8,
         resolvedImports: 5,
         modernToLegacyImports: 1,
       });
@@ -659,7 +962,7 @@ describe("architecture graph CLI", () => {
       expect(result.status).toBe(0);
       expect(result.stderr).toBe("");
       expect(result.stdout).toContain("Architecture graph OK");
-      expect(result.stdout).toContain("Source nodes: 5");
+      expect(result.stdout).toContain("Source nodes: 7");
       expect(result.stdout).toContain("Resolved imports: 4");
       expect(result.stdout).toContain("Unresolved imports: 0 (expected: 0, unexpected: 0)");
       expect(result.stdout).toContain("Legacy: 0 nodes, 0 incoming imports, 0 internal imports");
@@ -678,7 +981,7 @@ describe("architecture graph CLI", () => {
 
       expect(diagnostic.status).toBe(0);
       expect(diagnostic.stdout).toContain("Architecture graph FAILED");
-      expect(diagnostic.stdout).toContain("Source nodes: 5");
+      expect(diagnostic.stdout).toContain("Source nodes: 7");
       expect(diagnostic.stderr).toContain("Nečekaně nerozřešené zdrojové importy:");
       expect(gate.status).toBe(1);
       expect(gate.stdout).toBe("");

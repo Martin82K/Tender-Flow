@@ -3,18 +3,30 @@ import path from "path";
 import { execFileSync } from "child_process";
 
 import { validateArchitectureMigrationPlan } from "./lib/architecture-graph-report.mjs";
+import { readRegularTextFileLimited } from "./lib/safe-file-read.mjs";
 
 const root = process.cwd();
 const configPath = path.join(root, "config", "legacy-freeze.json");
 const migrationPlanPath = path.join(root, "config", "architecture-migration-plan.json");
 const canonicalFrozenRoots = ["components", "hooks", "services", "context", "utils"];
+const MAX_CONFIG_BYTES = 1024 * 1024;
 
-if (!fs.existsSync(configPath)) {
-  console.error("Chybí config/legacy-freeze.json");
+const readJsonConfig = (absolutePath, relativePath) => {
+  try {
+    return JSON.parse(readRegularTextFileLimited(absolutePath, relativePath, MAX_CONFIG_BYTES));
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof RangeError) throw error;
+    throw new TypeError(`${relativePath} není validní JSON.`);
+  }
+};
+
+let config;
+try {
+  config = readJsonConfig(configPath, "config/legacy-freeze.json");
+} catch (error) {
+  console.error(error?.message ?? "Nelze načíst config/legacy-freeze.json.");
   process.exit(1);
 }
-
-const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const frozenRoots = Array.isArray(config.frozenRoots) ? config.frozenRoots : [];
 const allowedFiles = Array.isArray(config.allowedFiles) ? config.allowedFiles : [];
 
@@ -52,7 +64,7 @@ if (
 let migrationPlan;
 try {
   migrationPlan = validateArchitectureMigrationPlan(
-    JSON.parse(fs.readFileSync(migrationPlanPath, "utf8")),
+    readJsonConfig(migrationPlanPath, "config/architecture-migration-plan.json"),
   );
 } catch (error) {
   console.error(

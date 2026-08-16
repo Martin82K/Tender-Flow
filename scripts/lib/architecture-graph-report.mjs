@@ -8,6 +8,7 @@ import {
   analyzeDirectedGraph,
   resolveArchitectureModuleGraph,
 } from "./architecture-graph-analysis.mjs";
+import { readRegularTextFileLimited } from "./safe-file-read.mjs";
 
 export const ARCHITECTURE_GRAPH_REPORT_SCHEMA_VERSION = 1;
 
@@ -51,6 +52,7 @@ export const ARCHITECTURE_GRAPH_LEGACY_ROOTS = Object.freeze([
 ]);
 
 const MAX_POLICY_ITEMS = 250_000;
+const MAX_ENTRY_FILE_BYTES = 1024 * 1024;
 const REQUIRED_PLAN_LOOPS = 16;
 const MAX_TEXT_BYTES = 4_096;
 const DEBT_METRIC_KEYS = Object.freeze([
@@ -134,6 +136,135 @@ const layerOf = (moduleId) => {
     isDeclarationFile(moduleId)
   ) return "modern";
   return "other";
+};
+
+const assertRegularEntryFile = (root, relativePath) => {
+  const absolutePath = path.join(root, relativePath);
+  return readRegularTextFileLimited(
+    absolutePath,
+    `Kanonický produkční entrypoint ${relativePath}`,
+    MAX_ENTRY_FILE_BYTES,
+  );
+};
+
+const collectScriptAttributeSources = (html) => {
+  const scripts = [];
+  const lowerHtml = html.toLowerCase();
+  let cursor = 0;
+  while (cursor < html.length) {
+    const start = lowerHtml.indexOf("<script", cursor);
+    if (start === -1) break;
+    const boundary = html[start + 7];
+    if (boundary && !/[\s/>]/.test(boundary)) {
+      cursor = start + 7;
+      continue;
+    }
+    let quote = null;
+    let end = start + 7;
+    for (; end < html.length; end += 1) {
+      const character = html[end];
+      if (quote) {
+        if (character === quote) quote = null;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        break;
+      }
+    }
+    if (end >= html.length) throw new TypeError("index.html obsahuje neukončený script tag.");
+    scripts.push(html.slice(start + 7, end));
+    cursor = end + 1;
+  }
+  return scripts;
+};
+
+const parseHtmlAttributes = (source) => {
+  const attributes = new Map();
+  let cursor = 0;
+  while (cursor < source.length) {
+    while (/\s|\//.test(source[cursor] ?? "")) cursor += 1;
+    if (cursor >= source.length) break;
+    const nameStart = cursor;
+    while (cursor < source.length && !/[\s=/>]/.test(source[cursor])) cursor += 1;
+    const name = source.slice(nameStart, cursor).toLowerCase();
+    if (!name) throw new TypeError("index.html obsahuje neplatný atribut script tagu.");
+    while (/\s/.test(source[cursor] ?? "")) cursor += 1;
+    let value = "";
+    if (source[cursor] === "=") {
+      cursor += 1;
+      while (/\s/.test(source[cursor] ?? "")) cursor += 1;
+      const quote = source[cursor] === '"' || source[cursor] === "'" ? source[cursor++] : null;
+      const valueStart = cursor;
+      if (quote) {
+        while (cursor < source.length && source[cursor] !== quote) cursor += 1;
+        if (cursor >= source.length) throw new TypeError("index.html obsahuje neukončený atribut.");
+        value = source.slice(valueStart, cursor);
+        cursor += 1;
+      } else {
+        while (cursor < source.length && !/[\s>]/.test(source[cursor])) cursor += 1;
+        value = source.slice(valueStart, cursor);
+      }
+    }
+    if (attributes.has(name)) throw new TypeError(`index.html obsahuje duplicitní atribut ${name}.`);
+    attributes.set(name, value);
+  }
+  return attributes;
+};
+
+const stripHtmlComments = (html) => {
+  const chunks = [];
+  let cursor = 0;
+  while (cursor < html.length) {
+    const start = html.indexOf("<!--", cursor);
+    if (start === -1) {
+      chunks.push(html.slice(cursor));
+      break;
+    }
+    chunks.push(html.slice(cursor, start));
+    const end = html.indexOf("-->", start + 4);
+    if (end === -1) throw new TypeError("index.html obsahuje neukončený HTML komentář.");
+    cursor = end + 3;
+  }
+  return chunks.join("");
+};
+
+const collectProductionEntrypointDiagnostics = (root, rawGraph) => {
+  try {
+    const htmlContent = assertRegularEntryFile(root, "index.html");
+    assertRegularEntryFile(root, "index.tsx");
+    assertRegularEntryFile(root, "App.tsx");
+
+    const sourceNodes = new Set(rawGraph.nodes.map(({ file }) => file));
+    for (const entrypoint of ["index.tsx", "App.tsx"]) {
+      if (!sourceNodes.has(entrypoint)) {
+        throw new TypeError(`Kanonický produkční entrypoint ${entrypoint} není součástí grafu.`);
+      }
+    }
+
+    const html = stripHtmlComments(htmlContent);
+    const moduleSources = [];
+    for (const source of collectScriptAttributeSources(html)) {
+      const attributes = parseHtmlAttributes(source);
+      const type = (attributes.get("type") ?? "").toLowerCase();
+      if (type === "application/ld+json") continue;
+      if (type !== "module" || type.includes("&")) {
+        throw new TypeError("index.html obsahuje nepovolený spustitelný script.");
+      }
+      const moduleSource = attributes.get("src");
+      if (!moduleSource || moduleSource.includes("&")) {
+        throw new TypeError("Produkční module script v index.html musí mít statický src.");
+      }
+      moduleSources.push(moduleSource);
+    }
+    if (moduleSources.length !== 1 || moduleSources[0] !== "/index.tsx") {
+      throw new TypeError(
+        "index.html musí obsahovat právě jeden kanonický module entrypoint /index.tsx.",
+      );
+    }
+    return [];
+  } catch (error) {
+    return [error instanceof Error ? error.message : "Nelze ověřit produkční entrypointy."];
+  }
 };
 
 const importKey = ({ file, specifier, target }) => `${file}\u0000${specifier}\u0000${target}`;
@@ -781,5 +912,15 @@ export const buildArchitectureGraphReport = ({
   limits,
 } = {}) => {
   const rawGraph = collectArchitectureGraph({ root, scanRoots: roots, limits });
-  return assembleArchitectureGraphReport({ rawGraph, policy, plan, previousPlan, roots });
+  const entrypointDiagnostics = collectProductionEntrypointDiagnostics(root, rawGraph);
+  return assembleArchitectureGraphReport({
+    rawGraph: {
+      ...rawGraph,
+      collectionErrors: [...rawGraph.collectionErrors, ...entrypointDiagnostics],
+    },
+    policy,
+    plan,
+    previousPlan,
+    roots,
+  });
 };

@@ -2,18 +2,50 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { resolveConfig } from "vite";
 
 import { buildArchitectureGraphReport } from "./lib/architecture-graph-report.mjs";
+import {
+  readRegularFileLimited,
+  readRegularTextFileLimited,
+} from "./lib/safe-file-read.mjs";
 
 const root = process.cwd();
 const MAX_CONFIG_BYTES = 1024 * 1024;
 const INITIAL_PLAN_BOOTSTRAP_REF = "fa398a04c2cd09ccc8c5b6d2fc55f92688ffcb47";
 const INITIAL_V1_PLAN_DIGEST = "cfa1b32c58c7bcb692f010b9782c2f4131e836ac09ab124fcfb1bb48852d6901";
 const INITIAL_V2_PLAN_DIGEST = "47fffd71cdbb68b4b636da30f271fdad7695ec83a0c96956390e00b0a8804de5";
+const VITE_CONFIG_CANDIDATES = Object.freeze([
+  "vite.config.js",
+  "vite.config.mjs",
+  "vite.config.ts",
+  "vite.config.cjs",
+  "vite.config.mts",
+  "vite.config.cts",
+]);
+const BUILD_CONTRACT_FILES = Object.freeze([
+  "index.html",
+  ...VITE_CONFIG_CANDIDATES,
+  "scripts/prerender-public.mjs",
+  "scripts/clean-desktop-dist.mjs",
+  "scripts/write-desktop-build-env.mjs",
+]);
+const CANONICAL_TENDER_FLOW_BUILD_SCRIPTS = Object.freeze({
+  build: "vite build && node scripts/prerender-public.mjs",
+  "build:web": "vite build && node scripts/prerender-public.mjs",
+  "desktop:install": "cd desktop && npm install --ignore-scripts",
+  "desktop:compile": "node scripts/clean-desktop-dist.mjs && npm run desktop:install && cd desktop && tsc && cd .. && node scripts/write-desktop-build-env.mjs",
+  "desktop:build": "cross-env ELECTRON_BUILD=true npm run build && cross-env ELECTRON_BUILD=true npm run desktop:compile && electron-builder --publish never",
+  "desktop:build:mac": "npm run desktop:build -- --mac",
+  "desktop:build:win": "npm run desktop:build -- --win",
+});
+const ARCHITECTURE_ONLY_SCRIPTS = new Set(["architecture:graph", "check:architecture-graph"]);
 const sha256 = (content) => createHash("sha256").update(content).digest("hex");
-const readCurrentPlanDigest = () => sha256(
-  fs.readFileSync(path.join(root, "config/architecture-migration-plan.json")),
-);
+const readCurrentPlanDigest = () => sha256(readRegularFileLimited(
+  path.join(root, "config/architecture-migration-plan.json"),
+  "config/architecture-migration-plan.json",
+  MAX_CONFIG_BYTES,
+));
 
 const parseArguments = (args) => {
   const allowed = new Set([
@@ -45,20 +77,132 @@ const parseArguments = (args) => {
 
 const readJsonConfig = (relativePath) => {
   const absolutePath = path.join(root, relativePath);
-  let stat;
   try {
-    stat = fs.statSync(absolutePath);
-  } catch {
-    throw new TypeError(`Nelze načíst ${relativePath}.`);
-  }
-  if (!stat.isFile()) throw new TypeError(`${relativePath} musí být regulární soubor.`);
-  if (stat.size > MAX_CONFIG_BYTES) {
-    throw new RangeError(`${relativePath} překračuje limit ${MAX_CONFIG_BYTES} bajtů.`);
-  }
-  try {
-    return JSON.parse(fs.readFileSync(absolutePath, "utf8"));
-  } catch {
+    return JSON.parse(readRegularTextFileLimited(absolutePath, relativePath, MAX_CONFIG_BYTES));
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof RangeError) throw error;
     throw new TypeError(`${relativePath} není validní JSON.`);
+  }
+};
+
+const assertViteBuildContract = async () => {
+  const packagePath = path.join(root, "package.json");
+  if (fs.existsSync(packagePath)) {
+    const packageJson = readJsonConfig("package.json");
+    if (
+      packageJson?.scripts?.["architecture:graph"] !== "node scripts/report-architecture-graph.mjs" ||
+      packageJson?.scripts?.["check:architecture-graph"] !== "node scripts/report-architecture-graph.mjs --check"
+    ) {
+      throw new TypeError("package.json graph příkazy neodpovídají kanonickému kontraktu.");
+    }
+    const buildScriptNames = Object.keys(CANONICAL_TENDER_FLOW_BUILD_SCRIPTS);
+    for (const scriptName of buildScriptNames) {
+      for (const lifecycleName of [`pre${scriptName}`, `post${scriptName}`]) {
+        if (packageJson?.scripts?.[lifecycleName] !== undefined) {
+          throw new TypeError(`package.json script ${lifecycleName} není během migrace povolen.`);
+        }
+      }
+    }
+    if (packageJson?.name === "tender-flow") {
+      for (const [scriptName, command] of Object.entries(CANONICAL_TENDER_FLOW_BUILD_SCRIPTS)) {
+        if (packageJson?.scripts?.[scriptName] !== command) {
+          throw new TypeError(`package.json script ${scriptName} neodpovídá kanonickému build kontraktu.`);
+        }
+      }
+    } else {
+      for (const scriptName of ["build", "build:web"]) {
+        if (packageJson?.scripts?.[scriptName] !== "vite build") {
+          throw new TypeError(`package.json script ${scriptName} musí používat kanonický příkaz vite build.`);
+        }
+      }
+    }
+  }
+  const previousElectronBuild = process.env.ELECTRON_BUILD;
+  try {
+    for (const electronBuild of [false, true]) {
+      if (electronBuild) process.env.ELECTRON_BUILD = "true";
+      else delete process.env.ELECTRON_BUILD;
+      const resolved = await resolveConfig({}, "build");
+      if (path.resolve(resolved.root) !== path.resolve(root)) {
+        throw new TypeError("Vite build root musí zůstat v kořeni repozitáře.");
+      }
+      if (
+        resolved.build?.rolldownOptions?.input !== undefined ||
+        resolved.build?.rollupOptions?.input !== undefined ||
+        resolved.build?.lib
+      ) {
+        throw new TypeError("Vite build musí používat kanonický HTML entrypoint bez input override.");
+      }
+    }
+  } finally {
+    if (previousElectronBuild === undefined) delete process.env.ELECTRON_BUILD;
+    else process.env.ELECTRON_BUILD = previousElectronBuild;
+  }
+};
+
+const gitFileExists = (ref, relativePath) => {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${ref}:${relativePath}`], {
+      cwd: root,
+      stdio: "pipe",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const readGitTextFileLimited = (ref, relativePath) => {
+  try {
+    return execFileSync("git", ["show", `${ref}:${relativePath}`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: MAX_CONFIG_BYTES + 1,
+    });
+  } catch {
+    throw new TypeError(`Nelze načíst ${relativePath} z Git baseline ${ref}.`);
+  }
+};
+
+const assertBuildContractMatchesBaseline = () => {
+  const baselineRef = process.env.ARCHITECTURE_GRAPH_BASELINE_REF;
+  if (!baselineRef) return;
+  for (const relativePath of BUILD_CONTRACT_FILES) {
+    const currentExists = fs.existsSync(path.join(root, relativePath));
+    const baselineExists = gitFileExists(baselineRef, relativePath);
+    if (currentExists !== baselineExists) {
+      throw new TypeError(`${relativePath} se během architektonické migrace nesmí přidat ani odstranit.`);
+    }
+    if (!currentExists) continue;
+    const current = readRegularTextFileLimited(
+      path.join(root, relativePath),
+      relativePath,
+      MAX_CONFIG_BYTES,
+    );
+    const baseline = readGitTextFileLimited(baselineRef, relativePath);
+    if (current !== baseline) {
+      throw new TypeError(`${relativePath} se během architektonické migrace nesmí měnit.`);
+    }
+  }
+
+  const currentPackage = readJsonConfig("package.json");
+  const baselinePackageContent = readGitTextFileLimited(baselineRef, "package.json");
+  let baselinePackage;
+  try {
+    baselinePackage = JSON.parse(baselinePackageContent);
+  } catch {
+    throw new TypeError(`package.json v Git baseline ${baselineRef} není validní JSON.`);
+  }
+  const normalizePackage = (packageJson) => {
+    const normalized = structuredClone(packageJson);
+    for (const scriptName of ARCHITECTURE_ONLY_SCRIPTS) delete normalized?.scripts?.[scriptName];
+    return normalized;
+  };
+  if (JSON.stringify(normalizePackage(currentPackage)) !== JSON.stringify(normalizePackage(baselinePackage))) {
+    throw new TypeError(
+      "package.json se během architektonické migrace nesmí měnit mimo graph příkazy.",
+    );
   }
 };
 
@@ -255,7 +399,7 @@ const printViolations = (report) => {
   );
 };
 
-const main = () => {
+const main = async () => {
   const options = parseArguments(process.argv.slice(2));
   const policy = readJsonConfig("config/architecture-graph-policy.json");
   const plan = readJsonConfig("config/architecture-migration-plan.json");
@@ -264,6 +408,8 @@ const main = () => {
     postMergeIntegration: options.postMergeIntegration,
     plan,
   });
+  assertBuildContractMatchesBaseline();
+  await assertViteBuildContract();
   const report = buildArchitectureGraphReport({ root, policy, plan, previousPlan });
 
   if (options.json) {
@@ -278,10 +424,8 @@ const main = () => {
   }
 };
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   const message = error instanceof Error ? error.message : "Neznámá chyba architektonického grafu.";
   console.error(`Neplatný kontrakt architektonického grafu: ${message}`);
   process.exitCode = 2;
-}
+});
