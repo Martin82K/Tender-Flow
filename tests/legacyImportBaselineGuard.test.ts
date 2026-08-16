@@ -309,6 +309,54 @@ describe("legacy import baseline guard", () => {
   });
 
   it.each([
+    "../../outside-secret.txt",
+    "./../../outside-secret.txt",
+    "assets/../../../../outside-secret.txt",
+    "@/../outside-secret.txt",
+    "@app/../../outside-secret.txt",
+  ])("rejects local dependencies that escape the repository root: %s", (specifier) => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      `const asset = new URL(${JSON.stringify(specifier)}, import.meta.url);\nvoid asset;\n`,
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("lokální import uniká mimo kořen repozitáře");
+      expect(result.stderr).toContain(JSON.stringify(specifier));
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects static and dynamic module imports that escape the repository root", () => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      [
+        'import "../../outside-static.txt?raw";',
+        'const load = () => import("./../../outside-dynamic.txt?raw");',
+        "void load;",
+        "",
+      ].join("\n"),
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("lokální import uniká mimo kořen repozitáře");
+      expect(result.stderr).toContain('"../../outside-static.txt?raw"');
+      expect(result.stderr).toContain('"./../../outside-dynamic.txt?raw"');
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
     "C:/Users/runneradmin/.npmrc",
     "C:\\Users\\runneradmin\\.npmrc",
     "\\\\attacker\\share\\payload.js",
@@ -389,14 +437,14 @@ describe("legacy import baseline guard", () => {
       const result = runBoundary(fixtureRoot);
 
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("modern-to-legacy-import");
+      expect(result.stderr).toContain("root-absolute new URL s import.meta.url není podporována");
       expect(result.stderr).toContain("/services/exampleService.ts");
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
   });
 
-  it("records root-local import.meta.url assets even when they are outside scan roots", async () => {
+  it("rejects root-absolute import.meta.url assets outside scan roots", async () => {
     const fixtureRoot = createFixture();
     writeConsumer(
       fixtureRoot,
@@ -407,11 +455,93 @@ describe("legacy import baseline guard", () => {
       const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
       const graph = collectArchitectureGraph({ root: fixtureRoot });
 
+      expect(graph.collectionErrors).toContain(
+        'app/consumer.ts: root-absolute new URL s import.meta.url není podporována: "/.env.local".',
+      );
+      expect(graph.edges).not.toContainEqual(
+        expect.objectContaining({ specifier: "/.env.local" }),
+      );
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "/../../outside-secret.txt",
+    "/assets/../../../outside-secret.txt?raw",
+  ])("rejects root-absolute import.meta.url paths before Vite publicDir resolution: %s", (specifier) => {
+    const fixtureRoot = createFixture();
+    writeConsumer(
+      fixtureRoot,
+      `const asset = new URL(${JSON.stringify(specifier)}, import.meta.url);\nvoid asset;\n`,
+    );
+
+    try {
+      const result = runBoundary(fixtureRoot);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("root-absolute new URL s import.meta.url není podporována");
+      expect(result.stderr).toContain(JSON.stringify(specifier));
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["module-first", "url-first"])(
+    "preserves dependency provenance when module and import.meta.url specifiers match: %s",
+    async (order) => {
+      const fixtureRoot = createFixture();
+      fs.mkdirSync(path.join(fixtureRoot, "shared"), { recursive: true });
+      fs.writeFileSync(path.join(fixtureRoot, "shared/example.ts"), "export const example = true;\n");
+      const moduleImport = 'import { example } from "/shared/example.ts";';
+      const assetUrl = 'const asset = new URL("/shared/example.ts", import.meta.url);';
+      writeConsumer(
+        fixtureRoot,
+        [
+          ...(order === "module-first" ? [moduleImport, assetUrl] : [assetUrl, moduleImport]),
+          "void example; void asset;",
+          "",
+        ].join("\n"),
+      );
+
+      try {
+        const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
+        const graph = collectArchitectureGraph({ root: fixtureRoot });
+        const rootUrlErrors = graph.collectionErrors.filter((error) =>
+          error.includes("root-absolute new URL s import.meta.url není podporována"),
+        );
+
+        expect(rootUrlErrors).toHaveLength(1);
+        expect(graph.edges).toContainEqual({
+          file: "app/consumer.ts",
+          specifier: "/shared/example.ts",
+          target: "shared/example.ts",
+          kind: "static",
+        });
+      } finally {
+        fs.rmSync(fixtureRoot, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("resolves a contained bare import.meta.url asset relative to its importer", async () => {
+    const fixtureRoot = createFixture();
+    fs.mkdirSync(path.join(fixtureRoot, "app/assets"), { recursive: true });
+    fs.writeFileSync(path.join(fixtureRoot, "app/assets/icon.svg"), "<svg />\n");
+    writeConsumer(
+      fixtureRoot,
+      'const asset = new URL("assets/icon.svg", import.meta.url);\nvoid asset;\n',
+    );
+
+    try {
+      const { collectArchitectureGraph } = await import("../scripts/lib/architecture-graph.mjs");
+      const graph = collectArchitectureGraph({ root: fixtureRoot });
+
       expect(graph.collectionErrors).toEqual([]);
       expect(graph.edges).toContainEqual({
         file: "app/consumer.ts",
-        specifier: "/.env.local",
-        target: ".env.local",
+        specifier: "assets/icon.svg",
+        target: "app/assets/icon.svg",
         kind: "static",
       });
     } finally {

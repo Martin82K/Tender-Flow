@@ -195,13 +195,18 @@ export const extractModuleDependencies = (content, fileName) => {
     scriptKind,
   );
   const specs = [];
+  const dependencies = [];
   const globCalls = [];
   const globErrors = [];
   const hasLocalBinding = createLocalBindingLookup(sourceFile, fileName);
+  const addDependency = (specifier, origin = "module") => {
+    specs.push(specifier);
+    dependencies.push({ specifier, origin });
+  };
 
-  for (const reference of sourceFile.referencedFiles) specs.push(reference.fileName);
+  for (const reference of sourceFile.referencedFiles) addDependency(reference.fileName);
   for (const reference of sourceFile.typeReferenceDirectives) {
-    if (reference.fileName.startsWith(".")) specs.push(reference.fileName);
+    if (reference.fileName.startsWith(".")) addDependency(reference.fileName);
     if (reference.fileName.startsWith("/")) {
       globErrors.push("/// <reference types> nesmí používat absolutní cestu.");
     }
@@ -211,19 +216,21 @@ export const extractModuleDependencies = (content, fileName) => {
     const importMetaUrlDependency = viteImportMetaUrlDependency(node);
     if (importMetaUrlDependency) {
       if (importMetaUrlDependency.error) globErrors.push(importMetaUrlDependency.error);
-      else specs.push(importMetaUrlDependency.specifier);
+      else {
+        addDependency(importMetaUrlDependency.specifier, "import-meta-url");
+      }
     } else if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
       node.moduleSpecifier &&
       ts.isStringLiteralLike(node.moduleSpecifier)
     ) {
-      specs.push(node.moduleSpecifier.text);
+      addDependency(node.moduleSpecifier.text);
     } else if (
       ts.isImportEqualsDeclaration(node) &&
       ts.isExternalModuleReference(node.moduleReference)
     ) {
       if (node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) {
-        specs.push(node.moduleReference.expression.text);
+        addDependency(node.moduleReference.expression.text);
       } else {
         globErrors.push("import = require musí používat jeden statický literál.");
       }
@@ -232,18 +239,18 @@ export const extractModuleDependencies = (content, fileName) => {
       ts.isLiteralTypeNode(node.argument) &&
       ts.isStringLiteralLike(node.argument.literal)
     ) {
-      specs.push(node.argument.literal.text);
+      addDependency(node.argument.literal.text);
     } else if (
       ts.isJSDocImportTag(node) &&
       ts.isStringLiteralLike(node.moduleSpecifier)
     ) {
-      specs.push(node.moduleSpecifier.text);
+      addDependency(node.moduleSpecifier.text);
     } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword
     ) {
       if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
-        specs.push(node.arguments[0].text);
+        addDependency(node.arguments[0].text);
       } else {
         globErrors.push("import() musí používat jeden statický literál.");
       }
@@ -254,7 +261,7 @@ export const extractModuleDependencies = (content, fileName) => {
         return;
       }
       if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
-        specs.push(node.arguments[0].text);
+        addDependency(node.arguments[0].text);
       } else {
         globErrors.push("require musí používat jeden statický literál.");
       }
@@ -346,7 +353,7 @@ export const extractModuleDependencies = (content, fileName) => {
   };
 
   visit(sourceFile);
-  return { specs, globCalls, globErrors };
+  return { specs, dependencies, globCalls, globErrors };
 };
 
 const resolveRepoPathFromRoot = (repoPath, root) => {
@@ -382,6 +389,35 @@ const isUnsafePercentEncodedSpecifier = (specifier) => {
   return (
     modulePath.includes("%") &&
     !/^(?:https?:|data:|blob:)/iu.test(modulePath)
+  );
+};
+
+const isExplicitExternalUrlSpecifier = (specifier) =>
+  /^(?:https?:|data:|blob:)/iu.test(specifier.split(/[?#]/, 1)[0]);
+
+const hasUrlScheme = (specifier) =>
+  /^[A-Za-z][A-Za-z0-9+.-]*:/u.test(specifier.split(/[?#]/, 1)[0]);
+
+const repoAliasPrefixes = Object.freeze([
+  "@/",
+  "@app/",
+  "@components/",
+  "@features/",
+  "@shared/",
+  "@infra/",
+]);
+
+const hasRepoAliasPrefix = (modulePath) =>
+  repoAliasPrefixes.some((prefix) => modulePath.startsWith(prefix));
+
+const isRepoLocalSpecifier = (specifier) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  return (
+    modulePath === "." ||
+    modulePath === ".." ||
+    modulePath.startsWith("./") ||
+    modulePath.startsWith("../") ||
+    hasRepoAliasPrefix(modulePath)
   );
 };
 
@@ -434,10 +470,38 @@ export const resolveModuleSpecifier = (spec, fileAbs, root) => {
   if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
     const resolved = path.resolve(path.dirname(fileAbs), modulePath);
     const relative = toPosix(path.relative(root, resolved));
-    if (!relative.startsWith("..")) return relative;
+    if (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith("../")) {
+      return relative;
+    }
   }
 
   return null;
+};
+
+const resolveImportMetaUrlSpecifier = (specifier, fileAbs, root) => {
+  const modulePath = specifier.split(/[?#]/, 1)[0];
+  if (isExplicitExternalUrlSpecifier(specifier)) return null;
+  if (
+    isWindowsFilesystemSpecifier(specifier) ||
+    isFileUrlSpecifier(specifier) ||
+    isUnsafePercentEncodedSpecifier(specifier) ||
+    hasUrlScheme(specifier)
+  ) return null;
+  if (
+    modulePath.startsWith("/") ||
+    modulePath === "@" ||
+    /^@\/+$/u.test(modulePath) ||
+    hasRepoAliasPrefix(modulePath)
+  ) {
+    return resolveModuleSpecifier(specifier, fileAbs, root);
+  }
+
+  const resolved = path.resolve(path.dirname(fileAbs), modulePath);
+  const relative = toPosix(path.relative(root, resolved));
+  if (path.isAbsolute(relative) || relative === ".." || relative.startsWith("../")) {
+    return null;
+  }
+  return relative;
 };
 
 const normalizeRepoGlob = (repoPattern) => {
@@ -822,7 +886,8 @@ export const collectArchitectureGraph = ({
       break;
     }
     const content = sourceBuffer.toString("utf8");
-    const { specs, globCalls, globErrors } = extractModuleDependencies(content, fileAbs);
+    const { specs, dependencies, globCalls, globErrors } =
+      extractModuleDependencies(content, fileAbs);
     const globDiagnostics = [];
 
     globPatternCount += globCalls.reduce((count, call) => count + call.patterns.length, 0);
@@ -906,8 +971,9 @@ export const collectArchitectureGraph = ({
       }
     }
 
-    for (const specifier of specs) {
+    for (const dependency of dependencies) {
       if (rawEdgeLimitReached) break;
+      const { specifier, origin } = dependency;
       if (Buffer.byteLength(specifier, "utf8") > graphLimits.maxDependencyBytes) {
         collectionErrors.push(
           `${file}: import specifier překračuje limit ${graphLimits.maxDependencyBytes} bajtů: ` +
@@ -915,8 +981,18 @@ export const collectArchitectureGraph = ({
         );
         continue;
       }
-      const target = resolveModuleSpecifier(specifier, fileAbs, root);
-      if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
+      const isImportMetaUrlSpecifier = origin === "import-meta-url";
+      const target = isImportMetaUrlSpecifier
+        ? resolveImportMetaUrlSpecifier(specifier, fileAbs, root)
+        : resolveModuleSpecifier(specifier, fileAbs, root);
+      if (
+        isImportMetaUrlSpecifier &&
+        specifier.split(/[?#]/, 1)[0].startsWith("/")
+      ) {
+        collectionErrors.push(
+          `${file}: root-absolute new URL s import.meta.url není podporována: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (target === "" || resolvesLocalSpecifierToRepoRoot(specifier, fileAbs, root)) {
         collectionErrors.push(
           `${file}: import adresáře kořene repozitáře není podporován: ${JSON.stringify(specifier)}.`,
         );
@@ -936,6 +1012,23 @@ export const collectArchitectureGraph = ({
         collectionErrors.push(
           `${file}: lokální import nesmí používat percent-encoding: ${JSON.stringify(specifier)}.`,
         );
+      } else if (
+        target === null &&
+        isImportMetaUrlSpecifier &&
+        hasUrlScheme(specifier) &&
+        !isExplicitExternalUrlSpecifier(specifier)
+      ) {
+        collectionErrors.push(
+          `${file}: new URL s import.meta.url používá nepodporované URL schéma: ${JSON.stringify(specifier)}.`,
+        );
+      } else if (
+        target === null &&
+        (isRepoLocalSpecifier(specifier) ||
+          (isImportMetaUrlSpecifier && !isExplicitExternalUrlSpecifier(specifier)))
+      ) {
+        collectionErrors.push(
+          `${file}: lokální import uniká mimo kořen repozitáře: ${JSON.stringify(specifier)}.`,
+        );
       } else if (target) {
         addEdge({ file, specifier, target, kind: "static" });
       }
@@ -946,6 +1039,7 @@ export const collectArchitectureGraph = ({
       fileAbs,
       content,
       specs,
+      dependencies,
       globCalls,
       globErrors,
       globDiagnostics,
