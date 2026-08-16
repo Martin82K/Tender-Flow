@@ -9,6 +9,13 @@ const MAX_TOTAL_INPUT_BYTES = 16 * 1024 * 1024;
 
 const declarationExtensions = Object.freeze([".d.ts", ".d.mts", ".d.cts"]);
 
+const typescriptExtensionSubstitutions = new Map([
+  [".js", [".ts", ".tsx", ".d.ts", ".js", ".jsx"]],
+  [".jsx", [".tsx", ".ts", ".d.ts", ".jsx", ".js"]],
+  [".mjs", [".mts", ".d.mts", ".mjs"]],
+  [".cjs", [".cts", ".d.cts", ".cjs"]],
+]);
+
 const sourceExtensions = new Set(ARCHITECTURE_SOURCE_EXTENSIONS);
 
 const compareCodePoint = (left, right) => left < right ? -1 : left > right ? 1 : 0;
@@ -121,7 +128,15 @@ export const resolveArchitectureModuleGraph = ({ nodes, edges }) => {
       if (moduleSet.has(edge.target)) candidates.push(edge.target);
     } else if (edge.kind === "static") {
       if (moduleSet.has(edge.target)) candidates.push(edge.target);
-      if (!sourceExtensions.has(path.posix.extname(edge.target))) {
+      const targetExtension = path.posix.extname(edge.target);
+      const substitutions = typescriptExtensionSubstitutions.get(targetExtension);
+      if (substitutions) {
+        const targetBase = edge.target.slice(0, -targetExtension.length);
+        for (const extension of substitutions) {
+          const candidate = `${targetBase}${extension}`;
+          if (moduleSet.has(candidate)) candidates.push(candidate);
+        }
+      } else if (!sourceExtensions.has(targetExtension)) {
         for (const extension of [...declarationExtensions, ...ARCHITECTURE_SOURCE_EXTENSIONS]) {
           const fileCandidate = `${edge.target}${extension}`;
           const indexCandidate = `${edge.target}/index${extension}`;

@@ -173,6 +173,52 @@ describe("architecture graph analysis", () => {
     ).toThrow(/Specifier hrany překračuje limit 4096 bajtů/);
   });
 
+  it("applies TypeScript source substitutions for explicit JavaScript extensions", () => {
+    const rawEdges = [
+      { file: "app/a.ts", target: "shared/worker.js", specifier: "@shared/worker.js", kind: "static" },
+      { file: "app/a.ts", target: "shared/view.jsx", specifier: "@shared/view.jsx", kind: "static" },
+      { file: "app/a.ts", target: "shared/module.mjs", specifier: "@shared/module.mjs", kind: "static" },
+      { file: "app/a.ts", target: "shared/module.cjs", specifier: "@shared/module.cjs", kind: "static" },
+      { file: "app/a.ts", target: "shared/ambiguous.js", specifier: "@shared/ambiguous.js", kind: "static" },
+      { file: "app/a.ts", target: "shared/missing.js", specifier: "@shared/missing.js", kind: "static" },
+    ] as const;
+    const rawSnapshot = structuredClone(rawEdges);
+    const nodes = [
+      { file: "app/a.ts" },
+      { file: "shared/worker.ts" },
+      { file: "shared/view.tsx" },
+      { file: "shared/module.mts" },
+      { file: "shared/module.cts" },
+      { file: "shared/ambiguous.js" },
+      { file: "shared/ambiguous.ts" },
+    ];
+    const resolved = resolveArchitectureModuleGraph({
+      nodes,
+      edges: rawEdges,
+    });
+
+    expect(resolved.edges.map(({ target }) => target)).toEqual([
+      "shared/module.cts",
+      "shared/module.mts",
+      "shared/view.tsx",
+      "shared/worker.ts",
+    ]);
+    expect(resolved.unresolvedEdges).toEqual([
+      expect.objectContaining({ target: "shared/missing.js" }),
+    ]);
+    expect(resolved.ambiguousEdges).toEqual([
+      expect.objectContaining({
+        target: "shared/ambiguous.js",
+        candidates: ["shared/ambiguous.js", "shared/ambiguous.ts"],
+      }),
+    ]);
+    expect(rawEdges).toEqual(rawSnapshot);
+    expect(resolveArchitectureModuleGraph({
+      nodes: [...nodes].reverse(),
+      edges: [...rawEdges].reverse(),
+    })).toEqual(resolved);
+  });
+
   it("handles a long chain iteratively and rejects incomplete graphs", () => {
     const nodes = Array.from({ length: 20_000 }, (_, index) => `features/n${index}.ts`);
     const edges = nodes.slice(0, -1).map((node, index) => ({
