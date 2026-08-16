@@ -1,4 +1,5 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import {
   collectArchitectureGraph,
@@ -42,6 +43,12 @@ export const ARCHITECTURE_GRAPH_LEGACY_ROOTS = Object.freeze([
 const MAX_POLICY_ITEMS = 250_000;
 const REQUIRED_PLAN_LOOPS = 16;
 const MAX_TEXT_BYTES = 4_096;
+const DEBT_METRIC_KEYS = Object.freeze([
+  "legacyNodes",
+  "modernToLegacyImports",
+  "legacyInternalImports",
+  "cyclicComponents",
+]);
 
 const compareCodePoint = (left, right) => left < right ? -1 : left > right ? 1 : 0;
 
@@ -117,6 +124,32 @@ const compareCycles = (left, right) => {
   }
   return left.length - right.length;
 };
+
+const validateDebtEvidence = (value, label) => {
+  assertPlainObject(value, label);
+  if (typeof value.fingerprint !== "string" || !/^sha256:[a-f0-9]{64}$/.test(value.fingerprint)) {
+    throw new TypeError(`${label}.fingerprint musí být SHA-256 fingerprint.`);
+  }
+  assertPlainObject(value.metrics, `${label}.metrics`);
+  const metrics = {};
+  for (const key of DEBT_METRIC_KEYS) {
+    const metric = value.metrics[key];
+    if (!Number.isSafeInteger(metric) || metric < 0) {
+      throw new TypeError(`${label}.metrics.${key} musí být nezáporné celé číslo.`);
+    }
+    metrics[key] = metric;
+  }
+  return { fingerprint: value.fingerprint, metrics };
+};
+
+const metricsEqual = (left, right) =>
+  DEBT_METRIC_KEYS.every((key) => left[key] === right[key]);
+
+const metricsDoNotIncrease = (current, ceiling) =>
+  DEBT_METRIC_KEYS.every((key) => current[key] <= ceiling[key]);
+
+const metricsStrictlyDecrease = (current, previous) =>
+  DEBT_METRIC_KEYS.some((key) => current[key] < previous[key]);
 
 export const validateArchitectureGraphPolicy = (policy) => {
   assertPlainObject(policy, "Architecture graph policy");
@@ -203,7 +236,8 @@ const validateStringList = (values, label) => {
 
 export const validateArchitectureMigrationPlan = (plan) => {
   assertPlainObject(plan, "Architecture migration plan");
-  if (plan.version !== 1) throw new TypeError("Architecture migration plan musí mít version 1.");
+  if (plan.version !== 2) throw new TypeError("Architecture migration plan musí mít version 2.");
+  const baselineDebt = validateDebtEvidence(plan.baselineDebt, "baselineDebt");
   if (!Array.isArray(plan.loops) || plan.loops.length !== REQUIRED_PLAN_LOOPS) {
     throw new TypeError(`Architecture migration plan musí obsahovat přesně ${REQUIRED_PLAN_LOOPS} smyček.`);
   }
@@ -234,6 +268,16 @@ export const validateArchitectureMigrationPlan = (plan) => {
     }
     knownIds.add(id);
 
+    const completionEvidence = loop.completionEvidence == null
+      ? null
+      : validateDebtEvidence(loop.completionEvidence, `${id}.completionEvidence`);
+    if (loop.status === "complete" && completionEvidence === null) {
+      throw new TypeError(`${id} je complete, ale nemá completionEvidence.`);
+    }
+    if (loop.status !== "complete" && completionEvidence !== null) {
+      throw new TypeError(`${id} nesmí mít completionEvidence před dokončením.`);
+    }
+
     return {
       id,
       title: assertText(loop.title, `${id}.title`),
@@ -243,6 +287,7 @@ export const validateArchitectureMigrationPlan = (plan) => {
       exitCriteria: validateStringList(loop.exitCriteria, `${id}.exitCriteria`),
       riskChecks: validateStringList(loop.riskChecks, `${id}.riskChecks`),
       testGates: validateStringList(loop.testGates, `${id}.testGates`),
+      completionEvidence,
     };
   });
 
@@ -262,7 +307,26 @@ export const validateArchitectureMigrationPlan = (plan) => {
     );
   }
 
-  return { version: 1, loops: normalizedLoops };
+  let previousDebt = baselineDebt;
+  for (const [index, loop] of normalizedLoops.entries()) {
+    if (loop.status !== "complete") break;
+    if (!metricsDoNotIncrease(loop.completionEvidence.metrics, previousDebt.metrics)) {
+      throw new TypeError(`${loop.id}.completionEvidence nesmí zvyšovat legacy dluh.`);
+    }
+    if (index > 0 && !metricsStrictlyDecrease(loop.completionEvidence.metrics, previousDebt.metrics)) {
+      throw new TypeError(`${loop.id}.completionEvidence musí prokázat měřitelný pokles dluhu.`);
+    }
+    previousDebt = loop.completionEvidence;
+  }
+  const finalLoop = normalizedLoops.at(-1);
+  if (
+    finalLoop.status === "complete" &&
+    DEBT_METRIC_KEYS.some((key) => finalLoop.completionEvidence.metrics[key] !== 0)
+  ) {
+    throw new TypeError("loop-16 completionEvidence musí mít nulový legacy dluh.");
+  }
+
+  return { version: 2, baselineDebt, loops: normalizedLoops };
 };
 
 export const summarizeArchitectureMigrationPlan = (plan) => {
@@ -282,6 +346,43 @@ const collectDiagnostics = (rawGraph) => {
     for (const error of node.globDiagnostics) diagnostics.push(`${node.file}: ${error}`);
   }
   return [...new Set(diagnostics)].sort(compareCodePoint);
+};
+
+export const fingerprintArchitectureDebt = (payload) =>
+  `sha256:${createHash("sha256").update(JSON.stringify(payload)).digest("hex")}`;
+
+export const buildArchitectureDebtSnapshot = ({ resolved, analysis }) => {
+  const legacyNodes = resolved.nodes
+    .filter((node) => layerOf(node) === "legacy")
+    .sort(compareCodePoint);
+  const modernToLegacyImports = resolved.edges
+    .filter(({ file, target }) => layerOf(file) === "modern" && layerOf(target) === "legacy")
+    .map(({ file, specifier, target }) => ({ file, specifier, target }))
+    .sort(compareImports);
+  const legacyInternalImports = resolved.edges
+    .filter(({ file, target }) => layerOf(file) === "legacy" && layerOf(target) === "legacy")
+    .map(({ file, specifier, target }) => ({ file, specifier, target }))
+    .sort(compareImports);
+  const cycles = analysis.stronglyConnectedComponents
+    .filter(({ cyclic }) => cyclic)
+    .map(({ nodes }) => [...nodes])
+    .sort(compareCycles);
+  const payload = {
+    legacyNodes,
+    modernToLegacyImports,
+    legacyInternalImports,
+    cycles,
+  };
+  return {
+    fingerprint: fingerprintArchitectureDebt(payload),
+    metrics: {
+      legacyNodes: legacyNodes.length,
+      modernToLegacyImports: modernToLegacyImports.length,
+      legacyInternalImports: legacyInternalImports.length,
+      cyclicComponents: cycles.length,
+    },
+    payload,
+  };
 };
 
 const makeComponentCandidates = (analysis, resolvedEdges) => {
@@ -382,6 +483,52 @@ export const assembleArchitectureGraphReport = ({
   const staleLegacyInternalImports = validatedPolicy.allowedLegacyInternalImports.filter((edge) =>
     !actualInternalKeys.has(importKey(edge)));
 
+  const debt = buildArchitectureDebtSnapshot({ resolved, analysis });
+  const completedLoops = validatedPlan.loops.filter(({ status }) => status === "complete");
+  const debtCeiling = completedLoops.at(-1)?.completionEvidence ?? validatedPlan.baselineDebt;
+  const activeLoop = validatedPlan.loops.find(({ status }) => status === "in_progress");
+  const progressViolations = [];
+  if (activeLoop) {
+    if (
+      completedLoops.length === 0 &&
+      (
+        !metricsEqual(debt.metrics, debtCeiling.metrics) ||
+        debt.fingerprint !== debtCeiling.fingerprint
+      )
+    ) {
+      progressViolations.push(violation(
+        "migration-baseline-mismatch",
+        "První smyčka musí vycházet z přesného aktuálního legacy baseline.",
+        { expected: debtCeiling, actual: { fingerprint: debt.fingerprint, metrics: debt.metrics } },
+      ));
+    } else if (!metricsDoNotIncrease(debt.metrics, debtCeiling.metrics)) {
+      progressViolations.push(violation(
+        "migration-debt-regression",
+        `${activeLoop.id} zvýšil legacy dluh oproti poslední dokončené evidenci.`,
+        { expectedMaximum: debtCeiling.metrics, actual: debt.metrics },
+      ));
+    }
+  } else if (
+    !metricsEqual(debt.metrics, debtCeiling.metrics) ||
+    debt.fingerprint !== debtCeiling.fingerprint
+  ) {
+    progressViolations.push(violation(
+      "migration-debt-mismatch",
+      "Aktuální legacy graf neodpovídá poslední completionEvidence.",
+      { expected: debtCeiling, actual: { fingerprint: debt.fingerprint, metrics: debt.metrics } },
+    ));
+  }
+  if (
+    completedLoops.length === REQUIRED_PLAN_LOOPS &&
+    DEBT_METRIC_KEYS.some((key) => debt.metrics[key] !== 0)
+  ) {
+    progressViolations.push(violation(
+      "legacy-closeout-incomplete",
+      "Plán je označen jako dokončený, ale legacy dluh není nulový.",
+      { actual: debt.metrics },
+    ));
+  }
+
   const violations = [
     ...diagnostics.map((message) => violation("collection-error", message)),
     ...resolved.ambiguousEdges.map((edge) => violation(
@@ -419,6 +566,7 @@ export const assembleArchitectureGraphReport = ({
       `Povolený interní legacy import již neexistuje: ${edge.file} -> ${edge.target}.`,
       edge,
     )),
+    ...progressViolations,
   ];
 
   const candidates = makeComponentCandidates(analysis, resolved.edges);
@@ -471,6 +619,7 @@ export const assembleArchitectureGraphReport = ({
     })),
     migrationBatches: analysis.dependencyFirstBatches,
     priorities: priorityViews(candidates),
+    debt,
     plan: {
       ...summarizeArchitectureMigrationPlan(validatedPlan),
       loops: validatedPlan.loops,

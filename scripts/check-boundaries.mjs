@@ -10,6 +10,7 @@ import {
 const root = process.cwd();
 const scanRoots = ARCHITECTURE_SCAN_ROOTS;
 const modernRoots = ["app", "features", "shared", "infra"];
+const modernEntryFiles = new Set(["index.tsx", "App.tsx"]);
 const legacyRoots = ["components", "hooks", "services", "context", "utils"];
 const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
@@ -20,6 +21,7 @@ const legacyImportFindings = [];
 const collectionErrors = [];
 
 const isWebLayer = (fileRel) =>
+  modernEntryFiles.has(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
@@ -31,6 +33,7 @@ const isWebLayer = (fileRel) =>
   fileRel.startsWith("infra/");
 
 const isUiLayer = (fileRel) =>
+  modernEntryFiles.has(fileRel) ||
   fileRel.startsWith("app/") ||
   fileRel.startsWith("features/") ||
   fileRel.startsWith("shared/") ||
@@ -44,7 +47,8 @@ const isForbiddenRepoTarget = (repoPath) =>
 const isWithinRoot = (repoPath, rootPath) =>
   repoPath === rootPath || repoPath.startsWith(`${rootPath}/`);
 
-const isModernPath = (repoPath) => modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
+const isModernPath = (repoPath) =>
+  modernEntryFiles.has(repoPath) || modernRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 const isLegacyPath = (repoPath) => legacyRoots.some((rootPath) => isWithinRoot(repoPath, rootPath));
 
 const loadAllowlist = () => {
@@ -80,6 +84,13 @@ const isAllowedFinding = (finding) =>
 
 const legacyImportKey = (item) => `${item.file}\0${item.specifier}\0${item.target}`;
 const compareLegacyImports = (left, right) => legacyImportKey(left).localeCompare(legacyImportKey(right));
+const modernEntryScopeBootstrapKeys = new Set([
+  legacyImportKey({
+    file: "index.tsx",
+    specifier: "./services/incidentLogger",
+    target: "services/incidentLogger",
+  }),
+]);
 
 const loadLegacyImportBaseline = () => {
   if (!fs.existsSync(legacyImportBaselinePath)) return { allowedImports: [], errors: [] };
@@ -361,8 +372,16 @@ const unusedLegacyImports = allowedLegacyImports.filter(
 const previousLegacyImportKeys = new Set(
   previousLegacyImportBaseline.allowedImports.map(legacyImportKey),
 );
+const bootstrapsModernEntryScope =
+  previousLegacyImportBaseline.available &&
+  !previousLegacyImportBaseline.allowedImports.some(({ file }) => modernEntryFiles.has(file));
 const addedLegacyBaselineImports = previousLegacyImportBaseline.available
-  ? allowedLegacyImports.filter((allowed) => !previousLegacyImportKeys.has(legacyImportKey(allowed)))
+  ? allowedLegacyImports.filter((allowed) =>
+      !previousLegacyImportKeys.has(legacyImportKey(allowed)) &&
+      !(
+        bootstrapsModernEntryScope &&
+        modernEntryScopeBootstrapKeys.has(legacyImportKey(allowed))
+      ))
   : [];
 
 if (

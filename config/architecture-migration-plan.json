@@ -1,16 +1,34 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Řízený přechod Tender Flow z legacy roots do app/features/shared/infra.",
+  "baselineDebt": {
+    "fingerprint": "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+    "metrics": {
+      "legacyNodes": 113,
+      "modernToLegacyImports": 135,
+      "legacyInternalImports": 137,
+      "cyclicComponents": 1
+    }
+  },
   "loops": [
     {
       "id": "loop-01",
       "title": "Grafový report a progress gate",
-      "status": "in_progress",
+      "status": "complete",
       "objective": "Zpřístupnit deterministický graf, priority, stav plánu a fail-closed CI kontrolu.",
       "dependencies": [],
       "exitCriteria": ["CLI i CI reportují úplný graf, přesné výjimky a stav všech smyček."],
       "riskChecks": ["Odmítnout neúplný graf, ambiguity, nové cykly a resource-exhaustion vstupy."],
-      "testGates": ["Fixture RED/GREEN, real-repo ratchet, full Vitest, build a Electron smoke."]
+      "testGates": ["Fixture RED/GREEN, real-repo ratchet, full Vitest, build a Electron smoke."],
+      "completionEvidence": {
+        "fingerprint": "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+        "metrics": {
+          "legacyNodes": 113,
+          "modernToLegacyImports": 135,
+          "legacyInternalImports": 137,
+          "cyclicComponents": 1
+        }
+      }
     },
     {
       "id": "loop-02",

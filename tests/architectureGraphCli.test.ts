@@ -4,11 +4,38 @@ import os from "os";
 import path from "path";
 import { describe, expect, it } from "vitest";
 
+import { fingerprintArchitectureDebt } from "../scripts/lib/architecture-graph-report.mjs";
+
 const root = process.cwd();
 const cli = path.join(root, "scripts/report-architecture-graph.mjs");
 
-const createPlan = () => ({
-  version: 1,
+type DebtPayload = {
+  legacyNodes: string[];
+  modernToLegacyImports: Array<{ file: string; specifier: string; target: string }>;
+  legacyInternalImports: Array<{ file: string; specifier: string; target: string }>;
+  cycles: string[][];
+};
+
+const debtEvidence = (payload: DebtPayload) => ({
+  fingerprint: fingerprintArchitectureDebt(payload),
+  metrics: {
+    legacyNodes: payload.legacyNodes.length,
+    modernToLegacyImports: payload.modernToLegacyImports.length,
+    legacyInternalImports: payload.legacyInternalImports.length,
+    cyclicComponents: payload.cycles.length,
+  },
+});
+
+const emptyDebt: DebtPayload = {
+  legacyNodes: [],
+  modernToLegacyImports: [],
+  legacyInternalImports: [],
+  cycles: [],
+};
+
+const createPlan = (baselineDebt = debtEvidence(emptyDebt)) => ({
+  version: 2,
+  baselineDebt,
   loops: Array.from({ length: 16 }, (_, index) => ({
     id: `loop-${String(index + 1).padStart(2, "0")}`,
     title: `Loop ${index + 1}`,
@@ -20,6 +47,13 @@ const createPlan = () => ({
     testGates: ["Focused a full test suite."],
   })),
 });
+
+const writePlan = (fixture: string, plan = createPlan()) => {
+  fs.writeFileSync(
+    path.join(fixture, "config/architecture-migration-plan.json"),
+    `${JSON.stringify(plan, null, 2)}\n`,
+  );
+};
 
 const createFixture = () => {
   const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-graph-cli-"));
@@ -44,10 +78,7 @@ const createFixture = () => {
       allowedLegacyInternalImports: [],
     }, null, 2)}\n`,
   );
-  fs.writeFileSync(
-    path.join(fixture, "config/architecture-migration-plan.json"),
-    `${JSON.stringify(createPlan(), null, 2)}\n`,
-  );
+  writePlan(fixture);
   return fixture;
 };
 
@@ -143,6 +174,16 @@ describe("architecture graph CLI", () => {
       fs.mkdirSync(path.join(fixture, "services"), { recursive: true });
       fs.writeFileSync(path.join(fixture, "index.tsx"), 'import "@/services/bootstrap";\n');
       fs.writeFileSync(path.join(fixture, "services/bootstrap.ts"), "export {};\n");
+      writePlan(fixture, createPlan(debtEvidence({
+        legacyNodes: ["services/bootstrap.ts"],
+        modernToLegacyImports: [{
+          file: "index.tsx",
+          specifier: "@/services/bootstrap",
+          target: "services/bootstrap.ts",
+        }],
+        legacyInternalImports: [],
+        cycles: [],
+      })));
 
       const result = runCli(fixture, "--json", "--check");
       expect(result.status).toBe(0);
@@ -194,6 +235,18 @@ describe("architecture graph CLI", () => {
       const dynamicRequire = runCli(collectionFixture, "--check");
       expect(dynamicRequire.status).toBe(1);
       expect(dynamicRequire.stderr).toContain("require musí používat jeden statický literál");
+
+      fs.writeFileSync(
+        path.join(collectionFixture, "app/dynamic.cjs"),
+        "export {};\n",
+      );
+      fs.writeFileSync(
+        path.join(collectionFixture, "app/dynamic.ts"),
+        'const name = "runtime";\nvoid import(`../../services/${name}.ts`);\n',
+      );
+      const dynamicImport = runCli(collectionFixture, "--check");
+      expect(dynamicImport.status).toBe(1);
+      expect(dynamicImport.stderr).toContain("import() musí používat jeden statický literál");
     } finally {
       fs.rmSync(ambiguousFixture, { recursive: true, force: true });
       fs.rmSync(collectionFixture, { recursive: true, force: true });
@@ -251,6 +304,25 @@ describe("architecture graph CLI", () => {
       fs.writeFileSync(path.join(fixture, "services/b.ts"), 'import "@/services/a";\n');
       fs.writeFileSync(path.join(fixture, "services/leaf.ts"), "export {};\n");
       fs.writeFileSync(path.join(fixture, "services/parent.ts"), 'import "@/services/leaf";\n');
+      writePlan(fixture, createPlan(debtEvidence({
+        legacyNodes: [
+          "services/a.ts",
+          "services/b.ts",
+          "services/leaf.ts",
+          "services/parent.ts",
+        ],
+        modernToLegacyImports: [
+          { file: "app/root.ts", specifier: "@/services/a", target: "services/a.ts" },
+          { file: "features/a.ts", specifier: "@/services/a", target: "services/a.ts" },
+          { file: "features/a.ts", specifier: "@/services/leaf", target: "services/leaf.ts" },
+        ],
+        legacyInternalImports: [
+          { file: "services/a.ts", specifier: "@/services/b", target: "services/b.ts" },
+          { file: "services/b.ts", specifier: "@/services/a", target: "services/a.ts" },
+          { file: "services/parent.ts", specifier: "@/services/leaf", target: "services/leaf.ts" },
+        ],
+        cycles: [["services/a.ts", "services/b.ts"]],
+      })));
       fs.writeFileSync(
         path.join(fixture, "config/architecture-graph-policy.json"),
         `${JSON.stringify({

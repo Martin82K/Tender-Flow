@@ -24,7 +24,7 @@ flowchart LR
 
 | Smyčka | Oblast | Stav |
 | --- | --- | --- |
-| 01 | Grafový report a progress gate | probíhá |
+| 01 | Grafový report a progress gate | dokončeno |
 | 02 | Mrtvé shimy a re-exporty | plánováno |
 | 03 | Utility do shared a features | plánováno |
 | 04 | Malé UI a compatibility komponenty | plánováno |
@@ -57,8 +57,11 @@ nový nebo změněný cyklus a změnu interních legacy hran bez vědomé aktual
 přesné policy. Diagnostický příkaz report vždy zobrazí; varianta `check` navíc
 vynucuje policy nenulovým exit kódem.
 
-Každá dokončená smyčka musí současně snížit odpovídající baseline a změnit stav
-plánu. Samotný zelený test bez poklesu měřeného dluhu není dokončením smyčky.
+Každá dokončená smyčka musí zapsat `completionEvidence` s fingerprintem přesného
+legacy grafu a změnit stav plánu. Smyčka 1 zakládá měřitelný baseline; smyčky
+2–15 musí současně prokázat monotónní pokles alespoň jedné dluhové metriky a
+smyčka 16 vyžaduje nulu. Samotný zelený test bez měřitelného důkazu není
+dokončením smyčky.
 
 ## Konečný exit stav
 

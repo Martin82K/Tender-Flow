@@ -2,7 +2,13 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
 
-import { validateArchitectureMigrationPlan } from "../scripts/lib/architecture-graph-report.mjs";
+import {
+  assembleArchitectureGraphReport,
+  buildArchitectureDebtSnapshot,
+  buildArchitectureGraphReport,
+  validateArchitectureMigrationPlan,
+} from "../scripts/lib/architecture-graph-report.mjs";
+import { collectArchitectureGraph } from "../scripts/lib/architecture-graph.mjs";
 
 type LoopStatus = "planned" | "in_progress" | "complete";
 type MigrationLoop = {
@@ -14,21 +20,64 @@ type MigrationLoop = {
   exitCriteria: string[];
   riskChecks: string[];
   testGates: string[];
+  completionEvidence?: DebtEvidence;
 };
 
+type DebtEvidence = {
+  fingerprint: string;
+  metrics: {
+    legacyNodes: number;
+    modernToLegacyImports: number;
+    legacyInternalImports: number;
+    cyclicComponents: number;
+  };
+};
+
+type MigrationPlan = { version: number; baselineDebt: DebtEvidence; loops: MigrationLoop[] };
+
 describe("architecture migration plan", () => {
+  it("counts modern cycles in the final zero-debt contract", () => {
+    const snapshot = buildArchitectureDebtSnapshot({
+      resolved: {
+        nodes: ["app/a.ts", "app/b.ts"],
+        edges: [],
+      },
+      analysis: {
+        stronglyConnectedComponents: [
+          { id: "component-0001", nodes: ["app/a.ts", "app/b.ts"], cyclic: true },
+        ],
+      },
+    });
+
+    expect(snapshot.metrics.cyclicComponents).toBe(1);
+    expect(snapshot.payload.cycles).toEqual([["app/a.ts", "app/b.ts"]]);
+  });
+
   it("defines one contiguous, auditable sequence of sixteen loops", () => {
     const plan = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), "config/architecture-migration-plan.json"), "utf8"),
-    ) as { version: number; loops: MigrationLoop[] };
+    ) as MigrationPlan;
 
-    expect(plan.version).toBe(1);
+    expect(plan.version).toBe(2);
+    expect(plan.baselineDebt).toEqual({
+      fingerprint: "sha256:497d50e607a31d63b105bbb6caacdd669f26b3c5b5fe5704ec32f29763ada338",
+      metrics: {
+        legacyNodes: 113,
+        modernToLegacyImports: 135,
+        legacyInternalImports: 137,
+        cyclicComponents: 1,
+      },
+    });
     expect(plan.loops).toHaveLength(16);
     expect(plan.loops.map(({ id }) => id)).toEqual(
       Array.from({ length: 16 }, (_, index) => `loop-${String(index + 1).padStart(2, "0")}`),
     );
-    expect(plan.loops.filter(({ status }) => status === "in_progress")).toHaveLength(1);
-    expect(plan.loops.find(({ status }) => status === "in_progress")?.id).toBe("loop-01");
+    expect(plan.loops.filter(({ status }) => status === "in_progress")).toHaveLength(0);
+    expect(plan.loops[0]).toMatchObject({
+      id: "loop-01",
+      status: "complete",
+      completionEvidence: plan.baselineDebt,
+    });
 
     const knownIds = new Set<string>();
     for (const loop of plan.loops) {
@@ -73,9 +122,10 @@ describe("architecture migration plan", () => {
   it("allows a completed prefix to wait for approval before the next loop starts", () => {
     const plan = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), "config/architecture-migration-plan.json"), "utf8"),
-    ) as { version: number; loops: MigrationLoop[] };
+    ) as MigrationPlan;
     const idle = structuredClone(plan);
     idle.loops[0].status = "complete";
+    idle.loops[0].completionEvidence = structuredClone(plan.baselineDebt);
     idle.loops[1].status = "planned";
 
     expect(validateArchitectureMigrationPlan(idle).loops.slice(0, 2).map(({ status }) => status)).toEqual([
@@ -83,8 +133,69 @@ describe("architecture migration plan", () => {
       "planned",
     ]);
 
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "config/architecture-graph-policy.json"), "utf8"),
+    );
+    const rawGraph = collectArchitectureGraph({ root: process.cwd() });
+    expect(assembleArchitectureGraphReport({ rawGraph, policy, plan: idle }).status).toBe("ok");
+
+    const wrongFingerprint = structuredClone(idle);
+    wrongFingerprint.loops[0].completionEvidence!.fingerprint = `sha256:${"0".repeat(64)}`;
+    expect(
+      assembleArchitectureGraphReport({ rawGraph, policy, plan: wrongFingerprint }).violations,
+    ).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "migration-debt-mismatch" }),
+    ]));
+
     const invalid = structuredClone(idle);
     invalid.loops[2].status = "in_progress";
     expect(() => validateArchitectureMigrationPlan(invalid)).toThrow(/první nedokončená smyčka/i);
+  });
+
+  it("rejects fake completion without measured monotonic debt evidence", () => {
+    const root = process.cwd();
+    const plan = JSON.parse(
+      fs.readFileSync(path.join(root, "config/architecture-migration-plan.json"), "utf8"),
+    ) as MigrationPlan;
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(root, "config/architecture-graph-policy.json"), "utf8"),
+    );
+
+    const missingEvidence = structuredClone(plan);
+    missingEvidence.loops[0].status = "complete";
+    delete missingEvidence.loops[0].completionEvidence;
+    expect(() => validateArchitectureMigrationPlan(missingEvidence)).toThrow(/completionEvidence/);
+
+    const noReduction = structuredClone(plan);
+    noReduction.loops[0].status = "complete";
+    noReduction.loops[0].completionEvidence = structuredClone(plan.baselineDebt);
+    noReduction.loops[1].status = "complete";
+    noReduction.loops[1].completionEvidence = structuredClone(plan.baselineDebt);
+    expect(() => validateArchitectureMigrationPlan(noReduction)).toThrow(/měřitelný pokles/);
+
+    const fakeComplete = structuredClone(plan);
+    let previous = structuredClone(plan.baselineDebt);
+    for (const [index, loop] of fakeComplete.loops.entries()) {
+      loop.status = "complete";
+      const isFirst = index === 0;
+      const isLast = index === fakeComplete.loops.length - 1;
+      const metrics = isLast
+        ? { legacyNodes: 0, modernToLegacyImports: 0, legacyInternalImports: 0, cyclicComponents: 0 }
+        : {
+            ...previous.metrics,
+            legacyNodes: isFirst ? previous.metrics.legacyNodes : previous.metrics.legacyNodes - 1,
+          };
+      loop.completionEvidence = {
+        fingerprint: `sha256:${String(index + 1).padStart(64, "0")}`,
+        metrics,
+      };
+      previous = loop.completionEvidence;
+    }
+
+    const report = buildArchitectureGraphReport({ root, policy, plan: fakeComplete });
+    expect(report.status).toBe("failed");
+    expect(report.violations.map(({ code }: { code: string }) => code)).toEqual(
+      expect.arrayContaining(["migration-debt-mismatch", "legacy-closeout-incomplete"]),
+    );
   });
 });

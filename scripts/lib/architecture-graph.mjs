@@ -62,19 +62,63 @@ const isImportMetaGlobCall = (node) =>
   node.expression.expression.name.text === "meta" &&
   (node.expression.name.text === "glob" || node.expression.name.text === "globEager");
 
-const isCommonJsRequireCall = (node) =>
-  ts.isCallExpression(node) &&
-  (
-    (ts.isIdentifier(node.expression) && node.expression.text === "require") ||
+const commonJsBindingIdentifier = (node) => {
+  if (!ts.isCallExpression(node)) return null;
+  if (ts.isIdentifier(node.expression) && node.expression.text === "require") {
+    return node.expression;
+  }
+  if (
+    ts.isPropertyAccessExpression(node.expression) &&
+    ts.isIdentifier(node.expression.expression) &&
     (
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      (
-        (node.expression.expression.text === "require" && node.expression.name.text === "resolve") ||
-        (node.expression.expression.text === "module" && node.expression.name.text === "require")
-      )
+      (node.expression.expression.text === "require" && node.expression.name.text === "resolve") ||
+      (node.expression.expression.text === "module" && node.expression.name.text === "require")
     )
-  );
+  ) {
+    return node.expression.expression;
+  }
+  return null;
+};
+
+const createLocalBindingLookup = (sourceFile, fileName) => {
+  let checker = null;
+  const isRuntimeDeclaration = (declaration) => {
+    if (declaration.getSourceFile().isDeclarationFile) return false;
+    for (let current = declaration; current && !ts.isSourceFile(current); current = current.parent) {
+      if (ts.canHaveModifiers(current)) {
+        const modifiers = ts.getModifiers(current) ?? [];
+        if (modifiers.some(({ kind }) => kind === ts.SyntaxKind.DeclareKeyword)) return false;
+      }
+    }
+    return true;
+  };
+
+  return (identifier) => {
+    if (checker === null) {
+      const compilerHost = {
+        directoryExists: () => true,
+        fileExists: (candidate) => candidate === fileName,
+        getCanonicalFileName: (candidate) => candidate,
+        getCurrentDirectory: () => "",
+        getDefaultLibFileName: () => "",
+        getDirectories: () => [],
+        getNewLine: () => "\n",
+        getSourceFile: (candidate) => candidate === fileName ? sourceFile : undefined,
+        readFile: (candidate) => candidate === fileName ? sourceFile.text : undefined,
+        useCaseSensitiveFileNames: () => true,
+        writeFile: () => {},
+      };
+      const program = ts.createProgram({
+        rootNames: [fileName],
+        options: { allowJs: true, checkJs: true, noLib: true, noResolve: true, types: [] },
+        host: compilerHost,
+      });
+      checker = program.getTypeChecker();
+    }
+    const symbol = checker.getSymbolAtLocation(identifier);
+    return symbol?.declarations?.some(isRuntimeDeclaration) ?? false;
+  };
+};
 
 export const extractModuleDependencies = (content, fileName) => {
   const extension = path.extname(fileName);
@@ -95,6 +139,7 @@ export const extractModuleDependencies = (content, fileName) => {
   const specs = [];
   const globCalls = [];
   const globErrors = [];
+  const hasLocalBinding = createLocalBindingLookup(sourceFile, fileName);
 
   const visit = (node) => {
     if (
@@ -103,6 +148,15 @@ export const extractModuleDependencies = (content, fileName) => {
       ts.isStringLiteralLike(node.moduleSpecifier)
     ) {
       specs.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      if (node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) {
+        specs.push(node.moduleReference.expression.text);
+      } else {
+        globErrors.push("import = require musí používat jeden statický literál.");
+      }
     } else if (
       ts.isImportTypeNode(node) &&
       ts.isLiteralTypeNode(node.argument) &&
@@ -116,12 +170,19 @@ export const extractModuleDependencies = (content, fileName) => {
       specs.push(node.moduleSpecifier.text);
     } else if (
       ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length >= 1 &&
-      ts.isStringLiteralLike(node.arguments[0])
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
     ) {
-      specs.push(node.arguments[0].text);
-    } else if (isCommonJsRequireCall(node)) {
+      if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+        specs.push(node.arguments[0].text);
+      } else {
+        globErrors.push("import() musí používat jeden statický literál.");
+      }
+    } else if (commonJsBindingIdentifier(node)) {
+      const bindingIdentifier = commonJsBindingIdentifier(node);
+      if (hasLocalBinding(bindingIdentifier)) {
+        for (const child of node.getChildren(sourceFile)) visit(child);
+        return;
+      }
       if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
         specs.push(node.arguments[0].text);
       } else {

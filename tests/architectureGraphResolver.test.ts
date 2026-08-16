@@ -46,6 +46,24 @@ const expectedEdges: ArchitectureEdge[] = [
     target: "services/moduleRequireService",
   },
   {
+    file: "features/demo/ambient.cts",
+    kind: "static",
+    specifier: "@/services/ambientModuleService",
+    target: "services/ambientModuleService",
+  },
+  {
+    file: "features/demo/ambient.cts",
+    kind: "static",
+    specifier: "@/services/ambientRequireService",
+    target: "services/ambientRequireService",
+  },
+  {
+    file: "features/demo/importEquals.cts",
+    kind: "static",
+    specifier: "@/services/importEqualsService",
+    target: "services/importEqualsService",
+  },
+  {
     file: "features/demo/consumer.ts",
     kind: "static",
     specifier: "@/services/dynamicService",
@@ -128,6 +146,35 @@ const createFixture = () => {
     ].join("\n"),
   );
   fs.writeFileSync(
+    path.join(fixtureRoot, "features/demo/shadowed.cjs"),
+    [
+      "export function run(require, module, target) {",
+      "  require(target);",
+      '  module.require("@/services/stringOnly");',
+      "}",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(fixtureRoot, "features/demo/ambient.cts"),
+    [
+      "declare const require: any;",
+      "declare const module: any;",
+      'const required = require("@/services/ambientRequireService");',
+      'const moduleRequired = module.require("@/services/ambientModuleService");',
+      "void required; void moduleRequired;",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(fixtureRoot, "features/demo/importEquals.cts"),
+    [
+      'import service = require("@/services/importEqualsService");',
+      "void service;",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
     path.join(fixtureRoot, "shared/ui/LegacyShim.ts"),
     'export { LegacyButton } from "@components/LegacyButton";\n',
   );
@@ -137,11 +184,14 @@ const createFixture = () => {
   );
 
   for (const target of [
+    "ambientModuleService.cts",
+    "ambientRequireService.cts",
     "commonJsService.cjs",
     "dynamicService.ts",
     "exportService.ts",
     "globService.ts",
     "importTypeService.ts",
+    "importEqualsService.cts",
     "jsdocService.ts",
     "moduleRequireService.cjs",
     "staticService.ts",
@@ -214,7 +264,8 @@ describe("architecture graph resolver", () => {
       const graphEdges = (graph.edges as ArchitectureEdge[])
         .filter(
           (edge) =>
-            /^(?:app|features|shared|infra)\//.test(edge.file) &&
+            (/^(?:app|features|shared|infra)\//.test(edge.file) ||
+              edge.file === "index.tsx" || edge.file === "App.tsx") &&
             /^(?:components|hooks|services|context|utils)(?:\/|$)/.test(edge.target),
         )
         .sort(compareEdge);
@@ -260,7 +311,8 @@ describe("architecture graph resolver", () => {
     const actual = (graph.edges as ArchitectureEdge[])
       .filter(
         (edge) =>
-          /^(?:app|features|shared|infra)\//.test(edge.file) &&
+          (/^(?:app|features|shared|infra)\//.test(edge.file) ||
+            edge.file === "index.tsx" || edge.file === "App.tsx") &&
           /^(?:components|hooks|services|context|utils)(?:\/|$)/.test(edge.target),
       )
       .map(({ file, specifier, target }) => ({ file, specifier, target }))
@@ -273,7 +325,7 @@ describe("architecture graph resolver", () => {
     expect(graph.collectionErrors).toEqual([]);
     expect(graph.nodes).toHaveLength(599);
     expect(actual).toEqual(baseline.allowedImports);
-    expect(actual).toHaveLength(134);
+    expect(actual).toHaveLength(135);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(37);
   });
 });

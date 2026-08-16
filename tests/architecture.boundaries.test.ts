@@ -318,6 +318,50 @@ describe("Architecture Guardrails", () => {
     }).not.toThrow();
   });
 
+  it("ratchets root composition imports into legacy by exact edge", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tender-flow-root-boundary-"));
+    const boundaryScript = path.join(ROOT, "scripts/check-boundaries.mjs");
+    try {
+      fs.mkdirSync(path.join(fixtureRoot, "services"), { recursive: true });
+      fs.mkdirSync(path.join(fixtureRoot, "config"), { recursive: true });
+      fs.writeFileSync(path.join(fixtureRoot, "index.tsx"), 'import "./services/bootstrap";\n');
+      fs.writeFileSync(path.join(fixtureRoot, "services/bootstrap.ts"), "export {};\n");
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/architecture-boundary-allowlist.json"),
+        JSON.stringify({ allowedFindings: [] }),
+      );
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/legacy-import-baseline.json"),
+        JSON.stringify({ version: 1, allowedImports: [] }),
+      );
+
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).toThrow(/modern-to-legacy-import/);
+
+      fs.writeFileSync(
+        path.join(fixtureRoot, "config/legacy-import-baseline.json"),
+        JSON.stringify({
+          version: 1,
+          allowedImports: [{
+            file: "index.tsx",
+            specifier: "./services/bootstrap",
+            target: "services/bootstrap",
+          }],
+        }),
+      );
+      expect(() => execFileSync(process.execPath, [boundaryScript], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        stdio: "pipe",
+      })).not.toThrow();
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   it("architecture debt audit reports the planned refactor categories", () => {
     const output = execFileSync("node", ["scripts/audit-architecture-debt.mjs", "--json"], {
       cwd: ROOT,

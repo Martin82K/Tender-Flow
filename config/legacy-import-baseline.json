@@ -477,6 +477,11 @@
       "target": "context/FeatureContext"
     },
     {
+      "file": "index.tsx",
+      "specifier": "./services/incidentLogger",
+      "target": "services/incidentLogger"
+    },
+    {
       "file": "infra/auth/authSessionStore.ts",
       "specifier": "@/services/supabase",
       "target": "services/supabase"
