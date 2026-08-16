@@ -64,8 +64,10 @@ textu architektonických skriptů. `tests/architectureGraphResolver.test.ts`
 navíc dokládá, že audit i boundary guard používají společný AST graf: porovnává
 statický import, export, type import, TypeScript import type, JSDoc, dynamický
 import a Vite glob, současně odmítá falešné importy z komentářů a řetězců.
-Reálný repozitář ratchetuje přesnou shodou 597 zdrojových uzlů a 134
-modern-to-legacy hran s verzovanou baseline.
+Reálný repozitář ratchetuje přesnou shodou 599 zdrojových uzlů včetně
+`index.tsx` a `App.tsx`. Boundary baseline eviduje 134 modern-to-legacy hran
+uvnitř vrstev; úplný graph report navíc eviduje composition hranu z `index.tsx`,
+tedy celkem 135.
 
 `tests/architectureGraphAnalysis.test.ts` ověřuje další čistou vrstvu nad tímto
 grafem: rozlišení přípon a `index.*`, fail-closed nejednoznačnost, unikátní
@@ -76,6 +78,13 @@ hlídá úplný graf indukovaný nakonfigurovanými source roots, explicitně ev
 cíle mimo tento scope a chrání dnes známou třímodulovou cyklickou komponentu.
 Nízký testovací edge budget navíc dokládá, že collector zastaví expanzi ještě
 před neomezeným naplněním pole hran.
+
+`npm run check:architecture-graph` nad stejným grafem vynucuje přesný seznam
+vědomě nerozřešených out-of-scope hran `{file, specifier, target}`, povolených
+cyklických komponent a interních legacy hran. `npm run architecture:graph`
+vypíše lidský diagnostický přehled i při nálezu; pouze varianta `check` je
+fail-closed CI gate. Varianta `-- --json` poskytuje deterministický strojový
+report bez absolutních cest, času a obsahu zdrojových souborů.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně

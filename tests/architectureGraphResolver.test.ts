@@ -34,6 +34,18 @@ const expectedEdges: ArchitectureEdge[] = [
     target: "services/jsdocService",
   },
   {
+    file: "features/demo/consumer.cjs",
+    kind: "static",
+    specifier: "@/services/commonJsService",
+    target: "services/commonJsService",
+  },
+  {
+    file: "features/demo/consumer.cjs",
+    kind: "static",
+    specifier: "@/services/moduleRequireService",
+    target: "services/moduleRequireService",
+  },
+  {
     file: "features/demo/consumer.ts",
     kind: "static",
     specifier: "@/services/dynamicService",
@@ -107,6 +119,15 @@ const createFixture = () => {
     ].join("\n"),
   );
   fs.writeFileSync(
+    path.join(fixtureRoot, "features/demo/consumer.cjs"),
+    [
+      'const service = require("@/services/commonJsService");',
+      'const moduleService = module.require("@/services/moduleRequireService");',
+      "void service; void moduleService;",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
     path.join(fixtureRoot, "shared/ui/LegacyShim.ts"),
     'export { LegacyButton } from "@components/LegacyButton";\n',
   );
@@ -116,11 +137,13 @@ const createFixture = () => {
   );
 
   for (const target of [
+    "commonJsService.cjs",
     "dynamicService.ts",
     "exportService.ts",
     "globService.ts",
     "importTypeService.ts",
     "jsdocService.ts",
+    "moduleRequireService.cjs",
     "staticService.ts",
     "typeService.ts",
   ]) {
@@ -248,7 +271,7 @@ describe("architecture graph resolver", () => {
       );
 
     expect(graph.collectionErrors).toEqual([]);
-    expect(graph.nodes).toHaveLength(597);
+    expect(graph.nodes).toHaveLength(599);
     expect(actual).toEqual(baseline.allowedImports);
     expect(actual).toHaveLength(134);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(37);

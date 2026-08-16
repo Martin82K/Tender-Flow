@@ -98,6 +98,8 @@ handler validuje vstup i autorizaci; výsledek vrací serializovatelný kontrakt
 ## Architektonický přechod
 
 Repozitář je v postupné migraci z legacy kořenů do `app/features/shared/infra`.
+Řízení šestnácti migračních smyček, jejich stav a společná exit kritéria popisuje
+[plán odstranění legacy architektury](legacy-modernization-plan.md).
 Audit přes `npm run audit:architecture` zůstává informativním rozborem známých
 kategorií dluhu. Audit i vynucovaný boundary guard staví nad jediným AST
 kolektorem `scripts/lib/architecture-graph.mjs`; statické, typové, JSDoc,

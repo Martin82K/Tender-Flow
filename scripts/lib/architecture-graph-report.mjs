@@ -1,0 +1,491 @@
+import path from "node:path";
+
+import {
+  collectArchitectureGraph,
+} from "./architecture-graph.mjs";
+import {
+  analyzeDirectedGraph,
+  resolveArchitectureModuleGraph,
+} from "./architecture-graph-analysis.mjs";
+
+export const ARCHITECTURE_GRAPH_REPORT_SCHEMA_VERSION = 1;
+
+export const ARCHITECTURE_GRAPH_REPORT_ROOTS = Object.freeze([
+  "index.tsx",
+  "App.tsx",
+  "app",
+  "features",
+  "shared",
+  "infra",
+  "components",
+  "hooks",
+  "services",
+  "context",
+  "utils",
+]);
+
+export const ARCHITECTURE_GRAPH_MODERN_ROOTS = Object.freeze([
+  "app",
+  "features",
+  "shared",
+  "infra",
+]);
+
+export const ARCHITECTURE_GRAPH_LEGACY_ROOTS = Object.freeze([
+  "components",
+  "hooks",
+  "services",
+  "context",
+  "utils",
+]);
+
+const MAX_POLICY_ITEMS = 250_000;
+const REQUIRED_PLAN_LOOPS = 16;
+const MAX_TEXT_BYTES = 4_096;
+
+const compareCodePoint = (left, right) => left < right ? -1 : left > right ? 1 : 0;
+
+const isPlainObject = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const assertPlainObject = (value, label) => {
+  if (!isPlainObject(value)) throw new TypeError(`${label} musí být objekt.`);
+};
+
+const assertText = (value, label) => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new TypeError(`${label} musí být neprázdný řetězec.`);
+  }
+  if (Buffer.byteLength(value, "utf8") > MAX_TEXT_BYTES) {
+    throw new RangeError(`${label} překračuje limit ${MAX_TEXT_BYTES} bajtů.`);
+  }
+  if (/\p{Cc}|\p{Cf}/u.test(value)) {
+    throw new TypeError(`${label} obsahuje řídicí znaky.`);
+  }
+  return value;
+};
+
+const assertRepoPath = (value, label) => {
+  assertText(value, label);
+  if (
+    value.includes("\\") ||
+    value.startsWith("/") ||
+    path.posix.normalize(value) !== value ||
+    value.split("/").some((segment) => segment === "." || segment === "..")
+  ) {
+    throw new TypeError(`${label} musí být kanonická relativní POSIX cesta.`);
+  }
+  return value;
+};
+
+const assertSortedUnique = (values, label, comparator = compareCodePoint) => {
+  for (let index = 1; index < values.length; index += 1) {
+    const comparison = comparator(values[index - 1], values[index]);
+    if (comparison === 0) throw new TypeError(`${label} obsahuje duplicitu.`);
+    if (comparison > 0) throw new TypeError(`${label} musí být deterministicky seřazené.`);
+  }
+};
+
+const isWithinRoot = (moduleId, root) =>
+  moduleId === root || moduleId.startsWith(`${root}/`);
+
+const isWithinRoots = (moduleId, roots) =>
+  roots.some((root) => isWithinRoot(moduleId, root));
+
+const layerOf = (moduleId) => isWithinRoots(moduleId, ARCHITECTURE_GRAPH_MODERN_ROOTS)
+  || moduleId === "index.tsx"
+  || moduleId === "App.tsx"
+  ? "modern"
+  : isWithinRoots(moduleId, ARCHITECTURE_GRAPH_LEGACY_ROOTS)
+    ? "legacy"
+    : "other";
+
+const importKey = ({ file, specifier, target }) => `${file}\u0000${specifier}\u0000${target}`;
+
+const compareImports = (left, right) =>
+  compareCodePoint(left.file, right.file) ||
+  compareCodePoint(left.specifier, right.specifier) ||
+  compareCodePoint(left.target, right.target);
+
+const cycleKey = (nodes) => nodes.join("\u0000");
+
+const compareCycles = (left, right) => {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const comparison = compareCodePoint(left[index], right[index]);
+    if (comparison !== 0) return comparison;
+  }
+  return left.length - right.length;
+};
+
+export const validateArchitectureGraphPolicy = (policy) => {
+  assertPlainObject(policy, "Architecture graph policy");
+  if (policy.version !== 1) throw new TypeError("Architecture graph policy musí mít version 1.");
+
+  const unresolvedImports = policy.allowedUnresolvedImports;
+  const cycles = policy.allowedCycles;
+  const internalImports = policy.allowedLegacyInternalImports;
+  if (!Array.isArray(unresolvedImports)) {
+    throw new TypeError("allowedUnresolvedImports musí být pole.");
+  }
+  if (!Array.isArray(cycles)) throw new TypeError("allowedCycles musí být pole.");
+  if (!Array.isArray(internalImports)) {
+    throw new TypeError("allowedLegacyInternalImports musí být pole.");
+  }
+  if (
+    unresolvedImports.length > MAX_POLICY_ITEMS ||
+    cycles.length > MAX_POLICY_ITEMS ||
+    internalImports.length > MAX_POLICY_ITEMS
+  ) {
+    throw new RangeError(`Architecture graph policy překračuje limit ${MAX_POLICY_ITEMS} položek.`);
+  }
+
+  const normalizedUnresolvedImports = unresolvedImports.map((edge, index) => {
+    assertPlainObject(edge, `allowedUnresolvedImports[${index}]`);
+    return {
+      file: assertRepoPath(edge.file, `allowedUnresolvedImports[${index}].file`),
+      specifier: assertText(edge.specifier, `allowedUnresolvedImports[${index}].specifier`),
+      target: assertRepoPath(edge.target, `allowedUnresolvedImports[${index}].target`),
+    };
+  });
+  assertSortedUnique(
+    normalizedUnresolvedImports,
+    "allowedUnresolvedImports",
+    compareImports,
+  );
+
+  const normalizedCycles = cycles.map((cycle, cycleIndex) => {
+    if (!Array.isArray(cycle) || cycle.length === 0) {
+      throw new TypeError(`allowedCycles[${cycleIndex}] musí být neprázdné pole.`);
+    }
+    const nodes = cycle.map((node, nodeIndex) =>
+      assertRepoPath(node, `allowedCycles[${cycleIndex}][${nodeIndex}]`));
+    assertSortedUnique(nodes, `allowedCycles[${cycleIndex}]`);
+    return nodes;
+  });
+  assertSortedUnique(normalizedCycles, "allowedCycles", compareCycles);
+
+  const normalizedInternalImports = internalImports.map((edge, index) => {
+    assertPlainObject(edge, `allowedLegacyInternalImports[${index}]`);
+    const normalized = {
+      file: assertRepoPath(edge.file, `allowedLegacyInternalImports[${index}].file`),
+      specifier: assertText(edge.specifier, `allowedLegacyInternalImports[${index}].specifier`),
+      target: assertRepoPath(edge.target, `allowedLegacyInternalImports[${index}].target`),
+    };
+    if (!isWithinRoots(normalized.file, ARCHITECTURE_GRAPH_LEGACY_ROOTS)) {
+      throw new TypeError(`${normalized.file} není zdroj v legacy vrstvě.`);
+    }
+    if (!isWithinRoots(normalized.target, ARCHITECTURE_GRAPH_LEGACY_ROOTS)) {
+      throw new TypeError(`${normalized.target} není cíl v legacy vrstvě.`);
+    }
+    return normalized;
+  });
+  assertSortedUnique(
+    normalizedInternalImports,
+    "allowedLegacyInternalImports",
+    compareImports,
+  );
+
+  return {
+    version: 1,
+    allowedUnresolvedImports: normalizedUnresolvedImports,
+    allowedCycles: normalizedCycles,
+    allowedLegacyInternalImports: normalizedInternalImports,
+  };
+};
+
+const validateStringList = (values, label) => {
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new TypeError(`${label} musí být neprázdné pole.`);
+  }
+  return values.map((value, index) => assertText(value, `${label}[${index}]`));
+};
+
+export const validateArchitectureMigrationPlan = (plan) => {
+  assertPlainObject(plan, "Architecture migration plan");
+  if (plan.version !== 1) throw new TypeError("Architecture migration plan musí mít version 1.");
+  if (!Array.isArray(plan.loops) || plan.loops.length !== REQUIRED_PLAN_LOOPS) {
+    throw new TypeError(`Architecture migration plan musí obsahovat přesně ${REQUIRED_PLAN_LOOPS} smyček.`);
+  }
+
+  const knownIds = new Set();
+  const normalizedLoops = plan.loops.map((loop, index) => {
+    assertPlainObject(loop, `loops[${index}]`);
+    const expectedId = `loop-${String(index + 1).padStart(2, "0")}`;
+    const id = assertText(loop.id, `loops[${index}].id`);
+    if (id !== expectedId) {
+      throw new TypeError(`loops[${index}].id musí být ${expectedId}.`);
+    }
+    if (!new Set(["planned", "in_progress", "complete"]).has(loop.status)) {
+      throw new TypeError(`${id}.status má neplatnou hodnotu.`);
+    }
+    if (!Array.isArray(loop.dependencies)) {
+      throw new TypeError(`${id}.dependencies musí být pole.`);
+    }
+    const dependencies = loop.dependencies.map((dependency, dependencyIndex) =>
+      assertText(dependency, `${id}.dependencies[${dependencyIndex}]`));
+    if (new Set(dependencies).size !== dependencies.length) {
+      throw new TypeError(`${id}.dependencies obsahuje duplicitu.`);
+    }
+    for (const dependency of dependencies) {
+      if (!knownIds.has(dependency)) {
+        throw new TypeError(`${id} odkazuje na neznámou nebo pozdější závislost ${dependency}.`);
+      }
+    }
+    knownIds.add(id);
+
+    return {
+      id,
+      title: assertText(loop.title, `${id}.title`),
+      status: loop.status,
+      objective: assertText(loop.objective, `${id}.objective`),
+      dependencies,
+      exitCriteria: validateStringList(loop.exitCriteria, `${id}.exitCriteria`),
+      riskChecks: validateStringList(loop.riskChecks, `${id}.riskChecks`),
+      testGates: validateStringList(loop.testGates, `${id}.testGates`),
+    };
+  });
+
+  const inProgress = normalizedLoops.filter(({ status }) => status === "in_progress");
+  const statusRank = new Map([["complete", 0], ["in_progress", 1], ["planned", 2]]);
+  for (let index = 1; index < normalizedLoops.length; index += 1) {
+    if (statusRank.get(normalizedLoops[index].status) < statusRank.get(normalizedLoops[index - 1].status)) {
+      throw new TypeError(
+        "Stavy smyček musí postupovat complete → in_progress → planned; pouze první nedokončená smyčka smí běžet.",
+      );
+    }
+  }
+  const firstIncomplete = normalizedLoops.find(({ status }) => status !== "complete");
+  if (inProgress.length > 1 || (inProgress.length === 1 && inProgress[0] !== firstIncomplete)) {
+    throw new TypeError(
+      "Pouze první nedokončená smyčka smí být in_progress; plán může mezi smyčkami čekat na schválení.",
+    );
+  }
+
+  return { version: 1, loops: normalizedLoops };
+};
+
+export const summarizeArchitectureMigrationPlan = (plan) => {
+  const validated = validateArchitectureMigrationPlan(plan);
+  return {
+    total: validated.loops.length,
+    complete: validated.loops.filter(({ status }) => status === "complete").length,
+    inProgress: validated.loops.find(({ status }) => status === "in_progress")?.id ?? null,
+    planned: validated.loops.filter(({ status }) => status === "planned").length,
+  };
+};
+
+const collectDiagnostics = (rawGraph) => {
+  const diagnostics = [...rawGraph.collectionErrors];
+  for (const node of rawGraph.nodes) {
+    for (const error of node.globErrors) diagnostics.push(`${node.file}: ${error}`);
+    for (const error of node.globDiagnostics) diagnostics.push(`${node.file}: ${error}`);
+  }
+  return [...new Set(diagnostics)].sort(compareCodePoint);
+};
+
+const makeComponentCandidates = (analysis, resolvedEdges) => {
+  const componentByNode = new Map();
+  const batchByComponent = new Map();
+  for (const [batch, componentIds] of analysis.dependencyFirstBatches.entries()) {
+    for (const id of componentIds) batchByComponent.set(id, batch);
+  }
+  for (const component of analysis.stronglyConnectedComponents) {
+    for (const node of component.nodes) componentByNode.set(node, component.id);
+  }
+
+  const candidates = [];
+  for (const component of analysis.stronglyConnectedComponents) {
+    if (!component.nodes.some((node) => layerOf(node) === "legacy")) continue;
+    const memberSet = new Set(component.nodes);
+    const modernImporters = new Set();
+    const legacyImporters = new Set();
+    const dependencies = new Set();
+    for (const edge of resolvedEdges) {
+      if (memberSet.has(edge.target) && !memberSet.has(edge.file)) {
+        if (layerOf(edge.file) === "modern") modernImporters.add(edge.file);
+        if (layerOf(edge.file) === "legacy") legacyImporters.add(edge.file);
+      }
+      if (memberSet.has(edge.file) && !memberSet.has(edge.target)) {
+        dependencies.add(componentByNode.get(edge.target));
+      }
+    }
+    candidates.push({
+      id: component.id,
+      nodes: component.nodes,
+      cyclic: component.cyclic,
+      dependencyBatch: batchByComponent.get(component.id),
+      modernImporterCount: modernImporters.size,
+      legacyImporterCount: legacyImporters.size,
+      dependencyCount: dependencies.size,
+      modernImporters: [...modernImporters].sort(compareCodePoint),
+    });
+  }
+  return candidates;
+};
+
+const priorityViews = (candidates) => ({
+  cycleBreakers: candidates
+    .filter(({ cyclic }) => cyclic)
+    .sort((left, right) => compareCodePoint(left.id, right.id)),
+  dependencyFirst: [...candidates].sort((left, right) =>
+    left.dependencyBatch - right.dependencyBatch ||
+    right.modernImporterCount - left.modernImporterCount ||
+    compareCodePoint(left.id, right.id)),
+  modernBlockers: [...candidates].sort((left, right) =>
+    right.modernImporterCount - left.modernImporterCount ||
+    left.dependencyBatch - right.dependencyBatch ||
+    compareCodePoint(left.id, right.id)),
+});
+
+const violation = (code, message, details = {}) => ({ code, message, ...details });
+
+export const assembleArchitectureGraphReport = ({
+  rawGraph,
+  policy,
+  plan,
+  roots = ARCHITECTURE_GRAPH_REPORT_ROOTS,
+}) => {
+  const validatedPolicy = validateArchitectureGraphPolicy(policy);
+  const validatedPlan = validateArchitectureMigrationPlan(plan);
+  const resolved = resolveArchitectureModuleGraph(rawGraph);
+  const analysis = analyzeDirectedGraph({
+    nodes: resolved.nodes,
+    edges: resolved.edges.map(({ file, target }) => ({ from: file, to: target })),
+  });
+  const diagnostics = collectDiagnostics(rawGraph);
+  const unresolvedImports = resolved.unresolvedEdges
+    .map(({ file, specifier, target }) => ({ file, specifier, target }))
+    .sort(compareImports);
+  const allowedUnresolvedKeys = new Set(validatedPolicy.allowedUnresolvedImports.map(importKey));
+  const actualUnresolvedKeys = new Set(unresolvedImports.map(importKey));
+  const unexpectedUnresolved = unresolvedImports.filter((edge) =>
+    !allowedUnresolvedKeys.has(importKey(edge)));
+  const staleUnresolvedImports = validatedPolicy.allowedUnresolvedImports.filter((edge) =>
+    !actualUnresolvedKeys.has(importKey(edge)));
+
+  const cyclicComponents = analysis.stronglyConnectedComponents.filter(({ cyclic }) => cyclic);
+  const allowedCycleKeys = new Set(validatedPolicy.allowedCycles.map(cycleKey));
+  const actualCycleKeys = new Set(cyclicComponents.map(({ nodes }) => cycleKey(nodes)));
+  const unexpectedCycles = cyclicComponents.filter(({ nodes }) => !allowedCycleKeys.has(cycleKey(nodes)));
+  const staleCycles = validatedPolicy.allowedCycles.filter((nodes) => !actualCycleKeys.has(cycleKey(nodes)));
+
+  const legacyInternalImports = resolved.edges
+    .filter(({ file, target }) =>
+      layerOf(file) === "legacy" && layerOf(target) === "legacy")
+    .map(({ file, specifier, target }) => ({ file, specifier, target }))
+    .sort(compareImports);
+  const allowedInternalKeys = new Set(validatedPolicy.allowedLegacyInternalImports.map(importKey));
+  const actualInternalKeys = new Set(legacyInternalImports.map(importKey));
+  const unexpectedLegacyInternalImports = legacyInternalImports.filter((edge) =>
+    !allowedInternalKeys.has(importKey(edge)));
+  const staleLegacyInternalImports = validatedPolicy.allowedLegacyInternalImports.filter((edge) =>
+    !actualInternalKeys.has(importKey(edge)));
+
+  const violations = [
+    ...diagnostics.map((message) => violation("collection-error", message)),
+    ...resolved.ambiguousEdges.map((edge) => violation(
+      "ambiguous-import",
+      `${edge.file}: ${edge.specifier} má více kandidátů.`,
+      { file: edge.file, specifier: edge.specifier, target: edge.target, candidates: edge.candidates },
+    )),
+    ...unexpectedUnresolved.map((edge) => violation(
+      "unexpected-unresolved-import",
+      `${edge.file}: ${edge.specifier} nelze rozřešit.`,
+      { file: edge.file, specifier: edge.specifier, target: edge.target },
+    )),
+    ...staleUnresolvedImports.map((edge) => violation(
+      "stale-unresolved-import",
+      `Povolený unresolved import již není používán: ${edge.file} -> ${edge.target}.`,
+      edge,
+    )),
+    ...unexpectedCycles.map((component) => violation(
+      "unexpected-cycle",
+      `Nepovolená cyklická komponenta: ${component.nodes.join(", ")}.`,
+      { nodes: component.nodes },
+    )),
+    ...staleCycles.map((nodes) => violation(
+      "stale-cycle",
+      `Povolený cyklus již neexistuje: ${nodes.join(", ")}.`,
+      { nodes },
+    )),
+    ...unexpectedLegacyInternalImports.map((edge) => violation(
+      "unexpected-legacy-internal-import",
+      `Nepovolený interní legacy import: ${edge.file} -> ${edge.target}.`,
+      edge,
+    )),
+    ...staleLegacyInternalImports.map((edge) => violation(
+      "stale-legacy-internal-import",
+      `Povolený interní legacy import již neexistuje: ${edge.file} -> ${edge.target}.`,
+      edge,
+    )),
+  ];
+
+  const candidates = makeComponentCandidates(analysis, resolved.edges);
+  const modules = analysis.nodes.map((node) => ({ ...node, layer: layerOf(node.id) }));
+  const imports = resolved.edges.map(({ file, target, rawTarget, specifier, kind }) => ({
+    from: file,
+    to: target,
+    requestedTarget: rawTarget,
+    specifier,
+    kind,
+  }));
+  const batchByComponent = new Map();
+  for (const [batch, ids] of analysis.dependencyFirstBatches.entries()) {
+    for (const id of ids) batchByComponent.set(id, batch);
+  }
+
+  return {
+    schemaVersion: ARCHITECTURE_GRAPH_REPORT_SCHEMA_VERSION,
+    status: violations.length === 0 ? "ok" : "failed",
+    scope: {
+      roots: [...roots],
+      modernRoots: [...ARCHITECTURE_GRAPH_MODERN_ROOTS],
+      legacyRoots: [...ARCHITECTURE_GRAPH_LEGACY_ROOTS],
+    },
+    summary: {
+      sourceNodes: resolved.nodes.length,
+      rawImports: rawGraph.edges.length,
+      resolvedImports: resolved.edges.length,
+      unresolvedImports: resolved.unresolvedEdges.length,
+      ambiguousImports: resolved.ambiguousEdges.length,
+      stronglyConnectedComponents: analysis.stronglyConnectedComponents.length,
+      cyclicComponents: cyclicComponents.length,
+      dependencyBatches: analysis.dependencyFirstBatches.length,
+      legacyNodes: resolved.nodes.filter((node) => layerOf(node) === "legacy").length,
+      modernToLegacyImports: resolved.edges.filter(({ file, target }) =>
+        layerOf(file) === "modern" && layerOf(target) === "legacy").length,
+      legacyInternalImports: legacyInternalImports.length,
+    },
+    resolution: {
+      unresolved: unresolvedImports,
+      unexpectedUnresolved,
+      staleAllowedImports: staleUnresolvedImports,
+      ambiguous: resolved.ambiguousEdges,
+    },
+    modules,
+    imports,
+    components: analysis.stronglyConnectedComponents.map((component) => ({
+      ...component,
+      dependencyBatch: batchByComponent.get(component.id),
+    })),
+    migrationBatches: analysis.dependencyFirstBatches,
+    priorities: priorityViews(candidates),
+    plan: {
+      ...summarizeArchitectureMigrationPlan(validatedPlan),
+      loops: validatedPlan.loops,
+    },
+    violations,
+  };
+};
+
+export const buildArchitectureGraphReport = ({
+  root,
+  policy,
+  plan,
+  roots = ARCHITECTURE_GRAPH_REPORT_ROOTS,
+  limits,
+} = {}) => {
+  const rawGraph = collectArchitectureGraph({ root, scanRoots: roots, limits });
+  return assembleArchitectureGraphReport({ rawGraph, policy, plan, roots });
+};

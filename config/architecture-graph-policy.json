@@ -1,0 +1,2124 @@
+{
+  "version": 1,
+  "allowedUnresolvedImports": [
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "app/AppContent.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "app/featureRegistry/index.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "app/featureRegistry/manifests.ts",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "app/featureRegistry/manifests.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "app/featureRegistry/types.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "app/hooks/useRouteStateSync.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "components/ConstructionBackground.tsx",
+      "specifier": "../assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "components/LandingPage.tsx",
+      "specifier": "../config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "components/LandingPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "components/LandingPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../config/navigation",
+      "target": "config/navigation"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "components/SubscriptionFeaturesManagement.tsx",
+      "specifier": "../config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "components/SubscriptionFeaturesManagement.tsx",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "components/UserManagement.tsx",
+      "specifier": "../config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "components/layouts/MainLayout.tsx",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "context/FeatureContext.tsx",
+      "specifier": "../config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/auth/ui/AuthCard.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/AuthCard.tsx",
+      "specifier": "@/config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "features/auth/ui/ForgotPasswordPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/ForgotPasswordPage.tsx",
+      "specifier": "@/features/auth/ui/auth-apex.css",
+      "target": "features/auth/ui/auth-apex.css"
+    },
+    {
+      "file": "features/auth/ui/ForgotPasswordPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/auth/ui/LoginPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/LoginPage.tsx",
+      "specifier": "@/features/auth/ui/auth-apex.css",
+      "target": "features/auth/ui/auth-apex.css"
+    },
+    {
+      "file": "features/auth/ui/LoginPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/auth/ui/MfaPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/MfaPage.tsx",
+      "specifier": "@/features/auth/ui/auth-apex.css",
+      "target": "features/auth/ui/auth-apex.css"
+    },
+    {
+      "file": "features/auth/ui/MfaPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/auth/ui/RegisterPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/RegisterPage.tsx",
+      "specifier": "@/features/auth/ui/auth-apex.css",
+      "target": "features/auth/ui/auth-apex.css"
+    },
+    {
+      "file": "features/auth/ui/RegisterPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/auth/ui/ResetPasswordPage.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/auth/ui/ResetPasswordPage.tsx",
+      "specifier": "@/features/auth/ui/auth-apex.css",
+      "target": "features/auth/ui/auth-apex.css"
+    },
+    {
+      "file": "features/auth/ui/ResetPasswordPage.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/backup/ui/BackupSettings.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/contacts/Contacts.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contacts/model/contactPersistence.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contacts/model/contactQueryModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contacts/model/contactQuickPaste.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contacts/model/index.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contacts/ui/SubcontractorCardsView.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/contracts-overview/ContractOverview.tsx",
+      "specifier": "@/config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "features/help/content/helpContent.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/help/context/HelpContext.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/help/types.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/BulkGeocodePanel.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/MapFilterPanel.tsx",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/components/MapInfoCard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/MapLayerSwitcher.tsx",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/components/MapLegend.tsx",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/components/MapNearbyPanel.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/MapView.tsx",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/components/ProjectMapView.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/maps/components/ProjectMapView.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/RadiusSlider.tsx",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/components/RecommendationPanel.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/components/SubcontractorMapView.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/hooks/useAddressSuggest.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/hooks/useGeocode.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/hooks/useNearbySubcontractors.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/hooks/useSubcontractorRecommendations.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/index.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/services/geocodingService.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/services/geocodingService.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/services/mapyApiService.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/services/recommendationEngine.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/maps/services/recommendationEngine.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/maps/utils/markerColors.ts",
+      "specifier": "@/config/maps",
+      "target": "config/maps"
+    },
+    {
+      "file": "features/notifications/api/notificationEmitter.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/organization/api/orgBillingActions.ts",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/organization/model/types.ts",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/organization/ui/OrgBillingTab.tsx",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/organization/ui/OrgMembersTab.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/organization/ui/OrgOverviewTab.tsx",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/organization/ui/OrgRolePermissionsTab.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/projects/ProjectLayout.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ProjectManager.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ProjectOverview.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/generateContractProtocol.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/pipelineApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/projectDemoDataApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/projectExportApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/tenderPlanApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/api/tenderPlanExportApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/ContractsModule.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/api/contractQueriesApi.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/dashboard/ContractsDashboard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/dashboard/contractsDashboardModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/documents/AmendmentDocumentControl.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/forms/AmendmentDialog.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/forms/ContractEditDialog.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/forms/InvoiceDialog.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/forms/VendorRatingDialog.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/hooks/useAllContractsQuery.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/hooks/useContractsWithDetails.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/investor/InvestorBillingPage.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/investor/investorBillingModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/investor/investorBillingPersistence.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractAmendmentRow.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractFilters.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractListPanel.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsHeadline.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsListPage.tsx",
+      "specifier": "@/config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsListPage.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/ContractsTable.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/list/StatusPill.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/model/contractBidLink.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/ui/WinnerContractButton.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/utils/attachAmendmentDocument.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/utils/attachContractDocument.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/utils/contractCrud.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/utils/contractOcrUpdate.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/utils/retention.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/ContractWorkspace.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/AmendmentsSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/DrawdownsSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/FinancialSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/HeaderSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/InvoicesSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/OcrDocumentSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/RetentionSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/contracts/workspace/sections/WarrantySection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/dochub/model/personalRoot.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/model/useDocHubIntegration.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/DocsLinkSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/PriceListsSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/ProjectDocuments.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/TemplateManager.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/TemplatesSection.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/documents/ui/dochub/DocHubHistory.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/hooks/useProjectDetailsQuery.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/budgetAttachmentLocalStore.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/budgetAttachmentModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/contractProtocolTypes.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/index.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/overviewTenantData.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/pipelineBidStatusModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/pipelineEmailModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/pipelineModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/projectOverviewModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/projectOverviewNewModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/projectScheduleModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/projectVisibility.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/tenderPlanModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineBidActions.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineBidsState.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineCategoryForms.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineCategoryNavigation.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineCommunicationActions.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineContactsController.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineDocHubActions.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineDocHubFallback.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/usePipelineSubcontractorSelection.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useProjectOverviewController.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useProjectOverviewNewController.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useProjectPortfolioState.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useProjectScheduleController.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useProjectsState.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/model/useTenderPlanController.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/Pipeline.tsx",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "features/projects/pipeline/Pipeline.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/model/pipelineContactFormModel.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/BidCard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CategoryCard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CategoryFormModal.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/Column.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CreateContactModal.tsx",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "features/projects/pipeline/ui/CreateContactModal.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/EditBidModal.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineCategoryDocuments.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineContactModals.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineContactPersonsEditor.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineKanbanBoard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/PipelineOverview.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/pipeline/ui/SubcontractorSelectorModal.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ui/ProjectOverviewNew.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ui/ProjectSchedule.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/projects/ui/TenderPlan.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/public/ui/LegalPageLayout.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/public/ui/LegalPageLayout.tsx",
+      "specifier": "@/config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "features/public/ui/LegalPageLayout.tsx",
+      "specifier": "@/features/public/ui/landing-apex.css",
+      "target": "features/public/ui/landing-apex.css"
+    },
+    {
+      "file": "features/public/ui/PublicHeader.tsx",
+      "specifier": "@/assets/logo.svg",
+      "target": "assets/logo.svg"
+    },
+    {
+      "file": "features/settings/AdminMfaGuard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/AdminOrganizationsPanel.tsx",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/ProfileSettings.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/settings/Settings.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/SubscriptionFeaturesManagement.tsx",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/settings/SubscriptionFeaturesManagement.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/SubscriptionSettings.tsx",
+      "specifier": "../../config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/settings/SubscriptionSettings.tsx",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "features/settings/UserManagement.tsx",
+      "specifier": "@/config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "features/settings/model/index.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/subscription/api/billingActions.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/subscription/api/subscriptionState.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/subscription/model/types.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/tasks/ui/TaskCreateButton.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/voice-assistant/api/realtimeSession.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/voice-assistant/api/textResponse.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/voice-assistant/context/VoiceAssistantContext.tsx",
+      "specifier": "@/config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "features/voice-assistant/context/VoiceAssistantContext.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/voice-assistant/model/assistantDataTools.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/voice-assistant/model/branding.ts",
+      "specifier": "@/assets/viki.png",
+      "target": "assets/viki.png"
+    },
+    {
+      "file": "features/voice-assistant/model/routeAvailability.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "features/voice-assistant/types.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/usePipelineData.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/usePipelineUI.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "hooks/useTheme.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "index.tsx",
+      "specifier": "./index.css",
+      "target": "index.css"
+    },
+    {
+      "file": "infra/auth/adminMfaService.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "infra/demo/demoDataAdapter.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "infra/diagnostics/posthog.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "infra/organization/rolePermissionsRpc.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "infra/projects/pipelineRepository.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "infra/projects/tenderPlanRepository.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "services/authService.ts",
+      "specifier": "../config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "services/authService.ts",
+      "specifier": "../config/subscriptionTiers",
+      "target": "config/subscriptionTiers"
+    },
+    {
+      "file": "services/authService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/billingService.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "services/budgetAttachmentService.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "services/contactStatusService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/contactsImportService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/contactsImportWizardService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/contractExtractionService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/contractService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/demoData.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/documentService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/exportService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/incidentLogger.ts",
+      "specifier": "@/config/version",
+      "target": "config/version"
+    },
+    {
+      "file": "services/inquiryService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/organizationService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/projectService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/subscriptionFeaturesService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/templateService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/urlShortenerService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "services/userProfileService.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "services/userSubscriptionService.ts",
+      "specifier": "../types",
+      "target": "types"
+    },
+    {
+      "file": "shared/auth/AuthIdentityContext.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/authorization/projectRoles.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/branding/tenderFlowLogo.ts",
+      "specifier": "@/public/TF_ico.png?inline",
+      "target": "public/TF_ico.png"
+    },
+    {
+      "file": "shared/contracts/MarkdownDocumentPanel.tsx",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "shared/contracts/contractSummary.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/dochub/cloudConnection.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/dochub/fallbackSelection.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/email/signature.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/email/templateUtils.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/legal/legalDocumentVersions.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/offers/offerStatus.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/overview/overviewAnalytics.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/overview/supplierFilters.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/pdf/pdfRuntime.ts",
+      "specifier": "@/fonts/roboto-regular",
+      "target": "fonts/roboto-regular"
+    },
+    {
+      "file": "shared/routing/RequireFeature.tsx",
+      "specifier": "../../config/features",
+      "target": "config/features"
+    },
+    {
+      "file": "shared/routing/routeUtils.ts",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "shared/routing/routes.ts",
+      "specifier": "../../types",
+      "target": "types"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/botanica/botanical-relief-dark.svg?no-inline",
+      "target": "assets/themes/botanica/botanical-relief-dark.svg"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/botanica/botanical-relief-dark.webp?no-inline",
+      "target": "assets/themes/botanica/botanical-relief-dark.webp"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/botanica/botanical-relief-light.svg?no-inline",
+      "target": "assets/themes/botanica/botanical-relief-light.svg"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/botanica/botanical-relief-light.webp?no-inline",
+      "target": "assets/themes/botanica/botanical-relief-light.webp"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/nature/forest-dark.jpg?no-inline",
+      "target": "assets/themes/nature/forest-dark.jpg"
+    },
+    {
+      "file": "shared/theme/skinRegistry.ts",
+      "specifier": "@/assets/themes/nature/forest-light.jpg?no-inline",
+      "target": "assets/themes/nature/forest-light.jpg"
+    },
+    {
+      "file": "shared/ui/ContactsImportWizard.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/GlobalSearch/types.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/SubcontractorSelector.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/UserAccountMenu.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/contacts/ContactContextMenu.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/contacts/ContactsFilterBar.tsx",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "shared/ui/contacts/ContactsFilterBar.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/contacts/contactDisplay.ts",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "shared/ui/contacts/contactDisplay.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/contacts/contactsFiltersLogic.ts",
+      "specifier": "@/config/constants",
+      "target": "config/constants"
+    },
+    {
+      "file": "shared/ui/contacts/contactsFiltersLogic.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/contacts/useContactsFilters.ts",
+      "specifier": "@/types",
+      "target": "types"
+    },
+    {
+      "file": "shared/ui/projects/ContractsSummaryView.tsx",
+      "specifier": "@/types",
+      "target": "types"
+    }
+  ],
+  "allowedCycles": [
+    [
+      "services/authSessionService.ts",
+      "services/incidentLogger.ts",
+      "services/supabase.ts"
+    ]
+  ],
+  "allowedLegacyInternalImports": [
+    {
+      "file": "components/EmailWhitelistManagement.tsx",
+      "specifier": "../context/UIContext",
+      "target": "context/UIContext.tsx"
+    },
+    {
+      "file": "components/EmailWhitelistManagement.tsx",
+      "specifier": "../services/userManagementService",
+      "target": "services/userManagementService.ts"
+    },
+    {
+      "file": "components/ProjectOverviewNew.tsx",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "components/Sidebar.tsx",
+      "specifier": "../context/FeatureContext",
+      "target": "context/FeatureContext.tsx"
+    },
+    {
+      "file": "components/SubscriptionFeaturesManagement.tsx",
+      "specifier": "../context/UIContext",
+      "target": "context/UIContext.tsx"
+    },
+    {
+      "file": "components/SubscriptionFeaturesManagement.tsx",
+      "specifier": "../services/subscriptionFeaturesService",
+      "target": "services/subscriptionFeaturesService.ts"
+    },
+    {
+      "file": "components/UserManagement.tsx",
+      "specifier": "../context/UIContext",
+      "target": "context/UIContext.tsx"
+    },
+    {
+      "file": "components/UserManagement.tsx",
+      "specifier": "../services/userManagementService",
+      "target": "services/userManagementService.ts"
+    },
+    {
+      "file": "components/desktop/FileSystemIndicator.tsx",
+      "specifier": "../../hooks/useDesktopConnection",
+      "target": "hooks/useDesktopConnection.ts"
+    },
+    {
+      "file": "components/desktop/UpdateBanner.tsx",
+      "specifier": "../UpdateNotification",
+      "target": "components/UpdateNotification.tsx"
+    },
+    {
+      "file": "components/desktop/index.ts",
+      "specifier": "./FileSystemIndicator",
+      "target": "components/desktop/FileSystemIndicator.tsx"
+    },
+    {
+      "file": "components/desktop/index.ts",
+      "specifier": "./UpdateBanner",
+      "target": "components/desktop/UpdateBanner.tsx"
+    },
+    {
+      "file": "components/layouts/MainLayout.tsx",
+      "specifier": "../Sidebar",
+      "target": "components/Sidebar.tsx"
+    },
+    {
+      "file": "components/layouts/MainLayout.tsx",
+      "specifier": "@/hooks/useTheme",
+      "target": "hooks/useTheme.ts"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "./KPICard",
+      "target": "components/overview/KPICard.tsx"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "./StatusCard",
+      "target": "components/overview/StatusCard.tsx"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "./SuccessRateChart",
+      "target": "components/overview/SuccessRateChart.tsx"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "./SupplierBarChart",
+      "target": "components/overview/SupplierBarChart.tsx"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "./SupplierTable",
+      "target": "components/overview/SupplierTable.tsx"
+    },
+    {
+      "file": "components/overview/OverviewDashboard.tsx",
+      "specifier": "@/utils/formatters",
+      "target": "utils/formatters.ts"
+    },
+    {
+      "file": "components/overview/SuccessRateChart.tsx",
+      "specifier": "@/utils/formatters",
+      "target": "utils/formatters.ts"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./BudgetDeviationGauge",
+      "target": "components/overview/BudgetDeviationGauge.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./KPICard",
+      "target": "components/overview/KPICard.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./OverviewDashboard",
+      "target": "components/overview/OverviewDashboard.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./StatusCard",
+      "target": "components/overview/StatusCard.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./StatusDistributionChart",
+      "target": "components/overview/StatusDistributionChart.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./SuccessRateChart",
+      "target": "components/overview/SuccessRateChart.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./SupplierBarChart",
+      "target": "components/overview/SupplierBarChart.tsx"
+    },
+    {
+      "file": "components/overview/index.ts",
+      "specifier": "./SupplierTable",
+      "target": "components/overview/SupplierTable.tsx"
+    },
+    {
+      "file": "components/providers/AppProviders.tsx",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "components/providers/AppProviders.tsx",
+      "specifier": "../../context/FeatureContext",
+      "target": "context/FeatureContext.tsx"
+    },
+    {
+      "file": "components/providers/AppProviders.tsx",
+      "specifier": "../../context/UIContext",
+      "target": "context/UIContext.tsx"
+    },
+    {
+      "file": "components/providers/AppProviders.tsx",
+      "specifier": "../../services/queryClient",
+      "target": "services/queryClient.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../services/authService",
+      "target": "services/authService.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../services/authSessionService",
+      "target": "services/authSessionService.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../services/demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../services/platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "../services/queryClient",
+      "target": "services/queryClient.ts"
+    },
+    {
+      "file": "context/AuthContext.tsx",
+      "specifier": "@/services/incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "context/FeatureContext.tsx",
+      "specifier": "./AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "context/UIContext.tsx",
+      "specifier": "../hooks/useUIState",
+      "target": "hooks/useUIState.ts"
+    },
+    {
+      "file": "hooks/index.ts",
+      "specifier": "./useAsync",
+      "target": "hooks/useAsync.ts"
+    },
+    {
+      "file": "hooks/index.ts",
+      "specifier": "./useDebounce",
+      "target": "hooks/useDebounce.ts"
+    },
+    {
+      "file": "hooks/index.ts",
+      "specifier": "./useLocalStorage",
+      "target": "hooks/useLocalStorage.ts"
+    },
+    {
+      "file": "hooks/index.ts",
+      "specifier": "./useTheme",
+      "target": "hooks/useTheme.ts"
+    },
+    {
+      "file": "hooks/index.ts",
+      "specifier": "./useUIState",
+      "target": "hooks/useUIState.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../services/contactsImportService",
+      "target": "services/contactsImportService.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../services/dbAdapter",
+      "target": "services/dbAdapter.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../services/demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../services/fileSystemService",
+      "target": "services/fileSystemService.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../../services/incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../queries/useContactsQuery",
+      "target": "hooks/queries/useContactsQuery.ts"
+    },
+    {
+      "file": "hooks/mutations/useContactMutations.ts",
+      "specifier": "../queries/useProjectDetailsQuery",
+      "target": "hooks/queries/useProjectDetailsQuery.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../services/dbAdapter",
+      "target": "services/dbAdapter.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../services/demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../services/fileSystemService",
+      "target": "services/fileSystemService.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../services/functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../../utils/docHub",
+      "target": "utils/docHub.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../queries/useOverviewTenantDataQuery",
+      "target": "hooks/queries/useOverviewTenantDataQuery.ts"
+    },
+    {
+      "file": "hooks/mutations/useProjectMutations.ts",
+      "specifier": "../queries/useProjectDetailsQuery",
+      "target": "hooks/queries/useProjectDetailsQuery.ts"
+    },
+    {
+      "file": "hooks/queries/useContactStatusesQuery.ts",
+      "specifier": "../../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/queries/useContactStatusesQuery.ts",
+      "specifier": "../../services/contactStatusService",
+      "target": "services/contactStatusService.ts"
+    },
+    {
+      "file": "hooks/queries/useContactStatusesQuery.ts",
+      "specifier": "../../utils/helpers",
+      "target": "utils/helpers.ts"
+    },
+    {
+      "file": "hooks/queries/useContactsQuery.ts",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/queries/useOverviewTenantDataQuery.ts",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/queries/useOverviewTenantDataQuery.ts",
+      "specifier": "@/services/demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "hooks/queries/useProjectsQuery.ts",
+      "specifier": "@/context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "../context/AuthContext",
+      "target": "context/AuthContext.tsx"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "../services/contactsImportService",
+      "target": "services/contactsImportService.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "../utils/helpers",
+      "target": "utils/helpers.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./mutations/useContactMutations",
+      "target": "hooks/mutations/useContactMutations.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./mutations/useProjectMutations",
+      "target": "hooks/mutations/useProjectMutations.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./queries/useContactStatusesQuery",
+      "target": "hooks/queries/useContactStatusesQuery.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./queries/useContactsQuery",
+      "target": "hooks/queries/useContactsQuery.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./queries/useProjectDetailsQuery",
+      "target": "hooks/queries/useProjectDetailsQuery.ts"
+    },
+    {
+      "file": "hooks/useAppData.ts",
+      "specifier": "./queries/useProjectsQuery",
+      "target": "hooks/queries/useProjectsQuery.ts"
+    },
+    {
+      "file": "hooks/useDesktop.ts",
+      "specifier": "../services/platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "hooks/useDesktopConnection.ts",
+      "specifier": "../services/fileSystemService",
+      "target": "services/fileSystemService.ts"
+    },
+    {
+      "file": "hooks/useDesktopConnection.ts",
+      "specifier": "../services/platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "hooks/useTheme.ts",
+      "specifier": "../services/platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "hooks/useTheme.ts",
+      "specifier": "../utils/helpers",
+      "target": "utils/helpers.ts"
+    },
+    {
+      "file": "services/aiInsightsService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/authService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/authService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/authSessionService.ts",
+      "specifier": "./platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "services/authSessionService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/billingService.ts",
+      "specifier": "./paymentProviderService",
+      "target": "services/paymentProviderService.ts"
+    },
+    {
+      "file": "services/budgetAttachmentService.ts",
+      "specifier": "@/services/fileSystemService",
+      "target": "services/fileSystemService.ts"
+    },
+    {
+      "file": "services/contactStatusService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/contractExtractionService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/contractExtractionService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/contractService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/contractService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/dbAdapter.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/documentService.ts",
+      "specifier": "./demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "services/documentService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/emailService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/excelMergerService.ts",
+      "specifier": "./excelMergerTypes",
+      "target": "services/excelMergerTypes.ts"
+    },
+    {
+      "file": "services/excelMergerService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/featureUsageService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/fileSystemService.ts",
+      "specifier": "../utils/docHub",
+      "target": "utils/docHub.ts"
+    },
+    {
+      "file": "services/fileSystemService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/fileSystemService.ts",
+      "specifier": "./incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "services/fileSystemService.ts",
+      "specifier": "./platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "services/fileSystemService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/functionsClient.ts",
+      "specifier": "./incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "services/functionsClient.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/geminiService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/incidentAdminService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/incidentLogger.ts",
+      "specifier": "./platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "services/incidentLogger.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/indexerService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/inquiryService.ts",
+      "specifier": "./budgetAttachmentService",
+      "target": "services/budgetAttachmentService.ts"
+    },
+    {
+      "file": "services/notificationService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/organizationService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/overviewChatService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/overviewChatService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/paymentProviderService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/projectService.ts",
+      "specifier": "./demoData",
+      "target": "services/demoData.ts"
+    },
+    {
+      "file": "services/projectService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/queryClient.ts",
+      "specifier": "./authSessionService",
+      "target": "services/authSessionService.ts"
+    },
+    {
+      "file": "services/queryClient.ts",
+      "specifier": "./incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "services/subscriptionFeaturesService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/supabase.ts",
+      "specifier": "./authSessionService",
+      "target": "services/authSessionService.ts"
+    },
+    {
+      "file": "services/supabase.ts",
+      "specifier": "./incidentLogger",
+      "target": "services/incidentLogger.ts"
+    },
+    {
+      "file": "services/templateService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/toolsAdapter.ts",
+      "specifier": "./platformAdapter",
+      "target": "services/platformAdapter.ts"
+    },
+    {
+      "file": "services/urlShortenerService.ts",
+      "specifier": "./functionsClient",
+      "target": "services/functionsClient.ts"
+    },
+    {
+      "file": "services/urlShortenerService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/userManagementService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/userProfileService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "services/userSubscriptionService.ts",
+      "specifier": "./supabase",
+      "target": "services/supabase.ts"
+    },
+    {
+      "file": "utils/excelUnlocker.ts",
+      "specifier": "./excelUnlockerShared",
+      "target": "utils/excelUnlockerShared.ts"
+    },
+    {
+      "file": "utils/overviewChat.ts",
+      "specifier": "./formatters",
+      "target": "utils/formatters.ts"
+    }
+  ]
+}

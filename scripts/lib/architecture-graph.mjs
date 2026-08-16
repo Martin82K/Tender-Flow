@@ -3,6 +3,8 @@ import path from "node:path";
 import ts from "typescript";
 
 export const ARCHITECTURE_SCAN_ROOTS = Object.freeze([
+  "index.tsx",
+  "App.tsx",
   "app",
   "features",
   "shared",
@@ -60,6 +62,20 @@ const isImportMetaGlobCall = (node) =>
   node.expression.expression.name.text === "meta" &&
   (node.expression.name.text === "glob" || node.expression.name.text === "globEager");
 
+const isCommonJsRequireCall = (node) =>
+  ts.isCallExpression(node) &&
+  (
+    (ts.isIdentifier(node.expression) && node.expression.text === "require") ||
+    (
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      (
+        (node.expression.expression.text === "require" && node.expression.name.text === "resolve") ||
+        (node.expression.expression.text === "module" && node.expression.name.text === "require")
+      )
+    )
+  );
+
 export const extractModuleDependencies = (content, fileName) => {
   const extension = path.extname(fileName);
   const scriptKind = extension === ".tsx"
@@ -105,6 +121,12 @@ export const extractModuleDependencies = (content, fileName) => {
       ts.isStringLiteralLike(node.arguments[0])
     ) {
       specs.push(node.arguments[0].text);
+    } else if (isCommonJsRequireCall(node)) {
+      if (node.arguments.length === 1 && ts.isStringLiteralLike(node.arguments[0])) {
+        specs.push(node.arguments[0].text);
+      } else {
+        globErrors.push("require musí používat jeden statický literál.");
+      }
     } else if (isImportMetaGlobCall(node)) {
       const argument = node.arguments[0];
       let patterns = null;
@@ -383,10 +405,24 @@ const collectRegularFiles = (root, scanRoots, limits) => {
   for (const scanRoot of scanRoots) {
     const absDir = path.join(root, scanRoot);
     if (!fs.existsSync(absDir)) continue;
-    if (fs.lstatSync(absDir).isSymbolicLink()) {
+    const scanRootStat = fs.lstatSync(absDir);
+    if (scanRootStat.isSymbolicLink()) {
       collectionErrors.push(`Symbolický odkaz není povolen jako scan root: ${scanRoot}`);
       continue;
     }
+
+    if (scanRootStat.isFile()) {
+      if (regularFiles.length >= limits.maxRegularFiles) {
+        collectionErrors.push(
+          `Graf překračuje limit ${limits.maxRegularFiles} regulárních souborů.`,
+        );
+        return { regularFiles, collectionErrors };
+      }
+      regularFiles.push(absDir);
+      continue;
+    }
+
+    if (!scanRootStat.isDirectory()) continue;
 
     const stack = [absDir];
     while (stack.length > 0) {
