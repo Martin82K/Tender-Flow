@@ -60,7 +60,12 @@ Samostatné fixture testy stejně ověřují nový modern-to-legacy import, zast
 importní baseline, Vite glob importy a symetrii legacy freeze snapshotu. Symlink
 scénáře se na Windows přeskočí pouze tehdy, když prostředí jejich vytvoření
 výslovně nepovoluje; ostatní chyby zůstávají selháním. Nejde tedy pouze o kontrolu
-textu architektonických skriptů.
+textu architektonických skriptů. `tests/architectureGraphResolver.test.ts`
+navíc dokládá, že audit i boundary guard používají společný AST graf: porovnává
+statický import, export, type import, TypeScript import type, JSDoc, dynamický
+import a Vite glob, současně odmítá falešné importy z komentářů a řetězců.
+Reálný repozitář ratchetuje přesnou shodou 597 zdrojových uzlů a 134
+modern-to-legacy hran s verzovanou baseline.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně
