@@ -5234,6 +5234,113 @@ html[data-skin="space"] :is(.tf-theme-mode-control, .tf-appearance-picker, .tf-t
   background: rgba(8, 13, 23, 0.86) !important;
 }
 
+html[data-skin="space"] .tf-project-manager-view {
+  background: transparent !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view > div {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-create-section"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] {
+  border-color: var(--tf-skin-line) !important;
+  background: color-mix(in srgb, var(--tf-skin-card) 82%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 48px rgba(0, 0, 0, 0.2) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(18px) saturate(128%);
+}
+
+html[data-skin="space"] .tf-project-manager-view form,
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] [class*="bg-slate-50"] {
+  border-color: var(--tf-skin-line) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 68%, transparent) !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"]:hover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 42%, var(--tf-skin-line) 58%) !important;
+  background: color-mix(in srgb, var(--tf-space-blue) 8%, var(--tf-skin-surface-muted) 92%) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(h2, h3, h4, [class*="text-slate-900"], [class*="text-white"]) {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(p, label, [class*="text-slate-700"], [class*="text-slate-600"], [class*="text-slate-500"]) {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--tf-skin-line-2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 82%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--tf-space-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view button[class*="from-emerald"],
+html[data-skin="space"] .tf-project-manager-view button[class*="from-blue"],
+html[data-skin="space"] .tf-project-manager-view button[class*="from-violet"] {
+  border: 1px solid rgba(251, 113, 133, 0.72) !important;
+  background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button:hover,
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] button:hover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 38%, var(--tf-skin-line) 62%) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"] {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 42%, var(--tf-skin-line) 58%) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-edit-modal"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-share-modal"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-transfer-modal"] {
+  background: rgba(2, 4, 10, 0.76) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :is(
+  [data-help-id="pm-edit-modal"],
+  [data-help-id="pm-share-modal"],
+  [data-help-id="pm-transfer-modal"]
+) .tf-modal-panel {
+  border-color: var(--tf-skin-line-2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  background-image: none !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.46) !important;
+  backdrop-filter: blur(22px) saturate(130%);
+}
+
 html[data-skin="space"] .tf-space-sidebar-reveal {
   transition: opacity 160ms ease;
 }

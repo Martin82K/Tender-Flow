@@ -13,6 +13,14 @@ const pipelineOverview = readFileSync(
   join(process.cwd(), "features/projects/pipeline/ui/PipelineOverview.tsx"),
   "utf8",
 );
+const appContent = readFileSync(
+  join(process.cwd(), "app/AppContent.tsx"),
+  "utf8",
+);
+const projectManager = readFileSync(
+  join(process.cwd(), "features/projects/ProjectManager.tsx"),
+  "utf8",
+);
 
 describe("TF Space theme contract", () => {
   it("nabízí TF Space jako volitelný skin", () => {
@@ -53,5 +61,21 @@ describe("TF Space theme contract", () => {
     expect(pipelineOverview).toContain("from '@appica/icons-react'");
     expect(pipelineOverview).toContain("<Button");
     expect(pipelineOverview).toContain("<BuildingPlus");
+  });
+
+  it("přebírá TF Space také na celé obrazovce Správa staveb", () => {
+    expect(appContent).toContain("<ProjectManager");
+    expect(appContent).toContain("skin={skin}");
+    expect(projectManager).toContain("tf-project-manager-view");
+    expect(projectManager).toContain('data-help-id="pm-create-section"');
+    expect(projectManager).toContain('data-help-id="pm-project-list"');
+    expect(projectManager).toContain('data-help-id="pm-edit-modal"');
+    expect(projectManager).toContain('data-help-id="pm-share-modal"');
+    expect(projectManager).toContain('data-help-id="pm-transfer-modal"');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-create-section"]');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"]');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-edit-modal"]');
   });
 });
