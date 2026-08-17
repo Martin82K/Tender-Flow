@@ -312,8 +312,12 @@ export const MonthlyVolumeTrends: React.FC<MonthlyVolumeTrendsProps> = ({ trends
   const lastYear = years[years.length - 1];
   const [customStartYear, setCustomStartYear] = useState<number | null>(null);
   const [customEndYear, setCustomEndYear] = useState<number | null>(null);
-  const selectedStartYear = customStartYear ?? firstYear;
-  const selectedEndYear = customEndYear ?? lastYear;
+  const selectedStartYear = customStartYear !== null && years.includes(customStartYear)
+    ? customStartYear
+    : firstYear;
+  const selectedEndYear = customEndYear !== null && years.includes(customEndYear)
+    ? customEndYear
+    : lastYear;
   const yearOptions = years.map((year) => ({ value: year.toString(), label: year.toString() }));
   const colorIndexByYear = useMemo(
     () => new Map(years.map((year, index) => [year, index])),
