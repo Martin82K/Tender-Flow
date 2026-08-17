@@ -80,6 +80,10 @@ export const AppearancePicker = <T extends string>({
         <AutocompleteContent
           sideOffset={4}
           align="end"
+          positionerProps={{
+            className: "tf-appearance-picker-positioner",
+            style: { zIndex: 130 },
+          }}
           className="tf-appearance-picker-popover z-[120] min-w-48"
         >
           <AutocompleteList>

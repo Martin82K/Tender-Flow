@@ -53,6 +53,22 @@ describe("TF Space theme contract", () => {
     expect(css).toContain("@media (forced-colors: active)");
   });
 
+  it("sjednocuje Appica tokeny a sdílené interaktivní prvky ve TF Space", () => {
+    expect(css).toContain("--primary-muted: var(--tf-space-magenta)");
+    expect(css).toContain("--secondary: var(--tf-space-blue)");
+    expect(css).toContain("--background-muted: var(--tf-skin-surface-muted)");
+    expect(css).toContain("--border-overlay: var(--tf-skin-line-2)");
+    expect(css).toContain('html[data-skin="space"] .tf-account-menu-panel');
+    expect(css).toContain('html[data-skin="space"] .tf-appearance-picker-positioner');
+    expect(css).toContain('html[data-skin="space"] [data-slot="button"]');
+    expect(css).toContain('html[data-skin="space"] [data-slot="toggle"]');
+    expect(css).toContain(
+      'html[data-skin="space"] .tf-account-menu-panel button:not([data-slot="toggle"]):not(.tf-ui-scale-button):not(:disabled):hover',
+    );
+    expect(css).toContain('html[data-skin="space"] .tf-themed-select-popover');
+    expect(css).toContain('html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div');
+  });
+
   it("používá Appica komponenty i jejich stromově vytřesitelné ikony", () => {
     expect(shellDecor).toContain('from "@appica/ui-react"');
     expect(shellDecor).toContain("BackgroundPattern");

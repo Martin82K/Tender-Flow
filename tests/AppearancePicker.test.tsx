@@ -23,4 +23,23 @@ describe("AppearancePicker", () => {
 
     expect(onChange).toHaveBeenCalledWith("space");
   });
+
+  it("vykreslí portál motivů nad účtovým menu", async () => {
+    render(
+      <AppearancePicker
+        label="Skin"
+        icon="palette"
+        value="industrial"
+        options={themeSkinOptions}
+        onChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Skin" }));
+
+    await screen.findByRole("listbox");
+    expect(document.querySelector(".tf-appearance-picker-positioner")).toHaveStyle({
+      zIndex: "130",
+    });
+  });
 });

@@ -280,7 +280,9 @@ describe("UserAccountMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
     fireEvent.click(await screen.findByRole("combobox", { name: "Motiv" }));
-    fireEvent.click(screen.getByRole("option", { name: "Industrial" }));
+    const industrialOption = screen.getByRole("option", { name: "Industrial" });
+    fireEvent.mouseDown(industrialOption);
+    fireEvent.click(industrialOption);
 
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
   });
