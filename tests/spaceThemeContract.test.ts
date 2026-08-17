@@ -62,6 +62,9 @@ describe("TF Space theme contract", () => {
     expect(css).toContain('html[data-skin="space"] .tf-appearance-picker-positioner');
     expect(css).toContain('html[data-skin="space"] [data-slot="button"]');
     expect(css).toContain('html[data-skin="space"] [data-slot="toggle"]');
+    expect(css).toContain(
+      'html[data-skin="space"] .tf-account-menu-panel button:not([data-slot="toggle"]):not(.tf-ui-scale-button):not(:disabled):hover',
+    );
     expect(css).toContain('html[data-skin="space"] .tf-themed-select-popover');
     expect(css).toContain('html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div');
   });
