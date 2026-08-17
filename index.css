@@ -71,7 +71,8 @@ input[type="number"] {
   --tf-skin-accent-2: #607afb;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #4055c7;
-  --tf-settings-primary-foreground: #0f172a;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #b45309;
   --tf-skin-green: #10b981;
@@ -97,7 +98,8 @@ html.dark {
   --tf-skin-accent-2: #818cf8;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #a5b4fc;
-  --tf-settings-primary-foreground: #0f172a;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #fbbf24;
   --tf-skin-green: #34d399;
@@ -122,7 +124,8 @@ html[data-skin="industrial"] {
   --tf-skin-accent-2: #b03a05;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #0f172a;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff8a33;
   --tf-skin-orange-deep: #b03a05;
   --tf-skin-green: #58c69a;
@@ -150,7 +153,8 @@ html.dark[data-skin="industrial"] {
   --tf-skin-accent-2: #7aa2ff;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #0f172a;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff9f1a;
   --tf-skin-orange-deep: #ff8a33;
   --tf-skin-green: #58c69a;
@@ -3847,7 +3851,8 @@ html[data-skin="botanica"] {
   --tf-skin-accent-2: #ad6b7e;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #ffffff;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #9a5267;
   --tf-skin-orange-deep: #5c2034;
   --tf-skin-green: #647660;
@@ -3878,7 +3883,8 @@ html.dark[data-skin="botanica"] {
   --tf-skin-accent-2: #d18aa0;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #ffffff;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #c56d85;
   --tf-skin-orange-deep: #e2a0b2;
   --tf-skin-green: #91a18c;
@@ -3910,7 +3916,8 @@ html[data-skin="nature"] {
   --tf-skin-accent-2: #2f855a;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #ffffff;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #166534;
   --tf-skin-orange-deep: #14532d;
   --tf-skin-green: #15803d;
@@ -3940,7 +3947,8 @@ html.dark[data-skin="nature"] {
   --tf-skin-accent-2: #63b985;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-primary-foreground: #ffffff;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #1f7a46;
   --tf-skin-orange-deep: #7dd6a0;
   --tf-skin-green: #4dbd78;
@@ -4640,9 +4648,9 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 }
 
 .tf-theme-mode-button[aria-pressed="true"] {
-  background: var(--tf-settings-primary);
+  background: var(--tf-settings-active-background);
   box-shadow: none;
-  color: var(--tf-settings-primary-foreground);
+  color: var(--tf-settings-active-foreground);
 }
 
 .tf-theme-mode-button:focus-visible,
@@ -4752,8 +4760,8 @@ html[data-skin] .tf-theme-mode-button:hover {
 }
 
 html[data-skin] .tf-theme-mode-button[aria-pressed="true"] {
-  background-color: var(--tf-settings-primary) !important;
-  color: var(--tf-settings-primary-foreground) !important;
+  background-color: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
   box-shadow: none;
 }
 
@@ -4763,10 +4771,10 @@ html[data-skin] .tf-appearance-section {
 }
 
 html[data-skin] .tf-documents-tab[aria-selected="true"] {
-  border-color: var(--tf-settings-primary) !important;
-  background-color: var(--tf-settings-primary) !important;
+  border-color: var(--tf-settings-active-background) !important;
+  background-color: var(--tf-settings-active-background) !important;
   background-image: none !important;
-  color: var(--tf-settings-primary-foreground) !important;
+  color: var(--tf-settings-active-foreground) !important;
   box-shadow: none !important;
 }
 
@@ -5023,7 +5031,8 @@ html[data-skin="space"] {
   --tf-skin-accent-2: var(--tf-space-cyan);
   --tf-settings-primary: var(--tf-space-red);
   --tf-settings-primary-strong: #f43f5e;
-  --tf-settings-primary-foreground: #0f172a;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --primary: var(--tf-space-red);
   --primary-subtle: rgba(244, 63, 94, 0.12);
   --primary-soft: rgba(244, 63, 94, 0.2);
@@ -5423,9 +5432,9 @@ html[data-skin="space"] .tf-ui-scale-button:hover:not(:disabled) {
 }
 
 html[data-skin="space"] [data-slot="toggle"][aria-pressed="true"] {
-  border-color: var(--tf-space-red) !important;
-  background: var(--tf-space-red) !important;
-  color: var(--tf-settings-primary-foreground) !important;
+  border-color: var(--tf-settings-active-background) !important;
+  background: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
   box-shadow: none !important;
 }
 

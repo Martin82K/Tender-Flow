@@ -25,6 +25,16 @@ const contrastRatio = (foreground: string, background: string): number => {
   return (lighter + 0.05) / (darker + 0.05);
 };
 
+const mixWithBlack = (hex: string, primaryWeight: number): string => {
+  const channels = hex
+    .slice(1)
+    .match(/.{2}/g)
+    ?.map((channel) => Math.round(Number.parseInt(channel, 16) * primaryWeight));
+
+  if (!channels || channels.length !== 3) return "#000000";
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+};
+
 const cssBlock = (selector: string): string => {
   const start = css.indexOf(`${selector} {`);
   const end = css.indexOf("\n}", start);
@@ -37,19 +47,20 @@ const cssBlock = (selector: string): string => {
 describe("shared Settings skin tokens", () => {
   it("definuje individuální primární paletu pro všechny skiny a režimy", () => {
     expect(cssBlock(":root")).toContain("--tf-settings-primary: rgb(var(--tf-color-primary-rgb))");
-    expect(cssBlock(":root")).toContain("--tf-settings-primary-foreground: #0f172a");
+    expect(cssBlock(":root")).toContain("--tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%)");
+    expect(cssBlock(":root")).toContain("--tf-settings-active-foreground: #ffffff");
     expect(cssBlock("html.dark")).toContain("--tf-settings-primary-strong: #a5b4fc");
 
     for (const skin of ["industrial", "botanica", "nature", "space"]) {
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary:");
-      expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary-foreground:");
+      expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-active-background:");
+      expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-active-foreground:");
       expect(cssBlock(`html.dark[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary-strong:");
     }
   });
 
   it("drží aktivní plné stavy nad WCAG AA ve všech paletách", () => {
     const pairs = [
-      ["#0f172a", "#607afb"],
       ["#0f172a", "#ff8a33"],
       ["#0f172a", "#ff9f1a"],
       ["#ffffff", "#7a3248"],
@@ -63,7 +74,21 @@ describe("shared Settings skin tokens", () => {
       expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
     }
 
-    expect(css).toContain("color: var(--tf-settings-primary-foreground) !important");
+    expect(css).toContain("color: var(--tf-settings-active-foreground) !important");
+  });
+
+  it("odvodí kontrastní aktivní plochu pro každou uživatelskou primární barvu", () => {
+    const userPrimaryColors = [
+      "#607AFB", "#3B82F6", "#06B6D4", "#14B8A6", "#10B981",
+      "#84CC16", "#F59E0B", "#F97316", "#EF4444", "#F43F5E",
+      "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#6366F1",
+      "#0EA5E9", "#1D4ED8", "#0F766E", "#7C3AED",
+    ];
+
+    for (const primaryColor of userPrimaryColors) {
+      const activeBackground = mixWithBlack(primaryColor, 0.6);
+      expect(contrastRatio("#ffffff", activeBackground)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("překládá legacy informační utility přes společnou vrstvu Nastavení", () => {
