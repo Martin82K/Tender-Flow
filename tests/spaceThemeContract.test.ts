@@ -81,7 +81,7 @@ describe("TF Space theme contract", () => {
 
   it("používá pro aktivní dokumentovou záložku plný invertovaný stav", () => {
     expect(css).toContain('.tf-documents-tab[aria-selected="true"]');
-    expect(css).toContain('color: #ffffff !important');
+    expect(css).toContain('color: var(--tf-settings-primary-foreground) !important');
   });
 
   it("přebírá TF Space také na celé obrazovce Správa staveb", () => {

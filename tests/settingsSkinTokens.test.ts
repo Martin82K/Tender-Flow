@@ -37,12 +37,33 @@ const cssBlock = (selector: string): string => {
 describe("shared Settings skin tokens", () => {
   it("definuje individuální primární paletu pro všechny skiny a režimy", () => {
     expect(cssBlock(":root")).toContain("--tf-settings-primary: rgb(var(--tf-color-primary-rgb))");
+    expect(cssBlock(":root")).toContain("--tf-settings-primary-foreground: #0f172a");
     expect(cssBlock("html.dark")).toContain("--tf-settings-primary-strong: #a5b4fc");
 
     for (const skin of ["industrial", "botanica", "nature", "space"]) {
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary:");
+      expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary-foreground:");
       expect(cssBlock(`html.dark[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary-strong:");
     }
+  });
+
+  it("drží aktivní plné stavy nad WCAG AA ve všech paletách", () => {
+    const pairs = [
+      ["#0f172a", "#607afb"],
+      ["#0f172a", "#ff8a33"],
+      ["#0f172a", "#ff9f1a"],
+      ["#ffffff", "#7a3248"],
+      ["#ffffff", "#b25770"],
+      ["#ffffff", "#166534"],
+      ["#ffffff", "#1f7a46"],
+      ["#0f172a", "#f43f5e"],
+    ] as const;
+
+    for (const [foreground, background] of pairs) {
+      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
+
+    expect(css).toContain("color: var(--tf-settings-primary-foreground) !important");
   });
 
   it("překládá legacy informační utility přes společnou vrstvu Nastavení", () => {
