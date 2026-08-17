@@ -1,6 +1,10 @@
 import React from 'react';
 import type { useDocHubIntegration } from '../../model/useDocHubIntegration';
-import { type DocHubHierarchyItem, DEFAULT_DOCHUB_HIERARCHY } from '@shared/dochub/docHub';
+import {
+    type DocHubHierarchyItem,
+    DEFAULT_DOCHUB_HIERARCHY,
+    disabledHierarchyItemBlocksDescendants,
+} from '@shared/dochub/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
@@ -41,18 +45,15 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
     const effectiveStructure = structureDraft;
 
     // Detect configuration issues that block auto-create of supplier folders.
-    // If the `supplier` node exists but any of its ancestors is disabled, the
-    // ensureStructure walk will stop at the disabled parent and no supplier
-    // folder will ever be created. Same goes for a disabled `category` (VŘ)
-    // or `tenders` node. We surface this as a prominent warning so the user
-    // can fix it instead of wondering why nothing happens.
+    // Critical scope nodes still block supplier creation when disabled. Optional
+    // containers are omitted while their enabled descendants are re-parented.
     const disabledBlockers: string[] = (() => {
         const blockers: string[] = [];
         const supplierIndex = hierarchyDraft.findIndex((item) => item.key === "supplier");
         if (supplierIndex === -1) return blockers;
 
         const supplierItem = hierarchyDraft[supplierIndex];
-        if (supplierItem.enabled === false) {
+        if (disabledHierarchyItemBlocksDescendants(supplierItem)) {
             blockers.push(`${supplierItem.name} (dodavatel)`);
         }
 
@@ -60,7 +61,7 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
         for (let i = supplierIndex - 1; i >= 0 && targetDepth >= 0; i--) {
             const parent = hierarchyDraft[i];
             if ((parent.depth ?? 0) === targetDepth) {
-                if (parent.enabled === false) {
+                if (disabledHierarchyItemBlocksDescendants(parent)) {
                     blockers.push(parent.name);
                 }
                 targetDepth--;

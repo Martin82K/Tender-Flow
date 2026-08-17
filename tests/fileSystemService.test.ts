@@ -220,6 +220,108 @@ describe("fileSystemService", () => {
     );
   });
 
+  it("pri vypnutem mezilehlem uzlu vytvori povolene potomky pod nejblizsim povolenym rodicem", async () => {
+    mockState.createFolder.mockResolvedValue({ success: true });
+
+    const hierarchy: DocHubHierarchyItem[] = [
+      {
+        id: "tenders",
+        key: "tenders",
+        name: "03_Vyberova_rizeni",
+        depth: 0,
+        enabled: true,
+        children: [
+          {
+            id: "category",
+            key: "category",
+            name: "{Název VŘ}",
+            depth: 1,
+            enabled: true,
+            children: [
+              {
+                id: "inquiries",
+                key: "tendersInquiries",
+                name: "Poptavky",
+                depth: 2,
+                enabled: false,
+                children: [
+                  {
+                    id: "supplier",
+                    key: "supplier",
+                    name: "{Název dodavatele}",
+                    depth: 3,
+                    enabled: true,
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const { ensureStructure } = await import("../services/fileSystemService");
+    const result = await ensureStructure({
+      rootPath: "C:\\DocHub\\000_TF",
+      projectId: "project-1",
+      categories: [{ id: "cat-1", title: "Konstrukce suche vystavby" }],
+      suppliers: {
+        "cat-1": [{ id: "sup-1", name: "Dodavatel s.r.o." }],
+      },
+      hierarchy,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.logs).toContain(
+      "⊘ Přeskočeno (vypnuto uživatelem): Poptavky",
+    );
+    expect(mockState.createFolder).not.toHaveBeenCalledWith(
+      "C:\\DocHub\\000_TF\\03_Vyberova_rizeni\\Konstrukce suche vystavby\\Poptavky",
+    );
+    expect(mockState.createFolder).toHaveBeenCalledWith(
+      "C:\\DocHub\\000_TF\\03_Vyberova_rizeni\\Konstrukce suche vystavby\\Dodavatel s.r.o",
+    );
+  });
+
+  it("pri vypnutem kontextovem uzlu nevytvori potomky do nebezpecne sdilene cesty", async () => {
+    mockState.createFolder.mockResolvedValue({ success: true });
+
+    const hierarchy: DocHubHierarchyItem[] = [
+      {
+        id: "category",
+        key: "category",
+        name: "{Název VŘ}",
+        depth: 0,
+        enabled: false,
+        children: [
+          {
+            id: "supplier",
+            key: "supplier",
+            name: "{Název dodavatele}",
+            depth: 1,
+            enabled: true,
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    const { ensureStructure } = await import("../services/fileSystemService");
+    const result = await ensureStructure({
+      rootPath: "C:\\DocHub\\000_TF",
+      categories: [{ id: "cat-1", title: "Betony" }],
+      suppliers: {
+        "cat-1": [{ id: "sup-1", name: "Dodavatel s.r.o." }],
+      },
+      hierarchy,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockState.createFolder).toHaveBeenCalledTimes(1);
+    expect(mockState.createFolder).toHaveBeenCalledWith("C:\\DocHub\\000_TF");
+  });
+
   it("pri ensureStructure po Access denied pozada o pristup a vytvoreni zopakuje", async () => {
     mockState.createFolder
       .mockResolvedValueOnce({
