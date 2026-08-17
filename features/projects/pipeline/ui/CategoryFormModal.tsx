@@ -382,7 +382,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
             {/* Budgets */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="relative mb-1 flex h-6 items-center">
+                <div className="relative mb-1 flex min-h-7 items-center">
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                     Cena SOD (Investor)
                   </label>
@@ -396,7 +396,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 />
               </div>
               <div>
-                <div className="relative mb-1 flex h-6 items-center">
+                <div className="relative mb-1 flex min-h-7 items-center">
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                     Interní Plán
                   </label>

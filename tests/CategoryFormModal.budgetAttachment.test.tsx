@@ -53,8 +53,8 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     const planHeader = screen.getByText("Interní Plán").parentElement;
     const planModeToggle = screen.getByRole("button", { name: "Kč" }).parentElement;
 
-    expect(sodHeader).toHaveClass("relative", "h-6");
-    expect(planHeader).toHaveClass("relative", "h-6");
+    expect(sodHeader).toHaveClass("relative", "min-h-7");
+    expect(planHeader).toHaveClass("relative", "min-h-7");
     expect(planModeToggle).toHaveClass("absolute", "right-0", "top-1/2", "-translate-y-1/2");
   });
 
