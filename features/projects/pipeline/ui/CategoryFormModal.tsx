@@ -382,7 +382,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
             {/* Budgets */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="mb-1 flex min-h-7 items-center">
+                <div className="relative mb-1 flex h-6 items-center">
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                     Cena SOD (Investor)
                   </label>
@@ -396,11 +396,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 />
               </div>
               <div>
-                <div className="mb-1 flex min-h-7 items-center justify-between gap-2">
+                <div className="relative mb-1 flex h-6 items-center">
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                     Interní Plán
                   </label>
-                  <div className="inline-flex rounded-md border border-slate-300 bg-slate-100 p-0.5 text-[10px] font-bold dark:border-slate-700 dark:bg-slate-800/70">
+                  <div className="absolute right-0 top-1/2 inline-flex -translate-y-1/2 rounded-md border border-slate-300 bg-slate-100 p-0.5 text-[10px] font-bold dark:border-slate-700 dark:bg-slate-800/70">
                     <button
                       type="button"
                       onClick={() => switchPlanInputMode("amount")}
