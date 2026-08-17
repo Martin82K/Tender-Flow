@@ -4977,16 +4977,46 @@ html[data-skin="space"] {
   --tf-settings-primary: var(--tf-space-red);
   --tf-settings-primary-strong: #f43f5e;
   --primary: var(--tf-space-red);
+  --primary-subtle: rgba(244, 63, 94, 0.12);
+  --primary-soft: rgba(244, 63, 94, 0.2);
+  --primary-muted: var(--tf-space-magenta);
+  --primary-strong: #fb7185;
   --primary-foreground: #ffffff;
+  --secondary: var(--tf-space-blue);
+  --secondary-subtle: rgba(59, 130, 246, 0.1);
+  --secondary-soft: rgba(59, 130, 246, 0.18);
+  --secondary-muted: var(--tf-space-violet);
+  --secondary-strong: var(--tf-space-cyan);
+  --secondary-emphasis: var(--tf-space-blue);
+  --secondary-intense: var(--tf-space-cyan);
+  --secondary-foreground: #ffffff;
   --background: #080b14;
+  --background-subtle: rgba(103, 232, 249, 0.06);
+  --background-muted: var(--tf-skin-surface-muted);
+  --background-strong: #172033;
   --foreground: #f8fafc;
+  --foreground-subtle: var(--tf-skin-muted-2);
+  --foreground-muted: var(--tf-skin-muted);
+  --foreground-strong: var(--tf-skin-text-2);
+  --foreground-emphasis: var(--tf-skin-text);
+  --foreground-intense: #ffffff;
   --card: #0a101a;
   --card-foreground: #f8fafc;
   --popover: #0b111d;
   --popover-foreground: #f8fafc;
   --border: rgba(148, 163, 184, 0.2);
+  --border-muted: rgba(148, 163, 184, 0.12);
+  --border-strong: rgba(103, 232, 249, 0.34);
+  --border-emphasis: rgba(103, 232, 249, 0.52);
+  --border-overlay: var(--tf-skin-line-2);
   --input: rgba(148, 163, 184, 0.24);
   --ring: var(--tf-space-red);
+  --focus-ring: rgba(103, 232, 249, 0.34);
+  --focus-ring-input: rgba(103, 232, 249, 0.28);
+  --focus-ring-primary: rgba(244, 63, 94, 0.38);
+  --focus-ring-secondary: rgba(59, 130, 246, 0.38);
+  --shadow-color: rgba(0, 0, 0, 0.38);
+  --selection-color: rgba(103, 232, 249, 0.18);
   color-scheme: dark;
 }
 
@@ -5232,6 +5262,159 @@ html[data-skin="space"] :is(.bg-primary, [class~="bg-indigo-600"]) {
 html[data-skin="space"] :is(.tf-theme-mode-control, .tf-appearance-picker, .tf-themed-select-trigger) {
   border-color: var(--tf-skin-line-2) !important;
   background: rgba(8, 13, 23, 0.86) !important;
+}
+
+html[data-skin="space"] .tf-account-menu > button,
+html[data-skin="space"] .tf-account-menu-panel {
+  border-color: var(--tf-skin-line-2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.46) !important;
+  backdrop-filter: blur(22px) saturate(135%);
+}
+
+html[data-skin="space"] .tf-account-menu-panel [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="space"] .tf-account-menu-panel button:not([data-slot="toggle"]):hover {
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.12), rgba(59, 130, 246, 0.08)) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] .tf-account-menu-avatar {
+  background: linear-gradient(135deg, var(--tf-space-red), var(--tf-space-magenta) 58%, var(--tf-space-violet)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.28) !important;
+}
+
+html[data-skin="space"] .tf-appearance-picker-positioner {
+  z-index: 130 !important;
+}
+
+html[data-skin="space"] .tf-appearance-picker-popover,
+html[data-skin="space"] .tf-themed-select-popover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 28%, var(--tf-skin-line-2) 72%) !important;
+  background: rgba(5, 9, 17, 0.98) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow:
+    0 22px 58px rgba(0, 0, 0, 0.58),
+    0 0 26px rgba(59, 130, 246, 0.12) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option) {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option):hover,
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option)[data-active="true"] {
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option)[aria-selected="true"] {
+  border-color: rgba(244, 63, 94, 0.46) !important;
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.16), rgba(139, 92, 246, 0.12)) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"] {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: none;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="primary"] {
+  border-color: rgba(251, 113, 133, 0.72) !important;
+  background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] [data-slot="button"]:is([data-tf-variant="secondary"], [data-tf-variant="outline"], [data-tf-variant="ghost"]) {
+  border-color: var(--tf-skin-line-2) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="danger"] {
+  border-color: rgba(251, 113, 133, 0.7) !important;
+  background: linear-gradient(135deg, #be123c, #e11d48) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="success"] {
+  border-color: rgba(103, 232, 249, 0.64) !important;
+  background: linear-gradient(135deg, #0891b2, #2563eb) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="warning"] {
+  border-color: rgba(251, 191, 36, 0.72) !important;
+  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+  color: #080b14 !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"],
+html[data-skin="space"] .tf-ui-scale-button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"]:hover,
+html[data-skin="space"] .tf-ui-scale-button:hover:not(:disabled) {
+  border-color: rgba(103, 232, 249, 0.28) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"][aria-pressed="true"] {
+  border-color: rgba(244, 63, 94, 0.54) !important;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(139, 92, 246, 0.2)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.14) !important;
+}
+
+html[data-skin="space"] input:is([type="checkbox"], [type="radio"]) {
+  accent-color: var(--tf-space-red);
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer + div {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 88%, transparent) !important;
+  box-shadow: inset 0 0 0 1px var(--tf-skin-line-2);
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div {
+  background: linear-gradient(90deg, #e11d48, #c026d3 58%, #7c3aed) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 113, 133, 0.64),
+    0 0 16px rgba(244, 63, 94, 0.22) !important;
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div + div {
+  box-shadow: 0 0 12px rgba(103, 232, 249, 0.34) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card > .absolute {
+  width: 100% !important;
+  height: 1px !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(1) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-red), var(--tf-space-magenta)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(2) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-violet), var(--tf-space-blue)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(3) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-blue), var(--tf-space-cyan)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(4) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-magenta), var(--tf-space-cyan)) !important;
 }
 
 html[data-skin="space"] .tf-project-manager-view {

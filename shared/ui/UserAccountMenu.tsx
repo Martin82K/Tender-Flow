@@ -111,9 +111,13 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
 
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
+      const isInsideAppearancePortal =
+        target instanceof Element &&
+        target.closest(".tf-appearance-picker-positioner") !== null;
       if (
         !menuRef.current?.contains(target) &&
-        !menuPanelRef.current?.contains(target)
+        !menuPanelRef.current?.contains(target) &&
+        !isInsideAppearancePortal
       ) {
         setIsOpen(false);
       }
