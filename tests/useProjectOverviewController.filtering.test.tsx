@@ -87,4 +87,27 @@ describe("useProjectOverviewController supplier filtering", () => {
     expect(mocks.buildStatusCounts).toHaveBeenLastCalledWith([alphaSupplier]);
     expect(mocks.buildAverageBudgetDeviation).toHaveBeenLastCalledWith([alphaSupplier]);
   });
+
+  it("promítá stavový filtr také do měsíčních trendů", () => {
+    const projects = [
+      { id: "tender", name: "Soutěž", location: "Praha", status: "tender" as const },
+      { id: "realization", name: "Realizace", location: "Brno", status: "realization" as const },
+      { id: "archived", name: "Archiv", location: "Plzeň", status: "archived" as const },
+    ];
+    const projectDetails = {
+      tender: { id: "tender", title: "Soutěž", categories: [], bids: {} },
+      realization: { id: "realization", title: "Realizace", categories: [], bids: {} },
+      archived: { id: "archived", title: "Archiv", categories: [], bids: {} },
+    };
+    const { result } = renderHook(() =>
+      useProjectOverviewController({ projects, projectDetails, user: null }),
+    );
+
+    act(() => result.current.setStatusFilter("realization"));
+
+    expect(mocks.buildMonthlyVolumeTrends).toHaveBeenLastCalledWith(
+      [projects[1]],
+      projectDetails,
+    );
+  });
 });

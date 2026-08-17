@@ -95,9 +95,15 @@ export const useProjectOverviewController = ({
       ),
     [availableProjects, filteredProjectDetails, statusFilter],
   );
+  const trendProjects = useMemo(
+    () => statusFilter === "all"
+      ? availableProjects
+      : availableProjects.filter((project) => project.status === statusFilter),
+    [availableProjects, statusFilter],
+  );
   const monthlyVolumeTrends = useMemo(
-    () => buildMonthlyVolumeTrends(availableProjects, filteredProjectDetails),
-    [availableProjects, filteredProjectDetails],
+    () => buildMonthlyVolumeTrends(trendProjects, filteredProjectDetails),
+    [filteredProjectDetails, trendProjects],
   );
 
   const supplierRows = useMemo(

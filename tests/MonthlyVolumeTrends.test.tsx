@@ -51,6 +51,23 @@ describe("MonthlyVolumeTrends", () => {
     expect(screen.queryByRole("combobox", { name: "Rok srovnání staveb" })).not.toBeInTheDocument();
   });
 
+  it("clamps a custom range when the available years change", () => {
+    const { rerender } = render(<MonthlyVolumeTrends trends={trends} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Vlastní rozsah" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Počáteční rok trendu" }));
+    fireEvent.click(screen.getByRole("option", { name: "2023" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Koncový rok trendu" }));
+    fireEvent.click(screen.getByRole("option", { name: "2025" }));
+
+    rerender(<MonthlyVolumeTrends trends={trends.slice(0, 3)} />);
+
+    expect(screen.getByRole("combobox", { name: "Počáteční rok trendu" })).toHaveTextContent("2020");
+    expect(screen.getByRole("combobox", { name: "Koncový rok trendu" })).toHaveTextContent("2022");
+    expect(document.querySelectorAll('[data-chart="tender"] [data-series-year]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-chart="realization"] [data-series-year]')).toHaveLength(3);
+  });
+
   it("renders an explicit empty state when no dated constructions are available", () => {
     render(<MonthlyVolumeTrends trends={[]} />);
     expect(screen.getByText("Pro trendové grafy nejsou dostupné stavby s obdobím realizace ani termínem dokončení.")).toBeInTheDocument();
