@@ -4616,8 +4616,8 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 
 .tf-theme-mode-control,
 .tf-ui-scale-control {
-  border: 1px solid var(--tf-skin-line);
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent);
+  border: 0;
+  background: transparent;
 }
 
 .tf-theme-mode-button,
@@ -4632,9 +4632,9 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 }
 
 .tf-theme-mode-button[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--tf-skin-accent) 14%, var(--tf-skin-surface) 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-skin-accent) 56%, var(--tf-skin-line) 44%);
-  color: var(--tf-skin-text);
+  background: var(--tf-settings-primary);
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .tf-theme-mode-button:focus-visible,
@@ -4713,24 +4713,24 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel opt
 }
 
 html[data-skin] .tf-appearance-picker {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger {
+html[data-skin] .tf-appearance-picker-select {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-card) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger:focus-visible {
+html[data-skin] .tf-appearance-picker-select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-settings-primary) 64%, #ffffff 36%) !important;
   outline-offset: 2px;
 }
 
 html[data-skin] .tf-theme-mode-control {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
-  border-style: solid;
-  border-width: 1px;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 html[data-skin] .tf-theme-mode-button {
@@ -4744,9 +4744,22 @@ html[data-skin] .tf-theme-mode-button:hover {
 }
 
 html[data-skin] .tf-theme-mode-button[aria-pressed="true"] {
-  background-color: color-mix(in srgb, var(--tf-settings-primary) 18%, var(--tf-skin-card) 82%) !important;
-  color: var(--tf-settings-primary-strong) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-settings-primary) 42%, var(--tf-skin-line) 58%);
+  background-color: var(--tf-settings-primary) !important;
+  color: #ffffff !important;
+  box-shadow: none;
+}
+
+html[data-skin] .tf-appearance-section {
+  border-color: var(--tf-skin-line) !important;
+  background: var(--tf-skin-surface-muted) !important;
+}
+
+html[data-skin] .tf-documents-tab[aria-selected="true"] {
+  border-color: var(--tf-settings-primary) !important;
+  background-color: var(--tf-settings-primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 html[data-skin] .tf-theme-mode-button:focus-visible {
@@ -5285,18 +5298,23 @@ html[data-skin="space"] :is(.bg-primary, [class~="bg-indigo-600"]) {
   box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
 }
 
-html[data-skin="space"] :is(.tf-theme-mode-control, .tf-appearance-picker, .tf-themed-select-trigger) {
+html[data-skin="space"] :is(.tf-appearance-section, .tf-appearance-picker-select, .tf-themed-select-trigger) {
   border-color: var(--tf-skin-line-2) !important;
   background: rgba(8, 13, 23, 0.86) !important;
 }
 
-html[data-skin="space"] .tf-account-menu > button,
+html[data-skin="space"] .tf-account-menu > button {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-surface) !important;
+  color: var(--tf-skin-text) !important;
+}
+
 html[data-skin="space"] .tf-account-menu-panel {
   border-color: var(--tf-skin-line-2) !important;
-  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   color: var(--tf-skin-text) !important;
-  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.46) !important;
-  backdrop-filter: blur(22px) saturate(135%);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: none !important;
 }
 
 html[data-skin="space"] .tf-account-menu-panel [class*="border-slate"] {
@@ -5396,10 +5414,10 @@ html[data-skin="space"] .tf-ui-scale-button:hover:not(:disabled) {
 }
 
 html[data-skin="space"] [data-slot="toggle"][aria-pressed="true"] {
-  border-color: rgba(244, 63, 94, 0.54) !important;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(139, 92, 246, 0.2)) !important;
+  border-color: var(--tf-space-red) !important;
+  background: var(--tf-space-red) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 18px rgba(244, 63, 94, 0.14) !important;
+  box-shadow: none !important;
 }
 
 html[data-skin="space"] input:is([type="checkbox"], [type="radio"]) {

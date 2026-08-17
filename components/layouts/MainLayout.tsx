@@ -116,8 +116,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     const appShellStyle: React.CSSProperties = {
         width: `${inverseUiScale}vw`,
         height: `${inverseUiScale}dvh`,
-        transform: `scale(${normalizedUiScale})`,
-        transformOrigin: 'top left',
+        zoom: normalizedUiScale,
     };
 
     return (

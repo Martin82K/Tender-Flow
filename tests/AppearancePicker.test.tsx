@@ -5,7 +5,7 @@ import { themeSkinOptions } from "@/shared/theme/appearanceOptions";
 import { AppearancePicker } from "@/shared/ui/AppearancePicker";
 
 describe("AppearancePicker", () => {
-  it("vybere TF Space přes Appica autocomplete", async () => {
+  it("vybere TF Space přes jednoduchý nativní select", () => {
     const onChange = vi.fn();
 
     render(
@@ -18,13 +18,14 @@ describe("AppearancePicker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Skin" }));
-    fireEvent.click(await screen.findByRole("option", { name: /TF Space/i }));
+    const select = screen.getByRole("combobox", { name: "Skin" });
+    expect(select.tagName).toBe("SELECT");
+    fireEvent.change(select, { target: { value: "space" } });
 
     expect(onChange).toHaveBeenCalledWith("space");
   });
 
-  it("vykreslí portál motivů nad účtovým menu", async () => {
+  it("vykreslí všechny motivy bez vnořeného portálu", () => {
     render(
       <AppearancePicker
         label="Skin"
@@ -35,11 +36,7 @@ describe("AppearancePicker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Skin" }));
-
-    await screen.findByRole("listbox");
-    expect(document.querySelector(".tf-appearance-picker-positioner")).toHaveStyle({
-      zIndex: "130",
-    });
+    expect(screen.getAllByRole("option")).toHaveLength(themeSkinOptions.length);
+    expect(document.querySelector(".tf-appearance-picker-positioner")).not.toBeInTheDocument();
   });
 });

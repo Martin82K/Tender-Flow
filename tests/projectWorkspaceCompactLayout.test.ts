@@ -32,6 +32,7 @@ describe("compact project workspace layouts", () => {
     expect(documentsSource).toContain('role="tablist"');
     expect(documentsSource).toContain('role="tab"');
     expect(documentsSource).toContain("aria-selected={documentsSubTab ===");
+    expect(documentsSource).toContain("tf-documents-tab");
     expect(documentsSource).toContain("overflow-x-auto");
     expect(documentsSource).not.toContain(
       'data-help-id="documents-tip"\n              className="mt-8 p-4 bg-blue-500/10',

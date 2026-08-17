@@ -111,13 +111,9 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
 
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      const isInsideAppearancePortal =
-        target instanceof Element &&
-        target.closest(".tf-appearance-picker-positioner") !== null;
       if (
         !menuRef.current?.contains(target) &&
-        !menuPanelRef.current?.contains(target) &&
-        !isInsideAppearancePortal
+        !menuPanelRef.current?.contains(target)
       ) {
         setIsOpen(false);
       }
@@ -304,7 +300,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
           <div
             ref={menuPanelRef}
             role="menu"
-            className="tf-account-menu-panel fixed z-[100] w-[min(92vw,280px)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+            className="tf-account-menu-panel fixed z-[100] w-[min(92vw,288px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
             style={{
               top: menuPosition.top,
               right: menuPosition.right,
@@ -394,7 +390,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               <div className="mb-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 Vzhled
               </div>
-              <div className="space-y-1.5">
+              <div className="tf-appearance-section divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 dark:divide-slate-700 dark:border-slate-700 dark:bg-slate-950/45">
                 <AppearancePicker
                   label="Motiv"
                   icon="local_florist"
@@ -403,39 +399,39 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                   onChange={onSetSkin}
                 />
                 <ThemeModeControl value={theme} onChange={onSetTheme} />
-              </div>
-              <div className="mt-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
-                <div className="min-w-0 px-1.5">
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                    Velikost UI
+                <div className="flex min-h-10 items-center justify-between gap-2 px-2.5">
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      Velikost UI
+                    </div>
+                    <div className="text-[11px] font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                      {uiScalePercent} %
+                    </div>
                   </div>
-                  <div className="text-[11px] font-bold tabular-nums text-slate-700 dark:text-slate-200">
-                    {uiScalePercent} %
+                  <div
+                    role="group"
+                    aria-label="Velikost UI"
+                    className="tf-ui-scale-control flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
+                  >
+                    <UiScaleButton
+                      icon="remove"
+                      label="Zmenšit UI"
+                      disabled={!canDecreaseUiScale}
+                      onClick={handleDecreaseUiScale}
+                    />
+                    <UiScaleButton
+                      icon="restart_alt"
+                      label={`Resetovat velikost UI na ${Math.round(DEFAULT_UI_SCALE * 100)} %`}
+                      disabled={normalizedUiScale === DEFAULT_UI_SCALE}
+                      onClick={onResetUiScale}
+                    />
+                    <UiScaleButton
+                      icon="add"
+                      label="Zvětšit UI"
+                      disabled={!canIncreaseUiScale}
+                      onClick={handleIncreaseUiScale}
+                    />
                   </div>
-                </div>
-                <div
-                  role="group"
-                  aria-label="Velikost UI"
-                  className="tf-ui-scale-control flex shrink-0 items-center gap-0.5 rounded-md p-0.5"
-                >
-                  <UiScaleButton
-                    icon="remove"
-                    label="Zmenšit UI"
-                    disabled={!canDecreaseUiScale}
-                    onClick={handleDecreaseUiScale}
-                  />
-                  <UiScaleButton
-                    icon="restart_alt"
-                    label={`Resetovat velikost UI na ${Math.round(DEFAULT_UI_SCALE * 100)} %`}
-                    disabled={normalizedUiScale === DEFAULT_UI_SCALE}
-                    onClick={onResetUiScale}
-                  />
-                  <UiScaleButton
-                    icon="add"
-                    label="Zvětšit UI"
-                    disabled={!canIncreaseUiScale}
-                    onClick={handleIncreaseUiScale}
-                  />
                 </div>
               </div>
             </div>
