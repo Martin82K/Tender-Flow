@@ -79,6 +79,11 @@ describe("TF Space theme contract", () => {
     expect(pipelineOverview).toContain("<BuildingPlus");
   });
 
+  it("používá pro aktivní dokumentovou záložku plný invertovaný stav", () => {
+    expect(css).toContain('.tf-documents-tab[aria-selected="true"]');
+    expect(css).toContain('color: var(--tf-settings-active-foreground) !important');
+  });
+
   it("přebírá TF Space také na celé obrazovce Správa staveb", () => {
     expect(appContent).toContain("<ProjectManager");
     expect(appContent).toContain("skin={skin}");

@@ -306,10 +306,10 @@ describe("industrial skin tokens", () => {
   it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
     expect(accountMenuSource).toContain("tf-account-menu-panel");
     expect(accountMenuSource).toContain("tf-account-menu-avatar");
-    expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
+    expect(accountMenuSource).toContain("w-[min(92vw,288px)]");
     expect(accountMenuSource).toContain("size-10");
     expect(accountMenuSource).toContain("AppearancePicker");
-    expect(appearancePickerSource).toContain("min-h-8");
+    expect(appearancePickerSource).toContain("min-h-10");
     expect(accountMenuSource).toContain("accountMeta");
     expect(accountMenuSource).not.toContain("badge-neon");
     expect(accountMenuSource).not.toContain("BOSS");

@@ -279,10 +279,8 @@ describe("UserAccountMenu", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
-    fireEvent.click(await screen.findByRole("combobox", { name: "Motiv" }));
-    const industrialOption = screen.getByRole("option", { name: "Industrial" });
-    fireEvent.mouseDown(industrialOption);
-    fireEvent.click(industrialOption);
+    const skinPicker = await screen.findByRole("combobox", { name: "Motiv" });
+    fireEvent.change(skinPicker, { target: { value: "industrial" } });
 
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
   });
@@ -316,11 +314,10 @@ describe("UserAccountMenu", () => {
       "aria-pressed",
       "true",
     );
-    fireEvent.click(skinPicker);
     expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Nature" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("option", { name: "Nature" }));
+    fireEvent.change(skinPicker, { target: { value: "nature" } });
     fireEvent.click(within(modeGroup).getByRole("button", { name: "Tmavý" }));
 
     expect(onSetSkin).toHaveBeenCalledWith("nature");

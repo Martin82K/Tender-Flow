@@ -124,14 +124,15 @@ describe('MainLayout mobile menu', () => {
     expect(setIsSidebarOpen).toHaveBeenCalledWith(false);
   });
 
-  it('při zmenšení UI zachová viewport a zvětší interní layoutovou plochu', () => {
+  it('při zmenšení UI použije ostré layoutové škálování bez transformace celého plátna', () => {
     const { container } = renderMainLayout(false, 'project', 0.8);
 
     const viewport = container.querySelector('.tf-app-viewport');
     const shell = container.querySelector('.tf-app-shell') as HTMLElement;
 
     expect(viewport).toHaveClass('fixed', 'inset-0', 'overflow-hidden');
-    expect(shell.style.transform).toBe('scale(0.8)');
+    expect(shell.style.zoom).toBe('0.8');
+    expect(shell.style.transform).toBe('');
     expect(shell.style.width).toBe('125vw');
     expect(shell.style.height).toBe('125dvh');
   });

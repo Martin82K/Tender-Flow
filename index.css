@@ -71,6 +71,8 @@ input[type="number"] {
   --tf-skin-accent-2: #607afb;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #4055c7;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #b45309;
   --tf-skin-green: #10b981;
@@ -96,6 +98,8 @@ html.dark {
   --tf-skin-accent-2: #818cf8;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #a5b4fc;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #fbbf24;
   --tf-skin-green: #34d399;
@@ -120,6 +124,8 @@ html[data-skin="industrial"] {
   --tf-skin-accent-2: #b03a05;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff8a33;
   --tf-skin-orange-deep: #b03a05;
   --tf-skin-green: #58c69a;
@@ -147,6 +153,8 @@ html.dark[data-skin="industrial"] {
   --tf-skin-accent-2: #7aa2ff;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff9f1a;
   --tf-skin-orange-deep: #ff8a33;
   --tf-skin-green: #58c69a;
@@ -3843,6 +3851,8 @@ html[data-skin="botanica"] {
   --tf-skin-accent-2: #ad6b7e;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #9a5267;
   --tf-skin-orange-deep: #5c2034;
   --tf-skin-green: #647660;
@@ -3873,6 +3883,8 @@ html.dark[data-skin="botanica"] {
   --tf-skin-accent-2: #d18aa0;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #c56d85;
   --tf-skin-orange-deep: #e2a0b2;
   --tf-skin-green: #91a18c;
@@ -3904,6 +3916,8 @@ html[data-skin="nature"] {
   --tf-skin-accent-2: #2f855a;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #166534;
   --tf-skin-orange-deep: #14532d;
   --tf-skin-green: #15803d;
@@ -3933,6 +3947,8 @@ html.dark[data-skin="nature"] {
   --tf-skin-accent-2: #63b985;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #1f7a46;
   --tf-skin-orange-deep: #7dd6a0;
   --tf-skin-green: #4dbd78;
@@ -4616,8 +4632,8 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 
 .tf-theme-mode-control,
 .tf-ui-scale-control {
-  border: 1px solid var(--tf-skin-line);
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent);
+  border: 0;
+  background: transparent;
 }
 
 .tf-theme-mode-button,
@@ -4632,9 +4648,9 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 }
 
 .tf-theme-mode-button[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--tf-skin-accent) 14%, var(--tf-skin-surface) 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-skin-accent) 56%, var(--tf-skin-line) 44%);
-  color: var(--tf-skin-text);
+  background: var(--tf-settings-active-background);
+  box-shadow: none;
+  color: var(--tf-settings-active-foreground);
 }
 
 .tf-theme-mode-button:focus-visible,
@@ -4713,24 +4729,24 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel opt
 }
 
 html[data-skin] .tf-appearance-picker {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger {
+html[data-skin] .tf-appearance-picker-select {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-card) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger:focus-visible {
+html[data-skin] .tf-appearance-picker-select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-settings-primary) 64%, #ffffff 36%) !important;
   outline-offset: 2px;
 }
 
 html[data-skin] .tf-theme-mode-control {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
-  border-style: solid;
-  border-width: 1px;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 html[data-skin] .tf-theme-mode-button {
@@ -4744,9 +4760,22 @@ html[data-skin] .tf-theme-mode-button:hover {
 }
 
 html[data-skin] .tf-theme-mode-button[aria-pressed="true"] {
-  background-color: color-mix(in srgb, var(--tf-settings-primary) 18%, var(--tf-skin-card) 82%) !important;
-  color: var(--tf-settings-primary-strong) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-settings-primary) 42%, var(--tf-skin-line) 58%);
+  background-color: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none;
+}
+
+html[data-skin] .tf-appearance-section {
+  border-color: var(--tf-skin-line) !important;
+  background: var(--tf-skin-surface-muted) !important;
+}
+
+html[data-skin] .tf-documents-tab[aria-selected="true"] {
+  border-color: var(--tf-settings-active-background) !important;
+  background-color: var(--tf-settings-active-background) !important;
+  background-image: none !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none !important;
 }
 
 html[data-skin] .tf-theme-mode-button:focus-visible {
@@ -5002,6 +5031,8 @@ html[data-skin="space"] {
   --tf-skin-accent-2: var(--tf-space-cyan);
   --tf-settings-primary: var(--tf-space-red);
   --tf-settings-primary-strong: #f43f5e;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --primary: var(--tf-space-red);
   --primary-subtle: rgba(244, 63, 94, 0.12);
   --primary-soft: rgba(244, 63, 94, 0.2);
@@ -5285,18 +5316,23 @@ html[data-skin="space"] :is(.bg-primary, [class~="bg-indigo-600"]) {
   box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
 }
 
-html[data-skin="space"] :is(.tf-theme-mode-control, .tf-appearance-picker, .tf-themed-select-trigger) {
+html[data-skin="space"] :is(.tf-appearance-section, .tf-appearance-picker-select, .tf-themed-select-trigger) {
   border-color: var(--tf-skin-line-2) !important;
   background: rgba(8, 13, 23, 0.86) !important;
 }
 
-html[data-skin="space"] .tf-account-menu > button,
+html[data-skin="space"] .tf-account-menu > button {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-surface) !important;
+  color: var(--tf-skin-text) !important;
+}
+
 html[data-skin="space"] .tf-account-menu-panel {
   border-color: var(--tf-skin-line-2) !important;
-  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   color: var(--tf-skin-text) !important;
-  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.46) !important;
-  backdrop-filter: blur(22px) saturate(135%);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: none !important;
 }
 
 html[data-skin="space"] .tf-account-menu-panel [class*="border-slate"] {
@@ -5396,10 +5432,10 @@ html[data-skin="space"] .tf-ui-scale-button:hover:not(:disabled) {
 }
 
 html[data-skin="space"] [data-slot="toggle"][aria-pressed="true"] {
-  border-color: rgba(244, 63, 94, 0.54) !important;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(139, 92, 246, 0.2)) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 18px rgba(244, 63, 94, 0.14) !important;
+  border-color: var(--tf-settings-active-background) !important;
+  background: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none !important;
 }
 
 html[data-skin="space"] input:is([type="checkbox"], [type="radio"]) {

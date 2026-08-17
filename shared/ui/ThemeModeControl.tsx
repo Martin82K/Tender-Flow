@@ -41,7 +41,7 @@ export const ThemeModeControl: React.FC<ThemeModeControlProps> = ({
   };
 
   return (
-    <div className={`tf-theme-mode-control flex min-h-9 items-center gap-2 rounded-md px-2 ${className}`}>
+    <div className={`tf-theme-mode-control flex min-h-10 items-center gap-2 px-2.5 ${className}`}>
       <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">
         brightness_auto
       </span>
