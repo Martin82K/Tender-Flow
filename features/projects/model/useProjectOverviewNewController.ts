@@ -37,6 +37,7 @@ interface InfoFormState {
   location: string;
   address: string;
   finishDate: string;
+  offerSubmissionDeadline: string;
   siteManager: string;
   constructionManager: string;
   constructionTechnician: string;
@@ -61,6 +62,7 @@ const buildInfoForm = (project: ProjectDetails): InfoFormState => ({
   location: project.location || "",
   address: project.address || "",
   finishDate: project.finishDate || "",
+  offerSubmissionDeadline: project.offerSubmissionDeadline || "",
   siteManager: project.siteManager || "",
   constructionManager: project.constructionManager || "",
   constructionTechnician: project.constructionTechnician || "",
@@ -255,6 +257,9 @@ export const useProjectOverviewNewController = ({
       location: infoForm.location,
       address: infoForm.address,
       finishDate: infoForm.finishDate,
+      ...(project.status === "tender"
+        ? { offerSubmissionDeadline: infoForm.offerSubmissionDeadline }
+        : {}),
       siteManager: infoForm.siteManager,
       constructionManager: infoForm.constructionManager,
       constructionTechnician: infoForm.constructionTechnician,

@@ -1,6 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
-import { UpdateBanner } from "@/components/desktop";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
@@ -35,7 +34,6 @@ import {
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
 import {
   AppLazyFallback,
-  CommandCenterView,
   ContractOverview,
   Contacts,
   ProjectLayout,
@@ -333,12 +331,6 @@ export const AppContent: React.FC = () => {
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case "command-center":
-        return (
-          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
-            <CommandCenterView />
-          </RequireFeature>
-        );
       case "todo":
         return (
           <RequireFeature feature={FEATURES.MODULE_TASKS}>
@@ -516,8 +508,8 @@ export const AppContent: React.FC = () => {
         );
       default:
         return (
-          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
-            <CommandCenterView />
+          <RequireFeature feature={FEATURES.MODULE_TASKS}>
+            <TasksPage skin={skin} />
           </RequireFeature>
         );
     }
@@ -595,7 +587,6 @@ export const AppContent: React.FC = () => {
               <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
             </LazyViewErrorBoundary>
 
-            {isDesktop && <UpdateBanner />}
           </MainLayout>
         </TopbarActionsProvider>
         {shouldEnableVoiceAssistantRoute && <VoiceAssistantPanel />}

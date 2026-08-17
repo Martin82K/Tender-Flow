@@ -50,8 +50,17 @@ index.tsx
 | Server | `server/`, `server_py/`, `supabase/functions/` | neveřejné runtime implementace |
 
 Webové vrstvy nesmí importovat `desktop/main/`, `server/` ani `server_py/`.
-Kontroluje to `npm run check:boundaries`. Přidání souboru do legacy kořene
-kontroluje `npm run check:legacy-structure`.
+Kontroluje to `npm run check:boundaries`. Stejný guard porovnává každou přesnou
+vazbu z `app/features/shared/infra` do legacy kořenů s ratchet baseline v
+`config/legacy-import-baseline.json`. Nová vazba i zastaralá baseline položka
+kontrolu shodí. Quality workflow navíc porovnává baseline s výchozí Git revizí,
+takže ji PR smí pouze zmenšit. Statické Vite `import.meta.glob` vzory guard
+rozbalí case-sensitive matcherem na konkrétní legacy cíle; dynamický nebo mimo
+podporovanou bezpečnou POSIX podmnožinu vzor odmítne fail-closed. Rozbalení
+zahrnuje všechny regulární soubory v legacy kořenech, ne pouze TS/JS moduly.
+Přesný snapshot tracked souborů v legacy kořenech kontroluje
+`npm run check:legacy-structure`; odstraněný soubor proto musí být současně
+odebrán z `config/legacy-freeze.json`.
 
 ## Stav a data
 
@@ -89,6 +98,27 @@ handler validuje vstup i autorizaci; výsledek vrací serializovatelný kontrakt
 ## Architektonický přechod
 
 Repozitář je v postupné migraci z legacy kořenů do `app/features/shared/infra`.
-Audit je informativní a spouští se přes `npm run audit:architecture`. Nové změny
-nemají zvyšovat počet přechodových vazeb ani přidávat další soubory do frozen
-legacy kořenů bez explicitního rozhodnutí.
+Audit přes `npm run audit:architecture` zůstává informativním rozborem známých
+kategorií dluhu. Audit i vynucovaný boundary guard staví nad jediným AST
+kolektorem `scripts/lib/architecture-graph.mjs`; statické, typové, JSDoc,
+dynamické a Vite glob importy proto interpretují stejným způsobem. Tento
+normalizovaný graf je zároveň vstupem pro další migrační metriky, nikoli druhou
+paralelní implementací resolveru. Vynucovaný importní baseline je přesná množina
+souboru, specifieru a cíle, nikoli pouze celkový počet; migrace jej musí
+zmenšovat a nemůže starou vazbu vyměnit za novou. Nové soubory ve frozen legacy
+kořenech nejsou povolené bez explicitního rozhodnutí.
+
+Čistá analytická vrstva `scripts/lib/architecture-graph-analysis.mjs` převádí
+normalizované cíle na konkrétní existující moduly bez změny hran používaných
+baseline. Statický import se vyhodnotí přes přesný soubor, podporovanou příponu
+nebo `index.*`; glob musí odpovídat konkrétnímu uzlu. Nejednoznačné cíle se
+nevybírají podle pořadí přípon, ale zůstávají explicitní fail-closed diagnostikou.
+Nad grafem indukovaným nakonfigurovanými source roots počítá deduplikovaný
+fan-in/fan-out, silně souvislé komponenty, kondenzační DAG a deterministické
+migrační dávky od závislostí k importérům. Cíle v kořeni repozitáře nebo v
+`config/` zůstávají evidované jako mimo tento migrační scope; nesmí být vydávány
+za analyzované uzly. Cyklus je vždy jedna nedělitelná dávka. Collector zastaví
+sběr při překročení limitu souborů, jejich velikosti, glob vzorů, glob párovací
+práce nebo surových hran. Následné algoritmy jsou iterativní a navíc omezují počet uzlů, hran,
+délku polí a celkový byte budget, aby graf z nedůvěryhodné PR změny nemohl
+neomezeně spotřebovat zásobník nebo paměť CI.

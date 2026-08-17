@@ -9,6 +9,7 @@ export const SECTION_DEFAULTS = {
 export type OverviewSectionId = keyof typeof SECTION_DEFAULTS;
 
 interface OverviewSectionProps {
+  "data-help-id"?: string;
   id: OverviewSectionId;
   title: string;
   subtitle?: string;
@@ -19,6 +20,7 @@ interface OverviewSectionProps {
 }
 
 export const OverviewSection: React.FC<OverviewSectionProps> = ({
+  "data-help-id": helpId,
   id,
   title,
   subtitle,
@@ -28,7 +30,10 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   rightSlot,
 }) => {
   return (
-    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+    <div
+      data-help-id={helpId}
+      className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-700/70 dark:bg-slate-900"
+    >
       <div className="flex items-start justify-between gap-4 px-5 py-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700/70">
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>

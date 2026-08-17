@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, Coins } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface BarItem {
@@ -99,8 +99,11 @@ export const SupplierBarChart: React.FC<SupplierBarChartProps> = ({
           const isTopThree = index < 3;
 
           return (
-            <div key={item.label} className="group">
-              <div className="flex items-center gap-3">
+            <div key={`${item.label}-${index}`} className="group">
+              <div
+                data-slot="supplier-bar-row"
+                className="grid min-w-0 grid-cols-[1.5rem_minmax(5.5rem,10rem)_minmax(2.5rem,1fr)_max-content] items-center gap-x-3 gap-y-1 max-[520px]:grid-cols-[1.5rem_minmax(0,1fr)_max-content]"
+              >
                 {/* Rank badge for top 3 */}
                 <div className={`
                   flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
@@ -113,12 +116,12 @@ export const SupplierBarChart: React.FC<SupplierBarChartProps> = ({
                 </div>
 
                 {/* Supplier name */}
-                <div className="flex-shrink-0 w-40 text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+                <div className="min-w-0 truncate text-sm font-medium text-slate-700 dark:text-slate-200">
                   {item.label}
                 </div>
 
                 {/* Progress bar */}
-                <div className={`flex-1 h-2.5 rounded-full ${colors.barBg} overflow-hidden`}>
+                <div className={`h-2.5 min-w-0 overflow-hidden rounded-full ${colors.barBg} max-[520px]:col-span-2 max-[520px]:col-start-2 max-[520px]:row-start-2`}>
                   <div
                     className={`h-full rounded-full ${colors.bar} transition-all duration-500 ease-out group-hover:opacity-80`}
                     style={{ width: `${width}%` }}
@@ -126,7 +129,10 @@ export const SupplierBarChart: React.FC<SupplierBarChartProps> = ({
                 </div>
 
                 {/* Value */}
-                <div className="flex-shrink-0 w-24 text-right">
+                <div
+                  data-slot="supplier-bar-value"
+                  className="w-max whitespace-nowrap text-right max-[520px]:col-start-3 max-[520px]:row-start-1"
+                >
                   <span className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
                     {valueFormatter(item.value)}
                   </span>

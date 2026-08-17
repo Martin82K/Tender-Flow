@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { Toggle } from "@appica/ui-react";
 
 import { themeModeOptions } from "@/shared/theme/appearanceOptions";
 import type { ThemeMode } from "@/shared/types/theme";
@@ -40,7 +41,7 @@ export const ThemeModeControl: React.FC<ThemeModeControlProps> = ({
   };
 
   return (
-    <div className={`tf-theme-mode-control flex min-h-9 items-center gap-2 rounded-md px-2 ${className}`}>
+    <div className={`tf-theme-mode-control flex min-h-10 items-center gap-2 px-2.5 ${className}`}>
       <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">
         brightness_auto
       </span>
@@ -51,7 +52,7 @@ export const ThemeModeControl: React.FC<ThemeModeControlProps> = ({
         {themeModeOptions.map((option, index) => {
           const isSelected = option.id === value;
           return (
-            <button
+            <Toggle
               key={option.id}
               ref={(element) => {
                 buttonRefs.current[index] = element;
@@ -59,6 +60,7 @@ export const ThemeModeControl: React.FC<ThemeModeControlProps> = ({
               type="button"
               aria-label={option.label}
               aria-pressed={isSelected}
+              pressed={isSelected}
               title={`Režim: ${option.label}`}
               tabIndex={isSelected ? 0 : -1}
               onClick={() => onChange(option.id)}
@@ -68,7 +70,7 @@ export const ThemeModeControl: React.FC<ThemeModeControlProps> = ({
               <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
                 {option.icon}
               </span>
-            </button>
+            </Toggle>
           );
         })}
       </div>

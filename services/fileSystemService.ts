@@ -11,7 +11,11 @@
 import { isDesktop, fileSystemAdapter, watcherAdapter } from './platformAdapter';
 import { invokeAuthedFunction } from './functionsClient';
 import { supabase } from './supabase';
-import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
+import {
+    disabledHierarchyItemBlocksDescendants,
+    type DocHubStructureV1,
+    type DocHubHierarchyItem,
+} from '../utils/docHub';
 import {
     sanitizeSubcontractorCompanyName,
     validateSubcontractorCompanyName,
@@ -843,6 +847,12 @@ export async function ensureStructure(
             ) => {
                 if (!item.enabled) {
                     logs.push(`⊘ Přeskočeno (vypnuto uživatelem): ${item.name}`);
+
+                    if (!disabledHierarchyItemBlocksDescendants(item)) {
+                        for (const child of item.children || []) {
+                            await processItem(child, parentPath, context);
+                        }
+                    }
                     return;
                 }
 

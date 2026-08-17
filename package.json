@@ -4,7 +4,7 @@
   "workspaces": [
     "mcp-service"
   ],
-  "version": "1.9.6",
+  "version": "1.9.10",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
@@ -42,6 +42,8 @@
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs"
   },
   "dependencies": {
+    "@appica/icons-react": "1.0.0",
+    "@appica/ui-react": "1.1.0",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/server": "2.0.0",

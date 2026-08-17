@@ -30,6 +30,7 @@ interface ProjectDetailsRow {
   technical_supervisor?: string | null;
   location?: string | null;
   finish_date?: string | null;
+  offer_submission_deadline?: string | null;
   site_manager?: string | null;
   construction_manager?: string | null;
   construction_technician?: string | null;
@@ -302,6 +303,7 @@ const fetchProjectDetails = async (
     technicalSupervisor: project.technical_supervisor || "",
     location: project.location || "",
     finishDate: project.finish_date || "",
+    offerSubmissionDeadline: project.offer_submission_deadline || undefined,
     siteManager: project.site_manager || "",
     constructionManager: project.construction_manager || "",
     constructionTechnician: project.construction_technician || "",

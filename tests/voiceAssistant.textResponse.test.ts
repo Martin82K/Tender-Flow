@@ -66,7 +66,7 @@ describe("createTextAssistantResponse", () => {
         input: "test",
         messages: [],
         currentProjectId: null,
-        currentView: "command-center",
+        currentView: "todo",
       }),
     ).rejects.toThrow(/neočekávaný model/i);
   });

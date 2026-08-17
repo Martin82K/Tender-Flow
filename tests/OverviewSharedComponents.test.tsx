@@ -65,8 +65,50 @@ describe("overview shared components", () => {
     expect(screen.getByText("12 nabídek")).toBeInTheDocument();
   });
 
-  it("renders status distribution legend", () => {
+  it("reserves a non-wrapping column for long chart values", () => {
     render(
+      <SupplierBarChart
+        title="Objem oceněných zakázek"
+        items={[{ label: "2026", value: 78_968_913.51, helper: "65 SOD" }]}
+        valueFormatter={() => "78 968 913,51 Kč"}
+      />,
+    );
+
+    expect(screen.getByText("78 968 913,51 Kč").parentElement).toHaveAttribute(
+      "data-slot",
+      "supplier-bar-value",
+    );
+    expect(screen.getByText("78 968 913,51 Kč").parentElement).toHaveClass(
+      "whitespace-nowrap",
+      "w-max",
+    );
+    expect(screen.getByText("78 968 913,51 Kč").closest('[data-slot="supplier-bar-row"]')).toHaveClass(
+      "grid",
+    );
+  });
+
+  it("renders suppliers with duplicate display names without React key warnings", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    render(
+      <SupplierBarChart
+        title="Top dodavatelé"
+        items={[
+          { label: "Neznámý dodavatel", value: 12 },
+          { label: "Neznámý dodavatel", value: 8 },
+        ]}
+      />,
+    );
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Encountered two children with the same key"),
+      expect.anything(),
+    );
+    consoleError.mockRestore();
+  });
+
+  it("renders status distribution legend", () => {
+    const { queryByTestId } = render(
       <StatusDistributionChart
         sodCount={2}
         shortlistCount={1}
@@ -81,6 +123,8 @@ describe("overview shared components", () => {
     expect(screen.getByText("SOD")).toBeInTheDocument();
     expect(screen.getByText("Užší výběr")).toBeInTheDocument();
     expect(screen.getByText("Nabídka")).toBeInTheDocument();
+    expect(screen.getByText("Celkem 6 nabídek")).toBeInTheDocument();
+    expect(queryByTestId("responsive-container")).not.toBeInTheDocument();
   });
 
   it("renders budget deviation gauge value", () => {
@@ -88,6 +132,7 @@ describe("overview shared components", () => {
 
     expect(screen.getByText("Průměrná nabídková cena proti smluvní ceně s investorem")).toBeInTheDocument();
     expect(screen.getByText(/\+7,3\s*%/)).toBeInTheDocument();
-    expect(screen.getByText("+30%")).toBeInTheDocument();
+    expect(screen.getByText("7,3 % nad smluvní cenou")).toBeInTheDocument();
+    expect(screen.getByText("Cílové pásmo ±5 %")).toBeInTheDocument();
   });
 });

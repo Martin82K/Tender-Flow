@@ -1,5 +1,4 @@
 export type View =
-  | "command-center"
   | "project"
   | "contacts"
   | "settings"
@@ -243,6 +242,7 @@ export interface ProjectDetails {
   technicalSupervisor?: string; // Technický dozor (TDI)
   location: string;
   finishDate: string;
+  offerSubmissionDeadline?: string; // Termín odevzdání nabídky u stavby v soutěži (ISO date)
   siteManager: string; // Hlavní stavbyvedoucí
   constructionManager?: string; // Stavbyvedoucí
   constructionTechnician?: string; // Stavební technik
@@ -296,19 +296,6 @@ export interface UserPreferences {
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   uiScale?: number; // Global UI scale, sanitized before applying to CSS
   signature?: string; // HTML compatible signature
-  commandCenter?: CommandCenterUserPreferences;
-}
-
-export interface CommandCenterUserPreferences {
-  enabledModules?: Record<string, boolean>;
-  moduleSettings?: Record<string, Record<string, unknown>>;
-  filterState?: {
-    projectIds?: string[];
-    healthLevels?: Array<"ok" | "warn" | "crit">;
-    statuses?: Array<"tender" | "realization" | "archived">;
-    rangeDays?: 7 | 14 | 30 | 90;
-  };
-  lastUpdated?: string;
 }
 
 export interface UserEmailSignatureProfile {

@@ -47,18 +47,16 @@ describe("LandingPage nové moduly", () => {
     ).toBeInTheDocument();
   });
 
-  it("komunikuje Command Center a TODO Osobní ve veřejném obsahu", () => {
+  it("komunikuje TODO Osobní bez odstraněného Command Centeru", () => {
     render(<LandingPage />);
 
     expect(
-      screen.getByText(/Osm modulů navržených specificky/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Command Center" }),
+      screen.getByText(/Sedm modulů navržených specificky/i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "TODO Osobní" }),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Command Center/i)).not.toBeInTheDocument();
   });
 
   it("nabízí demo pouze na vyžádání a nespouští veřejnou demo session", () => {

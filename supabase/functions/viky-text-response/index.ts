@@ -10,7 +10,7 @@ const MAX_HISTORY_MESSAGES = 8;
 const MAX_INPUT_LENGTH = 6_000;
 
 const allowedViews = new Set([
-  "command-center",
+  "todo",
   "project",
   "contacts",
   "settings",
@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const currentProjectId = sanitizeString(body?.currentProjectId, 80);
     const requestedView = sanitizeString(body?.currentView, 80);
-    const currentView = requestedView && allowedViews.has(requestedView) ? requestedView : "command-center";
+    const currentView = requestedView && allowedViews.has(requestedView) ? requestedView : "todo";
     const input = sanitizeString(body?.input, MAX_INPUT_LENGTH);
     const previousResponseId = sanitizeString(body?.previousResponseId, 160);
     const toolOutputs = sanitizeToolOutputs(body?.toolOutputs);

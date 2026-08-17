@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "index.css"), "utf8");
-const commandCenterCss = readFileSync(join(process.cwd(), "features/command-center/command-center.css"), "utf8");
 const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx"), "utf8");
 const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/TenderPlan.tsx"), "utf8");
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
@@ -268,11 +267,7 @@ describe("industrial skin tokens", () => {
     expect(css).toContain("color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%)");
   });
 
-  it("industrial Command Center, Subdodavatelé a Dokumenty nepřekrývají canvas bílým pozadím", () => {
-    expect(commandCenterCss).toContain('html[data-skin="industrial"] .cc-root');
-    expect(commandCenterCss).toContain("background: transparent !important");
-    expect(commandCenterCss).toContain("background-image: none !important");
-    expect(commandCenterCss).toContain("--cc-surface: color-mix(in srgb, var(--tf-skin-surface) 86%, transparent)");
+  it("industrial Subdodavatelé a Dokumenty nepřekrývají canvas bílým pozadím", () => {
     expect(css).toContain('html[data-skin="industrial"] .tf-contacts-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-contacts-view [data-help-id="contacts-add"]');
     expect(css).toContain('html[data-skin="industrial"] .tf-contacts-view [data-help-id="contacts-add"] .material-symbols-outlined');
@@ -311,10 +306,10 @@ describe("industrial skin tokens", () => {
   it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
     expect(accountMenuSource).toContain("tf-account-menu-panel");
     expect(accountMenuSource).toContain("tf-account-menu-avatar");
-    expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
+    expect(accountMenuSource).toContain("w-72 max-w-[calc(100vw-16px)]");
     expect(accountMenuSource).toContain("size-10");
     expect(accountMenuSource).toContain("AppearancePicker");
-    expect(appearancePickerSource).toContain("min-h-8");
+    expect(appearancePickerSource).toContain("min-h-10");
     expect(accountMenuSource).toContain("accountMeta");
     expect(accountMenuSource).not.toContain("badge-neon");
     expect(accountMenuSource).not.toContain("BOSS");

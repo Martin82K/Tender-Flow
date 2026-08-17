@@ -162,9 +162,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
         >
           {statusLabels[status]}
         </span>
-        <span className="material-symbols-outlined text-slate-600 group-hover:text-emerald-400 transition-colors">
-          arrow_forward
-        </span>
       </div>
 
       <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">

@@ -41,11 +41,6 @@ export const FEATURES = {
   MAPS_ROUTING: 'maps_routing',
   MAPS_BULK_GEOCODE: 'maps_bulk_geocode',
 
-  // Command Center
-  MODULE_COMMAND_CENTER: 'module_command_center',
-  CC_MATRIX_HEALTH: 'cc_matrix_health',
-  CC_ADVANCED_KPI: 'cc_advanced_kpi',
-
   // Tasks (TODO V1)
   MODULE_TASKS: 'module_tasks',
 } as const;
@@ -65,7 +60,6 @@ export const PLANS = {
       FEATURES.MODULE_CONTACTS,
       FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
-      FEATURES.MODULE_COMMAND_CENTER,
     ]
   },
   STARTER: {
@@ -81,7 +75,6 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
-      FEATURES.MODULE_COMMAND_CENTER,
       FEATURES.MODULE_TASKS,
     ]
   },
@@ -107,9 +100,6 @@ export const PLANS = {
       FEATURES.MAPS_RECOMMENDATIONS,
       FEATURES.MAPS_ROUTING,
       FEATURES.MAPS_BULK_GEOCODE,
-      FEATURES.MODULE_COMMAND_CENTER,
-      FEATURES.CC_MATRIX_HEALTH,
-      FEATURES.CC_ADVANCED_KPI,
       FEATURES.MODULE_TASKS,
     ]
   },

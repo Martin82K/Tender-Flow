@@ -69,6 +69,13 @@ odmítnuté hodnotě skončí před balením chybou.
 `electron-builder.yml` definuje app ID, platformní cíle, ikony, ASAR, updater a
 publikaci na GitHub. macOS cíl obsahuje DMG a ZIP pro arm64; Windows NSIS pro x64.
 
+Windows updater automaticky stáhne novou verzi na pozadí. Explicitní restart je
+povolen až po události `update-downloaded` a spouští tichou instalaci s následným
+znovuspuštěním aplikace. Release smoke test proto musí ověřit celý přechod mezi
+dvěma nainstalovanými podepsanými verzemi: kontrolu, průběh, stažení, restart,
+instalaci, nové číslo verze a zachování uživatelských dat. Vývojový Electron běh
+reálný update záměrně nespouští.
+
 ## Release pravidlo
 
 Desktop release artefakty se vždy nahrávají z lokálně sestaveného a ověřeného

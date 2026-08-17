@@ -21,6 +21,20 @@ export type DocHubHierarchyItem = {
   children?: DocHubHierarchyItem[];
 };
 
+const BLOCKING_DOCHUB_HIERARCHY_KEYS = new Set([
+  "tenders",
+  "category",
+  "supplier",
+]);
+
+export const disabledHierarchyItemBlocksDescendants = (
+  item: DocHubHierarchyItem,
+): boolean =>
+  item.enabled === false &&
+  (BLOCKING_DOCHUB_HIERARCHY_KEYS.has(item.key) ||
+    item.name.includes("{Název VŘ}") ||
+    item.name.includes("{Název dodavatele}"));
+
 export const DEFAULT_DOCHUB_HIERARCHY: DocHubHierarchyItem[] = [
   { id: 'pd', key: 'pd', name: '01_PD', enabled: true, depth: 0 },
   { id: 'pdChanges', key: 'pdChanges', name: '02_Zmeny_PD', enabled: true, depth: 0 },

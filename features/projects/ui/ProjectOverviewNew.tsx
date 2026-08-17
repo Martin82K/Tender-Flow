@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
 import type { ThemeSkin } from "@/shared/types/theme";
 import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
+import { DatePicker } from "@/shared/ui/DatePicker";
 import { NumericInput } from "@/shared/ui/NumericInput";
 import {
   formatMoney,
@@ -11,6 +12,16 @@ import {
   getWinningBids,
 } from "@/features/projects/model/projectOverviewNewModel";
 import { useProjectOverviewNewController } from "@/features/projects/model/useProjectOverviewNewController";
+
+const formatCzechDateOnly = (value?: string): string => {
+  if (!value) return "-";
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+
+  const [, year, month, day] = match;
+  return `${Number(day)}. ${Number(month)}. ${year}`;
+};
 
 export interface ProjectOverviewProps {
   project: ProjectDetails;
@@ -197,6 +208,16 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {project.finishDate || "-"}
               </span>
             </div>
+            {project.status === "tender" ? (
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-500 text-xs">
+                  Odevzdání nabídky:
+                </span>
+                <span className="text-slate-900 dark:text-slate-200 font-bold text-xs truncate ml-2">
+                  {formatCzechDateOnly(project.offerSubmissionDeadline)}
+                </span>
+              </div>
+            ) : null}
             <div className="flex justify-between items-center">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Hl. stavbyvedoucí:
@@ -262,6 +283,28 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
+                  {project.status === "tender" ? (
+                    <div>
+                      <label
+                        htmlFor="offer-submission-deadline"
+                        className="text-xs text-slate-500 font-bold mb-1.5 block"
+                      >
+                        Termín odevzdání nabídky
+                      </label>
+                      <DatePicker
+                        id="offer-submission-deadline"
+                        ariaLabel="Termín odevzdání nabídky"
+                        value={infoForm.offerSubmissionDeadline}
+                        onChange={(value) =>
+                          setInfoForm({
+                            ...infoForm,
+                            offerSubmissionDeadline: value,
+                          })
+                        }
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                      />
+                    </div>
+                  ) : null}
                   <div>
                     <label className="text-xs text-slate-500 font-bold mb-1.5 block">
                       Hl. stavbyvedoucí
@@ -1186,6 +1229,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       color: "text-orange-500",
                       bg: "bg-orange-500/10",
                     },
+                    ...(project.status === "tender"
+                      ? [{
+                          label: "Termín odevzdání nabídky",
+                          value: formatCzechDateOnly(project.offerSubmissionDeadline),
+                          icon: "event_available",
+                          color: "text-amber-500",
+                          bg: "bg-amber-500/10",
+                        }]
+                      : []),
                     {
                       label: "Hlavní stavbyvedoucí",
                       value: project.siteManager,
@@ -1289,6 +1341,28 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                     />
                   </div>
+                  {project.status === "tender" ? (
+                    <div>
+                      <label
+                        htmlFor="full-offer-submission-deadline"
+                        className="text-xs text-slate-500 mb-1 block"
+                      >
+                        Termín odevzdání nabídky
+                      </label>
+                      <DatePicker
+                        id="full-offer-submission-deadline"
+                        ariaLabel="Termín odevzdání nabídky"
+                        value={infoForm.offerSubmissionDeadline}
+                        onChange={(value) =>
+                          setInfoForm({
+                            ...infoForm,
+                            offerSubmissionDeadline: value,
+                          })
+                        }
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                      />
+                    </div>
+                  ) : null}
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">
                       Hlavní stavbyvedoucí

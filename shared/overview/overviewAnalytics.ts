@@ -56,6 +56,18 @@ export interface YearTrend {
   categoryCount: number;
 }
 
+export interface MonthlyVolumeTrend {
+  year: number;
+  tender: number[];
+  realization: number[];
+  tenderCount: number[];
+  realizationCount: number[];
+  tenderActiveCount: number[];
+  realizationActiveCount: number[];
+  tenderMissingValueCount: number[];
+  realizationMissingValueCount: number[];
+}
+
 export interface OverviewAnalytics {
   suppliers: SupplierStats[];
   categoryProfit: CategoryProfit[];
@@ -136,6 +148,83 @@ const extractYear = (value?: string): number | null => {
   return date.getFullYear();
 };
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const parseCalendarDate = (value?: string): Date | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month, day));
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month
+    || date.getUTCDate() !== day
+  ) return null;
+  return date;
+};
+
+interface RealizationMonthShare {
+  year: number;
+  month: number;
+  activeDays: number;
+}
+
+const resolveRealizationRange = (details: ProjectDetails): { start: Date; end: Date } | null => {
+  const categoryStarts = (details.categories || [])
+    .map((category) => parseCalendarDate(category.realizationStart))
+    .filter((date): date is Date => date !== null);
+  const categoryEnds = (details.categories || [])
+    .map((category) => parseCalendarDate(category.realizationEnd))
+    .filter((date): date is Date => date !== null);
+  const finishDate = parseCalendarDate(details.finishDate);
+
+  const start = categoryStarts.length > 0
+    ? new Date(Math.min(...categoryStarts.map((date) => date.getTime())))
+    : categoryEnds.length > 0
+      ? new Date(Math.min(...categoryEnds.map((date) => date.getTime())))
+      : finishDate;
+  if (!start) return null;
+
+  const latestCategoryEnd = categoryEnds.length > 0
+    ? new Date(Math.max(...categoryEnds.map((date) => date.getTime())))
+    : null;
+  const end = latestCategoryEnd
+    || (finishDate && finishDate.getTime() >= start.getTime() ? finishDate : start);
+
+  // Obrácený interval je nekonzistentní vstup. Bezpečně jej omezíme na první
+  // známý den, aby nevznikly záporné objemy ani tiché přesuny mezi roky.
+  return end.getTime() >= start.getTime() ? { start, end } : { start, end: start };
+};
+
+const splitRealizationRangeByMonth = (start: Date, end: Date): RealizationMonthShare[] => {
+  const shares: RealizationMonthShare[] = [];
+  let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+
+  while (cursor.getTime() <= end.getTime()) {
+    const year = cursor.getUTCFullYear();
+    const month = cursor.getUTCMonth();
+    const monthStart = cursor.getTime();
+    const monthEnd = Date.UTC(year, month + 1, 0);
+    const overlapStart = Math.max(start.getTime(), monthStart);
+    const overlapEnd = Math.min(end.getTime(), monthEnd);
+
+    if (overlapStart <= overlapEnd) {
+      shares.push({
+        year,
+        month,
+        activeDays: Math.floor((overlapEnd - overlapStart) / DAY_IN_MS) + 1,
+      });
+    }
+    cursor = new Date(Date.UTC(year, month + 1, 1));
+  }
+
+  return shares;
+};
+
 const addSupplierCategory = (
   supplier: SupplierStats,
   category: DemandCategory,
@@ -177,6 +266,81 @@ const addSupplierOffer = (
     priceValue: parseMoneyValue(bid.price),
     date,
   });
+};
+
+export const buildMonthlyVolumeTrends = (
+  projects: Project[],
+  projectDetails: Record<string, ProjectDetails | undefined>,
+): MonthlyVolumeTrend[] => {
+  const trendsByYear = new Map<number, MonthlyVolumeTrend>();
+  const createMonths = () => Array.from({ length: 12 }, () => 0);
+  const getTrend = (year: number): MonthlyVolumeTrend => {
+    const existing = trendsByYear.get(year);
+    if (existing) return existing;
+
+    const trend: MonthlyVolumeTrend = {
+      year,
+      tender: createMonths(),
+      realization: createMonths(),
+      tenderCount: createMonths(),
+      realizationCount: createMonths(),
+      tenderActiveCount: createMonths(),
+      realizationActiveCount: createMonths(),
+      tenderMissingValueCount: createMonths(),
+      realizationMissingValueCount: createMonths(),
+    };
+    trendsByYear.set(year, trend);
+    return trend;
+  };
+
+  projects.forEach((project) => {
+    const details = projectDetails[project.id];
+    if (!details) return;
+    const projectStatus = project.status === "archived"
+      ? project.archivedOriginalStatus || details.archivedOriginalStatus
+      : project.status;
+    if (projectStatus !== "tender" && projectStatus !== "realization") return;
+
+    const realizationRange = resolveRealizationRange(details);
+    if (!realizationRange) return;
+    const monthShares = splitRealizationRangeByMonth(realizationRange.start, realizationRange.end);
+    if (monthShares.length === 0) return;
+    const investorFinancials = details.investorFinancials;
+    const investorValue = investorFinancials && investorFinancials.sodPrice > 0
+      ? investorFinancials.sodPrice + (investorFinancials.amendments || []).reduce(
+          (sum, amendment) => sum + (Number.isFinite(amendment.price) ? amendment.price : 0),
+          0,
+        )
+      : 0;
+    const totalActiveDays = monthShares.reduce((sum, share) => sum + share.activeDays, 0);
+    const countedYears = new Set<number>();
+    let allocatedValue = 0;
+
+    monthShares.forEach((share, index) => {
+      const trend = getTrend(share.year);
+      const activeCounts = projectStatus === "tender"
+        ? trend.tenderActiveCount
+        : trend.realizationActiveCount;
+      activeCounts[share.month] += 1;
+      if (!countedYears.has(share.year)) {
+        trend[`${projectStatus}Count`][share.month] += 1;
+        if (investorValue <= 0) {
+          trend[`${projectStatus}MissingValueCount`][share.month] += 1;
+        }
+        countedYears.add(share.year);
+      }
+
+      if (investorValue <= 0) return;
+      const isLastShare = index === monthShares.length - 1;
+      const monthValue = isLastShare
+        ? investorValue - allocatedValue
+        : investorValue * share.activeDays / totalActiveDays;
+      trend[projectStatus][share.month] += monthValue;
+      allocatedValue += monthValue;
+    });
+  });
+
+  return Array.from(trendsByYear.values()).sort((a, b) => a.year - b.year);
 };
 
 export const buildOverviewAnalytics = (

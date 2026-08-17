@@ -10,6 +10,7 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, 'shared'),
       '@infra': path.resolve(__dirname, 'infra'),
       'win-hello': path.resolve(__dirname, 'tests/mocks/win-hello.ts'),
+      'electron-updater': path.resolve(__dirname, 'tests/mocks/electron-updater.ts'),
     },
   },
   test: {

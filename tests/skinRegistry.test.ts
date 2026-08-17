@@ -63,6 +63,19 @@ describe("skin visual registry", () => {
     expect(getSkinVisualDefinition("industrial", "dark").asset).toBeNull();
   });
 
+  it("TF Space používá lokální kosmický raster a čitelný skleněný materiál", () => {
+    const light = getSkinVisualDefinition("space", "light");
+    const dark = getSkinVisualDefinition("space", "dark");
+
+    expect(light.asset).toContain("tf-space-canvas.webp");
+    expect(dark.asset).toContain("tf-space-canvas.webp");
+    expect(light.asset).not.toContain("http");
+    expect(dark.asset).not.toContain("http");
+    expect(light.surface.dataOpacity).toBeGreaterThan(light.surface.panelOpacity);
+    expect(dark.surface.dataOpacity).toBeGreaterThan(dark.surface.panelOpacity);
+    expect(dark.canvas.opacity).toBeGreaterThan(light.canvas.opacity);
+  });
+
   it("aplikuje asset, umístění vrstev a materiál přes CSS proměnné", () => {
     const root = document.createElement("div");
 
@@ -91,5 +104,18 @@ describe("skin visual registry", () => {
     expect(root.style.getPropertyValue("--tf-skin-header-art-opacity")).toBe("0.68");
     expect(root.style.getPropertyValue("--tf-skin-canvas-art-opacity")).toBe("0.38");
     expect(root.style.getPropertyValue("--tf-skin-data-opacity")).toBe("99%");
+  });
+
+  it("aplikuje TF Space jako lokální bezpečný asset", () => {
+    const root = document.createElement("div");
+
+    applySkinVisualDefinition(root, "space", "dark");
+
+    expect(root.dataset.skin).toBe("space");
+    expect(root.style.getPropertyValue("--tf-skin-art-image")).toContain(
+      "tf-space-canvas.webp",
+    );
+    expect(root.style.getPropertyValue("--tf-skin-art-image")).not.toContain("http");
+    expect(root.style.getPropertyValue("--tf-skin-data-opacity")).toBe("96%");
   });
 });

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "@appica/ui-react/styles.css";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
 @source "./app/**/*.{js,ts,jsx,tsx}";
@@ -11,6 +11,7 @@
 @source "./services/**/*.{js,ts,jsx,tsx}";
 @source "./utils/**/*.{js,ts,jsx,tsx}";
 @source "./*.{js,ts,jsx,tsx}";
+@source "./node_modules/@appica/ui-react/dist/**/*.{js,mjs}";
 @custom-variant dark (&:where(.dark, .dark *));
 
 .tabular-nums,
@@ -70,6 +71,8 @@ input[type="number"] {
   --tf-skin-accent-2: #607afb;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #4055c7;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #b45309;
   --tf-skin-green: #10b981;
@@ -95,6 +98,8 @@ html.dark {
   --tf-skin-accent-2: #818cf8;
   --tf-settings-primary: rgb(var(--tf-color-primary-rgb));
   --tf-settings-primary-strong: #a5b4fc;
+  --tf-settings-active-background: color-mix(in srgb, var(--tf-settings-primary) 60%, #000000 40%);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #f59e0b;
   --tf-skin-orange-deep: #fbbf24;
   --tf-skin-green: #34d399;
@@ -119,6 +124,8 @@ html[data-skin="industrial"] {
   --tf-skin-accent-2: #b03a05;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff8a33;
   --tf-skin-orange-deep: #b03a05;
   --tf-skin-green: #58c69a;
@@ -146,6 +153,8 @@ html.dark[data-skin="industrial"] {
   --tf-skin-accent-2: #7aa2ff;
   --tf-settings-primary: var(--tf-skin-orange);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
   --tf-skin-orange: #ff9f1a;
   --tf-skin-orange-deep: #ff8a33;
   --tf-skin-green: #58c69a;
@@ -3504,17 +3513,24 @@ body {
   }
 }
 
-/* Calendar picker icon styling for dark mode */
-.dark input[type="date"]::-webkit-calendar-picker-indicator,
-.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.dark input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.5);
+/* Dark color-scheme already renders native picker icons light; avoid double inversion. */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html.dark input[type="month"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="month"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
+  opacity: 1 !important;
   cursor: pointer;
 }
 
 /* Calendar picker icon hover effect */
 input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.8;
 }
@@ -3842,6 +3858,8 @@ html[data-skin="botanica"] {
   --tf-skin-accent-2: #ad6b7e;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #9a5267;
   --tf-skin-orange-deep: #5c2034;
   --tf-skin-green: #647660;
@@ -3872,6 +3890,8 @@ html.dark[data-skin="botanica"] {
   --tf-skin-accent-2: #d18aa0;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #c56d85;
   --tf-skin-orange-deep: #e2a0b2;
   --tf-skin-green: #91a18c;
@@ -3903,6 +3923,8 @@ html[data-skin="nature"] {
   --tf-skin-accent-2: #2f855a;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #166534;
   --tf-skin-orange-deep: #14532d;
   --tf-skin-green: #15803d;
@@ -3932,6 +3954,8 @@ html.dark[data-skin="nature"] {
   --tf-skin-accent-2: #63b985;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #ffffff;
   --tf-skin-orange: #1f7a46;
   --tf-skin-orange-deep: #7dd6a0;
   --tf-skin-green: #4dbd78;
@@ -4615,8 +4639,8 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 
 .tf-theme-mode-control,
 .tf-ui-scale-control {
-  border: 1px solid var(--tf-skin-line);
-  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent);
+  border: 0;
+  background: transparent;
 }
 
 .tf-theme-mode-button,
@@ -4631,9 +4655,9 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
 }
 
 .tf-theme-mode-button[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--tf-skin-accent) 14%, var(--tf-skin-surface) 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-skin-accent) 56%, var(--tf-skin-line) 44%);
-  color: var(--tf-skin-text);
+  background: var(--tf-settings-active-background);
+  box-shadow: none;
+  color: var(--tf-settings-active-foreground);
 }
 
 .tf-theme-mode-button:focus-visible,
@@ -4712,24 +4736,37 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel opt
 }
 
 html[data-skin] .tf-appearance-picker {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger {
+html[data-skin] .tf-appearance-picker-select {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-card) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html[data-skin] .tf-appearance-picker-trigger:focus-visible {
+.tf-appearance-picker .tf-themed-select-trigger {
+  height: 2rem;
+  border-radius: 0.375rem;
+  padding: 0 0.5rem 0 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.tf-appearance-picker .tf-themed-select-trigger > span:first-child {
+  text-align: right;
+}
+
+html[data-skin] .tf-appearance-picker-select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-settings-primary) 64%, #ffffff 36%) !important;
   outline-offset: 2px;
 }
 
 html[data-skin] .tf-theme-mode-control {
-  background-color: var(--tf-skin-surface-muted) !important;
-  border-color: var(--tf-skin-line) !important;
-  border-style: solid;
-  border-width: 1px;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 html[data-skin] .tf-theme-mode-button {
@@ -4743,9 +4780,22 @@ html[data-skin] .tf-theme-mode-button:hover {
 }
 
 html[data-skin] .tf-theme-mode-button[aria-pressed="true"] {
-  background-color: color-mix(in srgb, var(--tf-settings-primary) 18%, var(--tf-skin-card) 82%) !important;
-  color: var(--tf-settings-primary-strong) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-settings-primary) 42%, var(--tf-skin-line) 58%);
+  background-color: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none;
+}
+
+html[data-skin] .tf-appearance-section {
+  border-color: var(--tf-skin-line) !important;
+  background: var(--tf-skin-surface-muted) !important;
+}
+
+html[data-skin] .tf-documents-tab[aria-selected="true"] {
+  border-color: var(--tf-settings-active-background) !important;
+  background-color: var(--tf-settings-active-background) !important;
+  background-image: none !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none !important;
 }
 
 html[data-skin] .tf-theme-mode-button:focus-visible {
@@ -4948,6 +4998,896 @@ html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar-corner {
     color: CanvasText !important;
     border-color: CanvasText !important;
     backdrop-filter: none !important;
+  }
+}
+
+html:not([data-skin="space"]) .tf-button-success {
+  border-color: #047857 !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(4, 120, 87, 0.2) !important;
+}
+
+html:not([data-skin="space"]) .tf-button-success:hover:not(:disabled) {
+  background: #047857 !important;
+}
+
+html:not([data-skin="space"]) .tf-button-warning {
+  border-color: #d97706 !important;
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2) !important;
+}
+
+html:not([data-skin="space"]) .tf-button-warning:hover:not(:disabled) {
+  background: #d97706 !important;
+}
+
+html:not([data-skin="space"]) :is(.tf-button-success, .tf-button-warning)::before {
+  display: none !important;
+}
+
+/* TF Space — Appica-based cosmic glass skin. */
+html[data-skin="space"] {
+  --tf-space-red: #f43f5e;
+  --tf-space-magenta: #d946ef;
+  --tf-space-violet: #8b5cf6;
+  --tf-space-blue: #3b82f6;
+  --tf-space-cyan: #67e8f9;
+  --tf-skin-bg: #080b14;
+  --tf-skin-surface: #0b111d;
+  --tf-skin-surface-muted: #111827;
+  --tf-skin-surface-deep: #05070d;
+  --tf-skin-card: #0a101a;
+  --tf-skin-text: #f8fafc;
+  --tf-skin-text-2: #cbd5e1;
+  --tf-skin-muted: #94a3b8;
+  --tf-skin-muted-2: #64748b;
+  --tf-skin-line: rgba(148, 163, 184, 0.18);
+  --tf-skin-line-2: rgba(148, 163, 184, 0.3);
+  --tf-skin-grid: rgba(103, 232, 249, 0.08);
+  --tf-skin-grid-2: rgba(244, 63, 94, 0.1);
+  --tf-skin-accent: var(--tf-space-red);
+  --tf-skin-accent-2: var(--tf-space-cyan);
+  --tf-settings-primary: var(--tf-space-red);
+  --tf-settings-primary-strong: #f43f5e;
+  --tf-settings-active-background: var(--tf-settings-primary);
+  --tf-settings-active-foreground: #0f172a;
+  --primary: var(--tf-space-red);
+  --primary-subtle: rgba(244, 63, 94, 0.12);
+  --primary-soft: rgba(244, 63, 94, 0.2);
+  --primary-muted: var(--tf-space-magenta);
+  --primary-strong: #fb7185;
+  --primary-foreground: #ffffff;
+  --secondary: var(--tf-space-blue);
+  --secondary-subtle: rgba(59, 130, 246, 0.1);
+  --secondary-soft: rgba(59, 130, 246, 0.18);
+  --secondary-muted: var(--tf-space-violet);
+  --secondary-strong: var(--tf-space-cyan);
+  --secondary-emphasis: var(--tf-space-blue);
+  --secondary-intense: var(--tf-space-cyan);
+  --secondary-foreground: #ffffff;
+  --background: #080b14;
+  --background-subtle: rgba(103, 232, 249, 0.06);
+  --background-muted: var(--tf-skin-surface-muted);
+  --background-strong: #172033;
+  --foreground: #f8fafc;
+  --foreground-subtle: var(--tf-skin-muted-2);
+  --foreground-muted: var(--tf-skin-muted);
+  --foreground-strong: var(--tf-skin-text-2);
+  --foreground-emphasis: var(--tf-skin-text);
+  --foreground-intense: #ffffff;
+  --card: #0a101a;
+  --card-foreground: #f8fafc;
+  --popover: #0b111d;
+  --popover-foreground: #f8fafc;
+  --border: rgba(148, 163, 184, 0.2);
+  --border-muted: rgba(148, 163, 184, 0.12);
+  --border-strong: rgba(103, 232, 249, 0.34);
+  --border-emphasis: rgba(103, 232, 249, 0.52);
+  --border-overlay: var(--tf-skin-line-2);
+  --input: rgba(148, 163, 184, 0.24);
+  --ring: var(--tf-space-red);
+  --focus-ring: rgba(103, 232, 249, 0.34);
+  --focus-ring-input: rgba(103, 232, 249, 0.28);
+  --focus-ring-primary: rgba(244, 63, 94, 0.38);
+  --focus-ring-secondary: rgba(59, 130, 246, 0.38);
+  --shadow-color: rgba(0, 0, 0, 0.38);
+  --selection-color: rgba(103, 232, 249, 0.18);
+  color-scheme: dark;
+}
+
+html.dark[data-skin="space"] {
+  --tf-skin-bg: #05070d;
+  --tf-skin-surface: #080d17;
+  --tf-skin-surface-muted: #0d1421;
+  --tf-skin-surface-deep: #03050a;
+  --tf-skin-card: #08101a;
+  --tf-settings-primary: var(--tf-space-red);
+  --tf-settings-primary-strong: #fb7185;
+  color-scheme: dark;
+}
+
+html[data-skin="space"] body,
+html[data-skin="space"] .tf-app-viewport,
+html[data-skin="space"] .tf-app-shell {
+  background: var(--tf-skin-bg) !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="space"] .tf-app-shell {
+  isolation: isolate;
+}
+
+html[data-skin="space"] .tf-app-main {
+  background-color: var(--tf-skin-bg) !important;
+  background-image:
+    linear-gradient(rgba(3, 6, 12, 0.16), rgba(3, 6, 12, 0.34)),
+    var(--tf-skin-art-image) !important;
+  background-position: var(--tf-skin-canvas-art-position, center) !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  color: var(--tf-skin-text);
+  isolation: isolate;
+}
+
+html[data-skin="space"] .tf-app-main::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--tf-skin-art-image) !important;
+  background-position: var(--tf-skin-canvas-art-position, center) !important;
+  background-repeat: no-repeat !important;
+  background-size: var(--tf-skin-canvas-art-size, cover) !important;
+  content: "";
+  display: none;
+  opacity: var(--tf-skin-canvas-art-opacity, 0.58);
+  pointer-events: none;
+}
+
+html[data-skin="space"] .tf-space-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.38;
+  color: color-mix(in srgb, var(--tf-space-cyan) 54%, var(--tf-space-red) 46%);
+  pointer-events: none;
+}
+
+html[data-skin="space"] .tf-app-main > :not(.tf-space-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="space"] .tf-project-overview-view {
+  background-color: transparent !important;
+}
+
+html[data-skin="space"] .tf-sidebar {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 88%, transparent) !important;
+  background-image:
+    linear-gradient(rgba(3, 5, 10, 0.58), rgba(3, 5, 10, 0.78)),
+    var(--tf-skin-art-image) !important;
+  background-position: var(--tf-skin-sidebar-art-position, 10% center) !important;
+  background-size: var(--tf-skin-sidebar-art-size, cover) !important;
+  box-shadow: inset -1px 0 0 rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(18px) saturate(120%);
+}
+
+html[data-skin="space"] .tf-sidebar::after {
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 56%, transparent) !important;
+  opacity: 1 !important;
+}
+
+html[data-skin="space"] .tf-topbar {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 78%, transparent) !important;
+  box-shadow: 0 1px 0 rgba(244, 63, 94, 0.1), 0 14px 40px rgba(0, 0, 0, 0.22) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+html[data-skin="space"] .tf-topbar::after {
+  background-image: var(--tf-skin-art-image) !important;
+  background-position: var(--tf-skin-header-art-position, center 18%) !important;
+  background-size: var(--tf-skin-header-art-size, cover) !important;
+  opacity: var(--tf-skin-header-art-opacity, 0.58) !important;
+}
+
+html[data-skin="space"] :is(
+  .tf-app-main [class~="bg-white"],
+  .tf-app-main [class~="bg-slate-50"],
+  .tf-app-main [class~="bg-slate-100"],
+  .tf-app-main [class~="dark:bg-slate-900"],
+  .tf-app-main [class~="dark:bg-slate-900/70"],
+  .tf-app-main [class~="dark:bg-slate-800"],
+  [role="dialog"],
+  [role="menu"],
+  [role="listbox"]
+) {
+  border-color: var(--tf-skin-line) !important;
+  background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-panel-opacity, 84%), transparent) !important;
+  background-image: none !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(var(--tf-skin-surface-blur, 16px)) saturate(125%);
+}
+
+html[data-skin="space"] :is(.rounded-2xl, .rounded-xl, .rounded-lg) {
+  border-color: var(--tf-skin-line);
+}
+
+html[data-skin="space"] :is(
+  [class~="text-slate-950"],
+  [class~="text-slate-900"],
+  [class~="text-slate-800"],
+  [class~="text-slate-700"]
+) {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] :is(
+  [class~="text-slate-600"],
+  [class~="text-slate-500"]
+) {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] :is(
+  [class~="text-slate-400"],
+  [class~="text-slate-300"]
+) {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="space"] :is(input, textarea, select, [role="combobox"]) {
+  border-color: var(--tf-skin-line-2) !important;
+  background-color: rgba(5, 9, 17, 0.78) !important;
+  color: var(--tf-skin-text) !important;
+  caret-color: var(--tf-space-cyan);
+}
+
+html[data-skin="space"] :is(input, textarea)::placeholder {
+  color: var(--tf-skin-muted) !important;
+  opacity: 1;
+}
+
+html[data-skin="space"] :is(input, textarea, select, button, a, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--tf-space-cyan) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(103, 232, 249, 0.14) !important;
+}
+
+html[data-skin="space"] :is(table, thead, tbody, tr, th, td) {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="space"] table {
+  background: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 96%), transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] table :is(thead, th) {
+  background: rgba(15, 23, 42, 0.92) !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] table tbody tr:hover,
+html[data-skin="space"] table tbody tr:hover > td {
+  background: rgba(103, 232, 249, 0.07) !important;
+}
+
+html[data-skin="space"] table tfoot tr,
+html[data-skin="space"] table tfoot td {
+  background: rgba(15, 23, 42, 0.86) !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background:
+    linear-gradient(135deg, rgba(244, 63, 94, 0.045), rgba(59, 130, 246, 0.035)),
+    rgba(8, 16, 26, 0.8) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 16px 40px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(128%);
+}
+
+html[data-skin="space"] [data-help-id="overview-info-surface"],
+html[data-skin="space"] [data-help-id="overview-demand-table"] {
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  background: rgba(8, 16, 26, 0.78) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.2) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(18px) saturate(125%);
+}
+
+html[data-skin="space"] :is(.tf-demand-filterbar, .tf-demand-columns-button) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(15, 23, 42, 0.82) !important;
+}
+
+html[data-skin="space"] :is([data-active="true"], [aria-selected="true"], [aria-pressed="true"]) {
+  border-color: color-mix(in srgb, var(--tf-space-red) 68%, var(--tf-space-violet) 32%) !important;
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] .tf-topbar [data-help-id="project-tabs"] button[data-active="true"] {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #050911 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+}
+
+html[data-skin="space"] [data-help-id="topbar-search"] {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: rgba(5, 9, 17, 0.72) !important;
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, 0.04);
+}
+
+html[data-skin="space"] [data-help-id="topbar-search"]:focus-within {
+  border-color: var(--tf-space-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.12), 0 0 22px rgba(59, 130, 246, 0.12);
+}
+
+html[data-skin="space"] :is(.text-primary, [class~="text-blue-500"], [class~="text-sky-500"]) {
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] :is(.bg-primary, [class~="bg-indigo-600"]) {
+  border-color: rgba(251, 113, 133, 0.72) !important;
+  background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-documents-view {
+  --tf-documents-panel: rgba(8, 16, 26, 0.68);
+  --tf-documents-card: rgba(8, 16, 26, 0.76);
+  --tf-documents-row: rgba(8, 16, 26, 0.88);
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="space"] .tf-app-main .tf-documents-view {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-documents-view [data-help-id="documents-sidebar"] nav,
+html[data-skin="space"] .tf-documents-view [data-help-id="documents-tip"] {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(14px) saturate(124%);
+}
+
+html[data-skin="space"] .tf-documents-view #documents-tabpanel {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-documents-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-app-main .tf-documents-view :is(
+  [class~="bg-white"],
+  [class~="bg-slate-50"],
+  [class~="bg-slate-100"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"],
+  [class~="bg-slate-950"]
+) {
+  background-color: var(--tf-documents-card) !important;
+}
+
+html[data-skin="space"] .tf-documents-view :is(
+  [data-help-id="documents-link-row"],
+  [data-help-id="documents-price-list-link"]
+) {
+  background: var(--tf-documents-row) !important;
+}
+
+html[data-skin="space"] :is(
+  .tf-project-overview,
+  .tf-project-overview-view,
+  .tf-tender-plan-view,
+  .tf-pipeline-view
+) {
+  --tf-space-workspace-panel: rgba(8, 16, 26, 0.68);
+  --tf-space-workspace-card: rgba(8, 16, 26, 0.76);
+  --tf-space-workspace-row: rgba(8, 16, 26, 0.86);
+}
+
+html[data-skin="space"] .tf-app-main :is(
+  .tf-project-overview,
+  .tf-project-overview-view,
+  .tf-tender-plan-view,
+  .tf-pipeline-view
+) {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view {
+  --tf-overview-status-sod: #34d399;
+  --tf-overview-status-shortlist: #fbbf24;
+  --tf-overview-status-offer: var(--tf-space-cyan);
+  --tf-overview-status-rejected: #fb7185;
+  --tf-overview-status-contacted: #94a3b8;
+  --tf-overview-status-sent: #a78bfa;
+  --tf-overview-gauge-good-strong: #059669;
+  --tf-overview-gauge-good: #34d399;
+  --tf-overview-gauge-neutral: #fbbf24;
+  --tf-overview-gauge-warning: #fb923c;
+  --tf-overview-gauge-danger: #fb7185;
+  --tf-overview-gauge-muted: #94a3b8;
+}
+
+html[data-skin="space"] .tf-project-overview-view :is(
+  [data-help-id="overview-scope-toggle"],
+  [data-help-id="overview-supplier-analysis"],
+  [data-help-id="overview-trends"],
+  [data-help-id="overview-kpi"] > div,
+  [data-help-id="overview-status-cards"] > div,
+  [data-help-id="overview-charts"] > div
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-project-overview-view :is(
+  [data-help-id="overview-supplier-analysis"],
+  [data-help-id="overview-trends"]
+) > div:first-child {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view [data-help-id="overview-charts"] :is(
+  [class~="bg-white"],
+  [class~="bg-slate-100"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"]
+) {
+  background-color: var(--tf-space-workspace-card) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox-content {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 28%, var(--tf-skin-line-2) 72%) !important;
+  background: rgba(5, 9, 17, 0.98) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.58), 0 0 26px rgba(59, 130, 246, 0.12) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox:focus-within {
+  border-color: var(--tf-space-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox [data-slot="combobox-input-field"],
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox [data-slot="combobox-input-field"]:focus-visible {
+  border: 0 !important;
+  background: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card,
+html[data-skin="space"] [data-help-id="overview-info-surface"],
+html[data-skin="space"] [data-help-id="overview-demand-table"] {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-tender-plan-view :is(
+  [data-help-id="tender-plan-sidebar"] nav,
+  [data-help-id="tender-plan-tip"]
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+  backdrop-filter: blur(14px) saturate(124%);
+}
+
+html[data-skin="space"] .tf-tender-plan-view :is(
+  [data-help-id="tender-plan-table"],
+  [data-help-id="tender-plan-tools"]
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-app-main .tf-tender-plan-view :is(
+  [class~="bg-white"],
+  [class~="bg-slate-50"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"]
+) {
+  background-color: var(--tf-space-workspace-card) !important;
+}
+
+html[data-skin="space"] .tf-pipeline-overview [data-help-id="pipeline-overview-table"],
+html[data-skin="space"] .tf-pipeline-overview [data-help-id="pipeline-category-card"] > :is(button, [role="button"]) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-pipeline-overview :is(.tf-demand-filterbar, [data-help-id="pipeline-view-toggle"]) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.62) !important;
+}
+
+html[data-skin="space"] [data-help-id="pipeline-kanban"] {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-kanban-column {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: rgba(8, 16, 26, 0.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="sent"],
+html[data-skin="space"] .tf-kanban-column[data-status="shortlist"] {
+  background: rgba(30, 64, 175, 0.22) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="offer"] {
+  background: rgba(180, 83, 9, 0.2) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="sod"] {
+  background: rgba(5, 150, 105, 0.2) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="rejected"] {
+  background: rgba(190, 24, 93, 0.18) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column-header {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.66) !important;
+}
+
+html[data-skin="space"] .tf-kanban-bid-card {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  background: var(--tf-space-workspace-row) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+@media (prefers-contrast: more) {
+  html[data-skin="space"] .tf-documents-view #documents-tabpanel,
+  html[data-skin="space"] .tf-app-main .tf-documents-view [class*="bg-slate"],
+  html[data-skin="space"] :is(.tf-project-overview, .tf-tender-plan-view, .tf-pipeline-view) :is(
+    [data-help-id="overview-info-surface"],
+    [data-help-id="tender-plan-table"],
+    [data-help-id="pipeline-overview-table"],
+    .tf-kanban-column,
+    .tf-kanban-bid-card
+  ) {
+    background: var(--tf-skin-card) !important;
+  }
+
+  html[data-skin="space"] .tf-project-overview-view :is(
+    [data-help-id="overview-scope-toggle"],
+    [data-help-id="overview-supplier-analysis"],
+    [data-help-id="overview-trends"],
+    [data-help-id="overview-kpi"] > div,
+    [data-help-id="overview-status-cards"] > div,
+    [data-help-id="overview-charts"] > div
+  ) {
+    background: var(--tf-skin-card) !important;
+  }
+}
+
+html[data-skin="space"] :is(.tf-appearance-section, .tf-appearance-picker-select, .tf-themed-select-trigger) {
+  border-color: var(--tf-skin-line-2) !important;
+  background: rgba(8, 13, 23, 0.86) !important;
+}
+
+html[data-skin="space"] .tf-account-menu > button {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-surface) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-account-menu-panel {
+  border-color: var(--tf-skin-line-2) !important;
+  background: var(--tf-skin-surface) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-skin="space"] .tf-account-menu-panel [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="space"] .tf-account-menu-panel button:not([data-slot="toggle"]):not(.tf-ui-scale-button):not(:disabled):hover {
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.12), rgba(59, 130, 246, 0.08)) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] .tf-account-menu-avatar {
+  background: linear-gradient(135deg, var(--tf-space-red), var(--tf-space-magenta) 58%, var(--tf-space-violet)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.28) !important;
+}
+
+html[data-skin="space"] .tf-appearance-picker-positioner {
+  z-index: 130 !important;
+}
+
+html[data-skin="space"] .tf-appearance-picker-popover,
+html[data-skin="space"] .tf-themed-select-popover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 28%, var(--tf-skin-line-2) 72%) !important;
+  background: rgba(5, 9, 17, 0.98) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow:
+    0 22px 58px rgba(0, 0, 0, 0.58),
+    0 0 26px rgba(59, 130, 246, 0.12) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option) {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option):hover,
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option)[data-active="true"] {
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] :is(.tf-appearance-picker-option, .tf-themed-select-option)[aria-selected="true"] {
+  border-color: rgba(244, 63, 94, 0.46) !important;
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.16), rgba(139, 92, 246, 0.12)) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"] {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: none;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="primary"] {
+  border-color: rgba(251, 113, 133, 0.72) !important;
+  background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] [data-slot="button"]:is([data-tf-variant="secondary"], [data-tf-variant="outline"], [data-tf-variant="ghost"]) {
+  border-color: var(--tf-skin-line-2) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="danger"] {
+  border-color: rgba(251, 113, 133, 0.7) !important;
+  background: linear-gradient(135deg, #be123c, #e11d48) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="success"] {
+  border-color: rgba(103, 232, 249, 0.64) !important;
+  background: linear-gradient(135deg, #0891b2, #2563eb) !important;
+  color: #ffffff !important;
+}
+
+html[data-skin="space"] [data-slot="button"][data-tf-variant="warning"] {
+  border-color: rgba(251, 191, 36, 0.72) !important;
+  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+  color: #080b14 !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"],
+html[data-skin="space"] .tf-ui-scale-button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"]:hover,
+html[data-skin="space"] .tf-ui-scale-button:hover:not(:disabled) {
+  border-color: rgba(103, 232, 249, 0.28) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] [data-slot="toggle"][aria-pressed="true"] {
+  border-color: var(--tf-settings-active-background) !important;
+  background: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="space"] input:is([type="checkbox"], [type="radio"]) {
+  accent-color: var(--tf-space-red);
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer + div {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 88%, transparent) !important;
+  box-shadow: inset 0 0 0 1px var(--tf-skin-line-2);
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div {
+  background: linear-gradient(90deg, #e11d48, #c026d3 58%, #7c3aed) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 113, 133, 0.64),
+    0 0 16px rgba(244, 63, 94, 0.22) !important;
+}
+
+html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div + div {
+  box-shadow: 0 0 12px rgba(103, 232, 249, 0.34) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card > .absolute {
+  width: 100% !important;
+  height: 1px !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(1) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-red), var(--tf-space-magenta)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(2) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-violet), var(--tf-space-blue)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(3) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-blue), var(--tf-space-cyan)) !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card:nth-child(4) > .absolute {
+  background: linear-gradient(90deg, var(--tf-space-magenta), var(--tf-space-cyan)) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view {
+  background: transparent !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view > div {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-create-section"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] {
+  border-color: var(--tf-skin-line) !important;
+  background: color-mix(in srgb, var(--tf-skin-card) 82%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 48px rgba(0, 0, 0, 0.2) !important;
+  color: var(--tf-skin-text) !important;
+  backdrop-filter: blur(18px) saturate(128%);
+}
+
+html[data-skin="space"] .tf-project-manager-view form,
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] [class*="bg-slate-50"] {
+  border-color: var(--tf-skin-line) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 68%, transparent) !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"]:hover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 42%, var(--tf-skin-line) 58%) !important;
+  background: color-mix(in srgb, var(--tf-space-blue) 8%, var(--tf-skin-surface-muted) 92%) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(h2, h3, h4, [class*="text-slate-900"], [class*="text-white"]) {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(p, label, [class*="text-slate-700"], [class*="text-slate-600"], [class*="text-slate-500"]) {
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--tf-skin-line-2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 82%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--tf-space-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view button[class*="from-emerald"],
+html[data-skin="space"] .tf-project-manager-view button[class*="from-blue"],
+html[data-skin="space"] .tf-project-manager-view button[class*="from-violet"] {
+  border: 1px solid rgba(251, 113, 133, 0.72) !important;
+  background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button:hover,
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-section"] button:hover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 38%, var(--tf-skin-line) 62%) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"] {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 42%, var(--tf-skin-line) 58%) !important;
+  background: rgba(103, 232, 249, 0.08) !important;
+  color: var(--tf-space-cyan) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-edit-modal"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-share-modal"],
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-transfer-modal"] {
+  background: rgba(2, 4, 10, 0.76) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view :is(
+  [data-help-id="pm-edit-modal"],
+  [data-help-id="pm-share-modal"],
+  [data-help-id="pm-transfer-modal"]
+) .tf-modal-panel {
+  border-color: var(--tf-skin-line-2) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  background-image: none !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.46) !important;
+  backdrop-filter: blur(22px) saturate(130%);
+}
+
+html[data-skin="space"] .tf-space-sidebar-reveal {
+  transition: opacity 160ms ease;
+}
+
+html[data-skin="space"] .tf-space-sidebar-reveal > button {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="space"] .tf-space-backdrop,
+  html[data-skin="space"] .tf-space-sidebar-reveal,
+  html[data-skin="space"] .tf-space-sidebar-reveal * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-skin="space"] .tf-space-backdrop,
+  html[data-skin="space"] .tf-app-main::before,
+  html[data-skin="space"] .tf-topbar::after {
+    display: none !important;
+  }
+
+  html[data-skin="space"] :is(input, textarea, select, button, [role="dialog"], [role="menu"]) {
+    border-color: CanvasText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+    forced-color-adjust: auto;
   }
 }
 

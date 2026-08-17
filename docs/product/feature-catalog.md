@@ -9,7 +9,6 @@ platformě a backendové konfiguraci.
 | View | URL | Účel | Gate |
 | --- | --- | --- | --- |
 | TODO Osobní | `/app/todo` | osobní a projektové úkoly | `module_tasks` podle plánu |
-| Command Center | `/app/command-center` | KPI, projekty, kalendář, aktivita a signály | `module_command_center` |
 | Správa projektů | `/app/projects` | vytváření, archivace, sdílení a klonování projektů | `module_projects` |
 | Projekt | `/app/project/:id` | detail projektu a jeho pracovní moduly | `module_projects` |
 | Kontakty | `/app/contacts` | dodavatelé, osoby, import, rating a mapová data | `module_contacts` |
@@ -93,11 +92,6 @@ rating, import a rychlé vložení. Mapová feature používá adresy a souřadn
 
 Osobní a projektové úkoly, stromové členění, termíny, rychlé založení a mutace.
 Serverový stav používá samostatné React Query klíče.
-
-### Command Center
-
-Skládá moduly KPI, pipeline funnel, finance gauge, matrix health, projekty,
-kalendář, activity feed a odvozené akce. Rozšířené moduly jsou tarifně řízené.
 
 ### Organizace a subscription
 

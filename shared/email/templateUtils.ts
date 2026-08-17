@@ -1,6 +1,14 @@
 import DOMPurify from 'dompurify';
 import type { ProjectDetails, DemandCategory } from '@/types';
 
+const formatCzechDateOnly = (value: string): string => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return value;
+
+    const [, year, month, day] = match;
+    return `${Number(day)}. ${Number(month)}. ${year}`;
+};
+
 export interface TemplateVariable {
     code: string;
     description: string;
@@ -12,6 +20,7 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
     { code: '{INVESTOR}', description: 'Investor', category: 'Project' },
     { code: '{LOKACE}', description: 'Lokace stavby', category: 'Project' },
     { code: '{TERMIN_DOKONCENI}', description: 'Termín dokončení', category: 'Project' },
+    { code: '{TERMIN_ODEVZDANI_NABIDKY}', description: 'Termín odevzdání nabídky', category: 'Project' },
     { code: '{TYP_STAVBY}', description: 'Typ stavby (Soutěž/Realizace)', category: 'Project' },
     { code: '{SOUTEZ_REALIZACE}', description: 'Fáze projektu (Soutěž/Realizace)', category: 'Project' },
     { code: '{HLAVNI_STAVBYVEDOUCI}', description: 'Hlavní stavbyvedoucí', category: 'Project' },
@@ -227,6 +236,9 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{INVESTOR}': project.investor || 'Investor s.r.o.',
             '{LOKACE}': project.location || 'Praha 1',
             '{TERMIN_DOKONCENI}': project.finishDate || '31.12.2025',
+            '{TERMIN_ODEVZDANI_NABIDKY}': project.offerSubmissionDeadline
+                ? formatCzechDateOnly(project.offerSubmissionDeadline)
+                : 'Neuvedeno',
             '{TYP_STAVBY}': project.status === 'tender' ? 'Soutěž' : (project.status === 'realization' ? 'Realizace' : 'Realizace'),
             '{SOUTEZ_REALIZACE}': project.status === 'tender' ? 'Soutěž' : (project.status === 'realization' ? 'Realizace' : 'Realizace'),
 
@@ -288,6 +300,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{INVESTOR}': 'Development Group a.s.',
         '{LOKACE}': 'Karlova 25, Brno',
         '{TERMIN_DOKONCENI}': '15. listopadu 2024',
+        '{TERMIN_ODEVZDANI_NABIDKY}': '17. 8. 2026',
         '{TYP_STAVBY}': 'Výběrové řízení',
         '{SOUTEZ_REALIZACE}': 'Soutěž',
         '{HLAVNI_STAVBYVEDOUCI}': 'Ing. Jan Hlavní',

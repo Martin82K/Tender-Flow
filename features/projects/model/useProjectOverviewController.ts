@@ -4,7 +4,10 @@ import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { useOverviewTenantDataQuery } from "@features/projects/hooks/useOverviewTenantDataQuery";
 import type { Project, ProjectDetails, User } from "@/types";
 import { isUserAdmin } from "@/shared/auth/adminAccess";
-import { buildOverviewAnalytics } from "@/shared/overview/overviewAnalytics";
+import {
+  buildMonthlyVolumeTrends,
+  buildOverviewAnalytics,
+} from "@/shared/overview/overviewAnalytics";
 import { filterSuppliers } from "@/shared/overview/supplierFilters";
 import { SECTION_DEFAULTS } from "@/features/projects/ui/OverviewSection";
 import {
@@ -92,6 +95,16 @@ export const useProjectOverviewController = ({
       ),
     [availableProjects, filteredProjectDetails, statusFilter],
   );
+  const trendProjects = useMemo(
+    () => statusFilter === "all"
+      ? availableProjects
+      : availableProjects.filter((project) => project.status === statusFilter),
+    [availableProjects, statusFilter],
+  );
+  const monthlyVolumeTrends = useMemo(
+    () => buildMonthlyVolumeTrends(trendProjects, filteredProjectDetails),
+    [filteredProjectDetails, trendProjects],
+  );
 
   const supplierRows = useMemo(
     () => buildSupplierRows(analytics.suppliers, contacts),
@@ -137,19 +150,19 @@ export const useProjectOverviewController = ({
   const topSuppliers = showAllSuppliers
     ? filteredSuppliers
     : filteredSuppliers.slice(0, 6);
-  const trendYears = analytics.yearTrends.map((trend) => trend.year);
+  const trendYears = monthlyVolumeTrends.map((trend) => trend.year);
 
   const toggleSection = (id: keyof typeof SECTION_DEFAULTS) => {
     setSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const statusCounts = useMemo(
-    () => buildStatusCounts(analytics.suppliers),
-    [analytics.suppliers],
+    () => buildStatusCounts(filteredSuppliers),
+    [filteredSuppliers],
   );
   const avgBudgetDeviation = useMemo(
-    () => buildAverageBudgetDeviation(analytics.suppliers),
-    [analytics.suppliers],
+    () => buildAverageBudgetDeviation(filteredSuppliers),
+    [filteredSuppliers],
   );
 
   const resetSupplierFilters = () => {
@@ -187,6 +200,7 @@ export const useProjectOverviewController = ({
     selectedSupplierMonthlySeries,
     topSuppliers,
     trendYears,
+    monthlyVolumeTrends,
     analytics,
     statusCounts,
     avgBudgetDeviation,

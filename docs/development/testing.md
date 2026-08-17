@@ -37,13 +37,45 @@ známé bezpečnostní opravy, ale neověřují nasazené finální schéma.
 - boundaries zakazují nebezpečné importy a nové privátní cross-feature vazby;
   existující privátní vazby jsou ratchetované přes přesný soubor a specifier a
   zastaralá výjimka po odstranění dluhu kontrolu také shodí,
-- legacy structure brání růstu frozen kořenů,
+- stejný boundary guard ratchetuje všechny importy z moderních vrstev do legacy
+  přes přesnou trojici soubor, specifier a cíl; v CI se baseline smí proti base
+  revizi pouze zmenšit; statické Vite `import.meta.glob` vzory se rozbalí na
+  konkrétní regulární soubory bez omezení přípony. Guard páruje case-sensitive
+  POSIX podmnožinu `*`, `**` a `?`, respektuje explicitní tečku pro skryté cesty
+  a globstar dovolí překročit adresář jen jako celý segment. Při podporovaném
+  `exhaustive: false` stejně jako Vite vynechává `node_modules` z glob cílů,
+  nikoli ze statického source skenu; dynamické argumenty a pokročilou nebo
+  nejednoznačnou glob syntaxi odmítne fail-closed. To zahrnuje koncové lomítko
+  a wildcard prefix před koncovým `/**`; doslovný prefix před `/**` podporuje.
+  Moderní
+  zdroje skenuje ve variantách TS/TSX/MTS/CTS a JS/JSX/MJS/CJS,
+- legacy structure vyžaduje přesný snapshot frozen kořenů, takže odmítne nový
+  tracked soubor i zastaralou výjimku po odstraněném souboru,
 - docs checker ověřuje interní odkazy.
 
 Regresní test boundary pravidla vytváří izolovanou dočasnou strukturu features.
 Ověřuje RED výsledek privátního importu, přesnou allowlist výjimku, odmítnutí
 jiného privátního importu ve stejném souboru a průchod veřejného entrypointu.
-Nejde tedy pouze o kontrolu textu architektonického skriptu.
+Samostatné fixture testy stejně ověřují nový modern-to-legacy import, zastaralý
+importní baseline, Vite glob importy a symetrii legacy freeze snapshotu. Symlink
+scénáře se na Windows přeskočí pouze tehdy, když prostředí jejich vytvoření
+výslovně nepovoluje; ostatní chyby zůstávají selháním. Nejde tedy pouze o kontrolu
+textu architektonických skriptů. `tests/architectureGraphResolver.test.ts`
+navíc dokládá, že audit i boundary guard používají společný AST graf: porovnává
+statický import, export, type import, TypeScript import type, JSDoc, dynamický
+import a Vite glob, současně odmítá falešné importy z komentářů a řetězců.
+Reálný repozitář ratchetuje přesnou shodou 597 zdrojových uzlů a 134
+modern-to-legacy hran s verzovanou baseline.
+
+`tests/architectureGraphAnalysis.test.ts` ověřuje další čistou vrstvu nad tímto
+grafem: rozlišení přípon a `index.*`, fail-closed nejednoznačnost, unikátní
+fan-in/fan-out, self-loop, víceuzlové cykly, kondenzační DAG a dependency-first
+migrační dávky. Permutace vstupu musí dát totožný výstup a 20 000uzlový řetězec
+ověřuje iterativní průchod bez přetečení zásobníku. Integrační ratchet současně
+hlídá úplný graf indukovaný nakonfigurovanými source roots, explicitně eviduje
+cíle mimo tento scope a chrání dnes známou třímodulovou cyklickou komponentu.
+Nízký testovací edge budget navíc dokládá, že collector zastaví expanzi ještě
+před neomezeným naplněním pole hran.
 
 Root toolchain používá podporovanou řadu TypeScript 6.0. Webová konfigurace má
 `strict: true` a současně explicitně uvádí jednotlivé strict kontroly včetně

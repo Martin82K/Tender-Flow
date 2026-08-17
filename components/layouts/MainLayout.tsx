@@ -5,6 +5,7 @@ import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { AccountMenuProvider } from '@/shared/ui/AccountMenuContext';
 import { UserAccountMenu } from '@/shared/ui/UserAccountMenu';
+import { SpaceBackdrop } from '@/shared/ui/SpaceShellDecor';
 import { Project, View, User } from '../../types';
 import { normalizeUiScale } from '@/hooks/useTheme';
 import type { ThemeMode, ThemeSkin } from '@/shared/types/theme';
@@ -84,7 +85,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             if (targetId) {
                 navigate(buildAppUrl("project", { projectId: targetId, tab: activeProjectTab as any }));
             } else {
-                navigate(buildAppUrl("command-center"));
+                navigate(buildAppUrl("project-management"));
             }
             return;
         }
@@ -114,9 +115,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     const appShellStyle: React.CSSProperties = {
         width: `${inverseUiScale}vw`,
         height: `${inverseUiScale}dvh`,
-        transform: `scale(${normalizedUiScale})`,
-        transformOrigin: 'top left',
+        zoom: normalizedUiScale,
     };
+    const sidebarRevealRailClass = skin === 'industrial'
+        ? 'border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface-deep)] text-[var(--tf-skin-text)] hover:bg-[var(--tf-skin-surface-muted)] hover:text-[var(--tf-skin-orange-deep)]'
+        : skin === 'space'
+            ? 'border-white/10 bg-[#080b14]/95 text-white hover:bg-white/10'
+            : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-100 hover:text-primary dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-primary';
 
     return (
         <div className="tf-app-viewport fixed inset-0 overflow-hidden bg-background-light dark:bg-background-dark">
@@ -154,11 +159,31 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 skin={skin}
             />
+            {!isSidebarOpen && (
+                <button
+                    type="button"
+                    data-testid="sidebar-reveal-rail"
+                    onClick={() => setIsSidebarOpen(true)}
+                    className={`tf-sidebar-reveal-rail hidden h-full w-12 flex-none flex-col items-center justify-center gap-2 border-r transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60 md:flex ${sidebarRevealRailClass}`}
+                    title="Rozbalit hlavní menu"
+                    aria-label="Rozbalit hlavní menu"
+                    aria-controls="app-sidebar"
+                    aria-expanded="false"
+                >
+                    <span className="material-symbols-outlined text-[21px]" aria-hidden="true">
+                        keyboard_double_arrow_right
+                    </span>
+                    <span className="rotate-180 text-[10px] font-bold uppercase leading-none tracking-[0.14em] [writing-mode:vertical-rl]" aria-hidden="true">
+                        Rozbalit menu
+                    </span>
+                </button>
+            )}
             <AccountMenuProvider accountMenu={accountMenu}>
                 <main
                     id="main-scroll-container" // Replaces mainScrollRef usage with ID or pass ref? Pass ref is better but ID is easier for decoupled components
                     className="tf-app-main flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
                 >
+                    {skin === 'space' && <SpaceBackdrop />}
                     {/* Toggle Button for Mobile/Hidden Sidebar */}
 
                     {(isBackgroundLoading || backgroundWarning) && (
@@ -215,15 +240,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                             </span>
                         </button>
                     )}
-
-                    {/* Toggle Button for Desktop when Sidebar is hidden */}
-                    <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                        title="Zobrazit sidebar"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">menu</span>
-                    </button>
 
                     <Suspense fallback={
                         <div className="flex items-center justify-center h-full">

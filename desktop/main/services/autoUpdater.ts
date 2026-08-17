@@ -1,7 +1,20 @@
-import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater';
+import { autoUpdater } from 'electron-updater';
 import { BrowserWindow, ipcMain, app } from 'electron';
 
 import { applyNoCacheUpdateRequestHeaders } from './updateRequestHeaders';
+import type { ProgressInfo, UpdateInfo } from 'electron-updater';
+
+type AutoUpdaterClient = Pick<
+    typeof autoUpdater,
+    | 'autoDownload'
+    | 'autoInstallOnAppQuit'
+    | 'requestHeaders'
+    | 'forceDevUpdateConfig'
+    | 'checkForUpdates'
+    | 'downloadUpdate'
+    | 'quitAndInstall'
+    | 'on'
+>;
 
 export interface UpdateStatus {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -25,14 +38,14 @@ export class AutoUpdaterService {
     private readonly isWinAutoUpdateEnabled = process.platform === 'win32';
     private readonly isMacArmManualMode = process.platform === 'darwin' && process.arch === 'arm64';
 
-    constructor() {
-        autoUpdater.autoDownload = false;
-        autoUpdater.autoInstallOnAppQuit = true;
-        applyNoCacheUpdateRequestHeaders(autoUpdater);
+    constructor(private readonly updater: AutoUpdaterClient = autoUpdater) {
+        this.updater.autoDownload = true;
+        this.updater.autoInstallOnAppQuit = true;
+        applyNoCacheUpdateRequestHeaders(this.updater);
 
         // For development, allow local update config (dev-app-update.yml)
         if (this.isDevMode) {
-            autoUpdater.forceDevUpdateConfig = true;
+            this.updater.forceDevUpdateConfig = true;
         }
 
         if (this.isWinAutoUpdateEnabled) {
@@ -120,7 +133,7 @@ export class AutoUpdaterService {
             }
 
             console.log('[AutoUpdater] Checking for updates via GitHub Releases...');
-            const result = await autoUpdater.checkForUpdates();
+            const result = await this.updater.checkForUpdates();
 
             if (result?.updateInfo) {
                 console.log('[AutoUpdater] Update check result:', {
@@ -154,7 +167,7 @@ export class AutoUpdaterService {
 
         try {
             console.log('[AutoUpdater] Starting update download...');
-            await autoUpdater.downloadUpdate();
+            await this.updater.downloadUpdate();
         } catch (error) {
             console.error('[AutoUpdater] Update download failed:', error);
             this.updateStatus = {
@@ -169,12 +182,12 @@ export class AutoUpdaterService {
      * Install update and restart app
      */
     quitAndInstall(): void {
-        if (!this.isWinAutoUpdateEnabled) {
+        if (!this.isWinAutoUpdateEnabled || this.updateStatus.status !== 'downloaded') {
             return;
         }
 
         console.log('[AutoUpdater] Installing update and restarting...');
-        autoUpdater.quitAndInstall(false, true);
+        this.updater.quitAndInstall(true, true);
     }
 
     /**
@@ -185,25 +198,25 @@ export class AutoUpdaterService {
     }
 
     private setupEventListeners(): void {
-        autoUpdater.on('checking-for-update', () => {
+        this.updater.on('checking-for-update', () => {
             console.log('[AutoUpdater] Event: checking-for-update');
             this.updateStatus = { status: 'checking' };
             this.sendStatusToRenderer();
         });
 
-        autoUpdater.on('update-available', (info: UpdateInfo) => {
+        this.updater.on('update-available', (info: UpdateInfo) => {
             console.log('[AutoUpdater] Event: update-available', info.version);
             this.updateStatus = { status: 'available', info };
             this.sendStatusToRenderer();
         });
 
-        autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+        this.updater.on('update-not-available', (info: UpdateInfo) => {
             console.log('[AutoUpdater] Event: update-not-available', info.version);
             this.updateStatus = { status: 'not-available', info };
             this.sendStatusToRenderer();
         });
 
-        autoUpdater.on('download-progress', (progress: ProgressInfo) => {
+        this.updater.on('download-progress', (progress: ProgressInfo) => {
             this.updateStatus = {
                 status: 'downloading',
                 progress,
@@ -212,13 +225,13 @@ export class AutoUpdaterService {
             this.sendStatusToRenderer();
         });
 
-        autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+        this.updater.on('update-downloaded', (info: UpdateInfo) => {
             console.log('[AutoUpdater] Event: update-downloaded', info.version);
             this.updateStatus = { status: 'downloaded', info };
             this.sendStatusToRenderer();
         });
 
-        autoUpdater.on('error', (error: Error) => {
+        this.updater.on('error', (error: Error) => {
             console.error('[AutoUpdater] Event: error', error);
             this.updateStatus = { status: 'error', error: error.message };
             this.sendStatusToRenderer();

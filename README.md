@@ -65,8 +65,9 @@ Nejdůležitější vstupy:
 - Funkční změna musí mít testy a aktualizovanou dokumentaci.
 - Neočekávaný `console.error` nebo `console.warn` shodí test.
 - Webová vrstva nesmí přímo importovat desktop main proces ani serverové moduly.
-- Legacy kořeny jsou ve freeze režimu; před merge musí projít oba architektonické
-  guardy.
+- Legacy kořeny jsou ve freeze režimu; přesný importní baseline i snapshot
+  tracked souborů se musí při každém odstranění dluhu zmenšit a před merge musí
+  projít oba architektonické guardy.
 - Tajné klíče patří pouze do lokálního prostředí nebo secret managementu, nikdy
   do repozitáře.
 - Nový balíček musí před instalací projít kontrolou integrity, původu,

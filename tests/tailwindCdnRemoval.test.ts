@@ -20,7 +20,9 @@ describe("bundlovaný Tailwind", () => {
     const entrypoint = readFileSync(resolve(root, "index.tsx"), "utf8");
 
     expect(entrypoint).toContain("import './index.css'");
-    expect(css).toContain("@import \"tailwindcss\"");
+    expect(css).toMatch(
+      /@import \"(?:tailwindcss|@appica\/ui-react\/styles\.css)\"/,
+    );
     expect(css).toContain("@source \"./components/**/*.{js,ts,jsx,tsx}\"");
     expect(css).toContain("@custom-variant dark");
     expect(css).toContain("@theme");

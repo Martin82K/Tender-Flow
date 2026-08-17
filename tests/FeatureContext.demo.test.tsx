@@ -29,7 +29,6 @@ function Probe() {
   return (
     <div>
       <div data-testid="plan">{currentPlan}</div>
-      <div data-testid="commandCenter">{String(hasFeature(FEATURES.MODULE_COMMAND_CENTER))}</div>
       <div data-testid="projects">{String(hasFeature(FEATURES.MODULE_PROJECTS))}</div>
       <div data-testid="contacts">{String(hasFeature(FEATURES.MODULE_CONTACTS))}</div>
       <div data-testid="tasks">{String(hasFeature(FEATURES.MODULE_TASKS))}</div>
@@ -47,7 +46,6 @@ describe('FeatureProvider (demo mode)', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('plan').textContent).toBe('demo'));
-    expect(screen.getByTestId('commandCenter').textContent).toBe('true');
     expect(screen.getByTestId('projects').textContent).toBe('true');
     expect(screen.getByTestId('contacts').textContent).toBe('true');
     expect(screen.getByTestId('tasks').textContent).toBe('true');

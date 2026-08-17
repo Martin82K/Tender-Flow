@@ -1,93 +1,57 @@
-# Design QA
+# TF Space — design QA
 
-## Archiv — Nature skin
+**Visual truth**
 
-### Vizuální cíl
+- Source: `/Users/martinkalkus/.codex/generated_images/01a00c8c-2fae-7af1-a303-f7c4f89eb4a7/exec-7138fa56-2bf2-4d0d-932d-22f1eada8970.png`
+- Rendered implementation: `docs/design/tf-space-electron.webp`
+- Full-view comparison: `/tmp/tf-space-comparison-final.png`
+- Focused comparison: `/tmp/tf-space-focused-final.png`
+- State: Electron `desktop:dev`, authenticated project overview, dark mode, skin `space`, project `26034 Pyrum - spodní stavba`.
+- Viewport: 1149 × 720 CSS px, `deviceScaleFactor: 2`.
+- Source pixels: 1491 × 1055. The source is a raster design target without declared CSS density.
+- Implementation pixels: 2298 × 1440, corresponding to 1149 × 720 CSS px at 2× density.
+- Density normalization: both full views were fitted into equal 746 × 528 comparison cells without cropping. The focused comparison used the visible header/KPI/information/table regions and normalized both sides to 746 × 344.
 
-- Light: schválený projektový Přehled 26031 Sokolov s chladným březovým lesem.
-- Dark: schválená tabulka Výběrová řízení projektu 26026 s nočním jehličnatým lesem.
+**Findings**
 
-### Automatické kontroly
+- No actionable P0, P1, or P2 differences remain.
+- Typography: the implementation preserves the compact sans-serif hierarchy, strong numeric KPI weights, uppercase micro-labels, readable line height, and Czech copy. The live application uses its existing Tender Flow type scale rather than reproducing mock-only text sizes pixel-for-pixel.
+- Spacing and layout rhythm: the existing product shell has a wider project sidebar and more navigation destinations than the concept. Within that constraint, the KPI row, information surface, filter group, and dense table retain the same hierarchy and rhythm.
+- Colors and tokens: black/navy surfaces, red-magenta-violet-blue space art, cyan data accents, amber statuses, subtle borders, and the red active control are visible. Text and dense data remain legible over translucent surfaces.
+- Image quality: the generated WebP space canvas is sharp at the tested 2× capture, uses the intended red-to-blue orbit and star field, and is not replaced by CSS-drawn artwork. Appica's dot pattern and border beam are supplemental decoration.
+- Copy and content: application copy remains real Czech project data. Differences from the concept's demo project are expected and do not alter the design hierarchy.
 
-- Nature light/dark tokeny a lokální assety: prošly.
-- Kontrast hlavního textu: WCAG AAA.
-- Kontrast primárních CTA: WCAG AA.
-- Produkční build, typecheck, web artifact a desktop TypeScript compile: prošly.
-- Cílené skin/settings testy: 37/37.
-- Plná sada testů: 1754/1754 ve 360 souborech.
-- Boundary a legacy-structure kontroly: prošly.
-- Assety jsou lokální JPEG bez vzdálených URL, skriptů nebo vloženého textu.
+**Comparison history**
 
-### Živé ověření
+1. Initial comparison found P2 under-expression of the orbit artwork: the project overview root and opaque panels hid most of the space canvas. Fixed by making the TF Space overview root transparent, reducing only TF Space's canvas veil, and lowering KPI/information surface opacity while retaining blur and contrast. Post-fix evidence: `docs/design/tf-space-electron.webp` and `/tmp/tf-space-comparison-final.png`.
+2. The next capture found a P1 hover-contrast regression and P2 footer drift: a hovered table row became white and the totals row became light gray. Fixed with explicit TF Space hover styles on both the row and cells and a dark translucent `tfoot` surface. Post-fix evidence: the cyan-tinted hovered `Štěrky` row and dark `Celková bilance` row in `docs/design/tf-space-electron.webp`.
+3. Final comparison found no further actionable P0/P1/P2 issues. The remaining structural differences are intentional constraints of the existing Tender Flow shell and live data.
 
-Správná přihlášená TenderFlow Desktop Dev instance byla jednoznačně vybrána přes `/tmp/tender-flow-dependency-security/node_modules/electron/dist/Electron.app` na `localhost:3000`.
+**Focused-region evidence**
 
-- Nature light: Profil a Vzhled, Nástroje/Excel/import kontaktů a společné settings povrchy bez cizí modré; lesní artwork je ztlumený.
-- Nature dark: Profil a Vzhled, Nástroje, Organizace a Administrace; stromy jsou čitelné v sidebaru/headeru a datové plochy zůstávají kryté.
-- Po synchronizaci s mainem byl Profil/Vzhled znovu ověřen přes hot reload: přímý Režim a skinovaný Motiv se vykreslují bez Vite/PostCSS overlay.
-- Avatarové menu i Profil/Vzhled používají jednu sdílenou komponentu režimu a jeden společný registr voleb.
+- `/tmp/tf-space-focused-final.png` compares the header/navigation, KPI cards, information grid, and top of the demand table at readable scale.
+- Appica control presence was also verified in the live pipeline route: navigation changed to `?tab=pipeline` and the `Nová Poptávka` button was present.
 
-Přepnutí na Botanica/Industrial/Classic v posledním post-sync průchodu automatizace odmítla, proto jejich živý stav kryjí předchozí vizuální kontroly a společné tokenové/regresní testy. Uživatelská data nebyla změněna.
+**Runtime checks**
 
-Archivovaný výsledek: passed with documented cross-skin live-QA limitation.
+- Primary interaction: project overview → `VÝBĚROVÁ ŘÍZENÍ` navigation succeeded.
+- Appica button: `Nová Poptávka` was exposed with the expected accessible name on the pipeline route.
+- Console: no runtime errors. One existing development warning remained: `[AuthContext] initAuth timed out (8000ms)`. React also displayed its standard DevTools development notice.
 
-## Profil a účet — varianta 1
+**Open Questions**
 
-## Evidence
+- None blocking. The concept includes a compact right-side global search panel that does not exist in the current Tender Flow information architecture; it was intentionally not invented as part of a theme-only change.
 
-- Source visual truth: `/Users/martinkalkus/.codex/generated_images/01a0020e-dd4a-7013-b2be-af7ba9184073/exec-9a4c3a35-79ae-4b74-944e-c271d3624e44.png`
-- Browser-rendered implementation: `/private/tmp/tender-flow-settings-chrome-final.png`
-- Full-view comparison: `/private/tmp/tender-flow-settings-comparison-final.png`
-- Focused account/profile comparison: `/private/tmp/tender-flow-settings-focus-comparison.png`
-- Responsive implementation evidence: `/private/tmp/tender-flow-settings-responsive-fixed.png`
-- Route: `http://localhost:3000/app/settings?tab=user&subTab=profile`
-- Browser: user-selected signed-in Google Chrome
-- State: authenticated existing user, light Industrial theme, Microsoft provider intentionally not enabled by the administrator
-- CSS viewport: `1440 × 1024`; responsive check: `1024 × 768`
-- Source pixels: `1487 × 1058`, density 72 DPI
-- Implementation pixels: `1440 × 1024`, density 72 DPI, `deviceScaleFactor: 1`
-- Density normalization: both full views were normalized with `contain` to `1440 × 1024` panels before the side-by-side comparison.
+**Implementation Checklist**
 
-## Findings
+- [x] Match the approved black/navy and red-blue space direction.
+- [x] Preserve dense project data readability and interaction states.
+- [x] Use the real generated space asset and Appica decorations/components/icons.
+- [x] Validate overview and pipeline navigation in Electron.
+- [x] Re-capture after every P1/P2 visual correction.
 
-No actionable P0, P1, or P2 differences remain.
+**Follow-up Polish**
 
-- Fonts and typography: the implementation preserves the reference hierarchy, compact labels, readable body copy, and distinct card headings. The product's existing font stack was retained intentionally.
-- Spacing and layout rhythm: the reference's account/profile pair, full-width signature panel, and lower-frequency settings order are preserved. Card radii, borders, spacing, and alignment follow the existing Tender Flow design system.
-- Colors and visual tokens: the implementation uses the existing Industrial background grid and orange primary token. Disabled Microsoft setup is communicated with both opacity and explanatory text.
-- Image and icon fidelity: existing Tender Flow logo assets and the product's Material Symbols icon system are preserved. The Microsoft card uses the product icon language instead of introducing a new third-party asset.
-- Copy and content: the implementation keeps real profile and signature fields and clarifies that Microsoft login is administrator-gated. It does not expose the former raw `Missing projectId` rollout error.
-
-Residual P3 difference: the selected concept uses a Microsoft four-square brand mark, while the implementation uses the established account icon. This keeps the repository's current icon system consistent and does not affect comprehension or task completion.
-
-## Focused comparison
-
-The focused account/profile comparison confirms the important detail surfaces are readable: card headings, primary CTA, two permission states, profile metadata, borders, and vertical alignment. A separate focused crop was necessary because these labels were too small to judge reliably in the full 2880-pixel comparison.
-
-## Comparison history
-
-1. Initial responsive pass found a P2 layout issue at the `1024 px` breakpoint: the two account cards switched to columns while two persistent sidebars left insufficient content width.
-2. Fix: changed the account and secondary settings grids from `lg` to `xl` column breakpoints and removed the `lg:col-span-2` implicit-grid trigger from the update card.
-3. Post-fix evidence: `/private/tmp/tender-flow-settings-responsive-fixed.png`; both top cards measure `470 px`, share no horizontal row at this width, and document width equals viewport width (`1024 px`) with no horizontal overflow.
-4. Final `1440 × 1024` comparison shows the intended two-column account/profile composition and full-width signature section.
-
-## Interaction and runtime checks
-
-- Opened the profile settings route as an authenticated user.
-- Verified the settings navigation label and page heading `Profil a účet`.
-- Verified the Microsoft connection card, profile card, signature, appearance, biometric, additional settings, update, and contact-type sections in the DOM.
-- Toggled and closed the user menu to confirm the page remained interactive.
-- Verified both `1440 × 1024` and `1024 × 768` layouts and confirmed no horizontal overflow.
-- Did not activate Microsoft OAuth or document grants, so no account permission or document sharing state was mutated.
-- Checked browser warnings/errors. The tab contained an earlier expired-refresh-token error from the pre-login session; after the user logged in, the settings screen rendered correctly and no `Missing projectId` error was present.
-
-## Implementation checklist
-
-- [x] Account and profile lead the page.
-- [x] One progressive Microsoft connection card replaces duplicate competing choices.
-- [x] Signature is a dedicated full-width section.
-- [x] Existing document sharing and local-folder behavior remain outside this UI change.
-- [x] Narrow desktop layout stacks cards before they become cramped.
-- [x] Focused regression and security tests cover the changed behavior.
+- P3: a future dedicated compact-mode project layout could move closer to the concept's tighter sidebar and card proportions, but that would be a product-layout change rather than a skin change.
 
 final result: passed

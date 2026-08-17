@@ -156,6 +156,21 @@ describe("CategoryCard", () => {
     expect(getByText("verified")).toBeInTheDocument();
   });
 
+  it("nezobrazuje dekorativni sipku na kartu", () => {
+    const { queryByText } = render(
+      <CategoryCard
+        category={baseCategory}
+        bidCount={1}
+        priceOfferCount={1}
+        contractedCount={0}
+        sodBidsCount={0}
+        onClick={vi.fn()}
+      />,
+    );
+
+    expect(queryByText("arrow_forward")).not.toBeInTheDocument();
+  });
+
   it("po odpojeni komponenty nespusti cekajici klik", () => {
     vi.useFakeTimers();
     const onClick = vi.fn();
