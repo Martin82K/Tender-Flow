@@ -283,6 +283,26 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     expectOverviewInvalidation(invalidateSpy);
   });
 
+  it("mapuje termín odevzdání nabídky na databázový sloupec projektu", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useUpdateProjectDetailsMutation(), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-1",
+        updates: { offerSubmissionDeadline: "2026-09-15" },
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      offer_submission_deadline: "2026-09-15",
+    });
+  });
+
   it("před uložením DocHub JSONB odstraní lokální cesty a identifikátory", async () => {
     const fromResult = createFromResult();
     mocks.fromMock.mockReturnValueOnce(fromResult);

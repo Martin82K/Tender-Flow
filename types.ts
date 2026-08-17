@@ -242,6 +242,7 @@ export interface ProjectDetails {
   technicalSupervisor?: string; // Technický dozor (TDI)
   location: string;
   finishDate: string;
+  offerSubmissionDeadline?: string; // Termín odevzdání nabídky u stavby v soutěži (ISO date)
   siteManager: string; // Hlavní stavbyvedoucí
   constructionManager?: string; // Stavbyvedoucí
   constructionTechnician?: string; // Stavební technik
