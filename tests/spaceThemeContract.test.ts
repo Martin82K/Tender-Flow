@@ -69,6 +69,15 @@ describe("TF Space theme contract", () => {
     expect(css).toContain('html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div');
   });
 
+  it("zvýrazňuje aktivní položku projektového menu invertovanou pill", () => {
+    const activeProjectTabRule = css.match(
+      /html\[data-skin="space"\] \.tf-topbar \[data-help-id="project-tabs"\] button\[data-active="true"\] \{([^}]*)\}/,
+    );
+
+    expect(activeProjectTabRule?.[1]).toContain("background: #ffffff !important");
+    expect(activeProjectTabRule?.[1]).toContain("color: #050911 !important");
+  });
+
   it("používá Appica komponenty i jejich stromově vytřesitelné ikony", () => {
     expect(shellDecor).toContain('from "@appica/ui-react"');
     expect(shellDecor).toContain("BackgroundPattern");

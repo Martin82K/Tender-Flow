@@ -5294,6 +5294,13 @@ html[data-skin="space"] :is([data-active="true"], [aria-selected="true"], [aria-
   color: #ffffff !important;
 }
 
+html[data-skin="space"] .tf-topbar [data-help-id="project-tabs"] button[data-active="true"] {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #050911 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+}
+
 html[data-skin="space"] [data-help-id="topbar-search"] {
   border-color: rgba(148, 163, 184, 0.24) !important;
   background: rgba(5, 9, 17, 0.72) !important;
