@@ -4952,6 +4952,32 @@ html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar-corner {
   }
 }
 
+html:not([data-skin="space"]) .tf-button-success {
+  border-color: #047857 !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(4, 120, 87, 0.2) !important;
+}
+
+html:not([data-skin="space"]) .tf-button-success:hover:not(:disabled) {
+  background: #047857 !important;
+}
+
+html:not([data-skin="space"]) .tf-button-warning {
+  border-color: #d97706 !important;
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(217, 119, 6, 0.2) !important;
+}
+
+html:not([data-skin="space"]) .tf-button-warning:hover:not(:disabled) {
+  background: #d97706 !important;
+}
+
+html:not([data-skin="space"]) :is(.tf-button-success, .tf-button-warning)::before {
+  display: none !important;
+}
+
 /* TF Space — Appica-based cosmic glass skin. */
 html[data-skin="space"] {
   --tf-space-red: #f43f5e;

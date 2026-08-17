@@ -37,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 variant={appicaVariant}
                 size={appicaSize}
                 data-tf-variant={variant}
-                className={`tf-button ${className}`}
+                className={`tf-button tf-button-${variant} ${className}`}
                 disabled={isLoading || disabled}
                 {...props}
             >
