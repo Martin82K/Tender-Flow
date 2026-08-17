@@ -6,6 +6,7 @@ export {
   DEFAULT_DOCHUB_HIERARCHY,
   DOC_HUB_STRUCTURE_V1,
   buildHierarchyTree,
+  disabledHierarchyItemBlocksDescendants,
   ensureExtraHierarchy,
   findHierarchyAncestors,
   getDocHubProjectLinks,
