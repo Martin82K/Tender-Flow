@@ -21,6 +21,18 @@ const projectManager = readFileSync(
   join(process.cwd(), "features/projects/ProjectManager.tsx"),
   "utf8",
 );
+const kanbanColumn = readFileSync(
+  join(process.cwd(), "features/projects/pipeline/ui/Column.tsx"),
+  "utf8",
+);
+const kanbanBidCard = readFileSync(
+  join(process.cwd(), "features/projects/pipeline/ui/BidCard.tsx"),
+  "utf8",
+);
+const projectOverview = readFileSync(
+  join(process.cwd(), "features/projects/ProjectOverview.tsx"),
+  "utf8",
+);
 
 describe("TF Space theme contract", () => {
   it("nabízí TF Space jako volitelný skin", () => {
@@ -69,6 +81,15 @@ describe("TF Space theme contract", () => {
     expect(css).toContain('html[data-skin="space"] .tf-app-main input[type="checkbox"].peer:checked + div');
   });
 
+  it("zvýrazňuje aktivní položku projektového menu invertovanou pill", () => {
+    const activeProjectTabRule = css.match(
+      /html\[data-skin="space"\] \.tf-topbar \[data-help-id="project-tabs"\] button\[data-active="true"\] \{([^}]*)\}/,
+    );
+
+    expect(activeProjectTabRule?.[1]).toContain("background: #ffffff !important");
+    expect(activeProjectTabRule?.[1]).toContain("color: #050911 !important");
+  });
+
   it("používá Appica komponenty i jejich stromově vytřesitelné ikony", () => {
     expect(shellDecor).toContain('from "@appica/ui-react"');
     expect(shellDecor).toContain("BackgroundPattern");
@@ -82,6 +103,45 @@ describe("TF Space theme contract", () => {
   it("používá pro aktivní dokumentovou záložku plný invertovaný stav", () => {
     expect(css).toContain('.tf-documents-tab[aria-selected="true"]');
     expect(css).toContain('color: var(--tf-settings-active-foreground) !important');
+  });
+
+  it("propouští TF Space pozadí napříč všemi sekcemi Dokumentů", () => {
+    expect(css).toContain('html[data-skin="space"] .tf-documents-view {');
+    expect(css).toContain('html[data-skin="space"] .tf-documents-view #documents-tabpanel');
+    expect(css).toContain('--tf-documents-panel: rgba(8, 16, 26, 0.68)');
+    expect(css).toContain('--tf-documents-card: rgba(8, 16, 26, 0.76)');
+  });
+
+  it("používá průsvitné TF Space plochy v přehledu, plánu VŘ a pipeline", () => {
+    expect(css).toContain('--tf-space-workspace-panel: rgba(8, 16, 26, 0.68)');
+    expect(css).toContain('html[data-skin="space"] .tf-tender-plan-view');
+    expect(css).toContain('html[data-skin="space"] .tf-project-overview-view');
+    expect(css).toContain('[data-help-id="overview-charts"] > div');
+    expect(css).toContain('.tf-pipeline-view');
+    expect(css).toContain('html[data-skin="space"] .tf-kanban-column[data-status="offer"]');
+    expect(kanbanColumn).toContain("tf-kanban-column");
+    expect(kanbanColumn).toContain("data-status={status}");
+    expect(kanbanBidCard).toContain("tf-kanban-bid-card");
+    expect(projectOverview).toContain("<Combobox");
+    expect(projectOverview).toContain('from "@appica/ui-react/sparkline"');
+    expect(projectOverview).toContain("<SparklineChart");
+    expect(projectOverview).toContain('data-help-id="overview-status-cards" className="grid grid-cols-1 gap-4 xl:grid-cols-3"');
+  });
+
+  it("sjednocuje filtry analýzy a KPI ikony pomocí Appica komponent", () => {
+    expect(projectOverview.match(/<Combobox\n/g)).toHaveLength(2);
+    expect(projectOverview).toContain('aria-label="Vyhledat dodavatele"');
+    expect(projectOverview).toContain('aria-label="Vyhledat zaměření"');
+    expect(projectOverview).toContain('from "@appica/icons-react"');
+    expect(projectOverview).toContain("<ReportMoney");
+    expect(projectOverview).toContain("<ClipboardList");
+    expect(projectOverview).toContain("<UsersGroup");
+    expect(projectOverview).toContain("<FileCheck");
+    expect(css).toContain('[data-slot="combobox-input-field"]');
+  });
+
+  it("omezuje obě nabídky filtrů na pět viditelných položek", () => {
+    expect(projectOverview.match(/<ComboboxList className="max-h-\[11\.75rem\] \[scrollbar-gutter:stable\]">/g)).toHaveLength(2);
   });
 
   it("přebírá TF Space také na celé obrazovce Správa staveb", () => {

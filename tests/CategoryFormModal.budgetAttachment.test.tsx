@@ -34,6 +34,30 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     openInExplorerMock.mockResolvedValue({ success: true });
   });
 
+  it("zarovná rozpočtová pole bez posunutí přepínačem režimu", () => {
+    render(
+      <CategoryFormModal
+        isOpen
+        mode="edit"
+        initialData={{
+          title: "Elektroinstalace",
+          sodBudget: 853295,
+          planBudget: 767966,
+        }}
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    const sodHeader = screen.getByText("Cena SOD (Investor)").parentElement;
+    const planHeader = screen.getByText("Interní Plán").parentElement;
+    const planModeToggle = screen.getByRole("button", { name: "Kč" }).parentElement;
+
+    expect(sodHeader).toHaveClass("relative", "min-h-7");
+    expect(planHeader).toHaveClass("relative", "min-h-7");
+    expect(planModeToggle).toHaveClass("absolute", "right-0", "top-1/2", "-translate-y-1/2");
+  });
+
   it("umožní vybrat, nahradit a odpojit rozpočtovou přílohu", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 

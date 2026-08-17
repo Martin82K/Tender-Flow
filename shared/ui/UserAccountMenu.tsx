@@ -79,9 +79,9 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({
     top: 0,
-    right: 16,
+    left: 8,
   });
 
   const tier = (user?.subscriptionTier || "free") as Tier;
@@ -99,9 +99,14 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const updateMenuPosition = useCallback(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const viewportPadding = 8;
+    const panelWidth = menuPanelRef.current?.offsetWidth
+      || Math.min(288, Math.max(0, window.innerWidth - viewportPadding * 2));
+    const maxLeft = Math.max(viewportPadding, window.innerWidth - panelWidth - viewportPadding);
+
     setMenuPosition({
       top: rect.bottom + 8,
-      right: Math.max(8, window.innerWidth - rect.right),
+      left: Math.min(maxLeft, Math.max(viewportPadding, rect.right - panelWidth)),
     });
   }, []);
 
@@ -111,9 +116,12 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
 
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
+      const isInsideThemedSelect =
+        target instanceof Element && target.closest(".tf-themed-select-popover") !== null;
       if (
         !menuRef.current?.contains(target) &&
-        !menuPanelRef.current?.contains(target)
+        !menuPanelRef.current?.contains(target) &&
+        !isInsideThemedSelect
       ) {
         setIsOpen(false);
       }
@@ -300,10 +308,10 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
           <div
             ref={menuPanelRef}
             role="menu"
-            className="tf-account-menu-panel fixed z-[100] w-[min(92vw,288px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+            className="tf-account-menu-panel fixed z-[100] w-72 max-w-[calc(100vw-16px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
             style={{
               top: menuPosition.top,
-              right: menuPosition.right,
+              left: menuPosition.left,
             }}
           >
             <div className="flex gap-2.5 border-b border-slate-200 p-2.5 dark:border-slate-800">

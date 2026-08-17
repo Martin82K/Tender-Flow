@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildOverviewAnalytics, parseMoneyValue } from "@/shared/overview/overviewAnalytics";
+import {
+  buildMonthlyVolumeTrends,
+  buildOverviewAnalytics,
+  parseMoneyValue,
+} from "@/shared/overview/overviewAnalytics";
 import { parseMoneyValue as parseMoneyValueFromLegacy } from "../utils/overviewAnalytics";
 import type { Project, ProjectDetails } from "../types";
 
@@ -186,5 +190,123 @@ describe("overviewAnalytics", () => {
     const analytics = buildOverviewAnalytics(projects, projectDetails);
     expect(analytics.totals.projectCount).toBe(2);
     expect(analytics.totals.categoryCount).toBe(0);
+  });
+
+  it("distributes each construction value across its realization months without duplicating yearly counts", () => {
+    const projects: Project[] = [
+      { id: "tender", name: "Soutěž", location: "Praha", status: "tender" },
+      { id: "realization", name: "Realizace", location: "Brno", status: "realization" },
+      { id: "archived", name: "Archiv", location: "Plzeň", status: "archived", archivedOriginalStatus: "realization" },
+      { id: "missing-price", name: "Bez ceny", location: "Ostrava", status: "tender" },
+    ];
+    const projectDetails: Record<string, ProjectDetails> = {
+      tender: {
+        title: "Soutěž",
+        location: "Praha",
+        finishDate: "2025-03-31",
+        siteManager: "Novák",
+        categories: [{
+          id: "category",
+          title: "Elektro",
+          budget: "50 000 000 Kč",
+          sodBudget: 50_000_000,
+          planBudget: 45_000_000,
+          status: "open",
+          subcontractorCount: 2,
+          description: "Elektro práce",
+          realizationStart: "2025-01-16",
+          realizationEnd: "2025-02-15",
+        }, {
+          id: "category-2",
+          title: "Střecha",
+          budget: "10 000 000 Kč",
+          sodBudget: 10_000_000,
+          planBudget: 9_000_000,
+          status: "open",
+          subcontractorCount: 1,
+          description: "Střecha",
+          realizationStart: "2025-02-16",
+          realizationEnd: "2025-03-15",
+        }],
+        bids: {
+          category: [
+            { id: "b1", subcontractorId: "s1", companyName: "A", contactPerson: "A", status: "offer", price: "40 000 000 Kč" },
+            { id: "b2", subcontractorId: "s2", companyName: "B", contactPerson: "B", status: "offer", price: "42 000 000 Kč" },
+          ],
+        },
+        investorFinancials: {
+          sodPrice: 500_000_000,
+          amendments: [{ id: "a1", label: "Dodatek", price: 20_000_000 }],
+        },
+      },
+      realization: {
+        title: "Realizace",
+        location: "Brno",
+        finishDate: "2025-03-31",
+        siteManager: "Svoboda",
+        categories: [],
+        investorFinancials: { sodPrice: 300_000_000, amendments: [] },
+      },
+      archived: {
+        title: "Archiv",
+        location: "Plzeň",
+        finishDate: "2026-02-28",
+        siteManager: "Archivář",
+        categories: [{
+          id: "archived-category",
+          title: "Fasáda",
+          budget: "100 000 000 Kč",
+          sodBudget: 100_000_000,
+          planBudget: 95_000_000,
+          status: "sod",
+          subcontractorCount: 1,
+          description: "Fasáda",
+          realizationStart: "2025-12-16",
+          realizationEnd: "2026-01-15",
+        }],
+        investorFinancials: { sodPrice: 100_000_000, amendments: [] },
+      },
+      "missing-price": {
+        title: "Bez ceny",
+        location: "Ostrava",
+        finishDate: "2025-02-28",
+        siteManager: "Dvořák",
+        categories: [{
+          id: "missing-price-category",
+          title: "Zemní práce",
+          budget: "-",
+          sodBudget: 0,
+          planBudget: 0,
+          status: "open",
+          subcontractorCount: 0,
+          description: "Zemní práce",
+          realizationStart: "2025-02-01",
+          realizationEnd: "2025-02-28",
+        }],
+      },
+    };
+
+    const trends = buildMonthlyVolumeTrends(projects, projectDetails);
+
+    expect(trends.map((trend) => trend.year)).toEqual([2025, 2026]);
+    expect(trends[0].tender[0]).toBeCloseTo(520_000_000 * 16 / 59);
+    expect(trends[0].tender[1]).toBeCloseTo(520_000_000 * 28 / 59);
+    expect(trends[0].tender[2]).toBeCloseTo(520_000_000 * 15 / 59);
+    expect(trends[0].tender.reduce((sum, value) => sum + value, 0)).toBeCloseTo(520_000_000);
+    expect(trends[0].tenderCount[0]).toBe(1);
+    expect(trends[0].tenderCount[1]).toBe(1);
+    expect(trends[0].tenderActiveCount.slice(0, 3)).toEqual([1, 2, 1]);
+    expect(trends[0].tenderMissingValueCount[1]).toBe(1);
+    expect(trends[0].realization[2]).toBe(300_000_000);
+    expect(trends[0].realizationCount[2]).toBe(1);
+    expect(trends[0].realizationActiveCount[2]).toBe(1);
+    expect(trends[0].realization[11]).toBeCloseTo(100_000_000 * 16 / 31);
+    expect(trends[0].realizationCount[11]).toBe(1);
+    expect(trends[0].realizationActiveCount[11]).toBe(1);
+    expect(trends[1].realization[0]).toBeCloseTo(100_000_000 * 15 / 31);
+    expect(trends[1].realizationCount[0]).toBe(1);
+    expect(trends[1].realizationActiveCount[0]).toBe(1);
+    expect(trends[0].realization.reduce((sum, value) => sum + value, 0)).toBeCloseTo(300_000_000 + (100_000_000 * 16 / 31));
+    expect(trends[1].realization.reduce((sum, value) => sum + value, 0)).toBeCloseTo(100_000_000 * 15 / 31);
   });
 });

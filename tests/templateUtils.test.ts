@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { processTemplate, renderTemplateHtml, sanitizeEmailHtml } from "@/shared/email/templateUtils";
+import { processTemplate, renderTemplateHtml, sanitizeEmailHtml, TEMPLATE_VARIABLES } from "@/shared/email/templateUtils";
 import { processTemplate as processTemplateFromLegacy } from "../utils/templateUtils";
 import type { ProjectDetails } from "../types";
 
@@ -18,6 +18,20 @@ const createProject = (
   }) as ProjectDetails;
 
 describe("templateUtils", () => {
+  it("zpřístupní termín odevzdání nabídky stavby jako dynamickou proměnnou", () => {
+    const output = processTemplate(
+      "Nabídku odevzdejte do {TERMIN_ODEVZDANI_NABIDKY}.",
+      createProject({ offerSubmissionDeadline: "2026-08-17" }),
+    );
+
+    expect(TEMPLATE_VARIABLES).toContainEqual({
+      code: "{TERMIN_ODEVZDANI_NABIDKY}",
+      description: "Termín odevzdání nabídky",
+      category: "Project",
+    });
+    expect(output).toBe("Nabídku odevzdejte do 17. 8. 2026.");
+  });
+
   it("zachová HTML strukturu podpisu při vložení do HTML šablony", () => {
     const html = processTemplate(
       "<p>Dobrý den,</p>\n{PODPIS_UZIVATELE}",

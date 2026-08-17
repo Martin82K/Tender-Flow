@@ -80,14 +80,15 @@ export const Column: React.FC<ColumnProps> = ({
     return (
         <div
             data-help-id={dataHelpId}
+            data-status={status}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`flex flex-col w-80 flex-shrink-0 rounded-2xl h-full max-h-full border backdrop-blur-xl transition-colors ${styles.wrapper
+            className={`tf-kanban-column flex flex-col w-80 flex-shrink-0 rounded-2xl h-full max-h-full border backdrop-blur-xl transition-colors ${styles.wrapper
                 } ${isOver ? "ring-2 ring-emerald-500/50 ring-inset" : ""}`}
         >
             <div
-                className={`p-4 border-b ${styles.headerBorder} ${styles.headerBg} sticky top-0 rounded-t-2xl z-10 backdrop-blur-sm flex justify-between items-center transition-colors`}
+                className={`tf-kanban-column-header p-4 border-b ${styles.headerBorder} ${styles.headerBg} sticky top-0 rounded-t-2xl z-10 backdrop-blur-sm flex justify-between items-center transition-colors`}
             >
                 <h2 className="text-slate-700 dark:text-white text-sm font-bold uppercase tracking-wide">
                     {title}

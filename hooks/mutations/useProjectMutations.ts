@@ -429,6 +429,9 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.longitude !== undefined) projectUpdates.longitude = normalizedUpdates.longitude;
             if (normalizedUpdates.geocodedAt !== undefined) projectUpdates.geocoded_at = normalizedUpdates.geocodedAt;
             if (normalizedUpdates.finishDate !== undefined) projectUpdates.finish_date = normalizedUpdates.finishDate;
+            if (normalizedUpdates.offerSubmissionDeadline !== undefined) {
+                projectUpdates.offer_submission_deadline = normalizedUpdates.offerSubmissionDeadline || null;
+            }
             if (normalizedUpdates.plannedCost !== undefined) projectUpdates.planned_cost = normalizedUpdates.plannedCost;
             if (normalizedUpdates.documentationLink !== undefined) projectUpdates.documentation_link = normalizedUpdates.documentationLink;
             if (normalizedUpdates.documentLinks !== undefined) projectUpdates.document_links = normalizedUpdates.documentLinks;

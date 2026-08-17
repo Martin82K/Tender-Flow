@@ -59,6 +59,46 @@ const user: User = {
 };
 
 describe("UserAccountMenu", () => {
+  it("udrží panel uvnitř úzkého viewportu", async () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 246 });
+
+    render(
+      <UserAccountMenu
+        user={user}
+        theme="dark"
+        skin="space"
+        onSetTheme={vi.fn()}
+        onSetSkin={vi.fn()}
+        uiScale={1.5}
+        onSetUiScale={vi.fn()}
+        onResetUiScale={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Uživatelské menu" });
+    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+      bottom: 48,
+      height: 36,
+      left: 198,
+      right: 238,
+      top: 12,
+      width: 40,
+      x: 198,
+      y: 12,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(trigger);
+
+    const panel = await screen.findByRole("menu");
+    expect(panel).toHaveStyle({ left: "8px" });
+    expect(panel.style.right).toBe("");
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalInnerWidth });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     userProfileServiceMocks.getProfile.mockResolvedValue({
@@ -280,7 +320,8 @@ describe("UserAccountMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Uživatelské menu" }));
     const skinPicker = await screen.findByRole("combobox", { name: "Motiv" });
-    fireEvent.change(skinPicker, { target: { value: "industrial" } });
+    fireEvent.click(skinPicker);
+    fireEvent.click(screen.getByRole("option", { name: "Industrial" }));
 
     expect(onSetSkin).toHaveBeenCalledWith("industrial");
   });
@@ -314,10 +355,11 @@ describe("UserAccountMenu", () => {
       "aria-pressed",
       "true",
     );
+    fireEvent.click(skinPicker);
     expect(screen.getByRole("option", { name: "Botanica" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Nature" })).toBeInTheDocument();
 
-    fireEvent.change(skinPicker, { target: { value: "nature" } });
+    fireEvent.click(screen.getByRole("option", { name: "Nature" }));
     fireEvent.click(within(modeGroup).getByRole("button", { name: "Tmavý" }));
 
     expect(onSetSkin).toHaveBeenCalledWith("nature");

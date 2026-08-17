@@ -19,7 +19,7 @@ const colorVariants = {
   blue: {
     bg: 'bg-blue-50 dark:bg-blue-950/30',
     border: 'border-blue-200/50 dark:border-blue-800/50',
-    iconBg: 'bg-blue-100 dark:bg-blue-900/50',
+    iconBg: 'border-blue-400/20 bg-blue-500/8 dark:bg-blue-400/10',
     iconColor: 'text-blue-600 dark:text-blue-400',
     trendUp: 'text-blue-600 dark:text-blue-400',
     trendDown: 'text-blue-600 dark:text-blue-400',
@@ -27,7 +27,7 @@ const colorVariants = {
   emerald: {
     bg: 'bg-emerald-50 dark:bg-emerald-950/30',
     border: 'border-emerald-200/50 dark:border-emerald-800/50',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+    iconBg: 'border-emerald-400/20 bg-emerald-500/8 dark:bg-emerald-400/10',
     iconColor: 'text-emerald-600 dark:text-emerald-400',
     trendUp: 'text-emerald-600 dark:text-emerald-400',
     trendDown: 'text-emerald-600 dark:text-emerald-400',
@@ -35,7 +35,7 @@ const colorVariants = {
   amber: {
     bg: 'bg-amber-50 dark:bg-amber-950/30',
     border: 'border-amber-200/50 dark:border-amber-800/50',
-    iconBg: 'bg-amber-100 dark:bg-amber-900/50',
+    iconBg: 'border-amber-400/20 bg-amber-500/8 dark:bg-amber-400/10',
     iconColor: 'text-amber-600 dark:text-amber-400',
     trendUp: 'text-amber-600 dark:text-amber-400',
     trendDown: 'text-amber-600 dark:text-amber-400',
@@ -43,7 +43,7 @@ const colorVariants = {
   violet: {
     bg: 'bg-violet-50 dark:bg-violet-950/30',
     border: 'border-violet-200/50 dark:border-violet-800/50',
-    iconBg: 'bg-violet-100 dark:bg-violet-900/50',
+    iconBg: 'border-violet-400/20 bg-violet-500/8 dark:bg-violet-400/10',
     iconColor: 'text-violet-600 dark:text-violet-400',
     trendUp: 'text-violet-600 dark:text-violet-400',
     trendDown: 'text-violet-600 dark:text-violet-400',
@@ -51,7 +51,7 @@ const colorVariants = {
   rose: {
     bg: 'bg-rose-50 dark:bg-rose-950/30',
     border: 'border-rose-200/50 dark:border-rose-800/50',
-    iconBg: 'bg-rose-100 dark:bg-rose-900/50',
+    iconBg: 'border-rose-400/20 bg-rose-500/8 dark:bg-rose-400/10',
     iconColor: 'text-rose-600 dark:text-rose-400',
     trendUp: 'text-rose-600 dark:text-rose-400',
     trendDown: 'text-rose-600 dark:text-rose-400',
@@ -59,7 +59,7 @@ const colorVariants = {
   slate: {
     bg: 'bg-slate-50 dark:bg-slate-900/50',
     border: 'border-slate-200/50 dark:border-slate-700/50',
-    iconBg: 'bg-slate-100 dark:bg-slate-800',
+    iconBg: 'border-slate-400/20 bg-slate-500/8 dark:bg-slate-400/10',
     iconColor: 'text-slate-600 dark:text-slate-400',
     trendUp: 'text-slate-600 dark:text-slate-400',
     trendDown: 'text-slate-600 dark:text-slate-400',
@@ -99,9 +99,6 @@ export const KPICard: React.FC<KPICardProps> = ({
         ${className}
       `}
     >
-      {/* Background decoration */}
-      <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 opacity-50" />
-
       <div className="relative flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -132,7 +129,7 @@ export const KPICard: React.FC<KPICardProps> = ({
           )}
         </div>
 
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${colors.iconBg} flex items-center justify-center ${colors.iconColor}`}>
+        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border ${colors.iconBg} ${colors.iconColor}`}>
           {icon}
         </div>
       </div>

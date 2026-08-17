@@ -1,17 +1,16 @@
 import React, { useRef } from "react";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@appica/ui-react";
+import { Sparkline, SparklineChart } from "@appica/ui-react/sparkline";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
@@ -20,10 +19,6 @@ import { projectExportApi } from "@features/projects/api/projectExportApi";
 import type { Project, ProjectDetails, User } from "@/types";
 import html2canvas from "html2canvas";
 import {
-  Wallet,
-  Target,
-  Users,
-  FolderKanban,
   Building2,
   Filter,
   FileText,
@@ -31,12 +26,19 @@ import {
   RotateCcw,
   ChevronDown,
 } from "lucide-react";
+import {
+  ClipboardList,
+  FileCheck,
+  ReportMoney,
+  UsersGroup,
+} from "@appica/icons-react";
 import { KPICard } from "@/shared/ui/overview/KPICard";
 import { StatusCard } from "@/shared/ui/overview/StatusCard";
 import { SupplierBarChart } from "@/shared/ui/overview/SupplierBarChart";
 import { SupplierTable } from "@/shared/ui/overview/SupplierTable";
 import { StatusDistributionChart } from "@/shared/ui/overview/StatusDistributionChart";
 import { BudgetDeviationGauge } from "@/shared/ui/overview/BudgetDeviationGauge";
+import { MonthlyVolumeTrends } from "@/shared/ui/overview/MonthlyVolumeTrends";
 import { OverviewSection } from "@/features/projects/ui/OverviewSection";
 import {
   formatOfferDate,
@@ -50,6 +52,22 @@ interface ProjectOverviewProps {
   user: Pick<User, "id" | "role" | "email"> | null;
   skin?: ThemeSkin;
 }
+
+const compactCurrencyFormatter = new Intl.NumberFormat("cs-CZ", {
+  style: "currency",
+  currency: "CZK",
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+const monthlySparklinePalette = [
+  "#0ea5e9",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#ef4444",
+] as const;
 
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projects,
@@ -86,15 +104,12 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     selectedSupplierSummary,
     selectedSupplierMonthlySeries,
     topSuppliers,
-    trendYears,
+    monthlyVolumeTrends,
     analytics,
     statusCounts,
     avgBudgetDeviation,
     resetSupplierFilters,
   } = useProjectOverviewController({ projects, projectDetails, user });
-
-  const formatMillions = (value: number) =>
-    `${formatDecimal(value / 1_000_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil.`;
 
   const chartRef = useRef<HTMLDivElement | null>(null);
   const [exportError, setExportError] = React.useState<string | null>(null);
@@ -254,34 +269,34 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             title="Objem zakázek"
             value={formatMoney(analytics.totals.awardedValue)}
             subtitle="Celkový objem oceněných zakázek"
-            icon={<Wallet className="w-6 h-6" />}
+            icon={<ReportMoney size={21} strokeWidth={1.65} aria-hidden="true" />}
             color="emerald"
           />
           <KPICard
             title="Celkem poptávek"
             value={analytics.categoryProfit.length}
             subtitle="Počet poptávek v systému"
-            icon={<FolderKanban className="w-6 h-6" />}
+            icon={<ClipboardList size={21} strokeWidth={1.65} aria-hidden="true" />}
             color="blue"
           />
           <KPICard
             title="Poptaní subdodavatelé"
             value={analytics.suppliers.length}
             subtitle="Celkem oslovených dodavatelů"
-            icon={<Users className="w-6 h-6" />}
+            icon={<UsersGroup size={21} strokeWidth={1.65} aria-hidden="true" />}
             color="violet"
           />
           <KPICard
             title="Celkem nabídek"
             value={analytics.totals.offerCount}
             subtitle="Všechny přijaté nabídky"
-            icon={<Target className="w-6 h-6" />}
+            icon={<FileCheck size={21} strokeWidth={1.65} aria-hidden="true" />}
             color="amber"
           />
         </div>
 
         {/* Status Cards */}
-        <div data-help-id="overview-status-cards" className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div data-help-id="overview-status-cards" className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <StatusCard
             type="tender"
             awardedValue={analytics.totalsByStatus.tender.awardedValue}
@@ -337,47 +352,68 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           }
         >
           {/* Filter Inputs */}
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-[minmax(14rem,1fr)_minmax(12rem,1fr)_auto]">
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Dodavatel
               </label>
-              <div className="relative mt-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  value={supplierQuery}
-                  onChange={(e) => setSupplierQuery(e.target.value)}
-                  list="supplier-suggestions"
+              <Combobox
+                items={supplierRows.map((supplier) => supplier.name)}
+                inputValue={supplierQuery}
+                onInputValueChange={(value) => setSupplierQuery(value)}
+                onValueChange={(value) => setSupplierQuery(typeof value === "string" ? value : "")}
+                clearable
+                icon
+                size="md"
+              >
+                <ComboboxInput
+                  aria-label="Vyhledat dodavatele"
                   placeholder="Vyhledat dodavatele..."
-                  className="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  startSlot={<Search className="h-4 w-4 text-slate-400" aria-hidden="true" />}
+                  className="tf-overview-filter-combobox mt-1"
                 />
-              </div>
-              <datalist id="supplier-suggestions">
-                {supplierRows.map((supplier) => (
-                  <option key={supplier.id} value={supplier.name} />
-                ))}
-              </datalist>
+                <ComboboxContent className="tf-overview-filter-combobox-content z-[420]">
+                  <ComboboxEmpty>Žádný dodavatel neodpovídá hledání.</ComboboxEmpty>
+                  <ComboboxList className="max-h-[11.75rem] [scrollbar-gutter:stable]">
+                    {(supplierName: string) => (
+                      <ComboboxItem key={supplierName} value={supplierName}>
+                        {supplierName}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Zaměření
               </label>
-              <div className="relative">
-                <select
-                  value={supplierSpecialization}
-                  onChange={(e) => setSupplierSpecialization(e.target.value)}
-                  style={{ backgroundImage: "none" }}
-                  className="mt-1 w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                >
-                  <option value="">Všechna zaměření</option>
-                  {specializationOptions.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              </div>
+              <Combobox
+                items={specializationOptions}
+                inputValue={supplierSpecialization}
+                onInputValueChange={(value) => setSupplierSpecialization(value)}
+                onValueChange={(value) => setSupplierSpecialization(typeof value === "string" ? value : "")}
+                clearable
+                icon
+                size="md"
+              >
+                <ComboboxInput
+                  aria-label="Vyhledat zaměření"
+                  placeholder="Všechna zaměření"
+                  startSlot={<Search className="h-4 w-4 text-slate-400" aria-hidden="true" />}
+                  className="tf-overview-filter-combobox mt-1"
+                />
+                <ComboboxContent className="tf-overview-filter-combobox-content z-[420]">
+                  <ComboboxEmpty>Žádné zaměření neodpovídá hledání.</ComboboxEmpty>
+                  <ComboboxList className="max-h-[11.75rem] [scrollbar-gutter:stable]">
+                    {(specialization: string) => (
+                      <ComboboxItem key={specialization} value={specialization}>
+                        {specialization}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
             <div className="flex items-end">
               <button
@@ -392,7 +428,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           </div>
 
           {/* Charts Grid - 2x2 layout */}
-          <div data-help-id="overview-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div data-help-id="overview-charts" className="mb-6 grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
             <SupplierBarChart
               items={topSuppliers.map((s) => ({
                 label: s.name,
@@ -402,6 +438,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               title="Nejčastěji zasmluvňovaní"
               subtitle="Dodavatelé podle počtu SOD"
               color="emerald"
+              valueFormatter={(value) => `${formatDecimal(value, { maximumFractionDigits: 0 })} SOD`}
             />
             <SupplierBarChart
               items={topSuppliers.map((s) => ({
@@ -409,12 +446,12 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 value: s.totalAwardedValue,
                 helper: s.lastAwardedLabel || "Bez ocenění",
               }))}
-              valueFormatter={formatMoney}
+              valueFormatter={(value) => compactCurrencyFormatter.format(value)}
               title="Nejvyšší objemy"
               subtitle="Dodavatelé podle oceněných zakázek"
               color="blue"
             />
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
               <StatusDistributionChart
                 sodCount={statusCounts.sod}
                 shortlistCount={statusCounts.shortlist}
@@ -424,7 +461,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 sentCount={statusCounts.sent}
               />
             </div>
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
               <BudgetDeviationGauge
                 avgDeviationPercent={avgBudgetDeviation}
               />
@@ -612,45 +649,53 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                       Pro časovou osu nejsou dostupná data s datem nabídky.
                     </div>
                   ) : (
-                    <div className="h-56" ref={chartRef}>
-                      <ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={180}>
-                        <LineChart data={selectedSupplierMonthlySeries.data}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
-                          <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                          <YAxis
-                            tick={{ fill: "#94a3b8", fontSize: 12 }}
-                            tickFormatter={(value) => formatMillions(value)}
-                          />
-                          <Tooltip
-                            formatter={(value: number) => formatMoney(value)}
-                            labelFormatter={(label) => `Měsíc ${label}`}
-                            contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                          />
-                          <Legend />
-                          {selectedSupplierMonthlySeries.years.map((year, index) => {
-                            const palette = [
-                              "#0EA5E9",
-                              "#10B981",
-                              "#F59E0B",
-                              "#8B5CF6",
-                              "#EC4899",
-                              "#06B6D4",
-                              "#EF4444",
-                            ];
-                            return (
-                              <Line
-                                key={year}
-                                type="monotone"
-                                dataKey={year.toString()}
-                                stroke={palette[index % palette.length]}
-                                strokeWidth={2}
-                                dot={false}
-                                name={year.toString()}
-                              />
-                            );
-                          })}
-                        </LineChart>
-                      </ResponsiveContainer>
+                    <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2" ref={chartRef}>
+                      {selectedSupplierMonthlySeries.years.map((year, index) => {
+                        const yearKey = year.toString();
+                        const values = selectedSupplierMonthlySeries.data.map((row) => {
+                          const value = row[yearKey];
+                          return typeof value === "number" ? value : 0;
+                        });
+                        const labels = selectedSupplierMonthlySeries.data.map((row) => row.month.toString());
+                        const total = values.reduce((sum, value) => sum + value, 0);
+                        const color = monthlySparklinePalette[index % monthlySparklinePalette.length];
+
+                        return (
+                          <Sparkline
+                            key={year}
+                            data={values}
+                            labels={labels}
+                            color={color}
+                            locale="cs-CZ"
+                            className="min-w-0 rounded-lg border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/35"
+                          >
+                            <div className="flex min-w-0 items-center justify-between gap-3">
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{year}</span>
+                              <span className="w-max whitespace-nowrap text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                                {formatMoney(total)}
+                              </span>
+                            </div>
+                            <SparklineChart
+                              aria-label={`Objem nabídek za rok ${year} podle měsíců`}
+                              height={72}
+                              curve={0.72}
+                              fill
+                              tooltip
+                              renderTooltip={(point) => (
+                                <div className="flex w-max items-center gap-2 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-white shadow-xl">
+                                  <span className="text-slate-400">Měsíc {point.label}</span>
+                                  <span className="font-semibold tabular-nums">{formatMoney(point.value)}</span>
+                                </div>
+                              )}
+                            />
+                            <div className="flex justify-between text-[0.6875rem] text-slate-400 dark:text-slate-500" aria-hidden="true">
+                              <span>1</span>
+                              <span>6</span>
+                              <span>12</span>
+                            </div>
+                          </Sparkline>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -664,38 +709,11 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           data-help-id="overview-trends"
           id="trends"
           title="Trendy v čase"
-          subtitle="Objemy zakázek a aktivita v jednotlivých letech"
+          subtitle="Počty a objemy staveb rozložené podle období realizace"
           isOpen={sections.trends}
           onToggle={toggleSection}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SupplierBarChart
-              items={analytics.yearTrends.map((t) => ({
-                label: t.year.toString(),
-                value: t.awardedValue,
-                helper: `${t.sodCount} SOD`,
-              }))}
-              valueFormatter={formatMoney}
-              title="Objem oceněných zakázek"
-              subtitle="Podle roku ocenění"
-              color="violet"
-            />
-            <SupplierBarChart
-              items={analytics.yearTrends.map((t) => ({
-                label: t.year.toString(),
-                value: t.offerCount,
-                helper: `${t.categoryCount} kategorií`,
-              }))}
-              title="Aktivita nabídek"
-              subtitle="Počet nabídek podle roku"
-              color="amber"
-            />
-          </div>
-          {trendYears.length === 0 && (
-            <div className="mt-4 text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-              Pro trendové grafy nejsou zatím dostupná data s datem ocenění.
-            </div>
-          )}
+          <MonthlyVolumeTrends trends={monthlyVolumeTrends} />
         </OverviewSection>
 
 

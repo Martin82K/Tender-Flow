@@ -49,6 +49,49 @@ const buildProject = (): ProjectDetails => ({
 });
 
 describe("ProjectOverviewNew compact editace", () => {
+  it("u soutěže zobrazí a uloží termín odevzdání nabídky", () => {
+    const onUpdate = vi.fn();
+    const project = buildProject();
+    project.status = "tender";
+    project.offerSubmissionDeadline = "2026-09-15";
+
+    render(
+      <ProjectOverviewNew
+        project={project}
+        onUpdate={onUpdate}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.getByText("Odevzdání nabídky:")).toBeInTheDocument();
+    expect(screen.getByText("15. 9. 2026")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Upravit údaje o stavbě" }));
+    fireEvent.click(screen.getByRole("button", { name: "Termín odevzdání nabídky" }));
+    fireEvent.click(screen.getByTitle("Vybrat datum 22. 9. 2026"));
+    fireEvent.click(screen.getByText("Uložit změny"));
+
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      offerSubmissionDeadline: "2026-09-22",
+    }));
+  });
+
+  it("u realizace termín odevzdání nabídky nezobrazuje", () => {
+    const project = buildProject();
+    project.status = "realization";
+    project.offerSubmissionDeadline = "2026-09-15";
+
+    render(
+      <ProjectOverviewNew
+        project={project}
+        onUpdate={() => undefined}
+        variant="compact"
+      />,
+    );
+
+    expect(screen.queryByText("Odevzdání nabídky:")).not.toBeInTheDocument();
+  });
+
   it("použije pro filtry poptávek a Sloupce sdílené skin tokenové ovládání", () => {
     const project = buildProject();
     project.categories = [

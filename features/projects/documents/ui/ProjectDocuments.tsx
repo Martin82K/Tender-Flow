@@ -421,7 +421,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                   aria-controls="documents-tabpanel"
                   onClick={() => setDocumentsSubTab(tab.id)}
                   className={`tf-documents-tab flex min-h-10 flex-none items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${documentsSubTab === tab.id
-                    ? "bg-primary text-white"
+                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white"
                     }`}
                 >
