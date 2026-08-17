@@ -306,7 +306,7 @@ describe("industrial skin tokens", () => {
   it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
     expect(accountMenuSource).toContain("tf-account-menu-panel");
     expect(accountMenuSource).toContain("tf-account-menu-avatar");
-    expect(accountMenuSource).toContain("w-[min(92vw,288px)]");
+    expect(accountMenuSource).toContain("w-72 max-w-[calc(100vw-16px)]");
     expect(accountMenuSource).toContain("size-10");
     expect(accountMenuSource).toContain("AppearancePicker");
     expect(appearancePickerSource).toContain("min-h-10");

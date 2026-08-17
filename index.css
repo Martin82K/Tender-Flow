@@ -3513,17 +3513,24 @@ body {
   }
 }
 
-/* Calendar picker icon styling for dark mode */
-.dark input[type="date"]::-webkit-calendar-picker-indicator,
-.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.dark input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.5);
+/* Dark color-scheme already renders native picker icons light; avoid double inversion. */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html.dark input[type="month"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="date"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="month"]::-webkit-calendar-picker-indicator,
+html[data-skin="space"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
+  opacity: 1 !important;
   cursor: pointer;
 }
 
 /* Calendar picker icon hover effect */
 input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.8;
 }
@@ -4739,6 +4746,19 @@ html[data-skin] .tf-appearance-picker-select {
   color: var(--tf-skin-text) !important;
 }
 
+.tf-appearance-picker .tf-themed-select-trigger {
+  height: 2rem;
+  border-radius: 0.375rem;
+  padding: 0 0.5rem 0 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.tf-appearance-picker .tf-themed-select-trigger > span:first-child {
+  text-align: right;
+}
+
 html[data-skin] .tf-appearance-picker-select:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-settings-primary) 64%, #ffffff 36%) !important;
   outline-offset: 2px;
@@ -5321,6 +5341,251 @@ html[data-skin="space"] :is(.bg-primary, [class~="bg-indigo-600"]) {
   background: linear-gradient(110deg, #e11d48, #c026d3 56%, #7c3aed) !important;
   color: #ffffff !important;
   box-shadow: 0 0 22px rgba(244, 63, 94, 0.24), 0 0 30px rgba(139, 92, 246, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-documents-view {
+  --tf-documents-panel: rgba(8, 16, 26, 0.68);
+  --tf-documents-card: rgba(8, 16, 26, 0.76);
+  --tf-documents-row: rgba(8, 16, 26, 0.88);
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="space"] .tf-app-main .tf-documents-view {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-documents-view [data-help-id="documents-sidebar"] nav,
+html[data-skin="space"] .tf-documents-view [data-help-id="documents-tip"] {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(14px) saturate(124%);
+}
+
+html[data-skin="space"] .tf-documents-view #documents-tabpanel {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-documents-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-app-main .tf-documents-view :is(
+  [class~="bg-white"],
+  [class~="bg-slate-50"],
+  [class~="bg-slate-100"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"],
+  [class~="bg-slate-950"]
+) {
+  background-color: var(--tf-documents-card) !important;
+}
+
+html[data-skin="space"] .tf-documents-view :is(
+  [data-help-id="documents-link-row"],
+  [data-help-id="documents-price-list-link"]
+) {
+  background: var(--tf-documents-row) !important;
+}
+
+html[data-skin="space"] :is(
+  .tf-project-overview,
+  .tf-project-overview-view,
+  .tf-tender-plan-view,
+  .tf-pipeline-view
+) {
+  --tf-space-workspace-panel: rgba(8, 16, 26, 0.68);
+  --tf-space-workspace-card: rgba(8, 16, 26, 0.76);
+  --tf-space-workspace-row: rgba(8, 16, 26, 0.86);
+}
+
+html[data-skin="space"] .tf-app-main :is(
+  .tf-project-overview,
+  .tf-project-overview-view,
+  .tf-tender-plan-view,
+  .tf-pipeline-view
+) {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view {
+  --tf-overview-status-sod: #34d399;
+  --tf-overview-status-shortlist: #fbbf24;
+  --tf-overview-status-offer: var(--tf-space-cyan);
+  --tf-overview-status-rejected: #fb7185;
+  --tf-overview-status-contacted: #94a3b8;
+  --tf-overview-status-sent: #a78bfa;
+  --tf-overview-gauge-good-strong: #059669;
+  --tf-overview-gauge-good: #34d399;
+  --tf-overview-gauge-neutral: #fbbf24;
+  --tf-overview-gauge-warning: #fb923c;
+  --tf-overview-gauge-danger: #fb7185;
+  --tf-overview-gauge-muted: #94a3b8;
+}
+
+html[data-skin="space"] .tf-project-overview-view :is(
+  [data-help-id="overview-scope-toggle"],
+  [data-help-id="overview-supplier-analysis"],
+  [data-help-id="overview-trends"],
+  [data-help-id="overview-kpi"] > div,
+  [data-help-id="overview-status-cards"] > div,
+  [data-help-id="overview-charts"] > div
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-project-overview-view :is(
+  [data-help-id="overview-supplier-analysis"],
+  [data-help-id="overview-trends"]
+) > div:first-child {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view [data-help-id="overview-charts"] :is(
+  [class~="bg-white"],
+  [class~="bg-slate-100"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"]
+) {
+  background-color: var(--tf-space-workspace-card) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox-content {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 28%, var(--tf-skin-line-2) 72%) !important;
+  background: rgba(5, 9, 17, 0.98) !important;
+  color: var(--tf-skin-text) !important;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.58), 0 0 26px rgba(59, 130, 246, 0.12) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox:focus-within {
+  border-color: var(--tf-space-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.12) !important;
+}
+
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox [data-slot="combobox-input-field"],
+html[data-skin="space"] .tf-project-overview-view .tf-overview-filter-combobox [data-slot="combobox-input-field"]:focus-visible {
+  border: 0 !important;
+  background: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="space"] [data-help-id="overview-kpi-cards"] > .tf-overview-kpi-card,
+html[data-skin="space"] [data-help-id="overview-info-surface"],
+html[data-skin="space"] [data-help-id="overview-demand-table"] {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-tender-plan-view :is(
+  [data-help-id="tender-plan-sidebar"] nav,
+  [data-help-id="tender-plan-tip"]
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.58) !important;
+  backdrop-filter: blur(14px) saturate(124%);
+}
+
+html[data-skin="space"] .tf-tender-plan-view :is(
+  [data-help-id="tender-plan-table"],
+  [data-help-id="tender-plan-tools"]
+) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-app-main .tf-tender-plan-view :is(
+  [class~="bg-white"],
+  [class~="bg-slate-50"],
+  [class~="bg-slate-800"],
+  [class~="bg-slate-900"]
+) {
+  background-color: var(--tf-space-workspace-card) !important;
+}
+
+html[data-skin="space"] .tf-pipeline-overview [data-help-id="pipeline-overview-table"],
+html[data-skin="space"] .tf-pipeline-overview [data-help-id="pipeline-category-card"] > :is(button, [role="button"]) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: var(--tf-space-workspace-panel) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-pipeline-overview :is(.tf-demand-filterbar, [data-help-id="pipeline-view-toggle"]) {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.62) !important;
+}
+
+html[data-skin="space"] [data-help-id="pipeline-kanban"] {
+  background: transparent !important;
+}
+
+html[data-skin="space"] .tf-kanban-column {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  background: rgba(8, 16, 26, 0.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(16px) saturate(126%);
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="sent"],
+html[data-skin="space"] .tf-kanban-column[data-status="shortlist"] {
+  background: rgba(30, 64, 175, 0.22) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="offer"] {
+  background: rgba(180, 83, 9, 0.2) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="sod"] {
+  background: rgba(5, 150, 105, 0.2) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column[data-status="rejected"] {
+  background: rgba(190, 24, 93, 0.18) !important;
+}
+
+html[data-skin="space"] .tf-kanban-column-header {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  background: rgba(8, 16, 26, 0.66) !important;
+}
+
+html[data-skin="space"] .tf-kanban-bid-card {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  background: var(--tf-space-workspace-row) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+@media (prefers-contrast: more) {
+  html[data-skin="space"] .tf-documents-view #documents-tabpanel,
+  html[data-skin="space"] .tf-app-main .tf-documents-view [class*="bg-slate"],
+  html[data-skin="space"] :is(.tf-project-overview, .tf-tender-plan-view, .tf-pipeline-view) :is(
+    [data-help-id="overview-info-surface"],
+    [data-help-id="tender-plan-table"],
+    [data-help-id="pipeline-overview-table"],
+    .tf-kanban-column,
+    .tf-kanban-bid-card
+  ) {
+    background: var(--tf-skin-card) !important;
+  }
+
+  html[data-skin="space"] .tf-project-overview-view :is(
+    [data-help-id="overview-scope-toggle"],
+    [data-help-id="overview-supplier-analysis"],
+    [data-help-id="overview-trends"],
+    [data-help-id="overview-kpi"] > div,
+    [data-help-id="overview-status-cards"] > div,
+    [data-help-id="overview-charts"] > div
+  ) {
+    background: var(--tf-skin-card) !important;
+  }
 }
 
 html[data-skin="space"] :is(.tf-appearance-section, .tf-appearance-picker-select, .tf-themed-select-trigger) {

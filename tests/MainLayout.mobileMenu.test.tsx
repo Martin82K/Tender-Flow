@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import type { Project, User, View } from '@/types';
+import type { ThemeSkin } from '@/shared/types/theme';
 
 vi.mock('@/components/Sidebar', () => ({
   Sidebar: () => <aside data-testid="sidebar" />,
@@ -54,6 +55,7 @@ const renderMainLayout = (
   currentView: View = 'project',
   uiScale = 1,
   setIsSidebarOpen = vi.fn(),
+  skin: ThemeSkin = 'industrial',
 ) =>
   render(
     <MainLayout
@@ -72,7 +74,7 @@ const renderMainLayout = (
       onProjectSelect={vi.fn()}
       user={user}
       theme="system"
-      skin="industrial"
+      skin={skin}
       onSetTheme={vi.fn()}
       onSetSkin={vi.fn()}
       uiScale={uiScale}
@@ -89,6 +91,29 @@ const renderMainLayout = (
   );
 
 describe('MainLayout mobile menu', () => {
+  it.each([
+    ['classic', 'bg-white/95'],
+    ['industrial', 'bg-[var(--tf-skin-surface-deep)]'],
+    ['space', 'bg-[#080b14]/95'],
+  ] as const)('zobrazí viditelný desktopový rail pro skin %s', (skin, skinClass) => {
+    const setIsSidebarOpen = vi.fn();
+    renderMainLayout(false, 'project', 1, setIsSidebarOpen, skin);
+
+    const rail = screen.getByTestId('sidebar-reveal-rail');
+    const button = screen.getByRole('button', { name: 'Rozbalit hlavní menu' });
+    const label = screen.getByText('Rozbalit menu');
+
+    expect(button).toBe(rail);
+    expect(rail).toHaveClass('hidden', 'h-full', 'w-12', 'flex-none', 'justify-center', 'md:flex', skinClass);
+    expect(rail).not.toHaveClass('rounded-lg');
+    expect(label).toHaveClass('[writing-mode:vertical-rl]', 'rotate-180');
+    expect(button).toHaveAttribute('aria-controls', 'app-sidebar');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(button);
+    expect(setIsSidebarOpen).toHaveBeenCalledWith(true);
+  });
+
   it('vykreslí stabilní mobilní toggle mimo obsah hlavičky', () => {
     const setIsSidebarOpen = vi.fn();
     renderMainLayout(false, 'project', 1, setIsSidebarOpen);

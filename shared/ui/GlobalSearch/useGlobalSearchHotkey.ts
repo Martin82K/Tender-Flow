@@ -8,7 +8,7 @@ export const useGlobalSearchHotkey = (onTrigger: () => void): void => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      const isKComboKey = e.key.toLowerCase() === "k";
+      const isKComboKey = typeof e.key === "string" && e.key.toLowerCase() === "k";
       const comboPressed = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
       if (isKComboKey && comboPressed) {
         e.preventDefault();
