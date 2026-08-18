@@ -90,7 +90,9 @@ describe("legal documents", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/cookie lišty/i)).toBeInTheDocument();
-    expect(screen.getByText(/blokované až do udělení souhlasu/i)).toBeInTheDocument();
+    expect(screen.getByText(/agregované provozní měření přihlášené aplikace/i)).toBeInTheDocument();
+    expect(screen.getByText(/neobsahuje obsah práce ani jednotlivé vstupy uživatele/i)).toBeInTheDocument();
+    expect(screen.getByText(/nejvýše 365 dní/i)).toBeInTheDocument();
   });
 
   it("renders dpa sections", () => {

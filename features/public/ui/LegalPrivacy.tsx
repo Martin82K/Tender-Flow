@@ -248,6 +248,14 @@ export const LegalPrivacy: React.FC = () => {
           stability zpracováváme také nezbytné technické a incidentní logy.
           Tyto záznamy neslouží k obsahové kontrole uživatelských dat.
         </p>
+        <p className="mt-2">
+          U přihlášených uživatelů dále vedeme agregované denní provozní
+          statistiky: aktivní čas pouze při viditelném a ovládaném okně,
+          souhrnné počty relací a změn, objem přenesených dat a čas poslední
+          aktivity. Neukládáme jednotlivé heartbeat události, obsah práce ani
+          jednotlivé vstupy uživatele. Tyto údaje slouží ke správě a kapacitnímu
+          vyhodnocení poskytované B2B služby a uchovávají se nejvýše 365 dní.
+        </p>
       </section>
 
       <section>

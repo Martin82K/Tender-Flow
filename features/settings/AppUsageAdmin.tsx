@@ -50,6 +50,7 @@ const downloadCsv = (items: AppUsageSummaryItem[], daysBack: number): void => {
       "Organizace",
       "Uživatel",
       "Email",
+      "Stav měření",
       "Aktivní čas (s)",
       "Aktivní dny",
       "Relace",
@@ -64,14 +65,15 @@ const downloadCsv = (items: AppUsageSummaryItem[], daysBack: number): void => {
       item.organizationName,
       item.displayName || "",
       item.email,
-      item.activeSeconds,
-      item.activeDays,
-      item.sessionCount,
-      item.actionCount,
-      item.createdRecordsCount,
-      item.updatedRecordsCount,
-      item.deletedRecordsCount,
-      item.uploadedBytes,
+      item.hasMeasuredUsage ? "Měřeno" : "Neměřeno",
+      item.hasMeasuredUsage ? item.activeSeconds : "",
+      item.hasMeasuredUsage ? item.activeDays : "",
+      item.hasMeasuredUsage ? item.sessionCount : "",
+      item.hasMeasuredUsage ? item.actionCount : "",
+      item.hasMeasuredUsage ? item.createdRecordsCount : "",
+      item.hasMeasuredUsage ? item.updatedRecordsCount : "",
+      item.hasMeasuredUsage ? item.deletedRecordsCount : "",
+      item.hasMeasuredUsage ? item.uploadedBytes : "",
       item.lastSeenAt || "",
     ]),
   ];
@@ -140,15 +142,21 @@ export const AppUsageAdmin: React.FC = () => {
   const userCounts = useMemo(() => {
     const allUserIds = new Set<string>();
     const activeUserIds = new Set<string>();
+    const measuredUserIds = new Set<string>();
 
     filteredItems.forEach((item) => {
       allUserIds.add(item.userId);
-      if (item.activeSeconds > 0 || item.actionCount > 0) {
+      if (item.lastSeenAt) {
         activeUserIds.add(item.userId);
       }
+      if (item.hasMeasuredUsage) measuredUserIds.add(item.userId);
     });
 
-    return { active: activeUserIds.size, total: allUserIds.size };
+    return {
+      active: activeUserIds.size,
+      measured: measuredUserIds.size,
+      total: allUserIds.size,
+    };
   }, [filteredItems]);
 
   const handleLoad = async () => {
@@ -179,7 +187,8 @@ export const AppUsageAdmin: React.FC = () => {
           </h2>
         </div>
         <p className="text-sm text-slate-500">
-          Agregované metriky bez ukládání jednotlivých heartbeatů nebo obsahu práce.
+          Agregované provozní metriky všech přihlášených uživatelů bez ukládání
+          jednotlivých heartbeatů, vstupů nebo obsahu práce.
         </p>
       </div>
 
@@ -238,11 +247,14 @@ export const AppUsageAdmin: React.FC = () => {
           </p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-4">
-          <p className="text-xs font-bold uppercase text-slate-500">Aktivní čas</p>
+          <p className="text-xs font-bold uppercase text-slate-500">Měřený aktivní čas</p>
           <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{formatDuration(totals.activeSeconds)}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Pokrytí {userCounts.measured} z {userCounts.total} uživatelů
+          </p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-4">
-          <p className="text-xs font-bold uppercase text-slate-500">Relace / akce</p>
+          <p className="text-xs font-bold uppercase text-slate-500">Měřené relace / akce</p>
           <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
             {totals.sessionCount} / {totals.actionCount}
           </p>
@@ -298,14 +310,26 @@ export const AppUsageAdmin: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{item.organizationName}</td>
-                    <td className="py-3 px-4 text-right text-sm font-semibold text-slate-900 dark:text-white">{formatDuration(item.activeSeconds)}</td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">{item.activeDays}</td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">{item.sessionCount}</td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">{item.actionCount}</td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
-                      +{item.createdRecordsCount} / ~{item.updatedRecordsCount} / -{item.deletedRecordsCount}
+                    <td className="py-3 px-4 text-right text-sm font-semibold text-slate-900 dark:text-white">
+                      {item.hasMeasuredUsage ? formatDuration(item.activeSeconds) : "Neměřeno"}
                     </td>
-                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">{formatBytes(item.uploadedBytes)}</td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+                      {item.hasMeasuredUsage ? item.activeDays : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+                      {item.hasMeasuredUsage ? item.sessionCount : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+                      {item.hasMeasuredUsage ? item.actionCount : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+                      {item.hasMeasuredUsage
+                        ? `+${item.createdRecordsCount} / ~${item.updatedRecordsCount} / -${item.deletedRecordsCount}`
+                        : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right text-sm text-slate-700 dark:text-slate-300">
+                      {item.hasMeasuredUsage ? formatBytes(item.uploadedBytes) : "—"}
+                    </td>
                     <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{formatLastSeen(item.lastSeenAt)}</td>
                   </tr>
                 ))

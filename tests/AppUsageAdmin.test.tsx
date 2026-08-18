@@ -32,6 +32,7 @@ const usageItem = (overrides: Record<string, unknown>) => ({
   createdRecordsCount: 0,
   updatedRecordsCount: 1,
   deletedRecordsCount: 0,
+  hasMeasuredUsage: true,
   lastSeenAt: "2026-08-18T18:00:00.000Z",
   dailyStats: [],
   ...overrides,
@@ -43,28 +44,62 @@ describe("AppUsageAdmin", () => {
     usageMocks.showAlert.mockReset();
   });
 
-  it("zobrazí i člena bez naměřené aktivity a odliší aktivní uživatele od celku", async () => {
+  it("nezamění provozně aktivního uživatele bez historického měření za nulovou aktivitu", async () => {
     usageMocks.getAppUsageSummaryAdmin.mockResolvedValue([
       usageItem({}),
       usageItem({
         userId: "user-2",
         email: "inactive@example.test",
-        displayName: "Bez naměřené aktivity",
+        displayName: "Aktivní bez měření",
         activeSeconds: 0,
         activeDays: 0,
         sessionCount: 0,
         actionCount: 0,
         updatedRecordsCount: 0,
-        lastSeenAt: null,
+        hasMeasuredUsage: false,
+        lastSeenAt: "2026-08-18T17:00:00.000Z",
       }),
     ]);
 
     render(<AppUsageAdmin />);
     fireEvent.click(screen.getByRole("button", { name: /načíst statistiky/i }));
 
-    expect(await screen.findByText("Bez naměřené aktivity")).toBeInTheDocument();
-    expect(screen.getByText("1 z 2")).toBeInTheDocument();
+    expect(await screen.findByText("Aktivní bez měření")).toBeInTheDocument();
+    expect(screen.getByText("2 z 2")).toBeInTheDocument();
+    expect(screen.getAllByText("Neměřeno").length).toBeGreaterThan(0);
     await waitFor(() => expect(usageMocks.getAppUsageSummaryAdmin).toHaveBeenCalledWith(30));
+  });
+
+  it("databázový přehled používá autentizační stopu a označí dostupnost měření", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((file) => file.endsWith("_collect_app_usage_for_all_users.sql"));
+
+    expect(migrationName).toBeDefined();
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName || ""),
+      "utf8",
+    );
+
+    expect(migration).toContain("auth.sessions");
+    expect(migration).toContain("user_auth_devices");
+    expect(migration).toContain("has_measured_usage");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_app_usage_summary_admin(INTEGER, UUID) FROM PUBLIC, anon");
+  });
+
+  it("omezuje provozní agregace na 365 dní a purge nezpřístupní běžným uživatelům", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((file) => file.endsWith("_schedule_app_usage_retention.sql"));
+
+    expect(migrationName).toBeDefined();
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName || ""),
+      "utf8",
+    );
+
+    expect(migration).toContain("purge-app-usage-stats");
+    expect(migration).toContain("'47 3 * * *'");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.purge_app_usage_stats_admin() FROM PUBLIC, anon, authenticated");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.purge_app_usage_stats_admin() TO service_role");
   });
 
   it("používá pro období a organizaci sdílený skinovaný výběr", () => {

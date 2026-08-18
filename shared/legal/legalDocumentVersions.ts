@@ -1,10 +1,10 @@
 import type { LegalAcceptance, LegalAcceptanceInput, User } from "@/types";
 
 export const CURRENT_TERMS_VERSION = "2026-03-12";
-export const CURRENT_PRIVACY_VERSION = "2026-03-15";
+export const CURRENT_PRIVACY_VERSION = "2026-08-18";
 
 export const CURRENT_TERMS_UPDATED_AT_LABEL = "12. března 2026";
-export const CURRENT_PRIVACY_UPDATED_AT_LABEL = "15. března 2026";
+export const CURRENT_PRIVACY_UPDATED_AT_LABEL = "18. srpna 2026";
 
 export const getCurrentLegalAcceptanceInput = (): LegalAcceptanceInput => ({
   termsVersion: CURRENT_TERMS_VERSION,
