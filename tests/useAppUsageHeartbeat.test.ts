@@ -5,10 +5,7 @@ import {
   shouldRecordUsageHeartbeat,
   useAppUsageHeartbeat,
 } from "../app/hooks/useAppUsageHeartbeat";
-import {
-  clearCookieConsentDecision,
-  setCookieConsentDecision,
-} from "@/shared/privacy/cookieConsent";
+import { clearCookieConsentDecision } from "@/shared/privacy/cookieConsent";
 
 const usageMocks = vi.hoisted(() => ({
   recordUsageHeartbeat: vi.fn(),
@@ -90,7 +87,7 @@ describe("useAppUsageHeartbeat", () => {
     expect(createUsageSessionId()).toMatch(UUID_REGEX);
   });
 
-  it("bez analytického souhlasu heartbeat nespustí", async () => {
+  it("bez analytického souhlasu spustí nezbytný provozní heartbeat", async () => {
     const sessionId = "11111111-1111-4111-8111-111111111111";
     vi.stubGlobal("crypto", { randomUUID: vi.fn(() => sessionId) });
     setVisibleFocusedDocument();
@@ -99,17 +96,16 @@ describe("useAppUsageHeartbeat", () => {
       useAppUsageHeartbeat({ enabled: true, sessionKey: "user-1" })
     ));
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(usageMocks.recordUsageHeartbeat).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(usageMocks.recordUsageHeartbeat).toHaveBeenCalledWith(sessionId, 1);
+    });
 
     unmount();
   });
 
-  it("odešle první heartbeat hned po aktivaci trackingu se souhlasem", async () => {
+  it("odešle první heartbeat hned po aktivaci trackingu", async () => {
     const sessionId = "11111111-1111-4111-8111-111111111111";
     vi.stubGlobal("crypto", { randomUUID: vi.fn(() => sessionId) });
-    setCookieConsentDecision("accepted_all");
     setVisibleFocusedDocument();
 
     const { unmount } = renderHook(() => (
@@ -130,7 +126,6 @@ describe("useAppUsageHeartbeat", () => {
       .mockReturnValueOnce(firstSessionId)
       .mockReturnValueOnce(secondSessionId);
     vi.stubGlobal("crypto", { randomUUID });
-    setCookieConsentDecision("accepted_all");
     setVisibleFocusedDocument();
 
     const { rerender, unmount } = renderHook(

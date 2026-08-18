@@ -5,7 +5,7 @@ import type {
   SubprocessorRecord,
 } from "@/shared/types/compliance";
 
-export const COMPLIANCE_PUBLIC_UPDATED_AT = "15. března 2026";
+export const COMPLIANCE_PUBLIC_UPDATED_AT = "18. srpna 2026";
 
 export const complianceBootstrapRetentionPolicies: RetentionPolicy[] = [
   {
@@ -55,6 +55,13 @@ export const complianceBootstrapRetentionPolicies: RetentionPolicy[] = [
     category: "Feature usage telemetry",
     purpose: "Agregace využití funkcí po organizacích pro produktové a billing rozhodování",
     retentionDays: 180,
+    status: "implemented",
+  },
+  {
+    id: "app-usage-daily-stats",
+    category: "Agregované provozní využití aplikace",
+    purpose: "Správa a kapacitní vyhodnocení poskytované B2B služby",
+    retentionDays: 365,
     status: "implemented",
   },
   {
@@ -152,6 +159,21 @@ export const complianceBootstrapProcessingActivities: ProcessingActivityRecord[]
     legalBasis: "oprávněný zájem",
     dataCategories: ["e-mail", "obsah support komunikace", "IP adresa", "technické logy"],
     retentionPolicyId: "support-requests",
+    linkedSubprocessorIds: ["subprocessor-supabase"],
+  },
+  {
+    id: "ropa-app-usage-operations",
+    activityName: "Agregované provozní využití přihlášené aplikace",
+    purpose: "Správa, podpora a kapacitní vyhodnocení poskytované B2B služby",
+    legalBasis: "plnění smlouvy / oprávněný zájem",
+    dataCategories: [
+      "identifikátor uživatele a organizace",
+      "aktivní čas",
+      "souhrnné počty relací a změn",
+      "objem přenesených dat",
+      "čas poslední aktivity",
+    ],
+    retentionPolicyId: "app-usage-daily-stats",
     linkedSubprocessorIds: ["subprocessor-supabase"],
   },
   {
