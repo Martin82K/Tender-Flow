@@ -108,9 +108,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         sodBudget: initialData.sodBudget?.toString() || "",
         planBudget: initialData.planBudget?.toString() || "",
         description: initialData.description || "",
-        workItems:
-          initialData.workItems ||
-          (initialData.description ? initialData.description.split("\n") : []),
+        workItems: initialData.workItems?.length
+          ? initialData.workItems
+          : initialData.description
+            ? initialData.description.split("\n")
+            : [],
         budgetAttachments: getCategoryBudgetAttachments(initialData),
         pendingBudgetAttachments: [],
         deadline: initialData.deadline || "",
