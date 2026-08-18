@@ -161,6 +161,7 @@ describe("TF Space theme contract", () => {
     expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-row"]:has([data-help-id="pm-project-actions"] button:hover)');
     expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-row"]:has([data-help-id="pm-shared-with-badge"]:hover)');
     expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-actions"] button');
+    expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"]:hover');
     expect(css).toContain('html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-edit-modal"]');
   });
 });

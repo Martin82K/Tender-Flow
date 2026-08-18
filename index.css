@@ -5845,6 +5845,12 @@ html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-shared-with-b
   color: var(--tf-space-cyan) !important;
 }
 
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"]:hover {
+  border-color: color-mix(in srgb, var(--tf-space-cyan) 72%, var(--tf-skin-line) 28%) !important;
+  background: rgba(103, 232, 249, 0.16) !important;
+  color: #cffafe !important;
+}
+
 html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-edit-modal"],
 html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-share-modal"],
 html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-transfer-modal"] {
