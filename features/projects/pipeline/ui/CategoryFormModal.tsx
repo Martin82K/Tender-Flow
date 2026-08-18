@@ -24,6 +24,10 @@ import {
 
 type PlanInputMode = "amount" | "percent";
 
+interface BudgetAttachmentSelectionSession {
+  inFlight: number;
+}
+
 export interface CategoryFormData {
   title: string;
   sodBudget: string;
@@ -77,7 +81,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
   const [planPercentDraft, setPlanPercentDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const budgetAttachmentSelectionsInFlightRef = useRef(0);
+  const budgetAttachmentSelectionSessionRef =
+    useRef<BudgetAttachmentSelectionSession>({ inFlight: 0 });
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -96,6 +101,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   // Reset form when modal opens/closes or when switching between create/edit
   useEffect(() => {
+    budgetAttachmentSelectionSessionRef.current = { inFlight: 0 };
     if (isOpen && initialData) {
       setFormData({
         title: initialData.title || "",
@@ -215,7 +221,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   const planBudgetPreview = getFormNumber(formData.planBudget);
 
-  const resolveTenderFolder = async (): Promise<string | null> => {
+  const resolveTenderFolder = async (
+    selectionSession?: BudgetAttachmentSelectionSession,
+  ): Promise<string | null> => {
     const categoryTitle = formData.title.trim();
     if (!categoryTitle) {
       setAlertModal({
@@ -250,6 +258,12 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     }
 
     const tenderFolder = await resolveDesktopTenderFolderPath(categoryTitle);
+    if (
+      selectionSession &&
+      budgetAttachmentSelectionSessionRef.current !== selectionSession
+    ) {
+      return null;
+    }
     if (!tenderFolder) {
       setAlertModal({
         isOpen: true,
@@ -264,11 +278,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   };
 
   const handleSelectBudgetAttachment = async () => {
+    const selectionSession = budgetAttachmentSelectionSessionRef.current;
     let hasReservedAttachmentSlot = false;
     try {
       if (
-        displayedBudgetAttachments.length +
-          budgetAttachmentSelectionsInFlightRef.current >=
+        displayedBudgetAttachments.length + selectionSession.inFlight >=
         MAX_BUDGET_ATTACHMENT_COUNT
       ) {
         setAlertModal({
@@ -299,11 +313,14 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         return;
       }
 
-      budgetAttachmentSelectionsInFlightRef.current += 1;
+      selectionSession.inFlight += 1;
       hasReservedAttachmentSlot = true;
 
       if (mode === "create") {
         const pendingAttachment = await selectPendingBudgetAttachment();
+        if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+          return;
+        }
         if (!pendingAttachment) return;
         setFormData((prev) => {
           const attachmentCount =
@@ -329,10 +346,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         return;
       }
 
-      const tenderFolder = await resolveTenderFolder();
+      const tenderFolder = await resolveTenderFolder(selectionSession);
       if (!tenderFolder) return;
 
       const attachment = await selectBudgetAttachment(tenderFolder);
+      if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+        return;
+      }
       if (!attachment) return;
 
       setFormData((prev) => {
@@ -354,6 +374,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         };
       });
     } catch (error) {
+      if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+        return;
+      }
       setAlertModal({
         isOpen: true,
         title: "Přílohu nelze připojit",
@@ -362,10 +385,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       });
     } finally {
       if (hasReservedAttachmentSlot) {
-        budgetAttachmentSelectionsInFlightRef.current = Math.max(
-          0,
-          budgetAttachmentSelectionsInFlightRef.current - 1,
-        );
+        selectionSession.inFlight = Math.max(0, selectionSession.inFlight - 1);
       }
     }
   };

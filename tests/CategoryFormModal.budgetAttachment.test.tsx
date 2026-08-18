@@ -190,6 +190,107 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     });
   });
 
+  it("izoluje rezervace a výsledky pickeru mezi otevřeními modalu", async () => {
+    const oldAttachment = {
+      source: "dochub" as const,
+      fileName: "stara-priloha.xlsx",
+      relativePath: "stara-priloha.xlsx",
+      size: 1024,
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    };
+    const newAttachment = {
+      ...oldAttachment,
+      fileName: "nova-priloha.xlsx",
+      relativePath: "nova-priloha.xlsx",
+      selectedAt: "2026-07-01T20:01:00.000Z",
+    };
+    let resolveOldSelection:
+      | ((value: typeof oldAttachment) => void)
+      | undefined;
+    let resolveNewSelection:
+      | ((value: typeof newAttachment) => void)
+      | undefined;
+    selectBudgetAttachmentMock
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOldSelection = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveNewSelection = resolve;
+        }),
+      );
+    const resolveDesktopTenderFolderPath = vi
+      .fn()
+      .mockResolvedValue("/Projects/Stavba/Betony");
+    const firstCategory = { title: "První kategorie" };
+    const secondCategory = {
+      title: "Druhá kategorie",
+      budgetAttachments: Array.from({ length: 9 }, (_, index) => ({
+        ...oldAttachment,
+        fileName: `druha-${index + 1}.xlsx`,
+        relativePath: `druha-${index + 1}.xlsx`,
+      })),
+    };
+    const commonProps = {
+      mode: "edit" as const,
+      isDesktop: true,
+      isDocHubEnabled: true,
+      resolveDesktopTenderFolderPath,
+      onClose: vi.fn(),
+      onSubmit: vi.fn().mockResolvedValue(undefined),
+    };
+    const view = render(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen
+        initialData={firstCategory}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Vybrat soubor/i }));
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(1);
+    });
+
+    view.rerender(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen={false}
+        initialData={firstCategory}
+      />,
+    );
+    view.rerender(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen
+        initialData={secondCategory}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Např. Klempířské konstrukce")).toHaveValue(
+        "Druhá kategorie",
+      );
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Přidat další soubor/i }),
+    );
+
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(2);
+    });
+
+    resolveOldSelection?.(oldAttachment);
+    resolveNewSelection?.(newAttachment);
+
+    expect(await screen.findAllByText("nova-priloha.xlsx")).toHaveLength(2);
+    expect(screen.queryByText("stara-priloha.xlsx")).not.toBeInTheDocument();
+    expect(screen.getAllByTitle(/^Odpojit přílohu /)).toHaveLength(10);
+  });
+
   it("zobrazí desktop-only informaci při mapování přílohy ve web režimu", async () => {
     render(
       <CategoryFormModal
