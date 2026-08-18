@@ -110,7 +110,7 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     });
   });
 
-  it("nepřekročí limit deseti příloh při souběžném dokončení dvou výběrů", async () => {
+  it("oznámí odmítnutý souběžný výběr a nepřekročí limit deseti příloh", async () => {
     const existingAttachments = Array.from({ length: 9 }, (_, index) => ({
       source: "dochub" as const,
       fileName: `rozpocet-${index + 1}.xlsx`,
@@ -122,20 +122,12 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     let resolveFirstSelection:
       | ((value: (typeof existingAttachments)[number]) => void)
       | undefined;
-    let resolveSecondSelection:
-      | ((value: (typeof existingAttachments)[number]) => void)
-      | undefined;
-    selectBudgetAttachmentMock
-      .mockReturnValueOnce(
-        new Promise((resolve) => {
-          resolveFirstSelection = resolve;
-        }),
-      )
-      .mockReturnValueOnce(
-        new Promise((resolve) => {
-          resolveSecondSelection = resolve;
-        }),
-      );
+    const pendingSelection = new Promise<(typeof existingAttachments)[number]>(
+      (resolve) => {
+        resolveFirstSelection = resolve;
+      },
+    );
+    selectBudgetAttachmentMock.mockReturnValue(pendingSelection);
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -163,7 +155,13 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(2);
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Dosažen limit příloh")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "K jedné poptávce lze připojit nejvýše 10 souborů.",
+        ),
+      ).toBeInTheDocument();
     });
 
     resolveFirstSelection?.({
@@ -174,19 +172,12 @@ describe("CategoryFormModal rozpočtová příloha", () => {
       selectedAt: "2026-07-01T20:01:00.000Z",
       enabled: true,
     });
-    resolveSecondSelection?.({
-      source: "dochub",
-      fileName: "druha-nova.xlsx",
-      relativePath: "druha-nova.xlsx",
-      size: 1024,
-      selectedAt: "2026-07-01T20:02:00.000Z",
-      enabled: true,
-    });
 
     await waitFor(() => {
       expect(screen.getAllByTitle(/^Odpojit přílohu /)).toHaveLength(10);
     });
 
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
     fireEvent.click(screen.getByRole("button", { name: /Uložit změny/i }));
 
     await waitFor(() => {

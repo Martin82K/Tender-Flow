@@ -4,7 +4,7 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { BudgetAttachment, DemandCategory } from "@/types";
 import { formatDecimal, parseDecimal } from "@shared/formatting/decimalFormatters";
 import { formatFileSize } from "@/services/documentService";
@@ -77,6 +77,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
   const [planPercentDraft, setPlanPercentDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const budgetAttachmentSelectionsInFlightRef = useRef(0);
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -263,8 +264,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   };
 
   const handleSelectBudgetAttachment = async () => {
+    let hasReservedAttachmentSlot = false;
     try {
-      if (displayedBudgetAttachments.length >= MAX_BUDGET_ATTACHMENT_COUNT) {
+      if (
+        displayedBudgetAttachments.length +
+          budgetAttachmentSelectionsInFlightRef.current >=
+        MAX_BUDGET_ATTACHMENT_COUNT
+      ) {
         setAlertModal({
           isOpen: true,
           title: "Dosažen limit příloh",
@@ -292,6 +298,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         });
         return;
       }
+
+      budgetAttachmentSelectionsInFlightRef.current += 1;
+      hasReservedAttachmentSlot = true;
 
       if (mode === "create") {
         const pendingAttachment = await selectPendingBudgetAttachment();
@@ -351,6 +360,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         message: error instanceof Error ? error.message : "Výběr přílohy selhal.",
         variant: "danger",
       });
+    } finally {
+      if (hasReservedAttachmentSlot) {
+        budgetAttachmentSelectionsInFlightRef.current = Math.max(
+          0,
+          budgetAttachmentSelectionsInFlightRef.current - 1,
+        );
+      }
     }
   };
 
