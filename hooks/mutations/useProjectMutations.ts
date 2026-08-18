@@ -362,8 +362,12 @@ export const useArchiveProjectMutation = () => {
         },
         onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
             const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
-            await queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() });
+            await Promise.all([
+                queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() }),
+                queryClient.cancelQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(id) }),
+            ]);
             const previousProjects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
+            const previousDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(id));
             queryClient.setQueryData<Project[]>(PROJECT_KEYS.list(), (old) =>
                 (old || []).map((p) =>
                     p.id === id
@@ -375,11 +379,27 @@ export const useArchiveProjectMutation = () => {
                         : p
                 )
             );
-            return { previousProjects };
+            queryClient.setQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(id), (old) =>
+                old
+                    ? {
+                        ...old,
+                        status: nextState.targetStatus,
+                        archivedOriginalStatus: nextState.archivedOriginalStatus,
+                    }
+                    : undefined
+            );
+            return { previousProjects, previousDetails };
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
-            queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+        onError: (_error, { id }, context) => {
+            queryClient.setQueryData(PROJECT_KEYS.list(), context?.previousProjects);
+            queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail(id), context?.previousDetails);
+        },
+        onSettled: async (_data, _error, { id }) => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
+                queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(id) }),
+                queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
+            ]);
         }
     });
 };

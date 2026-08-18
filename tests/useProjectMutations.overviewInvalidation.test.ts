@@ -15,6 +15,7 @@ import {
 } from "../hooks/mutations/useProjectMutations";
 import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantDataQuery";
 import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
+import { PROJECT_KEYS } from "../shared/queryKeys/projectKeys";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -248,6 +249,77 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       project_id_input: "p-restore",
       archived_input: false,
     });
+  });
+
+  it("po obnově z archivu aktualizuje stav již načteného detailu projektu", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-restore"), {
+      id: "p-restore",
+      title: "Archivovaná stavba",
+      location: "",
+      finishDate: "",
+      siteManager: "",
+      categories: [],
+      status: "archived",
+      archivedOriginalStatus: "realization",
+    });
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-restore",
+        currentStatus: "archived",
+        archivedOriginalStatus: "realization",
+      });
+    });
+
+    expect(queryClient.getQueryData(PROJECT_DETAILS_KEYS.detail("p-restore"))).toEqual(
+      expect.objectContaining({
+        status: "realization",
+        archivedOriginalStatus: null,
+      }),
+    );
+  });
+
+  it("při neúspěšné obnově vrátí seznam i detail do archivovaného stavu", async () => {
+    mocks.rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: "Obnovu se nepodařilo uložit" },
+    });
+    const { queryClient, wrapper } = createWrapper();
+    queryClient.setQueryData(PROJECT_KEYS.list(), [{
+      id: "p-restore",
+      name: "Archivovaná stavba",
+      location: "",
+      status: "archived",
+      archivedOriginalStatus: "realization",
+    }]);
+    queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail("p-restore"), {
+      id: "p-restore",
+      title: "Archivovaná stavba",
+      location: "",
+      finishDate: "",
+      siteManager: "",
+      categories: [],
+      status: "archived",
+      archivedOriginalStatus: "realization",
+    });
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({
+        id: "p-restore",
+        currentStatus: "archived",
+        archivedOriginalStatus: "realization",
+      })).rejects.toEqual({ message: "Obnovu se nepodařilo uložit" });
+    });
+
+    expect(queryClient.getQueryData(PROJECT_KEYS.list())).toEqual([
+      expect.objectContaining({ status: "archived", archivedOriginalStatus: "realization" }),
+    ]);
+    expect(queryClient.getQueryData(PROJECT_DETAILS_KEYS.detail("p-restore"))).toEqual(
+      expect.objectContaining({ status: "archived", archivedOriginalStatus: "realization" }),
+    );
   });
 
   it("invaliduje overview cache po klonování soutěže do realizace", async () => {
