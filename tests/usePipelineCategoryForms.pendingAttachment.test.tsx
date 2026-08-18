@@ -8,8 +8,8 @@ import type { ProjectDetails } from "@/types";
 
 const mocks = vi.hoisted(() => ({
   copyPendingBudgetAttachment: vi.fn(),
-  saveLocalBudgetAttachment: vi.fn(),
-  getLocalBudgetAttachment: vi.fn(),
+  saveLocalBudgetAttachments: vi.fn(),
+  getLocalBudgetAttachments: vi.fn(),
 }));
 
 vi.mock("@/services/budgetAttachmentService", () => ({
@@ -17,8 +17,8 @@ vi.mock("@/services/budgetAttachmentService", () => ({
 }));
 
 vi.mock("@/features/projects/model/budgetAttachmentLocalStore", () => ({
-  saveLocalBudgetAttachment: mocks.saveLocalBudgetAttachment,
-  getLocalBudgetAttachment: mocks.getLocalBudgetAttachment,
+  saveLocalBudgetAttachments: mocks.saveLocalBudgetAttachments,
+  getLocalBudgetAttachments: mocks.getLocalBudgetAttachments,
 }));
 
 vi.mock("@/features/projects/api", () => ({
@@ -31,12 +31,14 @@ const formData = {
   planBudget: "90000",
   description: "",
   workItems: [],
-  budgetAttachment: null,
-  pendingBudgetAttachment: {
-    sourcePath: "/Users/tester/Downloads/rozpocet.xlsx",
-    fileName: "rozpocet.xlsx",
-    size: 1234,
-  },
+  budgetAttachments: [],
+  pendingBudgetAttachments: [
+    {
+      sourcePath: "/Users/tester/Downloads/rozpocet.xlsx",
+      fileName: "rozpocet.xlsx",
+      size: 1234,
+    },
+  ],
   deadline: "",
   realizationStart: "",
   realizationEnd: "",
@@ -105,7 +107,7 @@ describe("usePipelineCategoryForms pending příloha", () => {
         enabled: true,
       };
     });
-    mocks.saveLocalBudgetAttachment.mockImplementation(() => {
+    mocks.saveLocalBudgetAttachments.mockImplementation(() => {
       order.push("reference");
     });
     const { queryClient, wrapper } = createWrapper();
@@ -129,8 +131,66 @@ describe("usePipelineCategoryForms pending příloha", () => {
     expect(
       queryClient
         .getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail("project-1"))
-        ?.categories[0]?.budgetAttachment,
-    ).toEqual(expect.objectContaining({ relativePath: "rozpocet.xlsx" }));
+        ?.categories[0]?.budgetAttachments,
+    ).toEqual([expect.objectContaining({ relativePath: "rozpocet.xlsx" })]);
+  });
+
+  it("zkopíruje a uloží všechna pending mapování", async () => {
+    const secondPending = {
+      sourcePath: "/Users/tester/Downloads/vykaz.pdf",
+      fileName: "vykaz.pdf",
+      size: 4567,
+    };
+    mocks.copyPendingBudgetAttachment
+      .mockResolvedValueOnce({
+        source: "dochub",
+        fileName: "rozpocet.xlsx",
+        relativePath: "rozpocet.xlsx",
+        size: 1234,
+        selectedAt: "2026-07-13T10:00:00.000Z",
+        enabled: true,
+      })
+      .mockResolvedValueOnce({
+        source: "dochub",
+        fileName: "vykaz.pdf",
+        relativePath: "vykaz.pdf",
+        size: 4567,
+        selectedAt: "2026-07-13T10:01:00.000Z",
+        enabled: true,
+      });
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () =>
+        usePipelineCategoryForms({
+          projectId: "project-1",
+          onAddCategory: vi.fn().mockResolvedValue(undefined),
+          resolveDesktopTenderFolderPath: vi
+            .fn()
+            .mockResolvedValue("/Projects/Stavba/Betony"),
+          showAlert: vi.fn(),
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleCreateCategoryFromModal({
+        ...formData,
+        pendingBudgetAttachments: [
+          ...formData.pendingBudgetAttachments,
+          secondPending,
+        ],
+      });
+    });
+
+    expect(mocks.copyPendingBudgetAttachment).toHaveBeenCalledTimes(2);
+    expect(mocks.saveLocalBudgetAttachments).toHaveBeenCalledWith(
+      "project-1",
+      "cat_123",
+      [
+        expect.objectContaining({ relativePath: "rozpocet.xlsx" }),
+        expect.objectContaining({ relativePath: "vykaz.pdf" }),
+      ],
+    );
   });
 
   it("při chybě databáze nekopíruje ani neukládá referenci", async () => {
@@ -152,7 +212,7 @@ describe("usePipelineCategoryForms pending příloha", () => {
     });
 
     expect(mocks.copyPendingBudgetAttachment).not.toHaveBeenCalled();
-    expect(mocks.saveLocalBudgetAttachment).not.toHaveBeenCalled();
+    expect(mocks.saveLocalBudgetAttachments).not.toHaveBeenCalled();
     expect(result.current.isAddModalOpen).toBe(true);
     expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
       title: "VŘ se nepodařilo vytvořit",
@@ -179,11 +239,62 @@ describe("usePipelineCategoryForms pending příloha", () => {
       await result.current.handleCreateCategoryFromModal(formData);
     });
 
-    expect(mocks.saveLocalBudgetAttachment).not.toHaveBeenCalled();
+    expect(mocks.saveLocalBudgetAttachments).not.toHaveBeenCalled();
     expect(result.current.isAddModalOpen).toBe(false);
     expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
       title: "VŘ vytvořeno bez přílohy",
       message: expect.stringContaining("copy failed"),
+    }));
+  });
+
+  it("při selhání druhé kopie zachová mapování první přílohy", async () => {
+    mocks.copyPendingBudgetAttachment
+      .mockResolvedValueOnce({
+        source: "dochub",
+        fileName: "rozpocet.xlsx",
+        relativePath: "rozpocet.xlsx",
+        size: 1234,
+        selectedAt: "2026-07-13T10:00:00.000Z",
+        enabled: true,
+      })
+      .mockRejectedValueOnce(new Error("copy failed"));
+    const showAlert = vi.fn();
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () =>
+        usePipelineCategoryForms({
+          projectId: "project-1",
+          onAddCategory: vi.fn().mockResolvedValue(undefined),
+          resolveDesktopTenderFolderPath: vi
+            .fn()
+            .mockResolvedValue("/Projects/Stavba/Betony"),
+          showAlert,
+        }),
+      { wrapper },
+    );
+
+    await act(async () => {
+      await result.current.handleCreateCategoryFromModal({
+        ...formData,
+        pendingBudgetAttachments: [
+          ...formData.pendingBudgetAttachments,
+          {
+            sourcePath: "/Users/tester/Downloads/vykaz.pdf",
+            fileName: "vykaz.pdf",
+            size: 4567,
+          },
+        ],
+      });
+    });
+
+    expect(mocks.saveLocalBudgetAttachments).toHaveBeenCalledWith(
+      "project-1",
+      "cat_123",
+      [expect.objectContaining({ relativePath: "rozpocet.xlsx" })],
+    );
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "VŘ vytvořeno s neúplnými přílohami",
+      message: expect.stringContaining("vykaz.pdf: copy failed"),
     }));
   });
 });

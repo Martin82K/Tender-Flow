@@ -16,7 +16,11 @@ import {
   selectPendingBudgetAttachment,
 } from "@/services/budgetAttachmentService";
 import type { PendingBudgetAttachment } from "@/services/budgetAttachmentService";
-import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
+import {
+  getCategoryBudgetAttachments,
+  isBudgetAttachmentOverEmailLimit,
+  MAX_BUDGET_ATTACHMENT_COUNT,
+} from "@/features/projects/model/budgetAttachmentModel";
 
 type PlanInputMode = "amount" | "percent";
 
@@ -26,8 +30,8 @@ export interface CategoryFormData {
   planBudget: string;
   description: string;
   workItems: string[];
-  budgetAttachment: BudgetAttachment | null;
-  pendingBudgetAttachment: PendingBudgetAttachment | null;
+  budgetAttachments: BudgetAttachment[];
+  pendingBudgetAttachments: PendingBudgetAttachment[];
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -51,8 +55,8 @@ const initialFormState: CategoryFormData = {
   planBudget: "",
   description: "",
   workItems: [],
-  budgetAttachment: null,
-  pendingBudgetAttachment: null,
+  budgetAttachments: [],
+  pendingBudgetAttachments: [],
   deadline: "",
   realizationStart: "",
   realizationEnd: "",
@@ -84,11 +88,10 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     message: "",
     variant: "info",
   });
-  const displayedBudgetAttachment =
-    formData.pendingBudgetAttachment || formData.budgetAttachment;
-  const budgetAttachmentExceedsEmailLimit =
-    !!displayedBudgetAttachment &&
-    isBudgetAttachmentOverEmailLimit(displayedBudgetAttachment);
+  const displayedBudgetAttachments = [
+    ...formData.budgetAttachments.map((attachment) => ({ attachment, pending: false })),
+    ...formData.pendingBudgetAttachments.map((attachment) => ({ attachment, pending: true })),
+  ];
 
   // Reset form when modal opens/closes or when switching between create/edit
   useEffect(() => {
@@ -101,8 +104,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         workItems:
           initialData.workItems ||
           (initialData.description ? initialData.description.split("\n") : []),
-        budgetAttachment: initialData.budgetAttachment || null,
-        pendingBudgetAttachment: null,
+        budgetAttachments: getCategoryBudgetAttachments(initialData),
+        pendingBudgetAttachments: [],
         deadline: initialData.deadline || "",
         realizationStart: initialData.realizationStart || "",
         realizationEnd: initialData.realizationEnd || "",
@@ -261,6 +264,15 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   const handleSelectBudgetAttachment = async () => {
     try {
+      if (displayedBudgetAttachments.length >= MAX_BUDGET_ATTACHMENT_COUNT) {
+        setAlertModal({
+          isOpen: true,
+          title: "Dosažen limit příloh",
+          message: `K jedné poptávce lze připojit nejvýše ${MAX_BUDGET_ATTACHMENT_COUNT} souborů.`,
+          variant: "info",
+        });
+        return;
+      }
       if (!isDesktop) {
         setAlertModal({
           isOpen: true,
@@ -286,8 +298,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         if (!pendingAttachment) return;
         setFormData((prev) => ({
           ...prev,
-          budgetAttachment: null,
-          pendingBudgetAttachment: pendingAttachment,
+          pendingBudgetAttachments: prev.pendingBudgetAttachments.some(
+            (item) => item.sourcePath === pendingAttachment.sourcePath,
+          )
+            ? prev.pendingBudgetAttachments
+            : [...prev.pendingBudgetAttachments, pendingAttachment],
         }));
         return;
       }
@@ -300,8 +315,11 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
       setFormData((prev) => ({
         ...prev,
-        budgetAttachment: attachment,
-        pendingBudgetAttachment: null,
+        budgetAttachments: prev.budgetAttachments.some(
+          (item) => item.relativePath === attachment.relativePath,
+        )
+          ? prev.budgetAttachments
+          : [...prev.budgetAttachments, attachment],
       }));
     } catch (error) {
       setAlertModal({
@@ -331,11 +349,15 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     }
   };
 
-  const handleDetachBudgetAttachment = () => {
+  const handleDetachBudgetAttachment = (index: number, pending: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      budgetAttachment: null,
-      pendingBudgetAttachment: null,
+      budgetAttachments: pending
+        ? prev.budgetAttachments
+        : prev.budgetAttachments.filter((_, itemIndex) => itemIndex !== index),
+      pendingBudgetAttachments: pending
+        ? prev.pendingBudgetAttachments.filter((_, itemIndex) => itemIndex !== index)
+        : prev.pendingBudgetAttachments,
     }));
   };
 
@@ -599,8 +621,23 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 Rozpočtová příloha
               </label>
               <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 p-3">
-                {displayedBudgetAttachment ? (
-                  <div className="flex items-start justify-between gap-3">
+                {displayedBudgetAttachments.length > 0 ? (
+                  <div className="space-y-3">
+                    {displayedBudgetAttachments.map(
+                      ({ attachment, pending }, displayedIndex) => {
+                        const attachmentIndex = pending
+                          ? displayedIndex - formData.budgetAttachments.length
+                          : displayedIndex;
+                        const exceedsEmailLimit =
+                          isBudgetAttachmentOverEmailLimit(attachment);
+                        const attachmentKey = pending
+                          ? (attachment as PendingBudgetAttachment).sourcePath
+                          : (attachment as BudgetAttachment).relativePath;
+                        return (
+                          <div
+                            key={`${pending ? "pending" : "mapped"}-${attachmentKey}`}
+                            className="flex items-start justify-between gap-3"
+                          >
                     <div className="flex min-w-0 items-start gap-2">
                       <span className="material-symbols-outlined text-slate-400 text-[20px]">
                         attach_file
@@ -608,9 +645,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                            {displayedBudgetAttachment.fileName}
+                            {attachment.fileName}
                           </p>
-                          {budgetAttachmentExceedsEmailLimit && (
+                          {exceedsEmailLimit && (
                             <span
                               role="img"
                               aria-label="Příloha je větší než 10 MB a do EML se nevloží"
@@ -622,27 +659,33 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                           )}
                         </div>
                         <p className="mt-0.5 truncate text-[10px] text-slate-400">
-                          {formData.pendingBudgetAttachment
+                          {pending
                             ? "Soubor bude zkopírován při vytvoření VŘ"
-                            : formData.budgetAttachment?.relativePath}
+                            : (attachment as BudgetAttachment).relativePath}
                         </p>
-                        {typeof displayedBudgetAttachment.size === "number" && (
+                        {typeof attachment.size === "number" && (
                           <p className="mt-0.5 text-[10px] text-slate-400">
-                            {formatFileSize(displayedBudgetAttachment.size)}
+                            {formatFileSize(attachment.size)}
                           </p>
                         )}
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={handleDetachBudgetAttachment}
+                      onClick={() =>
+                        handleDetachBudgetAttachment(attachmentIndex, pending)
+                      }
                       className="shrink-0 text-slate-400 hover:text-red-500 transition-colors"
-                      title="Odpojit přílohu"
+                      title={`Odpojit přílohu ${attachment.fileName}`}
                     >
                       <span className="material-symbols-outlined text-[18px]">
                         close
                       </span>
                     </button>
+                          </div>
+                        );
+                      },
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -663,7 +706,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                     <span className="material-symbols-outlined text-[16px]">
                       upload_file
                     </span>
-                    {displayedBudgetAttachment ? "Nahradit přílohu" : "Vybrat soubor"}
+                    {displayedBudgetAttachments.length > 0 ? "Přidat další soubor" : "Vybrat soubor"}
                   </button>
                   {mode === "edit" ? (
                     <button

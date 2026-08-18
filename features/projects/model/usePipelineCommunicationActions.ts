@@ -5,7 +5,11 @@ import {
 } from "@/services/inquiryService";
 import { loadBudgetAttachmentForEmail } from "@/services/budgetAttachmentService";
 import type { EmailAttachment } from "@/services/budgetAttachmentService";
-import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
+import {
+  getCategoryBudgetAttachments,
+  isBudgetAttachmentOverEmailLimit,
+  MAX_BUDGET_ATTACHMENT_COUNT,
+} from "@/features/projects/model/budgetAttachmentModel";
 import { organizationService } from "@features/organization/api";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
@@ -241,15 +245,17 @@ export const usePipelineCommunicationActions = ({
   };
 
   const loadInquiryAttachments = async (): Promise<EmailAttachment[]> => {
-    if (
-      !activeCategory ||
-      !platformAdapter.isDesktop ||
-      !activeCategory.budgetAttachment?.enabled ||
-      !resolveDesktopTenderFolderPath ||
-      isBudgetAttachmentOverEmailLimit(activeCategory.budgetAttachment)
-    ) {
+    if (!activeCategory || !platformAdapter.isDesktop || !resolveDesktopTenderFolderPath) {
       return [];
     }
+
+    const mappedAttachments = getCategoryBudgetAttachments(activeCategory)
+      .filter(
+        (attachment) =>
+          attachment.enabled && !isBudgetAttachmentOverEmailLimit(attachment),
+      )
+      .slice(0, MAX_BUDGET_ATTACHMENT_COUNT);
+    if (mappedAttachments.length === 0) return [];
 
     try {
       const tenderFolderPath = await resolveDesktopTenderFolderPath(
@@ -258,12 +264,34 @@ export const usePipelineCommunicationActions = ({
       if (!tenderFolderPath) {
         throw new Error("Nepodařilo se najít složku tohoto VŘ.");
       }
-      return [
-        await loadBudgetAttachmentForEmail(
-          tenderFolderPath,
-          activeCategory.budgetAttachment,
-        ),
-      ];
+      const attachments: EmailAttachment[] = [];
+      const failures: string[] = [];
+      for (const mappedAttachment of mappedAttachments) {
+        try {
+          attachments.push(
+            await loadBudgetAttachmentForEmail(tenderFolderPath, mappedAttachment),
+          );
+        } catch (error) {
+          failures.push(
+            error instanceof Error
+              ? error.message
+              : `Přílohu ${mappedAttachment.fileName} se nepodařilo načíst.`,
+          );
+        }
+      }
+      if (failures.length > 0) {
+        showAlert({
+          title:
+            failures.length === 1
+              ? "Příloha nebyla vložena"
+              : "Některé přílohy nebyly vloženy",
+          message: `${failures.join("; ")} EML zpráva bude vytvořena bez ${
+            failures.length === 1 ? "této přílohy" : "těchto příloh"
+          }.`,
+          variant: "info",
+        });
+      }
+      return attachments;
     } catch (error) {
       showAlert({
         title: "Příloha nebyla vložena",

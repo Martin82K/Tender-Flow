@@ -106,6 +106,8 @@ export interface DemandCategory {
   description: string;
   workItems?: string[]; // Dynamic list of work items for email templates
   documents?: DemandDocument[];
+  budgetAttachments?: BudgetAttachment[];
+  /** @deprecated Compatibility with locally stored categories created before multi-attachment support. */
   budgetAttachment?: BudgetAttachment | null;
   deadline?: string; // Termín pro podání nabídky (ISO date string)
   realizationStart?: string; // Termín realizace - začátek (ISO date string)

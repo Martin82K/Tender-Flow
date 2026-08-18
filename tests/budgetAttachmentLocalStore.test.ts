@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   applyLocalBudgetAttachments,
+  getLocalBudgetAttachments,
   getLocalBudgetAttachment,
+  saveLocalBudgetAttachments,
   saveLocalBudgetAttachment,
 } from "@/features/projects/model/budgetAttachmentLocalStore";
 import type { DemandCategory } from "@/types";
@@ -54,6 +56,18 @@ describe("budgetAttachmentLocalStore", () => {
 
     expect(getLocalBudgetAttachment("project-1", "cat-1")).toBeNull();
     expect(applyLocalBudgetAttachments("project-1", [category])[0].budgetAttachment).toBeUndefined();
+  });
+
+  it("uloží a načte více lokálních mapování pro jednu poptávku", () => {
+    const attachments = [
+      { source: "dochub" as const, fileName: "rozpocet.xlsx", relativePath: "rozpocet.xlsx", selectedAt: "2026-07-01T20:00:00.000Z", enabled: true },
+      { source: "dochub" as const, fileName: "vykaz.pdf", relativePath: "podklady/vykaz.pdf", selectedAt: "2026-07-01T20:01:00.000Z", enabled: true },
+    ];
+
+    saveLocalBudgetAttachments("project-1", "cat-1", attachments);
+
+    expect(getLocalBudgetAttachments("project-1", "cat-1")).toEqual(attachments);
+    expect(applyLocalBudgetAttachments("project-1", [category])[0].budgetAttachments).toEqual(attachments);
   });
 
   it("ignoruje poškozené lokální mapování", () => {

@@ -58,7 +58,7 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     expect(planModeToggle).toHaveClass("absolute", "right-0", "top-1/2", "-translate-y-1/2");
   });
 
-  it("umožní vybrat, nahradit a odpojit rozpočtovou přílohu", async () => {
+  it("umožní přidat a jednotlivě odpojit více rozpočtových příloh", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -79,23 +79,32 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     fireEvent.click(screen.getByRole("button", { name: /Vybrat soubor/i }));
 
     expect(await screen.findByText("rozpocet libovolny.xlsx")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Nahradit přílohu/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Přidat další soubor/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle("Odpojit přílohu"));
-    expect(screen.getByText(/Není připojena žádná rozpočtová příloha/i)).toBeInTheDocument();
+    selectPendingBudgetAttachmentMock.mockResolvedValueOnce({
+      sourcePath: "/Users/tester/Downloads/vykaz vymer.pdf",
+      fileName: "vykaz vymer.pdf",
+      size: 4096,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Přidat další soubor/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /Vybrat soubor/i }));
-    expect(await screen.findByText("rozpocet libovolny.xlsx")).toBeInTheDocument();
+    expect(await screen.findByText("vykaz vymer.pdf")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle("Odpojit přílohu rozpocet libovolny.xlsx"));
+    expect(screen.queryByText("rozpocet libovolny.xlsx")).not.toBeInTheDocument();
+    expect(screen.getByText("vykaz vymer.pdf")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Vytvořit poptávku/i }));
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
-          pendingBudgetAttachment: expect.objectContaining({
-            fileName: "rozpocet libovolny.xlsx",
-            sourcePath: "/Users/tester/Downloads/rozpocet libovolny.xlsx",
-          }),
+          pendingBudgetAttachments: [
+            expect.objectContaining({
+              fileName: "vykaz vymer.pdf",
+              sourcePath: "/Users/tester/Downloads/vykaz vymer.pdf",
+            }),
+          ],
         }),
       );
     });
