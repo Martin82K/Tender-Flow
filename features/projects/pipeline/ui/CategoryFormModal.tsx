@@ -296,14 +296,27 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       if (mode === "create") {
         const pendingAttachment = await selectPendingBudgetAttachment();
         if (!pendingAttachment) return;
-        setFormData((prev) => ({
-          ...prev,
-          pendingBudgetAttachments: prev.pendingBudgetAttachments.some(
+        setFormData((prev) => {
+          const attachmentCount =
+            prev.budgetAttachments.length + prev.pendingBudgetAttachments.length;
+          const alreadyAttached = prev.pendingBudgetAttachments.some(
             (item) => item.sourcePath === pendingAttachment.sourcePath,
-          )
-            ? prev.pendingBudgetAttachments
-            : [...prev.pendingBudgetAttachments, pendingAttachment],
-        }));
+          );
+          if (
+            alreadyAttached ||
+            attachmentCount >= MAX_BUDGET_ATTACHMENT_COUNT
+          ) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            pendingBudgetAttachments: [
+              ...prev.pendingBudgetAttachments,
+              pendingAttachment,
+            ],
+          };
+        });
         return;
       }
 
@@ -313,14 +326,24 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       const attachment = await selectBudgetAttachment(tenderFolder);
       if (!attachment) return;
 
-      setFormData((prev) => ({
-        ...prev,
-        budgetAttachments: prev.budgetAttachments.some(
+      setFormData((prev) => {
+        const attachmentCount =
+          prev.budgetAttachments.length + prev.pendingBudgetAttachments.length;
+        const alreadyAttached = prev.budgetAttachments.some(
           (item) => item.relativePath === attachment.relativePath,
-        )
-          ? prev.budgetAttachments
-          : [...prev.budgetAttachments, attachment],
-      }));
+        );
+        if (
+          alreadyAttached ||
+          attachmentCount >= MAX_BUDGET_ATTACHMENT_COUNT
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          budgetAttachments: [...prev.budgetAttachments, attachment],
+        };
+      });
     } catch (error) {
       setAlertModal({
         isOpen: true,

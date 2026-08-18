@@ -9,6 +9,7 @@ import {
   getCategoryBudgetAttachments,
   isBudgetAttachmentOverEmailLimit,
   MAX_BUDGET_ATTACHMENT_COUNT,
+  MAX_TOTAL_EMAIL_ATTACHMENT_BYTES,
 } from "@/features/projects/model/budgetAttachmentModel";
 import { organizationService } from "@features/organization/api";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
@@ -67,6 +68,27 @@ interface UsePipelineCommunicationActionsInput {
   ) => Promise<void> | void;
   resolveDesktopTenderFolderPath?: (categoryTitle: string) => Promise<string | null>;
 }
+
+const getDecodedBase64ByteLength = (value: string): number => {
+  const normalized = value.replace(/\s+/g, "");
+  if (normalized.length === 0) return 0;
+
+  const padding = normalized.endsWith("==")
+    ? 2
+    : normalized.endsWith("=")
+      ? 1
+      : 0;
+  return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
+};
+
+const getKnownAttachmentByteLength = (size: number | undefined): number | null =>
+  typeof size === "number" && Number.isFinite(size) && size >= 0 ? size : null;
+
+const MAX_TOTAL_EMAIL_ATTACHMENT_MEGABYTES =
+  MAX_TOTAL_EMAIL_ATTACHMENT_BYTES / (1024 * 1024);
+
+const totalAttachmentLimitMessage = (fileName: string): string =>
+  `Příloha ${fileName} překračuje celkový limit ${MAX_TOTAL_EMAIL_ATTACHMENT_MEGABYTES} MB pro EML.`;
 
 export const usePipelineCommunicationActions = ({
   activeCategory,
@@ -266,11 +288,42 @@ export const usePipelineCommunicationActions = ({
       }
       const attachments: EmailAttachment[] = [];
       const failures: string[] = [];
+      let totalAttachmentBytes = 0;
       for (const mappedAttachment of mappedAttachments) {
+        const knownByteLength = getKnownAttachmentByteLength(
+          mappedAttachment.size,
+        );
+        if (
+          knownByteLength !== null &&
+          totalAttachmentBytes + knownByteLength >
+            MAX_TOTAL_EMAIL_ATTACHMENT_BYTES
+        ) {
+          failures.push(totalAttachmentLimitMessage(mappedAttachment.fileName));
+          continue;
+        }
+
         try {
-          attachments.push(
-            await loadBudgetAttachmentForEmail(tenderFolderPath, mappedAttachment),
+          const loadedAttachment = await loadBudgetAttachmentForEmail(
+            tenderFolderPath,
+            mappedAttachment,
           );
+          const actualByteLength = getDecodedBase64ByteLength(
+            loadedAttachment.base64Content,
+          );
+          const accountedByteLength = Math.max(
+            knownByteLength ?? 0,
+            actualByteLength,
+          );
+          if (
+            totalAttachmentBytes + accountedByteLength >
+            MAX_TOTAL_EMAIL_ATTACHMENT_BYTES
+          ) {
+            failures.push(totalAttachmentLimitMessage(mappedAttachment.fileName));
+            continue;
+          }
+
+          attachments.push(loadedAttachment);
+          totalAttachmentBytes += accountedByteLength;
         } catch (error) {
           failures.push(
             error instanceof Error

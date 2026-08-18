@@ -2,6 +2,7 @@ import type { BudgetAttachment } from "@/types";
 import { joinDocHubPath } from "@/shared/dochub/docHub";
 
 export const MAX_EMAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_TOTAL_EMAIL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 export const MAX_BUDGET_ATTACHMENT_COUNT = 10;
 
 export const isBudgetAttachmentOverEmailLimit = (

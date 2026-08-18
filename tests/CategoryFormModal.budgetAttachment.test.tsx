@@ -110,6 +110,95 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     });
   });
 
+  it("nepřekročí limit deseti příloh při souběžném dokončení dvou výběrů", async () => {
+    const existingAttachments = Array.from({ length: 9 }, (_, index) => ({
+      source: "dochub" as const,
+      fileName: `rozpocet-${index + 1}.xlsx`,
+      relativePath: `rozpocet-${index + 1}.xlsx`,
+      size: 1024,
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    }));
+    let resolveFirstSelection:
+      | ((value: (typeof existingAttachments)[number]) => void)
+      | undefined;
+    let resolveSecondSelection:
+      | ((value: (typeof existingAttachments)[number]) => void)
+      | undefined;
+    selectBudgetAttachmentMock
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirstSelection = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSecondSelection = resolve;
+        }),
+      );
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CategoryFormModal
+        isOpen
+        mode="edit"
+        initialData={{
+          title: "Betony",
+          budgetAttachments: existingAttachments,
+        }}
+        isDesktop
+        isDocHubEnabled
+        resolveDesktopTenderFolderPath={vi
+          .fn()
+          .mockResolvedValue("/Projects/Stavba/Betony")}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const addButton = screen.getByRole("button", {
+      name: /Přidat další soubor/i,
+    });
+    fireEvent.click(addButton);
+    fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(2);
+    });
+
+    resolveFirstSelection?.({
+      source: "dochub",
+      fileName: "prvni-nova.xlsx",
+      relativePath: "prvni-nova.xlsx",
+      size: 1024,
+      selectedAt: "2026-07-01T20:01:00.000Z",
+      enabled: true,
+    });
+    resolveSecondSelection?.({
+      source: "dochub",
+      fileName: "druha-nova.xlsx",
+      relativePath: "druha-nova.xlsx",
+      size: 1024,
+      selectedAt: "2026-07-01T20:02:00.000Z",
+      enabled: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle(/^Odpojit přílohu /)).toHaveLength(10);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Uložit změny/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetAttachments: expect.any(Array),
+        }),
+      );
+      expect(onSubmit.mock.calls[0][0].budgetAttachments).toHaveLength(10);
+    });
+  });
+
   it("zobrazí desktop-only informaci při mapování přílohy ve web režimu", async () => {
     render(
       <CategoryFormModal
