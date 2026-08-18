@@ -1,9 +1,17 @@
 import React, { useMemo, useState } from "react";
 import { useUI } from "@/context/UIContext";
+import { ThemedSelect, type ThemedSelectOption } from "@shared/ui/ThemedSelect";
 import {
   getAppUsageSummaryAdmin,
   type AppUsageSummaryItem,
 } from "@features/settings/api";
+
+const PERIOD_OPTIONS: ReadonlyArray<ThemedSelectOption<string>> = [
+  { value: "7", label: "Posledních 7 dní" },
+  { value: "30", label: "Posledních 30 dní" },
+  { value: "90", label: "Posledních 90 dní" },
+  { value: "365", label: "Posledních 365 dní" },
+];
 
 const formatDuration = (seconds: number): string => {
   const totalMinutes = Math.round(seconds / 60);
@@ -94,6 +102,14 @@ export const AppUsageAdmin: React.FC = () => {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], "cs"));
   }, [items]);
 
+  const organizationOptions = useMemo<ReadonlyArray<ThemedSelectOption<string>>>(
+    () => [
+      { value: "", label: "Všechny organizace" },
+      ...organizations.map(([value, label]) => ({ value, label })),
+    ],
+    [organizations],
+  );
+
   const filteredItems = useMemo(
     () =>
       organizationFilter
@@ -110,18 +126,30 @@ export const AppUsageAdmin: React.FC = () => {
           sessionCount: acc.sessionCount + item.sessionCount,
           actionCount: acc.actionCount + item.actionCount,
           uploadedBytes: acc.uploadedBytes + item.uploadedBytes,
-          activeUsers: acc.activeUsers + (item.activeSeconds > 0 || item.actionCount > 0 ? 1 : 0),
         }),
         {
           activeSeconds: 0,
           sessionCount: 0,
           actionCount: 0,
           uploadedBytes: 0,
-          activeUsers: 0,
         },
       ),
     [filteredItems],
   );
+
+  const userCounts = useMemo(() => {
+    const allUserIds = new Set<string>();
+    const activeUserIds = new Set<string>();
+
+    filteredItems.forEach((item) => {
+      allUserIds.add(item.userId);
+      if (item.activeSeconds > 0 || item.actionCount > 0) {
+        activeUserIds.add(item.userId);
+      }
+    });
+
+    return { active: activeUserIds.size, total: allUserIds.size };
+  }, [filteredItems]);
 
   const handleLoad = async () => {
     setIsLoading(true);
@@ -157,35 +185,25 @@ export const AppUsageAdmin: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-5">
         <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-200">
-            Období
-            <select
-              value={daysBack}
-              onChange={(event) => setDaysBack(Number(event.target.value))}
-              className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
-            >
-              <option value={7}>Posledních 7 dní</option>
-              <option value={30}>Posledních 30 dní</option>
-              <option value={90}>Posledních 90 dní</option>
-              <option value={365}>Posledních 365 dní</option>
-            </select>
-          </label>
+          <div className="flex w-full flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 lg:w-[220px]">
+            <span>Období</span>
+            <ThemedSelect
+              ariaLabel="Období"
+              value={String(daysBack)}
+              options={PERIOD_OPTIONS}
+              onChange={(value) => setDaysBack(Number(value))}
+            />
+          </div>
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 lg:min-w-[260px]">
-            Organizace
-            <select
+          <div className="flex w-full flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 lg:min-w-[260px] lg:max-w-[360px]">
+            <span>Organizace</span>
+            <ThemedSelect
+              ariaLabel="Organizace"
               value={organizationFilter}
-              onChange={(event) => setOrganizationFilter(event.target.value)}
-              className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
-            >
-              <option value="">Všechny organizace s aktivitou</option>
-              {organizations.map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={organizationOptions}
+              onChange={setOrganizationFilter}
+            />
+          </div>
 
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             <button
@@ -214,8 +232,10 @@ export const AppUsageAdmin: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-4">
-          <p className="text-xs font-bold uppercase text-slate-500">Aktivní uživatelé</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{totals.activeUsers}</p>
+          <p className="text-xs font-bold uppercase text-slate-500">Uživatelé s aktivitou / celkem</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+            {userCounts.active} z {userCounts.total}
+          </p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-4">
           <p className="text-xs font-bold uppercase text-slate-500">Aktivní čas</p>
