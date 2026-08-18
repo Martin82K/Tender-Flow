@@ -102,6 +102,21 @@ describe("AppUsageAdmin", () => {
     expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.purge_app_usage_stats_admin() TO service_role");
   });
 
+  it("zachová statistiky bývalých členů a nulovou retenci chápe jako vypnutou", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((file) => file.endsWith("_preserve_historical_app_usage.sql"));
+
+    expect(migrationName).toBeDefined();
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName || ""),
+      "utf8",
+    );
+
+    expect(migration).toContain("historical_members AS");
+    expect(migration).toContain("UNION ALL");
+    expect(migration).toContain("IF retention_days IS NULL OR retention_days <= 0 THEN");
+  });
+
   it("používá pro období a organizaci sdílený skinovaný výběr", () => {
     render(<AppUsageAdmin />);
 

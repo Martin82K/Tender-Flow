@@ -11,9 +11,11 @@ disabled unless both conditions are true:
 - `app_settings.posthog_enabled = true` and `posthog_project_key` is populated.
 - The browser has stored the optional cookie consent decision `accepted_all`.
 
-Optional usage analytics are consent-gated consistently in the client. Without
-`accepted_all`, the client must not send PostHog events, feature usage events,
-application usage actions, or application usage heartbeat calls.
+Optional product analytics are consent-gated consistently in the client.
+Without `accepted_all`, the client must not send PostHog events or detailed
+feature usage events. Privacy-minimized application heartbeat and aggregate
+action counters are necessary service operations and remain active for signed-in
+non-demo users independently of optional consent.
 
 ## Inventory
 
