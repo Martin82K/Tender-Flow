@@ -8,6 +8,7 @@ export interface PipelineCategoryFormInput {
   sodBudget: string;
   planBudget: string;
   description: string;
+  workItems?: string[];
   budgetAttachments?: BudgetAttachment[];
   budgetAttachment?: BudgetAttachment | null;
   deadline?: string;
@@ -101,6 +102,7 @@ export const buildNewDemandCategory = (
     sodBudget: sod,
     planBudget: parsePlanBudget(sod, formData.planBudget),
     description: formData.description,
+    workItems: formData.workItems ? [...formData.workItems] : undefined,
     status: "open",
     subcontractorCount: 0,
     documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
@@ -126,6 +128,7 @@ export const buildUpdatedDemandCategory = (
     sodBudget: sod,
     planBudget: parsePlanBudget(sod, formData.planBudget),
     description: formData.description,
+    workItems: formData.workItems ? [...formData.workItems] : undefined,
     documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
     budgetAttachments: formData.budgetAttachments,
     budgetAttachment: formData.budgetAttachments?.[0] || formData.budgetAttachment || undefined,
