@@ -1,8 +1,10 @@
 import type { BudgetAttachment, DemandCategory } from "@/types";
+import { MAX_BUDGET_ATTACHMENT_COUNT } from "./budgetAttachmentModel";
 
-type BudgetAttachmentRegistry = Record<string, Record<string, BudgetAttachment>>;
+type BudgetAttachmentRegistry = Record<string, Record<string, BudgetAttachment[]>>;
 
-const STORAGE_KEY = "tender-flow:budget-attachments:v1";
+const STORAGE_KEY = "tender-flow:budget-attachments:v2";
+const LEGACY_STORAGE_KEY = "tender-flow:budget-attachments:v1";
 
 const canUseLocalStorage = (): boolean =>
   typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -34,10 +36,15 @@ const normalizeRegistry = (value: unknown): BudgetAttachmentRegistry => {
       if (!isPlainRecord(projectValue)) return registry;
 
       const categoryRegistry = Object.entries(projectValue).reduce<
-        Record<string, BudgetAttachment>
-      >((categories, [categoryId, attachment]) => {
-        if (isBudgetAttachment(attachment)) {
-          categories[categoryId] = attachment;
+        Record<string, BudgetAttachment[]>
+      >((categories, [categoryId, value]) => {
+        const attachments = (Array.isArray(value)
+          ? value.filter(isBudgetAttachment)
+          : isBudgetAttachment(value)
+            ? [value]
+            : []).slice(0, MAX_BUDGET_ATTACHMENT_COUNT);
+        if (attachments.length > 0) {
+          categories[categoryId] = attachments;
         }
         return categories;
       }, {});
@@ -56,7 +63,8 @@ const readRegistry = (): BudgetAttachmentRegistry => {
   if (!canUseLocalStorage()) return {};
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+      || window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return {};
     return normalizeRegistry(JSON.parse(raw));
   } catch {
@@ -74,7 +82,15 @@ export const getLocalBudgetAttachment = (
   categoryId: string | undefined,
 ): BudgetAttachment | null => {
   if (!projectId || !categoryId) return null;
-  return readRegistry()[projectId]?.[categoryId] || null;
+  return getLocalBudgetAttachments(projectId, categoryId)[0] || null;
+};
+
+export const getLocalBudgetAttachments = (
+  projectId: string | undefined,
+  categoryId: string | undefined,
+): BudgetAttachment[] => {
+  if (!projectId || !categoryId) return [];
+  return readRegistry()[projectId]?.[categoryId] || [];
 };
 
 export const saveLocalBudgetAttachment = (
@@ -82,11 +98,26 @@ export const saveLocalBudgetAttachment = (
   categoryId: string,
   attachment: BudgetAttachment | null | undefined,
 ): void => {
+  saveLocalBudgetAttachments(
+    projectId,
+    categoryId,
+    attachment?.enabled ? [attachment] : [],
+  );
+};
+
+export const saveLocalBudgetAttachments = (
+  projectId: string,
+  categoryId: string,
+  attachments: BudgetAttachment[] | null | undefined,
+): void => {
   const registry = readRegistry();
   const projectRegistry = { ...(registry[projectId] || {}) };
+  const enabledAttachments = (attachments || [])
+    .filter((attachment) => attachment.enabled)
+    .slice(0, MAX_BUDGET_ATTACHMENT_COUNT);
 
-  if (attachment?.enabled) {
-    projectRegistry[categoryId] = attachment;
+  if (enabledAttachments.length > 0) {
+    projectRegistry[categoryId] = enabledAttachments;
   } else {
     delete projectRegistry[categoryId];
   }
@@ -105,8 +136,12 @@ export const applyLocalBudgetAttachments = (
   categories: DemandCategory[],
 ): DemandCategory[] => {
   const projectRegistry = readRegistry()[projectId] || {};
-  return categories.map((category) => ({
-    ...category,
-    budgetAttachment: projectRegistry[category.id] || undefined,
-  }));
+  return categories.map((category) => {
+    const attachments = projectRegistry[category.id];
+    return {
+      ...category,
+      budgetAttachments: attachments,
+      budgetAttachment: attachments?.[0] || undefined,
+    };
+  });
 };

@@ -96,6 +96,7 @@ const createBid = (): Bid =>
 describe("usePipelineCommunicationActions status persistence", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLoadBudgetAttachmentForEmail.mockReset();
     mockPlatformAdapter.isDesktop = false;
     mockGetTemplateById.mockResolvedValue(undefined);
     mockGetProjectTemplateSelection.mockResolvedValue(undefined);
@@ -243,6 +244,182 @@ describe("usePipelineCommunicationActions status persistence", () => {
             filename: "rozpocet.xlsx",
           }),
         ],
+      }),
+    );
+  });
+
+  it("v desktop EML režimu připojí všechny namapované rozpočtové přílohy", async () => {
+    mockPlatformAdapter.isDesktop = true;
+    mockLoadBudgetAttachmentForEmail
+      .mockResolvedValueOnce({ filename: "rozpocet.xlsx", contentType: "application/octet-stream", base64Content: "MQ==" })
+      .mockResolvedValueOnce({ filename: "vykaz.pdf", contentType: "application/pdf", base64Content: "Mg==" });
+
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachments: [
+        { source: "dochub" as const, fileName: "rozpocet.xlsx", relativePath: "rozpocet.xlsx", size: 1024, selectedAt: "2026-07-01T20:00:00.000Z", enabled: true },
+        { source: "dochub" as const, fileName: "vykaz.pdf", relativePath: "podklady/vykaz.pdf", size: 2048, selectedAt: "2026-07-01T20:01:00.000Z", enabled: true },
+      ],
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectId: "project-1",
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      showAlert: vi.fn(),
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockLoadBudgetAttachmentForEmail).toHaveBeenCalledTimes(2);
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({ filename: "rozpocet.xlsx" }),
+          expect.objectContaining({ filename: "vykaz.pdf" }),
+        ],
+      }),
+    );
+  });
+
+  it("před načtením přeskočí přílohu nad souhrnný limit EML", async () => {
+    mockPlatformAdapter.isDesktop = true;
+    mockLoadBudgetAttachmentForEmail
+      .mockResolvedValueOnce({
+        filename: "prvni.xlsx",
+        contentType: "application/octet-stream",
+        base64Content: "MQ==",
+      })
+      .mockResolvedValueOnce({
+        filename: "druha.xlsx",
+        contentType: "application/octet-stream",
+        base64Content: "Mg==",
+      });
+    const eightMiB = 8 * 1024 * 1024;
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachments: [
+        {
+          source: "dochub" as const,
+          fileName: "prvni.xlsx",
+          relativePath: "prvni.xlsx",
+          size: eightMiB,
+          selectedAt: "2026-07-01T20:00:00.000Z",
+          enabled: true,
+        },
+        {
+          source: "dochub" as const,
+          fileName: "druha.xlsx",
+          relativePath: "druha.xlsx",
+          size: eightMiB,
+          selectedAt: "2026-07-01T20:01:00.000Z",
+          enabled: true,
+        },
+        {
+          source: "dochub" as const,
+          fileName: "treti.xlsx",
+          relativePath: "treti.xlsx",
+          size: eightMiB,
+          selectedAt: "2026-07-01T20:02:00.000Z",
+          enabled: true,
+        },
+      ],
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+    const showAlert = vi.fn();
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectId: "project-1",
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi
+        .fn()
+        .mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockLoadBudgetAttachmentForEmail).toHaveBeenCalledTimes(2);
+    expect(mockLoadBudgetAttachmentForEmail).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ fileName: "treti.xlsx" }),
+    );
+    expect(showAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Příloha nebyla vložena",
+        message: expect.stringContaining("celkový limit 20 MB"),
+      }),
+    );
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({ filename: "prvni.xlsx" }),
+          expect.objectContaining({ filename: "druha.xlsx" }),
+        ],
+      }),
+    );
+  });
+
+  it("při chybě jedné z více příloh zachová ostatní v EML", async () => {
+    mockPlatformAdapter.isDesktop = true;
+    mockLoadBudgetAttachmentForEmail
+      .mockRejectedValueOnce(new Error("vykaz.pdf nelze načíst"))
+      .mockResolvedValueOnce({ filename: "rozpocet.xlsx", contentType: "application/octet-stream", base64Content: "MQ==" });
+    const activeCategory = {
+      ...createCategory(),
+      budgetAttachments: [
+        { source: "dochub" as const, fileName: "vykaz.pdf", relativePath: "vykaz.pdf", selectedAt: "2026-07-01T20:00:00.000Z", enabled: true },
+        { source: "dochub" as const, fileName: "rozpocet.xlsx", relativePath: "rozpocet.xlsx", selectedAt: "2026-07-01T20:01:00.000Z", enabled: true },
+      ],
+    };
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+    const showAlert = vi.fn();
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectId: "project-1",
+      projectDetails: createProjectDetails(),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+      resolveDesktopTenderFolderPath: vi.fn().mockResolvedValue("/Projects/Stavba/Betony"),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Příloha nebyla vložena",
+      message: expect.stringContaining("vykaz.pdf nelze načíst"),
+    }));
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        attachments: [expect.objectContaining({ filename: "rozpocet.xlsx" })],
       }),
     );
   });

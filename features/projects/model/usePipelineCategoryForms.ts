@@ -13,9 +13,10 @@ import {
   buildUpdatedDemandCategory,
 } from "./pipelineModel";
 import {
-  getLocalBudgetAttachment,
-  saveLocalBudgetAttachment,
+  getLocalBudgetAttachments,
+  saveLocalBudgetAttachments,
 } from "./budgetAttachmentLocalStore";
+import { getCategoryBudgetAttachments } from "./budgetAttachmentModel";
 
 interface PipelineCategoryFormData {
   title: string;
@@ -23,8 +24,8 @@ interface PipelineCategoryFormData {
   planBudget: string;
   description: string;
   workItems: string[];
-  budgetAttachment?: BudgetAttachment | null;
-  pendingBudgetAttachment?: PendingBudgetAttachment | null;
+  budgetAttachments?: BudgetAttachment[];
+  pendingBudgetAttachments?: PendingBudgetAttachment[];
   deadline: string;
   realizationStart: string;
   realizationEnd: string;
@@ -69,7 +70,7 @@ export const usePipelineCategoryForms = ({
 
     const categoryId = `cat_${Date.now()}`;
     const newCategory = buildNewDemandCategory(
-      { ...formData, budgetAttachment: null },
+      { ...formData, budgetAttachments: [] },
       categoryId,
       [],
     );
@@ -79,8 +80,9 @@ export const usePipelineCategoryForms = ({
       await onAddCategory(newCategory);
       categoryCreated = true;
 
-      let attachment = formData.budgetAttachment || null;
-      if (formData.pendingBudgetAttachment) {
+      const attachments = [...(formData.budgetAttachments || [])];
+      const attachmentFailures: string[] = [];
+      if (formData.pendingBudgetAttachments?.length) {
         if (!resolveDesktopTenderFolderPath) {
           throw new Error("Nelze určit složku nového VŘ.");
         }
@@ -88,14 +90,23 @@ export const usePipelineCategoryForms = ({
         if (!tenderFolderPath) {
           throw new Error("Složka nového VŘ nebyla vytvořena.");
         }
-        attachment = await copyPendingBudgetAttachment(
-          tenderFolderPath,
-          formData.pendingBudgetAttachment,
-        );
+        for (const pendingAttachment of formData.pendingBudgetAttachments) {
+          try {
+            attachments.push(
+              await copyPendingBudgetAttachment(tenderFolderPath, pendingAttachment),
+            );
+          } catch (error) {
+            attachmentFailures.push(
+              `${pendingAttachment.fileName}: ${
+                error instanceof Error ? error.message : "kopírování selhalo"
+              }`,
+            );
+          }
+        }
       }
 
-      saveLocalBudgetAttachment(projectId, categoryId, attachment);
-      if (attachment) {
+      if (attachments.length > 0) {
+        saveLocalBudgetAttachments(projectId, categoryId, attachments);
         queryClient.setQueryData<ProjectDetails>(
           PROJECT_DETAILS_KEYS.detail(projectId),
           (current) => current
@@ -103,12 +114,26 @@ export const usePipelineCategoryForms = ({
                 ...current,
                 categories: current.categories.map((category) =>
                   category.id === categoryId
-                    ? { ...category, budgetAttachment: attachment }
+                    ? {
+                        ...category,
+                        budgetAttachments: attachments,
+                        budgetAttachment: attachments[0],
+                      }
                     : category,
                 ),
               }
             : current,
         );
+      }
+      if (attachmentFailures.length > 0) {
+        showAlert({
+          title:
+            attachments.length > 0
+              ? "VŘ vytvořeno s neúplnými přílohami"
+              : "VŘ vytvořeno bez přílohy",
+          message: `Některé přílohy se nepodařilo připojit: ${attachmentFailures.join("; ")}`,
+          variant: "danger",
+        });
       }
       setIsAddModalOpen(false);
     } catch (error) {
@@ -137,7 +162,11 @@ export const usePipelineCategoryForms = ({
       editingCategory.documents || [],
     );
 
-    saveLocalBudgetAttachment(projectId, editingCategory.id, formData.budgetAttachment);
+    saveLocalBudgetAttachments(
+      projectId,
+      editingCategory.id,
+      formData.budgetAttachments,
+    );
     onEditCategory(updatedCategory);
     setEditingCategory(null);
     setIsEditModalOpen(false);
@@ -146,10 +175,12 @@ export const usePipelineCategoryForms = ({
   const handleEditCategoryClick = async (category: DemandCategory) => {
     setEditingCategory({
       ...category,
-      budgetAttachment:
-        getLocalBudgetAttachment(projectId, category.id) ||
-        category.budgetAttachment ||
-        undefined,
+      budgetAttachments: (() => {
+        const localAttachments = getLocalBudgetAttachments(projectId, category.id);
+        return localAttachments.length > 0
+          ? localAttachments
+          : getCategoryBudgetAttachments(category);
+      })(),
     });
     setLinkedTenderPlanDates(null);
     setIsEditModalOpen(true);

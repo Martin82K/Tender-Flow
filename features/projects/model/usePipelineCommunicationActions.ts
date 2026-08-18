@@ -5,7 +5,12 @@ import {
 } from "@/services/inquiryService";
 import { loadBudgetAttachmentForEmail } from "@/services/budgetAttachmentService";
 import type { EmailAttachment } from "@/services/budgetAttachmentService";
-import { isBudgetAttachmentOverEmailLimit } from "@/features/projects/model/budgetAttachmentModel";
+import {
+  getCategoryBudgetAttachments,
+  isBudgetAttachmentOverEmailLimit,
+  MAX_BUDGET_ATTACHMENT_COUNT,
+  MAX_TOTAL_EMAIL_ATTACHMENT_BYTES,
+} from "@/features/projects/model/budgetAttachmentModel";
 import { organizationService } from "@features/organization/api";
 import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
@@ -63,6 +68,27 @@ interface UsePipelineCommunicationActionsInput {
   ) => Promise<void> | void;
   resolveDesktopTenderFolderPath?: (categoryTitle: string) => Promise<string | null>;
 }
+
+const getDecodedBase64ByteLength = (value: string): number => {
+  const normalized = value.replace(/\s+/g, "");
+  if (normalized.length === 0) return 0;
+
+  const padding = normalized.endsWith("==")
+    ? 2
+    : normalized.endsWith("=")
+      ? 1
+      : 0;
+  return Math.max(0, Math.floor((normalized.length * 3) / 4) - padding);
+};
+
+const getKnownAttachmentByteLength = (size: number | undefined): number | null =>
+  typeof size === "number" && Number.isFinite(size) && size >= 0 ? size : null;
+
+const MAX_TOTAL_EMAIL_ATTACHMENT_MEGABYTES =
+  MAX_TOTAL_EMAIL_ATTACHMENT_BYTES / (1024 * 1024);
+
+const totalAttachmentLimitMessage = (fileName: string): string =>
+  `Příloha ${fileName} překračuje celkový limit ${MAX_TOTAL_EMAIL_ATTACHMENT_MEGABYTES} MB pro EML.`;
 
 export const usePipelineCommunicationActions = ({
   activeCategory,
@@ -241,15 +267,17 @@ export const usePipelineCommunicationActions = ({
   };
 
   const loadInquiryAttachments = async (): Promise<EmailAttachment[]> => {
-    if (
-      !activeCategory ||
-      !platformAdapter.isDesktop ||
-      !activeCategory.budgetAttachment?.enabled ||
-      !resolveDesktopTenderFolderPath ||
-      isBudgetAttachmentOverEmailLimit(activeCategory.budgetAttachment)
-    ) {
+    if (!activeCategory || !platformAdapter.isDesktop || !resolveDesktopTenderFolderPath) {
       return [];
     }
+
+    const mappedAttachments = getCategoryBudgetAttachments(activeCategory)
+      .filter(
+        (attachment) =>
+          attachment.enabled && !isBudgetAttachmentOverEmailLimit(attachment),
+      )
+      .slice(0, MAX_BUDGET_ATTACHMENT_COUNT);
+    if (mappedAttachments.length === 0) return [];
 
     try {
       const tenderFolderPath = await resolveDesktopTenderFolderPath(
@@ -258,12 +286,65 @@ export const usePipelineCommunicationActions = ({
       if (!tenderFolderPath) {
         throw new Error("Nepodařilo se najít složku tohoto VŘ.");
       }
-      return [
-        await loadBudgetAttachmentForEmail(
-          tenderFolderPath,
-          activeCategory.budgetAttachment,
-        ),
-      ];
+      const attachments: EmailAttachment[] = [];
+      const failures: string[] = [];
+      let totalAttachmentBytes = 0;
+      for (const mappedAttachment of mappedAttachments) {
+        const knownByteLength = getKnownAttachmentByteLength(
+          mappedAttachment.size,
+        );
+        if (
+          knownByteLength !== null &&
+          totalAttachmentBytes + knownByteLength >
+            MAX_TOTAL_EMAIL_ATTACHMENT_BYTES
+        ) {
+          failures.push(totalAttachmentLimitMessage(mappedAttachment.fileName));
+          continue;
+        }
+
+        try {
+          const loadedAttachment = await loadBudgetAttachmentForEmail(
+            tenderFolderPath,
+            mappedAttachment,
+          );
+          const actualByteLength = getDecodedBase64ByteLength(
+            loadedAttachment.base64Content,
+          );
+          const accountedByteLength = Math.max(
+            knownByteLength ?? 0,
+            actualByteLength,
+          );
+          if (
+            totalAttachmentBytes + accountedByteLength >
+            MAX_TOTAL_EMAIL_ATTACHMENT_BYTES
+          ) {
+            failures.push(totalAttachmentLimitMessage(mappedAttachment.fileName));
+            continue;
+          }
+
+          attachments.push(loadedAttachment);
+          totalAttachmentBytes += accountedByteLength;
+        } catch (error) {
+          failures.push(
+            error instanceof Error
+              ? error.message
+              : `Přílohu ${mappedAttachment.fileName} se nepodařilo načíst.`,
+          );
+        }
+      }
+      if (failures.length > 0) {
+        showAlert({
+          title:
+            failures.length === 1
+              ? "Příloha nebyla vložena"
+              : "Některé přílohy nebyly vloženy",
+          message: `${failures.join("; ")} EML zpráva bude vytvořena bez ${
+            failures.length === 1 ? "této přílohy" : "těchto příloh"
+          }.`,
+          variant: "info",
+        });
+      }
+      return attachments;
     } catch (error) {
       showAlert({
         title: "Příloha nebyla vložena",
