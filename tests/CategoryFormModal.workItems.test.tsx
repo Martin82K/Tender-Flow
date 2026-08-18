@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CategoryFormModal } from "@features/projects/pipeline/ui/CategoryFormModal";
 import { buildUpdatedDemandCategory } from "@features/projects/model/pipelineModel";
 import type { DemandCategory } from "@/types";
@@ -41,7 +41,25 @@ const WorkItemsLifecycleHarness = () => {
 };
 
 describe("CategoryFormModal položky popisu prací", () => {
-  it("zachová položky po uložení a opětovném otevření editace", async () => {
+  it("načte popis starší poptávky, pokud má prázdné pole workItems", () => {
+    render(
+      <CategoryFormModal
+        isOpen
+        mode="edit"
+        initialData={{
+          ...originalCategory,
+          description: "Silnoproud, MaR, Fotovoltaika",
+          workItems: [],
+        }}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByDisplayValue("Silnoproud, MaR, Fotovoltaika")).toBeInTheDocument();
+  });
+
+  it("umožní uloženou položku po opětovném otevření upravit", async () => {
     render(<WorkItemsLifecycleHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: /Přidat položku/ }));
@@ -56,6 +74,18 @@ describe("CategoryFormModal položky popisu prací", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít" }));
 
-    expect(screen.getByDisplayValue("Montáž rozvaděče")).toBeInTheDocument();
+    const savedItem = screen.getByDisplayValue("Montáž rozvaděče");
+    fireEvent.change(savedItem, {
+      target: { value: "Montáž a zapojení rozvaděče" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit změny" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Upravit Poptávku" })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít" }));
+
+    expect(screen.getByDisplayValue("Montáž a zapojení rozvaděče")).toBeInTheDocument();
   });
 });
