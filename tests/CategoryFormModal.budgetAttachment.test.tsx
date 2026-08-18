@@ -110,6 +110,187 @@ describe("CategoryFormModal rozpočtová příloha", () => {
     });
   });
 
+  it("oznámí odmítnutý souběžný výběr a nepřekročí limit deseti příloh", async () => {
+    const existingAttachments = Array.from({ length: 9 }, (_, index) => ({
+      source: "dochub" as const,
+      fileName: `rozpocet-${index + 1}.xlsx`,
+      relativePath: `rozpocet-${index + 1}.xlsx`,
+      size: 1024,
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    }));
+    let resolveFirstSelection:
+      | ((value: (typeof existingAttachments)[number]) => void)
+      | undefined;
+    const pendingSelection = new Promise<(typeof existingAttachments)[number]>(
+      (resolve) => {
+        resolveFirstSelection = resolve;
+      },
+    );
+    selectBudgetAttachmentMock.mockReturnValue(pendingSelection);
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CategoryFormModal
+        isOpen
+        mode="edit"
+        initialData={{
+          title: "Betony",
+          budgetAttachments: existingAttachments,
+        }}
+        isDesktop
+        isDocHubEnabled
+        resolveDesktopTenderFolderPath={vi
+          .fn()
+          .mockResolvedValue("/Projects/Stavba/Betony")}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const addButton = screen.getByRole("button", {
+      name: /Přidat další soubor/i,
+    });
+    fireEvent.click(addButton);
+    fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Dosažen limit příloh")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "K jedné poptávce lze připojit nejvýše 10 souborů.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    resolveFirstSelection?.({
+      source: "dochub",
+      fileName: "prvni-nova.xlsx",
+      relativePath: "prvni-nova.xlsx",
+      size: 1024,
+      selectedAt: "2026-07-01T20:01:00.000Z",
+      enabled: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle(/^Odpojit přílohu /)).toHaveLength(10);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+    fireEvent.click(screen.getByRole("button", { name: /Uložit změny/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          budgetAttachments: expect.any(Array),
+        }),
+      );
+      expect(onSubmit.mock.calls[0][0].budgetAttachments).toHaveLength(10);
+    });
+  });
+
+  it("izoluje rezervace a výsledky pickeru mezi otevřeními modalu", async () => {
+    const oldAttachment = {
+      source: "dochub" as const,
+      fileName: "stara-priloha.xlsx",
+      relativePath: "stara-priloha.xlsx",
+      size: 1024,
+      selectedAt: "2026-07-01T20:00:00.000Z",
+      enabled: true,
+    };
+    const newAttachment = {
+      ...oldAttachment,
+      fileName: "nova-priloha.xlsx",
+      relativePath: "nova-priloha.xlsx",
+      selectedAt: "2026-07-01T20:01:00.000Z",
+    };
+    let resolveOldSelection:
+      | ((value: typeof oldAttachment) => void)
+      | undefined;
+    let resolveNewSelection:
+      | ((value: typeof newAttachment) => void)
+      | undefined;
+    selectBudgetAttachmentMock
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveOldSelection = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveNewSelection = resolve;
+        }),
+      );
+    const resolveDesktopTenderFolderPath = vi
+      .fn()
+      .mockResolvedValue("/Projects/Stavba/Betony");
+    const firstCategory = { title: "První kategorie" };
+    const secondCategory = {
+      title: "Druhá kategorie",
+      budgetAttachments: Array.from({ length: 9 }, (_, index) => ({
+        ...oldAttachment,
+        fileName: `druha-${index + 1}.xlsx`,
+        relativePath: `druha-${index + 1}.xlsx`,
+      })),
+    };
+    const commonProps = {
+      mode: "edit" as const,
+      isDesktop: true,
+      isDocHubEnabled: true,
+      resolveDesktopTenderFolderPath,
+      onClose: vi.fn(),
+      onSubmit: vi.fn().mockResolvedValue(undefined),
+    };
+    const view = render(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen
+        initialData={firstCategory}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Vybrat soubor/i }));
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(1);
+    });
+
+    view.rerender(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen={false}
+        initialData={firstCategory}
+      />,
+    );
+    view.rerender(
+      <CategoryFormModal
+        {...commonProps}
+        isOpen
+        initialData={secondCategory}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Např. Klempířské konstrukce")).toHaveValue(
+        "Druhá kategorie",
+      );
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Přidat další soubor/i }),
+    );
+
+    await waitFor(() => {
+      expect(selectBudgetAttachmentMock).toHaveBeenCalledTimes(2);
+    });
+
+    resolveOldSelection?.(oldAttachment);
+    resolveNewSelection?.(newAttachment);
+
+    expect(await screen.findAllByText("nova-priloha.xlsx")).toHaveLength(2);
+    expect(screen.queryByText("stara-priloha.xlsx")).not.toBeInTheDocument();
+    expect(screen.getAllByTitle(/^Odpojit přílohu /)).toHaveLength(10);
+  });
+
   it("zobrazí desktop-only informaci při mapování přílohy ve web režimu", async () => {
     render(
       <CategoryFormModal

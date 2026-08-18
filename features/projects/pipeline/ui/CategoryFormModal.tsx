@@ -4,7 +4,7 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { BudgetAttachment, DemandCategory } from "@/types";
 import { formatDecimal, parseDecimal } from "@shared/formatting/decimalFormatters";
 import { formatFileSize } from "@/services/documentService";
@@ -23,6 +23,10 @@ import {
 } from "@/features/projects/model/budgetAttachmentModel";
 
 type PlanInputMode = "amount" | "percent";
+
+interface BudgetAttachmentSelectionSession {
+  inFlight: number;
+}
 
 export interface CategoryFormData {
   title: string;
@@ -77,6 +81,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
   const [planPercentDraft, setPlanPercentDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const budgetAttachmentSelectionSessionRef =
+    useRef<BudgetAttachmentSelectionSession>({ inFlight: 0 });
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -95,6 +101,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   // Reset form when modal opens/closes or when switching between create/edit
   useEffect(() => {
+    budgetAttachmentSelectionSessionRef.current = { inFlight: 0 };
     if (isOpen && initialData) {
       setFormData({
         title: initialData.title || "",
@@ -214,7 +221,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   const planBudgetPreview = getFormNumber(formData.planBudget);
 
-  const resolveTenderFolder = async (): Promise<string | null> => {
+  const resolveTenderFolder = async (
+    selectionSession?: BudgetAttachmentSelectionSession,
+  ): Promise<string | null> => {
     const categoryTitle = formData.title.trim();
     if (!categoryTitle) {
       setAlertModal({
@@ -249,6 +258,12 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     }
 
     const tenderFolder = await resolveDesktopTenderFolderPath(categoryTitle);
+    if (
+      selectionSession &&
+      budgetAttachmentSelectionSessionRef.current !== selectionSession
+    ) {
+      return null;
+    }
     if (!tenderFolder) {
       setAlertModal({
         isOpen: true,
@@ -263,8 +278,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   };
 
   const handleSelectBudgetAttachment = async () => {
+    const selectionSession = budgetAttachmentSelectionSessionRef.current;
+    let hasReservedAttachmentSlot = false;
     try {
-      if (displayedBudgetAttachments.length >= MAX_BUDGET_ATTACHMENT_COUNT) {
+      if (
+        displayedBudgetAttachments.length + selectionSession.inFlight >=
+        MAX_BUDGET_ATTACHMENT_COUNT
+      ) {
         setAlertModal({
           isOpen: true,
           title: "Dosažen limit příloh",
@@ -293,41 +313,80 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         return;
       }
 
+      selectionSession.inFlight += 1;
+      hasReservedAttachmentSlot = true;
+
       if (mode === "create") {
         const pendingAttachment = await selectPendingBudgetAttachment();
+        if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+          return;
+        }
         if (!pendingAttachment) return;
-        setFormData((prev) => ({
-          ...prev,
-          pendingBudgetAttachments: prev.pendingBudgetAttachments.some(
+        setFormData((prev) => {
+          const attachmentCount =
+            prev.budgetAttachments.length + prev.pendingBudgetAttachments.length;
+          const alreadyAttached = prev.pendingBudgetAttachments.some(
             (item) => item.sourcePath === pendingAttachment.sourcePath,
-          )
-            ? prev.pendingBudgetAttachments
-            : [...prev.pendingBudgetAttachments, pendingAttachment],
-        }));
+          );
+          if (
+            alreadyAttached ||
+            attachmentCount >= MAX_BUDGET_ATTACHMENT_COUNT
+          ) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            pendingBudgetAttachments: [
+              ...prev.pendingBudgetAttachments,
+              pendingAttachment,
+            ],
+          };
+        });
         return;
       }
 
-      const tenderFolder = await resolveTenderFolder();
+      const tenderFolder = await resolveTenderFolder(selectionSession);
       if (!tenderFolder) return;
 
       const attachment = await selectBudgetAttachment(tenderFolder);
+      if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+        return;
+      }
       if (!attachment) return;
 
-      setFormData((prev) => ({
-        ...prev,
-        budgetAttachments: prev.budgetAttachments.some(
+      setFormData((prev) => {
+        const attachmentCount =
+          prev.budgetAttachments.length + prev.pendingBudgetAttachments.length;
+        const alreadyAttached = prev.budgetAttachments.some(
           (item) => item.relativePath === attachment.relativePath,
-        )
-          ? prev.budgetAttachments
-          : [...prev.budgetAttachments, attachment],
-      }));
+        );
+        if (
+          alreadyAttached ||
+          attachmentCount >= MAX_BUDGET_ATTACHMENT_COUNT
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          budgetAttachments: [...prev.budgetAttachments, attachment],
+        };
+      });
     } catch (error) {
+      if (budgetAttachmentSelectionSessionRef.current !== selectionSession) {
+        return;
+      }
       setAlertModal({
         isOpen: true,
         title: "Přílohu nelze připojit",
         message: error instanceof Error ? error.message : "Výběr přílohy selhal.",
         variant: "danger",
       });
+    } finally {
+      if (hasReservedAttachmentSlot) {
+        selectionSession.inFlight = Math.max(0, selectionSession.inFlight - 1);
+      }
     }
   };
 
