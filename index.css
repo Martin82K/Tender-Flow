@@ -5781,9 +5781,15 @@ html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-archive-secti
   color: var(--tf-skin-text) !important;
 }
 
-html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"]:hover {
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-row"]:hover {
   border-color: color-mix(in srgb, var(--tf-space-cyan) 42%, var(--tf-skin-line) 58%) !important;
   background: color-mix(in srgb, var(--tf-space-blue) 8%, var(--tf-skin-surface-muted) 92%) !important;
+}
+
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-row"]:has([data-help-id="pm-project-actions"] button:hover),
+html[data-skin="space"] .tf-project-manager-view [data-help-id="pm-project-row"]:has([data-help-id="pm-shared-with-badge"]:hover) {
+  border-color: var(--tf-skin-line) !important;
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 68%, transparent) !important;
 }
 
 html[data-skin="space"] .tf-project-manager-view :where(h2, h3, h4, [class*="text-slate-900"], [class*="text-white"]) {

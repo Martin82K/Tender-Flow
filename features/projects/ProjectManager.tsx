@@ -694,6 +694,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         {orderedActiveProjects.map(project => (
                             <div
                                 key={project.id}
+                                data-help-id="pm-project-row"
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, project.id)}
                                 onDragOver={handleDragOver}
