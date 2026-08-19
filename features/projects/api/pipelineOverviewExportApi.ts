@@ -1,5 +1,5 @@
 import { TENDER_FLOW_LOGO_DATA_URL } from "@/shared/branding/tenderFlowLogo";
-import { parseFormattedNumber } from "@/shared/formatting/decimalFormatters";
+import { parseDecimal } from "@/shared/formatting/decimalFormatters";
 import { formatMoney } from "@/shared/formatting/numberFormatters";
 import { loadPdfRuntime, registerRobotoFont } from "@/shared/pdf/pdfRuntime";
 import type { Bid, DemandCategory, ProjectStatus } from "@/types";
@@ -30,7 +30,7 @@ const hasBidPrice = (bid: Bid): boolean => {
   const price = bid.price && bid.price !== "?" && bid.price !== "-"
     ? bid.price
     : selectedRoundPrice;
-  return typeof price === "string" && price.trim() !== "" && Number.isFinite(parseFormattedNumber(price));
+  return typeof price === "string" && price.trim() !== "" && parseDecimal(price) !== null;
 };
 
 const bidPrice = (bid: Bid): number | null => {
@@ -41,8 +41,7 @@ const bidPrice = (bid: Bid): number | null => {
     ? bid.price
     : selectedRoundPrice;
   if (!price) return null;
-  const parsed = parseFormattedNumber(price);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseDecimal(price);
 };
 
 const safeCell = (value: TenderOverviewExportCell): TenderOverviewExportCell => {
@@ -404,16 +403,16 @@ export const exportTenderOverviewToPdf = async (
     headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 24 },
-      1: { cellWidth: 31 },
-      2: { cellWidth: 42 },
-      3: { cellWidth: 25 },
-      4: { cellWidth: 47 },
-      5: { cellWidth: 25, halign: "right" },
-      6: { cellWidth: 15, halign: "right" },
-      7: { cellWidth: 13, halign: "right" },
-      8: { cellWidth: 17, halign: "right" },
-      9: { cellWidth: 42 },
+      0: { cellWidth: 22 },
+      1: { cellWidth: 29 },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 24 },
+      4: { cellWidth: 44 },
+      5: { cellWidth: 24, halign: "right" },
+      6: { cellWidth: 14, halign: "right" },
+      7: { cellWidth: 12, halign: "right" },
+      8: { cellWidth: 16, halign: "right" },
+      9: { cellWidth: 44 },
     },
     didParseCell: (data) => {
       if (data.section !== "body") return;

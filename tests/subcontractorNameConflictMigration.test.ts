@@ -18,6 +18,15 @@ const unchangedIdentityUpdateMigration = fs.readFileSync(
   "utf8",
 );
 
+const postGuardMigrations = fs
+  .readdirSync(path.join(process.cwd(), "supabase/migrations"))
+  .filter((fileName) => fileName >= "20260819194500" && fileName.endsWith(".sql"))
+  .map((fileName) => fs.readFileSync(
+    path.join(process.cwd(), "supabase/migrations", fileName),
+    "utf8",
+  ))
+  .join("\n");
+
 describe("subcontractor name conflict migration", () => {
   it("normalizuje název a blokuje konflikt standardní chybou unikátnosti", () => {
     expect(migration).toContain("NORMALIZE(BTRIM(company_name_input), NFKC)");
@@ -59,5 +68,20 @@ describe("subcontractor name conflict migration", () => {
       "NEW.owner_id IS NOT DISTINCT FROM OLD.owner_id",
     );
     expect(unchangedIdentityUpdateMigration).toMatch(/TG_OP = 'UPDATE'[\s\S]*RETURN NEW;/);
+  });
+
+  it("obnoví historické duplicity bez vypnutí databázového guardu", () => {
+    expect(postGuardMigrations).toContain(
+      "prepare_subcontractor_restore_payload",
+    );
+    expect(postGuardMigrations).toContain(
+      "restore_user_backup_without_identity_dedup_20260819",
+    );
+    expect(postGuardMigrations).toContain(
+      "restore_tenant_backup_without_identity_dedup_20260819",
+    );
+    expect(postGuardMigrations).toMatch(/company_name[\s\S]*obnoveno/i);
+    expect(postGuardMigrations).toContain("REVOKE ALL ON FUNCTION private.prepare_subcontractor_restore_payload");
+    expect(postGuardMigrations).not.toMatch(/DISABLE\s+TRIGGER/i);
   });
 });

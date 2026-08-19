@@ -140,6 +140,33 @@ describe("usePipelineContactsController persistence", () => {
     expect(persistNewContact).toHaveBeenCalledWith(newContact);
   });
 
+  it("povolí osobní kontakt se jménem používaným pouze v organizaci uživatele", async () => {
+    const persistNewContact = vi.fn().mockResolvedValue(undefined);
+    const organizationContact = {
+      ...contact,
+      organizationId: "org-member",
+    };
+    const personalContact = {
+      ...contact,
+      id: "contact-personal",
+    };
+    const externalContacts = [organizationContact];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      userId: "user-1",
+      projectDataId: "project-1",
+      showAlert: vi.fn(),
+      persistNewContact,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(personalContact);
+    });
+
+    expect(persistNewContact).toHaveBeenCalledWith(personalContact);
+  });
+
   it("přidá kontakt lokálně ve fallback větvi bez společné mutace", async () => {
     mocks.insertSubcontractor.mockResolvedValue({ data: contact, error: null });
     const externalContacts: Subcontractor[] = [];

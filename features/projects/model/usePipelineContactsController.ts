@@ -19,6 +19,7 @@ interface ShowAlertArgs {
 interface UsePipelineContactsControllerInput {
   externalContacts: Subcontractor[];
   userRole?: string;
+  userId?: string;
   organizationId?: string;
   projectDataId: string;
   showAlert: (args: ShowAlertArgs) => void;
@@ -30,16 +31,19 @@ interface UsePipelineContactsControllerInput {
 const resolveContactTenantScope = (
   contact: Subcontractor,
   organizationId?: string,
+  userId?: string,
 ): SubcontractorTenantScope | undefined => {
   if (organizationId) return { organizationId };
   if (contact.organizationId) return { organizationId: contact.organizationId };
   if (contact.ownerId) return { ownerId: contact.ownerId };
+  if (userId) return { ownerId: userId };
   return undefined;
 };
 
 export const usePipelineContactsController = ({
   externalContacts,
   userRole,
+  userId,
   organizationId,
   projectDataId,
   showAlert,
@@ -86,7 +90,7 @@ export const usePipelineContactsController = ({
         localContacts,
         newContact.company,
         newContact.id,
-        resolveContactTenantScope(newContact, organizationId),
+        resolveContactTenantScope(newContact, organizationId, userId),
       )) {
         showAlert({
           title: "Duplicitní název subdodavatele",
@@ -157,7 +161,11 @@ export const usePipelineContactsController = ({
         localContacts,
         updatedContact.company,
         updatedContact.id,
-        resolveContactTenantScope(persistedContact ?? updatedContact, organizationId),
+        resolveContactTenantScope(
+          persistedContact ?? updatedContact,
+          organizationId,
+          userId,
+        ),
       )) {
         showAlert({
           title: "Duplicitní název subdodavatele",

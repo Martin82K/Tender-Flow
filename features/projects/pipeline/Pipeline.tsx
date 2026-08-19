@@ -196,6 +196,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   } = usePipelineContactsController({
     externalContacts,
     userRole: user?.role,
+    userId: user?.id,
     organizationId: user?.organizationId,
     projectDataId: projectId,
     showAlert,

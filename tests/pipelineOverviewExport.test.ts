@@ -96,6 +96,40 @@ describe("pipelineOverviewExport", () => {
     expect(getTenderBidStatusLabel({ ...bids[0], status: "shortlist" })).toBe("Vybrán");
   });
 
+  it("nepovažuje nečíselný text za cenu, ale zachová skutečnou nulovou nabídku", () => {
+    const invalidPriceBid = {
+      ...bids[0],
+      id: "invalid-price",
+      companyName: "Nečíselná nabídka",
+      price: "bude doplněno",
+      status: "sent" as const,
+    };
+    const zeroPriceBid = {
+      ...bids[0],
+      id: "zero-price",
+      companyName: "Nulová nabídka",
+      price: "0 Kč",
+      status: "sent" as const,
+    };
+
+    expect(getTenderBidStatusLabel(invalidPriceBid)).toBe("Nedodal cenu");
+    expect(getTenderBidStatusLabel(zeroPriceBid)).toBe("Dodal cenu");
+
+    const rows = buildTenderOverviewExportRows(
+      [category],
+      { [category.id]: [invalidPriceBid, zeroPriceBid] },
+    );
+    const invalidRow = rows.find((row) => row[2] === "Nečíselná nabídka");
+    const zeroRow = rows.find((row) => row[2] === "Nulová nabídka");
+
+    expect(invalidRow?.[1]).toBe("Nedodal cenu");
+    expect(invalidRow?.[5]).toBeNull();
+    expect(invalidRow?.[7]).toBe("Ne");
+    expect(zeroRow?.[1]).toBe("Dodal cenu");
+    expect(zeroRow?.[5]).toBe(0);
+    expect(zeroRow?.[7]).toBe("Ano");
+  });
+
   it("řadí dodavatele podle výsledného stavu a uvnitř stavu abecedně", () => {
     const sorted = sortTenderBidsByStatus([
       { ...bids[2], id: "rejected" },
@@ -186,6 +220,19 @@ describe("pipelineOverviewExport", () => {
     expect(pdfMocks.doc.save).toHaveBeenCalledWith(
       expect.stringMatching(/^prehled_vr_26026_oprava_mostu_m_35_\d{4}-\d{2}-\d{2}\.pdf$/),
     );
+
+    const tableOptions = pdfMocks.autoTable.mock.calls.at(-1)?.[1] as {
+      columnStyles: Record<number, { cellWidth?: number }>;
+      margin: { left: number; right: number };
+    };
+    const fixedWidth = Object.values(tableOptions.columnStyles).reduce(
+      (sum, style) => sum + (style.cellWidth ?? 0),
+      0,
+    );
+    const printableWidth = pdfMocks.doc.internal.pageSize.getWidth()
+      - tableOptions.margin.left
+      - tableOptions.margin.right;
+    expect(fixedWidth).toBeLessThanOrEqual(printableWidth);
   });
 
   it("zalomí dlouhá metadata a posune auditní řádek i tabulku pod ně", async () => {
