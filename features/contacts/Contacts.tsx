@@ -26,6 +26,7 @@ import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
 import { useAccessibleDialog } from '@/shared/ui/useAccessibleDialog';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
+import type { SubcontractorTenantScope } from "@shared/contacts/subcontractorIdentity";
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -36,9 +37,10 @@ interface ContactsProps {
     onBulkUpdateContacts: (contacts: Subcontractor[]) => Promise<void> | void;
     onDeleteContacts: (ids: string[]) => void;
     isAdmin?: boolean;
+    tenantScope?: SubcontractorTenantScope;
 }
 
-export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false }) => {
+export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false, tenantScope }) => {
     // View mode: cards | list | map
     type ViewMode = 'cards' | 'list' | 'map';
     const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -530,6 +532,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 existingContacts: contacts,
                 existingSpecializations: allSpecializations,
                 defaultStatusId,
+                targetScope: tenantScope,
                 useAi: true,
             });
             setQuickPasteAnalysis(analysis);

@@ -17,6 +17,21 @@ export interface SubcontractorTenantScope {
   ownerId?: string | null;
 }
 
+export const matchesSubcontractorTenantScope = (
+  contact: Subcontractor,
+  targetScope?: SubcontractorTenantScope,
+): boolean => {
+  if (!targetScope) return true;
+
+  if (targetScope.organizationId != null) {
+    return contact.organizationId === targetScope.organizationId;
+  }
+
+  if (targetScope.ownerId == null) return false;
+
+  return contact.organizationId == null && contact.ownerId === targetScope.ownerId;
+};
+
 const belongsToTenantScope = (
   contact: Subcontractor,
   targetScope?: SubcontractorTenantScope,

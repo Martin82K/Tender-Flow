@@ -27,6 +27,18 @@ const postGuardMigrations = fs
   ))
   .join("\n");
 
+const restoreAuthorizationFollowUps = fs
+  .readdirSync(path.join(process.cwd(), "supabase/migrations"))
+  .filter((fileName) => (
+    fileName > "20260819195243_preserve_legacy_duplicate_backup_restore.sql" &&
+    fileName.endsWith(".sql")
+  ))
+  .map((fileName) => fs.readFileSync(
+    path.join(process.cwd(), "supabase/migrations", fileName),
+    "utf8",
+  ))
+  .join("\n");
+
 describe("subcontractor name conflict migration", () => {
   it("normalizuje název a blokuje konflikt standardní chybou unikátnosti", () => {
     expect(migration).toContain("NORMALIZE(BTRIM(company_name_input), NFKC)");
@@ -83,5 +95,32 @@ describe("subcontractor name conflict migration", () => {
     expect(postGuardMigrations).toMatch(/company_name[\s\S]*obnoveno/i);
     expect(postGuardMigrations).toContain("REVOKE ALL ON FUNCTION private.prepare_subcontractor_restore_payload");
     expect(postGuardMigrations).not.toMatch(/DISABLE\s+TRIGGER/i);
+  });
+
+  it("ověří oprávnění a velikost zálohy před privilegovanou předúpravou", () => {
+    const userWrapper = restoreAuthorizationFollowUps.match(
+      /CREATE OR REPLACE FUNCTION public\.restore_user_backup\([\s\S]*?\n\$\$;/,
+    )?.[0] || "";
+    const tenantWrapper = restoreAuthorizationFollowUps.match(
+      /CREATE OR REPLACE FUNCTION public\.restore_tenant_backup\([\s\S]*?\n\$\$;/,
+    )?.[0] || "";
+
+    expect(userWrapper.indexOf("public.is_org_member(target_org_id)")).toBeGreaterThanOrEqual(0);
+    expect(userWrapper.indexOf("octet_length(backup_json::TEXT)")).toBeGreaterThanOrEqual(0);
+    expect(userWrapper.indexOf("public.is_org_member(target_org_id)")).toBeLessThan(
+      userWrapper.indexOf("private.prepare_subcontractor_restore_payload"),
+    );
+    expect(userWrapper.indexOf("octet_length(backup_json::TEXT)")).toBeLessThan(
+      userWrapper.indexOf("private.prepare_subcontractor_restore_payload"),
+    );
+
+    expect(tenantWrapper.indexOf("public.is_org_admin(target_org_id)")).toBeGreaterThanOrEqual(0);
+    expect(tenantWrapper.indexOf("octet_length(backup_json::TEXT)")).toBeGreaterThanOrEqual(0);
+    expect(tenantWrapper.indexOf("public.is_org_admin(target_org_id)")).toBeLessThan(
+      tenantWrapper.indexOf("private.prepare_subcontractor_restore_payload"),
+    );
+    expect(tenantWrapper.indexOf("octet_length(backup_json::TEXT)")).toBeLessThan(
+      tenantWrapper.indexOf("private.prepare_subcontractor_restore_payload"),
+    );
   });
 });

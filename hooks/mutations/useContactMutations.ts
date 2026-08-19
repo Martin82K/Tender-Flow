@@ -392,7 +392,11 @@ export const useImportContactsMutation = () => {
             // useAppData imported mergeContacts from services/contactsImportService.
 
             const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
-            const { mergedContacts, added, updated } = mergeContacts(currentContacts, newContacts);
+            const { mergedContacts, added, updated } = mergeContacts(
+                currentContacts,
+                newContacts,
+                getNewContactTenantScope(user),
+            );
             added.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             updated.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             added.forEach((contact) =>

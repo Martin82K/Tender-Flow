@@ -169,6 +169,38 @@ describe("contact quick paste", () => {
     expect(result.contact.id).not.toBe(existingContact.id);
   });
 
+  it("spáruje shodný název jen s osobním kontaktem aktuálního vlastníka", async () => {
+    const otherOwner = {
+      ...existingContact,
+      id: "other-owner-contact",
+      ownerId: "user-other",
+      contacts: [],
+    };
+    const activeOwner = {
+      ...existingContact,
+      id: "active-owner-contact",
+      ownerId: "user-active",
+      contacts: [],
+    };
+
+    const result = await analyzeContactQuickPaste({
+      input: `
+        Alfa Elektro s.r.o.
+        Kontakt: Jana Nova
+        jana.nova@alfa.cz
+      `,
+      existingContacts: [otherOwner, activeOwner],
+      existingSpecializations: ["Elektroinstalace"],
+      defaultStatusId: "available",
+      targetScope: { ownerId: "user-active" },
+      useAi: false,
+    });
+
+    expect(result.operation).toBe("update");
+    expect(result.matchedContact?.id).toBe("active-owner-contact");
+    expect(result.contact.id).toBe("active-owner-contact");
+  });
+
   it("považuje rozdílný název s právní formou za samostatnou firmu", async () => {
     const storedWithoutLegalForm = {
       ...existingContact,

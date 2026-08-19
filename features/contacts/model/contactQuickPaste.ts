@@ -3,7 +3,11 @@ import { dbAdapter } from "@infra/db/dbAdapter";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { findCompanyRegistrationDetails } from "@/services/geminiService";
 import { sanitizeSubcontractorCompanyName } from "@/shared/dochub/subcontractorNameRules";
-import { normalizeSubcontractorIdentityName } from "@/shared/contacts/subcontractorIdentity";
+import {
+  matchesSubcontractorTenantScope,
+  normalizeSubcontractorIdentityName,
+  type SubcontractorTenantScope,
+} from "@/shared/contacts/subcontractorIdentity";
 
 export const CONTACT_QUICK_PASTE_MAX_CHARS = 20_000;
 
@@ -330,7 +334,11 @@ const mergeDrafts = (localDraft: ParsedContactDraft, aiDraft: ParsedContactDraft
   note: aiDraft?.note || localDraft.note,
 });
 
-const findExistingContact = (draft: ParsedContactDraft, existingContacts: Subcontractor[]): Subcontractor | undefined => {
+const findExistingContact = (
+  draft: ParsedContactDraft,
+  existingContacts: Subcontractor[],
+  targetScope?: SubcontractorTenantScope,
+): Subcontractor | undefined => {
   const companyKey = draft.company
     ? normalizeSubcontractorIdentityName(draft.company)
     : "";
@@ -338,6 +346,7 @@ const findExistingContact = (draft: ParsedContactDraft, existingContacts: Subcon
 
   return existingContacts.find(
     (contact) =>
+      matchesSubcontractorTenantScope(contact, targetScope) &&
       normalizeSubcontractorIdentityName(contact.company || "") === companyKey,
   );
 };
@@ -436,12 +445,14 @@ export const analyzeContactQuickPaste = async ({
   existingContacts,
   existingSpecializations,
   defaultStatusId,
+  targetScope,
   useAi = true,
 }: {
   input: string;
   existingContacts: Subcontractor[];
   existingSpecializations: string[];
   defaultStatusId: string;
+  targetScope?: SubcontractorTenantScope;
   useAi?: boolean;
 }): Promise<ContactQuickPasteAnalysis> => {
   const trimmed = input.trim();
@@ -467,7 +478,7 @@ export const analyzeContactQuickPaste = async ({
 
   const mergedDraft = mergeDrafts(localDraft, aiDraft);
   const { draft, usedAres } = await fillFromAres(mergedDraft);
-  const matchedContact = findExistingContact(draft, existingContacts);
+  const matchedContact = findExistingContact(draft, existingContacts, targetScope);
   const contact = buildContact(draft, matchedContact, defaultStatusId);
 
   if (!hasValue(contact.company)) {

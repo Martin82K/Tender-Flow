@@ -160,6 +160,39 @@ describe("contactsImportService security controls", () => {
     ]);
   });
 
+  it("merges a same-name company only inside the active organization", () => {
+    const otherOrganization: Subcontractor = {
+      id: "other-org",
+      organizationId: "org-other",
+      company: "Baustav",
+      specialization: ["Stavba"],
+      contacts: [],
+      status: "available",
+    };
+    const activeOrganization: Subcontractor = {
+      ...otherOrganization,
+      id: "active-org",
+      organizationId: "org-active",
+    };
+    const imported: Subcontractor = {
+      ...activeOrganization,
+      id: "imported",
+      organizationId: undefined,
+      contacts: [{ id: "new-person", name: "Jan", email: "jan@baustav.cz", phone: "-" }],
+    };
+
+    const result = mergeContacts(
+      [otherOrganization, activeOrganization],
+      [imported],
+      { organizationId: "org-active" },
+    );
+
+    expect(result.updated).toHaveLength(1);
+    expect(result.updated[0].id).toBe("active-org");
+    expect(result.updated[0].contacts).toEqual(imported.contacts);
+    expect(result.mergedContacts.find(({ id }) => id === "other-org")?.contacts).toEqual([]);
+  });
+
   it("rejects CSV files above the contact row limit", async () => {
     const rows = Array.from({ length: CONTACTS_IMPORT_MAX_ROWS + 1 }, (_, index) => {
       return `Company ${index},Kontakt ${index},kontakt${index}@example.com`;

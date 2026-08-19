@@ -1,6 +1,10 @@
 import { Subcontractor } from '../types';
 import Papa from 'papaparse';
-import { normalizeSubcontractorIdentityName } from '../shared/contacts/subcontractorIdentity';
+import {
+  matchesSubcontractorTenantScope,
+  normalizeSubcontractorIdentityName,
+  type SubcontractorTenantScope,
+} from '../shared/contacts/subcontractorIdentity';
 
 export const CONTACTS_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const CONTACTS_IMPORT_MAX_ROWS = 5000;
@@ -356,7 +360,11 @@ export interface MergeResult {
  * Merge imported contacts with existing contacts
  * Matches only by company name. Shared IČO/email can belong to separate centers.
  */
-export const mergeContacts = (existingContacts: Subcontractor[], importedContacts: Subcontractor[]): MergeResult => {
+export const mergeContacts = (
+  existingContacts: Subcontractor[],
+  importedContacts: Subcontractor[],
+  targetScope?: SubcontractorTenantScope,
+): MergeResult => {
   const merged = [...existingContacts];
   const added: Subcontractor[] = [];
   const updated: Subcontractor[] = [];
@@ -392,6 +400,7 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
   const indexMerged = () => {
     companyIndex.clear();
     merged.forEach((c, idx) => {
+      if (!added.includes(c) && !matchesSubcontractorTenantScope(c, targetScope)) return;
       const ck = companyKey(c);
       if (ck && !companyIndex.has(ck)) companyIndex.set(ck, idx);
     });

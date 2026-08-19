@@ -443,6 +443,9 @@ export const AppContent: React.FC = () => {
               onBulkUpdateContacts={actions.handleBulkUpdateContacts}
               onDeleteContacts={actions.handleDeleteContacts}
               isAdmin={state.isAdmin}
+              tenantScope={user?.organizationId
+                ? { organizationId: user.organizationId }
+                : { ownerId: user?.id ?? null }}
             />
           </RequireFeature>
         );
