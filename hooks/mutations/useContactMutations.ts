@@ -23,7 +23,29 @@ import {
 import {
     assertUniqueSubcontractorName,
     mapSubcontractorPersistenceError,
+    type SubcontractorTenantScope,
 } from "@shared/contacts/subcontractorIdentity";
+
+const getNewContactTenantScope = (
+    user: { id?: string; organizationId?: string } | null | undefined,
+): SubcontractorTenantScope => (
+    user?.organizationId
+        ? { organizationId: user.organizationId }
+        : { ownerId: user?.id ?? null }
+);
+
+const getExistingContactTenantScope = (
+    contacts: Subcontractor[],
+    contactId: string,
+    fallback: SubcontractorTenantScope,
+): SubcontractorTenantScope => {
+    const contact = contacts.find(({ id }) => id === contactId);
+    if (!contact || (contact.organizationId == null && contact.ownerId == null)) return fallback;
+    return {
+        organizationId: contact.organizationId ?? null,
+        ownerId: contact.ownerId ?? null,
+    };
+};
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -72,7 +94,12 @@ export const useAddContactMutation = () => {
         mutationFn: async (newContact: Subcontractor) => {
             assertValidSubcontractorCompanyNameOrThrow(newContact.company);
             const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
-            assertUniqueSubcontractorName(currentContacts, newContact.company, newContact.id);
+            assertUniqueSubcontractorName(
+                currentContacts,
+                newContact.company,
+                newContact.id,
+                getNewContactTenantScope(user),
+            );
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
@@ -118,7 +145,16 @@ export const useUpdateContactMutation = () => {
             if (updates.company !== undefined) {
                 assertValidSubcontractorCompanyNameOrThrow(updates.company);
                 const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
-                assertUniqueSubcontractorName(currentContacts, updates.company, id);
+                assertUniqueSubcontractorName(
+                    currentContacts,
+                    updates.company,
+                    id,
+                    getExistingContactTenantScope(
+                        currentContacts,
+                        id,
+                        getNewContactTenantScope(user),
+                    ),
+                );
             }
 
             if (user?.role === "demo") {
@@ -291,7 +327,16 @@ export const useBulkUpdateContactsMutation = () => {
             const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
             updates.forEach(({ id, data }) => {
                 if (data.company !== undefined) {
-                    assertUniqueSubcontractorName(currentContacts, data.company, id);
+                    assertUniqueSubcontractorName(
+                        currentContacts,
+                        data.company,
+                        id,
+                        getExistingContactTenantScope(
+                            currentContacts,
+                            id,
+                            getNewContactTenantScope(user),
+                        ),
+                    );
                 }
             });
 
@@ -351,7 +396,12 @@ export const useImportContactsMutation = () => {
             added.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             updated.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             added.forEach((contact) =>
-                assertUniqueSubcontractorName(currentContacts, contact.company, contact.id),
+                assertUniqueSubcontractorName(
+                    currentContacts,
+                    contact.company,
+                    contact.id,
+                    getNewContactTenantScope(user),
+                ),
             );
 
             if (user?.role === "demo") {
@@ -391,7 +441,12 @@ export const useImportContactsMutation = () => {
 
             if (toInsert.length > 0) {
                 const { error } = await dbAdapter.from("subcontractors").insert(toInsert);
-                if (error) throw error;
+                if (error) {
+                    const conflictName = added.length === 1
+                        ? added[0].company
+                        : "některý z importovaných subdodavatelů";
+                    throw mapSubcontractorPersistenceError(error, conflictName);
+                }
             }
 
             // Updates - do one by one or upsert if full record?

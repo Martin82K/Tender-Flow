@@ -10,6 +10,14 @@ const migration = fs.readFileSync(
   "utf8",
 );
 
+const unchangedIdentityUpdateMigration = fs.readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase/migrations/20260819194500_allow_unchanged_legacy_subcontractor_identity_updates.sql",
+  ),
+  "utf8",
+);
+
 describe("subcontractor name conflict migration", () => {
   it("normalizuje název a blokuje konflikt standardní chybou unikátnosti", () => {
     expect(migration).toContain("NORMALIZE(BTRIM(company_name_input), NFKC)");
@@ -34,5 +42,22 @@ describe("subcontractor name conflict migration", () => {
     expect(migration).toContain("SET search_path = ''");
     expect(migration).toContain("SET row_security = off");
     expect(migration).toContain("REVOKE ALL ON FUNCTION private.guard_subcontractor_company_name_conflict()");
+  });
+
+  it("povolí UPDATE historické duplicity, pokud se normalizovaný název ani tenant nezměnil", () => {
+    expect(unchangedIdentityUpdateMigration).toContain(
+      "CREATE OR REPLACE FUNCTION private.guard_subcontractor_company_name_conflict()",
+    );
+    expect(unchangedIdentityUpdateMigration).toContain("TG_OP = 'UPDATE'");
+    expect(unchangedIdentityUpdateMigration).toContain(
+      "public.normalize_subcontractor_company_identity(OLD.company_name)",
+    );
+    expect(unchangedIdentityUpdateMigration).toContain(
+      "NEW.organization_id IS NOT DISTINCT FROM OLD.organization_id",
+    );
+    expect(unchangedIdentityUpdateMigration).toContain(
+      "NEW.owner_id IS NOT DISTINCT FROM OLD.owner_id",
+    );
+    expect(unchangedIdentityUpdateMigration).toMatch(/TG_OP = 'UPDATE'[\s\S]*RETURN NEW;/);
   });
 });

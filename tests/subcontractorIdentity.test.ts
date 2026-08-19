@@ -7,9 +7,14 @@ import {
   normalizeSubcontractorIdentityName,
 } from "@shared/contacts/subcontractorIdentity";
 
-const contact = (id: string, company: string): Subcontractor => ({
+const contact = (
+  id: string,
+  company: string,
+  scope: Pick<Subcontractor, "organizationId" | "ownerId"> = {},
+): Subcontractor => ({
   id,
   company,
+  ...scope,
   specialization: ["Ostatní"],
   contacts: [],
   status: "available",
@@ -37,6 +42,33 @@ describe("subcontractor identity", () => {
   it("vrátí uživatelskou chybu při duplicitním názvu", () => {
     expect(() => assertUniqueSubcontractorName([contact("c-1", "Baustav")], "baustav"))
       .toThrow(/již existuje/i);
+  });
+
+  it("porovnává shodný název pouze uvnitř cílového tenant scope", () => {
+    const contacts = [
+      contact("org-a", "Baustav", { organizationId: "organization-a" }),
+      contact("org-b", "Baustav", { organizationId: "organization-b" }),
+      contact("personal", "Baustav", { ownerId: "owner-a" }),
+    ];
+
+    expect(findSubcontractorNameConflict(
+      contacts,
+      "BAUSTAV",
+      undefined,
+      { organizationId: "organization-b" },
+    )?.id).toBe("org-b");
+    expect(findSubcontractorNameConflict(
+      contacts,
+      "BAUSTAV",
+      undefined,
+      { organizationId: "organization-c" },
+    )).toBeUndefined();
+    expect(findSubcontractorNameConflict(
+      contacts,
+      "BAUSTAV",
+      undefined,
+      { ownerId: "owner-a" },
+    )?.id).toBe("personal");
   });
 
   it("převede databázový konflikt na stejnou uživatelskou chybu", () => {

@@ -119,7 +119,7 @@ describe("pipelineOverviewExport", () => {
 
     expect(rows[1]).toEqual(expect.arrayContaining(["Výběrové řízení", "Betony"]));
     expect(rows[2]).toEqual(expect.arrayContaining(["Dodavatel", "BETON ALFA s.r.o.", "Dodal cenu"]));
-    expect(rows[3]).toEqual(expect.arrayContaining(["Dodavatel", "'=NEBEZPEČNÝ VZOREC", "Nedodal cenu"]));
+    expect(rows[3]).toEqual(expect.arrayContaining(["Dodavatel", "=NEBEZPEČNÝ VZOREC", "Nedodal cenu"]));
     expect(rows[4]).toEqual(expect.arrayContaining(["Dodavatel", "BETON BETA a.s.", "Zamítnut / odstoupil"]));
   });
 
@@ -177,6 +177,7 @@ describe("pipelineOverviewExport", () => {
         body: expect.arrayContaining([
           expect.arrayContaining(["Výběrové řízení", "Betony"]),
           expect.arrayContaining(["Dodavatel", "BETON ALFA s.r.o.", "Dodal cenu"]),
+          expect.arrayContaining(["Dodavatel", "=NEBEZPEČNÝ VZOREC", "Nedodal cenu"]),
         ]),
       }),
     );

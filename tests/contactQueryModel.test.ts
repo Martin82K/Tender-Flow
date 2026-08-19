@@ -22,6 +22,8 @@ describe("contact query model", () => {
           phone: "+420 123 456 789",
           email: "jan@example.com",
           status_id: "available",
+          organization_id: "organization-1",
+          owner_id: "owner-1",
           latitude: 50.1,
           longitude: 14.4,
           geocoded_at: "2026-07-11T10:00:00Z",
@@ -42,6 +44,8 @@ describe("contact query model", () => {
         geocodedAt: "2026-07-11T10:00:00Z",
         aresCheckedAt: "2026-07-10T10:00:00Z",
         aresNotFound: false,
+        organizationId: "organization-1",
+        ownerId: "owner-1",
         contacts: [
           {
             id: "generated-contact-id",

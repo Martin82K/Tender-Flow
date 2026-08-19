@@ -35,6 +35,30 @@ describe("ThemedSelect pro role a oprávnění", () => {
     expect(screen.queryByRole("listbox", { name: "Profesní role" })).not.toBeInTheDocument();
   });
 
+  it("zavře portál nabídky, když focus opustí celý select", () => {
+    render(
+      <>
+        <ThemedSelect
+          ariaLabel="Stav kontaktu"
+          value="active"
+          onChange={vi.fn()}
+          options={[
+            { value: "active", label: "Aktivní" },
+            { value: "inactive", label: "Neaktivní" },
+          ]}
+        />
+        <button type="button">Další pole</button>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Stav kontaktu" }));
+    expect(screen.getByRole("listbox", { name: "Stav kontaktu" })).toBeInTheDocument();
+
+    fireEvent.focus(screen.getByRole("button", { name: "Další pole" }));
+
+    expect(screen.queryByRole("listbox", { name: "Stav kontaktu" })).not.toBeInTheDocument();
+  });
+
   it("nabídne vyhledávání u dlouhého seznamu a filtruje bez ztráty vybrané hodnoty", () => {
     render(
       <ThemedSelect

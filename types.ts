@@ -50,6 +50,8 @@ export interface ContactPerson {
 
 export interface Subcontractor {
   id: string;
+  organizationId?: string;
+  ownerId?: string;
   company: string; // Supplier (Dodavatel)
   specialization: string[]; // Type (Typ)
   contacts: ContactPerson[];

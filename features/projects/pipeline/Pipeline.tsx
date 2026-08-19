@@ -27,6 +27,7 @@ import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidA
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
 import { useEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
+import { useProjectOrganizationName } from "@features/projects/pipeline/model/useProjectOrganizationName";
 import { canOpenProjectDocHub } from "@shared/dochub/cloudConnection";
 import {
   isValidEmailAddress,
@@ -107,6 +108,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
     usePipelineConfirmation();
 
   const projectData = projectDetails;
+  const projectOrganizationName = useProjectOrganizationName({
+    projectOrganizationId: projectDetails.organizationId,
+    activeOrganizationId: user?.organizationId,
+    activeOrganizationName: user?.organizationName,
+    currentUserId: user?.id,
+  });
   const docHubRoot = useEffectiveProjectDocHubRoot(projectDetails, user?.id ?? null).trim();
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
@@ -507,7 +514,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         onDeleteCategory={handleDeleteCategory}
         onToggleCategoryComplete={handleToggleCategoryComplete}
         exportMeta={{
-          organizationName: user?.organizationName || "Organizace",
+          organizationName: projectOrganizationName,
           projectTitle: projectDetails.title || "Projekt",
           projectStatus: projectDetails.status || "realization",
           exportedBy: user?.name?.trim() || "Uživatel",

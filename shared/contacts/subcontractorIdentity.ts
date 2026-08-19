@@ -12,10 +12,32 @@ export const normalizeSubcontractorIdentityName = (value: string): string =>
     .replace(/\s+/gu, " ")
     .toLocaleLowerCase("cs-CZ");
 
+export interface SubcontractorTenantScope {
+  organizationId?: string | null;
+  ownerId?: string | null;
+}
+
+const belongsToTenantScope = (
+  contact: Subcontractor,
+  targetScope?: SubcontractorTenantScope,
+): boolean => {
+  if (!targetScope) return true;
+
+  const hasKnownScope = contact.organizationId != null || contact.ownerId != null;
+  if (!hasKnownScope) return true;
+
+  if (targetScope.organizationId != null) {
+    return contact.organizationId === targetScope.organizationId;
+  }
+
+  return contact.organizationId == null && contact.ownerId === targetScope.ownerId;
+};
+
 export const findSubcontractorNameConflict = (
   contacts: Subcontractor[],
   companyName: string,
   excludedContactId?: string,
+  targetScope?: SubcontractorTenantScope,
 ): Subcontractor | undefined => {
   const candidateKey = normalizeSubcontractorIdentityName(companyName);
   if (!candidateKey) return undefined;
@@ -23,6 +45,7 @@ export const findSubcontractorNameConflict = (
   return contacts.find(
     (contact) =>
       contact.id !== excludedContactId &&
+      belongsToTenantScope(contact, targetScope) &&
       normalizeSubcontractorIdentityName(contact.company || "") === candidateKey,
   );
 };
@@ -72,8 +95,9 @@ export const assertUniqueSubcontractorName = (
   contacts: Subcontractor[],
   companyName: string,
   excludedContactId?: string,
+  targetScope?: SubcontractorTenantScope,
 ): void => {
-  if (findSubcontractorNameConflict(contacts, companyName, excludedContactId)) {
+  if (findSubcontractorNameConflict(contacts, companyName, excludedContactId, targetScope)) {
     throw new SubcontractorNameConflictError(companyName);
   }
 };

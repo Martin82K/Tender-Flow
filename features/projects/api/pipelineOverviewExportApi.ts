@@ -134,29 +134,29 @@ export const buildTenderOverviewExportRows = (
 
     output.push([
       "Výběrové řízení",
-      safeCell(categoryStatusLabel(category.status)),
-      safeCell(category.title),
+      categoryStatusLabel(category.status),
+      category.title,
       category.deadline ? new Date(category.deadline) : null,
-      safeCell(realizationRange(category)),
+      realizationRange(category),
       winningPrice || category.sodBudget || null,
       categoryBids.length,
       offeredBids.length,
       sodBids.length > 0 ? `${contractedCount}/${sodBids.length}` : "",
-      safeCell(category.description || ""),
+      category.description || "",
     ]);
 
     for (const bid of sortTenderBidsByStatus(categoryBids)) {
       output.push([
         "Dodavatel",
-        safeCell(getTenderBidStatusLabel(bid)),
-        safeCell(bid.companyName),
+        getTenderBidStatusLabel(bid),
+        bid.companyName,
         bid.updateDate ? new Date(bid.updateDate) : null,
-        safeCell(bidContact(bid)),
+        bidContact(bid),
         bidPrice(bid),
         "Ano",
         hasBidPrice(bid) ? "Ano" : "Ne",
         bid.contracted ? "Ano" : bid.status === "sod" ? "Čeká" : "",
-        safeCell(bid.notes || ""),
+        bid.notes || "",
       ]);
     }
   }
@@ -280,7 +280,7 @@ export const buildTenderOverviewWorkbook = async (
     totalsRow: false,
     style: { theme: "TableStyleMedium2", showRowStripes: false },
     columns: exportRows[0].map((name) => ({ name: String(name) })),
-    rows: exportRows.slice(1),
+    rows: exportRows.slice(1).map((row) => row.map(safeCell)),
   });
   table.commit();
 

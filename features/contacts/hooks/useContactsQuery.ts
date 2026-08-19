@@ -13,7 +13,7 @@ import { withRetry, withTimeout } from "@shared/async/asyncControl";
 const CONTACT_PAGE_SIZE = 1000;
 const CONTACT_QUERY_TIMEOUT_MS = 15_000;
 const CONTACT_SELECT =
-  "id, company_name, specialization, contacts, contact_person_name, phone, email, ico, region, address, city, web, note, regions, status_id, latitude, longitude, geocoded_at, ares_checked_at, ares_not_found";
+  "id, organization_id, owner_id, company_name, specialization, contacts, contact_person_name, phone, email, ico, region, address, city, web, note, regions, status_id, latitude, longitude, geocoded_at, ares_checked_at, ares_not_found";
 
 interface QueryResponse<T> {
   data: T;

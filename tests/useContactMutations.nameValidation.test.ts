@@ -244,6 +244,23 @@ describe("useContactMutations name validation", () => {
     expect(mocks.fromMock).not.toHaveBeenCalled();
   });
 
+  it("maps a database name conflict during bulk import to the user-facing message", async () => {
+    mocks.insertMock.mockResolvedValueOnce({
+      error: {
+        code: "23505",
+        constraint: "subcontractors_tenant_company_name_key",
+        message: "SUBCONTRACTOR_NAME_CONFLICT",
+      },
+    });
+    const { result } = renderHook(() => useImportContactsMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(result.current.mutateAsync({
+      newContacts: [{ ...validContact, company: "Baustav" }],
+    })).rejects.toThrow(/Subdodavatel s názvem „Baustav“ již existuje/i);
+  });
+
   it("bulk update zapisuje region do databaze", async () => {
     const { result } = renderHook(() => useBulkUpdateContactsMutation(), {
       wrapper: createWrapper(),
