@@ -33,6 +33,7 @@ import {
 import { useTasksQuery } from "../hooks/useTasksQuery";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
 import type { Task, TaskCreateInput, TaskPriority, TodoProject } from "../types";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const VIEW_LABELS: Record<TaskViewFilter, { label: string; icon: string; hint: string }> = {
   calendar: { label: "Kalendář", icon: "calendar_month", hint: "Měsíc, týden, 3 dny nebo den" },
@@ -440,7 +441,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
             <span className="material-symbols-outlined text-[16px]" aria-hidden>
               flag
             </span>
-            <select
+            <ThemedNativeSelect
               value={priority === "" ? "" : String(priority)}
               onChange={(event) =>
                 setPriority(event.target.value === "" ? "" : (Number(event.target.value) as TaskPriority))
@@ -453,10 +454,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
               <option value="2">P2 vysoká</option>
               <option value="3">P3 střední</option>
               <option value="4">P4 nízká</option>
-            </select>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
+            </ThemedNativeSelect>
           </label>
           <TaskDateTimePicker
             label="Upozornění"
@@ -488,7 +486,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
             <span className="material-symbols-outlined text-[16px]" aria-hidden>
               apartment
             </span>
-            <select
+            <ThemedNativeSelect
               value={projectId}
               onChange={(event) => setProjectId(event.target.value)}
               className={`${QUICK_ADD_SELECT_CLASS} w-[180px] max-w-full truncate`}
@@ -500,10 +498,7 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
                   {project.name}
                 </option>
               ))}
-            </select>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
+            </ThemedNativeSelect>
           </label>
         </div>
         {error && (
@@ -956,7 +951,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
             <span className="material-symbols-outlined text-[16px]" aria-hidden>
               flag
             </span>
-            <select
+            <ThemedNativeSelect
               value={priority === "" ? "" : String(priority)}
               onChange={(event) =>
                 setPriority(event.target.value === "" ? "" : (Number(event.target.value) as TaskPriority))
@@ -969,10 +964,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
               <option value="2">P2 vysoká</option>
               <option value="3">P3 střední</option>
               <option value="4">P4 nízká</option>
-            </select>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
+            </ThemedNativeSelect>
           </label>
 
           <TaskDateTimePicker
@@ -1013,7 +1005,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
             <span className="material-symbols-outlined text-[16px]" aria-hidden>
               tag
             </span>
-            <select
+            <ThemedNativeSelect
               value={selectedTodoProjectId}
               onChange={(event) => setSelectedTodoProjectId(event.target.value)}
               className={`${QUICK_ADD_SELECT_CLASS} max-w-[180px]`}
@@ -1025,10 +1017,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
                   {project.name}
                 </option>
               ))}
-            </select>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
+            </ThemedNativeSelect>
           </label>
         </div>
         {error && (
@@ -1043,7 +1032,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
           <span className="material-symbols-outlined text-[16px]" aria-hidden>
             apartment
           </span>
-          <select
+          <ThemedNativeSelect
             value={projectId}
             onChange={(event) => setProjectId(event.target.value)}
             className={`${QUICK_ADD_SELECT_CLASS} w-[180px] max-w-full truncate`}
@@ -1055,10 +1044,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
                 {project.name}
               </option>
             ))}
-          </select>
-          <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-            arrow_drop_down
-          </span>
+          </ThemedNativeSelect>
         </label>
 
         <Button type="button" variant="secondary" size="sm" onClick={resetForm} title="Vyčistit rozpracovaný úkol a zavřít formulář">
@@ -2860,7 +2846,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
               Priorita
             </label>
-            <select
+            <ThemedNativeSelect
               value={priority === "" ? "" : String(priority)}
               onChange={(event) =>
                 setPriority(event.target.value === "" ? "" : (Number(event.target.value) as TaskPriority))
@@ -2872,7 +2858,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
               <option value="2">P2 vysoká</option>
               <option value="3">P3 střední</option>
               <option value="4">P4 nízká</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
         </div>
 
@@ -2938,7 +2924,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
           <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
             TODO projekt
           </label>
-          <select
+          <ThemedNativeSelect
             value={todoProjectId}
             onChange={(event) => setTodoProjectId(event.target.value)}
             disabled={isSubtask}
@@ -2950,7 +2936,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                 {project.name}
               </option>
             ))}
-          </select>
+          </ThemedNativeSelect>
           {isSubtask && (
             <p className="mt-1 text-xs text-slate-500">
               Podúkol drží TODO projekt podle hlavního úkolu.
@@ -2962,7 +2948,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
           <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
             Kontext stavby
           </label>
-          <select
+          <ThemedNativeSelect
             value={projectId}
             onChange={(event) => setProjectId(event.target.value)}
             className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -2973,7 +2959,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
                 {project.name}
               </option>
             ))}
-          </select>
+          </ThemedNativeSelect>
         </div>
 
         {error && (

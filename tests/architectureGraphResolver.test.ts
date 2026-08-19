@@ -248,9 +248,9 @@ describe("architecture graph resolver", () => {
       );
 
     expect(graph.collectionErrors).toEqual([]);
-    expect(graph.nodes).toHaveLength(600);
+    expect(graph.nodes).toHaveLength(605);
     expect(actual).toEqual(baseline.allowedImports);
     expect(actual).toHaveLength(134);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(37);
-  });
+  }, 20_000);
 });

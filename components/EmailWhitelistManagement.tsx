@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { userManagementService, WhitelistedEmail } from '../services/userManagementService';
 import { useUI } from '../context/UIContext';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface EmailWhitelistManagementProps {
     isAdmin: boolean;
@@ -185,7 +186,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                     </div>
                 </div>
                 <div className="w-[180px]">
-                    <select
+                    <ThemedNativeSelect
                         value={domainFilter}
                         onChange={(e) => setDomainFilter(e.target.value)}
                         className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
@@ -194,7 +195,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                         {uniqueDomains.map(d => (
                             <option key={d} value={d}>@{d}</option>
                         ))}
-                    </select>
+                    </ThemedNativeSelect>
                 </div>
             </div>
 

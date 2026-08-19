@@ -1,5 +1,4 @@
 import { supabase } from "@/services/supabase";
-import { hasOptionalCookieConsent } from "@/shared/privacy/cookieConsent";
 import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 export interface AppUsageActionInput {
@@ -35,6 +34,7 @@ export interface AppUsageSummaryItem {
   createdRecordsCount: number;
   updatedRecordsCount: number;
   deletedRecordsCount: number;
+  hasMeasuredUsage: boolean;
   lastSeenAt: string | null;
   dailyStats: AppUsageDailyStat[];
 }
@@ -74,10 +74,6 @@ export async function recordUsageHeartbeat(
   sessionId: string,
   activeSeconds: number = 120,
 ): Promise<boolean> {
-  if (!hasOptionalCookieConsent()) {
-    return false;
-  }
-
   const normalizedSeconds = clampInteger(activeSeconds, 120, 1, 300);
 
   try {
@@ -99,10 +95,6 @@ export async function recordUsageHeartbeat(
 }
 
 export async function recordUsageAction(input: AppUsageActionInput = {}): Promise<boolean> {
-  if (!hasOptionalCookieConsent()) {
-    return false;
-  }
-
   const actionCount = clampInteger(input.actionCount, 1, 0, 1000);
   const createdRecordsCount = clampInteger(input.createdRecordsCount, 0, 0, 10000);
   const updatedRecordsCount = clampInteger(input.updatedRecordsCount, 0, 0, 10000);
@@ -158,6 +150,7 @@ export async function getAppUsageSummaryAdmin(
     createdRecordsCount: normalizeNumber(row.created_records_count),
     updatedRecordsCount: normalizeNumber(row.updated_records_count),
     deletedRecordsCount: normalizeNumber(row.deleted_records_count),
+    hasMeasuredUsage: row.has_measured_usage === true,
     lastSeenAt: row.last_seen_at ? String(row.last_seen_at) : null,
     dailyStats: normalizeDailyStats(row.daily_stats),
   }));

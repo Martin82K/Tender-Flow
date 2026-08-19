@@ -24,11 +24,20 @@ describe('featureUsageService', () => {
     clearCookieConsentDecision();
   });
 
-  it('trackFeatureUsage bez consentu neodesílá analytické RPC', async () => {
+  it('trackFeatureUsage bez consentu odešle jen povinný provozní čítač', async () => {
+    supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
+
     const result = await trackFeatureUsage('excel_unlocker', { fileSizeBytes: 1234 });
 
     expect(result).toBe(false);
-    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+    expect(supabaseMocks.rpc).toHaveBeenCalledTimes(1);
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith('record_usage_action', {
+      action_count_input: 1,
+      created_records_count_input: 0,
+      updated_records_count_input: 0,
+      deleted_records_count_input: 0,
+      uploaded_bytes_input: 1234,
+    });
   });
 
   it('trackFeatureUsage volá správné RPC parametry', async () => {
@@ -38,6 +47,13 @@ describe('featureUsageService', () => {
     const result = await trackFeatureUsage('excel_unlocker', { fileSizeBytes: 1234 });
 
     expect(result).toBe(true);
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith('record_usage_action', {
+      action_count_input: 1,
+      created_records_count_input: 0,
+      updated_records_count_input: 0,
+      deleted_records_count_input: 0,
+      uploaded_bytes_input: 1234,
+    });
     expect(supabaseMocks.rpc).toHaveBeenCalledWith('track_feature_usage', {
       feature_key_input: 'excel_unlocker',
       metadata_input: { fileSizeBytes: 1234 },
@@ -47,17 +63,21 @@ describe('featureUsageService', () => {
   it('trackFeatureUsage při chybě nepropaguje výjimku a vrátí false', async () => {
     expectConsoleWarn('[featureUsageService] trackFeatureUsage failed:');
     setCookieConsentDecision('accepted_all');
-    supabaseMocks.rpc.mockResolvedValue({ data: null, error: new Error('fail') });
+    supabaseMocks.rpc
+      .mockResolvedValueOnce({ data: true, error: null })
+      .mockResolvedValueOnce({ data: null, error: new Error('fail') });
 
     await expect(trackFeatureUsage('excel_unlocker')).resolves.toBe(false);
   });
 
   it('trackFeatureUsage neloguje syrový error objekt', async () => {
     setCookieConsentDecision('accepted_all');
-    supabaseMocks.rpc.mockResolvedValue({
-      data: null,
-      error: new Error('token Bearer abc.def.ghi user john@example.com'),
-    });
+    supabaseMocks.rpc
+      .mockResolvedValueOnce({ data: true, error: null })
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('token Bearer abc.def.ghi user john@example.com'),
+      });
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     await expect(trackFeatureUsage('excel_unlocker')).resolves.toBe(false);

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T08:23:39.770Z",
+  "generatedAt": "2026-08-19T17:15:21.067Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -317,24 +317,24 @@
     {
       "slug": "vyberova-rizeni-pipeline",
       "title": "📋 Výběrová řízení (Pipeline)",
-      "content": "Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop). ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg) #### Stavy nabídky (sloupce) | Sloupec | Význam | |---------|--------| | **Oslovení** | Připraven k oslovení (může se zobrazit „Generovat poptávku\") | | **Odesláno** | Poptávka odeslána, čeká se na reakci | | **Cenová nabídka** | Dorazila nabídka od subdodavatele | | **Užší výběr** | Shortlist kandidátů | | **Jednání o SOD** | Finalisté / jednání o smlouvě | | **Odmítnuto** | Neúspěšní subdodavatelé | #### Karta nabídky Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email. - Karta zaznamenává až **3 kola VŘ** – do aktuální ceny se počítá aktivně vybrané kolo. - Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz). - Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena). - Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv). - Po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo). ![Karta nabídky v Tender Flow](./assets/06-bid-card.svg) #### Další funkce pipeline - **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné). - **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší. - **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší. - **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele. Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.",
+      "content": "Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop). V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil. ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg) #### Stavy nabídky (sloupce) | Sloupec | Význam | |---------|--------| | **Oslovení** | Připraven k oslovení (může se zobrazit „Generovat poptávku\") | | **Odesláno** | Poptávka odeslána, čeká se na reakci | | **Cenová nabídka** | Dorazila nabídka od subdodavatele | | **Užší výběr** | Shortlist kandidátů | | **Jednání o SOD** | Finalisté / jednání o smlouvě | | **Odmítnuto** | Neúspěšní subdodavatelé | #### Karta nabídky Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email. - Karta zaznamenává až **3 kola VŘ** – do aktuální ceny se počítá aktivně vybrané kolo. - Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz). - Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena). - Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv). - Po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo). ![Karta nabídky v Tender Flow](./assets/06-bid-card.svg) #### Další funkce pipeline - **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné). - **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší. - **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší. - **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele. Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.",
       "keywords": [
-        "nab",
-        "dky",
-        "popt",
-        "rov",
         "zen",
-        "karta",
-        "smluv",
+        "nab",
+        "rov",
+        "popt",
+        "dky",
         "pipeline",
-        "subdodavatel",
+        "dodavatel",
+        "stavu",
+        "stejn",
         "board",
-        "assets",
-        "svg",
         "osloven",
         "odesl",
         "dka",
-        "jedn"
+        "jedn",
+        "organizovan",
+        "kategorie"
       ],
       "source_anchor": "#vyberova-rizeni-pipeline",
       "level": 3,
@@ -1986,24 +1986,24 @@
     {
       "slug": "zasady-pouzivani-cookies",
       "title": "Zásady používání cookies",
-      "content": "Tyto zásady vysvětlují, jaké cookies a podobné technologie můžeme používat na webu a v souvisejících částech služby Tender Flow. #### 1. Co jsou cookies Cookies jsou malé textové soubory, které web ukládá do zařízení uživatele. Podobné technologie mohou zahrnovat také lokální úložiště, identifikátory relace nebo technické značky používané k zajištění funkčnosti, bezpečnosti a měření provozu služby. #### 2. Jaké kategorie cookies můžeme používat Rozsah používaných cookies se může v čase měnit podle funkcí webu a aplikace. Typicky mohou být používány tyto kategorie: - nezbytné cookies pro přihlášení, zabezpečení a správné fungování služby, - funkční cookies pro zapamatování voleb a preferencí uživatele, - analytické cookies pro měření návštěvnosti, výkonu a stability. #### 3. Právní základ používání cookies Nezbytné cookies používáme na základě našeho oprávněného zájmu na bezpečném a funkčním provozu služby. Ostatní cookies používáme pouze tehdy, pokud to vyžadují právní předpisy a pokud k tomu byl udělen odpovídající souhlas. #### 4. Cookies třetích stran Některé cookies mohou být nastavovány nebo vyhodnocovány také externími poskytovateli, například v souvislosti s hostingem, analytikou nebo technickou podporou. Tito poskytovatelé mohou vystupovat jako samostatní správci nebo zpracovatelé podle povahy konkrétní služby. #### 5. Jak lze cookies spravovat Uživatel může své preference upravit prostřednictvím cookie lišty, pokud je na webu zobrazena, a dále v nastavení svého prohlížeče. Omezení nebo blokace některých cookies může ovlivnit funkčnost, pohodlí používání nebo dostupnost některých částí služby. #### 6. Kontakt a změny těchto zásad V případě dotazů k používání cookies nás kontaktujte na adrese martinkalkus [zavináč] icloud [tečka] com. Tyto zásady můžeme průběžně aktualizovat a aktuální verze je vždy zveřejněna na této stránce. Oficiální online verze: [Zásady používání cookies](https://www.tenderflow.cz/cookies)",
+      "content": "Tyto zásady vysvětlují, jaké cookies a podobné technologie můžeme používat na webu a v souvisejících částech služby Tender Flow. #### 1. Co jsou cookies Cookies jsou malé textové soubory, které web ukládá do zařízení uživatele. Podobné technologie mohou zahrnovat také lokální úložiště, identifikátory relace nebo technické značky používané k zajištění funkčnosti, bezpečnosti a měření provozu služby. #### 2. Jaké kategorie cookies můžeme používat Rozsah používaných cookies se může v čase měnit podle funkcí webu a aplikace. Typicky mohou být používány tyto kategorie: - nezbytné cookies pro přihlášení, zabezpečení a správné fungování služby, - funkční cookies pro zapamatování voleb a preferencí uživatele, - analytické cookies a podobné lokální identifikátory pro měření návštěvnosti, využití funkcí, výkonu a stability, které zapínáme až po souhlasu. #### 3. Právní základ používání cookies Nezbytné cookies používáme na základě našeho oprávněného zájmu na bezpečném a funkčním provozu služby. Ostatní cookies používáme pouze tehdy, pokud to vyžadují právní předpisy a pokud k tomu byl udělen odpovídající souhlas. Nepovinné analytické cookies, PostHog a detailnější produktová analytika zůstávají blokované až do udělení souhlasu přes cookie lištu. Agregované provozní měření přihlášené aplikace je však nezbytnou součástí poskytované služby a probíhá u všech přihlášených uživatelů. Eviduje aktivní čas při viditelném a ovládaném okně, souhrnné počty relací a změn a objem přenesených dat. Neobsahuje obsah práce ani jednotlivé vstupy uživatele a denní agregace uchováváme nejvýše 365 dní. #### 4. Cookies třetích stran Některé cookies mohou být nastavovány nebo vyhodnocovány také externími poskytovateli, například v souvislosti s hostingem, analytikou nebo technickou podporou. Tito poskytovatelé mohou vystupovat jako samostatní správci nebo zpracovatelé podle povahy konkrétní služby. #### 5. Jak lze cookies spravovat Uživatel může své preference upravit prostřednictvím cookie lišty, pokud je na webu zobrazena, a dále v nastavení svého prohlížeče. Omezení nebo blokace některých cookies může ovlivnit funkčnost, pohodlí používání nebo dostupnost některých částí služby. #### 6. Kontakt a změny těchto zásad V případě dotazů k používání cookies nás kontaktujte na adrese martinkalkus [zavináč] icloud [tečka] com. Tyto zásady můžeme průběžně aktualizovat a aktuální verze je vždy zveře",
       "keywords": [
         "cookies",
         "pou",
         "slu",
-        "mohou",
+        "podobn",
         "funk",
         "sady",
         "tyto",
-        "podobn",
         "technologie",
         "eme",
         "vat",
         "webu",
         "kter",
         "ivatele",
-        "van",
-        "nosti"
+        "mohou",
+        "lok",
+        "identifik"
       ],
       "source_anchor": "#zasady-pouzivani-cookies",
       "level": 3,

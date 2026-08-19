@@ -41,7 +41,9 @@ export const CookieConsentBanner: React.FC = () => {
             >
               zásadách cookies
             </a>
-            .
+            .{" "}
+            Agregované provozní metriky přihlášené aplikace jsou nezbytnou
+            součástí služby a tato volba je nevypíná.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">

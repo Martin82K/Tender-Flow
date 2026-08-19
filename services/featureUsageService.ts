@@ -53,6 +53,11 @@ export async function trackFeatureUsage(
   featureKey: string,
   metadata: Record<string, unknown> = {},
 ): Promise<boolean> {
+  await recordUsageAction({
+    actionCount: 1,
+    uploadedBytes: normalizeUploadedBytes(metadata),
+  });
+
   if (!hasOptionalCookieConsent()) {
     return false;
   }
@@ -66,13 +71,6 @@ export async function trackFeatureUsage(
     if (error) {
       console.warn('[featureUsageService] trackFeatureUsage failed:', summarizeErrorForLog(error));
       return false;
-    }
-
-    if (data) {
-      void recordUsageAction({
-        actionCount: 1,
-        uploadedBytes: normalizeUploadedBytes(metadata),
-      });
     }
 
     return !!data;

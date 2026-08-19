@@ -11,9 +11,11 @@ disabled unless both conditions are true:
 - `app_settings.posthog_enabled = true` and `posthog_project_key` is populated.
 - The browser has stored the optional cookie consent decision `accepted_all`.
 
-Optional usage analytics are consent-gated consistently in the client. Without
-`accepted_all`, the client must not send PostHog events, feature usage events,
-application usage actions, or application usage heartbeat calls.
+Optional product analytics are consent-gated consistently in the client.
+Without `accepted_all`, the client must not send PostHog events or detailed
+feature usage events. Privacy-minimized application heartbeat and aggregate
+action counters are necessary service operations and remain active for signed-in
+non-demo users independently of optional consent.
 
 ## Inventory
 
@@ -21,8 +23,8 @@ application usage actions, or application usage heartbeat calls.
 | --- | --- | --- | --- | --- |
 | PostHog | PostHog EU cloud by default (`https://eu.i.posthog.com`) | Optional product analytics | Disabled by DB config by default; initialized opt-out; captures only after `accepted_all` | Controlled in PostHog project settings |
 | Feature usage | Supabase `feature_usage_events` | Optional usage analytics | `trackFeatureUsage` returns without RPC unless `accepted_all` | `feature-usage-events`, 180 days |
-| App usage heartbeat | Supabase `usage_daily_stats` plus short-lived `usage_session_state` | Optional usage analytics | `useAppUsageHeartbeat` and `recordUsageHeartbeat` require `accepted_all` | Aggregated daily stats; session state expires in DB |
-| App usage actions | Supabase `usage_daily_stats` | Optional usage analytics | `recordUsageAction` requires `accepted_all` | Aggregated daily stats |
+| App usage heartbeat | Supabase `usage_daily_stats` plus short-lived `usage_session_state` | Necessary aggregate B2B service operations | Runs for authenticated non-demo users; visible, focused and non-idle window only | Aggregated daily stats; session state expires in DB; no raw heartbeat history or content |
+| App usage actions | Supabase `usage_daily_stats` | Necessary aggregate B2B service operations | Runs for authenticated non-demo users independently of optional cookie consent | Aggregated daily counters only; no content or per-action event history |
 | AI agent telemetry | Supabase `ai_agent_usage_events` | Operational cost and abuse telemetry | Not controlled by cookie banner; tied to AI feature execution and cost control | `ai-agent-usage-events`, 180 days |
 | AI voice telemetry | Supabase `ai_voice_usage_events` | Operational cost and abuse telemetry | Not controlled by cookie banner; tied to voice feature execution and cost control | `ai-voice-usage-events`, 180 days |
 

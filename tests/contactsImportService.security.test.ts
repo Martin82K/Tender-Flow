@@ -4,8 +4,10 @@ import {
   CONTACTS_IMPORT_FETCH_TIMEOUT_MS,
   CONTACTS_IMPORT_MAX_FILE_BYTES,
   CONTACTS_IMPORT_MAX_ROWS,
+  mergeContacts,
   syncContactsFromUrl,
 } from "../services/contactsImportService";
+import type { Subcontractor } from "../types";
 
 const makeResponse = (
   blob: Blob,
@@ -131,6 +133,64 @@ describe("contactsImportService security controls", () => {
     expect(result.contacts).toHaveLength(1);
     expect(result.contacts[0].company).toBe("Alpha s.r.o.");
     expect(result.contacts[0].email).toBe("jan@example.com");
+  });
+
+  it("keeps differently named centers separate even when their email matches", () => {
+    const existing: Subcontractor = {
+      id: "existing-1",
+      company: "Baustav",
+      specialization: ["Stavba"],
+      contacts: [{ id: "person-1", name: "Jan", email: "info@baustav.cz", phone: "-" }],
+      email: "info@baustav.cz",
+      status: "available",
+    };
+    const imported: Subcontractor = {
+      ...existing,
+      id: "imported-1",
+      company: "Baustav - klempíři",
+    };
+
+    const result = mergeContacts([existing], [imported]);
+
+    expect(result.added).toEqual([imported]);
+    expect(result.updated).toEqual([]);
+    expect(result.mergedContacts.map((contact) => contact.company)).toEqual([
+      "Baustav",
+      "Baustav - klempíři",
+    ]);
+  });
+
+  it("merges a same-name company only inside the active organization", () => {
+    const otherOrganization: Subcontractor = {
+      id: "other-org",
+      organizationId: "org-other",
+      company: "Baustav",
+      specialization: ["Stavba"],
+      contacts: [],
+      status: "available",
+    };
+    const activeOrganization: Subcontractor = {
+      ...otherOrganization,
+      id: "active-org",
+      organizationId: "org-active",
+    };
+    const imported: Subcontractor = {
+      ...activeOrganization,
+      id: "imported",
+      organizationId: undefined,
+      contacts: [{ id: "new-person", name: "Jan", email: "jan@baustav.cz", phone: "-" }],
+    };
+
+    const result = mergeContacts(
+      [otherOrganization, activeOrganization],
+      [imported],
+      { organizationId: "org-active" },
+    );
+
+    expect(result.updated).toHaveLength(1);
+    expect(result.updated[0].id).toBe("active-org");
+    expect(result.updated[0].contacts).toEqual(imported.contacts);
+    expect(result.mergedContacts.find(({ id }) => id === "other-org")?.contacts).toEqual([]);
   });
 
   it("rejects CSV files above the contact row limit", async () => {

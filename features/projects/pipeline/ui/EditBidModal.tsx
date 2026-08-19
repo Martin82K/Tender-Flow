@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import type { Bid, StatusConfig, Subcontractor } from "@/types";
 import { parseFormattedNumber } from "@shared/formatting/decimalFormatters";
 import { formatInputNumber } from "@shared/formatting/numberFormatters";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 export interface EditBidModalProps {
     bid: Bid;
@@ -116,7 +117,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                                     <span className="material-symbols-outlined text-[14px]">star</span>
                                     Hodnocení kontaktu
                                 </label>
-                                <select
+                                <ThemedNativeSelect
                                     value={subcontractor.status || 'available'}
                                     onChange={(e) => onUpdateSubcontractor(subcontractor.id, { status: e.target.value })}
                                     className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
@@ -124,7 +125,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                                     {statuses.map((s) => (
                                         <option key={s.id} value={s.id}>{s.label}</option>
                                     ))}
-                                </select>
+                                </ThemedNativeSelect>
                             </div>
                         )}
 
@@ -142,7 +143,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
 
                             {/* Contact Person Selection Logic */}
                             {subcontractor?.contacts && subcontractor.contacts.length > 0 && !form.contactPerson.startsWith("[Ručně]") && selectedContactId !== "manual" ? (
-                                <select
+                                <ThemedNativeSelect
                                     className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white mb-2"
                                     value={selectedContactId}
                                     onChange={(e) => {
@@ -170,7 +171,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                                         </option>
                                     ))}
                                     <option value="manual">-- Zadat ručně --</option>
-                                </select>
+                                </ThemedNativeSelect>
                             ) : null}
 
                             <input

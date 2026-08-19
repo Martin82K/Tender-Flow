@@ -48,6 +48,14 @@ const renderOverview = (overrides: Partial<React.ComponentProps<typeof PipelineO
       onEditCategory={vi.fn()}
       onDeleteCategory={vi.fn()}
       onToggleCategoryComplete={vi.fn()}
+      exportMeta={{
+        organizationName: "REKO a.s.",
+        projectTitle: "26026 Oprava mostu m.35",
+        projectStatus: "realization",
+        exportedBy: "Martin Kalkus",
+        appVersion: "1.9.12",
+      }}
+      onExportError={vi.fn()}
       {...overrides}
     />,
   );
@@ -68,10 +76,12 @@ describe("PipelineOverview layout", () => {
     const filters = container.querySelector("[data-help-id='pipeline-filters']");
     const viewToggle = container.querySelector("[data-help-id='pipeline-view-toggle']");
     const table = container.querySelector("[data-help-id='pipeline-overview-table']");
+    const toolbarLayer = container.querySelector("[data-pipeline-toolbar-layer]");
 
     expect(filters).toBeInTheDocument();
     expect(viewToggle).toBeInTheDocument();
     expect(table).toBeInTheDocument();
+    expect(toolbarLayer).toHaveClass("relative", "z-20");
     expect(filters).toHaveClass("tf-demand-filterbar");
     expect(viewToggle?.className).not.toContain("rounded-full");
 
@@ -272,6 +282,59 @@ describe("PipelineOverview layout", () => {
     expect(screen.getByRole("columnheader", { name: /Termín/ })).toHaveClass("whitespace-nowrap");
     expect(screen.getByRole("columnheader", { name: /Realizace/ })).toHaveClass("whitespace-nowrap");
     expect(container.querySelector("[data-pipeline-table-scroll]")).toHaveClass("overflow-x-auto");
-    expect(container.querySelector("table")).toHaveStyle({ width: "1272px" });
+    expect(container.querySelector("table")).toHaveClass("w-full");
+    expect(container.querySelector("table")).toHaveStyle({ minWidth: "1272px" });
+  });
+
+  it("roztáhne tabulku na dostupnou šířku a na úzkém prostoru zachová minimální šířku", () => {
+    const { container } = renderOverview();
+
+    const table = container.querySelector("table");
+    expect(table).toHaveClass("w-full");
+    expect(table).toHaveStyle({ minWidth: "1212px" });
+    expect(table).not.toHaveStyle({ width: "1212px" });
+  });
+
+  it("rozbalí dodavatele do podřízených řádků ve stylu dodatků smlouvy", () => {
+    const supplier: Bid = {
+      id: "bid-supplier",
+      subcontractorId: "supplier-1",
+      companyName: "Dodavatel Alfa s.r.o.",
+      contactPerson: "Jan Novák",
+      email: "jan@example.cz",
+      price: "125000,00",
+      status: "offer",
+      notes: "Cena včetně dopravy",
+    };
+    renderOverview({
+      categories: [categories[0]],
+      bids: { [categories[0].id]: [supplier] },
+    });
+
+    const toggle = screen.getByRole("button", {
+      name: "Rozbalit poptané dodavatele VŘ Zemni prace",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Dodavatel Alfa s.r.o.")).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Dodavatel Alfa s.r.o.")).toBeInTheDocument();
+    expect(screen.getByText("Dodal cenu")).toBeInTheDocument();
+    expect(screen.getByText("Cena včetně dopravy")).toBeInTheDocument();
+    expect(screen.getByText("Dodal cenu")).toHaveAttribute("data-bid-status", "offer");
+    expect(screen.getByText("Dodal cenu")).not.toHaveClass("rounded-md", "border");
+    expect(screen.getByRole("row", { name: /Dodavatel Alfa s\.r\.o\./i })).toHaveAttribute(
+      "data-parent-category-id",
+      "cat-1",
+    );
+  });
+
+  it("nabídne export aktuální tabulky do XLSX a PDF", () => {
+    renderOverview();
+
+    expect(screen.getByRole("button", { name: "Exportovat přehled VŘ do XLSX" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportovat přehled VŘ do PDF" })).toBeInTheDocument();
   });
 });

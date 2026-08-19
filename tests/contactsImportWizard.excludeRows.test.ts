@@ -44,6 +44,34 @@ const sampleMapping: FieldMapping = {
 };
 
 describe("contactsImportWizard – row exclusion", () => {
+  it("ponechá rozdílně pojmenovaná střediska se stejným emailem samostatně", () => {
+    const existingContact = {
+      id: "existing-1",
+      company: "Baustav",
+      specialization: ["Stavba"],
+      contacts: [{ id: "person-1", name: "Jan", email: "info@baustav.cz", phone: "-" }],
+      email: "info@baustav.cz",
+      status: "available",
+    };
+    const table = makeTable([
+      { Firma: "Baustav - zemní práce", Email: "info@baustav.cz", Jmeno: "Petr" },
+    ]);
+
+    const result = analyzeContactsImport(
+      table,
+      sampleMapping,
+      baseOptions({ existingContacts: [existingContact] }),
+    );
+
+    expect(result.aggregatedContacts).toHaveLength(1);
+    expect(result.aggregatedContacts[0]).toEqual(
+      expect.objectContaining({
+        company: "Baustav - zemní práce",
+        id: expect.not.stringMatching(/^existing-1$/),
+      }),
+    );
+  });
+
   it("without exclusions, all valid rows are imported", () => {
     const table = makeTable(sampleRows);
     const result = analyzeContactsImport(table, sampleMapping, baseOptions());

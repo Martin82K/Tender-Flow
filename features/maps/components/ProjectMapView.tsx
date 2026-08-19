@@ -16,6 +16,7 @@ import { MapRoutePanel } from './MapRoutePanel';
 import { useFeatures } from '@/context/FeatureContext';
 import { FEATURES } from '@/config/features';
 import { buildDynamicColorMap, getDynamicMarkerColor } from '../utils/markerColors';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ProjectMapViewProps {
   projectId: string;
@@ -371,7 +372,7 @@ export function ProjectMapView({
         </div>
 
         {/* Region select */}
-        <select
+        <ThemedNativeSelect
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
           className="text-xs px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -380,7 +381,7 @@ export function ProjectMapView({
           {allRegions.map(r => (
             <option key={r} value={r}>{r}</option>
           ))}
-        </select>
+        </ThemedNativeSelect>
 
         {/* Labels toggle */}
         <button

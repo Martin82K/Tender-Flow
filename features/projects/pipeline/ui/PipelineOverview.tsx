@@ -11,6 +11,13 @@ import type { Bid, DemandCategory } from '@/types';
 import { parseFormattedNumber } from '@shared/formatting/decimalFormatters';
 import { formatMoney } from '@shared/formatting/numberFormatters';
 import {
+    exportTenderOverviewToPdf,
+    exportTenderOverviewToXlsx,
+    getTenderBidStatusLabel,
+    sortTenderBidsByStatus,
+    type TenderOverviewExportMeta,
+} from '@features/projects/api/pipelineOverviewExportApi';
+import {
     DEFAULT_PIPELINE_TABLE_COLUMN_WIDTHS,
     MAX_PIPELINE_TABLE_COLUMN_WIDTHS,
     MIN_PIPELINE_TABLE_COLUMN_WIDTHS,
@@ -59,6 +66,8 @@ export interface PipelineOverviewProps {
     onEditCategory: (category: DemandCategory) => void;
     onDeleteCategory: (categoryId: string) => void;
     onToggleCategoryComplete: (category: DemandCategory) => void;
+    exportMeta: TenderOverviewExportMeta;
+    onExportError: (message: string) => void;
 }
 
 export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
@@ -75,10 +84,14 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     onEditCategory,
     onDeleteCategory,
     onToggleCategoryComplete,
+    exportMeta,
+    onExportError,
 }) => {
     const rowClickTimeoutRef = useRef<number | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState | null>(null);
+    const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(() => new Set());
+    const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'pdf' | null>(null);
     const [tablePreferences, setTablePreferences] = useState<{
         userId: string | null;
         value: PipelineTablePreferences;
@@ -308,6 +321,42 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     const getNormalizedStatus = (raw: DemandCategory['status']) =>
         raw === 'sod' ? 'sod' : raw === 'closed' ? 'closed' : raw === 'negotiating' ? 'negotiating' : 'open';
 
+    const bidStatusTextClass: Record<string, string> = {
+        'Poptán': 'text-sky-700 dark:text-sky-300',
+        'Nedodal cenu': 'text-amber-700 dark:text-amber-300',
+        'Dodal cenu': 'text-emerald-700 dark:text-emerald-300',
+        'Vybrán': 'text-violet-700 dark:text-violet-300',
+        'Zasmluvněn': 'text-emerald-700 dark:text-emerald-300',
+        'Zamítnut / odstoupil': 'text-red-700 dark:text-red-300',
+    };
+
+    const bidStatusRowClass: Record<string, string> = {
+        'Poptán': 'bg-sky-50/60 hover:bg-sky-100/70 dark:bg-sky-950/25 dark:hover:bg-sky-900/35',
+        'Nedodal cenu': 'bg-amber-50/60 hover:bg-amber-100/70 dark:bg-amber-950/25 dark:hover:bg-amber-900/35',
+        'Dodal cenu': 'bg-emerald-50/55 hover:bg-emerald-100/70 dark:bg-emerald-950/25 dark:hover:bg-emerald-900/35',
+        'Vybrán': 'bg-violet-50/60 hover:bg-violet-100/70 dark:bg-violet-950/25 dark:hover:bg-violet-900/35',
+        'Zasmluvněn': 'bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/35 dark:hover:bg-emerald-900/45',
+        'Zamítnut / odstoupil': 'bg-red-50/55 hover:bg-red-100/70 dark:bg-red-950/25 dark:hover:bg-red-900/35',
+    };
+
+    const bidStatusBorderClass: Record<string, string> = {
+        'Poptán': 'border-l-sky-500',
+        'Nedodal cenu': 'border-l-amber-500',
+        'Dodal cenu': 'border-l-emerald-500',
+        'Vybrán': 'border-l-violet-500',
+        'Zasmluvněn': 'border-l-emerald-500',
+        'Zamítnut / odstoupil': 'border-l-red-500',
+    };
+
+    const toggleCategoryExpansion = (categoryId: string) => {
+        setExpandedCategoryIds((current) => {
+            const next = new Set(current);
+            if (next.has(categoryId)) next.delete(categoryId);
+            else next.add(categoryId);
+            return next;
+        });
+    };
+
     const columnWidths = {
         ...DEFAULT_PIPELINE_TABLE_COLUMN_WIDTHS,
         ...tablePreferences.value.widths,
@@ -316,6 +365,25 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         (sum, column) => sum + columnWidths[column],
         0,
     );
+
+    const runExport = async (format: 'xlsx' | 'pdf') => {
+        setExportingFormat(format);
+        try {
+            if (format === 'xlsx') {
+                await exportTenderOverviewToXlsx(filteredCategories, bids, exportMeta);
+            } else {
+                await exportTenderOverviewToPdf(filteredCategories, bids, exportMeta);
+            }
+        } catch (reason) {
+            onExportError(
+                reason instanceof Error
+                    ? reason.message
+                    : `Export do ${format.toUpperCase()} se nepodařilo vytvořit.`,
+            );
+        } finally {
+            setExportingFormat(null);
+        }
+    };
 
     const renderResizeHandle = (
         column: ResizablePipelineTableColumnId,
@@ -358,7 +426,10 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     return (
         <div className="tf-pipeline-overview overflow-y-auto p-4 md:p-6 lg:p-8">
             {/* Filter Buttons and Add Button */}
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div
+                data-pipeline-toolbar-layer
+                className="relative z-20 mb-4 flex flex-wrap items-center justify-between gap-3"
+            >
                 <div data-help-id="pipeline-filters" className="tf-demand-filterbar min-w-0">
                     <button
                         type="button"
@@ -399,6 +470,30 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            aria-label="Exportovat přehled VŘ do XLSX"
+                            title="Exportovat aktuálně filtrovaná VŘ do Excelu"
+                            disabled={exportingFormat !== null}
+                            onClick={() => void runExport('xlsx')}
+                            className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:cursor-wait disabled:opacity-60 dark:text-emerald-300"
+                        >
+                            <span className="material-symbols-outlined text-[17px]" aria-hidden>table_view</span>
+                            <span className="hidden lg:inline">{exportingFormat === 'xlsx' ? 'Exportuji…' : 'XLSX'}</span>
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Exportovat přehled VŘ do PDF"
+                            title="Exportovat aktuálně filtrovaná VŘ do PDF"
+                            disabled={exportingFormat !== null}
+                            onClick={() => void runExport('pdf')}
+                            className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:cursor-wait disabled:opacity-60 dark:text-red-300"
+                        >
+                            <span className="material-symbols-outlined text-[17px]" aria-hidden>picture_as_pdf</span>
+                            <span className="hidden lg:inline">{exportingFormat === 'pdf' ? 'Exportuji…' : 'PDF'}</span>
+                        </button>
+                    </div>
                     <div data-help-id="pipeline-view-toggle" className="flex items-center gap-0.5 rounded-lg bg-slate-100 p-1 dark:bg-slate-900/60">
                         <div className="group relative">
                         <button
@@ -451,7 +546,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
             {viewMode === 'table' ? (
                 <div data-help-id="pipeline-overview-table" className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
                     <div data-pipeline-table-scroll className="overflow-x-auto">
-                        <table className="table-fixed text-sm" style={{ width: tableWidth }}>
+                        <table className="w-full table-fixed text-sm" style={{ minWidth: tableWidth }}>
                             <colgroup>
                                 {PIPELINE_TABLE_COLUMN_IDS.map((column) => (
                                     <col key={column} style={{ width: columnWidths[column] }} />
@@ -481,63 +576,156 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                             : '—';
                                     const priceValue = stats.winningPrice ?? category.sodBudget;
                                     const price = formatMoney(priceValue);
+                                    const categoryBids = bids[category.id] || [];
+                                    const sortedCategoryBids = sortTenderBidsByStatus(categoryBids);
+                                    const isExpanded = expandedCategoryIds.has(category.id);
                                     return (
-                                        <tr
-                                            key={category.id}
-                                            tabIndex={0}
-                                            aria-label={`${category.title}. Kliknutím otevřít, dvojklikem upravit, pravým tlačítkem nebo Shift+F10 zobrazit další akce.`}
-                                            title="Kliknutím otevřít, dvojklikem upravit, pravým tlačítkem zobrazit další akce"
-                                            className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35 dark:hover:bg-slate-950/30"
-                                            onClick={() => handleRowClick(category)}
-                                            onDoubleClick={() => handleRowDoubleClick(category)}
-                                            onContextMenu={(event) => openRowContextMenu(event, category)}
-                                            onKeyDown={(event) => {
-                                                if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
-                                                    openRowContextMenu(event, category);
-                                                }
-                                            }}
-                                        >
-                                            <td className="px-3 py-3">
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
-                                                    {statusLabels[normalizedStatus]}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                <div className="font-bold text-slate-900 dark:text-white">{category.title}</div>
-                                                {category.description && (
-                                                    <div className="text-xs text-slate-500 dark:text-slate-400">{category.description}</div>
-                                                )}
-                                            </td>
-                                            <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
-                                            <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
-                                            <td className="px-3 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
-                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
-                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
-                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">
-                                                {stats.sodBidsCount > 0 ? `${stats.contractedCount}/${stats.sodBidsCount}` : '—'}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                <div className="flex justify-end">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onToggleCategoryComplete(category);
-                                                        }}
-                                                        className={`flex min-h-9 min-w-9 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${category.status === 'closed'
-                                                            ? 'text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
-                                                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
-                                                            }`}
-                                                        title={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
-                                                        aria-label={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">
-                                                            {category.status === 'closed' ? 'check_circle' : 'task_alt'}
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        <React.Fragment key={category.id}>
+                                            <tr
+                                                tabIndex={0}
+                                                aria-label={`${category.title}. Kliknutím otevřít, dvojklikem upravit, pravým tlačítkem nebo Shift+F10 zobrazit další akce.`}
+                                                title="Kliknutím otevřít, dvojklikem upravit, pravým tlačítkem zobrazit další akce"
+                                                className="cursor-pointer transition-colors hover:bg-slate-50 focus-visible:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35 dark:hover:bg-slate-950/30"
+                                                onClick={() => handleRowClick(category)}
+                                                onDoubleClick={() => handleRowDoubleClick(category)}
+                                                onContextMenu={(event) => openRowContextMenu(event, category)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+                                                        openRowContextMenu(event, category);
+                                                    }
+                                                }}
+                                            >
+                                                <td className="px-3 py-3">
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
+                                                        {statusLabels[normalizedStatus]}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <div className="flex items-start gap-1.5">
+                                                        {categoryBids.length > 0 ? (
+                                                            <button
+                                                                type="button"
+                                                                aria-expanded={isExpanded}
+                                                                aria-label={`${isExpanded ? 'Sbalit' : 'Rozbalit'} poptané dodavatele VŘ ${category.title}`}
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    toggleCategoryExpansion(category.id);
+                                                                }}
+                                                                className="mt-0.5 grid size-5 shrink-0 place-items-center rounded text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                                            >
+                                                                <span
+                                                                    aria-hidden="true"
+                                                                    className={`material-symbols-outlined text-[16px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                                                >
+                                                                    chevron_right
+                                                                </span>
+                                                            </button>
+                                                        ) : (
+                                                            <span className="block size-5 shrink-0" aria-hidden="true" />
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <div className="font-bold text-slate-900 dark:text-white">{category.title}</div>
+                                                            {category.description ? (
+                                                                <div className="truncate text-xs text-slate-500 dark:text-slate-400">{category.description}</div>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
+                                                <td className="whitespace-nowrap px-3 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
+                                                <td className="px-3 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
+                                                <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
+                                                <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
+                                                <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">
+                                                    {stats.sodBidsCount > 0 ? `${stats.contractedCount}/${stats.sodBidsCount}` : '—'}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <div className="flex justify-end">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onToggleCategoryComplete(category);
+                                                            }}
+                                                            className={`flex min-h-9 min-w-9 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${category.status === 'closed'
+                                                                ? 'text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
+                                                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                                                                }`}
+                                                            title={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
+                                                            aria-label={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">
+                                                                {category.status === 'closed' ? 'check_circle' : 'task_alt'}
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {isExpanded
+                                                ? sortedCategoryBids.map((bid) => {
+                                                    const statusLabel = getTenderBidStatusLabel(bid);
+                                                    const selectedRoundPrice = bid.selectionRound == null
+                                                        ? undefined
+                                                        : bid.priceHistory?.[bid.selectionRound];
+                                                    const rawBidPrice = bid.price && bid.price !== '?' && bid.price !== '-'
+                                                        ? bid.price
+                                                        : selectedRoundPrice;
+                                                    const numericBidPrice = rawBidPrice
+                                                        ? parseFormattedNumber(rawBidPrice)
+                                                        : Number.NaN;
+                                                    const contact = [bid.contactPerson, bid.email, bid.phone]
+                                                        .filter(Boolean)
+                                                        .join(' · ');
+                                                    return (
+                                                        <tr
+                                                            key={bid.id}
+                                                            data-parent-category-id={category.id}
+                                                            aria-label={`${bid.companyName}. ${statusLabel}. ${contact}`}
+                                                            className={`text-xs transition-colors ${bidStatusRowClass[statusLabel] || bidStatusRowClass['Poptán']}`}
+                                                        >
+                                                            <td className={`border-l-4 px-3 py-2.5 ${bidStatusBorderClass[statusLabel] || bidStatusBorderClass['Poptán']}`}>
+                                                                <span
+                                                                    data-bid-status={bid.status}
+                                                                    className={`text-[11px] font-bold ${bidStatusTextClass[statusLabel] || bidStatusTextClass['Poptán']}`}
+                                                                >
+                                                                    {statusLabel}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-slate-700 dark:text-slate-200">
+                                                                <div className="flex items-start gap-1.5 pl-1">
+                                                                    <span className="material-symbols-outlined mt-0.5 text-[15px] text-cyan-600 dark:text-cyan-400" aria-hidden>
+                                                                        subdirectory_arrow_right
+                                                                    </span>
+                                                                    <div className="min-w-0">
+                                                                        <div className="font-semibold">{bid.companyName}</div>
+                                                                        {bid.notes ? (
+                                                                            <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">{bid.notes}</div>
+                                                                        ) : null}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-2.5 text-slate-600 dark:text-slate-300">
+                                                                {bid.updateDate ? new Date(bid.updateDate).toLocaleDateString('cs-CZ') : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300">
+                                                                <div className="truncate">{contact || '—'}</div>
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-slate-900 dark:text-white">
+                                                                {Number.isFinite(numericBidPrice) ? formatMoney(numericBidPrice) : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-right text-slate-600 dark:text-slate-300">Ano</td>
+                                                            <td className="px-3 py-2.5 text-right text-slate-600 dark:text-slate-300">
+                                                                {Number.isFinite(numericBidPrice) ? 'Ano' : 'Ne'}
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-right text-slate-600 dark:text-slate-300">
+                                                                {bid.contracted ? 'Ano' : bid.status === 'sod' ? 'Čeká' : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-2.5" aria-hidden="true" />
+                                                        </tr>
+                                                    );
+                                                })
+                                                : null}
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>

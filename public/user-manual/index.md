@@ -192,6 +192,8 @@ Plán VŘ slouží k naplánování výběrových řízení v čase a (dle potř
 
 Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop).
 
+V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil.
+
 ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg)
 
 #### Stavy nabídky (sloupce)
@@ -1068,6 +1070,8 @@ V rámci provozu webu a aplikace můžeme používat cookies a podobné technolo
 
 Za účelem zabezpečení, prevence zneužití, diagnostiky a zajištění stability zpracováváme také nezbytné technické a incidentní logy. Tyto záznamy neslouží k obsahové kontrole uživatelských dat.
 
+U přihlášených uživatelů dále vedeme agregované denní provozní statistiky: aktivní čas pouze při viditelném a ovládaném okně, souhrnné počty relací a změn, objem přenesených dat a čas poslední aktivity. Neukládáme jednotlivé heartbeat události, obsah práce ani jednotlivé vstupy uživatele. Tyto údaje slouží ke správě a kapacitnímu vyhodnocení poskytované B2B služby a uchovávají se nejvýše 365 dní.
+
 #### 12. Změny těchto zásad
 
 Tyto zásady můžeme průběžně aktualizovat, zejména při změně služby, právních požadavků nebo používaných technologií. Aktuální verze je vždy zveřejněna na této stránce s datem poslední aktualizace.
@@ -1088,11 +1092,13 @@ Rozsah používaných cookies se může v čase měnit podle funkcí webu a apli
 
 - nezbytné cookies pro přihlášení, zabezpečení a správné fungování služby,
 - funkční cookies pro zapamatování voleb a preferencí uživatele,
-- analytické cookies pro měření návštěvnosti, výkonu a stability.
+- analytické cookies a podobné lokální identifikátory pro měření návštěvnosti, využití funkcí, výkonu a stability, které zapínáme až po souhlasu.
 
 #### 3. Právní základ používání cookies
 
 Nezbytné cookies používáme na základě našeho oprávněného zájmu na bezpečném a funkčním provozu služby. Ostatní cookies používáme pouze tehdy, pokud to vyžadují právní předpisy a pokud k tomu byl udělen odpovídající souhlas.
+
+Nepovinné analytické cookies, PostHog a detailnější produktová analytika zůstávají blokované až do udělení souhlasu přes cookie lištu. Agregované provozní měření přihlášené aplikace je však nezbytnou součástí poskytované služby a probíhá u všech přihlášených uživatelů. Eviduje aktivní čas při viditelném a ovládaném okně, souhrnné počty relací a změn a objem přenesených dat. Neobsahuje obsah práce ani jednotlivé vstupy uživatele a denní agregace uchováváme nejvýše 365 dní.
 
 #### 4. Cookies třetích stran
 

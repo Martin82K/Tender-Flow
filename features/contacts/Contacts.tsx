@@ -10,6 +10,7 @@ import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/se
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
+import { isSubcontractorNameConflictError } from '@/shared/contacts/subcontractorIdentity';
 import { isDesktop, shellAdapter } from '@infra/platform/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
@@ -24,6 +25,8 @@ import { withPrimaryContactMirror } from '@features/contacts/model/contactPersis
 import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
 import { useAccessibleDialog } from '@/shared/ui/useAccessibleDialog';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
+import type { SubcontractorTenantScope } from "@shared/contacts/subcontractorIdentity";
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -34,9 +37,10 @@ interface ContactsProps {
     onBulkUpdateContacts: (contacts: Subcontractor[]) => Promise<void> | void;
     onDeleteContacts: (ids: string[]) => void;
     isAdmin?: boolean;
+    tenantScope?: SubcontractorTenantScope;
 }
 
-export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false }) => {
+export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false, tenantScope }) => {
     // View mode: cards | list | map
     type ViewMode = 'cards' | 'list' | 'map';
     const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -528,6 +532,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 existingContacts: contacts,
                 existingSpecializations: allSpecializations,
                 defaultStatusId,
+                targetScope: tenantScope,
                 useAi: true,
             });
             setQuickPasteAnalysis(analysis);
@@ -600,10 +605,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         } catch (error) {
             console.error('Error saving contact:', error);
+            const nameConflict = isSubcontractorNameConflictError(error);
             setConfirmModal({
                 isOpen: true,
-                title: 'Kontakt se nepodařilo uložit',
-                message: 'Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.',
+                title: nameConflict ? 'Duplicitní název subdodavatele' : 'Kontakt se nepodařilo uložit',
+                message: nameConflict && error instanceof Error
+                    ? error.message
+                    : 'Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.',
                 onConfirm: closeConfirmModal,
                 variant: 'danger',
             });
@@ -1451,7 +1459,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                         </div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stav kontaktu</label>
                                         <div className="flex gap-2">
-                                            <select
+                                            <ThemedNativeSelect
                                                 value={formData.status || 'available'}
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
@@ -1459,7 +1467,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 {statuses.map(s => (
                                                     <option key={s.id} value={s.id}>{s.label}</option>
                                                 ))}
-                                            </select>
+                                            </ThemedNativeSelect>
                                         </div>
                                     </div>
                                 </div>

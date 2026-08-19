@@ -4,10 +4,7 @@ import {
   recordUsageAction,
   recordUsageHeartbeat,
 } from "../infra/usage/appUsageService";
-import {
-  clearCookieConsentDecision,
-  setCookieConsentDecision,
-} from "@/shared/privacy/cookieConsent";
+import { clearCookieConsentDecision } from "@/shared/privacy/cookieConsent";
 
 const supabaseMocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -26,14 +23,18 @@ describe("appUsageService", () => {
     clearCookieConsentDecision();
   });
 
-  it("recordUsageHeartbeat bez analytického souhlasu neodesílá RPC", async () => {
-    await expect(recordUsageHeartbeat("session-1", 120)).resolves.toBe(false);
+  it("recordUsageHeartbeat odesílá nezbytnou provozní metriku i bez analytického souhlasu", async () => {
+    supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
-    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+    await expect(recordUsageHeartbeat("session-1", 120)).resolves.toBe(true);
+
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith("record_usage_heartbeat", {
+      session_id_input: "session-1",
+      active_seconds_input: 120,
+    });
   });
 
   it("recordUsageHeartbeat volá agregované RPC s ořezaným intervalem", async () => {
-    setCookieConsentDecision("accepted_all");
     supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
     await expect(recordUsageHeartbeat("session-1", 999)).resolves.toBe(true);
@@ -44,14 +45,21 @@ describe("appUsageService", () => {
     });
   });
 
-  it("recordUsageAction bez analytického souhlasu neodesílá RPC", async () => {
-    await expect(recordUsageAction({ updatedRecordsCount: 1 })).resolves.toBe(false);
+  it("recordUsageAction odesílá agregovanou provozní metriku i bez analytického souhlasu", async () => {
+    supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
-    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
+    await expect(recordUsageAction({ updatedRecordsCount: 1 })).resolves.toBe(true);
+
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith("record_usage_action", {
+      action_count_input: 1,
+      created_records_count_input: 0,
+      updated_records_count_input: 1,
+      deleted_records_count_input: 0,
+      uploaded_bytes_input: 0,
+    });
   });
 
   it("recordUsageAction ořezává záporné a příliš velké hodnoty", async () => {
-    setCookieConsentDecision("accepted_all");
     supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
     await expect(
@@ -74,7 +82,6 @@ describe("appUsageService", () => {
   });
 
   it("recordUsageAction používá výchozí actionCount pro běžnou akci", async () => {
-    setCookieConsentDecision("accepted_all");
     supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
     await expect(recordUsageAction({ updatedRecordsCount: 1 })).resolves.toBe(true);
@@ -105,6 +112,7 @@ describe("appUsageService", () => {
           created_records_count: "5",
           updated_records_count: 7,
           deleted_records_count: 1,
+          has_measured_usage: true,
           last_seen_at: "2026-05-18T10:00:00.000Z",
           daily_stats: [
             {
@@ -138,6 +146,7 @@ describe("appUsageService", () => {
         createdRecordsCount: 5,
         updatedRecordsCount: 7,
         deletedRecordsCount: 1,
+        hasMeasuredUsage: true,
         lastSeenAt: "2026-05-18T10:00:00.000Z",
         dailyStats: [
           {

@@ -15,6 +15,7 @@ import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE,
 } from '@/shared/email/signature';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface OrgBrandingTabProps {
   orgId: string;
@@ -308,7 +309,7 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Písmo
             </label>
-            <select
+            <ThemedNativeSelect
               value={fontFamily}
               onChange={e => setFontFamily(e.target.value)}
               disabled={!isAdminOrOwner}
@@ -319,13 +320,13 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
               Velikost písma
             </label>
-            <select
+            <ThemedNativeSelect
               value={fontSize}
               onChange={e => setFontSize(e.target.value)}
               disabled={!isAdminOrOwner}
@@ -336,7 +337,7 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
           </div>
         </div>
 

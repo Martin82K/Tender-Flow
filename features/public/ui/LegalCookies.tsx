@@ -6,7 +6,7 @@ export const LegalCookies: React.FC = () => {
     <LegalPageLayout
       title="Zásady používání cookies"
       lead="Tyto zásady vysvětlují, jaké cookies a podobné technologie můžeme používat na webu a v souvisejících částech služby Tender Flow."
-      updatedAt="20. května 2026"
+      updatedAt="18. srpna 2026"
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Co jsou cookies</h2>
@@ -48,9 +48,14 @@ export const LegalCookies: React.FC = () => {
           odpovídající souhlas.
         </p>
         <p className="mt-2">
-          V aktuální implementaci Tender Flow jsou nepovinné analytické cookies,
-          PostHog měření a usage analytika včetně aplikačního heartbeat měření
-          blokované až do udělení souhlasu přes cookie lištu.
+          Nepovinné analytické cookies, PostHog a detailnější produktová
+          analytika zůstávají blokované až do udělení souhlasu přes cookie
+          lištu. Agregované provozní měření přihlášené aplikace je však
+          nezbytnou součástí poskytované služby a probíhá u všech přihlášených
+          uživatelů. Eviduje aktivní čas při viditelném a ovládaném okně,
+          souhrnné počty relací a změn a objem přenesených dat. Neobsahuje obsah
+          práce ani jednotlivé vstupy uživatele a denní agregace uchováváme
+          nejvýše 365 dní.
         </p>
       </section>
 

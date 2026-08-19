@@ -4,6 +4,7 @@ import {
   sanitizeSubcontractorCompanyName,
   validateSubcontractorCompanyName,
 } from "../shared/dochub/subcontractorNameRules";
+import { normalizeSubcontractorIdentityName } from "../shared/contacts/subcontractorIdentity";
 
 type XlsxModule = typeof import("xlsx");
 type XlsxWorkbook = import("xlsx").WorkBook;
@@ -124,25 +125,6 @@ const deriveCompanyFromEmail = (email: string): string | null => {
   const domain = normalized.slice(at + 1);
   if (!domain) return null;
   return domain;
-};
-
-const buildExistingEmailIndex = (existingContacts: Subcontractor[]) => {
-  const emailToCompanyKey = new Map<string, string>();
-  for (const c of existingContacts) {
-    const companyKey = normalizeText(c.company || "");
-    for (const person of c.contacts || []) {
-      const email = normalizeEmail(person.email || "");
-      if (!email || email === "-") continue;
-      if (!emailToCompanyKey.has(email)) {
-        emailToCompanyKey.set(email, companyKey);
-      }
-    }
-    const legacyEmail = normalizeEmail(c.email || "");
-    if (legacyEmail && legacyEmail !== "-" && !emailToCompanyKey.has(legacyEmail)) {
-      emailToCompanyKey.set(legacyEmail, companyKey);
-    }
-  }
-  return emailToCompanyKey;
 };
 
 export const getTenderFlowImportFields = () => {
@@ -448,11 +430,10 @@ export const analyzeContactsImport = (
   const nameFixMode = options.nameFixMode || "off";
   const existingCompanyByKey = new Map(
     options.existingContacts
-      .map((c) => [normalizeText(c.company || ""), c] as const)
+      .map((c) => [normalizeSubcontractorIdentityName(c.company || ""), c] as const)
       .filter(([k]) => Boolean(k))
   );
   const existingCompanyKeys = new Set(existingCompanyByKey.keys());
-  const existingEmailIndex = buildExistingEmailIndex(options.existingContacts); // email -> companyKey
   const statusByLabel = new Map(options.statuses.map((s) => [normalizeText(s.label), s.id] as const));
 
   const emailOccurrences = new Map<string, number>();
@@ -545,14 +526,10 @@ export const analyzeContactsImport = (
       warnings.push("Duplicitní email v importu.");
     }
 
-    const companyKey = normalizeText(mapped.company || "");
+    const companyKey = normalizeSubcontractorIdentityName(mapped.company || "");
     if (companyKey && existingCompanyKeys.has(companyKey)) {
       warnings.push("Duplicitní firma – dojde k aktualizaci existujícího záznamu.");
     }
-    if (mapped.contactEmail && existingEmailIndex.has(mapped.contactEmail)) {
-      warnings.push("Duplicitní email – firma už existuje v databázi.");
-    }
-
     if (!isEmptyValue(mapped.statusRaw)) {
       const statusId = statusByLabel.get(normalizeText(mapped.statusRaw));
       if (!statusId) {
@@ -562,11 +539,8 @@ export const analyzeContactsImport = (
 
     // Decide whether the row would actually change anything in DB.
     const matchedCompanyKey = (() => {
-      const ck = normalizeText(mapped.company || "");
+      const ck = normalizeSubcontractorIdentityName(mapped.company || "");
       if (ck && existingCompanyKeys.has(ck)) return ck;
-      if (mapped.contactEmail && existingEmailIndex.has(mapped.contactEmail)) {
-        return existingEmailIndex.get(mapped.contactEmail)!;
-      }
       return null;
     })();
 
@@ -620,7 +594,7 @@ export const analyzeContactsImport = (
       warnings.push("Duplicitní řádek – v databázi už existuje (bez změn).");
     } else if (existing) {
       outcome = "imported_with_warning";
-      warnings.push("Firma/email už existuje – doplním jen chybějící data.");
+      warnings.push("Firma už existuje – doplním jen chybějící data.");
     } else if (warnings.length > 0) {
       outcome = "imported_with_warning";
     }
@@ -675,13 +649,8 @@ export const analyzeContactsImport = (
     if (row.outcome === "not_imported") continue;
 
     const rawCompany = ensureNonEmpty(row.mapped.company, "Neznámá firma");
-    const rowCompanyKey = normalizeText(rawCompany);
-    const matchedKeyFromEmail =
-      row.mapped.contactEmail && existingEmailIndex.has(row.mapped.contactEmail)
-        ? existingEmailIndex.get(row.mapped.contactEmail)!
-        : null;
-    const canonicalKey =
-      (rowCompanyKey && existingCompanyKeys.has(rowCompanyKey) ? rowCompanyKey : null) || matchedKeyFromEmail || rowCompanyKey;
+    const rowCompanyKey = normalizeSubcontractorIdentityName(rawCompany);
+    const canonicalKey = rowCompanyKey;
     if (!canonicalKey) continue;
 
     const existing = existingCompanyByKey.get(canonicalKey);

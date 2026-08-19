@@ -16,6 +16,7 @@ import {
 import { trackFeatureUsage } from "@features/settings/api";
 import { AlertModal } from "@/shared/ui/AlertModal";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const SETTINGS_KEY = "excelIndexerSettings";
 
@@ -558,7 +559,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                 <label className="text-sm text-slate-600 dark:text-slate-300">
                   Sloupec s "D" markerem:
                 </label>
-                <select
+                <ThemedNativeSelect
                   value={settings.markerColumn}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, markerColumn: e.target.value }))
@@ -570,13 +571,13 @@ export const ExcelIndexerSettings: React.FC = () => {
                       {col}
                     </option>
                   ))}
-                </select>
+                </ThemedNativeSelect>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-slate-600 dark:text-slate-300">
                   Sloupec s názvy oddílů:
                 </label>
-                <select
+                <ThemedNativeSelect
                   value={settings.sectionColumn}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, sectionColumn: e.target.value }))
@@ -588,7 +589,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                       {col}
                     </option>
                   ))}
-                </select>
+                </ThemedNativeSelect>
               </div>
             </div>
             <p className="text-xs text-slate-400 mt-2">
@@ -607,7 +608,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                 <label className="text-sm text-slate-600 dark:text-slate-300">
                   Sloupec s kódy:
                 </label>
-                <select
+                <ThemedNativeSelect
                   value={settings.codeColumn}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, codeColumn: e.target.value }))
@@ -619,13 +620,13 @@ export const ExcelIndexerSettings: React.FC = () => {
                       {col}
                     </option>
                   ))}
-                </select>
+                </ThemedNativeSelect>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-slate-600 dark:text-slate-300">
                   Sloupec pro popisy:
                 </label>
-                <select
+                <ThemedNativeSelect
                   value={settings.descColumn}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, descColumn: e.target.value }))
@@ -637,7 +638,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                       {col}
                     </option>
                   ))}
-                </select>
+                </ThemedNativeSelect>
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input

@@ -14,6 +14,7 @@ import {
   computeInvestorInvoiceBreakdown,
   computeInvestorTotals,
 } from './investorBillingModel';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface Props {
   projectDetails?: ProjectDetails;
@@ -538,7 +539,7 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
                       <td className="p-2 text-right">{editable && hasRetentionOverride ? <div className="flex items-center justify-end gap-1"><input aria-label={`Pozastávka B procento ${index + 1}`} type="number" min="0" max="100" step="0.01" className={`${inputClass} max-w-16 text-right`} value={invoice.retentionBPercent ?? form.retentionBPercent ?? 0} onChange={(event) => updateInvoice(index, 'retentionBPercent', Number(event.target.value))} /><span>%</span></div> : null}<div className={`${editable && hasRetentionOverride ? 'mt-1 ' : ''}tabular-nums text-purple-600`}>{formatMoney(breakdown.retentionBAmount)}</div></td>
                       <td className="p-2 text-right font-semibold tabular-nums">{formatMoney(breakdown.payableAmount)}</td>
                       <td className="p-2 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(breakdown.paidAmount)}</td>
-                      <td className="p-2">{editable ? <select aria-label={`Stav faktury ${index + 1}`} className={inputClass} value={invoice.status} onChange={(event) => updateInvoice(index, 'status', event.target.value as ContractInvoiceStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> : statusLabels[invoice.status]}</td>
+                      <td className="p-2">{editable ? <ThemedNativeSelect aria-label={`Stav faktury ${index + 1}`} className={inputClass} value={invoice.status} onChange={(event) => updateInvoice(index, 'status', event.target.value as ContractInvoiceStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ThemedNativeSelect> : statusLabels[invoice.status]}</td>
                       <td className="p-2"><div className="flex justify-end">{editable ? <><button type="button" onClick={() => cancelInvoiceEdit(index)} aria-label={`Zrušit úpravu faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><span className="material-symbols-outlined text-[17px]">close</span></button><button type="button" onClick={() => setInvoiceRetentionOverride(index, !hasRetentionOverride)} aria-label={hasRetentionOverride ? `Použít globální pozastávky faktury ${index + 1}` : `Nastavit individuální pozastávky faktury ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-primary/10 hover:text-primary"><span className="material-symbols-outlined text-[17px]">tune</span></button><button type="button" onClick={() => requestInvoiceDeletion(index)} aria-label={`Smazat fakturu ${index + 1}`} className="grid h-8 w-8 place-items-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><span className="material-symbols-outlined text-[17px]">delete</span></button></> : null}</div></td>
                     </tr>
                   );

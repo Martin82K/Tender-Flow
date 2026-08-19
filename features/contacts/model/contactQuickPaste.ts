@@ -3,6 +3,11 @@ import { dbAdapter } from "@infra/db/dbAdapter";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { findCompanyRegistrationDetails } from "@/services/geminiService";
 import { sanitizeSubcontractorCompanyName } from "@/shared/dochub/subcontractorNameRules";
+import {
+  matchesSubcontractorTenantScope,
+  normalizeSubcontractorIdentityName,
+  type SubcontractorTenantScope,
+} from "@/shared/contacts/subcontractorIdentity";
 
 export const CONTACT_QUICK_PASTE_MAX_CHARS = 20_000;
 
@@ -329,31 +334,20 @@ const mergeDrafts = (localDraft: ParsedContactDraft, aiDraft: ParsedContactDraft
   note: aiDraft?.note || localDraft.note,
 });
 
-const findExistingContact = (draft: ParsedContactDraft, existingContacts: Subcontractor[]): Subcontractor | undefined => {
-  const ico = normalizeQuickPasteIco(draft.ico);
-  if (ico) {
-    const byIco = existingContacts.find((contact) => normalizeQuickPasteIco(contact.ico) === ico);
-    if (byIco) return byIco;
-  }
+const findExistingContact = (
+  draft: ParsedContactDraft,
+  existingContacts: Subcontractor[],
+  targetScope?: SubcontractorTenantScope,
+): Subcontractor | undefined => {
+  const companyKey = draft.company
+    ? normalizeSubcontractorIdentityName(draft.company)
+    : "";
+  if (!companyKey) return undefined;
 
-  const companyKey = draft.company ? normalizeText(stripQuickPasteLegalForm(draft.company)) : "";
-  if (companyKey) {
-    const byCompany = existingContacts.find(
-      (contact) => normalizeText(stripQuickPasteLegalForm(contact.company || "")) === companyKey,
-    );
-    if (byCompany) return byCompany;
-  }
-
-  const emails = new Set(
-    (draft.contacts || [])
-      .map((contact) => contact.email)
-      .filter(hasValue)
-      .map((email) => email.toLowerCase()),
-  );
-  if (emails.size === 0) return undefined;
-
-  return existingContacts.find((contact) =>
-    (contact.contacts || []).some((person) => hasValue(person.email) && emails.has(person.email.toLowerCase())),
+  return existingContacts.find(
+    (contact) =>
+      matchesSubcontractorTenantScope(contact, targetScope) &&
+      normalizeSubcontractorIdentityName(contact.company || "") === companyKey,
   );
 };
 
@@ -388,8 +382,7 @@ const buildContact = (
     ? unique([...(existing.specialization || []), ...(draft.specialization || [])])
     : unique(draft.specialization || []);
   const rawCompany = (existing?.company || draft.company || "").trim();
-  const companyBase = existing ? rawCompany : stripQuickPasteLegalForm(rawCompany);
-  const company = existing ? companyBase : sanitizeSubcontractorCompanyName(companyBase).sanitized;
+  const company = existing ? rawCompany : sanitizeSubcontractorCompanyName(rawCompany).sanitized;
 
   return {
     id: existing?.id || crypto.randomUUID(),
@@ -452,12 +445,14 @@ export const analyzeContactQuickPaste = async ({
   existingContacts,
   existingSpecializations,
   defaultStatusId,
+  targetScope,
   useAi = true,
 }: {
   input: string;
   existingContacts: Subcontractor[];
   existingSpecializations: string[];
   defaultStatusId: string;
+  targetScope?: SubcontractorTenantScope;
   useAi?: boolean;
 }): Promise<ContactQuickPasteAnalysis> => {
   const trimmed = input.trim();
@@ -483,14 +478,14 @@ export const analyzeContactQuickPaste = async ({
 
   const mergedDraft = mergeDrafts(localDraft, aiDraft);
   const { draft, usedAres } = await fillFromAres(mergedDraft);
-  const matchedContact = findExistingContact(draft, existingContacts);
+  const matchedContact = findExistingContact(draft, existingContacts, targetScope);
   const contact = buildContact(draft, matchedContact, defaultStatusId);
 
   if (!hasValue(contact.company)) {
     throw new Error("Nepodařilo se rozpoznat název firmy. Doplňte ho ručně ve vloženém textu nebo použijte standardní formulář.");
   }
   if (!matchedContact && hasValue(draft.company) && contact.company !== draft.company.trim()) {
-    warnings.push(`Název firmy byl upraven na "${contact.company}" bez právní formy.`);
+    warnings.push(`Název firmy byl upraven na "${contact.company}".`);
   }
   if (contact.specialization.length === 0) {
     contact.specialization = ["Ostatní"];
