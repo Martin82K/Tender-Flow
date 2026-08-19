@@ -64,8 +64,8 @@ const categoryStatusLabel = (status: DemandCategory["status"]): string => {
 
 export const getTenderBidStatusLabel = (bid: Bid): string => {
   if (bid.status === "rejected") return "Zamítnut / odstoupil";
-  if (bid.status === "sod") return bid.contracted ? "Zasmluvněn" : "Vybrán";
-  if (bid.status === "shortlist") return "Vybrán";
+  if (bid.status === "sod") return bid.contracted ? "Zasmluvněn" : "Jednání o SOD";
+  if (bid.status === "shortlist") return "Užší výběr";
   if (hasBidPrice(bid) || bid.status === "offer") {
     return "Dodal cenu";
   }
@@ -75,11 +75,12 @@ export const getTenderBidStatusLabel = (bid: Bid): string => {
 
 const TENDER_BID_STATUS_ORDER: Record<string, number> = {
   "Zasmluvněn": 0,
-  "Vybrán": 1,
-  "Dodal cenu": 2,
-  "Nedodal cenu": 3,
-  "Poptán": 4,
-  "Zamítnut / odstoupil": 5,
+  "Jednání o SOD": 1,
+  "Užší výběr": 2,
+  "Dodal cenu": 3,
+  "Nedodal cenu": 4,
+  "Poptán": 5,
+  "Zamítnut / odstoupil": 6,
 };
 
 export const sortTenderBidsByStatus = (bids: readonly Bid[]): Bid[] => (

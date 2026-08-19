@@ -331,6 +331,47 @@ describe("PipelineOverview layout", () => {
     );
   });
 
+  it("rozlišuje užší výběr, jednání o SOD a zasmluvněného dodavatele", () => {
+    const statusBids: Bid[] = [
+      {
+        id: "bid-shortlist",
+        subcontractorId: "supplier-shortlist",
+        companyName: "Užší kandidát",
+        contactPerson: "Jan Novák",
+        status: "shortlist",
+      },
+      {
+        id: "bid-sod",
+        subcontractorId: "supplier-sod",
+        companyName: "Vyjednávaný dodavatel",
+        contactPerson: "Eva Malá",
+        status: "sod",
+        contracted: false,
+      },
+      {
+        id: "bid-contracted",
+        subcontractorId: "supplier-contracted",
+        companyName: "Smluvní dodavatel",
+        contactPerson: "Petr Svoboda",
+        status: "sod",
+        contracted: true,
+      },
+    ];
+    renderOverview({
+      categories: [categories[0]],
+      bids: { [categories[0].id]: statusBids },
+    });
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "Rozbalit poptané dodavatele VŘ Zemni prace",
+    }));
+
+    expect(screen.getByText("Užší výběr")).toHaveAttribute("data-bid-status", "shortlist");
+    expect(screen.getByText("Jednání o SOD")).toHaveAttribute("data-bid-status", "sod");
+    expect(screen.getByText("Zasmluvněn")).toHaveAttribute("data-bid-status", "sod");
+    expect(screen.queryByText("Vybrán")).not.toBeInTheDocument();
+  });
+
   it("nabídne export aktuální tabulky do XLSX a PDF", () => {
     renderOverview();
 

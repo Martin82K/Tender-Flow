@@ -93,7 +93,9 @@ describe("pipelineOverviewExport", () => {
     expect(getTenderBidStatusLabel(bids[0])).toBe("Dodal cenu");
     expect(getTenderBidStatusLabel(bids[1])).toBe("Nedodal cenu");
     expect(getTenderBidStatusLabel(bids[2])).toBe("Zamítnut / odstoupil");
-    expect(getTenderBidStatusLabel({ ...bids[0], status: "shortlist" })).toBe("Vybrán");
+    expect(getTenderBidStatusLabel({ ...bids[0], status: "shortlist" })).toBe("Užší výběr");
+    expect(getTenderBidStatusLabel({ ...bids[0], status: "sod", contracted: false })).toBe("Jednání o SOD");
+    expect(getTenderBidStatusLabel({ ...bids[0], status: "sod", contracted: true })).toBe("Zasmluvněn");
   });
 
   it("nepovažuje nečíselný text za cenu, ale zachová skutečnou nulovou nabídku", () => {
@@ -137,12 +139,14 @@ describe("pipelineOverviewExport", () => {
       { ...bids[1], id: "missing" },
       { ...bids[0], id: "offer-a", companyName: "Alfa" },
       { ...bids[0], id: "selected", companyName: "Selected", status: "shortlist" },
+      { ...bids[0], id: "negotiating", companyName: "Negotiator", status: "sod", contracted: false },
       { ...bids[0], id: "contracted", companyName: "Winner", status: "sod", contracted: true },
     ]);
 
     expect(sorted.map((bid) => [getTenderBidStatusLabel(bid), bid.companyName])).toEqual([
       ["Zasmluvněn", "Winner"],
-      ["Vybrán", "Selected"],
+      ["Jednání o SOD", "Negotiator"],
+      ["Užší výběr", "Selected"],
       ["Dodal cenu", "Alfa"],
       ["Dodal cenu", "Zeta"],
       ["Nedodal cenu", "=NEBEZPEČNÝ VZOREC"],
