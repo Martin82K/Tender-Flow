@@ -325,7 +325,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         'Poptán': 'text-sky-700 dark:text-sky-300',
         'Nedodal cenu': 'text-amber-700 dark:text-amber-300',
         'Dodal cenu': 'text-emerald-700 dark:text-emerald-300',
-        'Vybrán': 'text-violet-700 dark:text-violet-300',
+        'Užší výběr': 'text-violet-700 dark:text-violet-300',
+        'Jednání o SOD': 'text-fuchsia-700 dark:text-fuchsia-300',
         'Zasmluvněn': 'text-emerald-700 dark:text-emerald-300',
         'Zamítnut / odstoupil': 'text-red-700 dark:text-red-300',
     };
@@ -334,7 +335,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         'Poptán': 'bg-sky-50/60 hover:bg-sky-100/70 dark:bg-sky-950/25 dark:hover:bg-sky-900/35',
         'Nedodal cenu': 'bg-amber-50/60 hover:bg-amber-100/70 dark:bg-amber-950/25 dark:hover:bg-amber-900/35',
         'Dodal cenu': 'bg-emerald-50/55 hover:bg-emerald-100/70 dark:bg-emerald-950/25 dark:hover:bg-emerald-900/35',
-        'Vybrán': 'bg-violet-50/60 hover:bg-violet-100/70 dark:bg-violet-950/25 dark:hover:bg-violet-900/35',
+        'Užší výběr': 'bg-violet-50/60 hover:bg-violet-100/70 dark:bg-violet-950/25 dark:hover:bg-violet-900/35',
+        'Jednání o SOD': 'bg-fuchsia-50/60 hover:bg-fuchsia-100/70 dark:bg-fuchsia-950/25 dark:hover:bg-fuchsia-900/35',
         'Zasmluvněn': 'bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/35 dark:hover:bg-emerald-900/45',
         'Zamítnut / odstoupil': 'bg-red-50/55 hover:bg-red-100/70 dark:bg-red-950/25 dark:hover:bg-red-900/35',
     };
@@ -343,7 +345,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         'Poptán': 'border-l-sky-500',
         'Nedodal cenu': 'border-l-amber-500',
         'Dodal cenu': 'border-l-emerald-500',
-        'Vybrán': 'border-l-violet-500',
+        'Užší výběr': 'border-l-violet-500',
+        'Jednání o SOD': 'border-l-fuchsia-500',
         'Zasmluvněn': 'border-l-emerald-500',
         'Zamítnut / odstoupil': 'border-l-red-500',
     };
