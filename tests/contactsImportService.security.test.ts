@@ -4,8 +4,10 @@ import {
   CONTACTS_IMPORT_FETCH_TIMEOUT_MS,
   CONTACTS_IMPORT_MAX_FILE_BYTES,
   CONTACTS_IMPORT_MAX_ROWS,
+  mergeContacts,
   syncContactsFromUrl,
 } from "../services/contactsImportService";
+import type { Subcontractor } from "../types";
 
 const makeResponse = (
   blob: Blob,
@@ -131,6 +133,31 @@ describe("contactsImportService security controls", () => {
     expect(result.contacts).toHaveLength(1);
     expect(result.contacts[0].company).toBe("Alpha s.r.o.");
     expect(result.contacts[0].email).toBe("jan@example.com");
+  });
+
+  it("keeps differently named centers separate even when their email matches", () => {
+    const existing: Subcontractor = {
+      id: "existing-1",
+      company: "Baustav",
+      specialization: ["Stavba"],
+      contacts: [{ id: "person-1", name: "Jan", email: "info@baustav.cz", phone: "-" }],
+      email: "info@baustav.cz",
+      status: "available",
+    };
+    const imported: Subcontractor = {
+      ...existing,
+      id: "imported-1",
+      company: "Baustav - klempíři",
+    };
+
+    const result = mergeContacts([existing], [imported]);
+
+    expect(result.added).toEqual([imported]);
+    expect(result.updated).toEqual([]);
+    expect(result.mergedContacts.map((contact) => contact.company)).toEqual([
+      "Baustav",
+      "Baustav - klempíři",
+    ]);
   });
 
   it("rejects CSV files above the contact row limit", async () => {

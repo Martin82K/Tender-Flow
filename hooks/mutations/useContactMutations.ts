@@ -20,6 +20,10 @@ import {
     toSubcontractorPersistencePayload,
     toSubcontractorUpdatePayload,
 } from "@features/contacts/model/contactPersistence";
+import {
+    assertUniqueSubcontractorName,
+    mapSubcontractorPersistenceError,
+} from "@shared/contacts/subcontractorIdentity";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -51,7 +55,9 @@ const updateSubcontractorRow = async (
         .select("id")
         .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+        throw mapSubcontractorPersistenceError(error, updates.company || "");
+    }
     if (!data) {
         throw new Error("Kontakt nebyl aktualizován. Ověřte oprávnění a zkuste to znovu.");
     }
@@ -65,6 +71,8 @@ export const useAddContactMutation = () => {
     return useMutation({
         mutationFn: async (newContact: Subcontractor) => {
             assertValidSubcontractorCompanyNameOrThrow(newContact.company);
+            const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
+            assertUniqueSubcontractorName(currentContacts, newContact.company, newContact.id);
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
@@ -79,7 +87,7 @@ export const useAddContactMutation = () => {
                 ...toSubcontractorPersistencePayload(newContact, user?.organizationId),
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
             });
-            if (error) throw error;
+            if (error) throw mapSubcontractorPersistenceError(error, newContact.company);
             return newContact;
         },
         onMutate: async (newContact) => {
@@ -109,6 +117,8 @@ export const useUpdateContactMutation = () => {
         mutationFn: async ({ id, updates }: { id: string, updates: Partial<Subcontractor> }) => {
             if (updates.company !== undefined) {
                 assertValidSubcontractorCompanyNameOrThrow(updates.company);
+                const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
+                assertUniqueSubcontractorName(currentContacts, updates.company, id);
             }
 
             if (user?.role === "demo") {
@@ -278,6 +288,12 @@ export const useBulkUpdateContactsMutation = () => {
                     assertValidSubcontractorCompanyNameOrThrow(data.company);
                 }
             });
+            const currentContacts = queryClient.getQueryData<Subcontractor[]>(contactQueryKey) || [];
+            updates.forEach(({ id, data }) => {
+                if (data.company !== undefined) {
+                    assertUniqueSubcontractorName(currentContacts, data.company, id);
+                }
+            });
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
@@ -334,6 +350,9 @@ export const useImportContactsMutation = () => {
             const { mergedContacts, added, updated } = mergeContacts(currentContacts, newContacts);
             added.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
             updated.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
+            added.forEach((contact) =>
+                assertUniqueSubcontractorName(currentContacts, contact.company, contact.id),
+            );
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();

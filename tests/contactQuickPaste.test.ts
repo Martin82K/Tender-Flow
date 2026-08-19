@@ -98,7 +98,7 @@ describe("contact quick paste", () => {
     expect(result.source.usedAres).toBe(true);
     expect(result.contact).toEqual(
       expect.objectContaining({
-        company: "Beta Stavby",
+        company: "Beta Stavby s.r.o",
         ico: "64356221",
         web: "https://www.betastavby.cz",
         region: "Karlovarský kraj",
@@ -107,7 +107,7 @@ describe("contact quick paste", () => {
         status: "available",
       }),
     );
-    expect(result.warnings).toContain('Název firmy byl upraven na "Beta Stavby" bez právní formy.');
+    expect(result.warnings).toContain('Název firmy byl upraven na "Beta Stavby s.r.o".');
     expect(result.contact.contacts[0]).toEqual(
       expect.objectContaining({
         name: "Jan Novak",
@@ -149,7 +149,27 @@ describe("contact quick paste", () => {
     );
   });
 
-  it("spáruje firmu podle názvu i když vložený text obsahuje právní formu", async () => {
+  it("neváže jiné středisko na existující firmu jen kvůli shodnému IČO a emailu", async () => {
+    const result = await analyzeContactQuickPaste({
+      input: `
+        Alfa Elektro - servis
+        IČO 12345678
+        Kontakt: Servisní dispečink
+        stary@alfa.cz
+      `,
+      existingContacts: [existingContact],
+      existingSpecializations: ["Elektroinstalace"],
+      defaultStatusId: "available",
+      useAi: false,
+    });
+
+    expect(result.operation).toBe("create");
+    expect(result.matchedContact).toBeUndefined();
+    expect(result.contact.company).toBe("Alfa Elektro - servis");
+    expect(result.contact.id).not.toBe(existingContact.id);
+  });
+
+  it("považuje rozdílný název s právní formou za samostatnou firmu", async () => {
     const storedWithoutLegalForm = {
       ...existingContact,
       ico: "-",
@@ -168,9 +188,9 @@ describe("contact quick paste", () => {
       useAi: false,
     });
 
-    expect(result.operation).toBe("update");
-    expect(result.matchedContact?.id).toBe("c-1");
-    expect(result.contact.company).toBe("Alfa Elektro");
+    expect(result.operation).toBe("create");
+    expect(result.matchedContact).toBeUndefined();
+    expect(result.contact.company).toBe("Alfa Elektro s.r.o");
   });
 
   it("odmítne příliš dlouhý vložený text před voláním AI", async () => {

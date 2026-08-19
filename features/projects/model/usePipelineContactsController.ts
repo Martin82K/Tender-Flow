@@ -3,6 +3,11 @@ import type { Subcontractor } from "@/types";
 import { insertSubcontractor, updateSubcontractor } from "@/features/projects/api";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { validateSubcontractorCompanyName } from "@/shared/dochub/subcontractorNameRules";
+import {
+  findSubcontractorNameConflict,
+  getSubcontractorNameConflictMessage,
+  isSubcontractorNameConflictError,
+} from "@shared/contacts/subcontractorIdentity";
 
 interface ShowAlertArgs {
   title: string;
@@ -66,6 +71,14 @@ export const usePipelineContactsController = ({
         });
         return;
       }
+      if (findSubcontractorNameConflict(localContacts, newContact.company, newContact.id)) {
+        showAlert({
+          title: "Duplicitní název subdodavatele",
+          message: getSubcontractorNameConflictMessage(newContact.company),
+          variant: "danger",
+        });
+        return;
+      }
 
       if (userRole === "demo") {
         const demoData = projectDemoDataApi.getDemoData();
@@ -96,9 +109,12 @@ export const usePipelineContactsController = ({
       onContactSaved?.(newContact);
     } catch (error) {
       console.error("Unexpected error saving contact:", error);
+      const nameConflict = isSubcontractorNameConflictError(error);
       showAlert({
-        title: "Kontakt se nepodařilo uložit",
-        message: "Nový kontakt nebyl uložen. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
+        title: nameConflict ? "Duplicitní název subdodavatele" : "Kontakt se nepodařilo uložit",
+        message: nameConflict
+          ? getSubcontractorNameConflictMessage(newContact.company)
+          : "Nový kontakt nebyl uložen. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
         variant: "danger",
       });
     }
@@ -114,6 +130,14 @@ export const usePipelineContactsController = ({
           title: "Neplatny nazev dodavatele",
           message:
             companyValidation.reason || "Upravte nazev firmy a zkuste to znovu.",
+          variant: "danger",
+        });
+        return;
+      }
+      if (findSubcontractorNameConflict(localContacts, updatedContact.company, updatedContact.id)) {
+        showAlert({
+          title: "Duplicitní název subdodavatele",
+          message: getSubcontractorNameConflictMessage(updatedContact.company),
           variant: "danger",
         });
         return;
@@ -147,9 +171,12 @@ export const usePipelineContactsController = ({
       setEditingContact(null);
     } catch (error) {
       console.error("Unexpected error updating contact:", error);
+      const nameConflict = isSubcontractorNameConflictError(error);
       showAlert({
-        title: "Kontakt se nepodařilo uložit",
-        message: "Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
+        title: nameConflict ? "Duplicitní název subdodavatele" : "Kontakt se nepodařilo uložit",
+        message: nameConflict
+          ? getSubcontractorNameConflictMessage(updatedContact.company)
+          : "Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.",
         variant: "danger",
       });
     }

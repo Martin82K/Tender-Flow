@@ -10,6 +10,7 @@ import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/se
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
+import { isSubcontractorNameConflictError } from '@/shared/contacts/subcontractorIdentity';
 import { isDesktop, shellAdapter } from '@infra/platform/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
@@ -601,10 +602,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         } catch (error) {
             console.error('Error saving contact:', error);
+            const nameConflict = isSubcontractorNameConflictError(error);
             setConfirmModal({
                 isOpen: true,
-                title: 'Kontakt se nepodařilo uložit',
-                message: 'Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.',
+                title: nameConflict ? 'Duplicitní název subdodavatele' : 'Kontakt se nepodařilo uložit',
+                message: nameConflict && error instanceof Error
+                    ? error.message
+                    : 'Změny nebyly uloženy. Zkontrolujte připojení a oprávnění a zkuste to znovu.',
                 onConfirm: closeConfirmModal,
                 variant: 'danger',
             });

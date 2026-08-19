@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 import type { Subcontractor } from "@/types";
 
@@ -75,6 +76,49 @@ describe("usePipelineContactsController persistence", () => {
     expect(result.current.localContacts).toEqual([contact]);
   });
 
+  it("zablokuje vytvoření kontaktu se shodným názvem", async () => {
+    const persistNewContact = vi.fn().mockResolvedValue(undefined);
+    const showAlert = vi.fn();
+    const duplicate = { ...contact, id: "contact-2", company: "BEZPEČNÁ FIRMA" };
+    const externalContacts = [contact];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      projectDataId: "project-1",
+      showAlert,
+      persistNewContact,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(duplicate);
+    });
+
+    expect(persistNewContact).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Duplicitní název subdodavatele",
+      variant: "danger",
+    }));
+  });
+
+  it("povolí samostatné středisko s odlišným názvem", async () => {
+    const persistNewContact = vi.fn().mockResolvedValue(undefined);
+    const center = { ...contact, id: "contact-2", company: "Bezpečná firma - servis" };
+    const externalContacts = [contact];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      projectDataId: "project-1",
+      showAlert: vi.fn(),
+      persistNewContact,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(center);
+    });
+
+    expect(persistNewContact).toHaveBeenCalledWith(center);
+  });
+
   it("přidá kontakt lokálně ve fallback větvi bez společné mutace", async () => {
     mocks.insertSubcontractor.mockResolvedValue({ data: contact, error: null });
     const externalContacts: Subcontractor[] = [];
@@ -91,6 +135,31 @@ describe("usePipelineContactsController persistence", () => {
 
     expect(mocks.insertSubcontractor).toHaveBeenCalledWith(contact, undefined);
     expect(result.current.localContacts).toEqual([contact]);
+  });
+
+  it("převede databázový konflikt ve fallback větvi na srozumitelné upozornění", async () => {
+    expectConsoleError("Error saving contact to Supabase:");
+    expectConsoleError("Unexpected error saving contact:");
+    mocks.insertSubcontractor.mockResolvedValue({
+      data: null,
+      error: { code: "23505", message: "SUBCONTRACTOR_NAME_CONFLICT" },
+    });
+    const showAlert = vi.fn();
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts: [],
+      userRole: "user",
+      projectDataId: "project-1",
+      showAlert,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(contact);
+    });
+
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Duplicitní název subdodavatele",
+      message: expect.stringMatching(/již existuje/i),
+    }));
   });
 
   it("použije společnou aplikační mutaci při editaci kontaktu", async () => {

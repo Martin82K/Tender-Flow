@@ -1,5 +1,6 @@
 import { Subcontractor } from '../types';
 import Papa from 'papaparse';
+import { normalizeSubcontractorIdentityName } from '../shared/contacts/subcontractorIdentity';
 
 export const CONTACTS_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const CONTACTS_IMPORT_MAX_ROWS = 5000;
@@ -353,7 +354,7 @@ export interface MergeResult {
 
 /**
  * Merge imported contacts with existing contacts
- * Matches by Company Name (case-insensitive) or by contact email.
+ * Matches only by company name. Shared IČO/email can belong to separate centers.
  */
 export const mergeContacts = (existingContacts: Subcontractor[], importedContacts: Subcontractor[]): MergeResult => {
   const merged = [...existingContacts];
@@ -371,17 +372,7 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
 
   const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
-  const companyKey = (c: Subcontractor) => normalizeText(c.company || "");
-  const getEmails = (c: Subcontractor) => {
-    const emails: string[] = [];
-    for (const p of c.contacts || []) {
-      const e = normalizeEmail(p.email || "");
-      if (e && e !== "-") emails.push(e);
-    }
-    const legacy = normalizeEmail(c.email || "");
-    if (legacy && legacy !== "-") emails.push(legacy);
-    return Array.from(new Set(emails));
-  };
+  const companyKey = (c: Subcontractor) => normalizeSubcontractorIdentityName(c.company || "");
 
   const contactKey = (p: { name?: string; email?: string; phone?: string }) => {
     const e = normalizeEmail(p.email || "");
@@ -398,17 +389,11 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
   };
 
   const companyIndex = new Map<string, number>();
-  const emailIndex = new Map<string, number>();
-
   const indexMerged = () => {
     companyIndex.clear();
-    emailIndex.clear();
     merged.forEach((c, idx) => {
       const ck = companyKey(c);
       if (ck && !companyIndex.has(ck)) companyIndex.set(ck, idx);
-      for (const e of getEmails(c)) {
-        if (!emailIndex.has(e)) emailIndex.set(e, idx);
-      }
     });
   };
 
@@ -416,16 +401,10 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
 
   importedContacts.forEach(imported => {
     const importCompanyKey = companyKey(imported);
-    const importEmails = getEmails(imported);
 
     let existingIndex = -1;
     if (importCompanyKey && companyIndex.has(importCompanyKey)) {
       existingIndex = companyIndex.get(importCompanyKey)!;
-    } else {
-      const matchedEmail = importEmails.find((e) => emailIndex.has(e));
-      if (matchedEmail) {
-        existingIndex = emailIndex.get(matchedEmail)!;
-      }
     }
 
     if (existingIndex >= 0) {
