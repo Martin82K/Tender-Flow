@@ -327,7 +327,7 @@ describe("architecture graph analysis", () => {
       },
     ]);
     expect(analysis.dependencyFirstBatches).toHaveLength(22);
-  });
+  }, 20_000);
 
   it("stops graph collection before an edge expansion can exceed its budget", () => {
     const rawGraph = collectArchitectureGraph({

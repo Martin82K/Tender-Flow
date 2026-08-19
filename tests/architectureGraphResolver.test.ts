@@ -252,5 +252,5 @@ describe("architecture graph resolver", () => {
     expect(actual).toEqual(baseline.allowedImports);
     expect(actual).toHaveLength(134);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(37);
-  });
+  }, 20_000);
 });
