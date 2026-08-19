@@ -380,12 +380,20 @@ export const exportTenderOverviewToPdf = async (
   doc.setFont("Roboto", "normal");
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
-  doc.text(`${meta.organizationName || "Organizace"} · ${meta.projectTitle || "Projekt"} · ${projectTypeLabel(meta.projectStatus)}`, 14, 25);
-  doc.text(`Export provedl: ${meta.exportedBy || "Uživatel"}`, 14, 31);
-  doc.text(`Datum exportu: ${exportedAt.toLocaleString("cs-CZ")} · Tender Flow ${meta.appVersion}`, pageWidth - 14, 31, { align: "right" });
+  const metadataText = `${meta.organizationName || "Organizace"} · ${meta.projectTitle || "Projekt"} · ${projectTypeLabel(meta.projectStatus)}`;
+  const wrappedMetadata = doc.splitTextToSize(metadataText, pageWidth - 28);
+  const metadataLines = Array.isArray(wrappedMetadata)
+    ? wrappedMetadata.map(String)
+    : [String(wrappedMetadata)];
+  const metadataBottomY = 25 + Math.max(0, metadataLines.length - 1) * 4;
+  const auditLineY = metadataBottomY + 6;
+  const tableStartY = auditLineY + 7;
+  doc.text(metadataLines.length === 1 ? metadataLines[0] : metadataLines, 14, 25);
+  doc.text(`Export provedl: ${meta.exportedBy || "Uživatel"}`, 14, auditLineY);
+  doc.text(`Datum exportu: ${exportedAt.toLocaleString("cs-CZ")} · Tender Flow ${meta.appVersion}`, pageWidth - 14, auditLineY, { align: "right" });
 
   autoTable(doc, {
-    startY: 38,
+    startY: tableStartY,
     head: [rows[0].map(String)],
     body: rows.slice(1).map((row) => row.map((cell, column) => {
       if (cell instanceof Date) return cell.toLocaleDateString("cs-CZ");

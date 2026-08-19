@@ -119,6 +119,27 @@ describe("usePipelineContactsController persistence", () => {
     expect(persistNewContact).toHaveBeenCalledWith(center);
   });
 
+  it("povolí shodný název při vytvoření kontaktu v jiné organizaci", async () => {
+    const persistNewContact = vi.fn().mockResolvedValue(undefined);
+    const existingContact = { ...contact, organizationId: "org-other" };
+    const newContact = { ...contact, id: "contact-2", organizationId: "org-target" };
+    const externalContacts = [existingContact];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      projectDataId: "project-1",
+      organizationId: "org-target",
+      showAlert: vi.fn(),
+      persistNewContact,
+    }));
+
+    await act(async () => {
+      await result.current.handleSaveNewContact(newContact);
+    });
+
+    expect(persistNewContact).toHaveBeenCalledWith(newContact);
+  });
+
   it("přidá kontakt lokálně ve fallback větvi bez společné mutace", async () => {
     mocks.insertSubcontractor.mockResolvedValue({ data: contact, error: null });
     const externalContacts: Subcontractor[] = [];
@@ -181,5 +202,38 @@ describe("usePipelineContactsController persistence", () => {
     expect(persistContactUpdate).toHaveBeenCalledWith(updatedContact);
     expect(mocks.updateSubcontractor).not.toHaveBeenCalled();
     expect(result.current.localContacts).toEqual([updatedContact]);
+  });
+
+  it("povolí při editaci název používaný pouze v jiné organizaci", async () => {
+    const persistContactUpdate = vi.fn().mockResolvedValue(undefined);
+    const editedContact = {
+      ...contact,
+      company: "Sdílený název",
+      organizationId: "org-target",
+    };
+    const otherOrganizationContact = {
+      ...contact,
+      id: "contact-other",
+      company: "Sdílený název",
+      organizationId: "org-other",
+    };
+    const externalContacts = [
+      { ...contact, organizationId: "org-target" },
+      otherOrganizationContact,
+    ];
+    const { result } = renderHook(() => usePipelineContactsController({
+      externalContacts,
+      userRole: "user",
+      projectDataId: "project-1",
+      organizationId: "org-target",
+      showAlert: vi.fn(),
+      persistContactUpdate,
+    }));
+
+    await act(async () => {
+      await result.current.handleUpdateContact(editedContact);
+    });
+
+    expect(persistContactUpdate).toHaveBeenCalledWith(editedContact);
   });
 });

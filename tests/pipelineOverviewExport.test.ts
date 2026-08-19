@@ -9,6 +9,7 @@ const pdfMocks = vi.hoisted(() => {
     setFont: vi.fn(),
     setFontSize: vi.fn(),
     setTextColor: vi.fn(),
+    splitTextToSize: vi.fn((text: string) => [text]),
     text: vi.fn(),
     getNumberOfPages: vi.fn(() => 1),
     setPage: vi.fn(),
@@ -85,6 +86,7 @@ describe("pipelineOverviewExport", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     pdfMocks.doc.getNumberOfPages.mockReturnValue(1);
+    pdfMocks.doc.splitTextToSize.mockImplementation((text: string) => [text]);
   });
 
   it("odvozuje čitelné stavy z existujícího pipeline modelu", () => {
@@ -183,6 +185,47 @@ describe("pipelineOverviewExport", () => {
     );
     expect(pdfMocks.doc.save).toHaveBeenCalledWith(
       expect.stringMatching(/^prehled_vr_26026_oprava_mostu_m_35_\d{4}-\d{2}-\d{2}\.pdf$/),
+    );
+  });
+
+  it("zalomí dlouhá metadata a posune auditní řádek i tabulku pod ně", async () => {
+    pdfMocks.doc.splitTextToSize.mockReturnValue([
+      "Velmi dlouhá organizace · Velmi dlouhá stavba",
+      "s doplňujícím názvem a číslem · Realizace",
+      "poslední řádek metadat",
+    ]);
+
+    await exportTenderOverviewToPdf(
+      [category],
+      { [category.id]: bids },
+      {
+        organizationName: "Velmi dlouhá organizace",
+        projectTitle: "Velmi dlouhá stavba s doplňujícím názvem a číslem",
+        projectStatus: "realization",
+        exportedBy: "Martin Kalkus",
+        exportedAt: new Date("2026-08-19T16:30:00.000Z"),
+        appVersion: "1.9.12",
+        appLogoDataUrl: null,
+      },
+    );
+
+    expect(pdfMocks.doc.splitTextToSize).toHaveBeenCalledWith(
+      "Velmi dlouhá organizace · Velmi dlouhá stavba s doplňujícím názvem a číslem · Realizace",
+      269,
+    );
+    expect(pdfMocks.doc.text).toHaveBeenCalledWith(
+      [
+        "Velmi dlouhá organizace · Velmi dlouhá stavba",
+        "s doplňujícím názvem a číslem · Realizace",
+        "poslední řádek metadat",
+      ],
+      14,
+      25,
+    );
+    expect(pdfMocks.doc.text).toHaveBeenCalledWith("Export provedl: Martin Kalkus", 14, 39);
+    expect(pdfMocks.autoTable).toHaveBeenCalledWith(
+      pdfMocks.doc,
+      expect.objectContaining({ startY: 46 }),
     );
   });
 });

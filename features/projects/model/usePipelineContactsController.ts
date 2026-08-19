@@ -7,6 +7,7 @@ import {
   findSubcontractorNameConflict,
   getSubcontractorNameConflictMessage,
   isSubcontractorNameConflictError,
+  type SubcontractorTenantScope,
 } from "@shared/contacts/subcontractorIdentity";
 
 interface ShowAlertArgs {
@@ -25,6 +26,16 @@ interface UsePipelineContactsControllerInput {
   persistContactUpdate?: (contact: Subcontractor) => Promise<void> | void;
   onContactSaved?: (contact: Subcontractor) => void;
 }
+
+const resolveContactTenantScope = (
+  contact: Subcontractor,
+  organizationId?: string,
+): SubcontractorTenantScope | undefined => {
+  if (organizationId) return { organizationId };
+  if (contact.organizationId) return { organizationId: contact.organizationId };
+  if (contact.ownerId) return { ownerId: contact.ownerId };
+  return undefined;
+};
 
 export const usePipelineContactsController = ({
   externalContacts,
@@ -71,7 +82,12 @@ export const usePipelineContactsController = ({
         });
         return;
       }
-      if (findSubcontractorNameConflict(localContacts, newContact.company, newContact.id)) {
+      if (findSubcontractorNameConflict(
+        localContacts,
+        newContact.company,
+        newContact.id,
+        resolveContactTenantScope(newContact, organizationId),
+      )) {
         showAlert({
           title: "Duplicitní název subdodavatele",
           message: getSubcontractorNameConflictMessage(newContact.company),
@@ -134,7 +150,15 @@ export const usePipelineContactsController = ({
         });
         return;
       }
-      if (findSubcontractorNameConflict(localContacts, updatedContact.company, updatedContact.id)) {
+      const persistedContact = localContacts.find(
+        (contact) => contact.id === updatedContact.id,
+      );
+      if (findSubcontractorNameConflict(
+        localContacts,
+        updatedContact.company,
+        updatedContact.id,
+        resolveContactTenantScope(persistedContact ?? updatedContact, organizationId),
+      )) {
         showAlert({
           title: "Duplicitní název subdodavatele",
           message: getSubcontractorNameConflictMessage(updatedContact.company),

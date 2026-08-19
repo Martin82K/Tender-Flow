@@ -455,9 +455,6 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
               <option value="3">P3 střední</option>
               <option value="4">P4 nízká</option>
             </ThemedNativeSelect>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
           </label>
           <TaskDateTimePicker
             label="Upozornění"
@@ -502,9 +499,6 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
                 </option>
               ))}
             </ThemedNativeSelect>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
           </label>
         </div>
         {error && (
@@ -971,9 +965,6 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
               <option value="3">P3 střední</option>
               <option value="4">P4 nízká</option>
             </ThemedNativeSelect>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
           </label>
 
           <TaskDateTimePicker
@@ -1027,9 +1018,6 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
                 </option>
               ))}
             </ThemedNativeSelect>
-            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-              arrow_drop_down
-            </span>
           </label>
         </div>
         {error && (
@@ -1057,9 +1045,6 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
               </option>
             ))}
           </ThemedNativeSelect>
-          <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
-            arrow_drop_down
-          </span>
         </label>
 
         <Button type="button" variant="secondary" size="sm" onClick={resetForm} title="Vyčistit rozpracovaný úkol a zavřít formulář">

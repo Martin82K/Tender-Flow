@@ -145,6 +145,52 @@ describe("ThemedSelect pro role a oprávnění", () => {
     expect(screen.getByRole("option", { name: "Druhý" })).toHaveAttribute("aria-selected", "true");
   });
 
+  it("ovládá vícenásobný výběr šipkami, Home, End a rozsahem se Shift", () => {
+    const onChange = vi.fn();
+    const Harness = () => {
+      const [value, setValue] = React.useState<string[]>(["first"]);
+      return (
+        <ThemedNativeSelect
+          aria-label="Profese"
+          multiple
+          value={value}
+          onChange={(event) => {
+            const nextValue = Array.from(event.target.selectedOptions, (option) => option.value);
+            onChange(nextValue);
+            setValue(nextValue);
+          }}
+        >
+          <option value="first">První</option>
+          <option value="second">Druhá</option>
+          <option value="third">Třetí</option>
+        </ThemedNativeSelect>
+      );
+    };
+
+    render(<Harness />);
+    const first = screen.getByRole("option", { name: "První" });
+    const second = screen.getByRole("option", { name: "Druhá" });
+    const third = screen.getByRole("option", { name: "Třetí" });
+
+    expect(first).toHaveAttribute("tabindex", "0");
+    expect(second).toHaveAttribute("tabindex", "-1");
+
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(second).toHaveFocus();
+    expect(second).toHaveAttribute("tabindex", "0");
+    expect(first).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.keyDown(second, { key: "ArrowDown", shiftKey: true });
+    expect(third).toHaveFocus();
+    expect(onChange).toHaveBeenLastCalledWith(["first", "second", "third"]);
+
+    fireEvent.keyDown(third, { key: "Home" });
+    expect(first).toHaveFocus();
+    fireEvent.keyDown(first, { key: "End" });
+    expect(third).toHaveFocus();
+  });
+
   it("zachová vazbu externího labelu na viditelný ovládací prvek", () => {
     render(
       <>

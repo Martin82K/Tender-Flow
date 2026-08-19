@@ -24,7 +24,6 @@ import {
   FileText,
   Search,
   RotateCcw,
-  ChevronDown,
 } from "lucide-react";
 import {
   ClipboardList,
@@ -239,7 +238,6 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 </option>
               ))}
             </ThemedNativeSelect>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 gap-0.5">
             {([
