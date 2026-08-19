@@ -129,7 +129,9 @@ describe("TF Space theme contract", () => {
   });
 
   it("sjednocuje filtry analýzy a KPI ikony pomocí Appica komponent", () => {
-    expect(projectOverview.match(/<Combobox\n/g)).toHaveLength(2);
+    expect(projectOverview.match(/<Combobox\r?\n/g)).toHaveLength(2);
+    const projectOverviewWithWindowsLineEndings = projectOverview.replace(/\r?\n/g, "\r\n");
+    expect(projectOverviewWithWindowsLineEndings.match(/<Combobox\r?\n/g)).toHaveLength(2);
     expect(projectOverview).toContain('aria-label="Vyhledat dodavatele"');
     expect(projectOverview).toContain('aria-label="Vyhledat zaměření"');
     expect(projectOverview).toContain('from "@appica/icons-react"');
