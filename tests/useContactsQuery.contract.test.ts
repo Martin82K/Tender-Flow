@@ -112,12 +112,13 @@ describe("useContactsQuery contract", () => {
       },
     );
 
+    const contactSelect = vi.fn(() => ({
+      order: () => ({ range: () => contactsPromise }),
+    }));
     mocks.from.mockImplementation((table: string) => {
       if (table === "subcontractors") {
         return {
-          select: () => ({
-            order: () => ({ range: () => contactsPromise }),
-          }),
+          select: contactSelect,
         };
       }
       return {
@@ -134,6 +135,8 @@ describe("useContactsQuery contract", () => {
       "subcontractors",
       "contracts",
     ]);
+    expect(contactSelect).toHaveBeenCalledWith(expect.stringContaining("organization_id"));
+    expect(contactSelect).toHaveBeenCalledWith(expect.stringContaining("owner_id"));
 
     resolveContacts({ data: [], error: null });
     resolveRatings({ data: [], error: null });

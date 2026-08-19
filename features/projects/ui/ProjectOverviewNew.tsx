@@ -12,6 +12,7 @@ import {
   getWinningBids,
 } from "@/features/projects/model/projectOverviewNewModel";
 import { useProjectOverviewNewController } from "@/features/projects/model/useProjectOverviewNewController";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const formatCzechDateOnly = (value?: string): string => {
   if (!value) return "-";
@@ -588,7 +589,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             aria-label={`Částka faktury ${idx + 1}`}
                             className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
                           />
-                          <select
+                          <ThemedNativeSelect
                             value={invoice.status}
                             onChange={(e) =>
                               updateInvestorInvoice(idx, "status", e.target.value)
@@ -599,7 +600,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             <option value="approved">Schváleno</option>
                             <option value="paid">Zaplaceno</option>
                             <option value="overdue">Po splatnosti</option>
-                          </select>
+                          </ThemedNativeSelect>
                           <button
                             type="button"
                             onClick={() => removeInvestorInvoice(idx)}

@@ -28,6 +28,7 @@ import { geocodingService } from "@features/maps/services/geocodingService";
 import type { ThemeSkin } from "@/shared/types/theme";
 import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings";
 import { projectService } from "@/services/projectService";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -185,8 +186,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     || myProjectAccess?.legacyPermission === "view";
   const isIndustrialSkin = skin === "industrial";
   const mobileTabsClass = isIndustrialSkin
-    ? "select-no-native-arrow w-full bg-[#faf6ee] border border-[rgba(20,16,8,0.14)] text-[#14110a] px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider focus:ring-2 focus:ring-[#ff8a33]/20"
-    : "select-no-native-arrow w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider focus:ring-2 focus:ring-primary/20";
+    ? "w-full rounded-md px-4 py-2 text-xs font-bold uppercase tracking-wider"
+    : "w-full rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider";
   const desktopTabsClass = isIndustrialSkin
     ? "hidden min-w-max md:flex items-center gap-1.5 bg-transparent p-0 rounded-none border-0"
     : "hidden min-w-max md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800";
@@ -194,7 +195,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   const renderClassicTabs = () => (
     <div className="flex w-full items-center">
       <div className="relative w-full md:hidden">
-        <select
+        <ThemedNativeSelect
+          aria-label="Navigace projektu"
           value={activeTab}
           onChange={(e) => onTabChange(e.target.value as ProjectTab)}
           className={mobileTabsClass}
@@ -204,8 +206,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               {tab.label}
             </option>
           ))}
-        </select>
-        <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-sm ${isIndustrialSkin ? "text-[#9c9684]" : "text-slate-400"}`}>expand_more</span>
+        </ThemedNativeSelect>
       </div>
 
       <div data-help-id="project-tabs" className={desktopTabsClass}>

@@ -15,6 +15,7 @@ import type {
   TaskPriority,
   TaskRelatedEntity,
 } from "../types";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface TaskFormModalProps {
   isOpen: boolean;
@@ -196,7 +197,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Priorita
             </label>
-            <select
+            <ThemedNativeSelect
               className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
               value={state.priority === "" ? "" : String(state.priority)}
               onChange={(e) =>
@@ -211,7 +212,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               <option value="2">2 — Vysoká</option>
               <option value="3">3 — Střední</option>
               <option value="4">4 — Nízká</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
         </div>
 
@@ -219,7 +220,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Zakázka
           </label>
-          <select
+          <ThemedNativeSelect
             className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
             value={state.projectId}
             onChange={(e) => {
@@ -234,7 +235,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
                 {p.name}
               </option>
             ))}
-          </select>
+          </ThemedNativeSelect>
           {state.relatedEntity && (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Vazba: {state.relatedEntity.type}:{state.relatedEntity.id}

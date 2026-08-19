@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MAPS_CONFIG } from '@/config/maps';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface MapFilterPanelProps {
   /** All available specializations */
@@ -140,7 +141,7 @@ export function MapFilterPanel({
           <span className="material-symbols-outlined text-xs">map</span>
           Region
         </div>
-        <select
+        <ThemedNativeSelect
           value={activeRegion}
           onChange={(e) => onRegionChange(e.target.value)}
           className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
@@ -149,7 +150,7 @@ export function MapFilterPanel({
           {regions.map(r => (
             <option key={r} value={r}>{r}</option>
           ))}
-        </select>
+        </ThemedNativeSelect>
       </div>
 
       {/* Specializations */}

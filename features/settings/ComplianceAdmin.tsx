@@ -28,6 +28,7 @@ import type {
   RetentionPolicy,
   SubprocessorRecord,
 } from "@/shared/types/compliance";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const statusMeta: Record<
   ComplianceChecklistItem["status"],
@@ -1391,7 +1392,7 @@ export const ComplianceAdmin: React.FC = () => {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
-                    <select
+                    <ThemedNativeSelect
                       aria-label={`Retention policy CRM ${review.id}`}
                       value={crmRetentionPolicyDrafts[review.id] ?? review.retentionPolicyId ?? ""}
                       onChange={(e) =>
@@ -1405,8 +1406,8 @@ export const ComplianceAdmin: React.FC = () => {
                           {policy.category}
                         </option>
                       ))}
-                    </select>
-                    <select
+                    </ThemedNativeSelect>
+                    <ThemedNativeSelect
                       aria-label={`Stav CRM retention ${review.id}`}
                       value={crmRetentionStatusDrafts[review.id] ?? review.reviewStatus}
                       onChange={(e) =>
@@ -1420,7 +1421,7 @@ export const ComplianceAdmin: React.FC = () => {
                       <option value="planned">Plánováno</option>
                       <option value="approved">Schváleno</option>
                       <option value="blocked">Blokováno</option>
-                    </select>
+                    </ThemedNativeSelect>
                     <input
                       aria-label={`Další review CRM ${review.id}`}
                       type="date"
@@ -1465,7 +1466,7 @@ export const ComplianceAdmin: React.FC = () => {
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
             <div className="grid grid-cols-1 gap-3 2xl:grid-cols-[140px_minmax(0,1fr)_minmax(0,220px)_180px_auto]">
-              <select
+              <ThemedNativeSelect
                 aria-label="Typ DSR požadavku"
                 value={newDsrType}
                 onChange={(e) => setNewDsrType(e.target.value as DataSubjectRequest["requestType"])}
@@ -1475,7 +1476,7 @@ export const ComplianceAdmin: React.FC = () => {
                 <option value="export">Export</option>
                 <option value="rectification">Oprava</option>
                 <option value="erasure">Výmaz</option>
-              </select>
+              </ThemedNativeSelect>
               <input
                 aria-label="Popis DSR požadavku"
                 type="text"
@@ -1499,7 +1500,7 @@ export const ComplianceAdmin: React.FC = () => {
                 onChange={(e) => setNewDsrDueAt(e.target.value)}
                 className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               />
-              <select
+              <ThemedNativeSelect
                 aria-label="Kanál DSR požadavku"
                 value={newDsrChannel}
                 onChange={(e) => setNewDsrChannel(e.target.value as DataSubjectRequest["intakeChannel"])}
@@ -1510,7 +1511,7 @@ export const ComplianceAdmin: React.FC = () => {
                 <option value="phone">Telefon</option>
                 <option value="support">Support</option>
                 <option value="internal">Interní</option>
-              </select>
+              </ThemedNativeSelect>
               <button
                 onClick={() => void handleCreateDsr()}
                 disabled={isSavingDsr}
@@ -1576,7 +1577,7 @@ export const ComplianceAdmin: React.FC = () => {
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                   />
                   <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                    <select
+                    <ThemedNativeSelect
                       aria-label={`Kanál ${request.id}`}
                       value={dsrChannelDrafts[request.id] ?? request.intakeChannel}
                       onChange={(e) =>
@@ -1592,8 +1593,8 @@ export const ComplianceAdmin: React.FC = () => {
                       <option value="phone">Telefon</option>
                       <option value="support">Support</option>
                       <option value="internal">Interní</option>
-                    </select>
-                    <select
+                    </ThemedNativeSelect>
+                    <ThemedNativeSelect
                       aria-label={`Ověření ${request.id}`}
                       value={dsrVerificationDrafts[request.id] ?? request.verificationStatus}
                       onChange={(e) =>
@@ -1607,7 +1608,7 @@ export const ComplianceAdmin: React.FC = () => {
                       <option value="pending">Čeká na ověření</option>
                       <option value="verified">Ověřeno</option>
                       <option value="not_required">Není potřeba</option>
-                    </select>
+                    </ThemedNativeSelect>
                   </div>
                   {request.requestType === "rectification" ? (
                     <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -1834,7 +1835,7 @@ export const ComplianceAdmin: React.FC = () => {
                   placeholder="Např. Podezření na neoprávněný export"
                   className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
-                <select
+                <ThemedNativeSelect
                   aria-label="Riziko breach case"
                   value={newBreachRisk}
                   onChange={(e) => setNewBreachRisk(e.target.value as BreachCase["riskLevel"])}
@@ -1843,7 +1844,7 @@ export const ComplianceAdmin: React.FC = () => {
                   <option value="low">Nízké</option>
                   <option value="medium">Střední</option>
                   <option value="high">Vysoké</option>
-                </select>
+                </ThemedNativeSelect>
                 <input
                   aria-label="Navázaný incident"
                   type="text"
@@ -2206,7 +2207,7 @@ export const ComplianceAdmin: React.FC = () => {
                   placeholder="Např. jméno, e-mail, telefon"
                   className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
-                <select
+                <ThemedNativeSelect
                   aria-label="Navázaná retention policy"
                   value={newProcessingActivityRetentionId}
                   onChange={(e) => setNewProcessingActivityRetentionId(e.target.value)}
@@ -2218,8 +2219,8 @@ export const ComplianceAdmin: React.FC = () => {
                       {policy.category}
                     </option>
                   ))}
-                </select>
-                <select
+                </ThemedNativeSelect>
+                <ThemedNativeSelect
                   aria-label="Navázané subprocessory činnosti zpracování"
                   multiple
                   value={newProcessingActivitySubprocessorIds}
@@ -2237,7 +2238,7 @@ export const ComplianceAdmin: React.FC = () => {
                         {record.name} ({record.region})
                       </option>
                     ))}
-                </select>
+                </ThemedNativeSelect>
                 <button
                   onClick={() => void handleCreateProcessingActivity()}
                   disabled={isSavingProcessingActivity}

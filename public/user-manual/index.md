@@ -192,6 +192,8 @@ Plán VŘ slouží k naplánování výběrových řízení v čase a (dle potř
 
 Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop).
 
+V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil.
+
 ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg)
 
 #### Stavy nabídky (sloupce)

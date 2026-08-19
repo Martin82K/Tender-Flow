@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   updateMaybeSingleMock: vi.fn(),
   deleteInMock: vi.fn(),
   deleteMock: vi.fn(),
+  insertMock: vi.fn(),
   resolveEffectiveProjectDocHubRootMock: vi.fn(),
 }));
 
@@ -126,10 +127,11 @@ beforeEach(() => {
   }));
   mocks.deleteInMock.mockResolvedValue({ error: null });
   mocks.deleteMock.mockReturnValue({ in: mocks.deleteInMock });
+  mocks.insertMock.mockResolvedValue({ error: null });
   mocks.resolveEffectiveProjectDocHubRootMock.mockResolvedValue("D:\\Personal\\Project");
 
   mocks.fromMock.mockImplementation(() => ({
-    insert: vi.fn().mockResolvedValue({ error: null }),
+    insert: mocks.insertMock,
     update: mocks.updateMock,
     delete: mocks.deleteMock,
   }));
@@ -146,6 +148,44 @@ beforeEach(() => {
 });
 
 describe("useContactMutations name validation", () => {
+  it("blocks add mutation when the same normalized company name already exists", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    queryClient.setQueryData(CONTACT_KEYS.scopedList("u-1"), [
+      { ...validContact, company: "Baustav" },
+    ]);
+    const { result } = renderHook(() => useAddContactMutation(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        ...validContact,
+        id: "c-2",
+        company: "BAUSTAV",
+      }),
+    ).rejects.toThrow(/již existuje/i);
+
+    expect(mocks.insertMock).not.toHaveBeenCalled();
+  });
+
+  it("allows a differently named center even when IČO and email match", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    queryClient.setQueryData(CONTACT_KEYS.scopedList("u-1"), [
+      { ...validContact, company: "Baustav", ico: "12345678", email: "info@baustav.cz" },
+    ]);
+    const { result } = renderHook(() => useAddContactMutation(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({
+        ...validContact,
+        id: "c-2",
+        company: "Baustav - zemní práce",
+        ico: "12345678",
+        email: "info@baustav.cz",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ id: "c-2" }));
+
+    expect(mocks.insertMock).toHaveBeenCalledTimes(1);
+  });
+
   it("blocks add mutation for invalid company name", async () => {
     const { result } = renderHook(() => useAddContactMutation(), {
       wrapper: createWrapper(),
@@ -202,6 +242,23 @@ describe("useContactMutations name validation", () => {
     ).rejects.toThrow("Neplatny nazev firmy");
 
     expect(mocks.fromMock).not.toHaveBeenCalled();
+  });
+
+  it("maps a database name conflict during bulk import to the user-facing message", async () => {
+    mocks.insertMock.mockResolvedValueOnce({
+      error: {
+        code: "23505",
+        constraint: "subcontractors_tenant_company_name_key",
+        message: "SUBCONTRACTOR_NAME_CONFLICT",
+      },
+    });
+    const { result } = renderHook(() => useImportContactsMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    await expect(result.current.mutateAsync({
+      newContacts: [{ ...validContact, company: "Baustav" }],
+    })).rejects.toThrow(/Subdodavatel s názvem „Baustav“ již existuje/i);
   });
 
   it("bulk update zapisuje region do databaze", async () => {

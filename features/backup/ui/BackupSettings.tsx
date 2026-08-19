@@ -6,6 +6,7 @@ import type { AnyBackupManifest, RestoreSummary } from '../model/backupTypes';
 import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
 import { useFeatures } from '@/context/FeatureContext';
 import { FEATURES } from '@/config/features';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 export const BackupSettings: React.FC = () => {
     const { user } = useAuth();
@@ -330,7 +331,7 @@ export const BackupSettings: React.FC = () => {
                                     >
                                         schedule
                                     </span>
-                                    <select
+                                    <ThemedNativeSelect
                                         aria-label="Hodina zálohy"
                                         value={hours}
                                         onChange={(e) =>
@@ -352,9 +353,9 @@ export const BackupSettings: React.FC = () => {
                                                 {String(i).padStart(2, '0')}
                                             </option>
                                         ))}
-                                    </select>
+                                    </ThemedNativeSelect>
                                     <span className="text-slate-400 font-medium">:</span>
-                                    <select
+                                    <ThemedNativeSelect
                                         aria-label="Minuta zálohy"
                                         value={minutes}
                                         onChange={(e) =>
@@ -383,7 +384,7 @@ export const BackupSettings: React.FC = () => {
                                                     {String(m).padStart(2, '0')}
                                                 </option>
                                             ))}
-                                    </select>
+                                    </ThemedNativeSelect>
                                 </div>
                             );
                         })()}

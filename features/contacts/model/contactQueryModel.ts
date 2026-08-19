@@ -2,6 +2,8 @@ import type { ContactPerson, Subcontractor } from "@/types";
 
 export interface SubcontractorRow {
   id: string;
+  organization_id?: string | null;
+  owner_id?: string | null;
   company_name: string;
   specialization?: string | string[] | null;
   contacts?: unknown;
@@ -86,6 +88,8 @@ export const mapSubcontractorRows = (
 
     return {
       id: row.id,
+      organizationId: row.organization_id ?? undefined,
+      ownerId: row.owner_id ?? undefined,
       company: row.company_name,
       specialization:
         specialization.length > 0 ? specialization : ["Ostatní"],

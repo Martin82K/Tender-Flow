@@ -24,6 +24,7 @@ import {
     mergeRegistrationDetails,
     type PipelineContactFormState,
 } from "@features/projects/pipeline/model/pipelineContactFormModel";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 export interface CreateContactModalProps {
     initialName: string;
@@ -593,7 +594,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                                     Stav kontaktu
                                 </label>
-                                <select
+                                <ThemedNativeSelect
                                     value={formData.status || "available"}
                                     onChange={e =>
                                         setFormData({ ...formData, status: e.target.value })
@@ -605,7 +606,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                             {s.label}
                                         </option>
                                     ))}
-                                </select>
+                                </ThemedNativeSelect>
                             </div>
                         </div>
                     </div>

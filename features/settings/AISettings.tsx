@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { dbAdapter } from "@infra/db/dbAdapter";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
 
@@ -368,7 +369,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                         className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
                       />
                     ) : (
-                      <select
+                      <ThemedNativeSelect
                         value={ocrModel}
                         onChange={(e) => setOcrModel(e.target.value)}
                         className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
@@ -394,7 +395,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                             </option>
                           </>
                         )}
-                      </select>
+                      </ThemedNativeSelect>
                     )}
                     {ocrProvider === "mistral" && (
                       <div className="flex items-center justify-between text-[11px] text-slate-500">
@@ -496,7 +497,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                         className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
                       />
                     ) : (
-                      <select
+                      <ThemedNativeSelect
                         value={extractionModel}
                         onChange={(e) => setExtractionModel(e.target.value)}
                         className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
@@ -521,7 +522,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                             </option>
                           ))
                         )}
-                      </select>
+                      </ThemedNativeSelect>
                     )}
                     {extractionProvider === "mistral" && (
                       <div className="flex items-center justify-between text-[11px] text-slate-500">
