@@ -24,6 +24,7 @@ import { withPrimaryContactMirror } from '@features/contacts/model/contactPersis
 import { contactPersonTabLabel } from '@/shared/ui/contacts/contactDisplay';
 import { useAccessibleDialog } from '@/shared/ui/useAccessibleDialog';
 import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -1451,7 +1452,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                         </div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stav kontaktu</label>
                                         <div className="flex gap-2">
-                                            <select
+                                            <ThemedNativeSelect
                                                 value={formData.status || 'available'}
                                                 onChange={e => setFormData({ ...formData, status: e.target.value })}
                                                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
@@ -1459,7 +1460,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 {statuses.map(s => (
                                                     <option key={s.id} value={s.id}>{s.label}</option>
                                                 ))}
-                                            </select>
+                                            </ThemedNativeSelect>
                                         </div>
                                     </div>
                                 </div>

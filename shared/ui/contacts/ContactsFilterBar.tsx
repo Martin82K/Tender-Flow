@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { StatusConfig } from "@/types";
 import { CZ_REGIONS } from "@/config/constants";
 import { ContactsFilterState } from "./contactsFiltersLogic";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const filterSelectClassName =
-  "select-no-native-arrow w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 bg-none focus:ring-primary focus:border-primary";
+  "h-12 w-full rounded-lg px-4 text-sm";
 
 const DEFAULT_DISTANCE_KM = 50;
 const MIN_DISTANCE_KM = 5;
@@ -168,7 +169,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
         )}
 
         <div className="relative w-full md:w-56">
-          <select
+          <ThemedNativeSelect
             aria-label="Filtr specializace"
             value={state.specialization}
             onChange={(e) => onSpecializationChange(e.target.value)}
@@ -180,14 +181,11 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
                 {spec}
               </option>
             ))}
-          </select>
-          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-            expand_more
-          </span>
+          </ThemedNativeSelect>
         </div>
 
         <div className="relative w-full md:w-48">
-          <select
+          <ThemedNativeSelect
             aria-label="Filtr stavu"
             value={state.status}
             onChange={(e) => onStatusChange(e.target.value)}
@@ -199,14 +197,11 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
                 {s.label}
               </option>
             ))}
-          </select>
-          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-            expand_more
-          </span>
+          </ThemedNativeSelect>
         </div>
 
         <div className="relative w-full md:w-52">
-          <select
+          <ThemedNativeSelect
             aria-label="Filtr kraje působnosti"
             value={state.region}
             onChange={(e) => onRegionChange(e.target.value)}
@@ -218,10 +213,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
                 {r.label}
               </option>
             ))}
-          </select>
-          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-            expand_more
-          </span>
+          </ThemedNativeSelect>
         </div>
 
         {trailingSlot}

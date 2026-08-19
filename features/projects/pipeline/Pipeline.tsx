@@ -12,6 +12,7 @@ import type {
 import { resolveDocHubStructureV1 } from "@shared/dochub/docHub";
 import platformAdapter from "@infra/platform/platformAdapter";
 import { DEFAULT_STATUSES } from "@/config/constants";
+import { APP_VERSION } from "@/config/version";
 import {
   getTemplateLinksForInquiryKindModel,
   type PipelineInquiryGenerationKind,
@@ -505,6 +506,20 @@ export const Pipeline: React.FC<PipelineProps> = ({
         onEditCategory={handleEditCategoryClick}
         onDeleteCategory={handleDeleteCategory}
         onToggleCategoryComplete={handleToggleCategoryComplete}
+        exportMeta={{
+          organizationName: user?.organizationName || "Organizace",
+          projectTitle: projectDetails.title || "Projekt",
+          projectStatus: projectDetails.status || "realization",
+          exportedBy: user?.name?.trim() || "Uživatel",
+          appVersion: APP_VERSION,
+        }}
+        onExportError={(message) => {
+          showAlert({
+            title: "Export se nezdařil",
+            message,
+            variant: "danger",
+          });
+        }}
       />
 
       {/* Create Category Modal */}

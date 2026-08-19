@@ -18,6 +18,7 @@ import { OrgMembersTab } from './OrgMembersTab';
 import { OrgBillingTab } from './OrgBillingTab';
 import { OrgBrandingTab } from './OrgBrandingTab';
 import { OrgRolePermissionsTab } from './OrgRolePermissionsTab';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface OrganizationDashboardProps {
   activeSubTab: OrgSubTab;
@@ -95,7 +96,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
       {/* Org selector (if user is in multiple orgs) */}
       {organizations.length > 1 && (
         <div className="mb-6">
-          <select
+          <ThemedNativeSelect
             value={selectedOrgId}
             onChange={e => setSelectedOrgId(e.target.value)}
             className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -105,7 +106,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
                 {org.organization_name}
               </option>
             ))}
-          </select>
+          </ThemedNativeSelect>
         </div>
       )}
 

@@ -16,6 +16,7 @@ import {
   type RowOutcome,
   type TFFieldKey,
 } from "@/services/contactsImportWizardService";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 type WizardStep = "source" | "mapping" | "preview" | "done";
 
@@ -435,7 +436,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
                       <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{f.label}</p>
                       <p className="text-[11px] text-slate-500 mt-0.5">{f.hint}</p>
                     </div>
-                    <select
+                    <ThemedNativeSelect
                       value={mapping[f.key] || ""}
                       onChange={(e) => updateMapping(f.key, e.target.value ? e.target.value : null)}
                       className="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-1.5 text-xs text-slate-900 dark:text-white"
@@ -446,7 +447,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
                           {h}
                         </option>
                       ))}
-                    </select>
+                    </ThemedNativeSelect>
                   </div>
                 </div>
               ))}

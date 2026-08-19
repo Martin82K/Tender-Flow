@@ -33,7 +33,7 @@ describe("SubcontractorSelector", () => {
     localStorage.clear();
   });
 
-  it("pouziva select styly bez nativni sipky pro vsechny filtry", () => {
+  it("používá společný skinovaný výběr pro všechny filtry", () => {
     render(
       <SubcontractorSelector
         contacts={[]}
@@ -45,17 +45,16 @@ describe("SubcontractorSelector", () => {
 
     const specializationSelect = screen.getByLabelText(
       "Filtr specializace",
-    ) as HTMLSelectElement;
+    );
     const statusSelect = screen.getByLabelText(
       "Filtr stavu",
-    ) as HTMLSelectElement;
+    );
     const regionSelect = screen.getByLabelText(
       "Filtr kraje působnosti",
-    ) as HTMLSelectElement;
+    );
 
     for (const el of [specializationSelect, statusSelect, regionSelect]) {
-      expect(el.className).toContain("select-no-native-arrow");
-      expect(el.className).toContain("bg-none");
+      expect(el).toHaveClass("tf-themed-select-trigger");
     }
   });
 
@@ -69,18 +68,16 @@ describe("SubcontractorSelector", () => {
       />,
     );
 
-    const regionSelect = screen.getByLabelText(
-      "Filtr kraje působnosti",
-    ) as HTMLSelectElement;
-    const values = Array.from(regionSelect.options).map((o) => o.value);
+    fireEvent.click(screen.getByLabelText("Filtr kraje působnosti"));
+    const options = screen.getAllByRole("option");
 
-    expect(values).toContain("all");
-    expect(values).toContain("PHA");
-    expect(values).toContain("STC");
-    expect(values).toContain("JHM");
-    expect(values).toContain("MSK");
+    expect(screen.getByRole("option", { name: "Všechny kraje působnosti" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Praha" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Středočeský" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Jihomoravský" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Moravskoslezský" })).toBeInTheDocument();
     // 14 krajů + "all"
-    expect(values).toHaveLength(15);
+    expect(options).toHaveLength(15);
   });
 
   it("filtruje kontakty podle vybraného kraje a propaguje do callbacku", async () => {
@@ -104,10 +101,8 @@ describe("SubcontractorSelector", () => {
     await waitFor(() => expect(onFilteredChange).toHaveBeenCalled());
     onFilteredChange.mockClear();
 
-    const regionSelect = screen.getByLabelText(
-      "Filtr kraje působnosti",
-    ) as HTMLSelectElement;
-    fireEvent.change(regionSelect, { target: { value: "PHA" } });
+    fireEvent.click(screen.getByLabelText("Filtr kraje působnosti"));
+    fireEvent.click(screen.getByRole("option", { name: "Praha" }));
 
     await waitFor(() => {
       const lastCall =

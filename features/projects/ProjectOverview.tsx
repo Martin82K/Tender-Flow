@@ -45,6 +45,7 @@ import {
 } from "@/features/projects/model/projectOverviewModel";
 import { useProjectOverviewController } from "@/features/projects/model/useProjectOverviewController";
 import type { ThemeSkin } from "@/shared/types/theme";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ProjectOverviewProps {
   projects: Project[];
@@ -224,7 +225,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             ))}
           </div>
           <div className="relative">
-            <select
+            <ThemedNativeSelect
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
               disabled={scope === "tenant"}
@@ -237,7 +238,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                   {project.name}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 gap-0.5">

@@ -17,6 +17,7 @@ import type { ThemeSkin } from '@/shared/types/theme';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { PROJECT_TEAM_ROLE_LABELS } from '@/shared/authorization/projectRoles';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -641,7 +642,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Typ / Fáze</label>
-                                <select
+                                <ThemedNativeSelect
                                     value={newProjectStatus}
                                     onChange={(e) => setNewProjectStatus(e.target.value as ProjectStatus)}
                                     disabled={isProjectLimitReached}
@@ -649,7 +650,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 >
                                     <option value="tender">Soutěž (Příprava)</option>
                                     <option value="realization">Realizace (Výstavba)</option>
-                                </select>
+                                </ThemedNativeSelect>
                             </div>
                         </div>
                         {createMembers.length > 0 && <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
@@ -887,14 +888,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Typ / Fáze</label>
-                                <select
+                                <ThemedNativeSelect
                                     value={editingProject.status}
                                     onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value as ProjectStatus })}
                                     className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 >
                                     <option value="tender">Soutěž (Příprava)</option>
                                     <option value="realization">Realizace (Výstavba)</option>
-                                </select>
+                                </ThemedNativeSelect>
                             </div>
                             <div className="tf-modal-footer flex justify-end gap-3 pt-2">
                                 <button
@@ -948,14 +949,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </div>
                                 <div className="w-[140px]">
                                     <label className="block text-xs text-slate-400 mb-1">Oprávnění</label>
-                                    <select
+                                    <ThemedNativeSelect
                                         value={sharePermission}
                                         onChange={(e) => setSharePermission(e.target.value as 'view' | 'edit')}
                                         className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none h-[42px]"
                                     >
                                         <option value="edit">Úpravy</option>
                                         <option value="view">Pouze čtení</option>
-                                    </select>
+                                    </ThemedNativeSelect>
                                 </div>
                                 <div className="flex items-end">
                                     <button
@@ -992,14 +993,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <select
+                                                    <ThemedNativeSelect
                                                         value={share.permission}
                                                         onChange={(e) => handleChangePermission(share.user_id, e.target.value as 'view' | 'edit')}
                                                         className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 focus:border-blue-500/50 focus:outline-none cursor-pointer"
                                                     >
                                                         <option value="edit">Úpravy</option>
                                                         <option value="view">Pouze čtení</option>
-                                                    </select>
+                                                    </ThemedNativeSelect>
                                                     <button
                                                         onClick={() => handleRemoveShareClick(share.user_id)}
                                                         className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"

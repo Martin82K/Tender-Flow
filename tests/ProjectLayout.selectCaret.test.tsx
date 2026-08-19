@@ -50,7 +50,7 @@ describe("ProjectLayout mobile select", () => {
     localStorage.clear();
   });
 
-  it("pouziva select styl bez nativni sipky", () => {
+  it("používá skinovaný výběr s jedinou vlastní šipkou", () => {
     render(
       <ProjectLayout
         projectId="p-1"
@@ -65,8 +65,9 @@ describe("ProjectLayout mobile select", () => {
       />,
     );
 
-    const select = screen.getByDisplayValue("Přehled");
-    expect(select.className).toContain("select-no-native-arrow");
+    const select = screen.getByRole("combobox", { name: "Navigace projektu" });
+    expect(select).toHaveClass("tf-themed-select-trigger");
+    expect(select.querySelectorAll(".material-symbols-outlined")).toHaveLength(1);
   });
 
   it("zachova horni projektove menu i pri vychozim industrial skinu", () => {
@@ -85,7 +86,7 @@ describe("ProjectLayout mobile select", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Projekt A" })).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Přehled").className).toContain("select-no-native-arrow");
+    expect(screen.getByRole("combobox", { name: "Navigace projektu" })).toHaveClass("tf-themed-select-trigger");
     expect(screen.getByRole("button", { name: /Harmonogram/i })).toBeInTheDocument();
     expect(screen.queryByText("Přepnout na klasický skin")).not.toBeInTheDocument();
   });

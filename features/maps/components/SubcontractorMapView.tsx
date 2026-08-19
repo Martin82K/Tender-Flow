@@ -9,6 +9,7 @@ import { MapInfoCard } from './MapInfoCard';
 import { MapControls } from './MapControls';
 import { MapLayerSwitcher } from './MapLayerSwitcher';
 import { BulkGeocodePanel } from './BulkGeocodePanel';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface SubcontractorMapViewProps {
   contacts: Subcontractor[];
@@ -266,7 +267,7 @@ export function SubcontractorMapView({
         </div>
 
         {/* Region select */}
-        <select
+        <ThemedNativeSelect
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
           className="text-xs px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -275,7 +276,7 @@ export function SubcontractorMapView({
           {allRegions.map(r => (
             <option key={r} value={r}>{r}</option>
           ))}
-        </select>
+        </ThemedNativeSelect>
 
         {/* Company / address search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">

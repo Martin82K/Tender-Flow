@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface TaskDateTimePickerProps {
   label: string;
@@ -238,7 +239,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
           </div>
 
           <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900">
-            <select
+            <ThemedNativeSelect
               value={currentHour}
               onChange={(event) => setTimePart("hour", Number(event.target.value))}
               className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950"
@@ -249,9 +250,9 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                   {pad(hour)}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
             <span className="text-sm font-bold text-slate-500">:</span>
-            <select
+            <ThemedNativeSelect
               value={currentMinute}
               onChange={(event) => setTimePart("minute", Number(event.target.value))}
               className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950"
@@ -262,7 +263,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
                   {pad(minute)}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-2">

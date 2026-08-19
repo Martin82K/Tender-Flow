@@ -18,6 +18,7 @@ import type {
   ContractExtractionResult,
   ContractWithDetails,
 } from '@/types';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface Props {
   projectId: string;
@@ -460,7 +461,7 @@ export const ContractEditDialog: React.FC<Props> = ({
           </div>
           <div>
             <label className={labelClass}>Stav</label>
-            <select
+            <ThemedNativeSelect
               className={inputClass}
               value={form.status}
               onChange={(e) => handleChange('status', e.target.value as ContractStatus)}
@@ -469,7 +470,7 @@ export const ContractEditDialog: React.FC<Props> = ({
               <option value="active">Aktivní</option>
               <option value="closed">Uzavřeno</option>
               <option value="cancelled">Zrušeno</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
           <div>
             <label className={labelClass}>Datum podpisu</label>
@@ -524,7 +525,7 @@ export const ContractEditDialog: React.FC<Props> = ({
           </div>
           <div>
             <label className={labelClass}>Měna</label>
-            <select
+            <ThemedNativeSelect
               className={inputClass}
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
@@ -532,7 +533,7 @@ export const ContractEditDialog: React.FC<Props> = ({
               <option value="CZK">CZK</option>
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
           <div>
             <label className={labelClass}>Zařízení staveniště (%)</label>
@@ -599,7 +600,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                 </div>
                 <div>
                   <label className={labelClass}>Stav</label>
-                  <select
+                  <ThemedNativeSelect
                     className={inputClass}
                     value={form.retentionShortStatus}
                     onChange={(e) =>
@@ -608,7 +609,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                   >
                     <option value="held">Drží se</option>
                     <option value="released">Uvolněno</option>
-                  </select>
+                  </ThemedNativeSelect>
                 </div>
               </div>
             </div>
@@ -656,7 +657,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                 </div>
                 <div>
                   <label className={labelClass}>Stav</label>
-                  <select
+                  <ThemedNativeSelect
                     className={inputClass}
                     value={form.retentionLongStatus}
                     onChange={(e) =>
@@ -665,7 +666,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                   >
                     <option value="held">Drží se</option>
                     <option value="released">Uvolněno</option>
-                  </select>
+                  </ThemedNativeSelect>
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import {
 } from "@features/settings/api";
 import { useUI } from "@/context/UIContext";
 import { getTierLabel, getTierBadgeClass } from "@/config/subscriptionTiers";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface UserManagementProps {
   isAdmin: boolean;
@@ -145,7 +146,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             </div>
           </div>
           <div className="w-[180px]">
-            <select
+            <ThemedNativeSelect
               value={domainFilter}
               onChange={(e) => setDomainFilter(e.target.value)}
               className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
@@ -156,7 +157,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                   @{domain}
                 </option>
               ))}
-            </select>
+            </ThemedNativeSelect>
           </div>
         </div>
 
@@ -233,7 +234,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                       </td>
                       <td className="py-3 px-2">
                         <div className="relative">
-                          <select
+                          <ThemedNativeSelect
                             value={(user.login_type || "").toLowerCase()}
                             onChange={(e) =>
                               handleLoginTypeChange(
@@ -252,7 +253,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                             <option value="azure">Microsoft (Azure)</option>
                             <option value="github">GitHub</option>
                             <option value="saml">SAML</option>
-                          </select>
+                          </ThemedNativeSelect>
                           {updatingLoginTypeUserId === user.user_id && (
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-primary text-[16px]">
                               sync

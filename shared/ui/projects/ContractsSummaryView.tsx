@@ -21,6 +21,7 @@ import {
   formatContractSummaryWarranty,
   getContractSummaryStatusLabel,
 } from "@/shared/contracts/contractSummary";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ContractsSummaryViewProps {
   contracts: ContractSummaryDto[];
@@ -187,7 +188,7 @@ export const ContractsSummaryView: React.FC<ContractsSummaryViewProps> = ({
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Stav
               </span>
-              <select
+              <ThemedNativeSelect
                 value={filters.status || "all"}
                 onChange={(event) =>
                   setFilters((prev) => ({
@@ -202,7 +203,7 @@ export const ContractsSummaryView: React.FC<ContractsSummaryViewProps> = ({
                 <option value="draft">Rozpracováno</option>
                 <option value="closed">Uzavřeno</option>
                 <option value="cancelled">Zrušeno</option>
-              </select>
+              </ThemedNativeSelect>
             </label>
           </div>
           <div className="flex flex-wrap items-center gap-2">

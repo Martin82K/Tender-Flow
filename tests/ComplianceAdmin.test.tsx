@@ -834,13 +834,7 @@ describe("ComplianceAdmin", () => {
     fireEvent.change(screen.getByLabelText("Navázaná retention policy"), {
       target: { value: "ret-1" },
     });
-    const subprocessorsSelect = screen.getByLabelText(
-      "Navázané subprocessory činnosti zpracování",
-    ) as HTMLSelectElement;
-    Array.from(subprocessorsSelect.options).forEach((option) => {
-      option.selected = option.value === "sub-1";
-    });
-    fireEvent.change(subprocessorsSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Supabase (EU)" }));
     fireEvent.click(screen.getAllByRole("button", { name: "Přidat" })[3]);
 
     await waitFor(() => {

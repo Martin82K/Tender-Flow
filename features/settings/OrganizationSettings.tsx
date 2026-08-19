@@ -14,6 +14,7 @@ import {
 } from "@features/settings/api";
 import { useUI } from "../../context/UIContext";
 import { formatOrgRole, getUserLabel, getUserSortKey, isOrgOwnerRole } from "@/shared/organization/organizationUtils";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const TIME_SAVINGS_DAYS_BACK = 30;
 const MINUTES_PER_UNLOCKED_SHEET = 2;
@@ -721,7 +722,7 @@ export const OrganizationSettings: React.FC = () => {
       </p>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <select
+        <ThemedNativeSelect
           value={selectedOrgId}
           onChange={(e) => setSelectedOrgId(e.target.value)}
           className="h-10 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
@@ -731,7 +732,7 @@ export const OrganizationSettings: React.FC = () => {
               {org.organization_name} ({formatOrgRole(org.member_role)})
             </option>
           ))}
-        </select>
+        </ThemedNativeSelect>
         <input
           type="text"
           value={search}

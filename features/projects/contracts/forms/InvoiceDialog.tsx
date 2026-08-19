@@ -7,6 +7,7 @@ import type {
   ContractInvoiceStatus,
   ContractWithDetails,
 } from '@/types';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface Props {
   contract: ContractWithDetails;
@@ -100,7 +101,7 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
           </div>
           <div>
             <label className={labelClass}>Stav</label>
-            <select
+            <ThemedNativeSelect
               className={inputClass}
               value={form.status}
               onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as ContractInvoiceStatus }))}
@@ -109,7 +110,7 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
               <option value="approved">Schváleno</option>
               <option value="paid">Zaplaceno</option>
               <option value="overdue">Po splatnosti</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
           <div>
             <label className={labelClass}>DUZP *</label>
@@ -145,7 +146,7 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
           </div>
           <div>
             <label className={labelClass}>Měna</label>
-            <select
+            <ThemedNativeSelect
               className={inputClass}
               value={form.currency}
               onChange={(e) => setForm((s) => ({ ...s, currency: e.target.value }))}
@@ -153,7 +154,7 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
               <option value="CZK">CZK</option>
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
           {form.status === 'paid' && (
             <div>

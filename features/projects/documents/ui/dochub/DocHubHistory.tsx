@@ -3,6 +3,7 @@ import type { ProjectDetails } from '@/types';
 import { dbAdapter } from '@infra/db/dbAdapter';
 import { AlertModal } from '@shared/ui/AlertModal';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface DocHubHistoryProps {
     project: ProjectDetails;
@@ -129,7 +130,7 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                             >
                                 Akce &gt; 0
                             </button>
-                            <select
+                            <ThemedNativeSelect
                                 value={filter.days}
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => setFilter((prev) => ({ ...prev, days: Number(e.target.value) || 30 }))}
@@ -142,7 +143,7 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                                 <option value={14}>14 dní</option>
                                 <option value={30}>30 dní</option>
                                 <option value={90}>90 dní</option>
-                            </select>
+                            </ThemedNativeSelect>
                             <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); loadHistory(); }}

@@ -12,6 +12,7 @@ import {
 } from "../../services/exportService";
 import { runPdfExportSafely } from "../pdf/pdfExportError";
 import { renderMarkdownToSafeHtml } from "./markdownRender";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface MarkdownDocumentPanelProps {
   entityType: ContractMarkdownEntityType;
@@ -637,7 +638,7 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
           {versions.length > 0 && (
             <div>
               <label className="block text-sm font-medium mb-1">Verze</label>
-              <select
+              <ThemedNativeSelect
                 value={selectedVersion?.id || ""}
                 onChange={(e) => setSelectedVersionId(e.target.value)}
                 className="w-full md:w-80 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm"
@@ -647,7 +648,7 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
                     v{version.versionNo} • {sourceKindLabels[version.sourceKind]} • {formatDateTime(version.createdAt)}
                   </option>
                 ))}
-              </select>
+              </ThemedNativeSelect>
             </div>
           )}
 

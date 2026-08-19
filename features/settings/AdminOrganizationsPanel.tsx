@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { orgSubscriptionRpc } from '@/infra/org-billing/orgSubscriptionRpc';
 import { getTierLabel, getTierBadgeClass, getDisplayTiers } from '@/config/subscriptionTiers';
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 type OrgRow = Awaited<ReturnType<typeof orgSubscriptionRpc.getAllOrganizationsAdmin>>[number];
 
@@ -215,7 +216,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
                       {/* Tier */}
                       <td className="py-3 px-2">
                         {isEditing ? (
-                          <select
+                          <ThemedNativeSelect
                             value={editState.tier}
                             onChange={(e) => setEditState(s => ({ ...s, tier: e.target.value }))}
                             className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none min-w-[120px]"
@@ -223,7 +224,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
                             {tiers.map((t) => (
                               <option key={t.id} value={t.id}>{t.label}</option>
                             ))}
-                          </select>
+                          </ThemedNativeSelect>
                         ) : (
                           <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg ${getTierBadgeClass(effectiveTier as any)}`}>
                             {getTierLabel(effectiveTier as any)}
@@ -263,7 +264,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
                       {/* Status */}
                       <td className="py-3 px-2">
                         {isEditing ? (
-                          <select
+                          <ThemedNativeSelect
                             value={editState.status}
                             onChange={(e) => setEditState(s => ({ ...s, status: e.target.value }))}
                             className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none min-w-[120px]"
@@ -271,7 +272,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
                             {statusOptions.map((status) => (
                               <option key={status} value={status}>{status}</option>
                             ))}
-                          </select>
+                          </ThemedNativeSelect>
                         ) : (
                           <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
                             org.subscription_status === 'active'
@@ -291,14 +292,14 @@ export const AdminOrganizationsPanel: React.FC = () => {
                       <td className="py-3 px-2">
                         {isEditing ? (
                           <div className="flex items-center gap-1">
-                            <select
+                            <ThemedNativeSelect
                               value={editState.billingPeriod}
                               onChange={(e) => setEditState(s => ({ ...s, billingPeriod: e.target.value }))}
                               className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
                             >
                               <option value="monthly">monthly</option>
                               <option value="yearly">yearly</option>
-                            </select>
+                            </ThemedNativeSelect>
                             <input
                               type="date"
                               value={editState.billingPeriodStart}

@@ -5,6 +5,7 @@ import {
   type IncidentAdminItem,
   purgeOldAppIncidentsAdmin,
 } from "@features/settings/api";
+import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const formatTs = (value: string): string => {
   try {
@@ -269,7 +270,7 @@ export const IncidentLogsAdmin: React.FC = () => {
             >
               Max zobrazení
             </label>
-            <select
+            <ThemedNativeSelect
               id="incident-display-limit"
               value={displayLimitMode}
               onChange={(e) =>
@@ -282,7 +283,7 @@ export const IncidentLogsAdmin: React.FC = () => {
               <option value="50">50</option>
               <option value="100">100</option>
               <option value="200">200</option>
-            </select>
+            </ThemedNativeSelect>
           </div>
         </div>
 
