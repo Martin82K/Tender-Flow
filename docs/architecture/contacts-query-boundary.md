@@ -53,10 +53,27 @@ Feature nepoužívá service role ani klientské rozšíření přístupu. Ratin
 nezávislá na stránkování kontaktů, proto poběží paralelně v jednom `Promise.all`;
 jednotlivé stránky kontaktů musí zůstat sekvenční.
 
+### Tenantové přiřazení kontaktů
+
+- Kontakt člena s právě jednou aktivní organizací patří této organizaci a je
+  sdílený všem jejím aktivním členům.
+- Osobní kontakt bez `organization_id` je přípustný pouze uživateli bez
+  aktivního organizačního členství.
+- Pokud má vlastník více aktivních organizací, klient musí poslat explicitní
+  `organization_id`; databáze neprovede nejednoznačný automatický výběr.
+- Databázový trigger v privátním schématu vynucuje stejné chování i pro starší
+  klienty, které tenantový identifikátor neposílají.
+- RLS nadále omezuje čtení na přímého vlastníka nebo aktivní členství ve stejné
+  organizaci. Oprava tenantového přiřazení proto nesmí používat globální
+  viditelnost ani rozšířit přístup mimo cílovou organizaci.
+
 ## Rollback
 
-Změna neobsahuje SQL ani novou dependency. Lze ji vrátit jedním revertem;
-legacy consumery zůstávají kompatibilní přes adaptér.
+Query refaktor neobsahuje novou dependency a legacy consumery zůstávají
+kompatibilní přes adaptér. Tenantové databázové hardening změny se vracejí pouze
+novou dopřednou migrací po auditu aktuálních scope vazeb. Již sdílené kontakty
+se nesmějí plošně vracet na `organization_id = NULL`, protože by se znovu
+rozštěpila viditelnost a mohlo by dojít k chybnému přiřazení vlastníka.
 
 ## Výsledek ověření
 
