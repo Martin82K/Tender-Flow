@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const MIGRATION =
-  "20260820094932_assign_contacts_to_member_tenant.sql";
+  "20260820101425_assign_contacts_to_member_tenant.sql";
 
 const readMigration = (): string =>
   fs.readFileSync(path.join(ROOT, "supabase/migrations", MIGRATION), "utf8");
