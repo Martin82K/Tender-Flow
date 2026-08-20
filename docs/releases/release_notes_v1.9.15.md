@@ -8,8 +8,7 @@ tenantu.
 ## Kontakty
 
 - Všech 11 aktivních členů Baustavu nyní vidí shodně 1 394 kontaktů.
-- Dodavatel SUAS reSTAV je dostupný účtům `kalkus@baustav.cz` i
-  `dorrerova@baustav.cz`.
+- Dodavatel SUAS reSTAV je dostupný všem aktivním členům stejného tenantu.
 - Databázový trigger chrání i starší klienty, které tenantový identifikátor
   neposílají.
 - U uživatele s více aktivními organizacemi databáze neprovede nejednoznačný
