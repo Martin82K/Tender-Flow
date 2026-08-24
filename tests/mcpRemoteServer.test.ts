@@ -900,6 +900,23 @@ describe("remote MCP server", () => {
     expect(migration).toContain("9a9b2e02-5e83-4c1f-8a6f-15c7a88d9066");
   });
 
+  it("registruje Grok Bot pouze jako existující aktivní OAuth klient", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260824201046_register_grok_bot_mcp_oauth_client.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("4873186f-4d54-4099-bbed-659119e7c629");
+    expect(migration).toContain("https://www.tenderflow.cz/api/mcp");
+    expect(migration).toContain("FROM auth.oauth_clients AS oauth_client");
+    expect(migration).toContain("oauth_client.deleted_at IS NULL");
+    expect(migration).toContain("ON CONFLICT (client_id, resource) DO UPDATE");
+    expect(migration).toContain("RAISE EXCEPTION");
+    expect(migration).not.toMatch(
+      /INSERT INTO public\.mcp_oauth_client_resources \(client_id, resource\)\s+VALUES/,
+    );
+  });
+
   it("produkční canary ověřuje skutečné OAuth endpointy a serverový JWKS", () => {
     const source = fs.readFileSync(
       path.join(ROOT, "scripts/check-mcp-production.mjs"),

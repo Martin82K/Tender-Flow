@@ -3,6 +3,16 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-08-24 — privátní konektor Grok Bot
+
+- Přidán ručně registrovaný veřejný OAuth klient pro privátní Grok Bot / Cursor
+  Agents konektor s přesnými desktopovou loopback a webovou callback URI a
+  PKCE S256.
+- Klient dostává kanonický MCP resource claim pouze přes autoritativní
+  `mcp_oauth_client_resources`; Dynamic Client Registration zůstává vypnutá.
+- Contacts a write oprávnění zůstávají po prvním připojení vypnutá a vyžadují
+  samostatný uživatelský grant v Tender Flow.
+
 ## 2026-08-11 — doménové moduly MCP 2.0
 
 - centrální server factory již neobsahuje business tool handlery a skládá
