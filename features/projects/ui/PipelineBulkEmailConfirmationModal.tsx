@@ -20,12 +20,14 @@ interface PipelineBulkEmailConfirmationModalProps {
 const actionLabels: Record<PipelineBulkEmailKind, string> = {
   inquiry: "standardní poptávku",
   materialInquiry: "materiálovou poptávku",
+  informationUpdate: "doplnění informací",
   losers: "poděkování nevybraným",
 };
 
 const actionTitles: Record<PipelineBulkEmailKind, string> = {
   inquiry: "Hromadná standardní poptávka",
   materialInquiry: "Hromadná materiálová poptávka",
+  informationUpdate: "Doplnění informací",
   losers: "Poděkování nevybraným",
 };
 

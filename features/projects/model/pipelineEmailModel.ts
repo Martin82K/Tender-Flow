@@ -1,6 +1,10 @@
 import type { Bid } from "@/types";
 
-export type PipelineBulkEmailKind = "inquiry" | "materialInquiry" | "losers";
+export type PipelineBulkEmailKind =
+  | "inquiry"
+  | "materialInquiry"
+  | "informationUpdate"
+  | "losers";
 
 export interface PipelineEmailRecipientSelection {
   candidateBids: Bid[];
@@ -94,6 +98,20 @@ export const selectBulkInquiryRecipients = (
 ): PipelineEmailRecipientSelection =>
   selectEmailRecipients(
     categoryBids.filter((bid) => bid.status === "contacted"),
+  );
+
+const INFORMATION_UPDATE_STATUSES = new Set<Bid["status"]>([
+  "sent",
+  "offer",
+  "shortlist",
+  "sod",
+]);
+
+export const selectInformationUpdateRecipients = (
+  categoryBids: Bid[],
+): PipelineEmailRecipientSelection =>
+  selectEmailRecipients(
+    categoryBids.filter((bid) => INFORMATION_UPDATE_STATUSES.has(bid.status)),
   );
 
 export const selectLoserEmailRecipients = (

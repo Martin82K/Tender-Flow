@@ -33,6 +33,7 @@ import {
   isValidEmailAddress,
   normalizeEmailAddress,
   selectBulkInquiryRecipients,
+  selectInformationUpdateRecipients,
   selectLoserEmailRecipients,
 } from "./pipelineEmailModel";
 import {
@@ -484,6 +485,55 @@ export const usePipelineCommunicationActions = ({
     return true;
   };
 
+  const handleGenerateInformationUpdate = async () => {
+    if (!activeCategory) return false;
+
+    const userEmail = getCurrentUserEmail();
+    if (!userEmail) return false;
+
+    const selection = selectInformationUpdateRecipients(
+      bids[activeCategory.id] || [],
+    );
+    if (selection.candidateBids.length === 0) {
+      showAlert({
+        title: "Žádní již oslovení účastníci",
+        message:
+          "Ve stavech Odesláno, Poslali cenu, Užší výběr ani Jednání o SOD nejsou žádní dodavatelé.",
+        variant: "info",
+      });
+      return false;
+    }
+    if (selection.emails.length === 0) {
+      showAlert({
+        title: "Chybí platné emaily",
+        message: "Žádný z již oslovených účastníků nemá platnou emailovou adresu.",
+        variant: "info",
+      });
+      return false;
+    }
+
+    const emlContent = generateEmlContent(userEmail, "", "", {
+      bcc: buildBccRecipientList(selection.emails),
+    });
+    const filename = `Doplneni_informaci_${Date.now()}.eml`;
+
+    try {
+      await platformAdapter.shell.openTempFile(emlContent, filename);
+      return true;
+    } catch (error) {
+      console.error("Failed to open information update email draft:", {
+        categoryId: activeCategory.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      showAlert({
+        title: "Koncept se nepodařilo vytvořit",
+        message: "Emailový koncept se nepodařilo otevřít. Zkuste akci znovu.",
+        variant: "danger",
+      });
+      return false;
+    }
+  };
+
   const resolveExportMeta = async () => {
     const organizationLogoUrl = currentUser?.organizationId
       ? await organizationService
@@ -648,6 +698,7 @@ export const usePipelineCommunicationActions = ({
     handleGenerateInquiry,
     handleGenerateMaterialInquiry,
     handleGenerateBulkInquiry,
+    handleGenerateInformationUpdate,
     handleExport,
     handleEmailLosers,
   };

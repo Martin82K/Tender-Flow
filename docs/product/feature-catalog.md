@@ -69,6 +69,11 @@ subdodavatelů v `BCC`. UI před vytvořením konceptu zobrazí rekapitulaci vč
 vyřazených neplatných adres. Aplikace zprávu sama neodesílá a stav karet mění až
 po úspěšném otevření konceptu v emailovém klientu.
 
+Akce **Doplnění informací** připraví prázdný koncept pro již oslovené aktivní
+účastníky ve stavech `sent`, `offer`, `shortlist` a `sod`. Přihlášený uživatel
+je v poli `To`, dodavatelé jsou pouze v `BCC`; předmět, tělo i přílohy zůstávají
+prázdné a žádný stav karty se touto akcí nemění.
+
 Vítězná nabídka ve stavu `sod` se páruje se smlouvou primárně přes ID nabídky.
 U historických záznamů se použije dodavatel pouze při jediné možné shodě. Ikona
 smlouvy pak otevře konkrétní kontrakt ve split detailu; při nejednoznačné shodě
