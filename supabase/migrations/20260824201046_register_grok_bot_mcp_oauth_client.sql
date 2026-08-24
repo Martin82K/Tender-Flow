@@ -1,6 +1,6 @@
 -- Register the manually provisioned public OAuth client used by Grok Bot.
--- The Auth client must already exist and remain active; otherwise fail closed
--- instead of creating an orphaned or misleading MCP resource grant.
+-- Non-production projects may not contain this externally managed Auth client;
+-- in that case the migration remains a safe no-op and grants no MCP resource.
 
 DO $$
 DECLARE
@@ -20,9 +20,9 @@ BEGIN
 
   GET DIAGNOSTICS affected_rows = ROW_COUNT;
 
-  IF affected_rows <> 1 THEN
-    RAISE EXCEPTION
-      'Active Grok Bot OAuth client 4873186f-4d54-4099-bbed-659119e7c629 was not found';
+  IF affected_rows = 0 THEN
+    RAISE NOTICE
+      'Skipping Grok Bot MCP registration: active OAuth client 4873186f-4d54-4099-bbed-659119e7c629 was not found';
   END IF;
 END;
 $$;

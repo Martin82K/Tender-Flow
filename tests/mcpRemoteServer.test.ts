@@ -900,7 +900,7 @@ describe("remote MCP server", () => {
     expect(migration).toContain("9a9b2e02-5e83-4c1f-8a6f-15c7a88d9066");
   });
 
-  it("registruje Grok Bot pouze jako existující aktivní OAuth klient", () => {
+  it("registruje Grok Bot pouze jako existující aktivní OAuth klient a jinde provede no-op", () => {
     const migration = fs.readFileSync(
       path.join(ROOT, "supabase/migrations/20260824201046_register_grok_bot_mcp_oauth_client.sql"),
       "utf8",
@@ -911,7 +911,8 @@ describe("remote MCP server", () => {
     expect(migration).toContain("FROM auth.oauth_clients AS oauth_client");
     expect(migration).toContain("oauth_client.deleted_at IS NULL");
     expect(migration).toContain("ON CONFLICT (client_id, resource) DO UPDATE");
-    expect(migration).toContain("RAISE EXCEPTION");
+    expect(migration).toContain("RAISE NOTICE");
+    expect(migration).not.toContain("RAISE EXCEPTION");
     expect(migration).not.toMatch(
       /INSERT INTO public\.mcp_oauth_client_resources \(client_id, resource\)\s+VALUES/,
     );
