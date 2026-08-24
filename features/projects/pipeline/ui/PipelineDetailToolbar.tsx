@@ -8,6 +8,7 @@ export interface PipelineDetailToolbarProps {
   categoryTitle: string;
   canOpenDocHub: boolean;
   inquiryRecipientCount: number;
+  informationUpdateRecipientCount: number;
   loserRecipientCount: number;
   onBack: () => void;
   onAddSubcontractor: () => void;
@@ -23,6 +24,7 @@ export const PipelineDetailToolbar: React.FC<PipelineDetailToolbarProps> = ({
   categoryTitle,
   canOpenDocHub,
   inquiryRecipientCount,
+  informationUpdateRecipientCount,
   loserRecipientCount,
   onBack,
   onAddSubcontractor,
@@ -115,6 +117,7 @@ export const PipelineDetailToolbar: React.FC<PipelineDetailToolbarProps> = ({
 
       <PipelineBulkEmailMenu
         inquiryRecipientCount={inquiryRecipientCount}
+        informationUpdateRecipientCount={informationUpdateRecipientCount}
         loserRecipientCount={loserRecipientCount}
         onSelect={onSelectBulkEmail}
       />

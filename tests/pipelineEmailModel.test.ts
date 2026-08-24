@@ -3,6 +3,7 @@ import {
   buildBccRecipientList,
   isValidEmailAddress,
   selectBulkInquiryRecipients,
+  selectInformationUpdateRecipients,
   selectLoserEmailRecipients,
 } from "../features/projects/model/pipelineEmailModel";
 import type { Bid } from "../types";
@@ -82,6 +83,39 @@ describe("pipeline email recipient selection", () => {
 
     expect(selection.recipientBids.map((bid) => bid.id)).toEqual(["a", "b"]);
     expect(selection.emails).toEqual(["office@example.com"]);
+  });
+
+  it("pro doplnění informací vybere pouze již oslovené aktivní účastníky", () => {
+    const selection = selectInformationUpdateRecipients([
+      createBid({ id: "contacted", email: "contacted@example.com", status: "contacted" }),
+      createBid({ id: "sent", email: "sent@example.com", status: "sent" }),
+      createBid({ id: "offer", email: "offer@example.com", status: "offer" }),
+      createBid({ id: "shortlist", email: "shortlist@example.com", status: "shortlist" }),
+      createBid({ id: "sod", email: "sod@example.com", status: "sod", contracted: false }),
+      createBid({ id: "contracted", email: "contracted@example.com", status: "sod", contracted: true }),
+      createBid({ id: "rejected", email: "rejected@example.com", status: "rejected" }),
+      createBid({ id: "missing", email: "", status: "sent" }),
+      createBid({ id: "invalid", email: "invalid", status: "offer" }),
+    ]);
+
+    expect(selection.candidateBids.map((bid) => bid.id)).toEqual([
+      "sent",
+      "offer",
+      "shortlist",
+      "sod",
+      "contracted",
+      "missing",
+      "invalid",
+    ]);
+    expect(selection.recipientBids.map((bid) => bid.id)).toEqual([
+      "sent",
+      "offer",
+      "shortlist",
+      "sod",
+      "contracted",
+    ]);
+    expect(selection.missingEmailBids.map((bid) => bid.id)).toEqual(["missing"]);
+    expect(selection.invalidEmailBids.map((bid) => bid.id)).toEqual(["invalid"]);
   });
 
   it("u poděkování zachová stávající pravidlo účastníků s cenou mimo SOD", () => {
