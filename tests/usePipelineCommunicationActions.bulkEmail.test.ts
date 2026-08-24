@@ -183,6 +183,61 @@ describe("usePipelineCommunicationActions hromadné emaily", () => {
     expect(showAlert).not.toHaveBeenCalled();
   });
 
+  it("vytvoří prázdný koncept doplnění informací bez změny stavů", async () => {
+    const bids = {
+      [category.id]: [
+        createBid({ id: "sent", email: "sent@example.com", status: "sent" }),
+        createBid({ id: "offer", email: "offer@example.com", status: "offer" }),
+        createBid({ id: "shortlist", email: "shortlist@example.com", status: "shortlist" }),
+        createBid({ id: "sod", email: "sod@example.com", status: "sod" }),
+        createBid({ id: "contacted", email: "contacted@example.com", status: "contacted" }),
+        createBid({ id: "rejected", email: "rejected@example.com", status: "rejected" }),
+      ],
+    };
+    const { actions, updateBidsInternal, showAlert } = createActions(bids);
+
+    const result = await actions.handleGenerateInformationUpdate();
+
+    expect(result).toBe(true);
+    expect(mocks.generateEmlContent).toHaveBeenCalledWith(
+      "sender@example.com",
+      "",
+      "",
+      {
+        bcc: "sent@example.com;offer@example.com;shortlist@example.com;sod@example.com",
+      },
+    );
+    expect(mocks.openTempFile).toHaveBeenCalledWith(
+      "EML",
+      expect.stringMatching(/^Doplneni_informaci_\d+\.eml$/),
+    );
+    expect(mocks.getDefaultTemplate).not.toHaveBeenCalled();
+    expect(mocks.getProjectTemplateSelection).not.toHaveBeenCalled();
+    expect(mocks.persistBidStatusChange).not.toHaveBeenCalled();
+    expect(updateBidsInternal).not.toHaveBeenCalled();
+    expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it("při chybě otevření doplnění informací ohlásí chybu bez změny stavů", async () => {
+    expectConsoleError("Failed to open information update email draft:");
+    mocks.openTempFile.mockRejectedValue(new Error("Outlook unavailable"));
+    const bids = {
+      [category.id]: [
+        createBid({ id: "sent", email: "sent@example.com", status: "sent" }),
+      ],
+    };
+    const { actions, updateBidsInternal, showAlert } = createActions(bids);
+
+    const result = await actions.handleGenerateInformationUpdate();
+
+    expect(result).toBe(false);
+    expect(mocks.persistBidStatusChange).not.toHaveBeenCalled();
+    expect(updateBidsInternal).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Koncept se nepodařilo vytvořit" }),
+    );
+  });
+
   it("pro materiálovou variantu použije odpovídající šablonu a název", async () => {
     mocks.getTemplateById.mockResolvedValue({
       id: "material-template",

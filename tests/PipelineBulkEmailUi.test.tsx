@@ -19,11 +19,12 @@ const createBid = (overrides: Partial<Bid>): Bid =>
   }) as Bid;
 
 describe("PipelineBulkEmailMenu", () => {
-  it("nabízí všechny tři akce, počty příjemců a tooltipy", () => {
+  it("nabízí všechny čtyři akce, počty příjemců a tooltipy", () => {
     const onSelect = vi.fn();
     render(
       <PipelineBulkEmailMenu
         inquiryRecipientCount={4}
+        informationUpdateRecipientCount={3}
         loserRecipientCount={2}
         onSelect={onSelect}
       />,
@@ -53,12 +54,20 @@ describe("PipelineBulkEmailMenu", () => {
     const losers = screen.getByRole("menuitem", {
       name: /Poděkování nevybraným/,
     });
+    const informationUpdate = screen.getByRole("menuitem", {
+      name: /Doplnění informací/,
+    });
     expect(standard).toHaveAttribute(
       "title",
       "Připravit standardní poptávku všem dodavatelům v Oslovení",
     );
     expect(standard).toHaveClass("tf-pipeline-popover-item");
     expect(material).toHaveTextContent("4");
+    expect(informationUpdate).toHaveTextContent("3");
+    expect(informationUpdate).toHaveAttribute(
+      "title",
+      "Připravit prázdný koncept již osloveným účastníkům",
+    );
     expect(losers).toHaveTextContent("2");
 
     fireEvent.click(material);
@@ -70,6 +79,7 @@ describe("PipelineBulkEmailMenu", () => {
     render(
       <PipelineBulkEmailMenu
         inquiryRecipientCount={1}
+        informationUpdateRecipientCount={1}
         loserRecipientCount={0}
         onSelect={vi.fn()}
       />,
@@ -95,6 +105,7 @@ describe("PipelineBulkEmailMenu", () => {
     render(
       <PipelineBulkEmailMenu
         inquiryRecipientCount={1}
+        informationUpdateRecipientCount={1}
         loserRecipientCount={0}
         onSelect={vi.fn()}
       />,
@@ -182,5 +193,31 @@ describe("PipelineBulkEmailConfirmationModal", () => {
 
     fireEvent.click(confirm);
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("pojmenuje potvrzení pro doplnění informací", () => {
+    const recipient = createBid({ id: "recipient" });
+    const selection: PipelineEmailRecipientSelection = {
+      candidateBids: [recipient],
+      recipientBids: [recipient],
+      missingEmailBids: [],
+      invalidEmailBids: [],
+      emails: ["supplier@example.com"],
+    };
+
+    render(
+      <PipelineBulkEmailConfirmationModal
+        isOpen
+        kind="informationUpdate"
+        userEmail="sender@example.com"
+        selection={selection}
+        isSubmitting={false}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Doplnění informací" })).toBeInTheDocument();
+    expect(screen.getByText("Vytvořit doplnění informací")).toBeInTheDocument();
   });
 });

@@ -33,6 +33,7 @@ import {
   isValidEmailAddress,
   normalizeEmailAddress,
   selectBulkInquiryRecipients,
+  selectInformationUpdateRecipients,
   selectLoserEmailRecipients,
   type PipelineBulkEmailKind,
 } from "@/features/projects/model/pipelineEmailModel";
@@ -255,6 +256,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     handleGenerateInquiry,
     handleGenerateMaterialInquiry,
     handleGenerateBulkInquiry,
+    handleGenerateInformationUpdate,
     handleExport,
     handleEmailLosers,
   } = usePipelineCommunicationActions({
@@ -289,17 +291,23 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const selection =
       kind === "losers"
         ? selectLoserEmailRecipients(categoryBids)
-        : selectBulkInquiryRecipients(categoryBids);
+        : kind === "informationUpdate"
+          ? selectInformationUpdateRecipients(categoryBids)
+          : selectBulkInquiryRecipients(categoryBids);
 
     if (selection.candidateBids.length === 0) {
       showAlert({
         title:
           kind === "losers"
             ? "Žádní nevybraní účastníci"
+            : kind === "informationUpdate"
+              ? "Žádní již oslovení účastníci"
             : "Žádní dodavatelé k oslovení",
         message:
           kind === "losers"
             ? "Nejsou žádní nevybraní účastníci s cenovou nabídkou."
+            : kind === "informationUpdate"
+              ? "Ve stavech Odesláno, Poslali cenu, Užší výběr ani Jednání o SOD nejsou žádní dodavatelé."
             : "Ve sloupci Oslovení nejsou žádní dodavatelé.",
         variant: "info",
       });
@@ -326,6 +334,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
       const wasCreated =
         bulkEmailKind === "losers"
           ? await handleEmailLosers()
+          : bulkEmailKind === "informationUpdate"
+            ? await handleGenerateInformationUpdate()
           : await handleGenerateBulkInquiry(bulkEmailKind);
       if (wasCreated) {
         setBulkEmailKind(null);
@@ -373,11 +383,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
   if (activeCategory) {
     const categoryBids = bids[activeCategory.id] || [];
     const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
+    const informationUpdateSelection =
+      selectInformationUpdateRecipients(categoryBids);
     const loserEmailSelection = selectLoserEmailRecipients(categoryBids);
     const selectedBulkEmailSelection =
       bulkEmailKind === "losers"
         ? loserEmailSelection
-        : bulkInquirySelection;
+        : bulkEmailKind === "informationUpdate"
+          ? informationUpdateSelection
+          : bulkInquirySelection;
     const currentUserEmail = normalizeEmailAddress(user?.email || "");
 
     // --- DETAIL VIEW (PIPELINE) ---
@@ -394,6 +408,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             categoryTitle={activeCategory.title}
             canOpenDocHub={canOpenDocHub}
             inquiryRecipientCount={bulkInquirySelection.emails.length}
+            informationUpdateRecipientCount={informationUpdateSelection.emails.length}
             loserRecipientCount={loserEmailSelection.emails.length}
             onBack={() => {
               setActiveCategory(null);

@@ -5,6 +5,7 @@ import type { PipelineBulkEmailKind } from "@/features/projects/model/pipelineEm
 
 interface PipelineBulkEmailMenuProps {
   inquiryRecipientCount: number;
+  informationUpdateRecipientCount: number;
   loserRecipientCount: number;
   onSelect: (kind: PipelineBulkEmailKind) => void;
 }
@@ -16,12 +17,13 @@ interface MenuItem {
   icon: string;
   count: number;
   tooltip: string;
-  tone: "emerald" | "blue" | "orange";
+  tone: "emerald" | "blue" | "violet" | "orange";
 }
 
 const toneClasses: Record<MenuItem["tone"], string> = {
   emerald: "text-emerald-600 dark:text-emerald-400",
   blue: "text-blue-600 dark:text-blue-400",
+  violet: "text-violet-600 dark:text-violet-400",
   orange: "text-orange-600 dark:text-orange-400",
 };
 
@@ -30,7 +32,12 @@ const MENU_WIDTH_PX = 320;
 
 export const PipelineBulkEmailMenu: React.FC<
   PipelineBulkEmailMenuProps
-> = ({ inquiryRecipientCount, loserRecipientCount, onSelect }) => {
+> = ({
+  inquiryRecipientCount,
+  informationUpdateRecipientCount,
+  loserRecipientCount,
+  onSelect,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -54,6 +61,15 @@ export const PipelineBulkEmailMenu: React.FC<
       count: inquiryRecipientCount,
       tooltip: "Připravit materiálovou poptávku všem dodavatelům v Oslovení",
       tone: "blue",
+    },
+    {
+      kind: "informationUpdate",
+      label: "Doplnění informací",
+      description: "Již osloveným účastníkům",
+      icon: "forward_to_inbox",
+      count: informationUpdateRecipientCount,
+      tooltip: "Připravit prázdný koncept již osloveným účastníkům",
+      tone: "violet",
     },
     {
       kind: "losers",
