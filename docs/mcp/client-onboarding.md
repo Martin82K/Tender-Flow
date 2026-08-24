@@ -41,6 +41,24 @@ Konfigurační příklad bez secretu:
 }
 ```
 
+## Grok Bot / Cursor Agents
+
+Produkční Grok Bot konektor používá ručně registrovaného veřejného OAuth
+klienta `Tender Flow CZ – Grok Bot` se dvěma přesnými redirect URI:
+
+- desktopový Grok Bot: `http://localhost:8787/callback`,
+- webový Cursor Agents: `https://www.cursor.com/agents/mcp/oauth/callback`.
+
+Klient nemá client secret, používá authorization code flow s PKCE S256 a musí
+být explicitně přítomný v `mcp_oauth_client_resources` i v serverovém
+`MCP_ALLOWED_CLIENT_IDS`. Loopback callback je pevný na port 8787; wildcard ani
+jiný localhost port není registrovaný.
+
+Dynamic Client Registration zůstává vypnutá. Konektor se přidává jako privátní
+remote HTTP MCP server s URL `https://www.tenderflow.cz/api/mcp`; po změně
+registrace je nutné dokončit nový OAuth flow. Contacts a write granty se
+nepovolují automaticky a uživatel je případně udělí samostatně v Tender Flow.
+
 ## Akceptační checklist klienta
 
 - ověřuje issuer a resource/audience,
