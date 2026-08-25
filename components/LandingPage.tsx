@@ -3,7 +3,51 @@ import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { APP_VERSION } from "../config/version";
 import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
+import tenderLandscape from "@/assets/landing/tender-landscape.jpg";
 import "@/features/public/ui/landing-apex.css";
+
+const TENDER_STORY_STEPS = [
+  {
+    id: "brief",
+    number: "01",
+    label: "Zadání",
+    title: "Podklady drží pohromadě od prvního dne.",
+    detail: "Poptávka, výkaz výměr, termíny a odpovědnosti v jednom projektu.",
+    metric: "Kompletní zadání",
+  },
+  {
+    id: "offers",
+    number: "02",
+    label: "Nabídky",
+    title: "Nabídky na jednom místě.",
+    detail: "Porovnatelné, dohledatelné a připravené k rozhodnutí.",
+    metric: "8 z 10 přijato",
+  },
+  {
+    id: "evaluation",
+    number: "03",
+    label: "Vyhodnocení",
+    title: "Rizika jsou vidět dřív než na stavbě.",
+    detail: "Cena, termín, záruka i reference podle stejných kritérií.",
+    metric: "4 kritéria",
+  },
+  {
+    id: "decision",
+    number: "04",
+    label: "Rozhodnutí",
+    title: "Rozhodnutí má jasného vlastníka.",
+    detail: "Schválení, komentáře a doporučení zůstávají u zakázky.",
+    metric: "1 doporučení",
+  },
+  {
+    id: "contract",
+    number: "05",
+    label: "Smlouva",
+    title: "Každé rozhodnutí má dohledatelnou historii.",
+    detail: "Od vítězné nabídky ke smlouvě bez ztracených souvislostí.",
+    metric: "Auditní stopa",
+  },
+] as const;
 
 const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
   title: string;
@@ -97,6 +141,10 @@ const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
+  const [activeStoryStep, setActiveStoryStep] = useState("offers");
+  const activeStory =
+    TENDER_STORY_STEPS.find((step) => step.id === activeStoryStep) ??
+    TENDER_STORY_STEPS[1];
 
   const scrollToSection = useCallback((id: string) => {
     const el = document.getElementById(id);
@@ -145,12 +193,9 @@ export const LandingPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate("/login")}>
               Přihl&aacute;sit se
             </button>
-            <button
-              className="btn-start"
-              onClick={() => navigate("/register")}
-            >
-              Začít zdarma
-            </button>
+            <a className="btn-start" href={DEMO_REQUEST_URL}>
+              Domluvit ukázku
+            </a>
           </div>
         </div>
       </header>
@@ -158,39 +203,73 @@ export const LandingPage: React.FC = () => {
       {/* ═══ HERO ═══ */}
       <section className="hero">
         <div className="hero-grid" />
-        <div className="hero-line" />
-        <div className="hero-line" />
-        <div className="hero-line" />
-        <div className="hero-line" />
-        <div className="hero-content">
-          <div className="hero-badge">
-            <span>AI-powered spr&aacute;va tendrů</span>
-            <span className="badge-new">Nov&eacute;</span>
+        <div className="hero-shell">
+          <div className="hero-content">
+            <div className="hero-badge">
+              <span>Od poptávky ke smlouvě</span>
+              <span className="badge-new">Enterprise</span>
+            </div>
+            <h1>
+              Méně chaosu
+              <br />
+              kolem tendrů.
+              <span> Více jistoty v každé zakázce.</span>
+            </h1>
+            <p className="hero-sub">
+              TenderFlow propojí poptávky, nabídky, dodavatele, termíny i
+              smlouvy do jednoho řízeného procesu.
+            </p>
+            <div className="hero-actions">
+              <a className="btn-hero-primary" href={DEMO_REQUEST_URL}>
+                Domluvit ukázku
+              </a>
+              <button
+                className="btn-hero-secondary"
+                onClick={() => scrollToSection("funkce")}
+              >
+                Prohlédnout platformu
+              </button>
+            </div>
+            <div className="social-strip">
+              <div className="social-text">
+                Jeden proces. Jedna historie. Jasné rozhodnutí.
+              </div>
+            </div>
           </div>
-          <h1>
-            Stavebn&iacute; tendry,
-            <br />
-            <span className="serif">přehledně.</span>
-          </h1>
-          <p className="hero-sub">
-            Kompletn&iacute; platforma pro ř&iacute;zen&iacute;
-            nab&iacute;dkov&yacute;ch ř&iacute;zen&iacute;, subdodavatelů a
-            projektov&eacute; dokumentace. Od správy kontaktů k poptávce až po zápisy, přehledy a smlouvy.
-          </p>
-          <div className="hero-actions">
-            <button
-              className="btn-hero-primary"
-              onClick={() => navigate("/register")}
-            >
-              Vyzkoušet 14 dn&iacute; zdarma
-            </button>
-            <a className="btn-hero-secondary" href={DEMO_REQUEST_URL}>
-              Vyž&aacute;dat demo →
-            </a>
-          </div>
-          <div className="social-strip">
-            <div className="social-text">
-              Platforma pro efektivn&iacute; ř&iacute;zen&iacute; tendrů
+
+          <div
+            className="hero-landscape"
+            aria-label="Cesta stavebního tendru od podkladů ke smlouvě"
+          >
+            <img
+              src={tenderLandscape}
+              alt="Architektonický model krajiny a stavby propojený procesem výběrového řízení"
+              width={1586}
+              height={992}
+              decoding="async"
+              fetchPriority="high"
+            />
+            <div className="story-panel" aria-live="polite">
+              <span className="story-panel-kicker">
+                {activeStory.number} / {activeStory.label}
+              </span>
+              <strong>{activeStory.title}</strong>
+              <p>{activeStory.detail}</p>
+              <span className="story-panel-metric">{activeStory.metric}</span>
+            </div>
+            <div className="story-steps" aria-label="Fáze výběrového řízení">
+              {TENDER_STORY_STEPS.map((step) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={step.id === activeStory.id ? "active" : ""}
+                  aria-pressed={step.id === activeStory.id}
+                  onClick={() => setActiveStoryStep(step.id)}
+                >
+                  <span>{step.number}</span>
+                  {step.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -693,28 +772,28 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══ CTA with animated counter ═══ */}
+      {/* ═══ ENTERPRISE CTA ═══ */}
       <section className="cta-section">
         <h2>
-          Připraveni ř&iacute;dit tendry
+          Ukažte nám svůj proces.
           <br />
-          <span className="serif">přehledně?</span>
+          <span>My vám ukážeme TenderFlow.</span>
         </h2>
         <p>
-          Přidejte se k firm&aacute;m, kter&eacute; stav&iacute; efektivněji.
+          Společně projdeme vaše výběrová řízení, tým i způsob práce.
         </p>
         <div className="cta-features">
-          <span className="cta-feat">14 dn&iacute; zdarma</span>
-          <span className="cta-feat">Bez kreditn&iacute; karty</span>
-          <span className="cta-feat">Zrušen&iacute; kdykoliv</span>
+          <span className="cta-feat">Ukázka nad vaším procesem</span>
+          <span className="cta-feat">Firemní onboarding</span>
+          <span className="cta-feat">Licence sestavené na míru</span>
         </div>
-        <button
+        <a
           className="btn-hero-primary"
           style={{ fontSize: "1rem", padding: "1.0625rem 3rem" }}
-          onClick={() => navigate("/register")}
+          href={DEMO_REQUEST_URL}
         >
-          Vytvořit &uacute;čet zdarma
-        </button>
+          Domluvit ukázku
+        </a>
       </section>
 
       {/* ═══ FOOTER ═══ */}

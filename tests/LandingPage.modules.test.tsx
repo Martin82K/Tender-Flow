@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@/components/LandingPage";
 
@@ -73,5 +73,33 @@ describe("LandingPage nové moduly", () => {
     expect(
       screen.queryByRole("button", { name: /prohlédnout demo|vyzkoušet demo/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("neprezentuje trial ani veřejnou registraci", () => {
+    render(<LandingPage />);
+
+    expect(
+      screen.queryByText(/14 dn[ií] zdarma|bez kreditn[ií] karty|účet zdarma/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /začít|vytvořit účet|vyzkoušet/i }),
+    ).not.toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalledWith("/register");
+  });
+
+  it("vypráví cestu tendru přes ovladatelné procesní body", () => {
+    render(<LandingPage />);
+
+    const offersStep = screen.getByRole("button", { name: /02 nabídky/i });
+    const contractStep = screen.getByRole("button", { name: /05 smlouva/i });
+
+    expect(offersStep).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(/nabídky na jednom místě/i)).toBeInTheDocument();
+
+    fireEvent.click(contractStep);
+
+    expect(contractStep).toHaveAttribute("aria-pressed", "true");
+    expect(offersStep).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText(/rozhodnutí má dohledatelnou historii/i)).toBeInTheDocument();
   });
 });

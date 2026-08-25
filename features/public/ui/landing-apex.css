@@ -1,30 +1,30 @@
 /* ═══════════ LANDING APEX STYLES ═══════════ */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap');
 
 .landing-apex {
-  --bg:#06080c;
-  --bg-elevated:#0b0e14;
-  --bg-card:#0e1118;
-  --bg-card-hover:#12151e;
+  --bg:#0c1210;
+  --bg-elevated:#111a16;
+  --bg-card:#16201b;
+  --bg-card-hover:#1b2922;
   --surface:rgba(255,255,255,0.025);
   --surface-hover:rgba(255,255,255,0.05);
-  --orange:#ff8a33;
-  --orange-dim:#e07020;
-  --orange-glow:rgba(255,138,51,0.12);
-  --orange-glow-strong:rgba(255,138,51,0.25);
+  --orange:#315bff;
+  --orange-dim:#2446d8;
+  --orange-glow:rgba(49,91,255,0.12);
+  --orange-glow-strong:rgba(49,91,255,0.25);
   --amber:#fbbf24;
   --amber-glow:rgba(251,191,36,0.08);
-  --green:#34d399;
-  --green-dim:rgba(52,211,153,0.1);
-  --white:#f5f5f7;
-  --gray-1:#a0a0b0;
-  --gray-2:#5c5c70;
-  --gray-3:#2a2a3a;
+  --green:#86b79b;
+  --green-dim:rgba(134,183,155,0.12);
+  --white:#f3f2ed;
+  --gray-1:#acb8b1;
+  --gray-2:#718078;
+  --gray-3:#334139;
   --border:rgba(255,255,255,0.05);
   --border-orange:rgba(255,138,51,0.15);
   --border-hover:rgba(255,255,255,0.1);
-  --font:'Inter',system-ui,-apple-system,sans-serif;
-  --serif:'Instrument Serif',Georgia,serif;
+  --font:'Manrope','Inter',system-ui,-apple-system,sans-serif;
+  --serif:var(--font);
   --ease:cubic-bezier(0.16,1,0.3,1);
 
   font-family:var(--font);
@@ -334,4 +334,62 @@
 }
 @media(max-width:480px){
   .landing-apex .btn-login{display:none}
+}
+
+/* ═══════════ MINERAL STORY HERO ═══════════ */
+.landing-apex::after{display:none}
+.landing-apex header{background:rgba(12,18,16,.84)}
+.landing-apex .btn-start,.landing-apex .btn-hero-primary{display:inline-flex;align-items:center;justify-content:center;color:#fff;text-decoration:none}
+.landing-apex .hero{min-height:auto;align-items:stretch;text-align:left;padding:9rem 2rem 5rem;background:radial-gradient(circle at 78% 36%,rgba(113,136,121,.17),transparent 38%)}
+.landing-apex .hero::before{display:none}
+.landing-apex .hero-grid{opacity:.22}
+.landing-apex .hero-grid::before{width:100%;background-size:96px 96px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%)}
+.landing-apex .hero-shell{position:relative;z-index:2;width:min(1380px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(340px,.78fr) minmax(620px,1.55fr);gap:2.5rem;align-items:center}
+.landing-apex .hero-content{max-width:570px;padding:2rem 0 3rem}
+.landing-apex .hero-badge{margin-bottom:2rem;border-color:rgba(134,183,155,.24);background:rgba(134,183,155,.08);color:var(--gray-1)}
+.landing-apex .badge-new{background:var(--green);color:#0c1711}
+.landing-apex .hero h1{font-size:clamp(3.1rem,5.4vw,5.7rem);line-height:.98;margin-bottom:1.75rem;font-weight:750;letter-spacing:-.055em}
+.landing-apex .hero h1 span{display:block;margin-top:.22em;color:var(--green);font-size:.56em;line-height:1.08;letter-spacing:-.035em}
+.landing-apex .hero-sub{margin:0 0 2.25rem;max-width:540px;font-size:1.05rem;line-height:1.75}
+.landing-apex .hero-actions{justify-content:flex-start}
+.landing-apex .social-strip{justify-content:flex-start;margin-top:2.5rem}
+.landing-apex .hero-landscape{position:relative;min-width:0;border:1px solid rgba(236,235,228,.12);border-radius:36px;overflow:hidden;background:#111a16;box-shadow:0 44px 100px rgba(0,0,0,.48)}
+.landing-apex .hero-landscape::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),inset 0 -120px 120px rgba(7,14,11,.52)}
+.landing-apex .hero-landscape>img{display:block;width:100%;height:auto;aspect-ratio:1.6;object-fit:cover}
+.landing-apex .story-panel{position:absolute;z-index:2;top:1.5rem;left:1.5rem;width:min(290px,38%);padding:1.1rem 1.2rem;border-radius:16px;background:rgba(12,18,16,.86);border:1px solid rgba(236,235,228,.16);backdrop-filter:blur(14px);box-shadow:0 16px 36px rgba(0,0,0,.26)}
+.landing-apex .story-panel-kicker{display:block;margin-bottom:.6rem;color:#8fa9ff;font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.landing-apex .story-panel strong{display:block;color:var(--white);font-size:1rem;line-height:1.35}
+.landing-apex .story-panel p{margin:.45rem 0 .8rem;color:var(--gray-1);font-size:.72rem;line-height:1.55}
+.landing-apex .story-panel-metric{display:inline-flex;padding:.28rem .55rem;border-radius:7px;background:rgba(49,91,255,.16);color:#aebcff;font-size:.64rem;font-weight:700}
+.landing-apex .story-steps{position:absolute;z-index:3;left:1.5rem;right:1.5rem;bottom:1.35rem;display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;padding:.6rem;border:1px solid rgba(236,235,228,.13);border-radius:16px;background:rgba(12,18,16,.88);backdrop-filter:blur(16px)}
+.landing-apex .story-steps button{min-width:0;padding:.72rem .55rem;border:0;border-radius:10px;background:transparent;color:var(--gray-1);font-family:var(--font);font-size:.68rem;font-weight:650;cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.landing-apex .story-steps button span{display:block;margin-bottom:.16rem;color:var(--gray-2);font-size:.56rem;letter-spacing:.08em}
+.landing-apex .story-steps button:hover{background:rgba(255,255,255,.06);color:var(--white)}
+.landing-apex .story-steps button:focus-visible{outline:2px solid #8fa9ff;outline-offset:2px}
+.landing-apex .story-steps button.active{background:var(--orange);color:#fff;transform:translateY(-2px)}
+.landing-apex .story-steps button.active span{color:rgba(255,255,255,.72)}
+.landing-apex .marquee-section{background:#121b17}
+.landing-apex .marquee-item{font-family:var(--font);font-style:normal;font-weight:600;letter-spacing:-.025em}
+.landing-apex .sec-title .serif,.landing-apex .cta-section h2 span{font-family:var(--font);font-style:normal;color:var(--green)}
+.landing-apex .cta-section{background:linear-gradient(180deg,transparent,rgba(113,136,121,.1))}
+.landing-apex .cta-section::before{background:radial-gradient(ellipse 50% 50%,rgba(49,91,255,.12),transparent)}
+
+@media(max-width:1120px){
+  .landing-apex .hero-shell{grid-template-columns:1fr;max-width:880px}
+  .landing-apex .hero-content{max-width:720px;padding-bottom:0}
+  .landing-apex .hero-landscape{width:100%}
+}
+@media(max-width:768px){
+  .landing-apex .hero{padding:7.5rem 1rem 3rem}
+  .landing-apex .hero h1{font-size:clamp(2.65rem,13vw,4.4rem)}
+  .landing-apex .hero-landscape{border-radius:24px;overflow:visible;margin-top:1rem;background:transparent;border:0;box-shadow:none}
+  .landing-apex .hero-landscape>img{border-radius:24px;min-height:410px;object-position:62% center;box-shadow:0 28px 70px rgba(0,0,0,.45)}
+  .landing-apex .hero-landscape::after{display:none}
+  .landing-apex .story-panel{top:1rem;left:1rem;width:calc(100% - 2rem);max-width:270px}
+  .landing-apex .story-steps{position:relative;left:auto;right:auto;bottom:auto;margin-top:.75rem;grid-template-columns:repeat(5,minmax(72px,1fr));overflow-x:auto;border-radius:14px}
+  .landing-apex .story-steps button{min-width:72px}
+}
+@media(prefers-reduced-motion:reduce){
+  .landing-apex .hero-line,.landing-apex .marquee-track{animation:none!important}
+  .landing-apex .story-steps button,.landing-apex .btn-hero-primary,.landing-apex .btn-hero-secondary{transition:none!important}
 }
