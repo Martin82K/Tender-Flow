@@ -193,9 +193,6 @@ export const LandingPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate("/login")}>
               Přihl&aacute;sit se
             </button>
-            <a className="btn-start" href={DEMO_REQUEST_URL}>
-              Domluvit ukázku
-            </a>
           </div>
         </div>
       </header>

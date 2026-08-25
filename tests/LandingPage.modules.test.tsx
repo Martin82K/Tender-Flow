@@ -18,6 +18,16 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("ponechává v horní navigaci pouze nerušivé přihlášení", () => {
+    render(<LandingPage />);
+
+    const header = screen.getByRole("banner");
+    expect(within(header).getByRole("button", { name: "Přihlásit se" })).toBeInTheDocument();
+    expect(
+      within(header).queryByRole("link", { name: "Domluvit ukázku" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("popisuje konkrétní projektové údaje v Enterprise nabídce", () => {
     render(<LandingPage />);
 
