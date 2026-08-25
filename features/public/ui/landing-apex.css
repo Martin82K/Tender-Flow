@@ -77,8 +77,6 @@
 @keyframes apexLineFloat{0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-30px);opacity:0.6}}
 
 .landing-apex .hero-content{position:relative;z-index:2;max-width:800px}
-.landing-apex .hero-badge{display:inline-flex;align-items:center;gap:0.625rem;padding:0.375rem 0.375rem 0.375rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;margin-bottom:3rem;font-size:0.75rem;color:var(--gray-1);font-weight:500}
-.landing-apex .badge-new{padding:0.25rem 0.75rem;background:var(--orange);border-radius:100px;color:var(--bg);font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
 
 .landing-apex .hero h1{font-size:clamp(3.25rem,7.5vw,5.5rem);font-weight:800;line-height:1.02;letter-spacing:-0.045em;margin-bottom:2rem}
 .landing-apex .hero h1 .serif{font-family:var(--serif);font-weight:400;font-style:italic;color:var(--orange)}
@@ -90,8 +88,6 @@
 .landing-apex .btn-hero-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%);transform:translateX(-100%);transition:transform .6s var(--ease)}
 .landing-apex .btn-hero-primary:hover::after{transform:translateX(100%)}
 .landing-apex .btn-hero-primary:hover{box-shadow:0 12px 48px var(--orange-glow-strong);transform:translateY(-2px)}
-.landing-apex .btn-hero-secondary{padding:0.9375rem 2.25rem;background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--white);font-size:0.9375rem;font-weight:500;cursor:pointer;transition:all .3s var(--ease);backdrop-filter:blur(8px);font-family:var(--font)}
-.landing-apex .btn-hero-secondary:hover{border-color:var(--border-hover);background:var(--surface-hover)}
 
 /* SOCIAL PROOF STRIP */
 .landing-apex .social-strip{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:4rem;position:relative;z-index:2}
@@ -116,7 +112,6 @@
 .landing-apex section{padding:8rem 2rem;position:relative}
 .landing-apex .container{max-width:1200px;margin:0 auto}
 .landing-apex .sec-label{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--orange);font-weight:600;margin-bottom:1.25rem}
-.landing-apex .sec-label::before{content:'';width:20px;height:1px;background:var(--orange)}
 .landing-apex .sec-title{font-size:clamp(2rem,4vw,3rem);font-weight:700;letter-spacing:-0.035em;line-height:1.12;margin-bottom:1rem}
 .landing-apex .sec-title .serif{font-family:var(--serif);font-weight:400;font-style:italic;color:var(--orange)}
 .landing-apex .sec-desc{color:var(--gray-1);font-weight:350;line-height:1.7;max-width:460px;font-size:0.9375rem}
@@ -346,8 +341,6 @@
 .landing-apex .hero-grid::before{width:100%;background-size:96px 96px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%)}
 .landing-apex .hero-shell{position:relative;z-index:2;width:min(1380px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(340px,.78fr) minmax(620px,1.55fr);gap:2.5rem;align-items:center}
 .landing-apex .hero-content{max-width:570px;padding:2rem 0 3rem}
-.landing-apex .hero-badge{margin-bottom:2rem;border-color:rgba(134,183,155,.24);background:rgba(134,183,155,.08);color:var(--gray-1)}
-.landing-apex .badge-new{background:var(--green);color:#0c1711}
 .landing-apex .hero h1{font-size:clamp(3.1rem,5.4vw,5.7rem);line-height:.98;margin-bottom:1.75rem;font-weight:750;letter-spacing:-.055em}
 .landing-apex .hero h1 span{display:block;margin-top:.22em;color:var(--green);font-size:.56em;line-height:1.08;letter-spacing:-.035em}
 .landing-apex .hero-sub{margin:0 0 2.25rem;max-width:540px;font-size:1.05rem;line-height:1.75}
@@ -391,5 +384,5 @@
 }
 @media(prefers-reduced-motion:reduce){
   .landing-apex .hero-line,.landing-apex .marquee-track{animation:none!important}
-  .landing-apex .story-steps button,.landing-apex .btn-hero-primary,.landing-apex .btn-hero-secondary{transition:none!important}
+  .landing-apex .story-steps button,.landing-apex .btn-hero-primary{transition:none!important}
 }

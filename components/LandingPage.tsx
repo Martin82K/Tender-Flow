@@ -57,9 +57,9 @@ const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
     title: "Tendry & projekty",
     items: [
       "Neomezené projekty",
-      "Přehled stavby — investor, lokace, termíny a odpovědné osoby",
-      "Finanční řízení — plánované náklady, smluvní ceny, dodatky a fakturace",
-      "Stav výběrových řízení — otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
+      "Přehled stavby: investor, lokace, termíny a odpovědné osoby",
+      "Finanční řízení: plánované náklady, smluvní ceny, dodatky a fakturace",
+      "Stav výběrových řízení: otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
       "Termíny, rizika a pokrytí rozpočtu napříč projekty",
       "Plán výběrových řízení a importy VŘ",
       "Harmonogram měsíc / týden / den",
@@ -74,10 +74,10 @@ const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
     items: [
       "Modul Smlouvy",
       "OCR čtení dokumentů (AI)",
-      "Složkomat — automatizace složek",
+      "Složkomat: automatizace složek",
       "Excel Indexace VŘ",
       "Excel Spojení listů",
-      "Excel – odemčení",
+      "Excel odemčení",
       "Export do Excel",
       "Export do PDF",
     ],
@@ -172,7 +172,7 @@ export const LandingPage: React.FC = () => {
           >
             <img
               src={logo}
-              alt="TenderFlow — CRM pro stavební tendry"
+              alt="TenderFlow, CRM pro stavební tendry"
               className="logo-img"
               width={32}
               height={32}
@@ -205,10 +205,6 @@ export const LandingPage: React.FC = () => {
         <div className="hero-grid" />
         <div className="hero-shell">
           <div className="hero-content">
-            <div className="hero-badge">
-              <span>Od poptávky ke smlouvě</span>
-              <span className="badge-new">Enterprise</span>
-            </div>
             <h1>
               Méně chaosu
               <br />
@@ -223,12 +219,6 @@ export const LandingPage: React.FC = () => {
               <a className="btn-hero-primary" href={DEMO_REQUEST_URL}>
                 Domluvit ukázku
               </a>
-              <button
-                className="btn-hero-secondary"
-                onClick={() => scrollToSection("funkce")}
-              >
-                Prohlédnout platformu
-              </button>
             </div>
             <div className="social-strip">
               <div className="social-text">
@@ -373,7 +363,7 @@ export const LandingPage: React.FC = () => {
             <div className="f-card f-3">
               <h3>CRM kontakty</h3>
               <p>
-                360° pohled na subdodavatele — historie, hodnocen&iacute;,
+                360° pohled na subdodavatele: historie, hodnocen&iacute;,
                 nab&iacute;dky, kontaktn&iacute; osoby. Auto doplňov&aacute;n&iacute;
                 informac&iacute; o dodavateli z veřejně dostupn&yacute;ch
                 rejstř&iacute;ků dle zad&aacute;n&iacute; IČ.
@@ -430,7 +420,7 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>TODO Osobn&iacute;</strong> — soukrom&eacute;
+                    <strong>TODO Osobn&iacute;</strong>: soukrom&eacute;
                     &uacute;koly, pod&uacute;koly, projekty a připom&iacute;nky
                     v samostatn&eacute;m pracovn&iacute;m prostoru
                   </span>
@@ -438,35 +428,35 @@ export const LandingPage: React.FC = () => {
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>Neomezen&eacute; projekty</strong> — spravujte
+                    <strong>Neomezen&eacute; projekty</strong>: spravujte
                     cel&eacute; portfolio z jednoho m&iacute;sta
                   </span>
                 </li>
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>Real-time synchronizace</strong> — v&aacute;š
+                    <strong>Real-time synchronizace</strong>: v&aacute;š
                     t&yacute;m vid&iacute; změny okamžitě
                   </span>
                 </li>
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>Export jedn&iacute;m klikem</strong> — PDF, Excel,
+                    <strong>Export jedn&iacute;m klikem</strong>: PDF, Excel,
                     CSV pro vaše reporty
                   </span>
                 </li>
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>Desktop & Web</strong> — nativn&iacute; Electron
+                    <strong>Desktop & Web</strong>: nativn&iacute; Electron
                     app + plnohodnotn&yacute; web
                   </span>
                 </li>
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
-                    <strong>GDPR & bezpečnost</strong> — RLS,
+                    <strong>GDPR & bezpečnost</strong>: RLS,
                     šifrov&aacute;n&iacute; dat, compliance
                   </span>
                 </li>
@@ -478,7 +468,7 @@ export const LandingPage: React.FC = () => {
                 <div className="app-dot app-dot-y" />
                 <div className="app-dot app-dot-g" />
                 <div className="app-titlebar-text">
-                  TenderFlow — Dashboard
+                  TenderFlow Dashboard
                 </div>
                 <div />
               </div>
@@ -633,7 +623,7 @@ export const LandingPage: React.FC = () => {
             <p className="enterprise-card-lead">
               Kompletn&iacute; platforma pro ř&iacute;zen&iacute; tendrů,
               obchodn&iacute; pipeline, dokumentů, reportingu a t&yacute;mov&yacute;ch
-              licenc&iacute; v jednom firemn&iacute;m syst&eacute;mu — včetně
+              licenc&iacute; v jednom firemn&iacute;m syst&eacute;mu, včetně
               všech modulů a AI funkc&iacute;.
             </p>
 

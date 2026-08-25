@@ -24,7 +24,7 @@ No actionable P0, P1 or P2 mismatch remains. The supplied image is a style refer
 ## Interaction and runtime evidence
 
 - `05 Smlouva` was activated in the browser and updated the live story panel to `Každé rozhodnutí má dohledatelnou historii.`
-- Hero navigation and demo CTAs retain real links; `Prohlédnout platformu` retains in-page scrolling behavior.
+- Navigační i hero CTA `Domluvit ukázku` používají skutečný odkaz. Sekundární hero CTA bylo po uživatelské revizi odstraněno.
 - Browser console contained no application errors. The only warning was the expected unauthenticated `getCurrentUser: No session user` message on the public route.
 - Reduced-motion CSS disables animated marquee and control transitions.
 
@@ -46,6 +46,7 @@ No additional crop was required. At 1440 × 1088 the combined full-view board ke
 
 - P3: after gathering production analytics, the headline may be tightened by one line on mid-width desktop screens if the demo CTA falls below the preferred first-fold position.
 - P3: the mobile visual capture should be repeated in a clean 1× browser surface because the connected Chrome profile applied a non-standard visual scale during the temporary 390 × 844 check; mobile DOM order and breakpoint behavior were still verified.
+- P3: a future iteration can crossfade five landscape states so the construction visibly progresses with the selected tender phase. This intentionally remains out of the current performance-focused scope.
 
 ## Implementation checklist
 

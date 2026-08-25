@@ -27,17 +27,17 @@ describe("LandingPage nové moduly", () => {
     const projectFeatureList = within(projectFeatures as HTMLElement);
     expect(
       projectFeatureList.getByText(
-        "Přehled stavby — investor, lokace, termíny a odpovědné osoby",
+        "Přehled stavby: investor, lokace, termíny a odpovědné osoby",
       ),
     ).toBeInTheDocument();
     expect(
       projectFeatureList.getByText(
-        "Finanční řízení — plánované náklady, smluvní ceny, dodatky a fakturace",
+        "Finanční řízení: plánované náklady, smluvní ceny, dodatky a fakturace",
       ),
     ).toBeInTheDocument();
     expect(
       projectFeatureList.getByText(
-        "Stav výběrových řízení — otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
+        "Stav výběrových řízení: otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
       ),
     ).toBeInTheDocument();
     expect(
