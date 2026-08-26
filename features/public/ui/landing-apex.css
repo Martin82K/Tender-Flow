@@ -1,30 +1,33 @@
 /* ═══════════ LANDING APEX STYLES ═══════════ */
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap');
 
 .landing-apex {
-  --bg:#06080c;
-  --bg-elevated:#0b0e14;
-  --bg-card:#0e1118;
-  --bg-card-hover:#12151e;
+  --bg:#0c1210;
+  --bg-elevated:#111a16;
+  --bg-card:#16201b;
+  --bg-card-hover:#1b2922;
   --surface:rgba(255,255,255,0.025);
   --surface-hover:rgba(255,255,255,0.05);
-  --orange:#ff8a33;
-  --orange-dim:#e07020;
-  --orange-glow:rgba(255,138,51,0.12);
-  --orange-glow-strong:rgba(255,138,51,0.25);
+  --orange:#315bff;
+  --orange-dim:#2446d8;
+  --orange-glow:rgba(49,91,255,0.12);
+  --orange-glow-strong:rgba(49,91,255,0.25);
   --amber:#fbbf24;
   --amber-glow:rgba(251,191,36,0.08);
-  --green:#34d399;
-  --green-dim:rgba(52,211,153,0.1);
-  --white:#f5f5f7;
-  --gray-1:#a0a0b0;
-  --gray-2:#5c5c70;
-  --gray-3:#2a2a3a;
+  --green:#86b79b;
+  --green-dim:rgba(134,183,155,0.12);
+  --cta:#86b79b;
+  --cta-hover:#96c5a8;
+  --cta-glow:rgba(134,183,155,0.2);
+  --white:#f3f2ed;
+  --gray-1:#acb8b1;
+  --gray-2:#718078;
+  --gray-3:#334139;
   --border:rgba(255,255,255,0.05);
   --border-orange:rgba(255,138,51,0.15);
   --border-hover:rgba(255,255,255,0.1);
-  --font:'Inter',system-ui,-apple-system,sans-serif;
-  --serif:'Instrument Serif',Georgia,serif;
+  --font:'Manrope','Inter',system-ui,-apple-system,sans-serif;
+  --serif:var(--font);
   --ease:cubic-bezier(0.16,1,0.3,1);
 
   font-family:var(--font);
@@ -57,8 +60,8 @@
 .landing-apex .nav-right{display:flex;align-items:center;gap:1rem}
 .landing-apex .btn-login{font-size:0.8125rem;color:var(--gray-1);font-weight:500;transition:color .2s;cursor:pointer;background:none;border:none;font-family:var(--font);white-space:nowrap}
 .landing-apex .btn-login:hover{color:var(--white)}
-.landing-apex .btn-start{padding:0.5rem 1.375rem;background:var(--orange);color:var(--bg);border:none;border-radius:10px;font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all .3s var(--ease);letter-spacing:-0.01em;font-family:var(--font)}
-.landing-apex .btn-start:hover{box-shadow:0 6px 28px var(--orange-glow-strong);transform:translateY(-1px)}
+.landing-apex .btn-start{padding:0.5rem 1.375rem;background:var(--cta);color:var(--bg);border:none;border-radius:10px;font-size:0.8125rem;font-weight:650;cursor:pointer;transition:all .3s var(--ease);letter-spacing:-0.01em;font-family:var(--font)}
+.landing-apex .btn-start:hover{background:var(--cta-hover);box-shadow:0 6px 28px var(--cta-glow);transform:translateY(-1px)}
 
 /* ═══════════ HERO ═══════════ */
 .landing-apex .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:10rem 2rem 8rem;position:relative;overflow:hidden}
@@ -77,8 +80,6 @@
 @keyframes apexLineFloat{0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-30px);opacity:0.6}}
 
 .landing-apex .hero-content{position:relative;z-index:2;max-width:800px}
-.landing-apex .hero-badge{display:inline-flex;align-items:center;gap:0.625rem;padding:0.375rem 0.375rem 0.375rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:100px;margin-bottom:3rem;font-size:0.75rem;color:var(--gray-1);font-weight:500}
-.landing-apex .badge-new{padding:0.25rem 0.75rem;background:var(--orange);border-radius:100px;color:var(--bg);font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
 
 .landing-apex .hero h1{font-size:clamp(3.25rem,7.5vw,5.5rem);font-weight:800;line-height:1.02;letter-spacing:-0.045em;margin-bottom:2rem}
 .landing-apex .hero h1 .serif{font-family:var(--serif);font-weight:400;font-style:italic;color:var(--orange)}
@@ -86,12 +87,10 @@
 
 .landing-apex .hero-sub{font-size:1.0625rem;color:var(--gray-1);max-width:480px;margin:0 auto 3rem;line-height:1.8;font-weight:350}
 .landing-apex .hero-actions{display:flex;gap:0.75rem;justify-content:center;align-items:center;flex-wrap:wrap}
-.landing-apex .btn-hero-primary{padding:0.9375rem 2.25rem;background:var(--orange);color:var(--bg);border:none;border-radius:14px;font-size:0.9375rem;font-weight:650;cursor:pointer;transition:all .35s var(--ease);letter-spacing:-0.01em;position:relative;overflow:hidden;font-family:var(--font)}
+.landing-apex .btn-hero-primary{padding:0.9375rem 2.25rem;background:var(--cta);color:var(--bg);border:none;border-radius:14px;font-size:0.9375rem;font-weight:650;cursor:pointer;transition:all .35s var(--ease);letter-spacing:-0.01em;position:relative;overflow:hidden;font-family:var(--font)}
 .landing-apex .btn-hero-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%);transform:translateX(-100%);transition:transform .6s var(--ease)}
 .landing-apex .btn-hero-primary:hover::after{transform:translateX(100%)}
-.landing-apex .btn-hero-primary:hover{box-shadow:0 12px 48px var(--orange-glow-strong);transform:translateY(-2px)}
-.landing-apex .btn-hero-secondary{padding:0.9375rem 2.25rem;background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--white);font-size:0.9375rem;font-weight:500;cursor:pointer;transition:all .3s var(--ease);backdrop-filter:blur(8px);font-family:var(--font)}
-.landing-apex .btn-hero-secondary:hover{border-color:var(--border-hover);background:var(--surface-hover)}
+.landing-apex .btn-hero-primary:hover{background:var(--cta-hover);box-shadow:0 12px 48px var(--cta-glow);transform:translateY(-2px)}
 
 /* SOCIAL PROOF STRIP */
 .landing-apex .social-strip{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-top:4rem;position:relative;z-index:2}
@@ -116,7 +115,6 @@
 .landing-apex section{padding:8rem 2rem;position:relative}
 .landing-apex .container{max-width:1200px;margin:0 auto}
 .landing-apex .sec-label{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--orange);font-weight:600;margin-bottom:1.25rem}
-.landing-apex .sec-label::before{content:'';width:20px;height:1px;background:var(--orange)}
 .landing-apex .sec-title{font-size:clamp(2rem,4vw,3rem);font-weight:700;letter-spacing:-0.035em;line-height:1.12;margin-bottom:1rem}
 .landing-apex .sec-title .serif{font-family:var(--serif);font-weight:400;font-style:italic;color:var(--orange)}
 .landing-apex .sec-desc{color:var(--gray-1);font-weight:350;line-height:1.7;max-width:460px;font-size:0.9375rem}
@@ -237,9 +235,9 @@
 
 .landing-apex .enterprise-pricing-actions{display:flex;flex-wrap:wrap;gap:.75rem}
 .landing-apex .enterprise-pricing-cta,.landing-apex .enterprise-pricing-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.8rem 1.25rem;border-radius:12px;font-size:.8125rem;font-weight:700;text-decoration:none;transition:all .25s var(--ease);font-family:var(--font);cursor:pointer}
-.landing-apex .enterprise-pricing-cta{background:var(--orange);color:var(--bg);border:1px solid var(--orange)}
+.landing-apex .enterprise-pricing-cta{background:var(--cta);color:var(--bg);border:1px solid var(--cta)}
 .landing-apex .enterprise-pricing-secondary{background:transparent;color:var(--gray-0);border:1px solid var(--border)}
-.landing-apex .enterprise-pricing-cta:hover{box-shadow:0 12px 40px var(--orange-glow-strong);transform:translateY(-1px)}
+.landing-apex .enterprise-pricing-cta:hover{background:var(--cta-hover);box-shadow:0 12px 40px var(--cta-glow);transform:translateY(-1px)}
 .landing-apex .enterprise-pricing-secondary:hover{transform:translateY(-1px);border-color:var(--border-hover)}
 
 @media (max-width:900px){
@@ -334,4 +332,60 @@
 }
 @media(max-width:480px){
   .landing-apex .btn-login{display:none}
+}
+
+/* ═══════════ MINERAL STORY HERO ═══════════ */
+.landing-apex::after{display:none}
+.landing-apex header{background:rgba(12,18,16,.84)}
+.landing-apex .btn-start,.landing-apex .btn-hero-primary{display:inline-flex;align-items:center;justify-content:center;color:var(--bg);text-decoration:none}
+.landing-apex .hero{min-height:auto;align-items:stretch;text-align:left;padding:9rem 2rem 5rem;background:radial-gradient(circle at 78% 36%,rgba(113,136,121,.17),transparent 38%)}
+.landing-apex .hero::before{display:none}
+.landing-apex .hero-grid{opacity:.22}
+.landing-apex .hero-grid::before{width:100%;background-size:96px 96px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%);-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 88%)}
+.landing-apex .hero-shell{position:relative;z-index:2;width:min(1380px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(340px,.78fr) minmax(620px,1.55fr);gap:2.5rem;align-items:center}
+.landing-apex .hero-content{max-width:570px;padding:2rem 0 3rem}
+.landing-apex .hero h1{font-size:clamp(3.1rem,5.4vw,5.7rem);line-height:.98;margin-bottom:1.75rem;font-weight:750;letter-spacing:-.055em}
+.landing-apex .hero h1 span{display:block;margin-top:.22em;color:var(--green);font-size:.56em;line-height:1.08;letter-spacing:-.035em}
+.landing-apex .hero-sub{margin:0 0 2.25rem;max-width:540px;font-size:1.05rem;line-height:1.75}
+.landing-apex .hero-actions{justify-content:flex-start}
+.landing-apex .social-strip{justify-content:flex-start;margin-top:2.5rem}
+.landing-apex .hero-landscape{position:relative;min-width:0;border:1px solid rgba(236,235,228,.12);border-radius:36px;overflow:hidden;background:#111a16;box-shadow:0 44px 100px rgba(0,0,0,.48)}
+.landing-apex .hero-landscape::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),inset 0 -120px 120px rgba(7,14,11,.52)}
+.landing-apex .hero-landscape>img{display:block;width:100%;height:auto;aspect-ratio:1.6;object-fit:cover}
+.landing-apex .story-panel{position:absolute;z-index:2;top:1.5rem;left:1.5rem;width:min(290px,38%);padding:1.1rem 1.2rem;border-radius:16px;background:rgba(12,18,16,.86);border:1px solid rgba(236,235,228,.16);backdrop-filter:blur(14px);box-shadow:0 16px 36px rgba(0,0,0,.26)}
+.landing-apex .story-panel-kicker{display:block;margin-bottom:.6rem;color:#8fa9ff;font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.landing-apex .story-panel strong{display:block;color:var(--white);font-size:1rem;line-height:1.35}
+.landing-apex .story-panel p{margin:.45rem 0 .8rem;color:var(--gray-1);font-size:.72rem;line-height:1.55}
+.landing-apex .story-panel-metric{display:inline-flex;padding:.28rem .55rem;border-radius:7px;background:rgba(49,91,255,.16);color:#aebcff;font-size:.64rem;font-weight:700}
+.landing-apex .story-steps{position:absolute;z-index:3;left:1.5rem;right:1.5rem;bottom:1.35rem;display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;padding:.6rem;border:1px solid rgba(236,235,228,.13);border-radius:16px;background:rgba(12,18,16,.88);backdrop-filter:blur(16px)}
+.landing-apex .story-steps button{min-width:0;padding:.72rem .55rem;border:0;border-radius:10px;background:transparent;color:var(--gray-1);font-family:var(--font);font-size:.68rem;font-weight:650;cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.landing-apex .story-steps button span{display:block;margin-bottom:.16rem;color:var(--gray-2);font-size:.56rem;letter-spacing:.08em}
+.landing-apex .story-steps button:hover{background:rgba(255,255,255,.06);color:var(--white)}
+.landing-apex .story-steps button:focus-visible{outline:2px solid #8fa9ff;outline-offset:2px}
+.landing-apex .story-steps button.active{background:var(--cta);color:var(--bg);transform:translateY(-2px)}
+.landing-apex .story-steps button.active span{color:rgba(12,18,16,.68)}
+.landing-apex .marquee-section{background:#121b17}
+.landing-apex .marquee-item{font-family:var(--font);font-style:normal;font-weight:600;letter-spacing:-.025em}
+.landing-apex .sec-title .serif,.landing-apex .cta-section h2 span{font-family:var(--font);font-style:normal;color:var(--green)}
+.landing-apex .cta-section{background:linear-gradient(180deg,transparent,rgba(113,136,121,.1))}
+.landing-apex .cta-section::before{background:radial-gradient(ellipse 50% 50%,rgba(49,91,255,.12),transparent)}
+
+@media(max-width:1120px){
+  .landing-apex .hero-shell{grid-template-columns:1fr;max-width:880px}
+  .landing-apex .hero-content{max-width:720px;padding-bottom:0}
+  .landing-apex .hero-landscape{width:100%}
+}
+@media(max-width:768px){
+  .landing-apex .hero{padding:7.5rem 1rem 3rem}
+  .landing-apex .hero h1{font-size:clamp(2.65rem,13vw,4.4rem)}
+  .landing-apex .hero-landscape{border-radius:24px;overflow:visible;margin-top:1rem;background:transparent;border:0;box-shadow:none}
+  .landing-apex .hero-landscape>img{border-radius:24px;min-height:410px;object-position:62% center;box-shadow:0 28px 70px rgba(0,0,0,.45)}
+  .landing-apex .hero-landscape::after{display:none}
+  .landing-apex .story-panel{top:1rem;left:1rem;width:calc(100% - 2rem);max-width:270px}
+  .landing-apex .story-steps{position:relative;left:auto;right:auto;bottom:auto;margin-top:.75rem;grid-template-columns:repeat(5,minmax(72px,1fr));overflow-x:auto;border-radius:14px}
+  .landing-apex .story-steps button{min-width:72px}
+}
+@media(prefers-reduced-motion:reduce){
+  .landing-apex .hero-line,.landing-apex .marquee-track{animation:none!important}
+  .landing-apex .story-steps button,.landing-apex .btn-hero-primary{transition:none!important}
 }
