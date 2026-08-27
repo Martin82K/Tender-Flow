@@ -8,10 +8,12 @@ import {
 } from "../api/tasksApi";
 import type { Task, TaskCreateInput, TaskUpdateInput } from "../types";
 import { requireTaskMutationUserId } from "../model/taskMutationAuth";
+import { notifyMicrosoftTodoLocalChange } from "../model/microsoftTodoSyncEvents";
 import { TASK_KEYS } from "./useTasksQuery";
 
 const invalidateTaskLists = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: TASK_KEYS.all });
+  notifyMicrosoftTodoLocalChange();
 };
 
 export const useCreateTaskMutation = () => {

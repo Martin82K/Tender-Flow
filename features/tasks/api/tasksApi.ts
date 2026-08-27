@@ -121,6 +121,8 @@ export const createTask = async (
     parent_task_id: input.parentTaskId ?? null,
     sort_order: input.sortOrder ?? 0,
     created_by: userId,
+    sync_status: "pending",
+    sync_error: null,
   };
   if (input.reminderAt !== undefined) {
     payload.reminder_at = input.reminderAt;
@@ -156,6 +158,11 @@ export const updateTask = async (
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
   if (input.completed !== undefined) patch.completed = input.completed;
   if (input.archivedAt !== undefined) patch.archived_at = input.archivedAt;
+
+  if (Object.keys(patch).length > 0) {
+    patch.sync_status = "pending";
+    patch.sync_error = null;
+  }
 
   const { data, error } = await dbAdapter
     .from("tasks")

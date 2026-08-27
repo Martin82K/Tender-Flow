@@ -81,6 +81,17 @@ vi.mock("@shared/auth/AuthIdentityContext", () => ({
   useAuthIdentity: () => taskState.identity,
 }));
 
+vi.mock("@features/tasks/hooks/useMicrosoftTodoSync", () => ({
+  useMicrosoftTodoSync: () => ({
+    connected: false,
+    isChecking: false,
+    isSyncing: false,
+    lastSyncedAt: null,
+    syncError: null,
+    syncNow: vi.fn(),
+  }),
+}));
+
 vi.mock("@features/tasks/hooks/useTasksQuery", () => ({
   useTasksQuery: (input: {
     user: AuthIdentity | null;

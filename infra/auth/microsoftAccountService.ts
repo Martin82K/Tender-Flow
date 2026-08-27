@@ -11,6 +11,12 @@ type MicrosoftIdentityStatus = {
   email: string | null;
 };
 
+export type MicrosoftTodoConnectionStatus = {
+  connected: boolean;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+};
+
 const settingsReturnTo = (): string => {
   const url = new URL("/app/settings", window.location.origin);
   url.searchParams.set("tab", "user");
@@ -129,6 +135,34 @@ export const microsoftAccountService = {
 
   async disconnectDocumentAccess(): Promise<void> {
     await invokeAuthedFunction("dochub-personal-microsoft", {
+      body: { action: "disconnect" },
+      retries: 0,
+    });
+  },
+
+  async getTodoStatus(): Promise<MicrosoftTodoConnectionStatus> {
+    return invokeAuthedFunction<MicrosoftTodoConnectionStatus>("microsoft-todo-connection", {
+      body: { action: "status" },
+      retries: 1,
+    });
+  },
+
+  async connectTodoAccess(): Promise<void> {
+    const result = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
+      body: {
+        provider: "onedrive",
+        mode: "user",
+        accessKind: "todo_sync",
+        returnTo: settingsReturnTo(),
+      },
+      retries: 0,
+    });
+    if (!result.url) throw new Error("Microsoft autorizační adresa není dostupná.");
+    await shellAdapter.openExternal(result.url);
+  },
+
+  async disconnectTodoAccess(): Promise<void> {
+    await invokeAuthedFunction("microsoft-todo-connection", {
       body: { action: "disconnect" },
       retries: 0,
     });

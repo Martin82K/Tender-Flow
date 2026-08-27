@@ -62,6 +62,22 @@ token vlastníka zůstává uložen odděleně. Produkční nasazení musí nejp
 migraci s `dochub_user_tokens.access_kind` a teprve potom nasadit související
 Edge Functions.
 
+Microsoft To Do používá stejnou Entra aplikaci a callback, ale samostatný
+šifrovaný token s `access_kind = todo_sync`. Žádá pouze delegované scopes
+`User.Read`, `Tasks.ReadWrite`, `offline_access` a standardní identity scopes;
+nepřebírá oprávnění OneDrive/SharePoint. V Entra registraci musí být
+`Tasks.ReadWrite` povoleno pro uživatele tenantu. Migrace
+`20260827142358_microsoft_todo_sync.sql` musí být nasazena před funkcemi
+`microsoft-todo-connection`, `microsoft-todo-sync` a aktualizovanými OAuth
+funkcemi. Synchronizační token, delta odkazy a tombstones jsou dostupné pouze
+serverovému `service_role`; renderer je nikdy nečte.
+
+Synchronizace vytváří „Tender Flow – Inbox“ a jeden Microsoft To Do seznam pro
+každý osobní TODO projekt. Stávající nesouvisející Microsoft seznamy se
+automaticky neimportují. Aktivní TODO obrazovka spouští delta synchronizaci po
+otevření, po lokální změně a periodicky; zavřená aplikace změny dorovná při
+dalším spuštění.
+
 ## Desktop/main a Node
 
 Používané provozní hodnoty zahrnují:

@@ -3,10 +3,17 @@ import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "onedrive";
-type AccessKind = "manage" | "personal_read";
+type AccessKind = "manage" | "personal_read" | "todo_sync";
 
 const PERSONAL_READ_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.Read.All"];
+const MICROSOFT_TODO_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Tasks.ReadWrite"];
 const MICROSOFT_MANAGE_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"];
+
+const microsoftScopesFor = (accessKind: AccessKind): string[] => {
+  if (accessKind === "personal_read") return PERSONAL_READ_SCOPES;
+  if (accessKind === "todo_sync") return MICROSOFT_TODO_SCOPES;
+  return MICROSOFT_MANAGE_SCOPES;
+};
 type ProviderIdentity = {
   audience: string;
   email: string;
@@ -110,7 +117,7 @@ const tokenExchangeMicrosoft = async (args: {
   body.set("grant_type", "authorization_code");
   body.set(
     "scope",
-    (args.accessKind === "personal_read" ? PERSONAL_READ_SCOPES : MICROSOFT_MANAGE_SCOPES).join(" ")
+    microsoftScopesFor(args.accessKind).join(" ")
   );
 
   const res = await fetch(
@@ -324,9 +331,13 @@ Deno.serve(async (req) => {
       return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const accessKind: AccessKind = stateRow.access_kind === "personal_read" ? "personal_read" : "manage";
+    const accessKind: AccessKind = stateRow.access_kind === "personal_read"
+      ? "personal_read"
+      : stateRow.access_kind === "todo_sync"
+        ? "todo_sync"
+        : "manage";
     const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id);
-    const skipProjectMutation = accessKind === "personal_read";
+    const skipProjectMutation = accessKind !== "manage";
     let project: { id: string; owner_id: string | null } | null = null;
 
     if (requiresProject) {
