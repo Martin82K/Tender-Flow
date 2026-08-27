@@ -11,6 +11,13 @@ const accountMocks = vi.hoisted(() => ({
   getLoginIdentity: vi.fn(),
   linkLoginIdentity: vi.fn(),
   unlinkLoginIdentity: vi.fn(),
+  getTodoStatus: vi.fn(),
+  connectTodoAccess: vi.fn(),
+  disconnectTodoAccess: vi.fn(),
+  getGraphStatus: vi.fn(),
+  connectMicrosoftAccount: vi.fn(),
+  completeMicrosoftAccountConnection: vi.fn(),
+  disconnectMicrosoftAccount: vi.fn(),
 }));
 
 vi.mock("@/infra/auth/microsoftAccountService", () => ({
@@ -30,6 +37,17 @@ describe("MicrosoftAccountSettings", () => {
     accountMocks.disconnectDocumentAccess.mockResolvedValue(undefined);
     accountMocks.linkLoginIdentity.mockResolvedValue(undefined);
     accountMocks.unlinkLoginIdentity.mockResolvedValue(undefined);
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: false,
+      lastSyncedAt: null,
+      syncError: null,
+    });
+    accountMocks.connectTodoAccess.mockResolvedValue(undefined);
+    accountMocks.disconnectTodoAccess.mockResolvedValue(undefined);
+    accountMocks.getGraphStatus.mockResolvedValue({ connected: false });
+    accountMocks.connectMicrosoftAccount.mockResolvedValue(undefined);
+    accountMocks.completeMicrosoftAccountConnection.mockResolvedValue(false);
+    accountMocks.disconnectMicrosoftAccount.mockResolvedValue(undefined);
   });
 
   it("zobrazuje jedno propojení Microsoft účtu místo dvou samostatných karet", async () => {
@@ -38,30 +56,31 @@ describe("MicrosoftAccountSettings", () => {
     expect(await screen.findByText("Microsoft účet")).toBeVisible();
     expect(screen.queryByText("Přihlášení do Tender Flow")).not.toBeInTheDocument();
     expect(screen.queryByText("OneDrive a SharePoint")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Přihlašování čeká na propojení/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Online dokumenty čekají na povolení/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Microsoft To Do čeká na povolení/)).not.toBeInTheDocument();
+    expect(screen.getByText("Co propojení zahrnuje").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByRole("button", { name: "Propojit Microsoft účet" })).toBeEnabled();
   });
 
-  it("nejprve napáruje přihlášení a po návratu pokračuje oprávněním k dokumentům", async () => {
+  it("spustí jedinou akci pro přihlášení, dokumenty i Microsoft To Do", async () => {
     render(<MicrosoftAccountSettings />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
-    await waitFor(() => expect(accountMocks.linkLoginIdentity).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(accountMocks.connectMicrosoftAccount).toHaveBeenCalledTimes(1));
+    expect(accountMocks.linkLoginIdentity).not.toHaveBeenCalled();
     expect(accountMocks.connectDocumentAccess).not.toHaveBeenCalled();
-
-    accountMocks.getLoginIdentity.mockResolvedValue({
-      available: true,
-      linked: true,
-      email: "martin@example.com",
-    });
-    window.dispatchEvent(new Event("focus"));
-
-    fireEvent.click(await screen.findByRole("button", { name: "Dokončit připojení dokumentů" }));
-    await waitFor(() => expect(accountMocks.connectDocumentAccess).toHaveBeenCalledTimes(1));
-    expect(accountMocks.getStatus).toHaveBeenCalledWith();
+    expect(accountMocks.connectTodoAccess).not.toHaveBeenCalled();
   });
 
   it("po úplném propojení schová odvolání oprávnění do detailu", async () => {
+    accountMocks.getGraphStatus.mockResolvedValue({ connected: true });
     accountMocks.getStatus.mockResolvedValue({ connected: true });
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: true,
+      lastSyncedAt: "2026-08-27T12:00:00Z",
+      syncError: null,
+    });
     accountMocks.getLoginIdentity.mockResolvedValue({
       available: true,
       linked: true,
@@ -72,22 +91,64 @@ describe("MicrosoftAccountSettings", () => {
 
     expect(await screen.findByText("martin@example.com")).toBeVisible();
     expect(screen.getByText("Microsoft účet je propojený")).toBeVisible();
+    expect(screen.getByRole("status", { name: "Microsoft účet připojen" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Propojit Microsoft účet" })).not.toBeInTheDocument();
     expect(screen.getByText("Spravovat propojení").closest("details")).not.toHaveAttribute("open");
 
     fireEvent.click(screen.getByText("Spravovat propojení"));
-    fireEvent.click(screen.getByRole("button", { name: "Odpojit dokumenty" }));
-    await waitFor(() => expect(accountMocks.disconnectDocumentAccess).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Odebrat napárování" })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "Odebrat napárování" }));
-    await waitFor(() => expect(accountMocks.unlinkLoginIdentity).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Odpojit Microsoft účet" }));
+    await waitFor(() => expect(accountMocks.disconnectMicrosoftAccount).toHaveBeenCalledTimes(1));
+    expect(accountMocks.disconnectDocumentAccess).not.toHaveBeenCalled();
+    expect(accountMocks.disconnectTodoAccess).not.toHaveBeenCalled();
   });
 
-  it("při postupném nasazení skryje chybu staré projektové funkce a zachová napárování", async () => {
-    accountMocks.getStatus.mockRejectedValue(new Error("Missing projectId"));
+  it("u identity bez Graph grantu stále nabídne jednoznačné propojení, ne obnovu", async () => {
+    accountMocks.getLoginIdentity.mockResolvedValue({
+      available: true,
+      linked: true,
+      email: "martin@example.com",
+    });
 
     render(<MicrosoftAccountSettings />);
 
-    expect(await screen.findByRole("button", { name: "Propojit Microsoft účet" })).toBeEnabled();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(await screen.findByText("martin@example.com")).toBeVisible();
+    expect(screen.queryByText(/Dokončit propojení/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Obnovit připojení" })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
+    await waitFor(() => expect(accountMocks.connectMicrosoftAccount).toHaveBeenCalledTimes(1));
+    expect(accountMocks.connectTodoAccess).not.toHaveBeenCalled();
+  });
+
+  it("při chybě nové Graph funkce zobrazí uživateli srozumitelnou chybu", async () => {
+    accountMocks.getGraphStatus.mockRejectedValue(new Error("Edge funkce není nasazená"));
+
+    render(<MicrosoftAccountSettings />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Edge funkce není nasazená");
+  });
+
+  it("zachová chybové hlášení synchronizace To Do bez samostatných stavových řádků", async () => {
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: true,
+      lastSyncedAt: "2026-08-27T12:00:00Z",
+      syncError: "Microsoft To Do synchronizace vyžaduje pozornost.",
+    });
+
+    render(<MicrosoftAccountSettings />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Microsoft To Do synchronizace vyžaduje pozornost.");
+    expect(screen.queryByText(/Microsoft To Do čeká na povolení/)).not.toBeInTheDocument();
+  });
+
+  it("skryje technický Electron IPC prefix v chybě propojení", async () => {
+    accountMocks.connectMicrosoftAccount.mockRejectedValue(new Error(
+      "Error invoking remote method 'oauth:startSupabaseFlow': Error: Přihlášení Microsoft již probíhá v jiném okně.",
+    ));
+    render(<MicrosoftAccountSettings />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Přihlášení Microsoft již probíhá v jiném okně.");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Error invoking remote method");
   });
 });

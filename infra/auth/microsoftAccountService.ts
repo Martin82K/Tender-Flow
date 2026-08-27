@@ -1,4 +1,4 @@
-import type { UserIdentity } from "@supabase/supabase-js";
+import type { Session, UserIdentity } from "@supabase/supabase-js";
 
 import { oauthAdapter, shellAdapter } from "@/infra/platform/platformAdapter";
 import { getPublicEnvValue } from "@/shared/config/publicEnv";
@@ -11,6 +11,12 @@ type MicrosoftIdentityStatus = {
   email: string | null;
 };
 
+export type MicrosoftTodoConnectionStatus = {
+  connected: boolean;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+};
+
 const settingsReturnTo = (): string => {
   const url = new URL("/app/settings", window.location.origin);
   url.searchParams.set("tab", "user");
@@ -18,6 +24,21 @@ const settingsReturnTo = (): string => {
   url.searchParams.set("microsoft", "connected");
   return url.toString();
 };
+
+const identityReturnTo = (): string => {
+  const url = new URL(settingsReturnTo());
+  url.searchParams.set("microsoft_provider", "connected");
+  return url.toString();
+};
+
+const microsoftProviderReturnTo = (nextPath: string, isLogin: boolean): string => {
+  const url = new URL(nextPath, window.location.origin);
+  url.searchParams.set("microsoft_provider", "connected");
+  if (isLogin) url.searchParams.set("microsoft_login", "1");
+  return url.toString();
+};
+
+const MICROSOFT_GRAPH_SCOPES = "email offline_access https://graph.microsoft.com/.default";
 
 const isAzureIdentity = (identity: UserIdentity): boolean =>
   identity.provider === "azure";
@@ -50,42 +71,38 @@ const completeOAuth = async (authorizeUrl: string): Promise<void> => {
   window.location.assign(authorizeUrl);
 };
 
+const persistProviderSession = async (session: Session | null): Promise<boolean> => {
+  const accessToken = session?.provider_token?.trim();
+  const refreshToken = session?.provider_refresh_token?.trim();
+  if (!accessToken || !refreshToken) return false;
+
+  const connection = await invokeAuthedFunction<{ connected: boolean }>("microsoft-graph-connection", {
+    body: { action: "connect", accessToken, refreshToken },
+    retries: 0,
+  });
+  if (!connection.connected) {
+    throw new Error("Microsoft Graph připojení se nepodařilo aktivovat.");
+  }
+
+  // První synchronizace je best-effort. Platný Graph grant se při přechodné
+  // síťové chybě nesmí odstranit; další pokus proběhne po otevření To Do.
+  await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
+    body: {},
+    retries: 1,
+    timeoutMs: 90_000,
+  }).catch(() => undefined);
+  return true;
+};
+
 const startIdentityLink = async (): Promise<void> => {
   const desktopFlow = await oauthAdapter.startSupabaseFlow();
-  const redirectTo = desktopFlow?.redirectTo ?? settingsReturnTo();
+  const redirectTo = desktopFlow?.redirectTo ?? identityReturnTo();
 
   const { data, error } = await supabase.auth.linkIdentity({
     provider: "azure",
     options: {
       redirectTo,
-      scopes: "email offline_access",
-      skipBrowserRedirect: true,
-    },
-  });
-  if (error) throw error;
-  if (!data?.url) throw new Error("Microsoft autorizační adresa není dostupná.");
-
-  if (desktopFlow) {
-    const { code } = await oauthAdapter.completeSupabaseFlow({
-      flowId: desktopFlow.flowId,
-      authorizeUrl: data.url,
-    });
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    if (exchangeError) throw exchangeError;
-    return;
-  }
-
-  await completeOAuth(data.url);
-};
-
-const startMicrosoftLogin = async (nextPath: string): Promise<void> => {
-  const desktopFlow = await oauthAdapter.startSupabaseFlow();
-  const redirectTo = desktopFlow?.redirectTo ?? new URL(nextPath, window.location.origin).toString();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "azure",
-    options: {
-      redirectTo,
-      scopes: "email offline_access",
+      scopes: MICROSOFT_GRAPH_SCOPES,
       skipBrowserRedirect: true,
       queryParams: { prompt: "select_account" },
     },
@@ -98,14 +115,116 @@ const startMicrosoftLogin = async (nextPath: string): Promise<void> => {
       flowId: desktopFlow.flowId,
       authorizeUrl: data.url,
     });
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
     if (exchangeError) throw exchangeError;
+    if (!await persistProviderSession(exchangeData.session)) {
+      throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    }
+    return;
+  }
+
+  await completeOAuth(data.url);
+};
+
+const startMicrosoftLogin = async (
+  nextPath: string,
+  requireProviderSession = false,
+  rollbackLoginOnFailure = false,
+): Promise<void> => {
+  const desktopFlow = await oauthAdapter.startSupabaseFlow();
+  const redirectTo = desktopFlow?.redirectTo ?? microsoftProviderReturnTo(nextPath, rollbackLoginOnFailure);
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "azure",
+    options: {
+      redirectTo,
+      scopes: MICROSOFT_GRAPH_SCOPES,
+      skipBrowserRedirect: true,
+      queryParams: { prompt: "select_account" },
+    },
+  });
+  if (error) throw error;
+  if (!data?.url) throw new Error("Microsoft autorizační adresa není dostupná.");
+
+  if (desktopFlow) {
+    const { code } = await oauthAdapter.completeSupabaseFlow({
+      flowId: desktopFlow.flowId,
+      authorizeUrl: data.url,
+    });
+    const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchangeError) throw exchangeError;
+    try {
+      const stored = await persistProviderSession(exchangeData.session);
+      if (requireProviderSession && !stored) {
+        throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+      }
+    } catch (cause) {
+      if (rollbackLoginOnFailure) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
+      throw cause;
+    }
     return;
   }
   await completeOAuth(data.url);
 };
 
 export const microsoftAccountService = {
+  async getGraphStatus(): Promise<{ connected: boolean }> {
+    return invokeAuthedFunction<{ connected: boolean }>("microsoft-graph-connection", {
+      body: { action: "status" },
+      retries: 1,
+    });
+  },
+
+  async connectMicrosoftAccount(): Promise<void> {
+    const { data, error } = await supabase.auth.getUserIdentities();
+    if (error) throw error;
+    const hasAzureIdentity = data?.identities.some(isAzureIdentity) ?? false;
+    if (!hasAzureIdentity) {
+      await startIdentityLink();
+      return;
+    }
+    await startMicrosoftLogin(identityReturnTo(), true);
+  },
+
+  async completeMicrosoftAccountConnection(): Promise<boolean> {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("microsoft_provider") !== "connected") return false;
+    const rollbackLoginOnFailure = url.searchParams.get("microsoft_login") === "1";
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    try {
+      const stored = await persistProviderSession(data.session);
+      if (!stored) throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    } catch (cause) {
+      if (rollbackLoginOnFailure) {
+        url.searchParams.delete("microsoft_provider");
+        url.searchParams.delete("microsoft_login");
+        window.history.replaceState(window.history.state, "", url.toString());
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
+      throw cause;
+    }
+    url.searchParams.delete("microsoft_provider");
+    url.searchParams.delete("microsoft_login");
+    window.history.replaceState(window.history.state, "", url.toString());
+    return true;
+  },
+
+  async disconnectMicrosoftAccount(): Promise<void> {
+    await invokeAuthedFunction("microsoft-graph-connection", {
+      body: { action: "disconnect" },
+      retries: 0,
+    });
+
+    const { data, error } = await supabase.auth.getUserIdentities();
+    if (error) throw error;
+    const identity = data?.identities.find(isAzureIdentity);
+    if (!identity || (data?.identities.length ?? 0) < 2) return;
+    const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity);
+    if (unlinkError) throw unlinkError;
+  },
+
   async getStatus(): Promise<{ connected: boolean }> {
     return invokeAuthedFunction<{ connected: boolean }>("dochub-personal-microsoft", {
       body: { action: "status" },
@@ -129,6 +248,34 @@ export const microsoftAccountService = {
 
   async disconnectDocumentAccess(): Promise<void> {
     await invokeAuthedFunction("dochub-personal-microsoft", {
+      body: { action: "disconnect" },
+      retries: 0,
+    });
+  },
+
+  async getTodoStatus(): Promise<MicrosoftTodoConnectionStatus> {
+    return invokeAuthedFunction<MicrosoftTodoConnectionStatus>("microsoft-todo-connection", {
+      body: { action: "status" },
+      retries: 1,
+    });
+  },
+
+  async connectTodoAccess(): Promise<void> {
+    const result = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
+      body: {
+        provider: "onedrive",
+        mode: "user",
+        accessKind: "todo_sync",
+        returnTo: settingsReturnTo(),
+      },
+      retries: 0,
+    });
+    if (!result.url) throw new Error("Microsoft autorizační adresa není dostupná.");
+    await shellAdapter.openExternal(result.url);
+  },
+
+  async disconnectTodoAccess(): Promise<void> {
+    await invokeAuthedFunction("microsoft-todo-connection", {
       body: { action: "disconnect" },
       retries: 0,
     });
@@ -175,6 +322,6 @@ export const microsoftLoginService = {
   },
 
   login(nextPath: string): Promise<void> {
-    return startMicrosoftLogin(nextPath);
+    return startMicrosoftLogin(nextPath, true, true);
   },
 };

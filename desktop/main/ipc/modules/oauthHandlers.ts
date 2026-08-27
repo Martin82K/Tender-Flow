@@ -12,7 +12,78 @@ interface OAuthHandlerDependencies {
   requireAuth: (sender: Electron.WebContents, channel?: string) => void;
   isTrustedSender: (sender: Electron.WebContents) => boolean;
   getSupabaseUrl: () => string;
+  getMicrosoftOAuthConfig: () => { tenantId: string; clientId: string };
 }
+
+const hasSingleSearchParam = (url: URL, name: string, expectedValue: string): boolean => {
+  const values = url.searchParams.getAll(name);
+  return values.length === 1 && values[0] === expectedValue;
+};
+
+const isAllowedSupabaseAuthorizeUrl = (
+  authorizeUrl: URL,
+  configuredOrigin: string,
+  redirectTo: string,
+): boolean => {
+  const allowedAuthorizePaths = new Set([
+    "/auth/v1/authorize",
+    "/auth/v1/user/identities/authorize",
+  ]);
+  return authorizeUrl.protocol === "https:"
+    && authorizeUrl.origin === configuredOrigin
+    && allowedAuthorizePaths.has(authorizeUrl.pathname)
+    && hasSingleSearchParam(authorizeUrl, "provider", "azure")
+    && hasSingleSearchParam(authorizeUrl, "redirect_to", redirectTo);
+};
+
+const isAllowedMicrosoftIdentityAuthorizeUrl = (
+  authorizeUrl: URL,
+  configuredOrigin: string,
+  redirectTo: string,
+  expectedTenantId: string,
+  expectedClientId: string,
+): boolean => {
+  const expectedAuthorizePath = `/${expectedTenantId}/oauth2/v2.0/authorize`;
+  const allowedScopes = new Set([
+    "openid",
+    "email",
+    "offline_access",
+    "https://graph.microsoft.com/.default",
+  ]);
+  const allowedParamNames = new Set([
+    "client_id",
+    "prompt",
+    "redirect_to",
+    "redirect_uri",
+    "response_type",
+    "scope",
+    "skip_http_redirect",
+    "state",
+  ]);
+  const entries = [...authorizeUrl.searchParams.entries()];
+  const scopes = (authorizeUrl.searchParams.get("scope") || "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const clientId = authorizeUrl.searchParams.get("client_id") || "";
+  const state = authorizeUrl.searchParams.get("state") || "";
+  const expectedCallback = new URL("/auth/v1/callback", configuredOrigin).toString();
+
+  return authorizeUrl.protocol === "https:"
+    && authorizeUrl.origin === "https://login.microsoftonline.com"
+    && authorizeUrl.pathname.toLowerCase() === expectedAuthorizePath.toLowerCase()
+    && entries.length === allowedParamNames.size
+    && entries.every(([name]) => allowedParamNames.has(name))
+    && clientId.toLowerCase() === expectedClientId.toLowerCase()
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state)
+    && authorizeUrl.searchParams.getAll("state").length === 1
+    && hasSingleSearchParam(authorizeUrl, "prompt", "select_account")
+    && hasSingleSearchParam(authorizeUrl, "redirect_to", redirectTo)
+    && hasSingleSearchParam(authorizeUrl, "redirect_uri", expectedCallback)
+    && hasSingleSearchParam(authorizeUrl, "response_type", "code")
+    && hasSingleSearchParam(authorizeUrl, "skip_http_redirect", "true")
+    && scopes.length === allowedScopes.size
+    && scopes.every((scope) => allowedScopes.has(scope));
+};
 
 export const registerOAuthHandlers = ({
   parseUrl,
@@ -23,21 +94,58 @@ export const registerOAuthHandlers = ({
   requireAuth,
   isTrustedSender,
   getSupabaseUrl,
+  getMicrosoftOAuthConfig,
 }: OAuthHandlerDependencies): void => {
-  const supabaseFlows = new Map<string, {
+  type SupabaseFlow = {
     redirectTo: string;
     waitForCode: Promise<{ code: string; state: string | null }>;
-  }>();
+    sender: Electron.WebContents;
+    completing: boolean;
+  };
+  const supabaseFlows = new Map<string, SupabaseFlow>();
+  let pendingFlowCreation: {
+    sender: Electron.WebContents;
+    result: Promise<{ flowId: string; redirectTo: string }>;
+  } | null = null;
 
   ipcMain.handle("oauth:startSupabaseFlow", async (event) => {
     if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
-    if (supabaseFlows.size >= 1) throw new Error("Another Microsoft OAuth flow is already active");
-    const { port, waitForCode } = await startLoopbackServer(120_000);
-    const flowId = crypto.randomUUID();
-    const redirectTo = `http://127.0.0.1:${port}/oauth2/callback`;
-    supabaseFlows.set(flowId, { redirectTo, waitForCode });
-    void waitForCode.finally(() => supabaseFlows.delete(flowId)).catch(() => undefined);
-    return { flowId, redirectTo };
+    const activeEntry = supabaseFlows.entries().next().value as [string, SupabaseFlow] | undefined;
+    if (activeEntry) {
+      const [flowId, flow] = activeEntry;
+      if (flow.sender === event.sender && !flow.completing) {
+        return { flowId, redirectTo: flow.redirectTo };
+      }
+      if (flow.sender === event.sender) {
+        throw new Error("Přihlášení Microsoft již probíhá. Dokončete jej v otevřeném okně.");
+      }
+      throw new Error("Přihlášení Microsoft již probíhá v jiném okně.");
+    }
+
+    if (pendingFlowCreation) {
+      if (pendingFlowCreation.sender === event.sender) return pendingFlowCreation.result;
+      throw new Error("Přihlášení Microsoft již probíhá v jiném okně.");
+    }
+
+    const result = (async () => {
+      const { port, waitForCode } = await startLoopbackServer(120_000);
+      const flowId = crypto.randomUUID();
+      const redirectTo = `http://127.0.0.1:${port}/oauth2/callback`;
+      supabaseFlows.set(flowId, {
+        redirectTo,
+        waitForCode,
+        sender: event.sender,
+        completing: false,
+      });
+      void waitForCode.finally(() => supabaseFlows.delete(flowId)).catch(() => undefined);
+      return { flowId, redirectTo };
+    })();
+    pendingFlowCreation = { sender: event.sender, result };
+    try {
+      return await result;
+    } finally {
+      if (pendingFlowCreation?.result === result) pendingFlowCreation = null;
+    }
   });
 
   ipcMain.handle(
@@ -46,32 +154,46 @@ export const registerOAuthHandlers = ({
       if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
       const flow = supabaseFlows.get(args?.flowId || "");
       if (!flow) throw new Error("OAuth flow not found or expired");
+      if (flow.sender !== event.sender) throw new Error("OAuth flow nepatří tomuto oknu");
 
       const configuredUrl = getSupabaseUrl();
       const configuredOrigin = new URL(configuredUrl).origin;
+      const microsoftOAuthConfig = getMicrosoftOAuthConfig();
       const authorizeUrl = new URL(args?.authorizeUrl || "");
-      const allowedAuthorizePaths = new Set([
-        "/auth/v1/authorize",
-        "/auth/v1/user/identities/authorize",
-      ]);
-      if (
-        authorizeUrl.protocol !== "https:" ||
-        authorizeUrl.origin !== configuredOrigin ||
-        !allowedAuthorizePaths.has(authorizeUrl.pathname) ||
-        authorizeUrl.searchParams.get("provider") !== "azure" ||
-        authorizeUrl.searchParams.get("redirect_to") !== flow.redirectTo
-      ) {
+      const isSupabaseAuthorizeUrl = isAllowedSupabaseAuthorizeUrl(
+        authorizeUrl,
+        configuredOrigin,
+        flow.redirectTo,
+      );
+      const isMicrosoftIdentityAuthorizeUrl = isAllowedMicrosoftIdentityAuthorizeUrl(
+        authorizeUrl,
+        configuredOrigin,
+        flow.redirectTo,
+        microsoftOAuthConfig.tenantId,
+        microsoftOAuthConfig.clientId,
+      );
+      if (!isSupabaseAuthorizeUrl && !isMicrosoftIdentityAuthorizeUrl) {
         throw new Error("Blocked Supabase OAuth authorize URL");
       }
-
-      supabaseFlows.delete(args.flowId);
-      await shell.openExternal(authorizeUrl.toString());
-      const expectedState = authorizeUrl.searchParams.get("state");
-      const result = await flow.waitForCode;
-      if (expectedState && result.state !== expectedState) {
-        throw new Error("Invalid OAuth state");
+      if (flow.completing) {
+        throw new Error("Přihlášení Microsoft již probíhá. Dokončete jej v otevřeném okně.");
       }
-      return { code: result.code };
+
+      flow.completing = true;
+      try {
+        await shell.openExternal(authorizeUrl.toString());
+        const expectedState = isSupabaseAuthorizeUrl
+          ? authorizeUrl.searchParams.get("state")
+          : null;
+        const result = await flow.waitForCode;
+        if (expectedState && result.state !== expectedState) {
+          throw new Error("Invalid OAuth state");
+        }
+        return { code: result.code };
+      } catch (error) {
+        if (supabaseFlows.get(args.flowId) === flow) flow.completing = false;
+        throw error;
+      }
     },
   );
 

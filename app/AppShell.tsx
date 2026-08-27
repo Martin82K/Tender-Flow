@@ -8,6 +8,7 @@ import { HelpProvider } from "@features/help";
 import { HelpOverlay } from "@features/help/ui/HelpOverlay";
 import { SeoManager } from "@/shared/seo/SeoManager";
 import { cleanupRetiredFeatureStorage } from "@/shared/maintenance/retiredFeatureStorage";
+import { MicrosoftConnectionCallback } from "@app/MicrosoftConnectionCallback";
 
 export const AppShell: React.FC = () => {
   useEffect(() => {
@@ -16,6 +17,7 @@ export const AppShell: React.FC = () => {
 
   return (
     <AppProviders>
+      <MicrosoftConnectionCallback />
       <SeoManager />
       <ToastProvider>
         <HelpProvider>

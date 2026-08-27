@@ -17,6 +17,8 @@ const publicKeys = [
   "VITE_SUPABASE_ANON_KEY",
   "VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP",
   "VITE_MICROSOFT_LOGIN_ENABLED",
+  "VITE_MICROSOFT_TENANT_ID",
+  "VITE_MICROSOFT_OAUTH_CLIENT_ID",
 ];
 
 const forbiddenPublicKeyPattern = /(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD|TOKEN)/i;
@@ -31,6 +33,8 @@ if (unsafePublicKeys.length > 0) {
 const requiredKeys = [
   "VITE_SUPABASE_URL",
   "VITE_SUPABASE_ANON_KEY",
+  "VITE_MICROSOFT_TENANT_ID",
+  "VITE_MICROSOFT_OAUTH_CLIENT_ID",
 ];
 
 const parseEnvFile = (filePath) => {
@@ -77,6 +81,13 @@ const missing = requiredKeys.filter((key) => !values[key]);
 const isProductionDesktopBuild = process.env.ELECTRON_BUILD === "true";
 if (missing.length > 0 && (process.env.CI === "true" || isProductionDesktopBuild)) {
   throw new Error(`Missing required desktop build env: ${missing.join(", ")}`);
+}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+for (const key of ["VITE_MICROSOFT_TENANT_ID", "VITE_MICROSOFT_OAUTH_CLIENT_ID"]) {
+  if (values[key] && !uuidPattern.test(values[key])) {
+    throw new Error(`Invalid desktop build env: ${key} must be a UUID`);
+  }
 }
 
 const supabasePublicKey = values.VITE_SUPABASE_ANON_KEY;

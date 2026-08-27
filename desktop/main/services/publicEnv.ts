@@ -5,7 +5,9 @@ type PublicEnvKey =
     | 'VITE_SUPABASE_URL'
     | 'VITE_SUPABASE_ANON_KEY'
     | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP'
-    | 'VITE_MICROSOFT_LOGIN_ENABLED';
+    | 'VITE_MICROSOFT_LOGIN_ENABLED'
+    | 'VITE_MICROSOFT_TENANT_ID'
+    | 'VITE_MICROSOFT_OAUTH_CLIENT_ID';
 
 type DesktopBuildEnvFile = {
     schemaVersion?: number;
@@ -39,6 +41,8 @@ export const getDesktopRendererPublicEnv = (): Partial<Record<PublicEnvKey, stri
         'VITE_SUPABASE_ANON_KEY',
         'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP',
         'VITE_MICROSOFT_LOGIN_ENABLED',
+        'VITE_MICROSOFT_TENANT_ID',
+        'VITE_MICROSOFT_OAUTH_CLIENT_ID',
     ] as const) {
         const value = getPublicEnvValue(key);
         if (value) values[key] = value;
@@ -49,4 +53,9 @@ export const getDesktopRendererPublicEnv = (): Partial<Record<PublicEnvKey, stri
 export const getSupabasePublicConfig = (): { url: string; anonKey: string } => ({
     url: getPublicEnvValue('VITE_SUPABASE_URL') || process.env.SUPABASE_URL || '',
     anonKey: getPublicEnvValue('VITE_SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '',
+});
+
+export const getMicrosoftOAuthPublicConfig = (): { tenantId: string; clientId: string } => ({
+    tenantId: getPublicEnvValue('VITE_MICROSOFT_TENANT_ID'),
+    clientId: getPublicEnvValue('VITE_MICROSOFT_OAUTH_CLIENT_ID'),
 });

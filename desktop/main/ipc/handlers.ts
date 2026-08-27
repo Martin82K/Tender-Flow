@@ -16,9 +16,10 @@ import { registerBackupHandlers } from './modules/backupHandlers';
 import { registerPublicAuthHandlers } from './modules/publicAuthHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
+import { buildOAuthCallbackPage, OAUTH_CALLBACK_CONTENT_TYPE } from './modules/oauthCallbackPage';
 import { ipcAuthGuard } from '../services/ipcAuthGuard';
 import { isAllowedExternalUrl, parseExternalUrl } from '../security/externalUrlPolicy';
-import { getSupabasePublicConfig } from '../services/publicEnv';
+import { getMicrosoftOAuthPublicConfig, getSupabasePublicConfig } from '../services/publicEnv';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -84,8 +85,14 @@ const startLoopbackServer = (timeoutMs: number) => {
             const error = url.searchParams.get('error');
             const code = url.searchParams.get('code');
             const state = url.searchParams.get('state');
-            res.writeHead(200, { 'content-type': 'text/html' });
-            res.end('<html><body>Ověření dokončeno. Okno můžete zavřít.</body></html>');
+            const succeeded = !error && Boolean(code);
+            res.writeHead(succeeded ? 200 : 400, {
+                'cache-control': 'no-store',
+                'content-security-policy': "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+                'content-type': OAUTH_CALLBACK_CONTENT_TYPE,
+                'x-content-type-options': 'nosniff',
+            });
+            res.end(buildOAuthCallbackPage(succeeded ? 'success' : 'error'));
 
             if (timer) clearTimeout(timer);
             server.close();
@@ -189,6 +196,7 @@ export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<v
         requireAuth,
         isTrustedSender: (sender) => ipcAuthGuard.isTrustedSender(sender),
         getSupabaseUrl: () => getSupabasePublicConfig().url,
+        getMicrosoftOAuthConfig: getMicrosoftOAuthPublicConfig,
     });
     registerNetHandlers({ isAllowedProxyUrl, requireAuth });
     registerPublicAuthHandlers({

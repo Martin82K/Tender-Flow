@@ -18,6 +18,15 @@ platformě a backendové konfiguraci.
 
 Výchozí přihlášená route je `/app/todo`.
 
+TODO Osobní podporuje volitelné obousměrné propojení s Microsoft To Do. Jedno
+propojení Microsoft účtu současně zpřístupní přihlášení, online dokumenty a
+všechna delegovaná Graph oprávnění schválená správcem tenantu.
+Tender Flow synchronizuje pouze vlastní vytvořené/spárované seznamy: samostatný
+Inbox a jeden seznam pro každý TODO projekt. Název, textová poznámka, termín,
+připomínka, dokončení a priorita se mapují obousměrně; podúkoly používají
+Microsoft checklist a přenášejí název a stav dokončení. Přílohy, opakování a
+nespárované osobní Microsoft seznamy zůstávají mimo první verzi integrace.
+
 ## Projektová pracovní plocha
 
 Projekt podporuje taby:

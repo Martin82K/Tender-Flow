@@ -3,7 +3,15 @@ import { createAuthedUserClient, createServiceClient } from "../_shared/supabase
 
 type Provider = "gdrive" | "onedrive";
 type Mode = "user" | "org";
-type AccessKind = "manage" | "personal_read";
+type AccessKind = "manage" | "personal_read" | "todo_sync" | "microsoft_graph";
+
+const MICROSOFT_GRAPH_DEFAULT_SCOPES = [
+  "offline_access",
+  "openid",
+  "email",
+  "profile",
+  "https://graph.microsoft.com/.default",
+] as const;
 
 const PERSONAL_READ_SCOPES = [
   "offline_access",
@@ -12,6 +20,15 @@ const PERSONAL_READ_SCOPES = [
   "profile",
   "User.Read",
   "Files.Read.All",
+] as const;
+
+const MICROSOFT_TODO_SCOPES = [
+  "offline_access",
+  "openid",
+  "email",
+  "profile",
+  "User.Read",
+  "Tasks.ReadWrite",
 ] as const;
 
 const MICROSOFT_MANAGE_SCOPES = [
@@ -23,6 +40,13 @@ const MICROSOFT_MANAGE_SCOPES = [
   "Files.ReadWrite",
   "Sites.ReadWrite.All",
 ] as const;
+
+const microsoftScopesFor = (accessKind: AccessKind): readonly string[] => {
+  if (accessKind === "microsoft_graph") return MICROSOFT_GRAPH_DEFAULT_SCOPES;
+  if (accessKind === "personal_read") return PERSONAL_READ_SCOPES;
+  if (accessKind === "todo_sync") return MICROSOFT_TODO_SCOPES;
+  return MICROSOFT_MANAGE_SCOPES;
+};
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -151,7 +175,7 @@ const buildMicrosoftAuthUrl = (args: {
   url.searchParams.set("response_type", "code");
   url.searchParams.set(
     "scope",
-    (args.accessKind === "personal_read" ? PERSONAL_READ_SCOPES : MICROSOFT_MANAGE_SCOPES).join(" ")
+    microsoftScopesFor(args.accessKind).join(" ")
   );
   url.searchParams.set("response_mode", "query");
   url.searchParams.set("state", args.state);
@@ -181,6 +205,9 @@ Deno.serve(async (req) => {
     const accessKind = (body?.accessKind as AccessKind) || "manage";
     const returnTo = sanitizeReturnTo(body?.returnTo as string);
     const isGlobalPersonalRead = accessKind === "personal_read" && provider === "onedrive" && !projectId;
+    const isGlobalTodoSync = accessKind === "todo_sync" && provider === "onedrive" && !projectId;
+    const isGlobalGraph = accessKind === "microsoft_graph" && provider === "onedrive" && !projectId;
+    const isGlobalMicrosoftGrant = isGlobalPersonalRead || isGlobalTodoSync || isGlobalGraph;
 
     if (!provider || !["gdrive", "onedrive"].includes(provider)) {
       return json(req, 400, { error: "Invalid provider" });
@@ -188,17 +215,17 @@ Deno.serve(async (req) => {
     if (!mode || !["user", "org"].includes(mode)) {
       return json(req, 400, { error: "Invalid mode" });
     }
-    if (!projectId && !isGlobalPersonalRead) {
+    if (!projectId && !isGlobalMicrosoftGrant) {
       return json(req, 400, { error: "Missing projectId" });
     }
-    if (!(["manage", "personal_read"] as const).includes(accessKind)) {
+    if (!(["manage", "personal_read", "todo_sync", "microsoft_graph"] as const).includes(accessKind)) {
       return json(req, 400, { error: "Invalid access kind" });
     }
-    if (accessKind === "personal_read" && provider !== "onedrive") {
-      return json(req, 400, { error: "Personal read access is only available for Microsoft" });
+    if ((accessKind === "personal_read" || accessKind === "todo_sync" || accessKind === "microsoft_graph") && provider !== "onedrive") {
+      return json(req, 400, { error: "This delegated access is only available for Microsoft" });
     }
 
-    if (!isGlobalPersonalRead) {
+    if (!isGlobalMicrosoftGrant) {
       const { data: project, error: projectError } = await authed
         .from("projects")
         .select("id, owner_id")
@@ -238,7 +265,7 @@ Deno.serve(async (req) => {
       nonce,
       provider,
       user_id: userData.user.id,
-      project_id: isGlobalPersonalRead ? null : projectId,
+      project_id: isGlobalMicrosoftGrant ? null : projectId,
       mode,
       return_to: returnTo,
       access_kind: accessKind,

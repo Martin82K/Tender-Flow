@@ -43,14 +43,14 @@ describe("dochub oauth flow project access hardening", () => {
       "utf8",
     );
 
-    expect(authUrlSource).toContain('type AccessKind = "manage" | "personal_read"');
+    expect(authUrlSource).toContain('type AccessKind = "manage" | "personal_read" | "todo_sync"');
     expect(authUrlSource).toContain('accessKind === "personal_read"');
     expect(authUrlSource).toContain('.from("project_shares")');
     expect(authUrlSource).toContain('"Files.Read.All"');
     expect(authUrlSource).toContain("PERSONAL_READ_SCOPES");
     const personalScopes = authUrlSource.slice(
       authUrlSource.indexOf("const PERSONAL_READ_SCOPES"),
-      authUrlSource.indexOf("const MICROSOFT_MANAGE_SCOPES"),
+      authUrlSource.indexOf("const MICROSOFT_TODO_SCOPES"),
     );
     expect(personalScopes).not.toContain("ReadWrite");
     expect(personalScopes).not.toContain("Sites.");
@@ -71,8 +71,10 @@ describe("dochub oauth flow project access hardening", () => {
 
     expect(migration).toContain("access_kind TEXT NOT NULL DEFAULT 'manage'");
     expect(migration).toContain("PRIMARY KEY (user_id, provider, access_kind)");
-    expect(tokenSource).toContain('accessKind?: "manage" | "personal_read"');
-    expect(tokenSource).toContain('.eq("access_kind", accessKind)');
+    expect(tokenSource).toContain('type AccessKind = "manage" | "personal_read" | "todo_sync"');
+    expect(tokenSource).toContain("accessKind?: AccessKind");
+    expect(tokenSource).toContain('.eq("access_kind", kind)');
+    expect(tokenSource).toContain("fallbackAccessKind?: AccessKind");
   });
 
   it("stav a odpojeni osobniho Microsoft uctu jsou omezeny na aktualniho uzivatele", () => {
@@ -108,7 +110,8 @@ describe("dochub oauth flow project access hardening", () => {
     );
 
     expect(authUrlSource).toContain("const isGlobalPersonalRead");
-    expect(authUrlSource).toContain("project_id: isGlobalPersonalRead ? null : projectId");
+    expect(authUrlSource).toContain("const isGlobalMicrosoftGrant = isGlobalPersonalRead || isGlobalTodoSync");
+    expect(authUrlSource).toContain("project_id: isGlobalMicrosoftGrant ? null : projectId");
     expect(microsoftCallbackSource).toContain("const requiresProject = accessKind === \"manage\"");
     expect(personalSource).toContain("if (projectId)");
     expect(personalSource).not.toContain('if (!projectId) return json(req, 400, { error: "Missing projectId" });');

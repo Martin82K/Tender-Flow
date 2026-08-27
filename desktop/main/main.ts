@@ -22,6 +22,8 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 const DESKTOP_BOOTSTRAP_ENV_KEYS = new Set([
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY',
+    'VITE_MICROSOFT_TENANT_ID',
+    'VITE_MICROSOFT_OAUTH_CLIENT_ID',
 ]);
 const PUBLIC_ENV_ARG_PREFIX = '--tender-flow-public-env=';
 

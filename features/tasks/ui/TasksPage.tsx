@@ -31,6 +31,7 @@ import {
   useUpdateTaskMutation,
 } from "../hooks/useTaskMutations";
 import { useTasksQuery } from "../hooks/useTasksQuery";
+import { useMicrosoftTodoSync } from "../hooks/useMicrosoftTodoSync";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
 import type { Task, TaskCreateInput, TaskPriority, TodoProject } from "../types";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
@@ -3164,6 +3165,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const tasksQuery = useTasksQuery({ user, filter: { includeArchived: true } });
   const todoProjectsQuery = useTaskProjectsQuery({ user });
   const updateTask = useUpdateTaskMutation();
+  const microsoftTodoSync = useMicrosoftTodoSync();
 
   const taskTree = useMemo(() => buildTaskTree(tasksQuery.data ?? []), [tasksQuery.data]);
   const todoProjects = todoProjectsQuery.data ?? [];
@@ -3412,8 +3414,25 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
         notificationSlot={<NotificationBell />}
         skin={skin}
       >
-        <div className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300 lg:block">
-          Osobní · {activeRootCount} aktivních
+        <div className="hidden items-center gap-2 lg:flex">
+          {microsoftTodoSync.connected ? (
+            <button
+              type="button"
+              onClick={() => void microsoftTodoSync.syncNow()}
+              disabled={microsoftTodoSync.isSyncing}
+              title={microsoftTodoSync.syncError
+                ? microsoftTodoSync.syncError
+                : microsoftTodoSync.lastSyncedAt
+                  ? `Naposledy synchronizováno ${new Date(microsoftTodoSync.lastSyncedAt).toLocaleString("cs-CZ")}`
+                  : "Synchronizovat s Microsoft To Do"}
+              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-300"
+            >
+              {microsoftTodoSync.isSyncing ? "Synchronizuji…" : "Microsoft To Do"}
+            </button>
+          ) : null}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
+            Osobní · {activeRootCount} aktivních
+          </div>
         </div>
       </Header>
 

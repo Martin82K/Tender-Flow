@@ -68,6 +68,8 @@ describe("tasksApi", () => {
       title: "Nový úkol",
       note: null,
       due_at: null,
+      sync_status: "pending",
+      sync_error: null,
     });
     expect(dbState.insertPayload).not.toHaveProperty("reminder_at");
   });
@@ -82,6 +84,8 @@ describe("tasksApi", () => {
     expect(dbState.updatePayload).toEqual({
       title: "Upravený úkol",
       note: "Poznámka",
+      sync_status: "pending",
+      sync_error: null,
     });
   });
 });

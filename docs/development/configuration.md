@@ -14,9 +14,22 @@
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | web/renderer | URL Supabase projektu |
 | `VITE_SUPABASE_ANON_KEY` | web/renderer | veřejný anon/publishable klíč |
+| `VITE_MICROSOFT_TENANT_ID` | produkční desktop build | veřejné ID existujícího Entra tenantu; desktop broker jím připíná Microsoft authorize URL |
+| `VITE_MICROSOFT_OAUTH_CLIENT_ID` | produkční desktop build | veřejné client ID existující registrace Tender Flow; desktop broker odmítne jinou registraci |
 
-Bez těchto hodnot aplikace zobrazí konfigurační varování a datové/auth funkce
-nebudou fungovat.
+Bez Supabase hodnot aplikace zobrazí konfigurační varování a datové/auth funkce
+nebudou fungovat. Bez obou Microsoft hodnot se produkční desktop build záměrně
+zastaví. Pro současnou existující registraci Tender Flow patří do `.env.local`
+tyto veřejné, nikoli tajné hodnoty:
+
+```dotenv
+VITE_MICROSOFT_TENANT_ID=f84a89a3-e428-4deb-8c95-a2b2decfb656
+VITE_MICROSOFT_OAUTH_CLIENT_ID=df0e80c8-ac5e-4733-8ee1-7dae0ba09802
+```
+
+Jde o Directory (tenant) ID a Application (client) ID již používané registrace
+Tender Flow v Entra a Azure provideru Supabase. Kvůli lokálnímu buildu se v Entra
+nic nevytváří ani nemění.
 
 ## Volitelné veřejné hodnoty
 
@@ -55,12 +68,39 @@ Podle nasazených funkcí mohou být potřeba:
 Tyto hodnoty se nastavují v secret managementu cílového runtime. Nikdy se
 nepřidávají do `VITE_*`.
 
-Microsoft DocHub OAuth používá registraci aplikace typu Web s callbackem
-`dochub-microsoft-callback`. Pro osobní připojení sdíleného uživatele žádá
-delegované scope `User.Read`, `Files.Read.All` a `offline_access`; správcovský
-token vlastníka zůstává uložen odděleně. Produkční nasazení musí nejprve použít
-migraci s `dochub_user_tokens.access_kind` a teprve potom nasadit související
-Edge Functions.
+Microsoft připojení používá jednu Entra registraci aplikace pro Supabase Azure
+login i Graph API. Nové propojení žádá standardní identity scopes,
+`offline_access` a `https://graph.microsoft.com/.default`; konkrétní delegovaná
+oprávnění tak autoritativně řídí správce tenantu v App Registration. V Entra
+musí být pro používané funkce schválena alespoň odpovídající oprávnění k
+dokumentům a `Tasks.ReadWrite` pro Microsoft To Do.
+
+Server při převzetí provider refresh tokenu okamžitě provede jeho obnovu přes
+`MS_OAUTH_CLIENT_ID` a `MS_OAUTH_CLIENT_SECRET`. Tím ověří, že Supabase Azure a
+Graph používají stejnou App Registration, a teprve potom uloží jediný šifrovaný
+token s `access_kind = microsoft_graph`. Starší `personal_read` a `todo_sync`
+granty zůstávají podporované jako migrační fallback. Správcovský projektový
+token `manage` zůstává oddělený.
+
+`MS_OAUTH_CLIENT_ID` musí být shodné s client ID nastaveným u Azure provideru
+v Supabase Auth a `MS_OAUTH_CLIENT_SECRET` musí patřit ke stejné existující
+Entra App Registration. Jde o dvě konfigurace téhož OAuth klienta; jejich
+nesoulad způsobí bezpečné odmítnutí jednotného Graph grantu. Hodnoty se
+nesmějí zapisovat do repozitáře ani do klientského bundle.
+
+Migrace `20260827163315_unified_microsoft_graph_grant.sql` musí být nasazena
+před funkcí `microsoft-graph-connection` a aktualizovanými funkcemi
+`dochub-auth-url`, `dochub-microsoft-callback`, `dochub-personal-microsoft`,
+`microsoft-todo-connection` a `microsoft-todo-sync`. Tokenové tabulky, delta
+odkazy a tombstones jsou dostupné pouze serverovému `service_role`; renderer
+provider token předá autentizované Edge Function pouze bezprostředně po PKCE
+výměně a nikdy jej nečte z databáze ani nevypisuje do logu.
+
+Synchronizace vytváří „Tender Flow – Inbox“ a jeden Microsoft To Do seznam pro
+každý osobní TODO projekt. Stávající nesouvisející Microsoft seznamy se
+automaticky neimportují. Aktivní TODO obrazovka spouští delta synchronizaci po
+otevření, po lokální změně a periodicky; zavřená aplikace změny dorovná při
+dalším spuštění.
 
 ## Desktop/main a Node
 

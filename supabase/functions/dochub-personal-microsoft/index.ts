@@ -57,15 +57,24 @@ Deno.serve(async (req) => {
       return json(req, 200, { connected: false });
     }
 
-    const { data: token, error: tokenError } = await service
-      .from("dochub_user_tokens")
-      .select("user_id")
-      .eq("user_id", userData.user.id)
-      .eq("provider", "onedrive")
-      .eq("access_kind", "personal_read")
-      .maybeSingle();
-    if (tokenError) return json(req, 500, { error: "Connection status unavailable" });
-    return json(req, 200, { connected: !!token });
+    const [legacyResult, unifiedResult] = await Promise.all([
+      service.from("dochub_user_tokens")
+        .select("user_id")
+        .eq("user_id", userData.user.id)
+        .eq("provider", "onedrive")
+        .eq("access_kind", "personal_read")
+        .maybeSingle(),
+      service.from("dochub_user_tokens")
+        .select("user_id")
+        .eq("user_id", userData.user.id)
+        .eq("provider", "onedrive")
+        .eq("access_kind", "microsoft_graph")
+        .maybeSingle(),
+    ]);
+    if (legacyResult.error || unifiedResult.error) {
+      return json(req, 500, { error: "Connection status unavailable" });
+    }
+    return json(req, 200, { connected: Boolean(legacyResult.data || unifiedResult.data) });
   } catch {
     return json(req, 500, { error: "Connection request failed" });
   }
