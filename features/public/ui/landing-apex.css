@@ -109,7 +109,7 @@
 .landing-apex .marquee-track{display:flex;gap:4rem;animation:apexScroll 25s linear infinite;width:max-content}
 @keyframes apexScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .landing-apex .marquee-item{font-family:var(--serif);font-size:1.75rem;color:var(--gray-1);white-space:nowrap;font-style:italic;display:flex;align-items:center;gap:1.5rem}
-.landing-apex .marquee-item::after{content:'\u25C6';font-size:0.5rem;color:var(--orange);font-style:normal}
+.landing-apex .marquee-item::after{content:'\25C6 ';font-size:0.5rem;color:var(--green);font-style:normal}
 
 /* ═══════════ FEATURES ═══════════ */
 .landing-apex section{padding:8rem 2rem;position:relative}
@@ -353,17 +353,21 @@
 .landing-apex .hero-landscape::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),inset 0 -120px 120px rgba(7,14,11,.52)}
 .landing-apex .hero-landscape>img{display:block;width:100%;height:auto;aspect-ratio:1.6;object-fit:cover}
 .landing-apex .story-panel{position:absolute;z-index:2;top:1.5rem;left:1.5rem;width:min(290px,38%);padding:1.1rem 1.2rem;border-radius:16px;background:rgba(12,18,16,.86);border:1px solid rgba(236,235,228,.16);backdrop-filter:blur(14px);box-shadow:0 16px 36px rgba(0,0,0,.26)}
-.landing-apex .story-panel-kicker{display:block;margin-bottom:.6rem;color:#8fa9ff;font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.landing-apex .story-panel-kicker{display:block;margin-bottom:.6rem;color:var(--cta);font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
 .landing-apex .story-panel strong{display:block;color:var(--white);font-size:1rem;line-height:1.35}
 .landing-apex .story-panel p{margin:.45rem 0 .8rem;color:var(--gray-1);font-size:.72rem;line-height:1.55}
-.landing-apex .story-panel-metric{display:inline-flex;padding:.28rem .55rem;border-radius:7px;background:rgba(49,91,255,.16);color:#aebcff;font-size:.64rem;font-weight:700}
+.landing-apex .story-panel-metric{display:inline-flex;padding:.28rem .55rem;border-radius:7px;background:var(--green-dim);color:var(--cta-hover);font-size:.64rem;font-weight:700}
 .landing-apex .story-steps{position:absolute;z-index:3;left:1.5rem;right:1.5rem;bottom:1.35rem;display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;padding:.6rem;border:1px solid rgba(236,235,228,.13);border-radius:16px;background:rgba(12,18,16,.88);backdrop-filter:blur(16px)}
 .landing-apex .story-steps button{min-width:0;padding:.72rem .55rem;border:0;border-radius:10px;background:transparent;color:var(--gray-1);font-family:var(--font);font-size:.68rem;font-weight:650;cursor:pointer;transition:background .2s,color .2s,transform .2s}
 .landing-apex .story-steps button span{display:block;margin-bottom:.16rem;color:var(--gray-2);font-size:.56rem;letter-spacing:.08em}
-.landing-apex .story-steps button:hover{background:rgba(255,255,255,.06);color:var(--white)}
-.landing-apex .story-steps button:focus-visible{outline:2px solid #8fa9ff;outline-offset:2px}
+.landing-apex .story-steps button:hover{background:var(--green-dim);color:var(--cta-hover)}
+.landing-apex .story-steps button:focus-visible{outline:2px solid var(--cta-hover);outline-offset:2px}
 .landing-apex .story-steps button.active{background:var(--cta);color:var(--bg);transform:translateY(-2px)}
+.landing-apex .story-steps button.active:hover{background:var(--cta-hover)}
 .landing-apex .story-steps button.active span{color:rgba(12,18,16,.68)}
+html[data-skin="space"] .landing-apex .story-steps button.active{background-color:var(--cta)!important;border-color:transparent!important;color:var(--bg)!important}
+html[data-skin="space"] .landing-apex .story-steps button.active:hover{background-color:var(--cta-hover)!important}
+html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:2px solid var(--cta-hover)!important;outline-offset:2px!important;box-shadow:0 0 0 4px var(--cta-glow)!important}
 .landing-apex .marquee-section{background:#121b17}
 .landing-apex .marquee-item{font-family:var(--font);font-style:normal;font-weight:600;letter-spacing:-.025em}
 .landing-apex .sec-title .serif,.landing-apex .cta-section h2 span{font-family:var(--font);font-style:normal;color:var(--green)}
