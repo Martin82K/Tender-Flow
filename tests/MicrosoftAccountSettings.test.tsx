@@ -56,6 +56,10 @@ describe("MicrosoftAccountSettings", () => {
     expect(await screen.findByText("Microsoft účet")).toBeVisible();
     expect(screen.queryByText("Přihlášení do Tender Flow")).not.toBeInTheDocument();
     expect(screen.queryByText("OneDrive a SharePoint")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Přihlašování čeká na propojení/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Online dokumenty čekají na povolení/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Microsoft To Do čeká na povolení/)).not.toBeInTheDocument();
+    expect(screen.getByText("Co propojení zahrnuje").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByRole("button", { name: "Propojit Microsoft účet" })).toBeEnabled();
   });
 
@@ -96,7 +100,7 @@ describe("MicrosoftAccountSettings", () => {
     expect(accountMocks.disconnectTodoAccess).not.toHaveBeenCalled();
   });
 
-  it("u dříve napárované identity nabídne jediné dokončení celého propojení", async () => {
+  it("u dříve napárované identity nabídne stejné jediné propojení bez dokončovacího kroku", async () => {
     accountMocks.getLoginIdentity.mockResolvedValue({
       available: true,
       linked: true,
@@ -105,7 +109,8 @@ describe("MicrosoftAccountSettings", () => {
 
     render(<MicrosoftAccountSettings />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Dokončit propojení Microsoft účtu" }));
+    expect(screen.queryByText(/Dokončit propojení/)).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
     await waitFor(() => expect(accountMocks.connectMicrosoftAccount).toHaveBeenCalledTimes(1));
     expect(accountMocks.connectTodoAccess).not.toHaveBeenCalled();
   });

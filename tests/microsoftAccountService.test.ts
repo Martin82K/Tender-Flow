@@ -53,23 +53,44 @@ describe("microsoftAccountService", () => {
     });
   });
 
-  it("pro již propojenou identitu žádá jeden globální Microsoft Graph grant", async () => {
+  it("pro již propojenou identitu znovu použije správně nakonfigurovaný Supabase Azure provider", async () => {
     mocks.getUserIdentities.mockResolvedValue({
       data: { identities: [{ provider: "azure" }] },
       error: null,
     });
-    mocks.invoke.mockResolvedValue({ url: "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize" });
+    mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
+    mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://vpvowigatikngnaflkyk.supabase.co/auth/v1/authorize?provider=azure" },
+      error: null,
+    });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: "provider-access",
+          provider_refresh_token: "provider-refresh",
+        },
+      },
+      error: null,
+    });
 
     await microsoftAccountService.connectMicrosoftAccount();
 
-    expect(mocks.invoke).toHaveBeenCalledWith("dochub-auth-url", expect.objectContaining({
-      body: expect.objectContaining({
-        provider: "onedrive",
-        accessKind: "microsoft_graph",
+    expect(mocks.signInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
+      provider: "azure",
+      options: expect.objectContaining({
+        scopes: "email offline_access https://graph.microsoft.com/.default",
       }),
     }));
-    expect(mocks.invoke.mock.calls[0][1].body).not.toHaveProperty("projectId");
-    expect(mocks.openExternal).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke).not.toHaveBeenCalledWith("dochub-auth-url", expect.anything());
+    expect(mocks.invoke).toHaveBeenCalledWith("microsoft-graph-connection", {
+      body: {
+        action: "connect",
+        accessToken: "provider-access",
+        refreshToken: "provider-refresh",
+      },
+      retries: 0,
+    });
   });
 
   it("při prvním propojení žádá všechny tenantem schválené Graph scope najednou", async () => {
