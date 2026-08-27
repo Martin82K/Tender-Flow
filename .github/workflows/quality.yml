@@ -14,6 +14,8 @@ jobs:
       # Safe dummy values for CI test/runtime init. Real secrets are not needed here.
       VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
       VITE_SUPABASE_ANON_KEY: e30.eyJyb2xlIjoiYW5vbiJ9.c2lnbmF0dXJl
+      VITE_MICROSOFT_TENANT_ID: f84a89a3-e428-4deb-8c95-a2b2decfb656
+      VITE_MICROSOFT_OAUTH_CLIENT_ID: df0e80c8-ac5e-4733-8ee1-7dae0ba09802
 
     steps:
       - name: Checkout code

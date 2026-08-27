@@ -26,7 +26,9 @@ export type PublicEnvKey =
     | 'VITE_SUPABASE_URL'
     | 'VITE_SUPABASE_ANON_KEY'
     | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP'
-    | 'VITE_MICROSOFT_LOGIN_ENABLED';
+    | 'VITE_MICROSOFT_LOGIN_ENABLED'
+    | 'VITE_MICROSOFT_TENANT_ID'
+    | 'VITE_MICROSOFT_OAUTH_CLIENT_ID';
 
 export type PublicEnvAPI = Partial<Record<PublicEnvKey, string>>;
 

@@ -135,4 +135,16 @@ describe("MicrosoftAccountSettings", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Microsoft To Do synchronizace vyžaduje pozornost.");
     expect(screen.queryByText(/Microsoft To Do čeká na povolení/)).not.toBeInTheDocument();
   });
+
+  it("skryje technický Electron IPC prefix v chybě propojení", async () => {
+    accountMocks.connectMicrosoftAccount.mockRejectedValue(new Error(
+      "Error invoking remote method 'oauth:startSupabaseFlow': Error: Přihlášení Microsoft již probíhá v jiném okně.",
+    ));
+    render(<MicrosoftAccountSettings />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Přihlášení Microsoft již probíhá v jiném okně.");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Error invoking remote method");
+  });
 });

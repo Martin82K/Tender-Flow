@@ -8,6 +8,14 @@ type IdentityState = {
   email: string | null;
 };
 
+const microsoftErrorMessage = (cause: unknown, fallback: string): string => {
+  if (!(cause instanceof Error)) return fallback;
+  const message = cause.message
+    .replace(/^Error invoking remote method '[^']+': Error:\s*/u, "")
+    .trim();
+  return message || fallback;
+};
+
 export const MicrosoftAccountSettings: React.FC = () => {
   const [graphConnected, setGraphConnected] = useState(false);
   const [identity, setIdentity] = useState<IdentityState>({
@@ -34,7 +42,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
       if (todoResult.status === "rejected") throw todoResult.reason;
       setError(todoResult.value.syncError);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Microsoft připojení se nepodařilo načíst.");
+      setError(microsoftErrorMessage(cause, "Microsoft připojení se nepodařilo načíst."));
     } finally {
       setLoading(false);
     }
@@ -54,7 +62,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
       await action();
       await refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Microsoft operace se nezdařila.");
+      setError(microsoftErrorMessage(cause, "Microsoft operace se nezdařila."));
     } finally {
       setPending(false);
     }

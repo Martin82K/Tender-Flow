@@ -75,7 +75,10 @@ vi.mock("../desktop/main/security/externalUrlPolicy", () => ({
   isAllowedExternalUrl: vi.fn(),
   parseExternalUrl: vi.fn(),
 }));
-vi.mock("../desktop/main/services/publicEnv", () => ({ getSupabasePublicConfig: vi.fn() }));
+vi.mock("../desktop/main/services/publicEnv", () => ({
+  getSupabasePublicConfig: vi.fn(),
+  getMicrosoftOAuthPublicConfig: vi.fn(),
+}));
 
 describe("registrace desktop IPC handlerů", () => {
   it("nezpřístupní storage operace před dokončením úklidu vyřazených klíčů", async () => {
