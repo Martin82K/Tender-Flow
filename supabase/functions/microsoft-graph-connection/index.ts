@@ -14,6 +14,23 @@ type MicrosoftIdentity = {
 const MICROSOFT_PROVIDERS = new Set(["azure", "microsoft", "onedrive"]);
 const MAX_TOKEN_LENGTH = 64 * 1024;
 
+type MicrosoftConnectionErrorCode =
+  | "microsoft_identity_missing"
+  | "microsoft_identity_mismatch"
+  | "microsoft_graph_token_invalid"
+  | "microsoft_oauth_not_configured"
+  | "microsoft_oauth_configuration_mismatch"
+  | "microsoft_refresh_token_rejected";
+
+class MicrosoftConnectionError extends Error {
+  constructor(
+    readonly code: MicrosoftConnectionErrorCode,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 const json = (req: Request, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -22,6 +39,28 @@ const json = (req: Request, status: number, body: unknown) =>
 
 const normalize = (value: unknown): string =>
   typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const padded = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+};
+
+const assertOAuthApplicationMatches = (accessToken: string, configuredClientId: string) => {
+  const payload = decodeJwtPayload(accessToken);
+  const tokenClientId = normalize(payload?.azp || payload?.appid);
+  if (tokenClientId && tokenClientId !== normalize(configuredClientId)) {
+    throw new MicrosoftConnectionError(
+      "microsoft_oauth_configuration_mismatch",
+      "Konfigurace Microsoft přihlášení v Tender Flow není sjednocená.",
+    );
+  }
+};
 
 const identityValues = (identity: MicrosoftIdentity): { emails: string[]; subjects: string[] } => {
   const data = identity.identity_data || {};
@@ -39,7 +78,12 @@ const fetchGraphUser = async (accessToken: string): Promise<{ id: string; email:
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.error?.message || "Microsoft token verification failed");
+  if (!response.ok) {
+    throw new MicrosoftConnectionError(
+      "microsoft_graph_token_invalid",
+      "Microsoft Graph token se nepodařilo ověřit.",
+    );
+  }
   return {
     id: typeof payload.id === "string" ? payload.id.trim() : "",
     email: normalize(payload.mail || payload.userPrincipalName),
@@ -54,7 +98,12 @@ const assertGraphIdentityMatches = (args: {
   const microsoftIdentities = args.identities.filter((identity) =>
     Boolean(identity.provider && MICROSOFT_PROVIDERS.has(identity.provider))
   );
-  if (microsoftIdentities.length === 0) throw new Error("Microsoft identity is not linked");
+  if (microsoftIdentities.length === 0) {
+    throw new MicrosoftConnectionError(
+      "microsoft_identity_missing",
+      "Microsoft účet není propojený s uživatelem Tender Flow.",
+    );
+  }
 
   const emails = new Set([normalize(args.userEmail)]);
   const subjects = new Set<string>();
@@ -66,7 +115,10 @@ const assertGraphIdentityMatches = (args: {
   emails.delete("");
 
   if (!emails.has(args.graphUser.email) && !subjects.has(args.graphUser.id)) {
-    throw new Error("Microsoft identity does not match signed-in user");
+    throw new MicrosoftConnectionError(
+      "microsoft_identity_mismatch",
+      "Přihlášený Microsoft účet neodpovídá uživateli Tender Flow.",
+    );
   }
 };
 
@@ -74,7 +126,12 @@ const refreshForConfiguredApplication = async (refreshToken: string) => {
   const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
   const clientSecret = Deno.env.get("MS_OAUTH_CLIENT_SECRET") || "";
   const tenant = Deno.env.get("MS_OAUTH_TENANT") || Deno.env.get("MS_OAUTH_TENANT_ID") || "organizations";
-  if (!clientId || !clientSecret) throw new Error("Microsoft OAuth application is not configured");
+  if (!clientId || !clientSecret) {
+    throw new MicrosoftConnectionError(
+      "microsoft_oauth_not_configured",
+      "Microsoft připojení není na serveru nakonfigurované.",
+    );
+  }
 
   const body = new URLSearchParams({
     client_id: clientId,
@@ -93,7 +150,15 @@ const refreshForConfiguredApplication = async (refreshToken: string) => {
   );
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload?.error_description || "Microsoft application configuration mismatch");
+    const providerCode = typeof payload?.error === "string" ? payload.error : "";
+    throw new MicrosoftConnectionError(
+      providerCode === "invalid_client"
+        ? "microsoft_oauth_configuration_mismatch"
+        : "microsoft_refresh_token_rejected",
+      providerCode === "invalid_client"
+        ? "Konfigurace Microsoft přihlášení v Tender Flow není sjednocená."
+        : "Microsoft připojení se nepodařilo ověřit. Přihlaste se prosím znovu.",
+    );
   }
   return payload as {
     access_token: string;
@@ -169,6 +234,14 @@ Deno.serve(async (req) => {
 
     // Refreshing with the server-side client proves Supabase Azure and Graph use
     // the same Entra application registration before the token is persisted.
+    const configuredClientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
+    if (!configuredClientId) {
+      throw new MicrosoftConnectionError(
+        "microsoft_oauth_not_configured",
+        "Microsoft připojení není na serveru nakonfigurované.",
+      );
+    }
+    assertOAuthApplicationMatches(accessToken, configuredClientId);
     const refreshed = await refreshForConfiguredApplication(refreshToken);
     const refreshedGraphUser = await fetchGraphUser(refreshed.access_token);
     assertGraphIdentityMatches({
@@ -206,7 +279,9 @@ Deno.serve(async (req) => {
 
     return json(req, 200, { connected: true });
   } catch (cause) {
-    const message = cause instanceof Error ? cause.message : "Microsoft connection request failed";
-    return json(req, 400, { error: message });
+    if (cause instanceof MicrosoftConnectionError) {
+      return json(req, 400, { error: cause.message, code: cause.code });
+    }
+    return json(req, 400, { error: "Microsoft připojení se nepodařilo dokončit." });
   }
 });

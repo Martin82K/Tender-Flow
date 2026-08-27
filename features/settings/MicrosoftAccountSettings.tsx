@@ -69,7 +69,6 @@ export const MicrosoftAccountSettings: React.FC = () => {
   };
 
   const fullyConnected = identity.linked && graphConnected;
-  const needsRenewal = identity.linked && !graphConnected;
 
   const handlePrimaryAction = () => {
     void run(microsoftAccountService.connectMicrosoftAccount);
@@ -129,8 +128,8 @@ export const MicrosoftAccountSettings: React.FC = () => {
               className="shrink-0 rounded-lg border border-emerald-300/50 bg-emerald-400 px-4 py-2 text-sm font-bold text-emerald-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-400/30 dark:bg-emerald-400 dark:hover:bg-emerald-300"
             >
               {pending
-                ? needsRenewal ? "Obnovuji…" : "Propojuji…"
-                : needsRenewal ? "Obnovit připojení" : "Propojit Microsoft účet"}
+                ? "Propojuji…"
+                : "Propojit Microsoft účet"}
             </button>
           )}
         </div>

@@ -34,6 +34,7 @@ const identityReturnTo = (): string => {
 const microsoftProviderReturnTo = (nextPath: string): string => {
   const url = new URL(nextPath, window.location.origin);
   url.searchParams.set("microsoft_provider", "connected");
+  url.searchParams.set("microsoft_login", "1");
   return url.toString();
 };
 
@@ -83,13 +84,21 @@ const persistProviderSession = async (session: Session | null): Promise<boolean>
     throw new Error("Microsoft Graph připojení se nepodařilo aktivovat.");
   }
 
-  const initialSync = await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
-    body: {},
-    retries: 1,
-    timeoutMs: 90_000,
-  });
-  if (!initialSync.connected) {
-    throw new Error("Microsoft To Do synchronizaci se nepodařilo aktivovat.");
+  try {
+    const initialSync = await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
+      body: {},
+      retries: 1,
+      timeoutMs: 90_000,
+    });
+    if (!initialSync.connected) {
+      throw new Error("Microsoft To Do synchronizaci se nepodařilo aktivovat.");
+    }
+  } catch (cause) {
+    await invokeAuthedFunction("microsoft-graph-connection", {
+      body: { action: "disconnect" },
+      retries: 0,
+    }).catch(() => undefined);
+    throw cause;
   }
   return true;
 };
@@ -129,6 +138,7 @@ const startIdentityLink = async (): Promise<void> => {
 const startMicrosoftLogin = async (
   nextPath: string,
   requireProviderSession = false,
+  rollbackLoginOnFailure = false,
 ): Promise<void> => {
   const desktopFlow = await oauthAdapter.startSupabaseFlow();
   const redirectTo = desktopFlow?.redirectTo ?? microsoftProviderReturnTo(nextPath);
@@ -151,9 +161,16 @@ const startMicrosoftLogin = async (
     });
     const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
     if (exchangeError) throw exchangeError;
-    const stored = await persistProviderSession(exchangeData.session);
-    if (requireProviderSession && !stored) {
-      throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    try {
+      const stored = await persistProviderSession(exchangeData.session);
+      if (requireProviderSession && !stored) {
+        throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+      }
+    } catch (cause) {
+      if (rollbackLoginOnFailure) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
+      throw cause;
     }
     return;
   }
@@ -182,11 +199,20 @@ export const microsoftAccountService = {
   async completeMicrosoftAccountConnection(): Promise<boolean> {
     const url = new URL(window.location.href);
     if (url.searchParams.get("microsoft_provider") !== "connected") return false;
+    const rollbackLoginOnFailure = url.searchParams.get("microsoft_login") === "1";
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
-    const stored = await persistProviderSession(data.session);
-    if (!stored) throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    try {
+      const stored = await persistProviderSession(data.session);
+      if (!stored) throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    } catch (cause) {
+      if (rollbackLoginOnFailure) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      }
+      throw cause;
+    }
     url.searchParams.delete("microsoft_provider");
+    url.searchParams.delete("microsoft_login");
     window.history.replaceState(window.history.state, "", url.toString());
     return true;
   },
@@ -302,6 +328,6 @@ export const microsoftLoginService = {
   },
 
   login(nextPath: string): Promise<void> {
-    return startMicrosoftLogin(nextPath, true);
+    return startMicrosoftLogin(nextPath, true, true);
   },
 };
