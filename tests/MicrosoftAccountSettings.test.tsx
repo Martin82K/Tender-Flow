@@ -102,7 +102,7 @@ describe("MicrosoftAccountSettings", () => {
     expect(accountMocks.disconnectTodoAccess).not.toHaveBeenCalled();
   });
 
-  it("u dříve napárované identity nabídne stejné jediné propojení bez dokončovacího kroku", async () => {
+  it("u identity bez Graph grantu stále nabídne jednoznačné propojení, ne obnovu", async () => {
     accountMocks.getLoginIdentity.mockResolvedValue({
       available: true,
       linked: true,
@@ -111,8 +111,10 @@ describe("MicrosoftAccountSettings", () => {
 
     render(<MicrosoftAccountSettings />);
 
+    expect(await screen.findByText("martin@example.com")).toBeVisible();
     expect(screen.queryByText(/Dokončit propojení/)).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Obnovit připojení" }));
+    expect(screen.queryByRole("button", { name: "Obnovit připojení" })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
     await waitFor(() => expect(accountMocks.connectMicrosoftAccount).toHaveBeenCalledTimes(1));
     expect(accountMocks.connectTodoAccess).not.toHaveBeenCalled();
   });

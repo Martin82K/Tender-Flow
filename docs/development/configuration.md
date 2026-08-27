@@ -82,6 +82,12 @@ token s `access_kind = microsoft_graph`. Starší `personal_read` a `todo_sync`
 granty zůstávají podporované jako migrační fallback. Správcovský projektový
 token `manage` zůstává oddělený.
 
+`MS_OAUTH_CLIENT_ID` musí být shodné s client ID nastaveným u Azure provideru
+v Supabase Auth a `MS_OAUTH_CLIENT_SECRET` musí patřit ke stejné existující
+Entra App Registration. Jde o dvě konfigurace téhož OAuth klienta; jejich
+nesoulad způsobí bezpečné odmítnutí jednotného Graph grantu. Hodnoty se
+nesmějí zapisovat do repozitáře ani do klientského bundle.
+
 Migrace `20260827163315_unified_microsoft_graph_grant.sql` musí být nasazena
 před funkcí `microsoft-graph-connection` a aktualizovanými funkcemi
 `dochub-auth-url`, `dochub-microsoft-callback`, `dochub-personal-microsoft`,

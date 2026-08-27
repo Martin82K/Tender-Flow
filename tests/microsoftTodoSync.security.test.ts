@@ -40,6 +40,9 @@ describe("Microsoft To Do synchronization security boundaries", () => {
     expect(graphConnection).toContain("service.auth.admin.getUserById(userId)");
     expect(graphConnection).toContain("fetchGraphUser(accessToken)");
     expect(graphConnection).toContain("refreshForConfiguredApplication(refreshToken)");
+    expect(graphConnection).toContain("microsoft_oauth_configuration_mismatch");
+    expect(graphConnection).toContain("assertOAuthApplicationMatches");
+    expect(graphConnection).not.toContain("payload?.error_description");
     expect(graphConnection).toContain("encryptJsonAesGcm");
     expect(graphConnection).not.toContain("provider_refresh_token");
   });
