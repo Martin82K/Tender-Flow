@@ -10,6 +10,11 @@ const extractDesktopPublicKeys = (source: string): string[] => {
   return Array.from(match[1].matchAll(/"([^"]+)"/g)).map((item) => item[1]);
 };
 
+const microsoftOAuthPublicEnv = {
+  VITE_MICROSOFT_TENANT_ID: "f84a89a3-e428-4deb-8c95-a2b2decfb656",
+  VITE_MICROSOFT_OAUTH_CLIENT_ID: "df0e80c8-ac5e-4733-8ee1-7dae0ba09802",
+};
+
 describe("desktop build env security", () => {
   it("používá v quality workflow syntetický anon JWT místo neplatného placeholderu", () => {
     const workflow = readFileSync(
@@ -48,6 +53,8 @@ describe("desktop build env security", () => {
       "VITE_SUPABASE_ANON_KEY",
       "VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP",
       "VITE_MICROSOFT_LOGIN_ENABLED",
+      "VITE_MICROSOFT_TENANT_ID",
+      "VITE_MICROSOFT_OAUTH_CLIENT_ID",
     ]);
     expect(publicKeys.every((key) => key.startsWith("VITE_"))).toBe(true);
     expect(publicKeys.some((key) => /(SECRET|SERVICE_ROLE|PRIVATE|PASSWORD|TOKEN)/i.test(key))).toBe(false);
@@ -69,6 +76,7 @@ describe("desktop build env security", () => {
           ELECTRON_BUILD: "false",
           VITE_SUPABASE_URL: "https://example.supabase.co",
           VITE_SUPABASE_ANON_KEY: "sb_publishable_test_key",
+          ...microsoftOAuthPublicEnv,
         },
       });
 
@@ -90,6 +98,7 @@ describe("desktop build env security", () => {
         ELECTRON_BUILD: "true",
         VITE_SUPABASE_URL: "http://127.0.0.1:1",
         VITE_SUPABASE_ANON_KEY: `header.${payload}.signature`,
+        ...microsoftOAuthPublicEnv,
       },
     });
 
@@ -134,12 +143,14 @@ describe("desktop build env security", () => {
           ELECTRON_BUILD: "true",
           VITE_SUPABASE_URL: "",
           VITE_SUPABASE_ANON_KEY: "",
+          VITE_MICROSOFT_TENANT_ID: "",
+          VITE_MICROSOFT_OAUTH_CLIENT_ID: "",
         },
       });
 
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain(
-        "Missing required desktop build env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY",
+        "Missing required desktop build env: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MICROSOFT_TENANT_ID, VITE_MICROSOFT_OAUTH_CLIENT_ID",
       );
     } finally {
       rmSync(testRoot, { recursive: true, force: true });
@@ -157,6 +168,7 @@ describe("desktop build env security", () => {
         ELECTRON_BUILD: "true",
         VITE_SUPABASE_URL: "https://example.supabase.co",
         VITE_SUPABASE_ANON_KEY: "header.payload\n.signature",
+        ...microsoftOAuthPublicEnv,
       },
     });
 
@@ -178,12 +190,35 @@ describe("desktop build env security", () => {
         ELECTRON_BUILD: "true",
         VITE_SUPABASE_URL: "https://example.supabase.co",
         VITE_SUPABASE_ANON_KEY: `header.${payload}.signature`,
+        ...microsoftOAuthPublicEnv,
       },
     });
 
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(
       "Invalid desktop build env: VITE_SUPABASE_ANON_KEY must have the anon role",
+    );
+  });
+
+  it("zastaví desktop build, pokud Microsoft OAuth ID není UUID", () => {
+    const scriptPath = join(process.cwd(), "scripts", "write-desktop-build-env.mjs");
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: process.cwd(),
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        CI: "true",
+        ELECTRON_BUILD: "false",
+        VITE_SUPABASE_URL: "https://example.supabase.co",
+        VITE_SUPABASE_ANON_KEY: "sb_publishable_test_key",
+        ...microsoftOAuthPublicEnv,
+        VITE_MICROSOFT_OAUTH_CLIENT_ID: "not-a-uuid",
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "Invalid desktop build env: VITE_MICROSOFT_OAUTH_CLIENT_ID must be a UUID",
     );
   });
 });

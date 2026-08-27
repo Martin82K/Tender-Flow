@@ -32,6 +32,10 @@ const register = (
     requireAuth: vi.fn(),
     isTrustedSender: () => true,
     getSupabaseUrl: () => "https://project.supabase.co",
+    getMicrosoftOAuthConfig: () => ({
+      tenantId: "f84a89a3-e428-4deb-8c95-a2b2decfb656",
+      clientId: "11111111-2222-4333-8444-555555555555",
+    }),
   });
   return startLoopbackServer;
 };
@@ -140,10 +144,7 @@ describe("desktop Supabase OAuth broker", () => {
       flowId: flow.flowId,
       authorizeUrl: authorizeUrl.toString(),
     });
-    resolveCode({
-      code: "identity-pkce-code",
-      state: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-    });
+    resolveCode({ code: "identity-pkce-code", state: null });
 
     await expect(completion).resolves.toEqual({ code: "identity-pkce-code" });
     expect(electronMocks.openExternal).toHaveBeenCalledWith(authorizeUrl.toString());
@@ -194,6 +195,20 @@ describe("desktop Supabase OAuth broker", () => {
     await expect(complete({ sender }, {
       flowId: flow.flowId,
       authorizeUrl: genericTenant.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    const differentTenant = createAuthorizeUrl();
+    differentTenant.pathname = "/99999999-8888-4777-8666-555555555555/oauth2/v2.0/authorize";
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: differentTenant.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    const differentClient = createAuthorizeUrl();
+    differentClient.searchParams.set("client_id", "99999999-8888-4777-8666-555555555555");
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: differentClient.toString(),
     })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
 
     const missingState = createAuthorizeUrl();

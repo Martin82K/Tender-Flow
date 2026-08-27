@@ -29,6 +29,8 @@ nebudou fungovat.
 | `VITE_EXCEL_MERGER_MIRROR_URL` | alternativní endpoint/mirror |
 | `VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP` | veřejné desktop OAuth client ID |
 | `VITE_MICROSOFT_LOGIN_ENABLED` | bezpečnostní release přepínač; nastavte na `true` až po aktivaci Azure provideru, Before User Created hooku, ručního linkování a povolených návratových URL |
+| `VITE_MICROSOFT_TENANT_ID` | veřejné ID Entra tenantu; desktop broker jím připíná Microsoft authorize URL |
+| `VITE_MICROSOFT_OAUTH_CLIENT_ID` | veřejné client ID registrace Tender Flow; desktop broker odmítne jinou registraci |
 
 Microsoft přihlášení je určeno pouze existujícím účtům. Před zapnutím přepínače
 musí být v Supabase Authentication nastaven Azure provider, povoleno ruční

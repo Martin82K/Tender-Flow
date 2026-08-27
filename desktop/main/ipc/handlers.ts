@@ -18,7 +18,7 @@ import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
 import { ipcAuthGuard } from '../services/ipcAuthGuard';
 import { isAllowedExternalUrl, parseExternalUrl } from '../security/externalUrlPolicy';
-import { getSupabasePublicConfig } from '../services/publicEnv';
+import { getMicrosoftOAuthPublicConfig, getSupabasePublicConfig } from '../services/publicEnv';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -189,6 +189,7 @@ export async function registerIpcHandlers(mainWindow?: BrowserWindow): Promise<v
         requireAuth,
         isTrustedSender: (sender) => ipcAuthGuard.isTrustedSender(sender),
         getSupabaseUrl: () => getSupabasePublicConfig().url,
+        getMicrosoftOAuthConfig: getMicrosoftOAuthPublicConfig,
     });
     registerNetHandlers({ isAllowedProxyUrl, requireAuth });
     registerPublicAuthHandlers({

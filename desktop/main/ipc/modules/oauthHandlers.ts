@@ -12,6 +12,7 @@ interface OAuthHandlerDependencies {
   requireAuth: (sender: Electron.WebContents, channel?: string) => void;
   isTrustedSender: (sender: Electron.WebContents) => boolean;
   getSupabaseUrl: () => string;
+  getMicrosoftOAuthConfig: () => { tenantId: string; clientId: string };
 }
 
 const hasSingleSearchParam = (url: URL, name: string, expectedValue: string): boolean => {
@@ -39,8 +40,10 @@ const isAllowedMicrosoftIdentityAuthorizeUrl = (
   authorizeUrl: URL,
   configuredOrigin: string,
   redirectTo: string,
+  expectedTenantId: string,
+  expectedClientId: string,
 ): boolean => {
-  const tenantAuthorizePath = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/oauth2\/v2\.0\/authorize$/i;
+  const expectedAuthorizePath = `/${expectedTenantId}/oauth2/v2.0/authorize`;
   const allowedScopes = new Set([
     "openid",
     "email",
@@ -67,10 +70,10 @@ const isAllowedMicrosoftIdentityAuthorizeUrl = (
 
   return authorizeUrl.protocol === "https:"
     && authorizeUrl.origin === "https://login.microsoftonline.com"
-    && tenantAuthorizePath.test(authorizeUrl.pathname)
+    && authorizeUrl.pathname.toLowerCase() === expectedAuthorizePath.toLowerCase()
     && entries.length === allowedParamNames.size
     && entries.every(([name]) => allowedParamNames.has(name))
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)
+    && clientId.toLowerCase() === expectedClientId.toLowerCase()
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state)
     && authorizeUrl.searchParams.getAll("state").length === 1
     && hasSingleSearchParam(authorizeUrl, "prompt", "select_account")
@@ -91,6 +94,7 @@ export const registerOAuthHandlers = ({
   requireAuth,
   isTrustedSender,
   getSupabaseUrl,
+  getMicrosoftOAuthConfig,
 }: OAuthHandlerDependencies): void => {
   type SupabaseFlow = {
     redirectTo: string;
@@ -154,17 +158,21 @@ export const registerOAuthHandlers = ({
 
       const configuredUrl = getSupabaseUrl();
       const configuredOrigin = new URL(configuredUrl).origin;
+      const microsoftOAuthConfig = getMicrosoftOAuthConfig();
       const authorizeUrl = new URL(args?.authorizeUrl || "");
-      const isAllowedAuthorizeUrl = isAllowedSupabaseAuthorizeUrl(
-        authorizeUrl,
-        configuredOrigin,
-        flow.redirectTo,
-      ) || isAllowedMicrosoftIdentityAuthorizeUrl(
+      const isSupabaseAuthorizeUrl = isAllowedSupabaseAuthorizeUrl(
         authorizeUrl,
         configuredOrigin,
         flow.redirectTo,
       );
-      if (!isAllowedAuthorizeUrl) {
+      const isMicrosoftIdentityAuthorizeUrl = isAllowedMicrosoftIdentityAuthorizeUrl(
+        authorizeUrl,
+        configuredOrigin,
+        flow.redirectTo,
+        microsoftOAuthConfig.tenantId,
+        microsoftOAuthConfig.clientId,
+      );
+      if (!isSupabaseAuthorizeUrl && !isMicrosoftIdentityAuthorizeUrl) {
         throw new Error("Blocked Supabase OAuth authorize URL");
       }
       if (flow.completing) {
@@ -174,7 +182,9 @@ export const registerOAuthHandlers = ({
       flow.completing = true;
       try {
         await shell.openExternal(authorizeUrl.toString());
-        const expectedState = authorizeUrl.searchParams.get("state");
+        const expectedState = isSupabaseAuthorizeUrl
+          ? authorizeUrl.searchParams.get("state")
+          : null;
         const result = await flow.waitForCode;
         if (expectedState && result.state !== expectedState) {
           throw new Error("Invalid OAuth state");
