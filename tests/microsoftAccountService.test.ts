@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   unlinkIdentity: vi.fn(),
   signInWithOAuth: vi.fn(),
   exchangeCodeForSession: vi.fn(),
+  getSession: vi.fn(),
 }));
 
 vi.mock("@/services/functionsClient", () => ({ invokeAuthedFunction: mocks.invoke }));
@@ -28,6 +29,7 @@ vi.mock("@/services/supabase", () => ({
       unlinkIdentity: mocks.unlinkIdentity,
       signInWithOAuth: mocks.signInWithOAuth,
       exchangeCodeForSession: mocks.exchangeCodeForSession,
+      getSession: mocks.getSession,
     },
   },
 }));
@@ -39,6 +41,7 @@ describe("microsoftAccountService", () => {
     vi.clearAllMocks();
     mocks.startSupabaseFlow.mockResolvedValue(null);
     mocks.invoke.mockResolvedValue({ connected: false });
+    mocks.getUserIdentities.mockResolvedValue({ data: { identities: [] }, error: null });
   });
 
   it("čte globální stav bez projectId", async () => {
@@ -50,18 +53,72 @@ describe("microsoftAccountService", () => {
     });
   });
 
-  it("žádá pouze osobní read-only grant a neváže ho na stavbu", async () => {
+  it("pro již propojenou identitu žádá jeden globální Microsoft Graph grant", async () => {
+    mocks.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "azure" }] },
+      error: null,
+    });
     mocks.invoke.mockResolvedValue({ url: "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize" });
 
-    await microsoftAccountService.connectDocumentAccess();
+    await microsoftAccountService.connectMicrosoftAccount();
 
     expect(mocks.invoke).toHaveBeenCalledWith("dochub-auth-url", expect.objectContaining({
       body: expect.objectContaining({
         provider: "onedrive",
-        accessKind: "personal_read",
+        accessKind: "microsoft_graph",
       }),
     }));
     expect(mocks.invoke.mock.calls[0][1].body).not.toHaveProperty("projectId");
     expect(mocks.openExternal).toHaveBeenCalledTimes(1);
+  });
+
+  it("při prvním propojení žádá všechny tenantem schválené Graph scope najednou", async () => {
+    mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
+    mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
+    mocks.linkIdentity.mockResolvedValue({ data: { url: "https://login.microsoftonline.com/link" }, error: null });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: "provider-access",
+          provider_refresh_token: "provider-refresh",
+        },
+      },
+      error: null,
+    });
+
+    await microsoftAccountService.connectMicrosoftAccount();
+
+    expect(mocks.linkIdentity).toHaveBeenCalledWith(expect.objectContaining({
+      provider: "azure",
+      options: expect.objectContaining({
+        scopes: "email offline_access https://graph.microsoft.com/.default",
+      }),
+    }));
+  });
+
+  it("po desktopovém PKCE exchange uloží provider token pouze přes autentizovanou Edge Function", async () => {
+    mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
+    mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
+    mocks.linkIdentity.mockResolvedValue({ data: { url: "https://login.microsoftonline.com/link" }, error: null });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: "provider-access",
+          provider_refresh_token: "provider-refresh",
+        },
+      },
+      error: null,
+    });
+
+    await microsoftAccountService.connectMicrosoftAccount();
+
+    expect(mocks.invoke).toHaveBeenCalledWith("microsoft-graph-connection", {
+      body: {
+        action: "connect",
+        accessToken: "provider-access",
+        refreshToken: "provider-refresh",
+      },
+      retries: 0,
+    });
   });
 });

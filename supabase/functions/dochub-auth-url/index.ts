@@ -3,7 +3,15 @@ import { createAuthedUserClient, createServiceClient } from "../_shared/supabase
 
 type Provider = "gdrive" | "onedrive";
 type Mode = "user" | "org";
-type AccessKind = "manage" | "personal_read" | "todo_sync";
+type AccessKind = "manage" | "personal_read" | "todo_sync" | "microsoft_graph";
+
+const MICROSOFT_GRAPH_DEFAULT_SCOPES = [
+  "offline_access",
+  "openid",
+  "email",
+  "profile",
+  "https://graph.microsoft.com/.default",
+] as const;
 
 const PERSONAL_READ_SCOPES = [
   "offline_access",
@@ -34,6 +42,7 @@ const MICROSOFT_MANAGE_SCOPES = [
 ] as const;
 
 const microsoftScopesFor = (accessKind: AccessKind): readonly string[] => {
+  if (accessKind === "microsoft_graph") return MICROSOFT_GRAPH_DEFAULT_SCOPES;
   if (accessKind === "personal_read") return PERSONAL_READ_SCOPES;
   if (accessKind === "todo_sync") return MICROSOFT_TODO_SCOPES;
   return MICROSOFT_MANAGE_SCOPES;
@@ -197,7 +206,8 @@ Deno.serve(async (req) => {
     const returnTo = sanitizeReturnTo(body?.returnTo as string);
     const isGlobalPersonalRead = accessKind === "personal_read" && provider === "onedrive" && !projectId;
     const isGlobalTodoSync = accessKind === "todo_sync" && provider === "onedrive" && !projectId;
-    const isGlobalMicrosoftGrant = isGlobalPersonalRead || isGlobalTodoSync;
+    const isGlobalGraph = accessKind === "microsoft_graph" && provider === "onedrive" && !projectId;
+    const isGlobalMicrosoftGrant = isGlobalPersonalRead || isGlobalTodoSync || isGlobalGraph;
 
     if (!provider || !["gdrive", "onedrive"].includes(provider)) {
       return json(req, 400, { error: "Invalid provider" });
@@ -208,10 +218,10 @@ Deno.serve(async (req) => {
     if (!projectId && !isGlobalMicrosoftGrant) {
       return json(req, 400, { error: "Missing projectId" });
     }
-    if (!(["manage", "personal_read", "todo_sync"] as const).includes(accessKind)) {
+    if (!(["manage", "personal_read", "todo_sync", "microsoft_graph"] as const).includes(accessKind)) {
       return json(req, 400, { error: "Invalid access kind" });
     }
-    if ((accessKind === "personal_read" || accessKind === "todo_sync") && provider !== "onedrive") {
+    if ((accessKind === "personal_read" || accessKind === "todo_sync" || accessKind === "microsoft_graph") && provider !== "onedrive") {
       return json(req, 400, { error: "This delegated access is only available for Microsoft" });
     }
 

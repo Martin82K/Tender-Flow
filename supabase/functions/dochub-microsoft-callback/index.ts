@@ -3,13 +3,15 @@ import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "onedrive";
-type AccessKind = "manage" | "personal_read" | "todo_sync";
+type AccessKind = "manage" | "personal_read" | "todo_sync" | "microsoft_graph";
 
+const MICROSOFT_GRAPH_DEFAULT_SCOPES = ["offline_access", "openid", "email", "profile", "https://graph.microsoft.com/.default"];
 const PERSONAL_READ_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.Read.All"];
 const MICROSOFT_TODO_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Tasks.ReadWrite"];
 const MICROSOFT_MANAGE_SCOPES = ["offline_access", "openid", "email", "profile", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"];
 
 const microsoftScopesFor = (accessKind: AccessKind): string[] => {
+  if (accessKind === "microsoft_graph") return MICROSOFT_GRAPH_DEFAULT_SCOPES;
   if (accessKind === "personal_read") return PERSONAL_READ_SCOPES;
   if (accessKind === "todo_sync") return MICROSOFT_TODO_SCOPES;
   return MICROSOFT_MANAGE_SCOPES;
@@ -335,7 +337,9 @@ Deno.serve(async (req) => {
       ? "personal_read"
       : stateRow.access_kind === "todo_sync"
         ? "todo_sync"
-        : "manage";
+        : stateRow.access_kind === "microsoft_graph"
+          ? "microsoft_graph"
+          : "manage";
     const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id);
     const skipProjectMutation = accessKind !== "manage";
     let project: { id: string; owner_id: string | null } | null = null;

@@ -2,9 +2,10 @@ import { createServiceClient } from "./supabase.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "./crypto.ts";
 
 type Provider = "gdrive" | "onedrive";
-type AccessKind = "manage" | "personal_read" | "todo_sync";
+type AccessKind = "manage" | "personal_read" | "todo_sync" | "microsoft_graph";
 
 const MICROSOFT_TODO_SCOPES = ["offline_access", "User.Read", "Tasks.ReadWrite"] as const;
+const MICROSOFT_GRAPH_DEFAULT_SCOPES = ["offline_access", "https://graph.microsoft.com/.default"] as const;
 
 const b64ToBytes = (b64: string): Uint8Array => {
   const binary = atob(b64);
@@ -78,7 +79,9 @@ const refreshMicrosoft = async (args: {
   body.set("grant_type", "refresh_token");
   body.set(
     "scope",
-    (args.accessKind === "personal_read"
+    (args.accessKind === "microsoft_graph"
+      ? MICROSOFT_GRAPH_DEFAULT_SCOPES
+      : args.accessKind === "personal_read"
       ? ["offline_access", "User.Read", "Files.Read.All"]
       : args.accessKind === "todo_sync"
         ? MICROSOFT_TODO_SCOPES
@@ -106,21 +109,32 @@ export const getAccessTokenForUser = async (args: {
   userId: string;
   provider: Provider;
   accessKind?: AccessKind;
+  fallbackAccessKind?: AccessKind;
 }): Promise<{ accessToken: string; provider: Provider }> => {
   const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
   if (!encKey) throw new Error("Missing DOCHUB_TOKEN_ENCRYPTION_KEY");
 
   const service = createServiceClient();
   const accessKind = args.accessKind || "manage";
-  const { data, error } = await service
+  const loadToken = async (kind: AccessKind) => service
     .from("dochub_user_tokens")
     .select("*")
     .eq("user_id", args.userId)
     .eq("provider", args.provider)
-    .eq("access_kind", accessKind)
-    .single();
+    .eq("access_kind", kind)
+    .maybeSingle();
 
-  if (error || !data) throw new Error("Token not found");
+  const primaryResult = await loadToken(accessKind);
+  if (primaryResult.error) throw primaryResult.error;
+  let data = primaryResult.data;
+  let storedAccessKind = accessKind;
+  if (!data && args.fallbackAccessKind) {
+    const fallbackResult = await loadToken(args.fallbackAccessKind);
+    if (fallbackResult.error) throw fallbackResult.error;
+    data = fallbackResult.data;
+    storedAccessKind = args.fallbackAccessKind;
+  }
+  if (!data) throw new Error("Token not found");
 
   const token = await decryptJsonAesGcm<{
     access_token: string;
@@ -193,7 +207,7 @@ export const getAccessTokenForUser = async (args: {
     clientId,
     clientSecret,
     redirectUri,
-    accessKind,
+    accessKind: storedAccessKind,
   });
 
   const newToken = {
@@ -209,7 +223,7 @@ export const getAccessTokenForUser = async (args: {
   await service.from("dochub_user_tokens").upsert({
     user_id: args.userId,
     provider: args.provider,
-    access_kind: accessKind,
+    access_kind: storedAccessKind,
     token_ciphertext: tokenCiphertext,
     scopes: (newToken.scope || "").split(" ").filter(Boolean),
     expires_at: newExpiresAt,

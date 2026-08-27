@@ -55,22 +55,27 @@ Podle nasazených funkcí mohou být potřeba:
 Tyto hodnoty se nastavují v secret managementu cílového runtime. Nikdy se
 nepřidávají do `VITE_*`.
 
-Microsoft DocHub OAuth používá registraci aplikace typu Web s callbackem
-`dochub-microsoft-callback`. Pro osobní připojení sdíleného uživatele žádá
-delegované scope `User.Read`, `Files.Read.All` a `offline_access`; správcovský
-token vlastníka zůstává uložen odděleně. Produkční nasazení musí nejprve použít
-migraci s `dochub_user_tokens.access_kind` a teprve potom nasadit související
-Edge Functions.
+Microsoft připojení používá jednu Entra registraci aplikace pro Supabase Azure
+login i Graph API. Nové propojení žádá standardní identity scopes,
+`offline_access` a `https://graph.microsoft.com/.default`; konkrétní delegovaná
+oprávnění tak autoritativně řídí správce tenantu v App Registration. V Entra
+musí být pro používané funkce schválena alespoň odpovídající oprávnění k
+dokumentům a `Tasks.ReadWrite` pro Microsoft To Do.
 
-Microsoft To Do používá stejnou Entra aplikaci a callback, ale samostatný
-šifrovaný token s `access_kind = todo_sync`. Žádá pouze delegované scopes
-`User.Read`, `Tasks.ReadWrite`, `offline_access` a standardní identity scopes;
-nepřebírá oprávnění OneDrive/SharePoint. V Entra registraci musí být
-`Tasks.ReadWrite` povoleno pro uživatele tenantu. Migrace
-`20260827142358_microsoft_todo_sync.sql` musí být nasazena před funkcemi
-`microsoft-todo-connection`, `microsoft-todo-sync` a aktualizovanými OAuth
-funkcemi. Synchronizační token, delta odkazy a tombstones jsou dostupné pouze
-serverovému `service_role`; renderer je nikdy nečte.
+Server při převzetí provider refresh tokenu okamžitě provede jeho obnovu přes
+`MS_OAUTH_CLIENT_ID` a `MS_OAUTH_CLIENT_SECRET`. Tím ověří, že Supabase Azure a
+Graph používají stejnou App Registration, a teprve potom uloží jediný šifrovaný
+token s `access_kind = microsoft_graph`. Starší `personal_read` a `todo_sync`
+granty zůstávají podporované jako migrační fallback. Správcovský projektový
+token `manage` zůstává oddělený.
+
+Migrace `20260827163315_unified_microsoft_graph_grant.sql` musí být nasazena
+před funkcí `microsoft-graph-connection` a aktualizovanými funkcemi
+`dochub-auth-url`, `dochub-microsoft-callback`, `dochub-personal-microsoft`,
+`microsoft-todo-connection` a `microsoft-todo-sync`. Tokenové tabulky, delta
+odkazy a tombstones jsou dostupné pouze serverovému `service_role`; renderer
+provider token předá autentizované Edge Function pouze bezprostředně po PKCE
+výměně a nikdy jej nečte z databáze ani nevypisuje do logu.
 
 Synchronizace vytváří „Tender Flow – Inbox“ a jeden Microsoft To Do seznam pro
 každý osobní TODO projekt. Stávající nesouvisející Microsoft seznamy se
