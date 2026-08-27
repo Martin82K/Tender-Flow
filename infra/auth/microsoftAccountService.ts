@@ -108,7 +108,10 @@ const startIdentityLink = async (): Promise<void> => {
   await completeOAuth(data.url);
 };
 
-const startMicrosoftLogin = async (nextPath: string): Promise<void> => {
+const startMicrosoftLogin = async (
+  nextPath: string,
+  requireProviderSession = false,
+): Promise<void> => {
   const desktopFlow = await oauthAdapter.startSupabaseFlow();
   const redirectTo = desktopFlow?.redirectTo ?? new URL(nextPath, window.location.origin).toString();
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -130,7 +133,10 @@ const startMicrosoftLogin = async (nextPath: string): Promise<void> => {
     });
     const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
     if (exchangeError) throw exchangeError;
-    await persistProviderSession(exchangeData.session);
+    const stored = await persistProviderSession(exchangeData.session);
+    if (requireProviderSession && !stored) {
+      throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
+    }
     return;
   }
   await completeOAuth(data.url);
@@ -152,18 +158,7 @@ export const microsoftAccountService = {
       await startIdentityLink();
       return;
     }
-
-    const result = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
-      body: {
-        provider: "onedrive",
-        mode: "user",
-        accessKind: "microsoft_graph",
-        returnTo: settingsReturnTo(),
-      },
-      retries: 0,
-    });
-    if (!result.url) throw new Error("Microsoft autorizační adresa není dostupná.");
-    await shellAdapter.openExternal(result.url);
+    await startMicrosoftLogin(identityReturnTo(), true);
   },
 
   async completeMicrosoftAccountConnection(): Promise<boolean> {

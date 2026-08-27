@@ -10,7 +10,6 @@ type IdentityState = {
 
 export const MicrosoftAccountSettings: React.FC = () => {
   const [graphConnected, setGraphConnected] = useState(false);
-  const [todoLastSyncedAt, setTodoLastSyncedAt] = useState<string | null>(null);
   const [identity, setIdentity] = useState<IdentityState>({
     available: false,
     linked: false,
@@ -23,7 +22,6 @@ export const MicrosoftAccountSettings: React.FC = () => {
   const refresh = useCallback(async () => {
     try {
       await microsoftAccountService.completeMicrosoftAccountConnection();
-      let todoSyncError: string | null = null;
       const [graphResult, identityResult, todoResult] = await Promise.allSettled([
         microsoftAccountService.getGraphStatus(),
         microsoftAccountService.getLoginIdentity(),
@@ -33,13 +31,8 @@ export const MicrosoftAccountSettings: React.FC = () => {
       setIdentity(identityResult.value);
       if (graphResult.status === "rejected") throw graphResult.reason;
       setGraphConnected(graphResult.value.connected);
-      if (todoResult.status === "fulfilled") {
-        setTodoLastSyncedAt(todoResult.value.lastSyncedAt);
-        todoSyncError = todoResult.value.syncError;
-      } else {
-        throw todoResult.reason;
-      }
-      setError(todoSyncError);
+      if (todoResult.status === "rejected") throw todoResult.reason;
+      setError(todoResult.value.syncError);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Microsoft připojení se nepodařilo načíst.");
     } finally {
@@ -68,9 +61,6 @@ export const MicrosoftAccountSettings: React.FC = () => {
   };
 
   const fullyConnected = identity.linked && graphConnected;
-  const primaryLabel = identity.linked
-    ? "Dokončit propojení Microsoft účtu"
-    : "Propojit Microsoft účet";
 
   const handlePrimaryAction = () => {
     void run(microsoftAccountService.connectMicrosoftAccount);
@@ -79,7 +69,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
   return (
     <section className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/60">
       <h2 className="mb-2 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
-        <span className="material-symbols-outlined text-blue-600">account_circle</span>
+        <span className="material-symbols-outlined text-emerald-500">account_circle</span>
         Microsoft účet
       </h2>
       <p className="mb-5 text-xs text-slate-500 dark:text-slate-400">
@@ -102,7 +92,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
               {fullyConnected
                 ? "Účet lze používat pro přihlášení, online dokumenty i Microsoft To Do."
                 : identity.linked
-                  ? "Přihlášení je připravené. Jedním ověřením dokončíte dokumenty i Microsoft To Do."
+                  ? "Jedním přihlášením obnovíte přístup ke všem funkcím povoleným pro Tender Flow."
                   : "Jedno přihlášení na stránce Microsoftu povolí všechny funkce schválené správcem tenantu."}
             </p>
             {identity.linked && identity.email ? (
@@ -118,40 +108,21 @@ export const MicrosoftAccountSettings: React.FC = () => {
               type="button"
               disabled={loading || pending || (!identity.linked && !identity.available)}
               onClick={handlePrimaryAction}
-              className="shrink-0 rounded-lg border border-blue-500/30 bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-emerald-300/50 bg-emerald-400 px-4 py-2 text-sm font-bold text-emerald-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-400/30 dark:bg-emerald-400 dark:hover:bg-emerald-300"
             >
-              {pending ? "Ověřuji…" : primaryLabel}
+              {pending ? "Propojuji…" : "Propojit Microsoft účet"}
             </button>
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
-            <span className={`material-symbols-outlined text-base ${identity.linked ? "text-emerald-600" : "text-slate-400"}`}>
-              {identity.linked ? "check_circle" : "radio_button_unchecked"}
-            </span>
-            Přihlašování {identity.linked ? "propojeno" : "čeká na propojení"}
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
-            <span className={`material-symbols-outlined text-base ${graphConnected ? "text-emerald-600" : "text-slate-400"}`}>
-              {graphConnected ? "check_circle" : "radio_button_unchecked"}
-            </span>
-            Online dokumenty {graphConnected ? "povoleny" : "čekají na povolení"}
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
-            <span className={`material-symbols-outlined text-base ${graphConnected ? "text-emerald-600" : "text-slate-400"}`}>
-              {graphConnected ? "check_circle" : "radio_button_unchecked"}
-            </span>
-            <span>
-              Microsoft To Do {graphConnected ? "povoleno" : "čeká na povolení"}
-              {graphConnected && todoLastSyncedAt ? (
-                <span className="mt-0.5 block text-[10px] text-slate-500">
-                  {new Date(todoLastSyncedAt).toLocaleString("cs-CZ")}
-                </span>
-              ) : null}
-            </span>
-          </div>
-        </div>
+        <details className="mt-4 border-t border-slate-200 pt-3 text-xs dark:border-slate-700">
+          <summary className="cursor-pointer font-semibold text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400">
+            Co propojení zahrnuje
+          </summary>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            Tender Flow použije pouze funkce Microsoft Graph, které jsou pro aplikaci schválené ve vašem tenantu: přihlášení, práci s online dokumenty a synchronizaci Microsoft To Do.
+          </p>
+        </details>
 
         {identity.linked || graphConnected ? (
           <details className="mt-4 border-t border-slate-200 pt-3 text-xs dark:border-slate-700">
