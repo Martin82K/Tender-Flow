@@ -73,7 +73,8 @@ describe("dochub oauth flow project access hardening", () => {
     expect(migration).toContain("PRIMARY KEY (user_id, provider, access_kind)");
     expect(tokenSource).toContain('type AccessKind = "manage" | "personal_read" | "todo_sync"');
     expect(tokenSource).toContain("accessKind?: AccessKind");
-    expect(tokenSource).toContain('.eq("access_kind", accessKind)');
+    expect(tokenSource).toContain('.eq("access_kind", kind)');
+    expect(tokenSource).toContain("fallbackAccessKind?: AccessKind");
   });
 
   it("stav a odpojeni osobniho Microsoft uctu jsou omezeny na aktualniho uzivatele", () => {

@@ -94,6 +94,7 @@ export const resolveSharedFolderLink = async (args: {
       userId: usePersonalMicrosoftGrant ? args.requestingUserId : args.ownerId,
       provider: args.provider,
       accessKind: usePersonalMicrosoftGrant ? "personal_read" : "manage",
+      fallbackAccessKind: usePersonalMicrosoftGrant ? "microsoft_graph" : undefined,
     });
     return (parentId: string, name: string, appProperties?: Record<string, string>) =>
       findExistingFolder({ ...args, accessToken, parentId, name, appProperties });

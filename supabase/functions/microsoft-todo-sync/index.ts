@@ -590,6 +590,7 @@ Deno.serve(async (req) => {
         userId,
         provider: "onedrive",
         accessKind: "todo_sync",
+        fallbackAccessKind: "microsoft_graph",
       }));
     } catch {
       return json(req, 409, { connected: false, error: "Microsoft To Do is not connected" });

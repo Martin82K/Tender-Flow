@@ -43,18 +43,24 @@ Deno.serve(async (req) => {
       return json(req, 200, { connected: false });
     }
 
-    const [{ data: token, error: tokenError }, { data: mappings, error: mappingError }] = await Promise.all([
+    const [legacyTokenResult, unifiedTokenResult, { data: mappings, error: mappingError }] = await Promise.all([
       service.from("dochub_user_tokens")
         .select("user_id, updated_at")
         .eq("user_id", userId)
         .eq("provider", "onedrive")
         .eq("access_kind", "todo_sync")
         .maybeSingle(),
+      service.from("dochub_user_tokens")
+        .select("user_id, updated_at")
+        .eq("user_id", userId)
+        .eq("provider", "onedrive")
+        .eq("access_kind", "microsoft_graph")
+        .maybeSingle(),
       service.from("microsoft_todo_list_mappings")
         .select("last_synced_at, sync_error")
         .eq("user_id", userId),
     ]);
-    if (tokenError || mappingError) {
+    if (legacyTokenResult.error || unifiedTokenResult.error || mappingError) {
       return json(req, 500, { error: "TODO connection status unavailable" });
     }
 
@@ -67,7 +73,7 @@ Deno.serve(async (req) => {
     const syncError = rows.find((row) => row.sync_error)?.sync_error ?? null;
 
     return json(req, 200, {
-      connected: Boolean(token),
+      connected: Boolean(legacyTokenResult.data || unifiedTokenResult.data),
       lastSyncedAt,
       syncError,
     });
