@@ -24,20 +24,56 @@ export const registerOAuthHandlers = ({
   isTrustedSender,
   getSupabaseUrl,
 }: OAuthHandlerDependencies): void => {
-  const supabaseFlows = new Map<string, {
+  type SupabaseFlow = {
     redirectTo: string;
     waitForCode: Promise<{ code: string; state: string | null }>;
-  }>();
+    sender: Electron.WebContents;
+    completing: boolean;
+  };
+  const supabaseFlows = new Map<string, SupabaseFlow>();
+  let pendingFlowCreation: {
+    sender: Electron.WebContents;
+    result: Promise<{ flowId: string; redirectTo: string }>;
+  } | null = null;
 
   ipcMain.handle("oauth:startSupabaseFlow", async (event) => {
     if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
-    if (supabaseFlows.size >= 1) throw new Error("Another Microsoft OAuth flow is already active");
-    const { port, waitForCode } = await startLoopbackServer(120_000);
-    const flowId = crypto.randomUUID();
-    const redirectTo = `http://127.0.0.1:${port}/oauth2/callback`;
-    supabaseFlows.set(flowId, { redirectTo, waitForCode });
-    void waitForCode.finally(() => supabaseFlows.delete(flowId)).catch(() => undefined);
-    return { flowId, redirectTo };
+    const activeEntry = supabaseFlows.entries().next().value as [string, SupabaseFlow] | undefined;
+    if (activeEntry) {
+      const [flowId, flow] = activeEntry;
+      if (flow.sender === event.sender && !flow.completing) {
+        return { flowId, redirectTo: flow.redirectTo };
+      }
+      if (flow.sender === event.sender) {
+        throw new Error("Přihlášení Microsoft již probíhá. Dokončete jej v otevřeném okně.");
+      }
+      throw new Error("Přihlášení Microsoft již probíhá v jiném okně.");
+    }
+
+    if (pendingFlowCreation) {
+      if (pendingFlowCreation.sender === event.sender) return pendingFlowCreation.result;
+      throw new Error("Přihlášení Microsoft již probíhá v jiném okně.");
+    }
+
+    const result = (async () => {
+      const { port, waitForCode } = await startLoopbackServer(120_000);
+      const flowId = crypto.randomUUID();
+      const redirectTo = `http://127.0.0.1:${port}/oauth2/callback`;
+      supabaseFlows.set(flowId, {
+        redirectTo,
+        waitForCode,
+        sender: event.sender,
+        completing: false,
+      });
+      void waitForCode.finally(() => supabaseFlows.delete(flowId)).catch(() => undefined);
+      return { flowId, redirectTo };
+    })();
+    pendingFlowCreation = { sender: event.sender, result };
+    try {
+      return await result;
+    } finally {
+      if (pendingFlowCreation?.result === result) pendingFlowCreation = null;
+    }
   });
 
   ipcMain.handle(
@@ -46,6 +82,7 @@ export const registerOAuthHandlers = ({
       if (!isTrustedSender(event.sender)) throw new Error("OAuth request from untrusted renderer");
       const flow = supabaseFlows.get(args?.flowId || "");
       if (!flow) throw new Error("OAuth flow not found or expired");
+      if (flow.sender !== event.sender) throw new Error("OAuth flow nepatří tomuto oknu");
 
       const configuredUrl = getSupabaseUrl();
       const configuredOrigin = new URL(configuredUrl).origin;
@@ -63,15 +100,23 @@ export const registerOAuthHandlers = ({
       ) {
         throw new Error("Blocked Supabase OAuth authorize URL");
       }
-
-      supabaseFlows.delete(args.flowId);
-      await shell.openExternal(authorizeUrl.toString());
-      const expectedState = authorizeUrl.searchParams.get("state");
-      const result = await flow.waitForCode;
-      if (expectedState && result.state !== expectedState) {
-        throw new Error("Invalid OAuth state");
+      if (flow.completing) {
+        throw new Error("Přihlášení Microsoft již probíhá. Dokončete jej v otevřeném okně.");
       }
-      return { code: result.code };
+
+      flow.completing = true;
+      try {
+        await shell.openExternal(authorizeUrl.toString());
+        const expectedState = authorizeUrl.searchParams.get("state");
+        const result = await flow.waitForCode;
+        if (expectedState && result.state !== expectedState) {
+          throw new Error("Invalid OAuth state");
+        }
+        return { code: result.code };
+      } catch (error) {
+        if (supabaseFlows.get(args.flowId) === flow) flow.completing = false;
+        throw error;
+      }
     },
   );
 
