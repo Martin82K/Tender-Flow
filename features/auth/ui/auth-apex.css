@@ -453,10 +453,14 @@ html[data-skin="space"] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) i
   outline-offset: 2px !important;
   box-shadow: none !important;
 }
-html[data-skin="space"] .auth-apex-page :is(.auth-btn-primary, .auth-btn-secondary, .auth-nav-back):focus-visible {
+html[data-skin="space"] .auth-apex-page :is(button, a, input, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--auth-accent) !important;
   outline-offset: 3px !important;
   box-shadow: 0 0 0 4px var(--auth-accent-glow) !important;
+}
+html[data-skin="space"] .auth-apex-page .auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
+  box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
 }
 
 /* ═══════════ DIVIDER ═══════════ */

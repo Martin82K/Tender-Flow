@@ -34,6 +34,12 @@ describe("veřejná CTA paleta", () => {
     expect(authStyles).toMatch(
       /html\[data-skin="space"\] \.auth-apex-page \.auth-input:focus\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
     );
+    expect(authStyles).toMatch(
+      /html\[data-skin="space"\] \.auth-apex-page :is\(button, a, input, summary, \[tabindex\]\):focus-visible\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
+    );
+    expect(authStyles).toMatch(
+      /html\[data-skin="space"\] \.auth-apex-page \.auth-input:-webkit-autofill:focus\s*\{[^}]*1000px #0e1118 inset[^}]*var\(--auth-accent-glow\)[^}]*!important/s,
+    );
     expect(authStyles).not.toContain("border-color: #ff8a33");
     expect(authStyles).not.toContain("rgba(255, 138, 51, 0.18)");
   });
