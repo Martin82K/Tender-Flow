@@ -238,7 +238,7 @@ describe("microsoftAccountService", () => {
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
-  it("při selhání první To Do synchronizace odstraní již uložený Graph grant", async () => {
+  it("při přechodném selhání první To Do synchronizace zachová uložený Graph grant", async () => {
     mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
     mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
     mocks.linkIdentity.mockResolvedValue({ data: { url: "https://login.microsoftonline.com/link" }, error: null });
@@ -253,16 +253,30 @@ describe("microsoftAccountService", () => {
     });
     mocks.invoke
       .mockResolvedValueOnce({ connected: true })
-      .mockRejectedValueOnce(new Error("Synchronizace selhala"))
-      .mockResolvedValueOnce({ connected: false });
+      .mockRejectedValueOnce(new Error("Synchronizace selhala"));
 
-    await expect(microsoftAccountService.connectMicrosoftAccount()).rejects.toThrow("Synchronizace selhala");
+    await expect(microsoftAccountService.connectMicrosoftAccount()).resolves.toBeUndefined();
 
-    expect(mocks.invoke).toHaveBeenNthCalledWith(3, "microsoft-graph-connection", {
-      body: { action: "disconnect" },
-      retries: 0,
-    });
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
     expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("při propojení z nastavení neoznačí webový návrat jako nový login", async () => {
+    mocks.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "azure" }] },
+      error: null,
+    });
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { url: null },
+      error: new Error("stop before redirect"),
+    });
+
+    await expect(microsoftAccountService.connectMicrosoftAccount()).rejects.toThrow("stop before redirect");
+
+    const call = mocks.signInWithOAuth.mock.calls[0]?.[0];
+    const redirectTo = new URL(call.options.redirectTo);
+    expect(redirectTo.searchParams.get("microsoft_provider")).toBe("connected");
+    expect(redirectTo.searchParams.has("microsoft_login")).toBe(false);
   });
 
   it("při selhání webového dokončení běžného loginu odstraní lokální Supabase session", async () => {
@@ -281,6 +295,8 @@ describe("microsoftAccountService", () => {
     await expect(microsoftAccountService.completeMicrosoftAccountConnection()).rejects.toThrow("Graph grant selhal");
 
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(new URL(window.location.href).searchParams.has("microsoft_provider")).toBe(false);
+    expect(new URL(window.location.href).searchParams.has("microsoft_login")).toBe(false);
   });
 
   it("pro webový návrat zachová cílovou cestu a označí dokončení Graph propojení", async () => {

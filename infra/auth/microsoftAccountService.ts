@@ -31,10 +31,10 @@ const identityReturnTo = (): string => {
   return url.toString();
 };
 
-const microsoftProviderReturnTo = (nextPath: string): string => {
+const microsoftProviderReturnTo = (nextPath: string, isLogin: boolean): string => {
   const url = new URL(nextPath, window.location.origin);
   url.searchParams.set("microsoft_provider", "connected");
-  url.searchParams.set("microsoft_login", "1");
+  if (isLogin) url.searchParams.set("microsoft_login", "1");
   return url.toString();
 };
 
@@ -84,22 +84,13 @@ const persistProviderSession = async (session: Session | null): Promise<boolean>
     throw new Error("Microsoft Graph připojení se nepodařilo aktivovat.");
   }
 
-  try {
-    const initialSync = await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
-      body: {},
-      retries: 1,
-      timeoutMs: 90_000,
-    });
-    if (!initialSync.connected) {
-      throw new Error("Microsoft To Do synchronizaci se nepodařilo aktivovat.");
-    }
-  } catch (cause) {
-    await invokeAuthedFunction("microsoft-graph-connection", {
-      body: { action: "disconnect" },
-      retries: 0,
-    }).catch(() => undefined);
-    throw cause;
-  }
+  // První synchronizace je best-effort. Platný Graph grant se při přechodné
+  // síťové chybě nesmí odstranit; další pokus proběhne po otevření To Do.
+  await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
+    body: {},
+    retries: 1,
+    timeoutMs: 90_000,
+  }).catch(() => undefined);
   return true;
 };
 
@@ -141,7 +132,7 @@ const startMicrosoftLogin = async (
   rollbackLoginOnFailure = false,
 ): Promise<void> => {
   const desktopFlow = await oauthAdapter.startSupabaseFlow();
-  const redirectTo = desktopFlow?.redirectTo ?? microsoftProviderReturnTo(nextPath);
+  const redirectTo = desktopFlow?.redirectTo ?? microsoftProviderReturnTo(nextPath, rollbackLoginOnFailure);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
     options: {
@@ -207,6 +198,9 @@ export const microsoftAccountService = {
       if (!stored) throw new Error("Microsoft neposkytl token pro dlouhodobé propojení.");
     } catch (cause) {
       if (rollbackLoginOnFailure) {
+        url.searchParams.delete("microsoft_provider");
+        url.searchParams.delete("microsoft_login");
+        window.history.replaceState(window.history.state, "", url.toString());
         await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
       }
       throw cause;
