@@ -91,6 +91,8 @@ describe("MicrosoftAccountSettings", () => {
 
     expect(await screen.findByText("martin@example.com")).toBeVisible();
     expect(screen.getByText("Microsoft účet je propojený")).toBeVisible();
+    expect(screen.getByRole("status", { name: "Microsoft účet připojen" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Propojit Microsoft účet" })).not.toBeInTheDocument();
     expect(screen.getByText("Spravovat propojení").closest("details")).not.toHaveAttribute("open");
 
     fireEvent.click(screen.getByText("Spravovat propojení"));
@@ -110,7 +112,7 @@ describe("MicrosoftAccountSettings", () => {
     render(<MicrosoftAccountSettings />);
 
     expect(screen.queryByText(/Dokončit propojení/)).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Propojit Microsoft účet" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Obnovit připojení" }));
     await waitFor(() => expect(accountMocks.connectMicrosoftAccount).toHaveBeenCalledTimes(1));
     expect(accountMocks.connectTodoAccess).not.toHaveBeenCalled();
   });

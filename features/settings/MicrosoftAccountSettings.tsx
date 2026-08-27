@@ -69,6 +69,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
   };
 
   const fullyConnected = identity.linked && graphConnected;
+  const needsRenewal = identity.linked && !graphConnected;
 
   const handlePrimaryAction = () => {
     void run(microsoftAccountService.connectMicrosoftAccount);
@@ -111,16 +112,27 @@ export const MicrosoftAccountSettings: React.FC = () => {
             ) : null}
           </div>
 
-          {!fullyConnected ? (
+          {fullyConnected ? (
+            <div
+              role="status"
+              aria-label="Microsoft účet připojen"
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-emerald-300/60 bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-lg">check_circle</span>
+              Microsoft účet připojen
+            </div>
+          ) : (
             <button
               type="button"
               disabled={loading || pending || (!identity.linked && !identity.available)}
               onClick={handlePrimaryAction}
               className="shrink-0 rounded-lg border border-emerald-300/50 bg-emerald-400 px-4 py-2 text-sm font-bold text-emerald-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-400/30 dark:bg-emerald-400 dark:hover:bg-emerald-300"
             >
-              {pending ? "Propojuji…" : "Propojit Microsoft účet"}
+              {pending
+                ? needsRenewal ? "Obnovuji…" : "Propojuji…"
+                : needsRenewal ? "Obnovit připojení" : "Propojit Microsoft účet"}
             </button>
-          ) : null}
+          )}
         </div>
 
         <details className="mt-4 border-t border-slate-200 pt-3 text-xs dark:border-slate-700">
