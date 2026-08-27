@@ -2,6 +2,9 @@ import { createServiceClient } from "./supabase.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "./crypto.ts";
 
 type Provider = "gdrive" | "onedrive";
+type AccessKind = "manage" | "personal_read" | "todo_sync";
+
+const MICROSOFT_TODO_SCOPES = ["offline_access", "User.Read", "Tasks.ReadWrite"] as const;
 
 const b64ToBytes = (b64: string): Uint8Array => {
   const binary = atob(b64);
@@ -65,7 +68,7 @@ const refreshMicrosoft = async (args: {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
-  accessKind: "manage" | "personal_read";
+  accessKind: AccessKind;
 }) => {
   const body = new URLSearchParams();
   body.set("client_id", args.clientId);
@@ -77,7 +80,9 @@ const refreshMicrosoft = async (args: {
     "scope",
     (args.accessKind === "personal_read"
       ? ["offline_access", "User.Read", "Files.Read.All"]
-      : ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"]
+      : args.accessKind === "todo_sync"
+        ? MICROSOFT_TODO_SCOPES
+        : ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"]
     ).join(" ")
   );
 
@@ -100,7 +105,7 @@ const refreshMicrosoft = async (args: {
 export const getAccessTokenForUser = async (args: {
   userId: string;
   provider: Provider;
-  accessKind?: "manage" | "personal_read";
+  accessKind?: AccessKind;
 }): Promise<{ accessToken: string; provider: Provider }> => {
   const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
   if (!encKey) throw new Error("Missing DOCHUB_TOKEN_ENCRYPTION_KEY");

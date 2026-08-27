@@ -11,6 +11,9 @@ const accountMocks = vi.hoisted(() => ({
   getLoginIdentity: vi.fn(),
   linkLoginIdentity: vi.fn(),
   unlinkLoginIdentity: vi.fn(),
+  getTodoStatus: vi.fn(),
+  connectTodoAccess: vi.fn(),
+  disconnectTodoAccess: vi.fn(),
 }));
 
 vi.mock("@/infra/auth/microsoftAccountService", () => ({
@@ -30,6 +33,13 @@ describe("MicrosoftAccountSettings", () => {
     accountMocks.disconnectDocumentAccess.mockResolvedValue(undefined);
     accountMocks.linkLoginIdentity.mockResolvedValue(undefined);
     accountMocks.unlinkLoginIdentity.mockResolvedValue(undefined);
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: false,
+      lastSyncedAt: null,
+      syncError: null,
+    });
+    accountMocks.connectTodoAccess.mockResolvedValue(undefined);
+    accountMocks.disconnectTodoAccess.mockResolvedValue(undefined);
   });
 
   it("zobrazuje jedno propojení Microsoft účtu místo dvou samostatných karet", async () => {
@@ -62,6 +72,11 @@ describe("MicrosoftAccountSettings", () => {
 
   it("po úplném propojení schová odvolání oprávnění do detailu", async () => {
     accountMocks.getStatus.mockResolvedValue({ connected: true });
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: true,
+      lastSyncedAt: "2026-08-27T12:00:00Z",
+      syncError: null,
+    });
     accountMocks.getLoginIdentity.mockResolvedValue({
       available: true,
       linked: true,
@@ -80,6 +95,20 @@ describe("MicrosoftAccountSettings", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Odebrat napárování" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Odebrat napárování" }));
     await waitFor(() => expect(accountMocks.unlinkLoginIdentity).toHaveBeenCalledTimes(1));
+  });
+
+  it("po připojení dokumentů nabídne samostatné oprávnění pro Microsoft To Do", async () => {
+    accountMocks.getStatus.mockResolvedValue({ connected: true });
+    accountMocks.getLoginIdentity.mockResolvedValue({
+      available: true,
+      linked: true,
+      email: "martin@example.com",
+    });
+
+    render(<MicrosoftAccountSettings />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Připojit Microsoft To Do" }));
+    await waitFor(() => expect(accountMocks.connectTodoAccess).toHaveBeenCalledTimes(1));
   });
 
   it("při postupném nasazení skryje chybu staré projektové funkce a zachová napárování", async () => {

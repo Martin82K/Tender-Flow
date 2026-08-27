@@ -13,20 +13,24 @@ const isLegacyProjectStatusError = (cause: unknown): boolean =>
 
 export const MicrosoftAccountSettings: React.FC = () => {
   const [documentsConnected, setDocumentsConnected] = useState(false);
+  const [todoConnected, setTodoConnected] = useState(false);
+  const [todoLastSyncedAt, setTodoLastSyncedAt] = useState<string | null>(null);
   const [identity, setIdentity] = useState<IdentityState>({
     available: false,
     linked: false,
     email: null,
   });
   const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState<"documents" | "identity" | null>(null);
+  const [pending, setPending] = useState<"documents" | "identity" | "todo" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [documentsResult, identityResult] = await Promise.allSettled([
+      let todoSyncError: string | null = null;
+      const [documentsResult, identityResult, todoResult] = await Promise.allSettled([
         microsoftAccountService.getStatus(),
         microsoftAccountService.getLoginIdentity(),
+        microsoftAccountService.getTodoStatus(),
       ]);
       if (identityResult.status === "rejected") throw identityResult.reason;
       setIdentity(identityResult.value);
@@ -37,7 +41,14 @@ export const MicrosoftAccountSettings: React.FC = () => {
       } else {
         throw documentsResult.reason;
       }
-      setError(null);
+      if (todoResult.status === "fulfilled") {
+        setTodoConnected(todoResult.value.connected);
+        setTodoLastSyncedAt(todoResult.value.lastSyncedAt);
+        todoSyncError = todoResult.value.syncError;
+      } else {
+        throw todoResult.reason;
+      }
+      setError(todoSyncError);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Microsoft připojení se nepodařilo načíst.");
     } finally {
@@ -52,7 +63,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
     return () => window.removeEventListener("focus", handleFocus);
   }, [refresh]);
 
-  const run = async (kind: "documents" | "identity", action: () => Promise<void>) => {
+  const run = async (kind: "documents" | "identity" | "todo", action: () => Promise<void>) => {
     setPending(kind);
     setError(null);
     try {
@@ -65,11 +76,19 @@ export const MicrosoftAccountSettings: React.FC = () => {
     }
   };
 
-  const fullyConnected = identity.linked && documentsConnected;
-  const primaryKind = !identity.linked ? "identity" : !documentsConnected ? "documents" : null;
+  const fullyConnected = identity.linked && documentsConnected && todoConnected;
+  const primaryKind = !identity.linked
+    ? "identity"
+    : !documentsConnected
+      ? "documents"
+      : !todoConnected
+        ? "todo"
+        : null;
   const primaryLabel = !identity.linked
     ? "Propojit Microsoft účet"
-    : "Dokončit připojení dokumentů";
+    : !documentsConnected
+      ? "Dokončit připojení dokumentů"
+      : "Připojit Microsoft To Do";
 
   const handlePrimaryAction = () => {
     if (primaryKind === "identity") {
@@ -78,6 +97,10 @@ export const MicrosoftAccountSettings: React.FC = () => {
     }
     if (primaryKind === "documents") {
       void run("documents", microsoftAccountService.connectDocumentAccess);
+      return;
+    }
+    if (primaryKind === "todo") {
+      void run("todo", microsoftAccountService.connectTodoAccess);
     }
   };
 
@@ -88,7 +111,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
         Microsoft účet
       </h2>
       <p className="mb-5 text-xs text-slate-500 dark:text-slate-400">
-        Propojte svůj pracovní Microsoft účet pro přihlášení a online otevírání dokumentů.
+        Propojte svůj pracovní Microsoft účet pro přihlášení, online dokumenty a synchronizaci Microsoft To Do.
       </p>
 
       {error ? (
@@ -105,9 +128,13 @@ export const MicrosoftAccountSettings: React.FC = () => {
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {fullyConnected
-                ? "Účet lze používat pro přihlášení i online dokumenty."
-                : identity.linked
-                  ? "Přihlášení je připravené. Zbývá povolit čtení dokumentů."
+                ? "Účet lze používat pro přihlášení, online dokumenty i Microsoft To Do."
+                : todoConnected
+                  ? "Microsoft To Do je připojené. Dokončete zbývající části propojení."
+                  : identity.linked
+                    ? documentsConnected
+                      ? "Přihlášení a dokumenty jsou připravené. Zbývá povolit Microsoft To Do."
+                      : "Přihlášení je připravené. Zbývá povolit čtení dokumentů a Microsoft To Do."
                   : "Tender Flow vás provede bezpečným přihlášením na stránce Microsoftu."}
             </p>
             {identity.linked && identity.email ? (
@@ -130,7 +157,7 @@ export const MicrosoftAccountSettings: React.FC = () => {
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
           <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
             <span className={`material-symbols-outlined text-base ${identity.linked ? "text-emerald-600" : "text-slate-400"}`}>
               {identity.linked ? "check_circle" : "radio_button_unchecked"}
@@ -143,9 +170,22 @@ export const MicrosoftAccountSettings: React.FC = () => {
             </span>
             Online dokumenty {documentsConnected ? "povoleny" : "čekají na povolení"}
           </div>
+          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+            <span className={`material-symbols-outlined text-base ${todoConnected ? "text-emerald-600" : "text-slate-400"}`}>
+              {todoConnected ? "check_circle" : "radio_button_unchecked"}
+            </span>
+            <span>
+              Microsoft To Do {todoConnected ? "synchronizováno" : "čeká na povolení"}
+              {todoConnected && todoLastSyncedAt ? (
+                <span className="mt-0.5 block text-[10px] text-slate-500">
+                  {new Date(todoLastSyncedAt).toLocaleString("cs-CZ")}
+                </span>
+              ) : null}
+            </span>
+          </div>
         </div>
 
-        {identity.linked || documentsConnected ? (
+        {identity.linked || documentsConnected || todoConnected ? (
           <details className="mt-4 border-t border-slate-200 pt-3 text-xs dark:border-slate-700">
             <summary className="cursor-pointer font-semibold text-slate-600 dark:text-slate-300">Spravovat propojení</summary>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
@@ -160,6 +200,16 @@ export const MicrosoftAccountSettings: React.FC = () => {
                   className="rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   {pending === "documents" ? "Odpojuji…" : "Odpojit dokumenty"}
+                </button>
+              ) : null}
+              {todoConnected ? (
+                <button
+                  type="button"
+                  disabled={pending !== null}
+                  onClick={() => void run("todo", microsoftAccountService.disconnectTodoAccess)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {pending === "todo" ? "Odpojuji…" : "Odpojit Microsoft To Do"}
                 </button>
               ) : null}
               {identity.linked ? (

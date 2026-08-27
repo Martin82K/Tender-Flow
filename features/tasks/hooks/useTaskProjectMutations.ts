@@ -12,10 +12,12 @@ import type {
 } from "../types";
 import { requireTaskMutationUserId } from "../model/taskMutationAuth";
 import { TODO_PROJECT_KEYS } from "./useTaskProjectsQuery";
+import { notifyMicrosoftTodoLocalChange } from "../model/microsoftTodoSyncEvents";
 import { TASK_KEYS } from "./useTasksQuery";
 
 const invalidateTodoProjects = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: TODO_PROJECT_KEYS.all });
+  notifyMicrosoftTodoLocalChange();
 };
 
 export const useCreateTodoProjectMutation = () => {
