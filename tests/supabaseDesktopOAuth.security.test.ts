@@ -134,12 +134,16 @@ describe("desktop Supabase OAuth broker", () => {
       "openid email offline_access https://graph.microsoft.com/.default",
     );
     authorizeUrl.searchParams.set("skip_http_redirect", "true");
+    authorizeUrl.searchParams.set("state", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
 
     const completion = complete({ sender }, {
       flowId: flow.flowId,
       authorizeUrl: authorizeUrl.toString(),
     });
-    resolveCode({ code: "identity-pkce-code", state: null });
+    resolveCode({
+      code: "identity-pkce-code",
+      state: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    });
 
     await expect(completion).resolves.toEqual({ code: "identity-pkce-code" });
     expect(electronMocks.openExternal).toHaveBeenCalledWith(authorizeUrl.toString());
@@ -164,6 +168,7 @@ describe("desktop Supabase OAuth broker", () => {
         "openid email offline_access https://graph.microsoft.com/.default",
       );
       url.searchParams.set("skip_http_redirect", "true");
+      url.searchParams.set("state", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
       return url;
     };
 
@@ -189,6 +194,13 @@ describe("desktop Supabase OAuth broker", () => {
     await expect(complete({ sender }, {
       flowId: flow.flowId,
       authorizeUrl: genericTenant.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    const missingState = createAuthorizeUrl();
+    missingState.searchParams.delete("state");
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: missingState.toString(),
     })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
 
     expect(electronMocks.openExternal).not.toHaveBeenCalled();

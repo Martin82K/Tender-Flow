@@ -55,12 +55,14 @@ const isAllowedMicrosoftIdentityAuthorizeUrl = (
     "response_type",
     "scope",
     "skip_http_redirect",
+    "state",
   ]);
   const entries = [...authorizeUrl.searchParams.entries()];
   const scopes = (authorizeUrl.searchParams.get("scope") || "")
     .split(/\s+/)
     .filter(Boolean);
   const clientId = authorizeUrl.searchParams.get("client_id") || "";
+  const state = authorizeUrl.searchParams.get("state") || "";
   const expectedCallback = new URL("/auth/v1/callback", configuredOrigin).toString();
 
   return authorizeUrl.protocol === "https:"
@@ -69,6 +71,8 @@ const isAllowedMicrosoftIdentityAuthorizeUrl = (
     && entries.length === allowedParamNames.size
     && entries.every(([name]) => allowedParamNames.has(name))
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state)
+    && authorizeUrl.searchParams.getAll("state").length === 1
     && hasSingleSearchParam(authorizeUrl, "prompt", "select_account")
     && hasSingleSearchParam(authorizeUrl, "redirect_to", redirectTo)
     && hasSingleSearchParam(authorizeUrl, "redirect_uri", expectedCallback)
