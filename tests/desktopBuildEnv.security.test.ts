@@ -41,6 +41,26 @@ describe("desktop build env security", () => {
     );
   });
 
+  it("předá povinnou Microsoft OAuth konfiguraci do Windows desktop workflow", () => {
+    const workflow = readFileSync(
+      join(process.cwd(), ".github", "workflows", "desktop-artifacts.yml"),
+      "utf-8",
+    );
+
+    expect(workflow).toContain(
+      `VITE_MICROSOFT_TENANT_ID: ${microsoftOAuthPublicEnv.VITE_MICROSOFT_TENANT_ID}`,
+    );
+    expect(workflow).toContain(
+      `VITE_MICROSOFT_OAUTH_CLIENT_ID: ${microsoftOAuthPublicEnv.VITE_MICROSOFT_OAUTH_CLIENT_ID}`,
+    );
+    expect(workflow).toContain(
+      'if (-not $env:VITE_MICROSOFT_TENANT_ID) { throw "Missing VITE_MICROSOFT_TENANT_ID" }',
+    );
+    expect(workflow).toContain(
+      'if (-not $env:VITE_MICROSOFT_OAUTH_CLIENT_ID) { throw "Missing VITE_MICROSOFT_OAUTH_CLIENT_ID" }',
+    );
+  });
+
   it("přibaluje pouze veřejné Vite hodnoty, nikdy privátní tokeny ani secrety", () => {
     const source = readFileSync(
       join(process.cwd(), "scripts", "write-desktop-build-env.mjs"),
