@@ -61,6 +61,23 @@ describe("desktop build env security", () => {
     );
   });
 
+  it("dokumentuje Microsoft OAuth ID jako povinná pro produkční desktop build", () => {
+    const documentation = readFileSync(
+      join(process.cwd(), "docs", "development", "configuration.md"),
+      "utf-8",
+    );
+    const requiredSection = documentation.split("## Volitelné veřejné hodnoty")[0];
+
+    expect(requiredSection).toContain("`VITE_MICROSOFT_TENANT_ID`");
+    expect(requiredSection).toContain("`VITE_MICROSOFT_OAUTH_CLIENT_ID`");
+    expect(documentation).toContain(
+      `VITE_MICROSOFT_TENANT_ID=${microsoftOAuthPublicEnv.VITE_MICROSOFT_TENANT_ID}`,
+    );
+    expect(documentation).toContain(
+      `VITE_MICROSOFT_OAUTH_CLIENT_ID=${microsoftOAuthPublicEnv.VITE_MICROSOFT_OAUTH_CLIENT_ID}`,
+    );
+  });
+
   it("přibaluje pouze veřejné Vite hodnoty, nikdy privátní tokeny ani secrety", () => {
     const source = readFileSync(
       join(process.cwd(), "scripts", "write-desktop-build-env.mjs"),

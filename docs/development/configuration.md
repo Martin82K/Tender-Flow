@@ -14,9 +14,22 @@
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | web/renderer | URL Supabase projektu |
 | `VITE_SUPABASE_ANON_KEY` | web/renderer | veřejný anon/publishable klíč |
+| `VITE_MICROSOFT_TENANT_ID` | produkční desktop build | veřejné ID existujícího Entra tenantu; desktop broker jím připíná Microsoft authorize URL |
+| `VITE_MICROSOFT_OAUTH_CLIENT_ID` | produkční desktop build | veřejné client ID existující registrace Tender Flow; desktop broker odmítne jinou registraci |
 
-Bez těchto hodnot aplikace zobrazí konfigurační varování a datové/auth funkce
-nebudou fungovat.
+Bez Supabase hodnot aplikace zobrazí konfigurační varování a datové/auth funkce
+nebudou fungovat. Bez obou Microsoft hodnot se produkční desktop build záměrně
+zastaví. Pro současnou existující registraci Tender Flow patří do `.env.local`
+tyto veřejné, nikoli tajné hodnoty:
+
+```dotenv
+VITE_MICROSOFT_TENANT_ID=f84a89a3-e428-4deb-8c95-a2b2decfb656
+VITE_MICROSOFT_OAUTH_CLIENT_ID=df0e80c8-ac5e-4733-8ee1-7dae0ba09802
+```
+
+Jde o Directory (tenant) ID a Application (client) ID již používané registrace
+Tender Flow v Entra a Azure provideru Supabase. Kvůli lokálnímu buildu se v Entra
+nic nevytváří ani nemění.
 
 ## Volitelné veřejné hodnoty
 
@@ -29,8 +42,6 @@ nebudou fungovat.
 | `VITE_EXCEL_MERGER_MIRROR_URL` | alternativní endpoint/mirror |
 | `VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP` | veřejné desktop OAuth client ID |
 | `VITE_MICROSOFT_LOGIN_ENABLED` | bezpečnostní release přepínač; nastavte na `true` až po aktivaci Azure provideru, Before User Created hooku, ručního linkování a povolených návratových URL |
-| `VITE_MICROSOFT_TENANT_ID` | veřejné ID Entra tenantu; desktop broker jím připíná Microsoft authorize URL |
-| `VITE_MICROSOFT_OAUTH_CLIENT_ID` | veřejné client ID registrace Tender Flow; desktop broker odmítne jinou registraci |
 
 Microsoft přihlášení je určeno pouze existujícím účtům. Před zapnutím přepínače
 musí být v Supabase Authentication nastaven Azure provider, povoleno ruční
