@@ -22,15 +22,17 @@ export const MicrosoftAccountSettings: React.FC = () => {
   const refresh = useCallback(async () => {
     try {
       await microsoftAccountService.completeMicrosoftAccountConnection();
-      const [graphResult, identityResult] = await Promise.allSettled([
+      const [graphResult, identityResult, todoResult] = await Promise.allSettled([
         microsoftAccountService.getGraphStatus(),
         microsoftAccountService.getLoginIdentity(),
+        microsoftAccountService.getTodoStatus(),
       ]);
       if (identityResult.status === "rejected") throw identityResult.reason;
       setIdentity(identityResult.value);
       if (graphResult.status === "rejected") throw graphResult.reason;
       setGraphConnected(graphResult.value.connected);
-      setError(null);
+      if (todoResult.status === "rejected") throw todoResult.reason;
+      setError(todoResult.value.syncError);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Microsoft připojení se nepodařilo načíst.");
     } finally {

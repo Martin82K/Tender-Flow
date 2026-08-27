@@ -122,4 +122,17 @@ describe("MicrosoftAccountSettings", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Edge funkce není nasazená");
   });
+
+  it("zachová chybové hlášení synchronizace To Do bez samostatných stavových řádků", async () => {
+    accountMocks.getTodoStatus.mockResolvedValue({
+      connected: true,
+      lastSyncedAt: "2026-08-27T12:00:00Z",
+      syncError: "Microsoft To Do synchronizace vyžaduje pozornost.",
+    });
+
+    render(<MicrosoftAccountSettings />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Microsoft To Do synchronizace vyžaduje pozornost.");
+    expect(screen.queryByText(/Microsoft To Do čeká na povolení/)).not.toBeInTheDocument();
+  });
 });
