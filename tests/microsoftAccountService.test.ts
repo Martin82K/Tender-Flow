@@ -34,13 +34,16 @@ vi.mock("@/services/supabase", () => ({
   },
 }));
 
-import { microsoftAccountService } from "@/infra/auth/microsoftAccountService";
+import {
+  microsoftAccountService,
+  microsoftLoginService,
+} from "@/infra/auth/microsoftAccountService";
 
 describe("microsoftAccountService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.startSupabaseFlow.mockResolvedValue(null);
-    mocks.invoke.mockResolvedValue({ connected: false });
+    mocks.invoke.mockResolvedValue({ connected: true });
     mocks.getUserIdentities.mockResolvedValue({ data: { identities: [] }, error: null });
   });
 
@@ -141,5 +144,86 @@ describe("microsoftAccountService", () => {
       },
       retries: 0,
     });
+  });
+
+  it("nepovažuje Microsoft přihlášení za dokončené bez uloženého Graph refresh tokenu", async () => {
+    mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
+    mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://vpvowigatikngnaflkyk.supabase.co/auth/v1/authorize?provider=azure" },
+      error: null,
+    });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: "provider-access",
+          provider_refresh_token: null,
+        },
+      },
+      error: null,
+    });
+
+    await expect(microsoftLoginService.login("/app/projects")).rejects.toThrow(
+      "Microsoft neposkytl token pro dlouhodobé propojení.",
+    );
+    expect(mocks.invoke).not.toHaveBeenCalledWith(
+      "microsoft-graph-connection",
+      expect.anything(),
+    );
+  });
+
+  it("po jednom Microsoft přihlášení uloží Graph grant a spustí první To Do synchronizaci", async () => {
+    mocks.startSupabaseFlow.mockResolvedValue({ flowId: "flow-1", redirectTo: "http://127.0.0.1/callback" });
+    mocks.completeSupabaseFlow.mockResolvedValue({ code: "supabase-code" });
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://vpvowigatikngnaflkyk.supabase.co/auth/v1/authorize?provider=azure" },
+      error: null,
+    });
+    mocks.exchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: "provider-access",
+          provider_refresh_token: "provider-refresh",
+        },
+      },
+      error: null,
+    });
+    mocks.invoke
+      .mockResolvedValueOnce({ connected: true })
+      .mockResolvedValueOnce({ connected: true, pulled: 0, pushed: 0 });
+
+    await microsoftLoginService.login("/app/projects");
+
+    expect(mocks.invoke).toHaveBeenNthCalledWith(1, "microsoft-graph-connection", {
+      body: {
+        action: "connect",
+        accessToken: "provider-access",
+        refreshToken: "provider-refresh",
+      },
+      retries: 0,
+    });
+    expect(mocks.invoke).toHaveBeenNthCalledWith(2, "microsoft-todo-sync", {
+      body: {},
+      retries: 1,
+      timeoutMs: 90_000,
+    });
+  });
+
+  it("pro webový návrat zachová cílovou cestu a označí dokončení Graph propojení", async () => {
+    mocks.startSupabaseFlow.mockResolvedValue(null);
+    mocks.signInWithOAuth.mockResolvedValue({
+      data: { url: null },
+      error: new Error("stop before redirect"),
+    });
+
+    await expect(microsoftLoginService.login("/app/projects?view=mine")).rejects.toThrow(
+      "stop before redirect",
+    );
+
+    const call = mocks.signInWithOAuth.mock.calls[0]?.[0];
+    const redirectTo = new URL(call.options.redirectTo);
+    expect(redirectTo.pathname).toBe("/app/projects");
+    expect(redirectTo.searchParams.get("view")).toBe("mine");
+    expect(redirectTo.searchParams.get("microsoft_provider")).toBe("connected");
   });
 });

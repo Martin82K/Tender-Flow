@@ -31,6 +31,12 @@ const identityReturnTo = (): string => {
   return url.toString();
 };
 
+const microsoftProviderReturnTo = (nextPath: string): string => {
+  const url = new URL(nextPath, window.location.origin);
+  url.searchParams.set("microsoft_provider", "connected");
+  return url.toString();
+};
+
 const MICROSOFT_GRAPH_SCOPES = "email offline_access https://graph.microsoft.com/.default";
 
 const isAzureIdentity = (identity: UserIdentity): boolean =>
@@ -69,10 +75,22 @@ const persistProviderSession = async (session: Session | null): Promise<boolean>
   const refreshToken = session?.provider_refresh_token?.trim();
   if (!accessToken || !refreshToken) return false;
 
-  await invokeAuthedFunction("microsoft-graph-connection", {
+  const connection = await invokeAuthedFunction<{ connected: boolean }>("microsoft-graph-connection", {
     body: { action: "connect", accessToken, refreshToken },
     retries: 0,
   });
+  if (!connection.connected) {
+    throw new Error("Microsoft Graph připojení se nepodařilo aktivovat.");
+  }
+
+  const initialSync = await invokeAuthedFunction<{ connected: boolean }>("microsoft-todo-sync", {
+    body: {},
+    retries: 1,
+    timeoutMs: 90_000,
+  });
+  if (!initialSync.connected) {
+    throw new Error("Microsoft To Do synchronizaci se nepodařilo aktivovat.");
+  }
   return true;
 };
 
@@ -113,7 +131,7 @@ const startMicrosoftLogin = async (
   requireProviderSession = false,
 ): Promise<void> => {
   const desktopFlow = await oauthAdapter.startSupabaseFlow();
-  const redirectTo = desktopFlow?.redirectTo ?? new URL(nextPath, window.location.origin).toString();
+  const redirectTo = desktopFlow?.redirectTo ?? microsoftProviderReturnTo(nextPath);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
     options: {
@@ -284,6 +302,6 @@ export const microsoftLoginService = {
   },
 
   login(nextPath: string): Promise<void> {
-    return startMicrosoftLogin(nextPath);
+    return startMicrosoftLogin(nextPath, true);
   },
 };
