@@ -14,6 +14,70 @@ interface OAuthHandlerDependencies {
   getSupabaseUrl: () => string;
 }
 
+const hasSingleSearchParam = (url: URL, name: string, expectedValue: string): boolean => {
+  const values = url.searchParams.getAll(name);
+  return values.length === 1 && values[0] === expectedValue;
+};
+
+const isAllowedSupabaseAuthorizeUrl = (
+  authorizeUrl: URL,
+  configuredOrigin: string,
+  redirectTo: string,
+): boolean => {
+  const allowedAuthorizePaths = new Set([
+    "/auth/v1/authorize",
+    "/auth/v1/user/identities/authorize",
+  ]);
+  return authorizeUrl.protocol === "https:"
+    && authorizeUrl.origin === configuredOrigin
+    && allowedAuthorizePaths.has(authorizeUrl.pathname)
+    && hasSingleSearchParam(authorizeUrl, "provider", "azure")
+    && hasSingleSearchParam(authorizeUrl, "redirect_to", redirectTo);
+};
+
+const isAllowedMicrosoftIdentityAuthorizeUrl = (
+  authorizeUrl: URL,
+  configuredOrigin: string,
+  redirectTo: string,
+): boolean => {
+  const tenantAuthorizePath = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/oauth2\/v2\.0\/authorize$/i;
+  const allowedScopes = new Set([
+    "openid",
+    "email",
+    "offline_access",
+    "https://graph.microsoft.com/.default",
+  ]);
+  const allowedParamNames = new Set([
+    "client_id",
+    "prompt",
+    "redirect_to",
+    "redirect_uri",
+    "response_type",
+    "scope",
+    "skip_http_redirect",
+  ]);
+  const entries = [...authorizeUrl.searchParams.entries()];
+  const scopes = (authorizeUrl.searchParams.get("scope") || "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const clientId = authorizeUrl.searchParams.get("client_id") || "";
+  const expectedCallback = new URL("/auth/v1/callback", configuredOrigin).toString();
+
+  return authorizeUrl.protocol === "https:"
+    && authorizeUrl.origin === "https://login.microsoftonline.com"
+    && tenantAuthorizePath.test(authorizeUrl.pathname)
+    && entries.length === allowedParamNames.size
+    && entries.every(([name]) => allowedParamNames.has(name))
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)
+    && hasSingleSearchParam(authorizeUrl, "prompt", "select_account")
+    && hasSingleSearchParam(authorizeUrl, "redirect_to", redirectTo)
+    && hasSingleSearchParam(authorizeUrl, "redirect_uri", expectedCallback)
+    && hasSingleSearchParam(authorizeUrl, "response_type", "code")
+    && hasSingleSearchParam(authorizeUrl, "skip_http_redirect", "true")
+    && scopes.length === allowedScopes.size
+    && scopes.every((scope) => allowedScopes.has(scope));
+};
+
 export const registerOAuthHandlers = ({
   parseUrl,
   isAllowedExternalUrl,
@@ -87,17 +151,16 @@ export const registerOAuthHandlers = ({
       const configuredUrl = getSupabaseUrl();
       const configuredOrigin = new URL(configuredUrl).origin;
       const authorizeUrl = new URL(args?.authorizeUrl || "");
-      const allowedAuthorizePaths = new Set([
-        "/auth/v1/authorize",
-        "/auth/v1/user/identities/authorize",
-      ]);
-      if (
-        authorizeUrl.protocol !== "https:" ||
-        authorizeUrl.origin !== configuredOrigin ||
-        !allowedAuthorizePaths.has(authorizeUrl.pathname) ||
-        authorizeUrl.searchParams.get("provider") !== "azure" ||
-        authorizeUrl.searchParams.get("redirect_to") !== flow.redirectTo
-      ) {
+      const isAllowedAuthorizeUrl = isAllowedSupabaseAuthorizeUrl(
+        authorizeUrl,
+        configuredOrigin,
+        flow.redirectTo,
+      ) || isAllowedMicrosoftIdentityAuthorizeUrl(
+        authorizeUrl,
+        configuredOrigin,
+        flow.redirectTo,
+      );
+      if (!isAllowedAuthorizeUrl) {
         throw new Error("Blocked Supabase OAuth authorize URL");
       }
       if (flow.completing) {

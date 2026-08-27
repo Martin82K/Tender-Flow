@@ -112,6 +112,88 @@ describe("desktop Supabase OAuth broker", () => {
     expect(electronMocks.openExternal).toHaveBeenCalledWith(authorizeUrl.toString());
   });
 
+  it("povolí přímou Microsoft Entra URL vrácenou Supabase linkIdentity", async () => {
+    let resolveCode!: (value: { code: string; state: string | null }) => void;
+    const waitForCode = new Promise<{ code: string; state: string | null }>((resolve) => {
+      resolveCode = resolve;
+    });
+    register(waitForCode);
+    const start = electronMocks.handlers.get("oauth:startSupabaseFlow")!;
+    const complete = electronMocks.handlers.get("oauth:completeSupabaseFlow")!;
+    const flow = await start({ sender });
+    const authorizeUrl = new URL(
+      "https://login.microsoftonline.com/f84a89a3-e428-4deb-8c95-a2b2decfb656/oauth2/v2.0/authorize",
+    );
+    authorizeUrl.searchParams.set("client_id", "11111111-2222-4333-8444-555555555555");
+    authorizeUrl.searchParams.set("prompt", "select_account");
+    authorizeUrl.searchParams.set("redirect_to", flow.redirectTo);
+    authorizeUrl.searchParams.set("redirect_uri", "https://project.supabase.co/auth/v1/callback");
+    authorizeUrl.searchParams.set("response_type", "code");
+    authorizeUrl.searchParams.set(
+      "scope",
+      "openid email offline_access https://graph.microsoft.com/.default",
+    );
+    authorizeUrl.searchParams.set("skip_http_redirect", "true");
+
+    const completion = complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: authorizeUrl.toString(),
+    });
+    resolveCode({ code: "identity-pkce-code", state: null });
+
+    await expect(completion).resolves.toEqual({ code: "identity-pkce-code" });
+    expect(electronMocks.openExternal).toHaveBeenCalledWith(authorizeUrl.toString());
+  });
+
+  it("odmítne podvržené varianty přímé Microsoft Entra URL", async () => {
+    register(new Promise(() => undefined));
+    const start = electronMocks.handlers.get("oauth:startSupabaseFlow")!;
+    const complete = electronMocks.handlers.get("oauth:completeSupabaseFlow")!;
+    const flow = await start({ sender });
+    const createAuthorizeUrl = (): URL => {
+      const url = new URL(
+        "https://login.microsoftonline.com/f84a89a3-e428-4deb-8c95-a2b2decfb656/oauth2/v2.0/authorize",
+      );
+      url.searchParams.set("client_id", "11111111-2222-4333-8444-555555555555");
+      url.searchParams.set("prompt", "select_account");
+      url.searchParams.set("redirect_to", flow.redirectTo);
+      url.searchParams.set("redirect_uri", "https://project.supabase.co/auth/v1/callback");
+      url.searchParams.set("response_type", "code");
+      url.searchParams.set(
+        "scope",
+        "openid email offline_access https://graph.microsoft.com/.default",
+      );
+      url.searchParams.set("skip_http_redirect", "true");
+      return url;
+    };
+
+    const wrongCallback = createAuthorizeUrl();
+    wrongCallback.searchParams.set("redirect_uri", "https://evil.example/callback");
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: wrongCallback.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    const expandedScopes = createAuthorizeUrl();
+    expandedScopes.searchParams.set(
+      "scope",
+      "openid email offline_access https://graph.microsoft.com/.default Files.ReadWrite.All",
+    );
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: expandedScopes.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    const genericTenant = createAuthorizeUrl();
+    genericTenant.pathname = "/common/oauth2/v2.0/authorize";
+    await expect(complete({ sender }, {
+      flowId: flow.flowId,
+      authorizeUrl: genericTenant.toString(),
+    })).rejects.toThrow("Blocked Supabase OAuth authorize URL");
+
+    expect(electronMocks.openExternal).not.toHaveBeenCalled();
+  });
+
   it("při opakování ve stejném rendereru znovu použije připravený flow", async () => {
     const waitForCode = new Promise<{ code: string; state: string | null }>(() => undefined);
     const startLoopbackServer = register(waitForCode);
