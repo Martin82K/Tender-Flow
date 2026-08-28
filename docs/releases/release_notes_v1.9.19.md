@@ -20,9 +20,11 @@ projektová upozornění z Outlooku a zavádí bezpečnou správu hotových úko
 ## Hotové úkoly a 14denní retence
 
 - Pohled Hotovo nabízí ruční hromadné odstranění dokončených úkolů.
-- Hotové úkoly se automaticky trvale odstraní nejpozději po 14 dnech.
-- Aktivní nebo mladší podúkoly jsou chráněné; spolu s nimi zůstane zachovaný
-  také jejich nadřazený úkol.
+- Hotové úkoly se po uplynutí 14 dnů trvale odstraní při nejbližším denním
+  úklidu.
+- Automatický úklid chrání aktivní a mladší podúkoly; spolu s nimi zůstane
+  zachovaný také jejich nadřazený úkol. Ruční odstranění chrání aktivní
+  podúkoly, ale odstraní všechny dokončené položky bez ohledu na jejich stáří.
 - Ruční mazání je omezené RLS na úkoly přihlášeného uživatele a automatická
   úloha je dostupná pouze serverové roli.
 
