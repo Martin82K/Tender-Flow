@@ -69,6 +69,7 @@ const refreshMicrosoft = async (args: {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  tenant: string;
   accessKind: AccessKind;
 }) => {
   const body = new URLSearchParams();
@@ -89,7 +90,8 @@ const refreshMicrosoft = async (args: {
     ).join(" ")
   );
 
-  const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+  const tenant = encodeURIComponent(args.tenant);
+  const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
@@ -200,6 +202,10 @@ export const getAccessTokenForUser = async (args: {
   const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
   const clientSecret = Deno.env.get("MS_OAUTH_CLIENT_SECRET") || "";
   const redirectUri = Deno.env.get("MS_OAUTH_REDIRECT_URI") || "";
+  const tenant =
+    Deno.env.get("MS_OAUTH_TENANT") ||
+    Deno.env.get("MS_OAUTH_TENANT_ID") ||
+    "organizations";
   if (!clientId || !clientSecret || !redirectUri) throw new Error("Missing Microsoft OAuth env");
 
   const refreshed = await refreshMicrosoft({
@@ -207,6 +213,7 @@ export const getAccessTokenForUser = async (args: {
     clientId,
     clientSecret,
     redirectUri,
+    tenant,
     accessKind: storedAccessKind,
   });
 

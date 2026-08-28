@@ -25,6 +25,18 @@ describe("Microsoft To Do synchronization security boundaries", () => {
     expect(tokens).toContain('MICROSOFT_GRAPH_DEFAULT_SCOPES');
   });
 
+  it("obnovuje Microsoft token proti stejnému tenantovi jako přihlášení", () => {
+    const tokens = fs.readFileSync(
+      path.join(root, "supabase/functions/_shared/tokens.ts"),
+      "utf8",
+    );
+
+    expect(tokens).toContain('Deno.env.get("MS_OAUTH_TENANT")');
+    expect(tokens).toContain('Deno.env.get("MS_OAUTH_TENANT_ID")');
+    expect(tokens).toContain('encodeURIComponent(args.tenant)');
+    expect(tokens).not.toContain("login.microsoftonline.com/common/oauth2/v2.0/token");
+  });
+
   it("requires the authenticated user and never returns token material", () => {
     const connection = fs.readFileSync(
       path.join(root, "supabase/functions/microsoft-todo-connection/index.ts"),
