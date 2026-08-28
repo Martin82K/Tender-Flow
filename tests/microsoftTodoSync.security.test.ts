@@ -111,6 +111,7 @@ describe("Microsoft To Do synchronization security boundaries", () => {
     expect(sync).toContain("if (!isActiveGraphTodoTask(remote))");
     expect(sync).toContain("if (!isMicrosoftTodoSyncEligibleTask(task))");
     expect(sync).toContain("|| !isMicrosoftTodoSyncEligibleTask(parent)");
+    expect(sync).toContain("if (!isMicrosoftTodoSyncEligibleTask(local))");
     expect(sync).toContain("getMicrosoftTodoWriteAction({");
     expect(sync).toContain("Boolean(local?.project_id)");
     expect(sync).toContain("syncPolicyVersion >= 2 ? args.mapping.delta_link : null");
