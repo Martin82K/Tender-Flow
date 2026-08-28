@@ -90,4 +90,23 @@ describe("task archive retention migration", () => {
     );
     expect(manualCleanupFunction).toContain("SECURITY INVOKER");
   });
+
+  it("ruční úklid zachová osobního rodiče s projektovým podúkolem", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((name) => name.endsWith("_preserve_project_subtasks_cleanup.sql"));
+
+    expect(migrationName).toBeDefined();
+    const cleanupMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName ?? ""),
+      "utf8",
+    );
+    const manualCleanupFunction = cleanupMigration
+      .split("CREATE OR REPLACE FUNCTION public.delete_my_completed_tasks()")[1]
+      ?.split("REVOKE ALL ON FUNCTION public.delete_my_completed_tasks()")[0] ?? "";
+
+    expect(manualCleanupFunction).toMatch(
+      /NOT EXISTS \([\s\S]*child\.parent_task_id = task\.id[\s\S]*child\.project_id IS NOT NULL/,
+    );
+    expect(manualCleanupFunction).toContain("SECURITY INVOKER");
+  });
 });

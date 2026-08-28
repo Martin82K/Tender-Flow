@@ -3174,11 +3174,17 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const tasks = tasksQuery.data ?? [];
   const taskTree = useMemo(() => buildTaskTree(tasks), [tasks]);
   const projectTaskIds = new Set(tasks.filter((task) => task.projectId).map((task) => task.id));
+  const personalParentIdsWithProjectChildren = new Set(
+    tasks
+      .filter((task) => task.projectId && task.parentTaskId)
+      .map((task) => task.parentTaskId as string),
+  );
   const completedTaskCount = tasks.filter(
     (task) =>
       task.completed &&
       !task.projectId &&
-      (!task.parentTaskId || !projectTaskIds.has(task.parentTaskId)),
+      (!task.parentTaskId || !projectTaskIds.has(task.parentTaskId)) &&
+      !personalParentIdsWithProjectChildren.has(task.id),
   ).length;
   const todoProjects = todoProjectsQuery.data ?? [];
   const selectedTodoProject = todoProjects.find((project) => project.id === selectedTodoProjectId);

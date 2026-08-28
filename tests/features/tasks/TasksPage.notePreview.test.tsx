@@ -263,6 +263,17 @@ describe("TasksPage note preview", () => {
         completedAt: "2026-08-28T08:00:00Z",
         parentTaskId: "project",
       }),
+      makeTask({
+        id: "personal-with-project-child",
+        completed: true,
+        completedAt: "2026-08-28T09:00:00Z",
+      }),
+      makeTask({
+        id: "project-child",
+        completed: false,
+        parentTaskId: "personal-with-project-child",
+        projectId: "project-1",
+      }),
     ];
 
     const { container } = render(<TasksPage />);
