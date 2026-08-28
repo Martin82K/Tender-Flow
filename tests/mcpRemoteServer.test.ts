@@ -877,6 +877,33 @@ describe("remote MCP server", () => {
     );
   });
 
+  it("obnoví MCP roli z OAuth session, když refresh hook nedostane client_id", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260828174000_restore_mcp_client_from_oauth_session.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("NULLIF(BTRIM(claims ->> 'session_id'), '')");
+    expect(migration).toContain("FROM auth.sessions AS oauth_session");
+    expect(migration).toContain("oauth_session.id::TEXT = session_id");
+    expect(migration).toContain("oauth_session.user_id::TEXT = claims ->> 'sub'");
+    expect(migration).toContain("oauth_session.oauth_client_id::TEXT");
+    expect(migration).toContain("claims := JSONB_SET(claims, '{client_id}', TO_JSONB(oauth_client_id), true)");
+    expect(migration).toContain("TO_JSONB('tenderflow_mcp_client'::TEXT)");
+    expect(migration).toContain("'{app_metadata,mcp_resource}'");
+    expect(migration).toContain("SET search_path = ''");
+    expect(migration).toContain(
+      "GRANT EXECUTE ON FUNCTION public.tender_flow_access_token_hook(JSONB) TO supabase_auth_admin",
+    );
+  });
+
+  it("ponechá rotaci refresh tokenů a toleruje souběžné ChatGPT refresh workers", () => {
+    const config = fs.readFileSync(path.join(ROOT, "supabase/config.toml"), "utf8");
+
+    expect(config).toMatch(/enable_refresh_token_rotation\s*=\s*true/);
+    expect(config).toMatch(/refresh_token_reuse_interval\s*=\s*120/);
+  });
+
   it("váže MCP resource claim na autoritativně registrovaného OAuth klienta", () => {
     const migration = fs.readFileSync(
       path.join(ROOT, "supabase/migrations/20260808233204_bind_mcp_resource_to_oauth_client.sql"),
