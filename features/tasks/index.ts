@@ -19,6 +19,7 @@ export {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useDeleteCompletedTasksMutation,
   useToggleTaskMutation,
 } from "./hooks/useTaskMutations";
 export {
