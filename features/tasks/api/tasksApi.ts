@@ -180,6 +180,12 @@ export const deleteTask = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
+export const deleteCompletedTasks = async (): Promise<number> => {
+  const { data, error } = await dbAdapter.rpc<number>("delete_my_completed_tasks");
+  if (error) throw error;
+  return Number(data ?? 0);
+};
+
 export const setTaskCompleted = async (
   id: string,
   completed: boolean,

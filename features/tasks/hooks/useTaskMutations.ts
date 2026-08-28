@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
 import {
   createTask,
+  deleteCompletedTasks,
   deleteTask,
   setTaskCompleted,
   updateTask,
@@ -40,6 +41,15 @@ export const useDeleteTaskMutation = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => deleteTask(id),
+    onSuccess: () => invalidateTaskLists(queryClient),
+  });
+};
+
+export const useDeleteCompletedTasksMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<number, Error, void>({
+    mutationFn: () => deleteCompletedTasks(),
     onSuccess: () => invalidateTaskLists(queryClient),
   });
 };

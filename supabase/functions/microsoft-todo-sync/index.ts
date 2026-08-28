@@ -6,6 +6,8 @@ import {
   createMicrosoftTodoTask,
   deleteMicrosoftChecklistItem,
   deleteMicrosoftTodoTask,
+  isActiveGraphTodoTask,
+  isActiveTenderFlowTask,
   listMicrosoftChecklistItems,
   mapGraphTaskToTenderFlow,
   renameMicrosoftTodoList,
@@ -26,6 +28,7 @@ type TaskRow = {
   due_at: string | null;
   reminder_at: string | null;
   priority: number | null;
+  project_id: string | null;
   todo_project_id: string | null;
   parent_task_id: string | null;
   sort_order: number;
@@ -58,6 +61,7 @@ type ListMappingRow = {
   delta_link: string | null;
   last_synced_at: string | null;
   sync_error: string | null;
+  sync_policy_version: number;
 };
 
 type SyncCounts = {
@@ -161,14 +165,32 @@ const ensureMappings = async (args: {
   );
 };
 
-const clearAndDeleteLocalTask = async (service: ServiceClient, userId: string, taskId: string) => {
-  const { error: clearError } = await service.from("tasks").update({
+const clearedExternalLinkPatch = () => ({
     external_id: null,
     external_provider: null,
     external_container_id: null,
     external_parent_id: null,
-  }).eq("id", taskId).eq("created_by", userId);
+    external_etag: null,
+    external_updated_at: null,
+    last_synced_at: nowIso(),
+    sync_status: "synced",
+    sync_error: null,
+});
+
+const clearLocalTaskExternalLink = async (
+  service: ServiceClient,
+  userId: string,
+  taskId: string,
+) => {
+  const { error: clearError } = await service.from("tasks")
+    .update(clearedExternalLinkPatch())
+    .eq("id", taskId)
+    .eq("created_by", userId);
   if (clearError) throw clearError;
+};
+
+const clearAndDeleteLocalTask = async (service: ServiceClient, userId: string, taskId: string) => {
+  await clearLocalTaskExternalLink(service, userId, taskId);
   const { error: deleteError } = await service.from("tasks")
     .delete()
     .eq("id", taskId)
@@ -176,13 +198,17 @@ const clearAndDeleteLocalTask = async (service: ServiceClient, userId: string, t
   if (deleteError) throw deleteError;
 };
 
-const remoteTaskPatch = (remote: GraphTodoTask, listId: string) => {
+const remoteTaskPatch = (
+  remote: GraphTodoTask,
+  listId: string,
+  suppressReminder: boolean,
+) => {
   const mapped = mapGraphTaskToTenderFlow(remote);
   return {
     title: mapped.title.slice(0, 500),
     note: mapped.note?.slice(0, 10_000) ?? null,
     due_at: mapped.dueAt,
-    reminder_at: mapped.reminderAt,
+    ...(suppressReminder ? {} : { reminder_at: mapped.reminderAt }),
     priority: mapped.priority,
     completed: mapped.completed,
     completed_at: mapped.completed ? mapped.completedAt || nowIso() : null,
@@ -194,7 +220,7 @@ const remoteTaskPatch = (remote: GraphTodoTask, listId: string) => {
     external_etag: mapped.externalEtag,
     external_updated_at: mapped.externalUpdatedAt,
     last_synced_at: nowIso(),
-    sync_status: "synced",
+    sync_status: suppressReminder && Boolean(remote.isReminderOn) ? "pending" : "synced",
     sync_error: null,
   };
 };
@@ -207,15 +233,17 @@ const pullMapping = async (args: {
   counts: SyncCounts;
   checklistParents: Set<string>;
 }) => {
+  const syncPolicyVersion = Number(args.mapping.sync_policy_version || 1);
+  const deltaLink = syncPolicyVersion >= 2 ? args.mapping.delta_link : null;
   let delta;
   try {
     delta = await collectMicrosoftTodoDelta({
       accessToken: args.accessToken,
       listId: args.mapping.microsoft_list_id,
-      deltaLink: args.mapping.delta_link,
+      deltaLink,
     });
   } catch (cause) {
-    if (errorStatus(cause) !== 410 || !args.mapping.delta_link) throw cause;
+    if (errorStatus(cause) !== 410 || !deltaLink) throw cause;
     delta = await collectMicrosoftTodoDelta({
       accessToken: args.accessToken,
       listId: args.mapping.microsoft_list_id,
@@ -252,7 +280,31 @@ const pullMapping = async (args: {
       continue;
     }
 
-    const patch = remoteTaskPatch(remote, args.mapping.microsoft_list_id);
+    if (!isActiveGraphTodoTask(remote)) {
+      if (local) {
+        const mapped = mapGraphTaskToTenderFlow(remote);
+        const { error: completeError } = await args.service.from("tasks").update({
+          completed: true,
+          completed_at: mapped.completedAt || local.completed_at || nowIso(),
+          ...clearedExternalLinkPatch(),
+        }).eq("id", local.id).eq("created_by", args.userId);
+        if (completeError) throw completeError;
+        await deleteMicrosoftTodoTask(
+          args.accessToken,
+          args.mapping.microsoft_list_id,
+          remote.id,
+        );
+        args.counts.pulled += 1;
+        args.counts.deleted += 1;
+      }
+      continue;
+    }
+
+    const patch = remoteTaskPatch(
+      remote,
+      args.mapping.microsoft_list_id,
+      Boolean(local?.project_id),
+    );
     if (local) {
       const { error } = await args.service.from("tasks")
         .update(patch)
@@ -277,7 +329,12 @@ const pullMapping = async (args: {
 
   const { error: mappingError } = await args.service
     .from("microsoft_todo_list_mappings")
-    .update({ delta_link: delta.deltaLink, last_synced_at: nowIso(), sync_error: null })
+    .update({
+      delta_link: delta.deltaLink,
+      last_synced_at: nowIso(),
+      sync_error: null,
+      sync_policy_version: 2,
+    })
     .eq("id", args.mapping.id)
     .eq("user_id", args.userId);
   if (mappingError) throw mappingError;
@@ -336,10 +393,30 @@ const pushRootTasks = async (args: {
 
   for (const task of (data ?? []) as TaskRow[]) {
     if (task.external_provider && task.external_provider !== "ms-todo") continue;
-    const mapping = mappingByProject.get(mappingKey(task.todo_project_id));
-    if (!mapping) continue;
 
     try {
+      if (!isActiveTenderFlowTask(task)) {
+        if (task.external_id && task.external_container_id) {
+          await deleteMicrosoftTodoTask(
+            args.accessToken,
+            task.external_container_id,
+            task.external_id,
+          );
+          const { error: childClearError } = await args.service.from("tasks")
+            .update(clearedExternalLinkPatch())
+            .eq("created_by", args.userId)
+            .eq("parent_task_id", task.id)
+            .eq("external_provider", "ms-todo");
+          if (childClearError) throw childClearError;
+          await clearLocalTaskExternalLink(args.service, args.userId, task.id);
+          args.counts.deleted += 1;
+        }
+        continue;
+      }
+
+      const mapping = mappingByProject.get(mappingKey(task.todo_project_id));
+      if (!mapping) continue;
+
       let remoteId = task.external_id;
       if (remoteId && task.external_container_id !== mapping.microsoft_list_id) {
         if (task.external_container_id) {
@@ -410,7 +487,11 @@ const syncChecklistForParent = async (args: {
     .maybeSingle();
   if (parentError) throw parentError;
   const parent = parentData as TaskRow | null;
-  if (!parent?.external_id || !parent.external_container_id) return;
+  if (
+    !parent?.external_id
+    || !parent.external_container_id
+    || !isActiveTenderFlowTask(parent)
+  ) return;
 
   const [remoteItems, subtaskResult] = await Promise.all([
     listMicrosoftChecklistItems(
@@ -431,17 +512,38 @@ const syncChecklistForParent = async (args: {
       .map((item) => [item.external_id as string, item]),
   );
   const remoteIds = new Set(remoteItems.map((item) => item.id));
+  const completedLocalIds = new Set<string>();
 
   for (let index = 0; index < remoteItems.length; index += 1) {
     const remote = remoteItems[index];
     const local = localByExternalId.get(remote.id);
     if (local?.sync_status === "pending") continue;
+    if (remote.isChecked) {
+      if (local) {
+        const { error } = await args.service.from("tasks").update({
+          completed: true,
+          completed_at: local.completed_at || nowIso(),
+          ...clearedExternalLinkPatch(),
+        }).eq("id", local.id).eq("created_by", args.userId);
+        if (error) throw error;
+        await deleteMicrosoftChecklistItem(
+          args.accessToken,
+          parent.external_container_id,
+          parent.external_id,
+          remote.id,
+        );
+        completedLocalIds.add(local.id);
+        args.counts.checklist += 1;
+        args.counts.deleted += 1;
+      }
+      continue;
+    }
     if (local) {
       const { error } = await args.service.from("tasks").update({
         title: (remote.displayName?.trim() || "Bez názvu").slice(0, 500),
-        completed: Boolean(remote.isChecked),
-        completed_at: remote.isChecked ? local.completed_at || nowIso() : null,
-        archived_at: remote.isChecked ? undefined : null,
+        completed: false,
+        completed_at: null,
+        archived_at: null,
         sort_order: index,
         external_parent_id: parent.external_id,
         last_synced_at: nowIso(),
@@ -455,8 +557,8 @@ const syncChecklistForParent = async (args: {
         todo_project_id: parent.todo_project_id,
         parent_task_id: parent.id,
         sort_order: index,
-        completed: Boolean(remote.isChecked),
-        completed_at: remote.isChecked ? nowIso() : null,
+        completed: false,
+        completed_at: null,
         created_by: args.userId,
         external_id: remote.id,
         external_provider: "ms-todo",
@@ -471,6 +573,27 @@ const syncChecklistForParent = async (args: {
   }
 
   for (const local of localItems) {
+    if (completedLocalIds.has(local.id)) continue;
+
+    if (!isActiveTenderFlowTask(local)) {
+      if (
+        local.external_id
+        && local.external_provider === "ms-todo"
+        && local.external_container_id
+        && local.external_parent_id
+      ) {
+        await deleteMicrosoftChecklistItem(
+          args.accessToken,
+          local.external_container_id,
+          local.external_parent_id,
+          local.external_id,
+        );
+        await clearLocalTaskExternalLink(args.service, args.userId, local.id);
+        args.counts.deleted += 1;
+      }
+      continue;
+    }
+
     if (
       local.external_id
       && local.external_provider === "ms-todo"

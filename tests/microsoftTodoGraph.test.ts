@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   collectMicrosoftTodoDelta,
+  isActiveGraphTodoTask,
+  isActiveTenderFlowTask,
   mapGraphTaskToTenderFlow,
   mapTenderFlowTaskToGraph,
   shouldApplyRemoteTask,
@@ -28,6 +30,33 @@ describe("Microsoft To Do Graph mapping", () => {
       isReminderOn: true,
       importance: "high",
       status: "completed",
+    });
+  });
+
+  it("neexportuje dokončené ani archivované Tender Flow úkoly", () => {
+    expect(isActiveTenderFlowTask({ completed: false, archived_at: null })).toBe(true);
+    expect(isActiveTenderFlowTask({ completed: true, archived_at: null })).toBe(false);
+    expect(isActiveTenderFlowTask({ completed: false, archived_at: "2026-08-28T06:00:00Z" })).toBe(false);
+  });
+
+  it("neimportuje dokončené Microsoft To Do úkoly jako nové aktivní úkoly", () => {
+    expect(isActiveGraphTodoTask({ id: "active", status: "notStarted" })).toBe(true);
+    expect(isActiveGraphTodoTask({ id: "completed", status: "completed" })).toBe(false);
+    expect(isActiveGraphTodoTask({ id: "removed", "@removed": { reason: "deleted" } })).toBe(false);
+  });
+
+  it("u úkolu navázaného na stavbu zachová termín, ale vypne Outlook upozornění", () => {
+    expect(mapTenderFlowTaskToGraph({
+      title: "Odeslat poptávku",
+      due_at: "2026-09-01T14:30:00.000Z",
+      reminder_at: "2026-09-01T12:00:00.000Z",
+      project_id: "project-1",
+      completed: false,
+    })).toMatchObject({
+      dueDateTime: { dateTime: "2026-09-01T14:30:00.000", timeZone: "UTC" },
+      reminderDateTime: null,
+      isReminderOn: false,
+      status: "notStarted",
     });
   });
 

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbState = vi.hoisted(() => ({
   insertPayload: undefined as Record<string, unknown> | undefined,
   updatePayload: undefined as Record<string, unknown> | undefined,
+  rpcCall: undefined as { fn: string; args?: Record<string, unknown> } | undefined,
 }));
 
 const makeRow = (overrides: Record<string, unknown> = {}) => ({
@@ -30,6 +31,10 @@ const makeRow = (overrides: Record<string, unknown> = {}) => ({
 
 vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
+    rpc: async (fn: string, args?: Record<string, unknown>) => {
+      dbState.rpcCall = { fn, args };
+      return { data: 3, error: null };
+    },
     from: () => ({
       insert: (payload: Record<string, unknown>) => {
         dbState.insertPayload = payload;
@@ -53,12 +58,13 @@ vi.mock("@infra/db/dbAdapter", () => ({
   },
 }));
 
-import { createTask, updateTask } from "@features/tasks/api/tasksApi";
+import { createTask, deleteCompletedTasks, updateTask } from "@features/tasks/api/tasksApi";
 
 describe("tasksApi", () => {
   beforeEach(() => {
     dbState.insertPayload = undefined;
     dbState.updatePayload = undefined;
+    dbState.rpcCall = undefined;
   });
 
   it("při vytvoření bez upozornění neposílá reminder_at do payloadu", async () => {
@@ -87,5 +93,10 @@ describe("tasksApi", () => {
       sync_status: "pending",
       sync_error: null,
     });
+  });
+
+  it("odstraní všechny hotové úkoly uživatele přes RLS chráněné RPC", async () => {
+    await expect(deleteCompletedTasks()).resolves.toBe(3);
+    expect(dbState.rpcCall).toEqual({ fn: "delete_my_completed_tasks", args: undefined });
   });
 });
