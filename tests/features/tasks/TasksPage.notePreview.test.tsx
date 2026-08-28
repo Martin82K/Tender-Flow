@@ -12,6 +12,7 @@ const taskState = vi.hoisted(() => ({
   createTask: vi.fn(),
   updateTask: vi.fn(),
   deleteTask: vi.fn(),
+  deleteCompletedTasks: vi.fn(),
   identity: {
     id: "user-1",
     email: "user@example.com",
@@ -126,6 +127,10 @@ vi.mock("@features/tasks/hooks/useTaskMutations", () => ({
     mutateAsync: taskState.deleteTask,
     isPending: false,
   }),
+  useDeleteCompletedTasksMutation: () => ({
+    mutateAsync: taskState.deleteCompletedTasks,
+    isPending: false,
+  }),
   useToggleTaskMutation: () => ({
     mutate: taskState.toggleTask,
     isPending: false,
@@ -211,6 +216,7 @@ describe("TasksPage note preview", () => {
     taskState.createTask.mockReset();
     taskState.updateTask.mockReset();
     taskState.deleteTask.mockReset();
+    taskState.deleteCompletedTasks.mockReset();
     taskState.tasksQueryInput = null;
     taskState.taskProjectsQueryInput = null;
   });
@@ -225,6 +231,20 @@ describe("TasksPage note preview", () => {
     expect(taskState.taskProjectsQueryInput).toEqual({
       user: taskState.identity,
     });
+  });
+
+  it("umožní v pohledu Hotovo odstranit všechny dokončené úkoly", async () => {
+    taskState.tasks = [makeTask({ completed: true, completedAt: "2026-08-28T06:00:00Z" })];
+    taskState.deleteCompletedTasks.mockResolvedValue(1);
+
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Hotovo/);
+    fireEvent.click(screen.getByRole("button", { name: "Odstranit hotové" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Odstranit všechny hotové úkoly?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Odstranit hotové" }));
+
+    await waitFor(() => expect(taskState.deleteCompletedTasks).toHaveBeenCalledTimes(1));
   });
 
   it("zobrazí popis hlavního úkolu i podúkolu přímo v seznamu", () => {
@@ -608,13 +628,16 @@ describe("TasksPage note preview", () => {
     expect(calendarButton.querySelector('[data-help-id="tasks-menu-icon"]')).not.toHaveClass("fill");
   });
 
-  it("zobrazí u archivu popisek retence 30 dnů", () => {
+  it("vysvětlí 14denní retenci hotových a ruční archiv", () => {
     const { container } = render(<TasksPage />);
     const menu = container.querySelector('[data-help-id="tasks-menu"]');
 
     expect(menu).not.toBeNull();
+    expect(within(menu as HTMLElement).getByRole("button", { name: /Hotovo/i })).toHaveTextContent(
+      "Automaticky se smažou po 14 dnech",
+    );
     expect(within(menu as HTMLElement).getByRole("button", { name: /Archiv/i })).toHaveTextContent(
-      "Smaže se po 30 dnech",
+      "Ručně archivované úkoly",
     );
   });
 

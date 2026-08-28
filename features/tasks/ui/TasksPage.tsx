@@ -26,6 +26,7 @@ import {
 import { useTaskProjectsQuery } from "../hooks/useTaskProjectsQuery";
 import {
   useCreateTaskMutation,
+  useDeleteCompletedTasksMutation,
   useDeleteTaskMutation,
   useToggleTaskMutation,
   useUpdateTaskMutation,
@@ -42,8 +43,8 @@ const VIEW_LABELS: Record<TaskViewFilter, { label: string; icon: string; hint: s
   today: { label: "Dnes", icon: "today", hint: "Co má být hotové dnes" },
   upcoming: { label: "Nadcházející", icon: "event_upcoming", hint: "Plán podle termínu" },
   important: { label: "Důležité", icon: "flag", hint: "Priority P1 a P2" },
-  completed: { label: "Hotovo", icon: "task_alt", hint: "Dokončené úkoly" },
-  archive: { label: "Archiv", icon: "inventory_2", hint: "Smaže se po 30 dnech" },
+  completed: { label: "Hotovo", icon: "task_alt", hint: "Automaticky se smažou po 14 dnech" },
+  archive: { label: "Archiv", icon: "inventory_2", hint: "Ručně archivované úkoly" },
 };
 
 const VIEW_ORDER: TaskViewFilter[] = ["calendar", "inbox", "today", "upcoming", "important", "completed", "archive"];
@@ -3160,14 +3161,17 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [calendarMode, setCalendarMode] = useState<TodoCalendarMode>("day");
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
   const [isDetailAutoSelectPaused, setIsDetailAutoSelectPaused] = useState(false);
+  const [isDeleteCompletedOpen, setIsDeleteCompletedOpen] = useState(false);
   const isMobileLayout = useIsTasksMobileLayout();
   const user = useAuthIdentity();
   const tasksQuery = useTasksQuery({ user, filter: { includeArchived: true } });
   const todoProjectsQuery = useTaskProjectsQuery({ user });
   const updateTask = useUpdateTaskMutation();
+  const deleteCompletedTasks = useDeleteCompletedTasksMutation();
   const microsoftTodoSync = useMicrosoftTodoSync();
 
   const taskTree = useMemo(() => buildTaskTree(tasksQuery.data ?? []), [tasksQuery.data]);
+  const completedTaskCount = (tasksQuery.data ?? []).filter((task) => task.completed).length;
   const todoProjects = todoProjectsQuery.data ?? [];
   const selectedTodoProject = todoProjects.find((project) => project.id === selectedTodoProjectId);
   const visibleTree = useMemo(() => {
@@ -3405,6 +3409,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
     }
   };
 
+  const handleDeleteCompletedTasks = async () => {
+    if (deleteCompletedTasks.isPending) return;
+    await deleteCompletedTasks.mutateAsync();
+    setSelectedTaskId(null);
+    setIsTaskEditorOpen(false);
+    setIsDeleteCompletedOpen(false);
+  };
+
   return (
     <div className="tf-tasks-view flex h-full min-h-0 flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Header
@@ -3526,11 +3538,23 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               onExpandedChange={setIsQuickAddExpanded}
             />
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               {listTitle}
             </h2>
-            {tasksQuery.isFetching && <span className="text-xs text-slate-500">Obnovuji...</span>}
+            <div className="flex items-center gap-2">
+              {!selectedTodoProjectId && view === "completed" && completedTaskCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteCompletedOpen(true)}
+                  disabled={deleteCompletedTasks.isPending}
+                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-wait disabled:opacity-60 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+                >
+                  Odstranit hotové
+                </button>
+              )}
+              {tasksQuery.isFetching && <span className="text-xs text-slate-500">Obnovuji...</span>}
+            </div>
           </div>
 
           {tasksQuery.isLoading ? (
@@ -3647,6 +3671,15 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={isDeleteCompletedOpen}
+        title="Odstranit všechny hotové úkoly?"
+        message="Trvale odstraníte dokončené úkoly. Aktivní podúkoly zůstanou zachované i se svým nadřazeným úkolem. Tuto akci nelze vrátit zpět."
+        confirmLabel="Odstranit hotové"
+        cancelLabel="Zrušit"
+        onConfirm={() => void handleDeleteCompletedTasks()}
+        onCancel={() => setIsDeleteCompletedOpen(false)}
+      />
     </div>
   );
 };

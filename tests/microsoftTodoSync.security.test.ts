@@ -89,4 +89,20 @@ describe("Microsoft To Do synchronization security boundaries", () => {
       .join("\n");
     expect(allMigrationSql).toMatch(todoProjectIndexPattern);
   });
+
+  it("synchronizuje jen aktivní úkoly a čistí dokončené externí vazby", () => {
+    const sync = fs.readFileSync(
+      path.join(root, "supabase/functions/microsoft-todo-sync/index.ts"),
+      "utf8",
+    );
+
+    expect(sync).toContain("if (!isActiveGraphTodoTask(remote))");
+    expect(sync).toContain("if (!isActiveTenderFlowTask(task))");
+    expect(sync).toContain("Boolean(local?.project_id)");
+    expect(sync).toContain("syncPolicyVersion >= 2 ? args.mapping.delta_link : null");
+    expect(sync).toContain("sync_policy_version: 2");
+    expect(sync).toContain("await deleteMicrosoftTodoTask(");
+    expect(sync).toContain("await deleteMicrosoftChecklistItem(");
+    expect(sync).toContain("...clearedExternalLinkPatch()");
+  });
 });

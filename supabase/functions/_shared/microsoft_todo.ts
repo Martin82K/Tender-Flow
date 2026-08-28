@@ -52,8 +52,17 @@ type TenderFlowTaskRow = {
   due_at?: string | null;
   reminder_at?: string | null;
   priority?: number | null;
+  project_id?: string | null;
+  archived_at?: string | null;
   completed: boolean;
 };
+
+export const isActiveTenderFlowTask = (
+  task: Pick<TenderFlowTaskRow, "completed" | "archived_at">,
+): boolean => !task.completed && !task.archived_at;
+
+export const isActiveGraphTodoTask = (task: GraphTodoTask): boolean =>
+  !task["@removed"] && task.status !== "completed";
 
 const toGraphDateTime = (value: string): GraphDateTimeTimeZone => ({
   dateTime: new Date(value).toISOString().replace(/Z$/, ""),
@@ -80,18 +89,22 @@ const fromGraphImportance = (importance: string | undefined): 2 | 3 | 4 => {
   return 3;
 };
 
-export const mapTenderFlowTaskToGraph = (task: TenderFlowTaskRow) => ({
-  title: task.title.trim(),
-  body: {
-    content: task.note?.trim() || "",
-    contentType: "text" as const,
-  },
-  dueDateTime: task.due_at ? toGraphDateTime(task.due_at) : null,
-  reminderDateTime: task.reminder_at ? toGraphDateTime(task.reminder_at) : null,
-  isReminderOn: Boolean(task.reminder_at),
-  importance: toGraphImportance(task.priority),
-  status: task.completed ? "completed" : "notStarted",
-});
+export const mapTenderFlowTaskToGraph = (task: TenderFlowTaskRow) => {
+  const graphReminderAt = task.project_id ? null : task.reminder_at;
+
+  return {
+    title: task.title.trim(),
+    body: {
+      content: task.note?.trim() || "",
+      contentType: "text" as const,
+    },
+    dueDateTime: task.due_at ? toGraphDateTime(task.due_at) : null,
+    reminderDateTime: graphReminderAt ? toGraphDateTime(graphReminderAt) : null,
+    isReminderOn: Boolean(graphReminderAt),
+    importance: toGraphImportance(task.priority),
+    status: task.completed ? "completed" : "notStarted",
+  };
+};
 
 export const mapGraphTaskToTenderFlow = (task: GraphTodoTask) => ({
   externalId: task.id,
