@@ -239,10 +239,11 @@ describe("TasksPage note preview", () => {
 
     const { container } = render(<TasksPage />);
     selectSystemView(container, /Hotovo/);
-    fireEvent.click(screen.getByRole("button", { name: "Odstranit hotové" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat vše hotové" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Odstranit všechny hotové úkoly?" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Odstranit hotové" }));
+    const dialog = screen.getByRole("dialog", { name: "Vymazat vše hotové?" });
+    expect(within(dialog).getByText(/1 hotový úkol/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Vymazat vše hotové" }));
 
     await waitFor(() => expect(taskState.deleteCompletedTasks).toHaveBeenCalledTimes(1));
   });

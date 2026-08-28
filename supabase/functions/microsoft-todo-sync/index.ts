@@ -6,8 +6,10 @@ import {
   createMicrosoftTodoTask,
   deleteMicrosoftChecklistItem,
   deleteMicrosoftTodoTask,
+  getMicrosoftTodoWriteAction,
   isActiveGraphTodoTask,
   isActiveTenderFlowTask,
+  isMicrosoftTodoSyncEligibleTask,
   listMicrosoftChecklistItems,
   mapGraphTaskToTenderFlow,
   renameMicrosoftTodoList,
@@ -395,7 +397,7 @@ const pushRootTasks = async (args: {
     if (task.external_provider && task.external_provider !== "ms-todo") continue;
 
     try {
-      if (!isActiveTenderFlowTask(task)) {
+      if (!isMicrosoftTodoSyncEligibleTask(task)) {
         if (task.external_id && task.external_container_id) {
           await deleteMicrosoftTodoTask(
             args.accessToken,
@@ -426,13 +428,19 @@ const pushRootTasks = async (args: {
       }
 
       let remote: GraphTodoTask | null = null;
-      if (!remoteId) {
+      const writeAction = getMicrosoftTodoWriteAction({
+        externalId: remoteId,
+        externalContainerId: task.external_container_id,
+        syncStatus: task.sync_status,
+        targetListId: mapping.microsoft_list_id,
+      });
+      if (writeAction === "create") {
         remote = await createMicrosoftTodoTask(
           args.accessToken,
           mapping.microsoft_list_id,
           task,
         );
-      } else if (task.sync_status !== "synced") {
+      } else if (writeAction === "update" && remoteId) {
         try {
           remote = await updateMicrosoftTodoTask(
             args.accessToken,
@@ -490,7 +498,7 @@ const syncChecklistForParent = async (args: {
   if (
     !parent?.external_id
     || !parent.external_container_id
-    || !isActiveTenderFlowTask(parent)
+    || !isMicrosoftTodoSyncEligibleTask(parent)
   ) return;
 
   const [remoteItems, subtaskResult] = await Promise.all([

@@ -3550,7 +3550,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
                   disabled={deleteCompletedTasks.isPending}
                   className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-wait disabled:opacity-60 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
                 >
-                  Odstranit hotové
+                  Vymazat vše hotové
                 </button>
               )}
               {tasksQuery.isFetching && <span className="text-xs text-slate-500">Obnovuji...</span>}
@@ -3673,9 +3673,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       )}
       <ConfirmationModal
         isOpen={isDeleteCompletedOpen}
-        title="Odstranit všechny hotové úkoly?"
-        message="Trvale odstraníte dokončené úkoly. Aktivní podúkoly zůstanou zachované i se svým nadřazeným úkolem. Tuto akci nelze vrátit zpět."
-        confirmLabel="Odstranit hotové"
+        title="Vymazat vše hotové?"
+        message={`Trvale odstraníte ${completedTaskCount} ${completedTaskCount === 1 ? "hotový úkol" : "hotových úkolů"}. Aktivní podúkoly zůstanou zachované jako samostatné úkoly. Tuto akci nelze vrátit zpět.`}
+        confirmLabel="Vymazat vše hotové"
         cancelLabel="Zrušit"
         onConfirm={() => void handleDeleteCompletedTasks()}
         onCancel={() => setIsDeleteCompletedOpen(false)}

@@ -10,6 +10,10 @@ const retentionMigrationPath = join(
   process.cwd(),
   "supabase/migrations/20260828082623_completed_task_retention.sql",
 );
+const idempotencyMigrationPath = join(
+  process.cwd(),
+  "supabase/migrations/20260828101027_fix_todo_sync_idempotency.sql",
+);
 
 describe("task archive retention migration", () => {
   it("archivuje dokončené úkoly až po 30 dnech", () => {
@@ -46,5 +50,20 @@ describe("task archive retention migration", () => {
     expect(manualCleanupFunction).toContain("child.completed = FALSE");
     expect(retentionMigration).toContain("select public.purge_completed_tasks(14);");
     expect(retentionMigration).toContain("cron.unschedule");
+  });
+
+  it("ruční úklid zachová aktivní podúkoly a vymaže opravdu všechny hotové úkoly", () => {
+    const idempotencyMigration = readFileSync(idempotencyMigrationPath, "utf8");
+
+    expect(idempotencyMigration).toContain("CREATE OR REPLACE FUNCTION public.delete_my_completed_tasks()");
+    expect(idempotencyMigration).toContain("UPDATE public.tasks AS child");
+    expect(idempotencyMigration).toContain("child.completed = FALSE");
+    expect(idempotencyMigration).toContain("parent.completed = TRUE");
+    expect(idempotencyMigration).toContain("parent_task_id = NULL");
+    expect(idempotencyMigration).toContain("sync_status = 'pending'");
+    expect(idempotencyMigration).toMatch(/DELETE FROM public\.tasks AS task[\s\S]*task\.completed = TRUE/);
+    expect(idempotencyMigration).not.toContain("child.completed = FALSE\n       )");
+    expect(idempotencyMigration).toContain("SECURITY INVOKER");
+    expect(idempotencyMigration).toContain("GRANT EXECUTE ON FUNCTION public.delete_my_completed_tasks() TO authenticated");
   });
 });

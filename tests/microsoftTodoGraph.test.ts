@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   collectMicrosoftTodoDelta,
+  getMicrosoftTodoWriteAction,
   isActiveGraphTodoTask,
   isActiveTenderFlowTask,
+  isMicrosoftTodoSyncEligibleTask,
   mapGraphTaskToTenderFlow,
   mapTenderFlowTaskToGraph,
   shouldApplyRemoteTask,
@@ -37,6 +39,40 @@ describe("Microsoft To Do Graph mapping", () => {
     expect(isActiveTenderFlowTask({ completed: false, archived_at: null })).toBe(true);
     expect(isActiveTenderFlowTask({ completed: true, archived_at: null })).toBe(false);
     expect(isActiveTenderFlowTask({ completed: false, archived_at: "2026-08-28T06:00:00Z" })).toBe(false);
+  });
+
+  it("synchronizuje pouze osobní TODO a nikdy úkoly staveb nebo výběrových řízení", () => {
+    expect(isMicrosoftTodoSyncEligibleTask({
+      completed: false,
+      archived_at: null,
+      project_id: null,
+    })).toBe(true);
+    expect(isMicrosoftTodoSyncEligibleTask({
+      completed: false,
+      archived_at: null,
+      project_id: "project-1",
+    })).toBe(false);
+  });
+
+  it("při opakované synchronizaci znovu nevytváří už propojený úkol", () => {
+    expect(getMicrosoftTodoWriteAction({
+      externalId: "graph-task-1",
+      externalContainerId: "graph-list-1",
+      syncStatus: "synced",
+      targetListId: "graph-list-1",
+    })).toBe("none");
+    expect(getMicrosoftTodoWriteAction({
+      externalId: "graph-task-1",
+      externalContainerId: "graph-list-1",
+      syncStatus: "pending",
+      targetListId: "graph-list-1",
+    })).toBe("update");
+    expect(getMicrosoftTodoWriteAction({
+      externalId: null,
+      externalContainerId: null,
+      syncStatus: "pending",
+      targetListId: "graph-list-1",
+    })).toBe("create");
   });
 
   it("neimportuje dokončené Microsoft To Do úkoly jako nové aktivní úkoly", () => {
