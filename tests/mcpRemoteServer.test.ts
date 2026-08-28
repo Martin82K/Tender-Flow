@@ -879,14 +879,19 @@ describe("remote MCP server", () => {
 
   it("obnoví MCP roli z OAuth session, když refresh hook nedostane client_id", () => {
     const migration = fs.readFileSync(
-      path.join(ROOT, "supabase/migrations/20260828174000_restore_mcp_client_from_oauth_session.sql"),
+      path.join(ROOT, "supabase/migrations/20260828154010_restore_mcp_client_from_oauth_session.sql"),
       "utf8",
     );
 
     expect(migration).toContain("NULLIF(BTRIM(claims ->> 'session_id'), '')");
     expect(migration).toContain("FROM auth.sessions AS oauth_session");
-    expect(migration).toContain("oauth_session.id::TEXT = session_id");
-    expect(migration).toContain("oauth_session.user_id::TEXT = claims ->> 'sub'");
+    expect(migration).toContain("session_uuid := session_id::UUID");
+    expect(migration).toContain("subject_uuid := NULLIF(BTRIM(claims ->> 'sub'), '')::UUID");
+    expect(migration).toContain("WHEN invalid_text_representation THEN");
+    expect(migration).toContain("oauth_session.id = session_uuid");
+    expect(migration).toContain("oauth_session.user_id = subject_uuid");
+    expect(migration).not.toContain("oauth_session.id::TEXT");
+    expect(migration).not.toContain("oauth_session.user_id::TEXT");
     expect(migration).toContain("oauth_session.oauth_client_id::TEXT");
     expect(migration).toContain("claims := JSONB_SET(claims, '{client_id}', TO_JSONB(oauth_client_id), true)");
     expect(migration).toContain("TO_JSONB('tenderflow_mcp_client'::TEXT)");

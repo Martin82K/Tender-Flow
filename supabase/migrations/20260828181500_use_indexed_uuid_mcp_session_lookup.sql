@@ -1,7 +1,7 @@
--- A refresh-token hook event may omit client_id even though the underlying
--- Supabase Auth session is still bound to an OAuth client. Recover that binding
--- only from the same user's session, then apply the existing MCP allowlist and
--- canonical resource checks before granting the isolated database role.
+-- Keep the refresh-token hook lookup on the auth.sessions UUID indexes. The
+-- preceding migration was already deployed before this performance correction,
+-- so this migration reapplies the function without changing its authorization
+-- behavior.
 
 CREATE OR REPLACE FUNCTION public.tender_flow_access_token_hook(event JSONB)
 RETURNS JSONB
@@ -12,6 +12,8 @@ AS $$
 DECLARE
   claims JSONB := COALESCE(event -> 'claims', '{}'::JSONB);
   session_id TEXT := NULLIF(BTRIM(claims ->> 'session_id'), '');
+  session_uuid UUID;
+  subject_uuid UUID;
   oauth_client_id TEXT := COALESCE(
     NULLIF(BTRIM(claims ->> 'client_id'), ''),
     NULLIF(BTRIM(event ->> 'client_id'), '')
@@ -20,11 +22,19 @@ DECLARE
   mcp_client_is_registered BOOLEAN := false;
 BEGIN
   IF oauth_client_id IS NULL AND session_id IS NOT NULL THEN
+    BEGIN
+      session_uuid := session_id::UUID;
+      subject_uuid := NULLIF(BTRIM(claims ->> 'sub'), '')::UUID;
+    EXCEPTION
+      WHEN invalid_text_representation THEN
+        RETURN JSONB_BUILD_OBJECT('claims', claims);
+    END;
+
     SELECT oauth_session.oauth_client_id::TEXT
     INTO oauth_client_id
     FROM auth.sessions AS oauth_session
-    WHERE oauth_session.id::TEXT = session_id
-      AND oauth_session.user_id::TEXT = claims ->> 'sub'
+    WHERE oauth_session.id = session_uuid
+      AND oauth_session.user_id = subject_uuid
       AND oauth_session.oauth_client_id IS NOT NULL
     LIMIT 1;
   END IF;
@@ -76,4 +86,4 @@ REVOKE ALL ON FUNCTION public.tender_flow_access_token_hook(JSONB)
 GRANT EXECUTE ON FUNCTION public.tender_flow_access_token_hook(JSONB) TO supabase_auth_admin;
 
 COMMENT ON FUNCTION public.tender_flow_access_token_hook(JSONB) IS
-  'Assigns the isolated MCP role and resource to registered OAuth clients, recovering refresh-event client_id only from the same user session.';
+  'Assigns the isolated MCP role and resource to registered OAuth clients, recovering refresh-event client_id through an indexed same-user session lookup.';
