@@ -330,6 +330,9 @@
   .landing-apex .social-strip{flex-direction:column;gap:0.75rem}
   .landing-apex .footer-bottom{flex-direction:column;gap:1rem;text-align:center}
 }
+@media(max-width:480px){
+  .landing-apex.auth-apex-page .btn-login{display:none}
+}
 /* ═══════════ MINERAL STORY HERO ═══════════ */
 .landing-apex::after{display:none}
 .landing-apex header{background:rgba(12,18,16,.84)}

@@ -58,6 +58,9 @@ describe("veřejná CTA paleta", () => {
     expect(landingStyles).not.toMatch(
       /@media\s*\(max-width:\s*480px\)\s*\{[^}]*\.landing-apex \.btn-login\s*\{\s*display:\s*none/s,
     );
+    expect(landingStyles).toMatch(
+      /@media\s*\(max-width:\s*480px\)\s*\{[^}]*\.landing-apex\.auth-apex-page \.btn-login\s*\{\s*display:\s*none/s,
+    );
   });
 
   it("odstraňuje modrou z metriky a interaktivních stavů příběhu na landing page", () => {
