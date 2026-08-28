@@ -44,6 +44,22 @@ describe("veřejná CTA paleta", () => {
     expect(authStyles).not.toContain("rgba(255, 138, 51, 0.18)");
   });
 
+  it("nepoužívá modrou systémovou barvu při výběru textu v auth formuláři", () => {
+    const authStyles = readProjectFile("features/auth/ui/auth-apex.css");
+
+    expect(authStyles).toMatch(
+      /\.auth-apex-page ::selection\s*\{[^}]*background:\s*var\(--auth-accent\)/s,
+    );
+  });
+
+  it("ponechává přihlášení viditelné i v úzké mobilní navigaci", () => {
+    const landingStyles = readProjectFile("features/public/ui/landing-apex.css");
+
+    expect(landingStyles).not.toMatch(
+      /@media\s*\(max-width:\s*480px\)\s*\{[^}]*\.landing-apex \.btn-login\s*\{\s*display:\s*none/s,
+    );
+  });
+
   it("odstraňuje modrou z metriky a interaktivních stavů příběhu na landing page", () => {
     const landingStyles = readProjectFile("features/public/ui/landing-apex.css");
 
