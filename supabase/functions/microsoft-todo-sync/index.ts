@@ -8,7 +8,6 @@ import {
   deleteMicrosoftTodoTask,
   getMicrosoftTodoWriteAction,
   isActiveGraphTodoTask,
-  isActiveTenderFlowTask,
   isMicrosoftTodoSyncEligibleTask,
   listMicrosoftChecklistItems,
   mapGraphTaskToTenderFlow,
@@ -525,6 +524,7 @@ const syncChecklistForParent = async (args: {
   for (let index = 0; index < remoteItems.length; index += 1) {
     const remote = remoteItems[index];
     const local = localByExternalId.get(remote.id);
+    if (local && !isMicrosoftTodoSyncEligibleTask(local)) continue;
     if (local?.sync_status === "pending") continue;
     if (remote.isChecked) {
       if (local) {
@@ -583,7 +583,7 @@ const syncChecklistForParent = async (args: {
   for (const local of localItems) {
     if (completedLocalIds.has(local.id)) continue;
 
-    if (!isActiveTenderFlowTask(local)) {
+    if (!isMicrosoftTodoSyncEligibleTask(local)) {
       if (
         local.external_id
         && local.external_provider === "ms-todo"
