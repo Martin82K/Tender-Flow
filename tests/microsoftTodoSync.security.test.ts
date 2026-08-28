@@ -3,8 +3,17 @@ import path from "path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
+const todoProjectIndexPattern =
+  /idx_microsoft_todo_list_mappings_project_id\r?\n  ON public\.microsoft_todo_list_mappings\(todo_project_id\)/;
 
 describe("Microsoft To Do synchronization security boundaries", () => {
+  it("ověří SQL index i s Windows CRLF konci řádků", () => {
+    const windowsMigrationSql =
+      "idx_microsoft_todo_list_mappings_project_id\r\n  ON public.microsoft_todo_list_mappings(todo_project_id)";
+
+    expect(windowsMigrationSql).toMatch(todoProjectIndexPattern);
+  });
+
   it("používá pro nové propojení jeden tenantem řízený Microsoft Graph grant", () => {
     const authUrl = fs.readFileSync(path.join(root, "supabase/functions/dochub-auth-url/index.ts"), "utf8");
     const callback = fs.readFileSync(path.join(root, "supabase/functions/dochub-microsoft-callback/index.ts"), "utf8");
@@ -78,8 +87,6 @@ describe("Microsoft To Do synchronization security boundaries", () => {
     const allMigrationSql = migrations
       .map((name) => fs.readFileSync(path.join(root, "supabase/migrations", name), "utf8"))
       .join("\n");
-    expect(allMigrationSql).toContain(
-      "idx_microsoft_todo_list_mappings_project_id\n  ON public.microsoft_todo_list_mappings(todo_project_id)",
-    );
+    expect(allMigrationSql).toMatch(todoProjectIndexPattern);
   });
 });
