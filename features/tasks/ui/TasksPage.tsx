@@ -3162,6 +3162,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
   const [isDetailAutoSelectPaused, setIsDetailAutoSelectPaused] = useState(false);
   const [isDeleteCompletedOpen, setIsDeleteCompletedOpen] = useState(false);
+  const [deleteCompletedError, setDeleteCompletedError] = useState<string | null>(null);
   const isMobileLayout = useIsTasksMobileLayout();
   const user = useAuthIdentity();
   const tasksQuery = useTasksQuery({ user, filter: { includeArchived: true } });
@@ -3170,8 +3171,21 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const deleteCompletedTasks = useDeleteCompletedTasksMutation();
   const microsoftTodoSync = useMicrosoftTodoSync();
 
-  const taskTree = useMemo(() => buildTaskTree(tasksQuery.data ?? []), [tasksQuery.data]);
-  const completedTaskCount = (tasksQuery.data ?? []).filter((task) => task.completed).length;
+  const tasks = tasksQuery.data ?? [];
+  const taskTree = useMemo(() => buildTaskTree(tasks), [tasks]);
+  const projectTaskIds = new Set(tasks.filter((task) => task.projectId).map((task) => task.id));
+  const personalParentIdsWithProjectChildren = new Set(
+    tasks
+      .filter((task) => task.projectId && task.parentTaskId)
+      .map((task) => task.parentTaskId as string),
+  );
+  const completedTaskCount = tasks.filter(
+    (task) =>
+      task.completed &&
+      !task.projectId &&
+      (!task.parentTaskId || !projectTaskIds.has(task.parentTaskId)) &&
+      !personalParentIdsWithProjectChildren.has(task.id),
+  ).length;
   const todoProjects = todoProjectsQuery.data ?? [];
   const selectedTodoProject = todoProjects.find((project) => project.id === selectedTodoProjectId);
   const visibleTree = useMemo(() => {
@@ -3411,10 +3425,18 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
 
   const handleDeleteCompletedTasks = async () => {
     if (deleteCompletedTasks.isPending) return;
-    await deleteCompletedTasks.mutateAsync();
-    setSelectedTaskId(null);
-    setIsTaskEditorOpen(false);
-    setIsDeleteCompletedOpen(false);
+    try {
+      await deleteCompletedTasks.mutateAsync();
+      setDeleteCompletedError(null);
+      setSelectedTaskId(null);
+      setIsTaskEditorOpen(false);
+      setIsDeleteCompletedOpen(false);
+    } catch {
+      setIsDeleteCompletedOpen(false);
+      setDeleteCompletedError(
+        "Hotové osobní úkoly se nepodařilo vymazat. Zkuste akci znovu.",
+      );
+    }
   };
 
   return (
@@ -3546,7 +3568,10 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               {!selectedTodoProjectId && view === "completed" && completedTaskCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => setIsDeleteCompletedOpen(true)}
+                  onClick={() => {
+                    setDeleteCompletedError(null);
+                    setIsDeleteCompletedOpen(true);
+                  }}
                   disabled={deleteCompletedTasks.isPending}
                   className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-wait disabled:opacity-60 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
                 >
@@ -3556,6 +3581,15 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               {tasksQuery.isFetching && <span className="text-xs text-slate-500">Obnovuji...</span>}
             </div>
           </div>
+
+          {deleteCompletedError && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+            >
+              {deleteCompletedError}
+            </p>
+          )}
 
           {tasksQuery.isLoading ? (
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">

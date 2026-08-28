@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -65,5 +65,48 @@ describe("task archive retention migration", () => {
     expect(idempotencyMigration).not.toContain("child.completed = FALSE\n       )");
     expect(idempotencyMigration).toContain("SECURITY INVOKER");
     expect(idempotencyMigration).toContain("GRANT EXECUTE ON FUNCTION public.delete_my_completed_tasks() TO authenticated");
+  });
+
+  it("ruční úklid maže jen osobní úkoly a nedotýká se zakázek", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((name) => name.endsWith("_fix_completed_personal_cleanup.sql"));
+
+    expect(migrationName).toBeDefined();
+    const cleanupMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName ?? ""),
+      "utf8",
+    );
+    const manualCleanupFunction = cleanupMigration
+      .split("CREATE OR REPLACE FUNCTION public.delete_my_completed_tasks()")[1]
+      ?.split("REVOKE ALL ON FUNCTION public.delete_my_completed_tasks()")[0] ?? "";
+
+    expect(manualCleanupFunction).toContain("parent.project_id IS NULL");
+    expect(manualCleanupFunction).toContain("child.project_id IS NULL");
+    expect(manualCleanupFunction).toMatch(
+      /DELETE FROM public\.tasks AS task[\s\S]*task\.completed = TRUE[\s\S]*task\.project_id IS NULL/,
+    );
+    expect(manualCleanupFunction).toMatch(
+      /task\.parent_task_id IS NULL[\s\S]*parent\.project_id IS NULL/,
+    );
+    expect(manualCleanupFunction).toContain("SECURITY INVOKER");
+  });
+
+  it("ruční úklid zachová osobního rodiče s projektovým podúkolem", () => {
+    const migrationName = readdirSync(join(process.cwd(), "supabase/migrations"))
+      .find((name) => name.endsWith("_preserve_project_subtasks_cleanup.sql"));
+
+    expect(migrationName).toBeDefined();
+    const cleanupMigration = readFileSync(
+      join(process.cwd(), "supabase/migrations", migrationName ?? ""),
+      "utf8",
+    );
+    const manualCleanupFunction = cleanupMigration
+      .split("CREATE OR REPLACE FUNCTION public.delete_my_completed_tasks()")[1]
+      ?.split("REVOKE ALL ON FUNCTION public.delete_my_completed_tasks()")[0] ?? "";
+
+    expect(manualCleanupFunction).toMatch(
+      /NOT EXISTS \([\s\S]*child\.parent_task_id = task\.id[\s\S]*child\.project_id IS NOT NULL/,
+    );
+    expect(manualCleanupFunction).toContain("SECURITY INVOKER");
   });
 });
