@@ -179,4 +179,35 @@ describe("McpAccessSettings", () => {
       );
     });
   });
+
+  it("allows revoking an active financial grant after general write was revoked", async () => {
+    grantMocks.list.mockResolvedValueOnce([{
+      clientId: "client-1",
+      clientName: "ChatGPT Tender Flow",
+      clientUri: "https://chatgpt.com",
+      contactsReadExpiresAt: null,
+      writeExpiresAt: null,
+      bidOfferWriteExpiresAt: "infinity",
+    }]);
+    grantMocks.set.mockResolvedValueOnce({
+      permission: "tenderflow.bids.offer.write",
+      enabled: false,
+      expiresAt: null,
+    });
+
+    render(<McpAccessSettings />);
+    await screen.findByText("ChatGPT Tender Flow");
+
+    const revokeButton = screen.getByRole("button", { name: "Odebrat finanční zápis" });
+    expect(revokeButton).toBeEnabled();
+    fireEvent.click(revokeButton);
+
+    await waitFor(() => {
+      expect(grantMocks.set).toHaveBeenCalledWith(
+        "client-1",
+        "tenderflow.bids.offer.write",
+        false,
+      );
+    });
+  });
 });

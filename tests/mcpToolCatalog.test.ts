@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { getContractOverview } from "../server/mcp/data.js";
 import {
@@ -94,6 +96,21 @@ describe("MCP tool catalog and permissions", () => {
         [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
       ),
     ).toBe(false);
+  });
+
+  it("documents Outlook linking with the same permissions as the tool catalog", () => {
+    const documentation = fs.readFileSync(
+      path.join(process.cwd(), "docs/mcp/tools-reference.md"),
+      "utf8",
+    );
+    const section = documentation.match(
+      /### `tf_link_outlook_message`([\s\S]*?)(?=\n### |\n## |$)/,
+    )?.[1];
+
+    expect(section).toBeDefined();
+    expect(section).toContain("Permissions: read + write;");
+    expect(section).not.toContain("bid offer write");
+    expect(section).not.toContain("finanční grant");
   });
 
   it("načítá smluvní přehled přes autorizované RPC a minimalizuje dokumentová data", async () => {

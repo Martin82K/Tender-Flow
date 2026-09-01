@@ -84,8 +84,7 @@ a stejné permissions se znovu kontrolují při invokaci.
 
 ### `tf_link_outlook_message`
 
-- Permissions: read + write + bid offer write; riziko medium; **vyžaduje obecný
-  write grant i samostatný odvolatelný finanční grant**.
+- Permissions: read + write; riziko medium; vyžaduje obecný write grant.
 - Vstup: `bidId`, `outlookImmutableId`, volitelně `internetMessageId` a
   `conversationId`; každý identifikátor má limit 2048 znaků.
 - Použití: po odeslání poptávky přes Outlook propojí stabilní identifikátory
@@ -136,7 +135,7 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
   poznámky ke kartě dodavatele. Obchodní data v prepare kroku nemění.
 - Vstup: `bidId`, kladné `totalPriceExcludingVat` s nejvýše dvěma desetinnými
   místy, volitelné `currency` (pouze `CZK`), `additionalInformation` (nejvýše
-  20 položek po 500 znacích), `sourceReference` do 500 znaků a
+  8 položek po 500 znacích), `sourceReference` do 500 znaků a
   `selectionRound` 0–3.
 - Doplňující informace se připojí jako nový oddíl; existující poznámka se
   nepřepisuje. Kombinovaná poznámka smí mít nejvýše 10 000 znaků.

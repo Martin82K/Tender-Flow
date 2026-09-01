@@ -8,6 +8,100 @@ import { createProposal } from "../server/mcp/tenderFlowMcp.js";
 const ROOT = process.cwd();
 
 describe("MCP bid offer update", () => {
+  it("rejects prices with more than two decimal places before calling the RPC", async () => {
+    const rpc = vi.fn();
+    const supabase = { rpc };
+
+    await expect(createProposal(supabase as never, {
+      userId: "user-1",
+      clientId: "client-1",
+    }, {
+      change: {
+        type: "update_bid_offer",
+        bidId: "bid-1",
+        totalPriceExcludingVat: 100.001,
+      },
+    })).rejects.toThrow();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("accepts an exact two-decimal price and rejects floating-point residue", async () => {
+    const invalidRpc = vi.fn();
+    await expect(createProposal({ rpc: invalidRpc } as never, {
+      userId: "user-1",
+      clientId: "client-1",
+    }, {
+      change: {
+        type: "update_bid_offer",
+        bidId: "bid-1",
+        totalPriceExcludingVat: 0.1 + 0.2,
+      },
+    })).rejects.toThrow();
+    expect(invalidRpc).not.toHaveBeenCalled();
+
+    const validRpc = vi.fn().mockResolvedValue({
+      data: [{
+        bid_id: "bid-1",
+        project_id: "project-1",
+        tender_id: "tender-1",
+        previous_price: "0.2",
+        price: "0.3",
+        previous_notes: null,
+        notes: null,
+        selection_round: 1,
+        expected_updated_at: "2026-09-01T12:00:00.000Z",
+        changed: false,
+      }],
+      error: null,
+    });
+    const proposalQuery = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: {
+          id: "11111111-1111-4111-8111-111111111111",
+          expires_at: "2026-09-01T13:00:00.000Z",
+          change_type: "update_bid_offer",
+        },
+        error: null,
+      }),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+    };
+    await expect(createProposal({
+      rpc: validRpc,
+      from: vi.fn().mockReturnValue(proposalQuery),
+    } as never, {
+      userId: "user-1",
+      clientId: "client-1",
+    }, {
+      change: {
+        type: "update_bid_offer",
+        bidId: "bid-1",
+        totalPriceExcludingVat: 0.3,
+      },
+    })).resolves.toMatchObject({ ok: true });
+  });
+
+  it("caps public offer conditions so their aggregate appendix stays under 5000 characters", async () => {
+    const rpc = vi.fn();
+    const supabase = { rpc };
+
+    await expect(createProposal(supabase as never, {
+      userId: "user-1",
+      clientId: "client-1",
+    }, {
+      change: {
+        type: "update_bid_offer",
+        bidId: "bid-1",
+        totalPriceExcludingVat: 100,
+        additionalInformation: Array.from({ length: 9 }, (_, index) =>
+          `${index}`.padEnd(500, "x")),
+      },
+    })).rejects.toThrow();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("publishes a dedicated guarded offer-price preparation tool", () => {
     expect(MCP_TOOL_CATALOG).toContainEqual(expect.objectContaining({
       name: "tf_prepare_bid_offer_update",
@@ -27,7 +121,9 @@ describe("MCP bid offer update", () => {
     expect(source).toContain("'tf_prepare_bid_offer_update'");
     expect(source).toContain("totalPriceExcludingVat");
     expect(source).toContain("additionalInformation");
+    expect(source).toMatch(/additionalInformation:[^\n]*\.max\(8\)/);
     expect(source).toContain("sourceReference");
+    expect(source).toContain("updateBidOfferProposalSchema.safeExtend");
     expect(source).toContain("currency: z.literal('CZK')");
     expect(source).not.toMatch(
       /const prepareChangeSchema[\s\S]*updateBidOfferProposalSchema,[\s\S]*const confirmChangeSchema/,
@@ -107,6 +203,27 @@ describe("MCP bid offer update", () => {
     expect(migration).toMatch(/GRANT EXECUTE ON FUNCTION public\.change_mcp_bid_offer[\s\S]*TO tenderflow_mcp_client/);
     expect(migration).toMatch(/REVOKE ALL ON FUNCTION public\.change_mcp_bid_offer[\s\S]*FROM PUBLIC, anon, authenticated, service_role/);
     expect(migration).not.toMatch(/GRANT\s+UPDATE\s+ON(?:\s+TABLE)?\s+public\.bids\s+TO\s+tenderflow_mcp_client/i);
+  });
+
+  it("repairs the permission boundary, authoritative revision and price history consistency", () => {
+    const migrationName = fs
+      .readdirSync(path.join(ROOT, "supabase/migrations"))
+      .find((name) => name.endsWith("_fix_mcp_bid_offer_review_findings.sql"));
+
+    expect(migrationName).toBeDefined();
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations", migrationName as string),
+      "utf8",
+    );
+
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.mcp_has_permission");
+    expect(migration).toMatch(/permission_input NOT IN[\s\S]*'tenderflow\.bids\.offer\.write'/);
+    expect(migration).toContain("CREATE TRIGGER bids_set_updated_at");
+    expect(migration).toContain("BEFORE UPDATE ON public.bids");
+    expect(migration).toMatch(/current_price_display IS DISTINCT FROM formatted_price/);
+    expect(migration).toMatch(/current_price_history[\s\S]*resolved_selection_round::TEXT/);
+    expect(migration).toMatch(/jsonb_typeof\(bid\.price_history\) = 'object'[\s\S]*ELSE '\{\}'::JSONB/);
+    expect(migration).toMatch(/REVOKE ALL ON FUNCTION public\.mcp_has_permission\(TEXT\)/);
   });
 
   it("prepares a reviewable diff and preserves the original notes", async () => {

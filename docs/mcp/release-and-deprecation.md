@@ -6,7 +6,7 @@ Vztah ke standardu: respektuje minimálně dvanáctiměsíční deprecation okno
 ## Verzování
 
 Sledujeme tři nezávislé verze: MCP protokolovou revizi (aktuálně
-`2026-07-28`), serverovou implementaci (`McpServer` nyní `0.6.0`) a jednotlivé
+`2026-07-28`), serverovou implementaci (`McpServer` nyní `0.6.1`) a jednotlivé
 skill/kontrakt verze. Změna interní implementace bez změny schématu není
 automaticky nový protokol. Přidání nepovinného pole je additive; odstranění
 nebo přejmenování toolu, resource, scope či významu pole je breaking změna.

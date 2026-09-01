@@ -21,7 +21,7 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.6.0',
+      version: '0.6.1',
     },
     {
       instructions: canUseWriteTools ? KANBAN_WRITE_INSTRUCTIONS : undefined,
