@@ -3,6 +3,17 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-09-01 — opravy autorizace a souběžných změn ceny nabídky
+
+- finanční grant je nyní uznáván autoritativní databázovou permission funkcí,
+- každá změna karty posouvá databázovou revizi a starý MCP návrh proto nemůže
+  přepsat novější úpravu z aplikace,
+- zápis opravuje i chybějící zobrazovací cenu a historii cílového kola,
+- veřejný vstup odmítne více než dvě desetinná místa a příliš dlouhý souhrn
+  podmínek ještě před voláním databáze,
+- aktivní finanční grant lze samostatně odvolat i po vypnutí obecného zápisu,
+- opravná serverová implementace je `0.6.1`.
+
 ## 2026-09-01 — potvrzovaný zápis ceny nabídky bez DPH
 
 - přidán `tf_prepare_bid_offer_update` pro cenu bez DPH v CZK a append-only

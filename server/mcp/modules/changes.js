@@ -32,18 +32,49 @@ const updateBidProposalSchema = z.object({
   }).strict(),
 });
 
-const bidOfferUpdateFieldsSchema = z.object({
+const bidOfferUpdateShape = {
   bidId: z.string().trim().min(1).max(100),
-  totalPriceExcludingVat: z.number().finite().positive().max(1_000_000_000_000),
+  totalPriceExcludingVat: z.number()
+    .finite()
+    .positive()
+    .max(1_000_000_000_000)
+    .multipleOf(0.01)
+    .refine((value) => Number(value.toFixed(2)) === value, {
+      message: 'Price must have at most two decimal places.',
+    }),
   currency: z.literal('CZK').optional(),
-  additionalInformation: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+  additionalInformation: z.array(z.string().trim().min(1).max(500)).max(8).optional(),
   sourceReference: z.string().trim().min(1).max(500).optional(),
   selectionRound: z.number().int().min(0).max(3).optional(),
-}).strict();
+};
 
-const updateBidOfferProposalSchema = bidOfferUpdateFieldsSchema.extend({
+const buildBidOfferNotesAppendix = (change) => {
+  const information = (change.additionalInformation || []).map((item) => item.trim());
+  const lines = information.length > 0
+    ? ['Cenová nabídka – doplňující informace:', ...information.map((item) => `- ${item}`)]
+    : [];
+  if (change.sourceReference) lines.push(`Zdroj: ${change.sourceReference.trim()}`);
+  return lines.length > 0 ? lines.join('\n') : null;
+};
+
+const validateBidOfferNotesLength = (change, context) => {
+  if ((buildBidOfferNotesAppendix(change)?.length || 0) > 5000) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Combined offer information must not exceed 5000 characters.',
+      path: ['additionalInformation'],
+    });
+  }
+};
+
+const bidOfferUpdateFieldsSchema = z.object(bidOfferUpdateShape)
+  .strict()
+  .superRefine(validateBidOfferNotesLength);
+
+const updateBidOfferProposalSchema = z.object({
   type: z.literal('update_bid_offer'),
-});
+  ...bidOfferUpdateShape,
+}).strict().superRefine(validateBidOfferNotesLength);
 
 const prepareBidOfferUpdateSchema = bidOfferUpdateFieldsSchema;
 
@@ -100,15 +131,6 @@ const executeChangeSchema = z.object({
 const makeConfirmationText = (proposal) =>
   `POTVRZUJI MCP ZMĚNU ${proposal.id}: ${proposal.change_type}`;
 
-const buildBidOfferNotesAppendix = (change) => {
-  const information = (change.additionalInformation || []).map((item) => item.trim());
-  const lines = information.length > 0
-    ? ['Cenová nabídka – doplňující informace:', ...information.map((item) => `- ${item}`)]
-    : [];
-  if (change.sourceReference) lines.push(`Zdroj: ${change.sourceReference.trim()}`);
-  return lines.length > 0 ? lines.join('\n') : null;
-};
-
 const hashToken = async (token) => {
   const data = new TextEncoder().encode(token);
   const digest = await crypto.subtle.digest('SHA-256', data);
@@ -129,7 +151,9 @@ export const assertProjectVisible = async (supabase, projectId) => {
 };
 
 export const createProposal = async (supabase, auth, args) => {
-  const change = args.change;
+  const change = args.change?.type === 'update_bid_offer'
+    ? updateBidOfferProposalSchema.parse(args.change)
+    : args.change;
   let storedChange = change;
   let diff = { before: null, after: change };
   if (change.type === 'create_task') {

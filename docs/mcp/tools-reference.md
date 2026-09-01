@@ -84,8 +84,7 @@ a stejné permissions se znovu kontrolují při invokaci.
 
 ### `tf_link_outlook_message`
 
-- Permissions: read + write + bid offer write; riziko medium; **vyžaduje obecný
-  write grant i samostatný odvolatelný finanční grant**.
+- Permissions: read + write; riziko medium; vyžaduje obecný write grant.
 - Vstup: `bidId`, `outlookImmutableId`, volitelně `internetMessageId` a
   `conversationId`; každý identifikátor má limit 2048 znaků.
 - Použití: po odeslání poptávky přes Outlook propojí stabilní identifikátory

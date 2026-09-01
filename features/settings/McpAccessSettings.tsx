@@ -246,7 +246,7 @@ export const McpAccessSettings: React.FC = () => {
                   ) : (
                     <button
                       type="button"
-                      disabled={savingKey === bidOfferWriteKey || !writeActive}
+                      disabled={savingKey === bidOfferWriteKey || (!bidOfferWriteActive && !writeActive)}
                       onClick={() => {
                         if (bidOfferWriteActive) {
                           void changeGrant(client.clientId, "tenderflow.bids.offer.write", false);
@@ -259,7 +259,7 @@ export const McpAccessSettings: React.FC = () => {
                       {bidOfferWriteActive ? "Odebrat finanční zápis" : "Povolit finanční zápis"}
                     </button>
                   )}
-                  {!writeActive && (
+                  {!writeActive && !bidOfferWriteActive && (
                     <p className="mt-2 text-xs text-slate-500">Nejprve povolte obecné zápisové operace.</p>
                   )}
                 </div>
