@@ -31,10 +31,10 @@ MCP serveru.
 | Ověření | `OAuth` |
 
 Ikona má rozměry 256 × 256 px, formát PNG a velikost přibližně 5,8 KB. Splňuje
-limit ChatGPT 10 KB. V lokálním repozitáři je na absolutní cestě:
+limit ChatGPT 10 KB. V lokálním checkoutu ji najdete relativně ke kořeni repozitáře:
 
 ```text
-/Users/martinkalkus/Projects/Tender-Flow/assets/icons/256x256.png
+assets/icons/256x256.png
 ```
 
 ## Pokročilé nastavení OAuth
