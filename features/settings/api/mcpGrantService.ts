@@ -2,7 +2,8 @@ import { dbAdapter } from "@/services/dbAdapter";
 
 export type McpElevatedPermission =
   | "tenderflow.contacts.read"
-  | "tenderflow.write";
+  | "tenderflow.write"
+  | "tenderflow.bids.offer.write";
 
 interface McpClientGrantRow {
   client_id: string;
@@ -10,6 +11,7 @@ interface McpClientGrantRow {
   client_uri: string | null;
   contacts_read_expires_at: string | null;
   write_expires_at: string | null;
+  bid_offer_write_expires_at: string | null;
 }
 
 interface McpGrantMutationRow {
@@ -24,6 +26,7 @@ export interface McpClientGrant {
   clientUri: string | null;
   contactsReadExpiresAt: string | null;
   writeExpiresAt: string | null;
+  bidOfferWriteExpiresAt: string | null;
 }
 
 export interface McpGrantMutationResult {
@@ -52,6 +55,7 @@ export const listMyMcpClientGrants = async (): Promise<McpClientGrant[]> => {
     clientUri: row.client_uri || null,
     contactsReadExpiresAt: row.contacts_read_expires_at || null,
     writeExpiresAt: row.write_expires_at || null,
+    bidOfferWriteExpiresAt: row.bid_offer_write_expires_at || null,
   }));
 };
 

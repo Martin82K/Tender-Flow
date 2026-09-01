@@ -355,7 +355,7 @@ describe("remote MCP server", () => {
     expect(source).toContain("tf_get_contract_overview");
     expect(source).toContain("tf_list_tender_plan");
     expect(source).toContain("annotations: { readOnlyHint: true");
-    expect(source).toContain("Only create_task and status-only update_bid execution are enabled in MCP.");
+    expect(source).toContain("Only create_task, status-only update_bid, and update_bid_offer execution are enabled in MCP.");
     expect(source).not.toContain("hard_delete");
   });
 
@@ -397,6 +397,18 @@ describe("remote MCP server", () => {
     expect(forgedNames).not.toContain("tf_prepare_bid_status_change");
     expect(forgedNames).not.toContain("tf_prepare_change");
     expect(forgedNames).not.toContain("tf_execute_change");
+
+    const writeWithoutFinancialGrant = await callAuthorizedMcp(
+      "tools/list",
+      {},
+      ["openid"],
+      ["tenderflow.read", "tenderflow.write"],
+    );
+    const writeNames = (writeWithoutFinancialGrant.result.tools as Array<{ name: string }>).map(
+      (tool) => tool.name,
+    );
+    expect(writeNames).toContain("tf_prepare_bid_status_change");
+    expect(writeNames).not.toContain("tf_prepare_bid_offer_update");
   });
 
   it("publikuje kanbanové instrukce pouze klientům s dostupnými write nástroji", () => {
@@ -420,7 +432,7 @@ describe("remote MCP server", () => {
       "tools/list",
       {},
       ["openid", "email", "profile"],
-      ["tenderflow.read", "tenderflow.contacts.read", "tenderflow.write"],
+      ["tenderflow.read", "tenderflow.contacts.read", "tenderflow.write", "tenderflow.bids.offer.write"],
     );
     const tools = catalog.result.tools as Array<{
       name: string;
@@ -458,9 +470,28 @@ describe("remote MCP server", () => {
     expect(kanbanSchema).not.toContain('"reason"');
     expect(kanbanSchema).not.toContain('"expectedStatus"');
 
+    const offerTool = tools.find((tool) => tool.name === "tf_prepare_bid_offer_update");
+    expect(offerTool).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(offerTool?.description).toContain("excluding VAT in CZK");
+    const offerSchema = JSON.stringify(offerTool?.inputSchema);
+    expect(offerSchema).toContain('"totalPriceExcludingVat"');
+    expect(offerSchema).toContain('"additionalInformation"');
+    expect(offerSchema).toContain('"sourceReference"');
+    expect(offerSchema).toContain('"CZK"');
+    expect(offerSchema).not.toContain('"expectedUpdatedAt"');
+    expect(offerSchema).not.toContain('"notesAppendix"');
+
     const confirmTool = tools.find((tool) => tool.name === "tf_confirm_change");
     expect(confirmTool?.description).toContain("tf_prepare_change");
     expect(confirmTool?.description).toContain("tf_prepare_bid_status_change");
+    expect(confirmTool?.description).toContain("tf_prepare_bid_offer_update");
   });
 
   it("publikuje privátní resource katalog a scope-filtered URI templates", async () => {
@@ -596,6 +627,7 @@ describe("remote MCP server", () => {
         read: "tenderflow.read",
         contactsRead: "tenderflow.contacts.read",
         write: "tenderflow.write",
+        bidOfferWrite: "tenderflow.bids.offer.write",
       },
     });
     expect(fetchMock).toHaveBeenCalled();
