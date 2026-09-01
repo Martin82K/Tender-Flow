@@ -312,6 +312,32 @@ export const changeBidStatus = async (supabase, input) => {
   };
 };
 
+export const changeBidOffer = async (supabase, input) => {
+  const { data, error } = await supabase.rpc('change_mcp_bid_offer', {
+    bid_id_input: normalizedIdentifier(input.bidId),
+    price_excluding_vat_input: input.totalPriceExcludingVat,
+    notes_appendix_input: normalizedIdentifier(input.notesAppendix),
+    selection_round_input: input.selectionRound ?? null,
+    expected_updated_at_input: normalizedIdentifier(input.expectedUpdatedAt),
+    dry_run_input: Boolean(input.dryRun),
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('Bid offer update did not return a result.');
+  return {
+    bidId: String(row.bid_id),
+    projectId: String(row.project_id),
+    tenderId: String(row.tender_id),
+    previousPrice: row.previous_price == null ? null : Number(row.previous_price),
+    price: Number(row.price),
+    previousNotes: row.previous_notes == null ? null : String(row.previous_notes),
+    notes: row.notes == null ? null : String(row.notes),
+    selectionRound: Number(row.selection_round),
+    expectedUpdatedAt: String(row.expected_updated_at),
+    changed: Boolean(row.changed),
+  };
+};
+
 export const listContracts = async (supabase, input = {}) => {
   let query = supabase
     .from('contracts')

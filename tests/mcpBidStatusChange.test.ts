@@ -87,7 +87,7 @@ describe("MCP bid status change", () => {
     );
     expect(source).toContain("expectedStatus: preview.previousStatus");
     expect(source).toContain("dryRun: false");
-    expect(source).toContain("Only create_task and status-only update_bid execution are enabled in MCP.");
+    expect(source).toContain("Only create_task, status-only update_bid, and update_bid_offer execution are enabled in MCP.");
   });
 
   it("accepts the visible confirmation text and preserves legacy execute tokens", async () => {

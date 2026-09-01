@@ -3,6 +3,18 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-09-01 — potvrzovaný zápis ceny nabídky bez DPH
+
+- přidán `tf_prepare_bid_offer_update` pro cenu bez DPH v CZK a append-only
+  doplnění podmínek nabídky do poznámky karty,
+- finanční zápis vyžaduje nový samostatný user+client grant
+  `tenderflow.bids.offer.write` vedle obecného `tenderflow.write`,
+- prepare vrací before/after diff; execute kontroluje přesnou revizi karty,
+  aktualizuje cenu i historii kola a stejný blok poznámky neduplikuje,
+- MCP role nemá přímý `UPDATE`; zapisuje pouze úzké autorizované RPC,
+- serverová implementace je `0.6.0` a publikovaný klient musí obnovit metadata
+  katalogu nástrojů.
+
 ## 2026-08-24 — privátní konektor Grok Bot
 
 - Přidán ručně registrovaný veřejný OAuth klient pro privátní Grok Bot / Cursor

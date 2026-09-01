@@ -13,7 +13,7 @@ describe("MCP tool catalog and permissions", () => {
   it("udržuje zobrazovanou matici jako úplný zdroj serverových tool policy", () => {
     const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
 
-    expect(toolNames).toHaveLength(20);
+    expect(toolNames).toHaveLength(21);
     expect(new Set(toolNames).size).toBe(toolNames.length);
     expect(toolNames).toEqual(expect.arrayContaining([
       "search",
@@ -23,6 +23,7 @@ describe("MCP tool catalog and permissions", () => {
       "tf_match_outlook_reply",
       "tf_link_outlook_message",
       "tf_prepare_bid_status_change",
+      "tf_prepare_bid_offer_update",
       "tf_prepare_change",
       "tf_confirm_change",
       "tf_execute_change",
@@ -75,6 +76,14 @@ describe("MCP tool catalog and permissions", () => {
     ]);
     expect(getMcpToolPolicy("tf_prepare_bid_status_change")).toEqual({
       requiredPermissions: [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
+      riskLevel: "medium",
+    });
+    expect(getMcpToolPolicy("tf_prepare_bid_offer_update")).toEqual({
+      requiredPermissions: [
+        MCP_PERMISSIONS.read,
+        MCP_PERMISSIONS.write,
+        MCP_PERMISSIONS.bidOfferWrite,
+      ],
       riskLevel: "medium",
     });
 
