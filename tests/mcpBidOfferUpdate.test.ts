@@ -121,7 +121,9 @@ describe("MCP bid offer update", () => {
     expect(source).toContain("'tf_prepare_bid_offer_update'");
     expect(source).toContain("totalPriceExcludingVat");
     expect(source).toContain("additionalInformation");
+    expect(source).toMatch(/additionalInformation:[^\n]*\.max\(8\)/);
     expect(source).toContain("sourceReference");
+    expect(source).toContain("updateBidOfferProposalSchema.safeExtend");
     expect(source).toContain("currency: z.literal('CZK')");
     expect(source).not.toMatch(
       /const prepareChangeSchema[\s\S]*updateBidOfferProposalSchema,[\s\S]*const confirmChangeSchema/,

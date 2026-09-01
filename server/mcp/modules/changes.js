@@ -78,7 +78,7 @@ const updateBidOfferProposalSchema = z.object({
 
 const prepareBidOfferUpdateSchema = bidOfferUpdateFieldsSchema;
 
-const storedUpdateBidOfferProposalSchema = updateBidOfferProposalSchema.extend({
+const storedUpdateBidOfferProposalSchema = updateBidOfferProposalSchema.safeExtend({
   expectedUpdatedAt: z.string().min(1).max(100),
   notesAppendix: z.string().max(5000).nullable(),
 }).strict();
