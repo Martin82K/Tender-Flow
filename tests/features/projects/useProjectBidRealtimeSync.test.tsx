@@ -105,4 +105,42 @@ describe("useProjectBidRealtimeSync", () => {
     unmount();
     expect(state.cleanup).toHaveBeenCalledOnce();
   });
+
+  it("bez autentizace odběr ani polling nespustí", () => {
+    const queryClient = new QueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    renderHook(
+      () => useProjectBidRealtimeSync({
+        allProjectDetails: projectDetails,
+        selectedProjectId: "project-1",
+        enabled: false,
+      }),
+      { wrapper },
+    );
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(state.subscribe).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("mimo detail projektu ponechá realtime, ale zastaví minutový polling", () => {
+    const queryClient = new QueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    renderHook(
+      () => useProjectBidRealtimeSync({ allProjectDetails: projectDetails, selectedProjectId: null }),
+      { wrapper },
+    );
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(state.subscribe).toHaveBeenCalledOnce();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
 });

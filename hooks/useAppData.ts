@@ -37,7 +37,6 @@ import {
     APP_CORE_DATA_LOAD_ERROR_MESSAGE,
     buildCoreDataLoadDiagnostic,
 } from "@/shared/errors/appLoadError";
-import { useProjectBidRealtimeSync } from "@features/projects/hooks/useProjectBidRealtimeSync";
 
 export const useAppData = (showUiModal: (props: any) => void) => {
     const queryClient = useQueryClient();
@@ -50,12 +49,6 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const { data: contactStatuses = [], isLoading: statusesLoading, error: statusesError } = useContactStatusesQuery();
     const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useContactsQuery();
     const { data: allProjectDetails = {}, isLoading: detailsLoading } = useAllProjectDetailsQuery(projects);
-
-    useProjectBidRealtimeSync({
-        allProjectDetails,
-        selectedProjectId,
-        enabled: user?.role !== "demo",
-    });
 
     const isDataLoading = projectsLoading || statusesLoading || contactsLoading || detailsLoading;
 

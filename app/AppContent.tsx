@@ -21,6 +21,7 @@ import { platformAdapter } from "@infra/platform/platformAdapter";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
 import { useCriticalLoadIncident } from "@app/hooks/useCriticalLoadIncident";
+import { useProjectBidRealtimeSync } from "@features/projects/hooks/useProjectBidRealtimeSync";
 import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
@@ -95,6 +96,12 @@ export const AppContent: React.FC = () => {
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [activeContractId, setActiveContractId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
+
+  useProjectBidRealtimeSync({
+    allProjectDetails: state.allProjectDetails,
+    selectedProjectId: currentView === "project" ? state.selectedProjectId : null,
+    enabled: isAuthenticated && !authLoading && user?.role !== "demo",
+  });
 
   useAutoBackupScheduler();
 
