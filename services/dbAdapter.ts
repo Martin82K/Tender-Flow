@@ -3,6 +3,9 @@ import { getPublicEnvValue } from "../shared/config/publicEnv";
 
 export const dbAdapter = {
   from: <T extends string>(table: T) => supabase.from(table),
+  channel: (...args: Parameters<typeof supabase.channel>) => supabase.channel(...args),
+  removeChannel: (...args: Parameters<typeof supabase.removeChannel>) =>
+    supabase.removeChannel(...args),
   functions: supabase.functions,
   revokeOauthGrant: (clientId: string) =>
     supabase.auth.oauth.revokeGrant({ clientId }),
