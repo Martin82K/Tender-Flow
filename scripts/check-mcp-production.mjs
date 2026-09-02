@@ -1,3 +1,5 @@
+import { validateMcpRefreshDiscovery } from '../server/mcp/oauthMetadata.js';
+
 const baseUrl = String(process.env.MCP_CANARY_BASE_URL || 'https://www.tenderflow.cz').replace(/\/$/, '');
 const expectedResource = `${baseUrl}/api/mcp`;
 
@@ -40,6 +42,7 @@ const discovery = await readJson(discoveryResponse, 'OAuth discovery');
 assert(discovery.issuer === authorizationServer.href.replace(/\/$/, ''), 'OAuth issuer does not match advertised server.');
 assert(discovery.response_types_supported?.includes('code'), 'OAuth authorization code flow is not advertised.');
 assert(discovery.code_challenge_methods_supported?.includes('S256'), 'OAuth PKCE S256 is not advertised.');
+validateMcpRefreshDiscovery(discovery, metadata.scopes_supported);
 
 const assertAuthorizationServerEndpoint = (value, label) => {
   assert(typeof value === 'string', `${label} is missing from OAuth discovery.`);
@@ -126,6 +129,8 @@ console.log(JSON.stringify({
   scopes: metadata.scopes_supported,
   oauth: {
     authorizationCode: true,
+    refreshToken: true,
+    offlineAccess: true,
     pkceS256: true,
     asymmetricSigningAdvertised: true,
     authorizationEndpoint,
