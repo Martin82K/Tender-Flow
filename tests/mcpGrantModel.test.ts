@@ -123,6 +123,7 @@ describe("authoritative MCP user-client grants", () => {
         client_uri: null,
         contacts_read_expires_at: null,
         write_expires_at: null,
+        bid_offer_write_expires_at: null,
       }],
       error: null,
     });
@@ -140,6 +141,17 @@ describe("authoritative MCP user-client grants", () => {
     expect(dbAdapterMock.rpc).toHaveBeenCalledWith("set_my_mcp_client_grant", {
       client_id_input: "client-1",
       permission_input: "tenderflow.write",
+      enabled_input: true,
+    });
+
+    dbAdapterMock.rpc.mockResolvedValueOnce({
+      data: [{ permission: "tenderflow.bids.offer.write", enabled: true, expires_at: "infinity" }],
+      error: null,
+    });
+    await setMyMcpClientGrant("client-1", "tenderflow.bids.offer.write", true);
+    expect(dbAdapterMock.rpc).toHaveBeenCalledWith("set_my_mcp_client_grant", {
+      client_id_input: "client-1",
+      permission_input: "tenderflow.bids.offer.write",
       enabled_input: true,
     });
   });

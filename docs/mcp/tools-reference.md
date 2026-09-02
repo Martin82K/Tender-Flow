@@ -1,7 +1,7 @@
 # Reference MCP tools
 
-Stav: 20 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
-bez zvýšeného grantu, dalších 10 podmíněných user+client grantem k 2026-08-10
+Stav: 21 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
+bez zvýšeného grantu, dalších 11 podmíněných user+client grantem k 2026-09-01
 Zdroj pravdy: sdílený katalog `shared/mcp/toolCatalog.js`, doménové registrace
 v `server/mcp/modules/`, společný bezpečnostní runtime v `server/mcp/core/`
 a datové adaptéry v `server/mcp/data.js`.
@@ -84,7 +84,7 @@ a stejné permissions se znovu kontrolují při invokaci.
 
 ### `tf_link_outlook_message`
 
-- Permissions: read + write; riziko medium; **vyžaduje odvolatelný write grant**.
+- Permissions: read + write; riziko medium; vyžaduje obecný write grant.
 - Vstup: `bidId`, `outlookImmutableId`, volitelně `internetMessageId` a
   `conversationId`; každý identifikátor má limit 2048 znaků.
 - Použití: po odeslání poptávky přes Outlook propojí stabilní identifikátory
@@ -127,6 +127,24 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 - Jde o jednoúčelový, lépe objevitelný vstup do stejného bezpečného workflow;
   obecný `tf_prepare_change` zůstává zpětně kompatibilní.
 
+### `tf_prepare_bid_offer_update`
+
+- Permissions: read + write + bid offer write; riziko medium; **vyžaduje obecný
+  write grant i samostatný odvolatelný finanční grant**.
+- Připraví aktualizaci celkové ceny nabídky bez DPH v CZK a volitelné doplnění
+  poznámky ke kartě dodavatele. Obchodní data v prepare kroku nemění.
+- Vstup: `bidId`, kladné `totalPriceExcludingVat` s nejvýše dvěma desetinnými
+  místy, volitelné `currency` (pouze `CZK`), `additionalInformation` (nejvýše
+  8 položek po 500 znacích), `sourceReference` do 500 znaků a
+  `selectionRound` 0–3.
+- Doplňující informace se připojí jako nový oddíl; existující poznámka se
+  nepřepisuje. Kombinovaná poznámka smí mít nejvýše 10 000 znaků.
+- Dry-run vrátí before/after cenu, poznámku a kolo. Execute odmítne změnu,
+  pokud byla karta od prepare kroku mezitím upravena.
+- Změna se provede až přes `tf_confirm_change` a `tf_execute_change`. Výsledek
+  execute obsahuje skutečně uloženou cenu, poznámku a příznak změny, aby klient
+  mohl uživateli zobrazit závěrečný souhrn.
+
 ### `tf_prepare_change`
 
 - Permissions: read + write; riziko medium; **vyžaduje odvolatelný write grant**.
@@ -154,12 +172,14 @@ pre-audit. Nemůže změnit cenu, stav ani jiná pole karty dodavatele.
 - Vstup: `proposalId`, přesný `confirmationText` a `idempotencyKey` 8–200
   znaků. Pro dříve potvrzené návrhy lze místo textu použít legacy
   `executeToken`.
-- Implementované execution typy jsou `create_task` a stavová větev
-  `update_bid`. `update_bid` nemůže měnit cenu, dodavatele, kontakty, poznámky
-  ani přílohy; při změně stavu od prepare kroku execute bezpečně selže.
+- Implementované execution typy jsou `create_task`, stavová větev `update_bid`
+  a `update_bid_offer`. `update_bid` nadále nemůže měnit cenu, dodavatele,
+  kontakty, poznámky ani přílohy; cenu a append-only doplnění poznámky přijímá
+  pouze oddělený striktní typ `update_bid_offer`. Při změně karty od prepare
+  kroku execute bezpečně selže.
 - Opakování stejného user/client/idempotency klíče vrací uložený výsledek.
 
 Typy `create_bid`, `create_contact`, `update_contact`, `create_note`,
 `update_note` a `archive_entity` lze připravit pouze jako neproveditelný návrh.
-Cena v `update_bid` zatím podporovaná není a MCP ji nesmí prezentovat jako
-dokončenou změnu.
+Cena v obecném `update_bid` podporovaná není; musí použít samostatný
+`update_bid_offer` workflow.

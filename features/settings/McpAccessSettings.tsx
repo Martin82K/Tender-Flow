@@ -25,6 +25,7 @@ export const McpAccessSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [pendingWriteClientId, setPendingWriteClientId] = useState<string | null>(null);
+  const [pendingBidOfferClientId, setPendingBidOfferClientId] = useState<string | null>(null);
   const [pendingDisconnectClientId, setPendingDisconnectClientId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -53,6 +54,7 @@ export const McpAccessSettings: React.FC = () => {
     try {
       await setMyMcpClientGrant(clientId, permission, enabled);
       setPendingWriteClientId(null);
+      setPendingBidOfferClientId(null);
       await load();
     } catch (changeError) {
       setError(changeError instanceof Error ? changeError.message : String(changeError));
@@ -69,6 +71,7 @@ export const McpAccessSettings: React.FC = () => {
       await revokeMyMcpClientAccess(clientId);
       setPendingDisconnectClientId(null);
       setPendingWriteClientId(null);
+      setPendingBidOfferClientId(null);
       await load();
     } catch (disconnectError) {
       setError(disconnectError instanceof Error ? disconnectError.message : String(disconnectError));
@@ -114,8 +117,10 @@ export const McpAccessSettings: React.FC = () => {
         {clients.map((client) => {
           const contactsActive = isActive(client.contactsReadExpiresAt);
           const writeActive = isActive(client.writeExpiresAt);
+          const bidOfferWriteActive = isActive(client.bidOfferWriteExpiresAt);
           const contactsKey = `${client.clientId}:tenderflow.contacts.read`;
           const writeKey = `${client.clientId}:tenderflow.write`;
+          const bidOfferWriteKey = `${client.clientId}:tenderflow.bids.offer.write`;
           const disconnectKey = `${client.clientId}:disconnect`;
 
           return (
@@ -136,7 +141,7 @@ export const McpAccessSettings: React.FC = () => {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
                 <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
                   <h4 className="font-semibold text-slate-900 dark:text-white">Kontaktní údaje</h4>
                   <p className="mt-1 text-sm text-slate-500">
@@ -207,9 +212,64 @@ export const McpAccessSettings: React.FC = () => {
                     </button>
                   )}
                 </div>
+
+                <div className="rounded-lg border border-violet-200 p-4 dark:border-violet-500/30">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Cena nabídky bez DPH</h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Umožní agentovi po vašem potvrzení zapsat celkovou cenu v CZK a připojit podmínky nabídky do poznámky.
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {bidOfferWriteActive ? `Platí ${formatExpiry(client.bidOfferWriteExpiresAt)}` : "Není povoleno"}
+                  </p>
+
+                  {!bidOfferWriteActive && pendingBidOfferClientId === client.clientId ? (
+                    <div className="mt-4 rounded-lg bg-violet-50 p-3 text-sm text-violet-900 dark:bg-violet-500/10 dark:text-violet-100">
+                      <p>Agent může zapisovat finanční hodnotu bez DPH. Každá změna stále vyžaduje prepare/confirm/execute a zobrazí before/after souhrn.</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={savingKey === bidOfferWriteKey}
+                          onClick={() => void changeGrant(client.clientId, "tenderflow.bids.offer.write", true)}
+                          className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
+                        >
+                          Potvrdit finanční zápis
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingBidOfferClientId(null)}
+                          className="rounded-lg border border-violet-300 px-3 py-2 text-sm font-semibold"
+                        >
+                          Zrušit
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={savingKey === bidOfferWriteKey || (!bidOfferWriteActive && !writeActive)}
+                      onClick={() => {
+                        if (bidOfferWriteActive) {
+                          void changeGrant(client.clientId, "tenderflow.bids.offer.write", false);
+                        } else {
+                          setPendingBidOfferClientId(client.clientId);
+                        }
+                      }}
+                      className="mt-4 rounded-lg border border-violet-300 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-50 disabled:opacity-60 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-500/10"
+                    >
+                      {bidOfferWriteActive ? "Odebrat finanční zápis" : "Povolit finanční zápis"}
+                    </button>
+                  )}
+                  {!writeActive && !bidOfferWriteActive && (
+                    <p className="mt-2 text-xs text-slate-500">Nejprve povolte obecné zápisové operace.</p>
+                  )}
+                </div>
               </div>
 
-              <McpToolMatrix contactsActive={contactsActive} writeActive={writeActive} />
+              <McpToolMatrix
+                contactsActive={contactsActive}
+                writeActive={writeActive}
+                bidOfferWriteActive={bidOfferWriteActive}
+              />
 
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
                 {pendingDisconnectClientId === client.clientId ? (
@@ -244,6 +304,7 @@ export const McpAccessSettings: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setPendingWriteClientId(null);
+                      setPendingBidOfferClientId(null);
                       setPendingDisconnectClientId(client.clientId);
                     }}
                     className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"

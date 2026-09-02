@@ -239,12 +239,70 @@ describe("TasksPage note preview", () => {
 
     const { container } = render(<TasksPage />);
     selectSystemView(container, /Hotovo/);
-    fireEvent.click(screen.getByRole("button", { name: "Odstranit hotové" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat vše hotové" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Odstranit všechny hotové úkoly?" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Odstranit hotové" }));
+    const dialog = screen.getByRole("dialog", { name: "Vymazat vše hotové?" });
+    expect(within(dialog).getByText(/1 hotový úkol/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Vymazat vše hotové" }));
 
     await waitFor(() => expect(taskState.deleteCompletedTasks).toHaveBeenCalledTimes(1));
+  });
+
+  it("do hromadného mazání počítá jen dokončené osobní úkoly", () => {
+    taskState.tasks = [
+      makeTask({ id: "personal", completed: true, completedAt: "2026-08-28T06:00:00Z" }),
+      makeTask({
+        id: "project",
+        completed: true,
+        completedAt: "2026-08-28T07:00:00Z",
+        projectId: "project-1",
+      }),
+      makeTask({
+        id: "project-subtask",
+        completed: true,
+        completedAt: "2026-08-28T08:00:00Z",
+        parentTaskId: "project",
+      }),
+      makeTask({
+        id: "personal-with-project-child",
+        completed: true,
+        completedAt: "2026-08-28T09:00:00Z",
+      }),
+      makeTask({
+        id: "project-child",
+        completed: false,
+        parentTaskId: "personal-with-project-child",
+        projectId: "project-1",
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Hotovo/);
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat vše hotové" }));
+
+    expect(screen.getByRole("dialog", { name: "Vymazat vše hotové?" })).toHaveTextContent(
+      "1 hotový úkol",
+    );
+  });
+
+  it("při chybě hromadného mazání zobrazí hlášení a nepropustí odmítnutou Promise", async () => {
+    taskState.tasks = [makeTask({ completed: true, completedAt: "2026-08-28T06:00:00Z" })];
+    taskState.deleteCompletedTasks.mockRejectedValue(new Error("Project is archived"));
+
+    const { container } = render(<TasksPage />);
+    selectSystemView(container, /Hotovo/);
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat vše hotové" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Vymazat vše hotové?" })).getByRole(
+        "button",
+        { name: "Vymazat vše hotové" },
+      ),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Hotové osobní úkoly se nepodařilo vymazat. Zkuste akci znovu.",
+    );
+    expect(screen.queryByRole("dialog", { name: "Vymazat vše hotové?" })).not.toBeInTheDocument();
   });
 
   it("zobrazí popis hlavního úkolu i podúkolu přímo v seznamu", () => {

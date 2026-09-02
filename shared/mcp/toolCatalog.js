@@ -4,11 +4,17 @@ export const MCP_PERMISSION_IDS = Object.freeze({
   read: "tenderflow.read",
   contactsRead: "tenderflow.contacts.read",
   write: "tenderflow.write",
+  bidOfferWrite: "tenderflow.bids.offer.write",
 });
 
 const READ = Object.freeze([MCP_PERMISSION_IDS.read]);
 const CONTACTS = Object.freeze([MCP_PERMISSION_IDS.read, MCP_PERMISSION_IDS.contactsRead]);
 const WRITE = Object.freeze([MCP_PERMISSION_IDS.read, MCP_PERMISSION_IDS.write]);
+const BID_OFFER_WRITE = Object.freeze([
+  MCP_PERMISSION_IDS.read,
+  MCP_PERMISSION_IDS.write,
+  MCP_PERMISSION_IDS.bidOfferWrite,
+]);
 
 /**
  * Shared, presentation-safe MCP catalog. It contains no secrets, grants, user data,
@@ -166,6 +172,15 @@ export const MCP_TOOL_CATALOG = Object.freeze([
     category: "Zápis",
     data: "Připraví změnu stavu karty dodavatele v kanbanu; stav změní až následné potvrzení a provedení.",
     requiredPermissions: WRITE,
+    riskLevel: "medium",
+    mode: "write",
+  },
+  {
+    name: "tf_prepare_bid_offer_update",
+    title: "Příprava ceny nabídky",
+    category: "Zápis",
+    data: "Připraví cenu nabídky bez DPH v CZK a připojí důležité podmínky do poznámky karty; změnu provede až následné potvrzení.",
+    requiredPermissions: BID_OFFER_WRITE,
     riskLevel: "medium",
     mode: "write",
   },

@@ -61,6 +61,22 @@ export const isActiveTenderFlowTask = (
   task: Pick<TenderFlowTaskRow, "completed" | "archived_at">,
 ): boolean => !task.completed && !task.archived_at;
 
+export const isMicrosoftTodoSyncEligibleTask = (
+  task: Pick<TenderFlowTaskRow, "completed" | "archived_at" | "project_id">,
+): boolean => isActiveTenderFlowTask(task) && !task.project_id;
+
+export type MicrosoftTodoWriteAction = "create" | "update" | "none";
+
+export const getMicrosoftTodoWriteAction = (args: {
+  externalId: string | null;
+  externalContainerId: string | null;
+  syncStatus: string | null;
+  targetListId: string;
+}): MicrosoftTodoWriteAction => {
+  if (!args.externalId || args.externalContainerId !== args.targetListId) return "create";
+  return args.syncStatus === "synced" ? "none" : "update";
+};
+
 export const isActiveGraphTodoTask = (task: GraphTodoTask): boolean =>
   !task["@removed"] && task.status !== "completed";
 

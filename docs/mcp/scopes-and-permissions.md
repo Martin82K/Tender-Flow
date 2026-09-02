@@ -1,6 +1,6 @@
 # Scopes a oprávnění
 
-Stav: OAuth/permission matice odpovídá `server/mcp/scopePolicy.js` k 2026-08-09
+Stav: OAuth/permission matice odpovídá `server/mcp/scopePolicy.js` k 2026-09-01
 Zdroj pravdy: `server/mcp/scopePolicy.js` a autoritativní Supabase RLS/RPC
 
 OAuth scope popisuje identitu předanou Supabase Auth. Interní MCP permission
@@ -19,6 +19,7 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 | `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | automaticky pro aktivně consentovaného registrovaného klienta |
 | `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | volitelný user+client grant na 30 dní |
 | `tenderflow.write` | třífázové business změny a úzká přímá Outlook metadata vazba; vyžaduje také read | volitelný user+client grant do odvolání |
+| `tenderflow.bids.offer.write` | finanční zápis celkové ceny nabídky bez DPH v CZK a append-only podmínek; vyžaduje také read + write | samostatný volitelný user+client grant do odvolání |
 
 Trvalý write grant dovoluje klientovi připravovat business změny a přímo uložit
 úzkou Outlook metadata vazbu. Business změna nadále vyžaduje krátkodobý návrh,
@@ -35,6 +36,7 @@ zneplatní.
 | read | `search`, `fetch`, `tf_list_projects`, `tf_get_project_summary`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines`, `tf_list_tasks` |
 | read + contacts | kontaktní větev `search`/`fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts`, `tf_match_outlook_reply` |
 | read + write | `tf_prepare_change`, `tf_confirm_change`, `tf_execute_change`, `tf_link_outlook_message` |
+| read + write + bid offer write | `tf_prepare_bid_offer_update`; potvrzení a provedení dále používá společné `tf_confirm_change` a `tf_execute_change` |
 
 Katalog a tool list jsou least-privilege: položka se při chybějící permission
 nezaregistruje. Stejná permission se znovu kontroluje při invokaci, takže manipulace

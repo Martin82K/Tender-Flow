@@ -50,7 +50,8 @@ idempotency key. Před zápisem znovu ověří viditelnost projektu. Po úspěch
 výsledek a proposal označí `executed`. Kvůli kompatibilitě přijme u starších
 návrhů také původní jednorázový token a ověří jeho SHA-256 hash.
 
-Vykonatelné jsou `create_task` a stavová větev `update_bid`. Název úkolu je
+Vykonatelné jsou `create_task`, stavová větev `update_bid` a cenová větev
+`update_bid_offer`. Název úkolu je
 ořezán na 500 znaků, poznámka na 10 000; `created_by` se odvozuje z ověřeného
 uživatele. `update_bid` přijímá pouze `bidId` a jeden povolený status. Prepare
 načte aktuální stav přes stejné omezené RPC v dry-run režimu a execute provede
@@ -63,6 +64,13 @@ Role `tenderflow_mcp_client` nadále nemá `UPDATE` na `public.bids`. Stav měn�
 jen `change_mcp_bid_status`, jehož `EXECUTE` je odebrán rolím `PUBLIC`, `anon`,
 `authenticated` a `service_role` a udělen pouze MCP roli. RPC znovu ověřuje
 user/client, aktivní write grant a projektové právo k pipeline.
+
+Cena nabídky používá oddělený `change_mcp_bid_offer`. Přijímá pouze kladnou
+částku bez DPH v CZK, volitelné kolo 0–3 a omezený append-only blok poznámky.
+Současně aktualizuje číselnou cenu, zobrazovací hodnotu a historii ceny daného
+kola. Prepare si uloží přesnou revizi `updated_at`; execute při jakékoli
+mezitímní změně karty selže. Opakované připojení stejného bloku poznámky jej
+neduplikuje. Kombinovaná poznámka je omezena na 10 000 znaků.
 
 ## Povinnosti klienta
 

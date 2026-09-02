@@ -1,8 +1,8 @@
 import * as z from 'zod/v4';
-import { changeBidStatus } from '../data.js';
+import { changeBidOffer, changeBidStatus } from '../data.js';
 import { toolResultSchema } from '../core/schemas.js';
 
-export const KANBAN_WRITE_INSTRUCTIONS = 'To move a supplier bid card in the Tender Flow kanban, first call tf_prepare_bid_status_change. Show its before/after diff to the user, then use tf_confirm_change and tf_execute_change only after explicit confirmation.';
+export const KANBAN_WRITE_INSTRUCTIONS = 'To move a supplier bid card in the Tender Flow kanban, first call tf_prepare_bid_status_change. To write a total offer price excluding VAT and append offer conditions, use tf_prepare_bid_offer_update when its dedicated financial-write permission makes it available. Show the before/after diff to the user, then use tf_confirm_change and tf_execute_change only after explicit confirmation.';
 
 const boundedText = (value, max = 500) => String(value || '').trim().slice(0, max);
 
@@ -31,6 +31,57 @@ const updateBidProposalSchema = z.object({
     status: bidStatusSchema,
   }).strict(),
 });
+
+const bidOfferUpdateShape = {
+  bidId: z.string().trim().min(1).max(100),
+  totalPriceExcludingVat: z.number()
+    .finite()
+    .positive()
+    .max(1_000_000_000_000)
+    .multipleOf(0.01)
+    .refine((value) => Number(value.toFixed(2)) === value, {
+      message: 'Price must have at most two decimal places.',
+    }),
+  currency: z.literal('CZK').optional(),
+  additionalInformation: z.array(z.string().trim().min(1).max(500)).max(8).optional(),
+  sourceReference: z.string().trim().min(1).max(500).optional(),
+  selectionRound: z.number().int().min(0).max(3).optional(),
+};
+
+const buildBidOfferNotesAppendix = (change) => {
+  const information = (change.additionalInformation || []).map((item) => item.trim());
+  const lines = information.length > 0
+    ? ['Cenová nabídka – doplňující informace:', ...information.map((item) => `- ${item}`)]
+    : [];
+  if (change.sourceReference) lines.push(`Zdroj: ${change.sourceReference.trim()}`);
+  return lines.length > 0 ? lines.join('\n') : null;
+};
+
+const validateBidOfferNotesLength = (change, context) => {
+  if ((buildBidOfferNotesAppendix(change)?.length || 0) > 5000) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Combined offer information must not exceed 5000 characters.',
+      path: ['additionalInformation'],
+    });
+  }
+};
+
+const bidOfferUpdateFieldsSchema = z.object(bidOfferUpdateShape)
+  .strict()
+  .superRefine(validateBidOfferNotesLength);
+
+const updateBidOfferProposalSchema = z.object({
+  type: z.literal('update_bid_offer'),
+  ...bidOfferUpdateShape,
+}).strict().superRefine(validateBidOfferNotesLength);
+
+const prepareBidOfferUpdateSchema = bidOfferUpdateFieldsSchema;
+
+const storedUpdateBidOfferProposalSchema = updateBidOfferProposalSchema.safeExtend({
+  expectedUpdatedAt: z.string().min(1).max(100),
+  notesAppendix: z.string().max(5000).nullable(),
+}).strict();
 
 const prepareBidStatusChangeSchema = z.object({
   bidId: z.string().trim().min(1).max(100),
@@ -100,7 +151,9 @@ export const assertProjectVisible = async (supabase, projectId) => {
 };
 
 export const createProposal = async (supabase, auth, args) => {
-  const change = args.change;
+  const change = args.change?.type === 'update_bid_offer'
+    ? updateBidOfferProposalSchema.parse(args.change)
+    : args.change;
   let storedChange = change;
   let diff = { before: null, after: change };
   if (change.type === 'create_task') {
@@ -123,12 +176,44 @@ export const createProposal = async (supabase, auth, args) => {
       after: { bidId: preview.bidId, status: preview.status },
     };
   }
-  const supported = ['create_task', 'update_bid'].includes(change.type);
-  const riskLevel = change.type === 'update_bid' ? 'high' : supported ? 'medium' : 'high';
+  if (change.type === 'update_bid_offer') {
+    const notesAppendix = buildBidOfferNotesAppendix(change);
+    const preview = await changeBidOffer(supabase, {
+      ...change,
+      notesAppendix,
+      dryRun: true,
+    });
+    storedChange = {
+      ...change,
+      currency: 'CZK',
+      selectionRound: preview.selectionRound,
+      expectedUpdatedAt: preview.expectedUpdatedAt,
+      notesAppendix,
+    };
+    diff = {
+      before: {
+        bidId: preview.bidId,
+        totalPriceExcludingVat: preview.previousPrice,
+        currency: 'CZK',
+        notes: preview.previousNotes,
+      },
+      after: {
+        bidId: preview.bidId,
+        totalPriceExcludingVat: preview.price,
+        currency: 'CZK',
+        notes: preview.notes,
+        selectionRound: preview.selectionRound,
+      },
+    };
+  }
+  const supported = ['create_task', 'update_bid', 'update_bid_offer'].includes(change.type);
+  const riskLevel = ['update_bid', 'update_bid_offer'].includes(change.type) ? 'high' : supported ? 'medium' : 'high';
   const summary = change.type === 'create_task'
     ? `Vytvořit úkol "${change.title}".`
     : change.type === 'update_bid'
       ? `Změnit stav nabídky ${change.payload.bidId} na ${change.payload.status}.`
+      : change.type === 'update_bid_offer'
+        ? `Zapsat cenu nabídky bez DPH ${change.totalPriceExcludingVat} CZK na kartu ${change.bidId}.`
       : `Připravit změnu typu ${change.type}; provedení zatím není v MCP povoleno.`;
 
   const { data, error } = await supabase
@@ -270,12 +355,14 @@ export const executeProposal = async (supabase, auth, args) => {
     throw new Error('Invalid execution confirmation.');
   }
   if (new Date(proposal.expires_at).getTime() < Date.now()) throw new Error('Proposal expired.');
-  if (!['create_task', 'update_bid'].includes(proposal.change_type)) {
-    throw new Error('Only create_task and status-only update_bid execution are enabled in MCP.');
+  if (!['create_task', 'update_bid', 'update_bid_offer'].includes(proposal.change_type)) {
+    throw new Error('Only create_task, status-only update_bid, and update_bid_offer execution are enabled in MCP.');
   }
 
   const payload = proposal.change_type === 'update_bid'
     ? storedUpdateBidProposalSchema.parse(proposal.change_payload).payload
+    : proposal.change_type === 'update_bid_offer'
+      ? storedUpdateBidOfferProposalSchema.parse(proposal.change_payload)
     : createTaskProposalSchema.parse(proposal.change_payload);
 
   const { data: existing, error: existingError } = await supabase
@@ -311,11 +398,21 @@ export const executeProposal = async (supabase, auth, args) => {
       .single();
     if (taskError) throw taskError;
     result = { proposalId: claimedProposal.id, status: 'executed', task };
-  } else {
+  } else if (claimedProposal.change_type === 'update_bid') {
     const bid = await changeBidStatus(supabase, {
       bidId: payload.bidId,
       status: payload.status,
       expectedStatus: payload.expectedStatus,
+      dryRun: false,
+    });
+    result = { proposalId: claimedProposal.id, status: 'executed', bid };
+  } else {
+    const bid = await changeBidOffer(supabase, {
+      bidId: payload.bidId,
+      totalPriceExcludingVat: payload.totalPriceExcludingVat,
+      notesAppendix: payload.notesAppendix,
+      selectionRound: payload.selectionRound,
+      expectedUpdatedAt: payload.expectedUpdatedAt,
       dryRun: false,
     });
     result = { proposalId: claimedProposal.id, status: 'executed', bid };
@@ -368,6 +465,21 @@ export const registerChangesModule = ({ auth, supabase, tools, includeWriteTools
   );
 
   tools.register(
+    'tf_prepare_bid_offer_update',
+    {
+      title: 'Prepare Supplier Bid Offer Update',
+      description: 'Prepare an authorized before/after proposal that writes one total bid price excluding VAT in CZK and appends selected offer conditions to the existing bid notes. It does not change the card until tf_confirm_change and tf_execute_change succeed.',
+      inputSchema: prepareBidOfferUpdateSchema,
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async (args) => createProposal(supabase, auth, {
+      change: { type: 'update_bid_offer', ...args },
+    }),
+    { action: 'prepare_write', riskLevel: 'medium' },
+  );
+
+  tools.register(
     'tf_prepare_change',
     {
       title: 'Prepare Tender Flow Change',
@@ -384,7 +496,7 @@ export const registerChangesModule = ({ auth, supabase, tools, includeWriteTools
     'tf_confirm_change',
     {
       title: 'Confirm Tender Flow Change',
-      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change or tf_prepare_bid_status_change. The same text is required again for execute.',
+      description: 'Confirm an existing prepared change by sending the exact confirmation text shown by tf_prepare_change, tf_prepare_bid_status_change, or tf_prepare_bid_offer_update. The same text is required again for execute.',
       inputSchema: confirmChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -397,7 +509,7 @@ export const registerChangesModule = ({ auth, supabase, tools, includeWriteTools
     'tf_execute_change',
     {
       title: 'Execute Tender Flow Change',
-      description: 'Execute a confirmed create_task or status-only update_bid using the exact confirmation text and an idempotency key. Legacy one-time execute tokens remain accepted.',
+      description: 'Execute a confirmed create_task, status-only update_bid, or update_bid_offer using the exact confirmation text and an idempotency key. Legacy one-time execute tokens remain accepted.',
       inputSchema: executeChangeSchema,
       outputSchema: toolResultSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },

@@ -26,6 +26,7 @@ describe("McpAccessSettings", () => {
       clientUri: "https://chatgpt.com",
       contactsReadExpiresAt: null,
       writeExpiresAt: null,
+      bidOfferWriteExpiresAt: null,
     }]);
     grantMocks.set.mockResolvedValue({
       permission: "tenderflow.contacts.read",
@@ -47,6 +48,7 @@ describe("McpAccessSettings", () => {
     expect(screen.queryByText(/Úkoly, kanban a ceny/)).not.toBeInTheDocument();
     expect(screen.getByText("Vyžaduje kontaktní údaje")).toBeInTheDocument();
     expect(screen.getByText("Vyžaduje zápis")).toBeInTheDocument();
+    expect(screen.getByText("Vyžaduje zápis i finanční oprávnění")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Povolit kontaktní údaje" }));
     await waitFor(() => {
@@ -90,12 +92,14 @@ describe("McpAccessSettings", () => {
       clientUri: "https://chatgpt.com",
       contactsReadExpiresAt: "2099-09-08T00:00:00Z",
       writeExpiresAt: "infinity",
+      bidOfferWriteExpiresAt: "infinity",
     }]);
 
     render(<McpAccessSettings />);
 
     expect(await screen.findByText("Zápisové operace povoleny")).toBeInTheDocument();
-    expect(screen.getByText("Platí do odvolání")).toBeInTheDocument();
+    expect(screen.getByText("Finanční zápis povolen")).toBeInTheDocument();
+    expect(screen.getAllByText("Platí do odvolání")).toHaveLength(2);
     expect(screen.queryByText("Vyžaduje kontaktní údaje")).not.toBeInTheDocument();
     expect(screen.queryByText("Vyžaduje zápis")).not.toBeInTheDocument();
   });
@@ -108,12 +112,14 @@ describe("McpAccessSettings", () => {
         clientUri: "https://chatgpt.com",
         contactsReadExpiresAt: "2026-09-08T00:00:00Z",
         writeExpiresAt: null,
+        bidOfferWriteExpiresAt: null,
       }, {
         clientId: "active-client",
         clientName: "ChatGPT Tender Flow 2",
         clientUri: "https://chatgpt.com",
         contactsReadExpiresAt: "2026-09-08T00:00:00Z",
         writeExpiresAt: null,
+        bidOfferWriteExpiresAt: null,
       }])
       .mockResolvedValueOnce([{
         clientId: "active-client",
@@ -121,6 +127,7 @@ describe("McpAccessSettings", () => {
         clientUri: "https://chatgpt.com",
         contactsReadExpiresAt: "2026-09-08T00:00:00Z",
         writeExpiresAt: null,
+        bidOfferWriteExpiresAt: null,
       }]);
 
     render(<McpAccessSettings />);
@@ -138,5 +145,69 @@ describe("McpAccessSettings", () => {
       expect(screen.queryByText("ChatGPT Tender Flow", { exact: true })).not.toBeInTheDocument();
     });
     expect(screen.getByText("ChatGPT Tender Flow 2")).toBeInTheDocument();
+  });
+
+  it("requires a separate explicit financial grant for bid offer prices", async () => {
+    grantMocks.list.mockResolvedValueOnce([{
+      clientId: "client-1",
+      clientName: "ChatGPT Tender Flow",
+      clientUri: "https://chatgpt.com",
+      contactsReadExpiresAt: null,
+      writeExpiresAt: "infinity",
+      bidOfferWriteExpiresAt: null,
+    }]);
+
+    render(<McpAccessSettings />);
+    await screen.findByText("ChatGPT Tender Flow");
+
+    fireEvent.click(screen.getByRole("button", { name: "Povolit finanční zápis" }));
+    expect(grantMocks.set).not.toHaveBeenCalled();
+    expect(screen.getByText(/Agent může zapisovat finanční hodnotu bez DPH/)).toBeInTheDocument();
+
+    grantMocks.set.mockResolvedValueOnce({
+      permission: "tenderflow.bids.offer.write",
+      enabled: true,
+      expiresAt: "infinity",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Potvrdit finanční zápis" }));
+
+    await waitFor(() => {
+      expect(grantMocks.set).toHaveBeenCalledWith(
+        "client-1",
+        "tenderflow.bids.offer.write",
+        true,
+      );
+    });
+  });
+
+  it("allows revoking an active financial grant after general write was revoked", async () => {
+    grantMocks.list.mockResolvedValueOnce([{
+      clientId: "client-1",
+      clientName: "ChatGPT Tender Flow",
+      clientUri: "https://chatgpt.com",
+      contactsReadExpiresAt: null,
+      writeExpiresAt: null,
+      bidOfferWriteExpiresAt: "infinity",
+    }]);
+    grantMocks.set.mockResolvedValueOnce({
+      permission: "tenderflow.bids.offer.write",
+      enabled: false,
+      expiresAt: null,
+    });
+
+    render(<McpAccessSettings />);
+    await screen.findByText("ChatGPT Tender Flow");
+
+    const revokeButton = screen.getByRole("button", { name: "Odebrat finanční zápis" });
+    expect(revokeButton).toBeEnabled();
+    fireEvent.click(revokeButton);
+
+    await waitFor(() => {
+      expect(grantMocks.set).toHaveBeenCalledWith(
+        "client-1",
+        "tenderflow.bids.offer.write",
+        false,
+      );
+    });
   });
 });

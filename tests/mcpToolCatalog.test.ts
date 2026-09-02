@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { getContractOverview } from "../server/mcp/data.js";
 import {
@@ -13,7 +15,7 @@ describe("MCP tool catalog and permissions", () => {
   it("udržuje zobrazovanou matici jako úplný zdroj serverových tool policy", () => {
     const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
 
-    expect(toolNames).toHaveLength(20);
+    expect(toolNames).toHaveLength(21);
     expect(new Set(toolNames).size).toBe(toolNames.length);
     expect(toolNames).toEqual(expect.arrayContaining([
       "search",
@@ -23,6 +25,7 @@ describe("MCP tool catalog and permissions", () => {
       "tf_match_outlook_reply",
       "tf_link_outlook_message",
       "tf_prepare_bid_status_change",
+      "tf_prepare_bid_offer_update",
       "tf_prepare_change",
       "tf_confirm_change",
       "tf_execute_change",
@@ -77,6 +80,14 @@ describe("MCP tool catalog and permissions", () => {
       requiredPermissions: [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
       riskLevel: "medium",
     });
+    expect(getMcpToolPolicy("tf_prepare_bid_offer_update")).toEqual({
+      requiredPermissions: [
+        MCP_PERMISSIONS.read,
+        MCP_PERMISSIONS.write,
+        MCP_PERMISSIONS.bidOfferWrite,
+      ],
+      riskLevel: "medium",
+    });
 
     expect(hasMcpPermissions([MCP_PERMISSIONS.read], [MCP_PERMISSIONS.read])).toBe(true);
     expect(
@@ -85,6 +96,21 @@ describe("MCP tool catalog and permissions", () => {
         [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write],
       ),
     ).toBe(false);
+  });
+
+  it("documents Outlook linking with the same permissions as the tool catalog", () => {
+    const documentation = fs.readFileSync(
+      path.join(process.cwd(), "docs/mcp/tools-reference.md"),
+      "utf8",
+    );
+    const section = documentation.match(
+      /### `tf_link_outlook_message`([\s\S]*?)(?=\n### |\n## |$)/,
+    )?.[1];
+
+    expect(section).toBeDefined();
+    expect(section).toContain("Permissions: read + write;");
+    expect(section).not.toContain("bid offer write");
+    expect(section).not.toContain("finanční grant");
   });
 
   it("načítá smluvní přehled přes autorizované RPC a minimalizuje dokumentová data", async () => {
