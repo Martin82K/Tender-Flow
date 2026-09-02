@@ -50,7 +50,9 @@ warnings a relevance scénářů.
 15. registrovaný MCP OAuth klient resource claim získá, neregistrovaný OAuth
     klient ani běžná session nikoli,
 16. veřejný canary načte skutečné authorization/token endpointy a přesný JWKS
-    používaný serverovým validátorem,
+    používaný serverovým validátorem; na autorizačním serveru vyžaduje
+    `refresh_token` a `offline_access`, zatímco `offline_access` odmítne v MCP
+    protected-resource scopes,
 17. distribuovaný limiter: atomický limit, pevný risk bucket, cross-client
     izolace, fail-closed DB outage a zatížení více instancí.
 18. Outlook link: opakovaný link stejné immutable zprávy je idempotentní,

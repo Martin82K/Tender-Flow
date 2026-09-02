@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { redactForAudit, summarizeResultForAudit } from "../server/mcp/audit.js";
 import { buildMcpResourceMetadata } from "../server/mcp/response.js";
 import { validateMcpTokenClaims } from "../server/mcp/supabaseAuth.js";
+import { validateMcpRefreshDiscovery } from "../server/mcp/oauthMetadata.js";
 import { McpPermissionServiceUnavailableError } from "../server/mcp/permissionGrants.js";
 import {
   assertProjectVisible,
@@ -62,6 +63,22 @@ const callAuthorizedMcp = async (
 };
 
 describe("remote MCP server", () => {
+  it("ověří refresh capability na autorizačním serveru, ne v MCP resource scopes", () => {
+    expect(() => validateMcpRefreshDiscovery({
+      grant_types_supported: ["authorization_code", "refresh_token"],
+      scopes_supported: ["openid", "profile", "email", "offline_access"],
+    }, ["openid", "email", "profile"])).not.toThrow();
+
+    expect(() => validateMcpRefreshDiscovery({
+      grant_types_supported: ["authorization_code"],
+      scopes_supported: ["openid", "offline_access"],
+    }, ["openid"])).toThrow("refresh_token");
+
+    expect(() => validateMcpRefreshDiscovery({
+      grant_types_supported: ["authorization_code", "refresh_token"],
+      scopes_supported: ["openid", "offline_access"],
+    }, ["openid", "offline_access"])).toThrow("protected-resource metadata");
+  });
   afterEach(() => {
     resetMcpRateLimitsForTests();
     vi.unstubAllEnvs();

@@ -43,6 +43,10 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    aplikační `MCP_UPSTREAM_URL` a jedním redeployem přepnout veřejný `/api/mcp`,
    včetně `scope="openid"` ve `WWW-Authenticate`.
    Veřejnou část lze spustit příkazem `npm run mcp:canary:production`.
+   Canary ověřuje `refresh_token` grant a `offline_access` v metadatech
+   autorizačního serveru. `offline_access` nesmí být v protected-resource
+   metadatech ani v `WWW-Authenticate`: klient jej podle MCP specifikace může
+   doplnit z metadata autorizačního serveru, protože nejde o resource scope.
    První autorizovaný request musí přes service-role-only RPC zaregistrovat
    backend proof; následné permission a tool requesty musí nést stejný proof.
 5. Pod rolí `tenderflow_mcp_client` ověřit, že `mcp_current_user_id()`,
@@ -118,6 +122,12 @@ bez úspěšného pre-auditu server doménovou změnu nespustí.
   ověřit OAuth session podle user/client ID bez čtení tokenu. Po opravě session
   bucketu klienta jednou odpojit a znovu připojit; chybějící token neobnovovat
   ručně ani přes service role.
+- **Opakované `needsAuth` po expiraci access tokenu:** nejdřív spustit veřejný
+  canary a v hostingu filtrovat strukturované události `mcp_auth_rejected` podle
+  bezpečného pole `code`. `invalid_role` nebo `invalid_client` po refreshi
+  ukazuje na token claims/hook; `invalid_token` vyžaduje korelaci s chybou
+  token endpointu na straně klienta. Log nesmí obsahovat Authorization header,
+  JWT, refresh token, e-mail ani user ID.
 - **Přetížení:** zkontrolovat `consume_mcp_rate_limit`, počet aktivních bucketů,
   DB latency a `Rate limit service is unavailable`; podle klienta případně
   použít OAuth allowlist/WAF kill switch.
