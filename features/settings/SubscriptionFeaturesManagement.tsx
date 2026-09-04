@@ -37,8 +37,8 @@ type FeatureGroup = {
 
 const DISPLAY_TIERS = getDisplayTiers();
 const ALL_TIERS = getAllTiers();
-const REMOVED_FEATURE_KEYS = new Set(["ai_insights"]);
-const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr", "feature_voice_assistant"]);
+const REMOVED_FEATURE_KEYS = new Set(["ai_insights", "ai_viki", "feature_voice_assistant"]);
+const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr"]);
 const SYSTEM_AI_MODULES: FeatureSeed[] = [
   {
     key: "ai_ocr",
@@ -47,13 +47,6 @@ const SYSTEM_AI_MODULES: FeatureSeed[] = [
     category: "AI moduly",
     sortOrder: 52,
   },
-  {
-    key: "feature_voice_assistant",
-    name: "Viky - hlasová AI asistentka",
-    description: "Desktop-first hlasová asistentka Viky přes OpenAI Realtime s read-only nástroji.",
-    category: "AI moduly",
-    sortOrder: 53,
-  },
 ];
 const GROUP_META: Record<
   GroupId,
@@ -61,7 +54,7 @@ const GROUP_META: Record<
 > = {
   AI: {
     title: "AI",
-    description: "Asistenti, OCR a další inteligentní funkce.",
+    description: "OCR a další inteligentní funkce.",
     accent:
       "border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
     icon: "auto_awesome",

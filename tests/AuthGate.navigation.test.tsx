@@ -17,7 +17,7 @@ vi.mock("@/components/layouts/AuthLayout", () => ({
   ),
 }));
 
-vi.mock("@/components/LandingPage", () => ({
+vi.mock("@features/public/ui/LandingPage", () => ({
   LandingPage: () => <div data-testid="landing-page">Landing</div>,
 }));
 

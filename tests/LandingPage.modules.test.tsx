@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { LandingPage } from "@/components/LandingPage";
+import { LandingPage } from "@features/public/ui/LandingPage";
 
 const mockState = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -18,6 +18,48 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("uvádí fakturaci převodem bez platební brány", () => {
+    render(<LandingPage />);
+
+    expect(screen.queryByText(/stripe/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Fakturace · Bankovní převod")).toBeInTheDocument();
+  });
+
+  it("vysvětluje rozsah Zero Data Retention u Mistral AI", () => {
+    render(<LandingPage />);
+
+    const section = screen.getByRole("region", { name: "Mistral AI pro vaše dokumenty" });
+    expect(within(section).getByRole("heading", { name: "Co znamená Zero Data Retention?" })).toBeInTheDocument();
+    expect(within(section).getByText(/ZDR máme aktivované/i)).toBeInTheDocument();
+    expect(within(section).getByText(/trénování modelů je samostatné nastavení/i)).toBeInTheDocument();
+    expect(within(section).getByRole("link", { name: /podmínky ZDR u Mistral AI/i })).toHaveAttribute(
+      "href", "https://docs.mistral.ai/admin/monitor-comply/zero-data-retention",
+    );
+    expect(section).not.toHaveTextContent(/OpenAI|Gemini|Claude|ChatGPT/i);
+  });
+
+  it("popisuje vlastní MCP server, řízené změny a postup připojení", () => {
+    render(<LandingPage />);
+
+    const section = screen.getByRole("region", { name: "Vlastní MCP server TenderFlow" });
+    expect(section).toHaveTextContent("Model Context Protocol");
+    expect(section).toHaveTextContent(/příprava, potvrzení a provedení/i);
+    expect(section).toHaveTextContent("https://www.tenderflow.cz/api/mcp");
+    expect(within(section).getByRole("link", { name: "Spravovat MCP přístupy" })).toHaveAttribute(
+      "href", "/app/settings?tab=tools&subTab=mcp",
+    );
+    expect(section).toHaveTextContent(/klient má vlastní pravidla zpracování dat/i);
+  });
+
+  it("nabízí skutečné kotvy pro nové sekce i ovládání klávesnicí", () => {
+    render(<LandingPage />);
+
+    const navigation = within(screen.getByRole("banner"));
+    expect(navigation.getByRole("link", { name: "AI a data" })).toHaveAttribute("href", "#ai-data");
+    expect(navigation.getByRole("link", { name: "MCP" })).toHaveAttribute("href", "#mcp");
+    expect(navigation.getByRole("link", { name: "Ceník" })).toHaveAttribute("href", "#ceny");
+  });
+
   it("ponechává v horní navigaci pouze nerušivé přihlášení", () => {
     render(<LandingPage />);
 

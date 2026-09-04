@@ -63,11 +63,6 @@
     },
     {
       "file": "app/views/AuthGate.tsx",
-      "specifier": "@/components/LandingPage",
-      "target": "components/LandingPage"
-    },
-    {
-      "file": "app/views/AuthGate.tsx",
       "specifier": "@/components/layouts/AuthLayout",
       "target": "components/layouts/AuthLayout"
     },
@@ -460,21 +455,6 @@
       "file": "features/tools/api/index.ts",
       "specifier": "@/services/urlShortenerService",
       "target": "services/urlShortenerService"
-    },
-    {
-      "file": "features/voice-assistant/api/realtimeSession.ts",
-      "specifier": "@/services/functionsClient",
-      "target": "services/functionsClient"
-    },
-    {
-      "file": "features/voice-assistant/api/textResponse.ts",
-      "specifier": "@/services/functionsClient",
-      "target": "services/functionsClient"
-    },
-    {
-      "file": "features/voice-assistant/context/VoiceAssistantContext.tsx",
-      "specifier": "@/context/FeatureContext",
-      "target": "context/FeatureContext"
     },
     {
       "file": "infra/auth/authSessionStore.ts",

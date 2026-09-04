@@ -1,143 +1,13 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
-import { APP_VERSION } from "../config/version";
+import { APP_VERSION } from "@/config/version";
 import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
 import tenderLandscape from "@/assets/landing/tender-landscape.jpg";
-import "@/features/public/ui/landing-apex.css";
-
-const TENDER_STORY_STEPS = [
-  {
-    id: "brief",
-    number: "01",
-    label: "Zadání",
-    title: "Podklady drží pohromadě od prvního dne.",
-    detail: "Poptávka, výkaz výměr, termíny a odpovědnosti v jednom projektu.",
-    metric: "Kompletní zadání",
-  },
-  {
-    id: "offers",
-    number: "02",
-    label: "Nabídky",
-    title: "Nabídky na jednom místě.",
-    detail: "Porovnatelné, dohledatelné a připravené k rozhodnutí.",
-    metric: "8 z 10 přijato",
-  },
-  {
-    id: "evaluation",
-    number: "03",
-    label: "Vyhodnocení",
-    title: "Rizika jsou vidět dřív než na stavbě.",
-    detail: "Cena, termín, záruka i reference podle stejných kritérií.",
-    metric: "4 kritéria",
-  },
-  {
-    id: "decision",
-    number: "04",
-    label: "Rozhodnutí",
-    title: "Rozhodnutí má jasného vlastníka.",
-    detail: "Schválení, komentáře a doporučení zůstávají u zakázky.",
-    metric: "1 doporučení",
-  },
-  {
-    id: "contract",
-    number: "05",
-    label: "Smlouva",
-    title: "Každé rozhodnutí má dohledatelnou historii.",
-    detail: "Od vítězné nabídky ke smlouvě bez ztracených souvislostí.",
-    metric: "Auditní stopa",
-  },
-] as const;
-
-const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
-  title: string;
-  items: ReadonlyArray<string>;
-}> = [
-  {
-    title: "Tendry & projekty",
-    items: [
-      "Neomezené projekty",
-      "Přehled stavby: investor, lokace, termíny a odpovědné osoby",
-      "Finanční řízení: plánované náklady, smluvní ceny, dodatky a fakturace",
-      "Stav výběrových řízení: otevřené kategorie, vítězné nabídky a uzavřené smlouvy",
-      "Termíny, rizika a pokrytí rozpočtu napříč projekty",
-      "Plán výběrových řízení a importy VŘ",
-      "Harmonogram měsíc / týden / den",
-      "Subdodavatelé a jejich hodnocení",
-      "Sdílení projektů v týmu",
-      "Archivace projektů",
-      "Základní i detailní reporty",
-    ],
-  },
-  {
-    title: "Dokumenty & AI",
-    items: [
-      "Modul Smlouvy",
-      "OCR čtení dokumentů (AI)",
-      "Složkomat: automatizace složek",
-      "Excel Indexace VŘ",
-      "Excel Spojení listů",
-      "Excel odemčení",
-      "Export do Excel",
-      "Export do PDF",
-    ],
-  },
-  {
-    title: "Platforma & integrace",
-    items: [
-      "Desktopová aplikace",
-      "Automatické aktualizace v aplikaci",
-      "Okamžitý přístup k novinkám",
-      "Pokročilé integrace",
-      "Geokódování kontaktů",
-      "Integrace mapy s kontakty",
-      "Onboarding asistence",
-    ],
-  },
-];
-
-/** Animated counter that counts up from 0 to `target` when visible. */
-const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
-  target,
-  suffix = "+",
-}) => {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          const duration = 2000;
-          const startTime = performance.now();
-          const step = (now: number) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            // ease-out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.round(eased * target));
-            if (progress < 1) requestAnimationFrame(step);
-          };
-          requestAnimationFrame(step);
-        }
-      },
-      { threshold: 0.5 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [target]);
-
-  return (
-    <span ref={ref} className="counter-value">
-      {count}
-      {suffix}
-    </span>
-  );
-};
+import { TENDER_STORY_STEPS } from "../model/landingContent";
+import { LandingPricing } from "./LandingPricing";
+import { LandingIntegrations } from "./LandingIntegrations";
+import "./landing-apex.css";
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
@@ -145,11 +15,6 @@ export const LandingPage: React.FC = () => {
   const activeStory =
     TENDER_STORY_STEPS.find((step) => step.id === activeStoryStep) ??
     TENDER_STORY_STEPS[1];
-
-  const scrollToSection = useCallback((id: string) => {
-    const el = document.getElementById(id);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
 
   useEffect(() => {
     if (!hash) return;
@@ -162,14 +27,11 @@ export const LandingPage: React.FC = () => {
   }, [hash]);
 
   return (
-    <div className="landing-apex">
+    <div className="landing-apex" id="top">
       {/* ═══ NAV ═══ */}
       <header>
         <div className="nav-wrap">
-          <div
-            className="logo-group"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          >
+          <a className="logo-group" href="#top" aria-label="TenderFlow – úvod">
             <img
               src={logo}
               alt="TenderFlow, CRM pro stavební tendry"
@@ -182,12 +44,13 @@ export const LandingPage: React.FC = () => {
             <div className="logo-text">
               TenderFlow
             </div>
-          </div>
-          <nav className="nav-center">
-            <a onClick={() => scrollToSection("funkce")}>Funkce</a>
-            <a onClick={() => scrollToSection("platforma")}>Platforma</a>
-            <a onClick={() => scrollToSection("ceny")}>Cen&iacute;k</a>
-            <a onClick={() => scrollToSection("reference")}>Reference</a>
+          </a>
+          <nav className="nav-center" aria-label="Hlavní navigace">
+            <a href="#funkce">Funkce</a>
+            <a href="#ai-data">AI a data</a>
+            <a href="#mcp">MCP</a>
+            <a href="#ceny">Cen&iacute;k</a>
+            <a href="#reference">Reference</a>
           </nav>
           <div className="nav-right">
             <button className="btn-login" onClick={() => navigate("/login")}>
@@ -350,11 +213,9 @@ export const LandingPage: React.FC = () => {
               <div className="f-tag">AI</div>
               <h3>OCR čten&iacute; objedn&aacute;vek, smluv</h3>
               <p>
-                Pomoc&iacute; AI je zajištěno čten&iacute; naskenovan&yacute;ch
-                dokumentů pro z&iacute;sk&aacute;n&iacute; parametrů. Buduje
-                přehled o parametrech subdod&aacute;vek pro stavbu.
-                &Uacute;spora času proti proč&iacute;t&aacute;n&iacute;
-                naskenovan&yacute;ch dokumentů.
+                Mistral AI čte naskenované dokumenty a pomáhá získat
+                jejich klíčové údaje. Výsledky si zkontrolujete před uložením
+                ke smlouvě. ZDR chrání obsah zpracovaný podporovaným API.
               </p>
             </div>
             <div className="f-card f-3">
@@ -576,97 +437,8 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══ PRICING ═══ */}
-      <section id="ceny">
-        <div className="pricing-container">
-          <div style={{ textAlign: "center" }}>
-            <div className="sec-label" style={{ justifyContent: "center" }}>
-              Cen&iacute;k
-            </div>
-            <h2
-              className="sec-title"
-              style={{ margin: "0 auto 0.75rem" }}
-            >
-              Firemn&iacute; licence,{" "}
-              <span className="serif">
-                domluven&eacute; na m&iacute;ru
-              </span>
-            </h2>
-            <p
-              className="sec-desc"
-              style={{ margin: "0 auto 2rem", textAlign: "center" }}
-            >
-              TenderFlow nab&iacute;z&iacute;me v&yacute;hradně jako Enterprise
-              řešen&iacute; pro stavebn&iacute; firmy. Cenu, fakturačn&iacute;
-              obdob&iacute; a počet licenc&iacute; sestavujeme na m&iacute;ru
-              po firemn&iacute; konzultaci.
-            </p>
-          </div>
-
-          <div className="enterprise-card">
-            <div className="enterprise-card-head">
-              <div className="enterprise-card-tier">
-                <div className="tier-icon enterprise">&#9670;</div>
-                <span>Enterprise</span>
-              </div>
-              <div className="enterprise-card-price">
-                <span className="price-amount custom">Na m&iacute;ru</span>
-                <span className="enterprise-card-price-note">
-                  podle počtu licenc&iacute; a obdob&iacute;
-                </span>
-              </div>
-            </div>
-
-            <p className="enterprise-card-lead">
-              Kompletn&iacute; platforma pro ř&iacute;zen&iacute; tendrů,
-              obchodn&iacute; pipeline, dokumentů, reportingu a t&yacute;mov&yacute;ch
-              licenc&iacute; v jednom firemn&iacute;m syst&eacute;mu, včetně
-              všech modulů a AI funkc&iacute;.
-            </p>
-
-            <div className="price-divider" />
-
-            <div className="enterprise-feature-grid">
-              {ENTERPRISE_FEATURE_GROUPS.map((group) => (
-                <div key={group.title} className="enterprise-feature-col">
-                  <div className="enterprise-feature-col-title">
-                    {group.title}
-                  </div>
-                  <ul className="price-features">
-                    {group.items.map((item) => (
-                      <li key={item}>
-                        <span className="pf-check on">&#10003;</span> {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="price-divider" />
-
-            <div className="enterprise-pricing-actions">
-              <a
-                className="enterprise-pricing-cta"
-                href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo"
-              >
-                Domluvit firemn&iacute; konzultaci
-              </a>
-              <a
-                className="enterprise-pricing-secondary"
-                href={DEMO_REQUEST_URL}
-              >
-                Vyž&aacute;dat demo
-              </a>
-            </div>
-          </div>
-
-          <p className="price-note">
-            Enterprise fakturace prob&iacute;h&aacute; smluvně bankovn&iacute;m
-            převodem podle dohodnut&eacute;ho obdob&iacute; a počtu licenc&iacute;.
-          </p>
-        </div>
-      </section>
+      <LandingIntegrations />
+      <LandingPricing />
 
       {/* ═══ TESTIMONIALS ═══ */}
       <section id="reference">
@@ -808,8 +580,11 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="footer-col">
               <h4>Produkt</h4>
-              <a onClick={() => scrollToSection("funkce")}>Funkce</a>
-              <a onClick={() => scrollToSection("ceny")}>Cen&iacute;k</a>
+              <a href="#funkce">Funkce</a>
+              <a href="#ceny">Cen&iacute;k</a>
+              <a href="#ai-data">Mistral AI a data</a>
+              <a href="#mcp">MCP server</a>
+              <a href="/user-manual/">Uživatelská dokumentace</a>
               <a href={DEMO_REQUEST_URL}>Demo na vyž&aacute;d&aacute;n&iacute;</a>
             </div>
             <div className="footer-col">
@@ -836,9 +611,8 @@ export const LandingPage: React.FC = () => {
               <Link to="/privacy">Soukrom&iacute;</Link>
               <Link to="/cookies">Cookies</Link>
             </div>
-            <div className="stripe-badge">
-              Platby přes{" "}
-              <strong style={{ color: "var(--gray-1)" }}>Stripe</strong>
+            <div className="billing-note">
+              Fakturace · Bankovní převod
             </div>
           </div>
         </div>

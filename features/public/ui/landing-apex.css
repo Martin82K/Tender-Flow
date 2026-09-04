@@ -54,9 +54,35 @@
 .landing-apex .logo-img{width:36px;height:36px;border-radius:10px;object-fit:contain}
 .landing-apex .logo-text{font-size:1.0625rem;font-weight:600;letter-spacing:-0.02em}
 .landing-apex .logo-text span{color:var(--gray-2);font-weight:400;margin-left:0.375rem;font-size:0.8125rem}
-.landing-apex .nav-center{display:flex;gap:2.25rem}
+.landing-apex .nav-center{display:flex;gap:1.5rem}
 .landing-apex .nav-center a{font-size:0.8125rem;color:var(--gray-1);font-weight:450;transition:color .25s;cursor:pointer}
 .landing-apex .nav-center a:hover{color:var(--white)}
+.landing-apex .logo-group{color:inherit;text-decoration:none}
+.landing-apex section[id]{scroll-margin-top:6rem}
+.landing-apex a:focus-visible,.landing-apex button:focus-visible,.landing-apex summary:focus-visible{outline:2px solid var(--green);outline-offset:5px}
+
+/* Public AI and MCP information shares the existing landing palette. */
+.landing-apex .integration-heading{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;margin-bottom:2rem}
+.landing-apex .integration-heading .sec-desc{max-width:36rem;margin:0}
+.landing-apex .integration-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.landing-apex .integration-card,.landing-apex .integration-steps li{padding:2rem;border:1px solid var(--border);border-radius:20px;background:var(--bg-card)}
+.landing-apex .integration-card-highlight{background:linear-gradient(135deg,rgba(113,136,121,.15),transparent);border-color:rgba(126,163,144,.4)}
+.landing-apex .integration-eyebrow{display:block;color:var(--green);font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem}
+.landing-apex .integration-card h3,.landing-apex .integration-steps h3{font-size:1.35rem;font-weight:600;line-height:1.35;margin:0 0 1rem}
+.landing-apex .integration-card p,.landing-apex .integration-steps p,.landing-apex .integration-connect-body{font-size:.95rem;line-height:1.8;color:var(--gray-1)}
+.landing-apex .integration-card .integration-note{margin-top:1rem;font-size:.85rem}
+.landing-apex .integration-link{display:inline-block;margin-top:1.25rem;color:var(--green);font-size:.875rem;text-decoration:underline;text-underline-offset:4px}
+.landing-apex .integration-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;list-style:none;padding:0;margin:0 0 1.5rem}
+.landing-apex .integration-connect{border:1px solid var(--border);border-radius:16px;padding:1.5rem 2rem}
+.landing-apex .integration-connect summary{cursor:pointer;font-size:1rem;font-weight:600}
+.landing-apex .integration-connect-body{margin-top:1.5rem;max-width:55rem}
+.landing-apex .integration-connect-body ol{padding-left:1.5rem;list-style:decimal}
+.landing-apex .integration-connect-body code{display:block;margin:1rem 0;padding:1rem;border:1px solid var(--border);border-radius:8px;overflow-wrap:anywhere;color:var(--white);font-size:.875rem}
+.landing-apex .integration-connect-body .integration-note{margin-top:1.25rem}
+@media(max-width:900px){
+  .landing-apex .integration-heading,.landing-apex .integration-grid{grid-template-columns:1fr;gap:1.5rem}
+  .landing-apex .integration-steps{grid-template-columns:1fr}
+}
 .landing-apex .nav-right{display:flex;align-items:center;gap:1rem}
 .landing-apex .btn-login{font-size:0.8125rem;color:var(--gray-1);font-weight:500;transition:color .2s;cursor:pointer;background:none;border:none;font-family:var(--font);white-space:nowrap}
 .landing-apex .btn-login:hover{color:var(--white)}
@@ -294,7 +320,7 @@
 .landing-apex .footer-bottom-links{display:flex;gap:1.5rem}
 .landing-apex .footer-bottom-links a{color:var(--gray-2);transition:color .2s;cursor:pointer}
 .landing-apex .footer-bottom-links a:hover{color:var(--gray-1)}
-.landing-apex .stripe-badge{display:flex;align-items:center;gap:0.375rem;font-size:0.625rem;color:var(--gray-2)}
+.landing-apex .billing-note{display:flex;align-items:center;gap:0.375rem;font-size:0.625rem;color:var(--gray-2)}
 
 /* ═══════════ LEGAL CONTENT ═══════════ */
 .landing-apex .legal-content h2{font-size:1.25rem;font-weight:700;color:var(--white);margin-top:2rem;margin-bottom:0.75rem;letter-spacing:-0.02em}
@@ -319,6 +345,10 @@
   .landing-apex header{padding:0 1rem}
   .landing-apex .nav-wrap{gap:1rem}
   .landing-apex .nav-center{display:none}
+  .landing-apex:not(.auth-apex-page) .nav-wrap{flex-wrap:wrap}
+  .landing-apex:not(.auth-apex-page) .nav-center{display:flex;order:3;width:100%;gap:1.25rem;overflow-x:auto;padding:.25rem 0 .5rem;white-space:nowrap}
+  .landing-apex:not(.auth-apex-page) section[id]{scroll-margin-top:9rem}
+  .landing-apex .integration-card,.landing-apex .integration-steps li,.landing-apex .integration-connect{padding:1.5rem}
   .landing-apex .nav-right{gap:0.625rem}
   .landing-apex .btn-start{padding:0.625rem 1rem}
   .landing-apex .f-bento,.landing-apex .testi-grid{grid-template-columns:1fr}

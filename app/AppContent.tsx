@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
@@ -49,13 +49,7 @@ import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
 import { McpOAuthConsentPage } from "@/app/views/McpOAuthConsentPage";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
-import { TopbarActionsProvider } from "@/shared/ui/TopbarActionsContext";
 import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
-import { useAllContractsQuery } from "@/features/projects/contracts/hooks/useAllContractsQuery";
-import { VoiceAssistantProvider } from "@/features/voice-assistant/context/VoiceAssistantContext";
-import { shouldEnableVoiceAssistantForRoute } from "@/features/voice-assistant/model/routeAvailability";
-import { VoiceAssistantLauncher } from "@/features/voice-assistant/ui/VoiceAssistantLauncher";
-import { VoiceAssistantPanel } from "@/features/voice-assistant/ui/VoiceAssistantPanel";
 import { APP_CORE_DATA_LOAD_ERROR_CODE } from "@/shared/errors/appLoadError";
 import { formatIncidentReference } from "@/shared/errors/incidentReference";
 
@@ -75,21 +69,6 @@ export const AppContent: React.FC = () => {
 
   const { state, actions } = useAppData(showUiModal);
   const criticalLoadIncident = useCriticalLoadIncident(state.loadingErrorDiagnostic);
-  const isVoiceAssistantAdmin = user?.role === "admin";
-  const projectIds = useMemo(() => state.projects.map((project) => project.id), [state.projects]);
-  const { data: voiceContracts = [] } = useAllContractsQuery(
-    projectIds,
-    isVoiceAssistantAdmin && isDesktop && isAuthenticated && !authLoading,
-  );
-  const contractsByProject = useMemo(
-    () =>
-      voiceContracts.reduce<Record<string, typeof voiceContracts>>((acc, contract) => {
-        (acc[contract.projectId] ??= []).push(contract);
-        return acc;
-      }, {}),
-    [voiceContracts],
-  );
-
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
@@ -544,63 +523,41 @@ export const AppContent: React.FC = () => {
     contacts: state.contacts,
     projectDetails: state.allProjectDetails,
   };
-  const voiceSources = {
-    ...searchSources,
-    contractsByProject,
-  };
-  const shouldEnableVoiceAssistantRoute = shouldEnableVoiceAssistantForRoute({
-    currentView,
-    activeProjectTab,
-  });
-
   return (
     <GlobalSearchProvider sources={searchSources}>
-      <VoiceAssistantProvider
-        sources={voiceSources}
-        currentProjectId={currentView === "project" ? state.selectedProjectId || null : null}
+      <MainLayout
+        uiModal={uiModal}
+        closeUiModal={closeUiModal}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
         currentView={currentView}
-        isDesktop={isDesktop}
-        isAdmin={isVoiceAssistantAdmin && shouldEnableVoiceAssistantRoute}
+        projects={state.projects}
+        selectedProjectId={state.selectedProjectId ?? ""}
+        onProjectSelect={handleNavigateToProject}
+        activeProjectTab={activeProjectTab}
+        user={user}
+        theme={theme}
+        skin={skin}
+        onSetTheme={setTheme}
+        onSetSkin={setSkin}
+        uiScale={uiScale}
+        onSetUiScale={setUiScale}
+        onResetUiScale={resetUiScale}
+        onLogout={() => logout()}
+        isBackgroundLoading={state.isBackgroundLoading}
+        backgroundWarning={state.backgroundWarning}
+        onReloadData={() => actions.loadInitialData(true)}
+        onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
       >
-        <TopbarActionsProvider
-          actions={shouldEnableVoiceAssistantRoute ? <VoiceAssistantLauncher /> : null}
+        <LazyViewErrorBoundary
+          key={currentView}
+          onReload={() => window.location.reload()}
+          onLogout={() => logout()}
         >
-          <MainLayout
-            uiModal={uiModal}
-            closeUiModal={closeUiModal}
-            isSidebarOpen={isSidebarOpen}
-            setIsSidebarOpen={setIsSidebarOpen}
-            currentView={currentView}
-            projects={state.projects}
-            selectedProjectId={state.selectedProjectId ?? ""}
-            onProjectSelect={handleNavigateToProject}
-            activeProjectTab={activeProjectTab}
-            user={user}
-            theme={theme}
-            skin={skin}
-            onSetTheme={setTheme}
-            onSetSkin={setSkin}
-            uiScale={uiScale}
-            onSetUiScale={setUiScale}
-            onResetUiScale={resetUiScale}
-            onLogout={() => logout()}
-            isBackgroundLoading={state.isBackgroundLoading}
-            backgroundWarning={state.backgroundWarning}
-            onReloadData={() => actions.loadInitialData(true)}
-            onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
-          >
-            <LazyViewErrorBoundary
-              key={currentView}
-              onReload={() => window.location.reload()}
-              onLogout={() => logout()}
-            >
-              <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
-            </LazyViewErrorBoundary>
+          <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+        </LazyViewErrorBoundary>
 
-          </MainLayout>
-        </TopbarActionsProvider>
-        {shouldEnableVoiceAssistantRoute && <VoiceAssistantPanel />}
-      </VoiceAssistantProvider>
+      </MainLayout>
       <LegalAcceptanceModal
         isOpen={shouldRequireLegalAcceptance}
         isSubmitting={isLegalAcceptanceSaving}
