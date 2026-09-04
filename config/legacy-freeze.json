@@ -15,7 +15,6 @@
     "components/DeleteConfirmationModal.tsx",
     "components/EmailWhitelistManagement.tsx",
     "components/Header.tsx",
-    "components/LandingPage.tsx",
     "components/ProjectLayout.tsx",
     "components/ProjectManager.tsx",
     "components/ProjectOverview.tsx",

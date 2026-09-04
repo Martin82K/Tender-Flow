@@ -2,7 +2,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getFirstEnvSecret } from "../_shared/env.ts";
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
-import { resolveAuthorizedProjectMemoryContext } from "./memoryAccess.ts";
 
 // Define message interface for clarity
 interface Message {
@@ -10,92 +9,6 @@ interface Message {
     content: string | any[];
 }
 
-type MemoryVisibility = "public" | "internal";
-
-interface AgentProjectMemoryDocument {
-    meta: {
-        projectId: string;
-        updatedAt: string;
-        updatedBy: string;
-        version: number;
-        sectionsVisibility: Record<string, MemoryVisibility>;
-    };
-    sections: Array<{
-        title: string;
-        visibility: MemoryVisibility;
-        content: string;
-    }>;
-}
-
-const defaultMemorySections: Array<{ title: string; visibility: MemoryVisibility }> = [
-    { title: "Fakta (ověřená)", visibility: "internal" },
-    { title: "Otevřené body", visibility: "internal" },
-    { title: "Rozhodnutí", visibility: "internal" },
-    { title: "Rizika", visibility: "internal" },
-    { title: "Klientsky publikovatelné shrnutí", visibility: "public" },
-];
-
-const parseFrontmatter = (source: string): { frontmatter: Record<string, string>; body: string } => {
-    if (!source.startsWith("---\n")) return { frontmatter: {}, body: source };
-
-    const endMarker = source.indexOf("\n---\n", 4);
-    if (endMarker === -1) return { frontmatter: {}, body: source };
-
-    const raw = source.slice(4, endMarker);
-    const body = source.slice(endMarker + 5);
-    const frontmatter: Record<string, string> = {};
-
-    raw.split("\n").forEach((line) => {
-        const separator = line.indexOf(":");
-        if (separator <= 0) return;
-        const key = line.slice(0, separator).trim();
-        const value = line.slice(separator + 1).trim();
-        frontmatter[key] = value;
-    });
-
-    return { frontmatter, body };
-};
-
-const parseSections = (
-    body: string,
-    sectionsVisibility: Record<string, MemoryVisibility>,
-): AgentProjectMemoryDocument["sections"] => {
-    const matches = Array.from(body.matchAll(/^##\s+(.+)$/gm));
-    if (matches.length === 0) return [];
-
-    return matches.map((match, index) => {
-        const title = String(match[1] || "").trim();
-        const start = (match.index || 0) + match[0].length;
-        const end = index + 1 < matches.length ? (matches[index + 1].index || body.length) : body.length;
-        const content = body.slice(start, end).trim();
-
-        return {
-            title,
-            content,
-            visibility: sectionsVisibility[title] || "internal",
-        };
-    });
-};
-
-const createDefaultMemoryDocument = (projectId: string, userId: string): AgentProjectMemoryDocument => ({
-    meta: {
-        projectId,
-        updatedAt: new Date().toISOString(),
-        updatedBy: userId,
-        version: 1,
-        sectionsVisibility: defaultMemorySections.reduce((acc, item) => {
-            acc[item.title] = item.visibility;
-            return acc;
-        }, {} as Record<string, MemoryVisibility>),
-    },
-    sections: defaultMemorySections.map((item) => ({
-        title: item.title,
-        visibility: item.visibility,
-        content: "",
-    })),
-});
-const VIKI_FEATURE_KEY = "ai_viki";
-const MEMORY_BUCKET = "agent-memory";
 const MAX_PROMPT_CHARS = 20_000;
 const MAX_HISTORY_MESSAGES = 12;
 const MAX_HISTORY_MESSAGE_CHARS = 4_000;
@@ -220,56 +133,6 @@ const json = (req: Request, status: number, body: unknown) =>
         status,
         headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     });
-
-const parseMemoryDocument = (
-    projectId: string,
-    source: string,
-    userId: string,
-): AgentProjectMemoryDocument => {
-    const { frontmatter, body } = parseFrontmatter(source);
-    let sectionsVisibility: Record<string, MemoryVisibility> = {};
-
-    try {
-        sectionsVisibility = JSON.parse(frontmatter.sections_visibility || "{}");
-    } catch {
-        sectionsVisibility = {};
-    }
-
-    const sections = parseSections(body, sectionsVisibility);
-    if (sections.length === 0) {
-        return createDefaultMemoryDocument(projectId, userId);
-    }
-
-    return {
-        meta: {
-            projectId: frontmatter.project_id || projectId,
-            updatedAt: frontmatter.updated_at || new Date().toISOString(),
-            updatedBy: frontmatter.updated_by || userId,
-            version: Number(frontmatter.version || 1) || 1,
-            sectionsVisibility,
-        },
-        sections,
-    };
-};
-
-const memoryDocumentToMarkdown = (document: AgentProjectMemoryDocument): string => {
-    const header = [
-        "---",
-        `project_id: ${document.meta.projectId}`,
-        `updated_at: ${document.meta.updatedAt}`,
-        `updated_by: ${document.meta.updatedBy}`,
-        `version: ${document.meta.version}`,
-        `sections_visibility: ${JSON.stringify(document.meta.sectionsVisibility || {})}`,
-        "---",
-        "",
-    ];
-
-    const sectionBlocks = document.sections.map((section) => (
-        [`## ${section.title}`, section.content.trim(), ""].join("\n")
-    ));
-
-    return [...header, ...sectionBlocks].join("\n").trimEnd() + "\n";
-};
 
 const resolveUserOrganizationId = async (service: any, userId: string): Promise<string | null> => {
     const { data, error } = await service
@@ -431,18 +294,7 @@ Deno.serve(async (req) => {
             );
         }
         const user = await authRes.json();
-        const authed = createClient(supabaseUrl, apikey, {
-            auth: { persistSession: false },
-            global: {
-                headers: {
-                    apikey,
-                    Authorization: authHeader,
-                },
-            },
-        });
-
-        // 3. Parse request body before access control so Viki-specific actions can
-        // follow ai_viki feature flags instead of generic tier gating.
+        // Parse before provider work so retired actions cannot invoke a model.
         let body;
         try {
             body = await req.json();
@@ -464,6 +316,9 @@ Deno.serve(async (req) => {
             provider = 'openrouter',
             documentUrl
         } = body;
+        if (action === "memory-load" || action === "memory-save") {
+            return json(req, 410, { error: "This action has been retired" });
+        }
         const normalizedProvider = normalizeProvider(provider);
         if (!normalizedProvider) {
             return json(req, 400, {
@@ -500,163 +355,28 @@ Deno.serve(async (req) => {
 
         console.log(`[Proxy] Processing request for provider: ${normalizedProvider}, model: ${resolvedModel}`);
 
-        const isVikiScopedAction = action === "memory-load" || action === "memory-save" || action === "list-models";
+        const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
 
-        if (isVikiScopedAction) {
-            const { data: hasVikiAccess, error: accessError } = await service.rpc("user_id_has_feature", {
-                target_user_id: user.id,
-                feature_key: VIKI_FEATURE_KEY,
-            });
-
-            if (accessError) {
-                console.error("Viki access check error:", accessError);
-                return new Response(
-                    JSON.stringify({ error: "Failed to verify Viki access" }),
-                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            if (!hasVikiAccess) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Viki feature disabled",
-                        feature: VIKI_FEATURE_KEY,
-                    }),
-                    {
-                        status: 403,
-                        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
-                    }
-                );
-            }
-        } else {
-            const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
-
-            if (tierError) {
-                console.error("Tier check error:", tierError);
-                return new Response(
-                    JSON.stringify({ error: "Failed to verify subscription" }),
-                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const ALLOWED_TIERS = ['pro', 'enterprise', 'admin'];
-            if (!ALLOWED_TIERS.includes(tier)) {
-                return new Response(
-                    JSON.stringify({
-                        error: "Subscription required",
-                        message: "This feature requires a PRO or Enterprise subscription.",
-                        tier: tier
-                    }),
-                    {
-                        status: 403,
-                        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
-                    }
-                );
-            }
+        if (tierError) {
+            console.error("Tier check error:", tierError);
+            return new Response(
+                JSON.stringify({ error: "Failed to verify subscription" }),
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
+            );
         }
 
-        if (action === "memory-load" || action === "memory-save") {
-            const projectId = typeof body?.projectId === "string" ? body.projectId.trim() : "";
-            if (!projectId) {
-                return new Response(
-                    JSON.stringify({ error: "Missing projectId" }),
-                    { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const projectAccess = await resolveAuthorizedProjectMemoryContext(
-                authed,
-                projectId,
-                user.id,
-                action === "memory-save" ? "edit" : "view",
-            );
-            if (!projectAccess.ok) {
-                const error = projectAccess.error === "PROJECT_ORGANIZATION_MISSING"
-                    ? "Project organization context not found"
-                    : "No access to project";
-                const status = projectAccess.error === "PROJECT_ORGANIZATION_MISSING" ? 400 : 403;
-
-                return new Response(
-                    JSON.stringify({ error }),
-                    { status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const storagePath = `org/${projectAccess.value.organizationId}/projects/${projectAccess.value.projectId}/viki-memory.md`;
-
-            if (action === "memory-load") {
-                const { data: fileData, error: fileError } = await service.storage
-                    .from(MEMORY_BUCKET)
-                    .download(storagePath);
-
-                if (fileError) {
-                    const message = (fileError.message || "").toLowerCase();
-                    if (message.includes("not found") || message.includes("does not exist")) {
-                        return new Response(
-                            JSON.stringify({ document: null }),
-                            { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                        );
-                    }
-
-                    return new Response(
-                        JSON.stringify({ error: "Failed to load project memory", details: fileError.message }),
-                        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                    );
-                }
-
-                const source = await fileData.text();
-                const document = parseMemoryDocument(projectId, source, user.id);
-
-                return new Response(
-                    JSON.stringify({ document }),
-                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const incomingDocument = body?.document as AgentProjectMemoryDocument | undefined;
-            if (!incomingDocument || !Array.isArray(incomingDocument.sections)) {
-                return new Response(
-                    JSON.stringify({ error: "Invalid memory document payload" }),
-                    { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const normalizedSections = incomingDocument.sections.map((section) => ({
-                title: String(section?.title || "").trim(),
-                visibility: section?.visibility === "public" ? "public" : "internal",
-                content: String(section?.content || "").trim(),
-            })).filter((section) => section.title.length > 0);
-
-            const normalizedDocument: AgentProjectMemoryDocument = {
-                meta: {
-                    projectId,
-                    updatedAt: new Date().toISOString(),
-                    updatedBy: user.id,
-                    version: Math.max(1, Number(incomingDocument.meta?.version || 1)),
-                    sectionsVisibility: normalizedSections.reduce((acc, section) => {
-                        acc[section.title] = section.visibility;
-                        return acc;
-                    }, {} as Record<string, MemoryVisibility>),
-                },
-                sections: normalizedSections,
-            };
-
-            const markdown = memoryDocumentToMarkdown(normalizedDocument);
-            const { error: uploadError } = await service.storage.from(MEMORY_BUCKET).upload(storagePath, markdown, {
-                upsert: true,
-                contentType: "text/markdown; charset=utf-8",
-            });
-
-            if (uploadError) {
-                return new Response(
-                    JSON.stringify({ error: "Failed to save project memory", details: uploadError.message }),
-                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
+        const ALLOWED_TIERS = ['pro', 'enterprise', 'admin'];
+        if (!ALLOWED_TIERS.includes(tier)) {
             return new Response(
-                JSON.stringify({ document: normalizedDocument }),
-                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
+                JSON.stringify({
+                    error: "Subscription required",
+                    message: "This feature requires a PRO or Enterprise subscription.",
+                    tier: tier
+                }),
+                {
+                    status: 403,
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
+                }
             );
         }
 

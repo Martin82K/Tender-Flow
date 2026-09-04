@@ -24,11 +24,11 @@ describe("ai-proxy cost-abuse guard", () => {
     expect(firstProviderCallIndex).toBeGreaterThan(quotaIndex);
   });
 
-  it("nebere memory storage bucket z requestu a omezuje documentUrl na Supabase host", () => {
+  it("omezuje documentUrl na Supabase host a neobsahuje pristup do pameti asistenta", () => {
     const code = source();
 
-    expect(code).toContain('const MEMORY_BUCKET = "agent-memory"');
-    expect(code).toContain(".from(MEMORY_BUCKET)");
+    expect(code).not.toContain("MEMORY_BUCKET");
+    expect(code).not.toContain("service.storage");
     expect(code).not.toContain("body?.bucket");
     expect(code).toContain("sanitizeDocumentUrl(documentUrl, supabaseUrl)");
     expect(code).toContain("url.hostname !== allowedHost");

@@ -135,12 +135,6 @@ URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 
-### Voice assistant
-
-Desktopový/admin scénář s Realtime session, WebRTC klientem, textovým fallbackem
-a omezenou sadou datových tools. Dostupnost závisí na roli, platformě, route a
-feature konfiguraci.
-
 ### Nápověda a What's New
 
 Kontextová nápověda, vyhledávání, klávesové ovládání, discovery indikátory a

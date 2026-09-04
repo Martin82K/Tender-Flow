@@ -28,7 +28,7 @@ const ROUTES = [
     type: "article",
     noindex: false,
     summary:
-      "Tato stránka obsahuje aktuální obchodní podmínky používání platformy Tender Flow pro přípravu a vedení staveb, správu stavebních tendrů, subdodavatelů a souvisejících modulů. Definuje práva a povinnosti zákazníka i provozovatele, podmínky předplatného Starter / Pro / Enterprise, postup při ukončení smlouvy, omezení odpovědnosti a způsob řešení sporů.",
+      "Tato stránka obsahuje aktuální obchodní podmínky používání platformy Tender Flow pro přípravu a vedení staveb, správu stavebních tendrů, subdodavatelů a souvisejících modulů. Definuje práva a povinnosti zákazníka i provozovatele, podmínky firemních licencí Enterprise a smluvní fakturace, postup při ukončení smlouvy, omezení odpovědnosti a způsob řešení sporů.",
   },
   {
     path: "/privacy",
