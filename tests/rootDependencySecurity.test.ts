@@ -49,7 +49,7 @@ describe("root dependency security versions", () => {
       exceljs: {
         uuid: "11.1.1",
       },
-      "fast-uri": "3.1.5",
+      "fast-uri": "3.1.7",
       "form-data": "4.0.6",
       hono: "4.13.0",
       "ip-address": "10.4.0",
@@ -81,7 +81,7 @@ describe("root dependency security versions", () => {
     ["node_modules/dompurify", "3.4.13"],
     ["node_modules/electron", "43.3.0"],
     ["node_modules/electron-builder", "26.15.3"],
-    ["node_modules/fast-uri", "3.1.5"],
+    ["node_modules/fast-uri", "3.1.7"],
     ["node_modules/vitest/node_modules/es-module-lexer", "2.1.0"],
     ["node_modules/form-data", "4.0.6"],
     ["node_modules/hono", "4.13.0"],

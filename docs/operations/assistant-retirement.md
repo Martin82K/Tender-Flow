@@ -40,7 +40,7 @@ bezpečnostní kontrolu a verzovanou migraci.
 
 ## Ověření a omezení
 
-- Celá lokální sada: 463 souborů, 2 366 testů prošlo, bez skip/todo.
+- Celá lokální sada: 464 souborů, 2 368 testů prošlo, bez skip/todo.
 - Nové scénáře nejprve selhaly, poté prošly: obsah landing page, metadata,
   absence runtime asistenta, ukončené memory akce a oprávnění pro seznam modelů.
 - Typecheck, web build, desktop TypeScript compile, dokumentační odkazy,
@@ -59,3 +59,27 @@ bezpečnostní kontrolu a verzovanou migraci.
   Tato datová migrace nemění funkce ani RLS; nejde o uzavření databázového auditu.
   Další kontrolu potřebují například [search_path funkcí](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable)
   a [opakované RLS výpočty](https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan).
+
+## Oprava blokujícího dependency auditu
+
+První CI zastavil existující override `fast-uri@3.1.5` kvůli chybám normalizace
+URI. Override byl proto zvýšen na `3.1.7`; změnil se jediný balíček v lockfile,
+bez nových závislostí nebo lifecycle skriptů. Verze pochází z 2. září 2026.
+Posouzení se řídilo aktuální projektovou politikou supply-chain kontroly,
+nikoli samotným stářím vydání.
+
+Ověřeny npm registry URL a SHA-512, vydavatel Matteo Collina, shoda `gitHead`
+s podepsaným release commitem `412e40abd4eb8beabfb952d80abf949a2baf27a3`,
+rozdíl runtime souborů a navazující testy upstreamu. Balíček nepřidává závislosti
+ani instalační hooky. Dostupná metadata neobsahovala provenance attestation
+pro tento konkrétní balíček; registry podpis byl ověřen. Vyhledání známých
+incidentů neukázalo konkrétní kompromitaci fast-uri, což není záruka její absence.
+
+Instalace s `--ignore-scripts` změnila jeden balíček. Ověření podpisů rootu:
+860 balíčků, 146 attestations; desktop: 116 podpisů, 5 attestations.
+Root audit po opravě: 0 high/critical, 7 moderate. Desktop audit: 0 zranitelností.
+Nový runtime test nejdříve reprodukoval injekci hostitele přes port, poté
+ověřil její odmítnutí a funkční rozlišení standardního odkazu JSON Schema.
+
+Zdroje: [upstream advisory](https://github.com/fastify/fast-uri/security/advisories/GHSA-qw65-cvwx-89v3),
+[změny verzí 3.1.5 až 3.1.7](https://github.com/fastify/fast-uri/compare/v3.1.5...v3.1.7).
