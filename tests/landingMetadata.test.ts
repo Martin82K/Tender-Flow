@@ -14,6 +14,7 @@ describe("public landing metadata", () => {
     expect(software.offers[0].name).toBe("Enterprise");
     expect(software.offers[0].description).toMatch(/faktur|převod/i);
     expect(software.offers[0]).not.toHaveProperty("price");
+    expect(html).not.toMatch(/href="[^"]*\/register|"url":\s*"[^"]*\/register|Vytvořit účet zdarma/);
     expect(dom.head.textContent).not.toMatch(/Stripe|14 dní zdarma|Starter/i);
     expect(dom.querySelector('meta[name="description"]')?.getAttribute("content")).toMatch(/Mistral AI/);
     expect(JSON.stringify(schemas)).toContain("MCP");
