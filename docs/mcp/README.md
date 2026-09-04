@@ -39,8 +39,9 @@ nese vlastní protokolová a klientská metadata a nevyžaduje MCP session.
   Nastavení → Nástroje → MCP přístupy.
   Celý uživatelský OAuth souhlas lze na stejném místě odpojit po druhém
   potvrzení; tím se zneplatní relace a refresh tokeny pouze vybraného klienta.
-- Třífázový zápisový protokol dovoluje z business změn vykonat jen
-  `create_task`; ostatní typy server odmítá provést i s aktivním write grantem.
+- Třífázový zápisový protokol dovoluje `create_task`, změnu samotného stavu
+  přes `update_bid` a úpravu nabídky přes `update_bid_offer`. Ostatní typy server
+  odmítá provést i s aktivním write grantem.
   Samostatný idempotentní `tf_link_outlook_message` ukládá pouze stabilní
   identifikátory zprávy k existující kartě dodavatele. Nemění cenu, stav ani
   obsah nabídky a před zápisem vyžaduje write grant, projektové edit právo a

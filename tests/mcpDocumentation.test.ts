@@ -74,7 +74,10 @@ describe("MCP documentation contract", () => {
   it("labels current limitations and contains no documentation placeholders", () => {
     const combined = requiredDocuments.map((document) => read(`docs/mcp/${document}`)).join("\n");
 
-    expect(combined).toContain("Pouze `create_task`");
+    const overview = read("docs/mcp/README.md");
+    for (const type of ["create_task", "update_bid", "update_bid_offer"]) {
+      expect(overview).toContain(`\`${type}\``);
+    }
     expect(combined).toContain("Electron aplikace lokální MCP server nespouští");
     expect(combined).toContain("in-memory");
     expect(combined).not.toMatch(/\b(?:TODO|TBD|FIXME)\b/);
