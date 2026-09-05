@@ -22,11 +22,8 @@ export const LandingPage: React.FC = () => {
   useEffect(() => {
     if (loadedStoryImages.has(activeStoryStep)) {
       setDisplayedStoryStep(activeStoryStep);
-    } else if (failedStoryImages.has(displayedStoryStep)) {
-      const fallback = TENDER_STORY_STEPS.find((step) => loadedStoryImages.has(step.id));
-      if (fallback) setDisplayedStoryStep(fallback.id);
     }
-  }, [activeStoryStep, displayedStoryStep, loadedStoryImages, failedStoryImages]);
+  }, [activeStoryStep, loadedStoryImages]);
 
   useEffect(() => {
     if (!hash) return;
@@ -102,10 +99,10 @@ export const LandingPage: React.FC = () => {
               {TENDER_STORY_STEPS.map((step, index) => (
                 <img
                   key={step.id}
-                  className={step.id === displayedStoryStep ? "story-image is-visible" : "story-image"}
+                  className={step.id === displayedStoryStep && !failedStoryImages.has(step.id) ? "story-image is-visible" : "story-image"}
                   src={step.image}
                   alt={step.imageAlt}
-                  aria-hidden={step.id !== displayedStoryStep}
+                  aria-hidden={step.id !== displayedStoryStep || failedStoryImages.has(step.id)}
                   width={1586}
                   height={992}
                   decoding="async"

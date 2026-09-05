@@ -2,7 +2,7 @@
 
 Pět lokálních WebP ilustrací navazuje na schválený model `tender-landscape-ivory.jpg`. Mapování v `features/public/model/landingContent.ts`: Zadání → pláň, Nabídky → základy, Vyhodnocení → hrubá stavba, Rozhodnutí → dokončování, Smlouva → dokončená budova s okolím. Jde o vizuální metaforu postupu; popisy stále vysvětlují tender, nikoli sledování skutečné výstavby.
 
-Úvod začíná Zadáním. Každý krok mění text a po načtení také obraz. Předchozí načtená scéna zůstává při čekání nebo chybě; opožděná odpověď opuštěného kroku nepřepne aktuální výběr. Selhání se oznámí textem, ostatní kroky zůstávají použitelné. Přechod opacity trvá 450 ms, při prefers-reduced-motion je vypnutý. Žádné automatické přehrávání nebo intervaly. Nativní tlačítka podporují Tab/Enter/mezerník; pouze viditelný obraz má přístupný popisek.
+Úvod začíná Zadáním. Každý krok mění text a po načtení také obraz. Předchozí načtená scéna zůstává při čekání nebo chybě; opožděná odpověď opuštěného kroku nepřepne aktuální výběr. Selhání se oznámí textem, ostatní kroky zůstávají použitelné. Pokud selže úplně první obraz, scéna zůstane neutrální bez jiné fáze a bez rozbitého obrázku. Přechod opacity trvá 450 ms, při prefers-reduced-motion je vypnutý. Žádné automatické přehrávání nebo intervaly. Nativní tlačítka podporují Tab/Enter/mezerník; pouze viditelný obraz má přístupný popisek.
 
 Na desktopu zůstává překryvný panel a spodní navigace; na mobilu je panel nad nezakrytou celou scénou a od 360 px se všech pět tlačítek vejde na šířku; pod 360 px je lišta vodorovně posuvná. Rozměry scény rezervuje CSS, načítání nezpůsobuje posun rozložení.
 

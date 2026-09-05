@@ -115,3 +115,11 @@ Uživatel výslovně požádal odstranit marquee s názvy funkcí. Odstraněna c
 Společné srovnání před/po: `output/playwright/construction/comparison-no-marquee.png`, 1250 × 1211 na každé straně, krok 05. Zdrojový snímek před odstraněním byl posunut o 16 px, což je zohledněná odchylka polohy, nikoli layoutová regrese. Finální snímek `desktop-no-marquee.png`: přímý následující sourozenec hero je #funkce, .marquee-section neexistuje, dokument nepřetéká. Typografie, barvy, obrazová kvalita a texty ostatních sekcí zůstávají zachované. Zmizel celý pás i jeho rezervované místo; ostatní odsazení se nemění. Žádný nový P0/P1/P2 nález.
 
 final result: passed
+
+## Oprava review PR #413 — selhání první scény
+
+P2 připomínka PRRT_kwDOQbGm9c6fjT3T správně identifikovala, že při selhání úvodního obrazu automatický fallback vybral libovolnou jinou načtenou fázi. Odstraněn tento fallback: neúspěšný obraz není viditelný ani dostupný screen readeru, neutrální plocha zůstává rezervovaná a panel oznámí chybu. Jiný obraz se zobrazí až po výslovném výběru jeho kroku. Předchozí úspěšně zobrazená scéna se při selhání následně vybraného kroku nadále zachová.
+
+Nový test nejprve reprodukoval chybu (1 failed / 15 passed); po opravě 16/16 cílených testů. Pokrývá načtení jiné fáze před selháním první, zachování vybraného Zadání, absenci podstrčené fáze a funkční následný výběr Nabídek. Úspěšné vizuální stavy se nemění; chybový stav ověřen komponentovým testem, nikoli blokováním sítě v prohlížeči.
+
+final result: passed

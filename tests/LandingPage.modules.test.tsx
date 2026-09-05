@@ -220,4 +220,19 @@ describe("LandingPage nové moduly", () => {
     fireEvent.click(screen.getByRole("button", { name: /01 zadání/i }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
+
+  it("při selhání úvodní scény nepodsune jinou načtenou fázi", () => {
+    render(<LandingPage />);
+    const site = screen.getByAltText("Stavební pláň");
+    const foundations = screen.getByAltText("Základy stavby");
+    fireEvent.load(foundations);
+    fireEvent.error(site);
+    expect(site).not.toHaveClass("is-visible");
+    expect(foundations).not.toHaveClass("is-visible");
+    expect(screen.getByRole("button", { name: /01 zadání/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Ilustraci se nepodařilo načíst.");
+    fireEvent.click(screen.getByRole("button", { name: /02 nabídky/i }));
+    expect(foundations).toHaveClass("is-visible");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });
