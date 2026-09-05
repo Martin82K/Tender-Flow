@@ -69,10 +69,17 @@ export const LegalTerms: React.FC = () => {
           schválené zákazníkem.
         </p>
         <p className="mt-2">
-          Platba probíhá výhradně bankovním převodem na základě vystavené faktury.
+          U nově sjednaných licencí platba probíhá výhradně bankovním převodem
+          na základě vystavené faktury.
           Číslo účtu, splatnost a platební údaje jsou uvedeny na faktuře.
           Při opakovaném poskytování služby vystavujeme fakturu za sjednané
-          období; platby kartou ani automatické strhávání z karty nenabízíme.
+          období. Nové platby kartou ani automatické strhávání z karty nenabízíme.
+        </p>
+        <p className="mt-2">
+          U dříve uzavřených smluv se způsob úhrady řídí dosavadním ujednáním
+          až do sjednání změny. Samotné přijetí těchto podmínek nemění ani
+          neruší dříve sjednaný způsob platby; přechod na fakturaci převodem
+          je třeba dohodnout s provozovatelem.
         </p>
         <p className="mt-2">
           Není-li v nabídce pro podnikatele výslovně uvedeno jinak, jsou ceny
@@ -163,12 +170,19 @@ export const LegalTerms: React.FC = () => {
           incidentní záznamy potřebné pro provoz, obranu systému a řešení chyb.
         </p>
         <p className="mt-2">
-          Pro čtení dokumentů využíváme Mistral AI. Mistral AI po zpracování
-          dokumentu neukládá jeho obsah ani odpověď ve svém API. Pro toto
+          Při čtení dokumentů prostřednictvím Mistral AI platí následující
+          ochrana: Mistral AI po zpracování dokumentu neukládá jeho obsah ani
+          odpověď ve svém API. Pro toto
           zpracování máme aktivovaný režim Zero Data Retention (ZDR).
           Dokumenty a výsledky uložené v TenderFlow zůstávají dostupné pro
           vaši práci a jejich uchování se řídí těmito podmínkami a zásadami
           ochrany osobních údajů.
+        </p>
+        <p className="mt-2">
+          Toto ujištění platí pro zpracování prostřednictvím Mistral AI.
+          Při volbě jiné AI služby v nastavení organizace se uplatní pravidla
+          dané služby. Správce organizace před takovou změnou ověří ochranu dat
+          a informuje uživatele o zvoleném zpracování.
         </p>
         <p className="mt-2">
           Při používání AI se řídíme příslušnými pravidly EU AI Act
@@ -254,9 +268,15 @@ export const LegalTerms: React.FC = () => {
           13. Změny podmínek a závěrečná ustanovení
         </h2>
         <p className="mt-2">
-          Tyto Podmínky jsou účinné od data uvedeného výše. Provozovatel si
-          vyhrazuje právo Podmínky v přiměřeném rozsahu měnit; o podstatných
-          změnách bude Uživatel informován prostřednictvím aplikace nebo e-mailem.
+          Toto znění je dostupné pro nově uzavírané smlouvy od data uvedeného
+          výše. Pro stávající smluvní vztahy se nové znění použije až po jeho
+          přijetí uživatelem nebo po jiné výslovné dohodě stran. Do té doby
+          platí dosavadní ujednání.
+        </p>
+        <p className="mt-2">
+          Provozovatel může navrhnout přiměřené změny podmínek. O podstatných
+          změnách informuje uživatele prostřednictvím aplikace nebo e-mailem
+          a zpřístupní mu nové znění k přijetí.
         </p>
         <p className="mt-2">
           Pokud některé ustanovení těchto podmínek bude neplatné nebo

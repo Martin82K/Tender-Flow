@@ -37,17 +37,18 @@ describe("LandingPage nové moduly", () => {
     expect(section).not.toHaveTextContent(/bezstavové|produkční organizaci|trénování modelů|OpenAI|Gemini|Claude|ChatGPT/i);
   });
 
-  it("popisuje vlastní MCP server, řízené změny a postup připojení", () => {
+  it("vysvětluje společný postup s e-mailem, kalendářem a TenderFlow", () => {
     render(<LandingPage />);
 
-    const section = screen.getByRole("region", { name: "Vlastní MCP server TenderFlow" });
-    expect(section).toHaveTextContent("Model Context Protocol");
-    expect(section).toHaveTextContent(/příprava, potvrzení a provedení/i);
-    expect(section).toHaveTextContent("https://www.tenderflow.cz/api/mcp");
-    expect(within(section).getByRole("link", { name: "Spravovat MCP přístupy" })).toHaveAttribute(
-      "href", "/app/settings?tab=tools&subTab=mcp",
-    );
-    expect(section).toHaveTextContent(/klient má vlastní pravidla zpracování dat/i);
+    const section = screen.getByRole("region", { name: "Od e-mailu k dalšímu kroku v projektu" });
+    expect(section).toHaveTextContent(/vlastnímu MCP serveru/i);
+    expect(section).toHaveTextContent(/e-mailů, kalendáře a dokumentů/i);
+    expect(within(section).getByRole("heading", { name: "Zachytí, co se změnilo" })).toBeInTheDocument();
+    expect(within(section).getByRole("heading", { name: "Dohledá souvislosti" })).toBeInTheDocument();
+    expect(within(section).getByRole("heading", { name: "Připraví další krok" })).toBeInTheDocument();
+    expect(section).toHaveTextContent(/po vašem schválení může v TenderFlow vytvořit úkol/i);
+    expect(section).toHaveTextContent(/e-mail a kalendář zajišťují jejich vlastní konektory/i);
+    expect(section).not.toHaveTextContent(/OAuth|https:\/\/www.tenderflow.cz\/api\/mcp|Jak připojit MCP server/i);
   });
 
   it("nabízí skutečné kotvy pro nové sekce i ovládání klávesnicí", () => {

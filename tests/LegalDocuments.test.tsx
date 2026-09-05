@@ -60,6 +60,9 @@ describe("legal documents", () => {
     expect(screen.getByText(/výstupy mohou obsahovat chyby/i)).toBeInTheDocument();
     expect(screen.getByText(/dokumenty a výsledky uložené v TenderFlow/i)).toBeInTheDocument();
     expect(screen.getByText(/připojený klient má vlastní pravidla zpracování dat/i)).toBeInTheDocument();
+    expect(screen.getByText(/při volbě jiné AI služby/i)).toBeInTheDocument();
+    expect(screen.getByText(/u dříve uzavřených smluv/i)).toBeInTheDocument();
+    expect(screen.getByText(/pro stávající smluvní vztahy se nové znění použije až po jeho přijetí/i)).toBeInTheDocument();
     expect(screen.getByText(/Poslední aktualizace: 5. září 2026/)).toBeInTheDocument();
   });
 

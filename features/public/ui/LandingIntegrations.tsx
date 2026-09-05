@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "@shared/routing/router";
-import { buildAppUrl } from "@shared/routing/routeUtils";
 
 export const LandingIntegrations: React.FC = () => (
   <>
@@ -46,52 +45,56 @@ export const LandingIntegrations: React.FC = () => (
 
     <section id="mcp" aria-labelledby="landing-mcp-title">
       <div className="container">
-        <div className="sec-label">Integrace · Model Context Protocol</div>
+        <div className="sec-label">MCP · Propojená práce</div>
         <div className="integration-heading">
-          <h2 className="sec-title" id="landing-mcp-title">Vlastní MCP server TenderFlow</h2>
+          <h2 className="sec-title" id="landing-mcp-title">Od e-mailu k dalšímu kroku v projektu</h2>
           <p className="sec-desc">
-            Propojte svého AI klienta s kontextem projektů. Náš MCP server
-            zpřístupňuje vybraná data a podporované operace v rozsahu vašich oprávnění.
+            Díky vlastnímu MCP serveru může váš AI asistent spojit informace
+            z TenderFlow s podklady z e-mailů, kalendáře a dokumentů.
+            Místo přepínání mezi aplikacemi zadáte jeden požadavek.
           </p>
         </div>
         <ol className="integration-steps">
           <li>
-            <span className="integration-eyebrow">01 / Přehled</span>
-            <h3>Správné podklady</h3>
-            <p>Projekty, nabídky, smluvní přehledy a termíny. Kontaktní údaje vyžadují zvláštní oprávnění.</p>
+            <span className="integration-eyebrow">01 / Nová informace</span>
+            <h3>Zachytí, co se změnilo</h3>
+            <p>
+              V připojeném e-mailu najde novou nabídku nebo zprávu dodavatele
+              o posunu termínu. Doplní podklady z dokumentů a porovná termín
+              s vaším kalendářem.
+            </p>
           </li>
           <li>
-            <span className="integration-eyebrow">02 / Změny</span>
-            <h3>Nejdříve návrh</h3>
-            <p>Vytvoření úkolu nebo podporovaná změna stavu či ceny nabídky: příprava, potvrzení a provedení s auditní stopou.</p>
+            <span className="integration-eyebrow">02 / Souvislosti</span>
+            <h3>Dohledá souvislosti</h3>
+            <p>
+              V TenderFlow vyhledá odpovídající projekt, nabídky, smluvní
+              přehledy a termíny. Ukáže, jak nová informace souvisí
+              s rozpracovanou zakázkou.
+            </p>
           </li>
           <li>
-            <span className="integration-eyebrow">03 / Kontrola</span>
-            <h3>Přístup ve vašich rukou</h3>
-            <p>Připojení přes OAuth. Přístupy jednotlivých klientů můžete spravovat a odvolat v nastavení TenderFlow.</p>
+            <span className="integration-eyebrow">03 / Další krok</span>
+            <h3>Připraví další krok</h3>
+            <p>
+              Navrhne odpověď dodavateli a navazující úkol. Po vašem schválení
+              může v TenderFlow vytvořit úkol nebo upravit stav či cenu nabídky.
+            </p>
           </li>
         </ol>
-        <details className="integration-connect">
-          <summary>Jak připojit MCP server</summary>
-          <div className="integration-connect-body">
-            <ol>
-              <li>V klientovi s podporou vzdáleného MCP a OAuth přidejte adresu serveru:</li>
-            </ol>
-            <code>https://www.tenderflow.cz/api/mcp</code>
-            <ol start={2}>
-              <li>Přihlaste se svým účtem TenderFlow a zkontrolujte souhlas s připojením.</li>
-              <li>V Nastavení → Nástroje → MCP přístupy spravujte oprávnění pro kontakty a zápis.</li>
-            </ol>
-            <p className="integration-note">
-              Připojený klient má vlastní pravidla zpracování dat. ZDR u Mistral AI
-              se na něj automaticky nevztahuje. Dostupnost nástrojů závisí na vašich
-              oprávněních a podpoře klienta.
-            </p>
-            <Link className="integration-link" to={buildAppUrl("settings", { settingsTab: "tools", settingsSubTab: "mcp" })}>
-              Spravovat MCP přístupy
-            </Link>
-          </div>
-        </details>
+        <div className="integration-card">
+          <span className="integration-eyebrow">Příklad zadání</span>
+          <p>
+            „Najdi poslední e-mail od dodavatele, porovnej nový termín
+            s projektem v TenderFlow a mým kalendářem. Připrav odpověď
+            a navrhni úkol pro kontrolu nabídky.“
+          </p>
+          <p className="integration-note">
+            E-mail a kalendář zajišťují jejich vlastní konektory. Dostupné kroky
+            závisí na připojených službách a oprávněních; o provedení změn
+            rozhodujete vy. Připojené služby mají vlastní pravidla ochrany dat.
+          </p>
+        </div>
       </div>
     </section>
   </>
