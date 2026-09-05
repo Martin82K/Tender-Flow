@@ -130,12 +130,6 @@
 .landing-apex .social-text{font-size:0.8125rem;color:var(--gray-2)}
 .landing-apex .social-text strong{color:var(--gray-1);font-weight:600}
 
-/* ═══════════ MARQUEE ═══════════ */
-.landing-apex .marquee-section{padding:4rem 0;border-top:1px solid var(--border-hover);border-bottom:1px solid var(--border-hover);overflow:hidden;position:relative}
-.landing-apex .marquee-track{display:flex;gap:4rem;animation:apexScroll 25s linear infinite;width:max-content}
-@keyframes apexScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.landing-apex .marquee-item{font-family:var(--serif);font-size:1.75rem;color:var(--gray-1);white-space:nowrap;font-style:italic;display:flex;align-items:center;gap:1.5rem}
-.landing-apex .marquee-item::after{content:'\25C6 ';font-size:0.5rem;color:var(--green);font-style:normal}
 
 /* ═══════════ FEATURES ═══════════ */
 .landing-apex section{padding:8rem 2rem;position:relative}
@@ -355,7 +349,6 @@
   .landing-apex .footer-top{grid-template-columns:1fr 1fr}
   .landing-apex .app-body{grid-template-columns:1fr}
   .landing-apex .app-sidebar{display:none}
-  .landing-apex .marquee-section{display:none}
   .landing-apex .cta-features{flex-direction:column;align-items:center;gap:0.75rem}
   .landing-apex .social-strip{flex-direction:column;gap:0.75rem}
   .landing-apex .footer-bottom{flex-direction:column;gap:1rem;text-align:center}
@@ -399,8 +392,6 @@
 html[data-skin="space"] .landing-apex .story-steps button.active{background-color:var(--cta)!important;border-color:transparent!important;color:var(--bg)!important}
 html[data-skin="space"] .landing-apex .story-steps button.active:hover{background-color:var(--cta-hover)!important}
 html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:2px solid var(--cta-hover)!important;outline-offset:2px!important;box-shadow:0 0 0 4px var(--cta-glow)!important}
-.landing-apex .marquee-section{background:#121b17}
-.landing-apex .marquee-item{font-family:var(--font);font-style:normal;font-weight:600;letter-spacing:-.025em}
 .landing-apex .sec-title .serif,.landing-apex .cta-section h2 span{font-family:var(--font);font-style:normal;color:var(--green)}
 .landing-apex .cta-section{background:linear-gradient(180deg,transparent,rgba(113,136,121,.1))}
 .landing-apex .cta-section::before{background:radial-gradient(ellipse 50% 50%,rgba(49,91,255,.12),transparent)}
@@ -424,7 +415,7 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
   .landing-apex .story-steps{grid-template-columns:repeat(5,minmax(66px,1fr));overflow-x:auto}
 }
 @media(prefers-reduced-motion:reduce){
-  .landing-apex .hero-line,.landing-apex .marquee-track{animation:none!important}
+  .landing-apex .hero-line{animation:none!important}
   .landing-apex .story-steps button,.landing-apex .btn-hero-primary,.landing-apex .hero-scene>img{transition:none!important}
 }
 
@@ -481,7 +472,6 @@ body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner) {
 .landing-apex:not(.auth-apex-page) .story-steps button.active,
 .landing-apex:not(.auth-apex-page) .story-steps button.active span{color:var(--on-cta)}
 html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.active{color:var(--on-cta)!important}
-.landing-apex:not(.auth-apex-page) .marquee-section{background:var(--bg-elevated)}
 .landing-apex:not(.auth-apex-page) .integration-card-highlight{background:var(--bg-card);border-color:var(--border-orange)}
 .landing-apex:not(.auth-apex-page) .enterprise-card{background:var(--bg-card);border-color:var(--border-orange);box-shadow:var(--panel-shadow)}
 .landing-apex:not(.auth-apex-page) .enterprise-card::after{display:none}

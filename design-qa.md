@@ -107,3 +107,11 @@ final result: passed
 **Bezpečnost a omezení:** pouze statické assety ze stejného originu a lokální UI stav, žádné nové síťové API, tenant data, tajemství, oprávnění nebo změny CSP. Code-scanning signál GitHubu nebyl dostupný (404/no analysis); předchozí nesouvisející nálezy popsané výše tato změna neřeší. Nenahrazuje měření výkonu na fyzickém pomalém zařízení. Celkem se načítá přibližně o 348 kB více obrazových dat než u předchozího jediného JPEG, první snímek je menší.
 
 final result: passed
+
+## Dodatečná anotace — odstranění posuvného pásu
+
+Uživatel výslovně požádal odstranit marquee s názvy funkcí. Odstraněna celá sekce, její animace apexScroll a nepoužívané CSS; související test palety již nevyžaduje zrušený dekorativní oddělovač. Obsah samotných modulů zůstává zachovaný.
+
+Společné srovnání před/po: `output/playwright/construction/comparison-no-marquee.png`, 1250 × 1211 na každé straně, krok 05. Zdrojový snímek před odstraněním byl posunut o 16 px, což je zohledněná odchylka polohy, nikoli layoutová regrese. Finální snímek `desktop-no-marquee.png`: přímý následující sourozenec hero je #funkce, .marquee-section neexistuje, dokument nepřetéká. Typografie, barvy, obrazová kvalita a texty ostatních sekcí zůstávají zachované. Zmizel celý pás i jeho rezervované místo; ostatní odsazení se nemění. Žádný nový P0/P1/P2 nález.
+
+final result: passed

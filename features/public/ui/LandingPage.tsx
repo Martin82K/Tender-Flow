@@ -142,39 +142,6 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══ MARQUEE ═══ */}
-      <div className="marquee-section">
-        <div className="marquee-track">
-          {[
-            "Pipeline tendrů",
-            "Správa kontaktů",
-            "AI analýza smluv",
-            "TODO Osobní",
-            "Dokumentový hub",
-            "Harmonogram",
-            "Excel nástroje",
-            "Desktop & Web",
-            "Reporting",
-          ]
-            .concat([
-              "Pipeline tendrů",
-              "Správa kontaktů",
-              "AI analýza smluv",
-              "TODO Osobní",
-              "Dokumentový hub",
-              "Harmonogram",
-              "Excel nástroje",
-              "Desktop & Web",
-              "Reporting",
-            ])
-            .map((item, i) => (
-              <div key={i} className="marquee-item">
-                {item}
-              </div>
-            ))}
-        </div>
-      </div>
-
       {/* ═══ FEATURES ═══ */}
       <section id="funkce">
         <div className="container">
