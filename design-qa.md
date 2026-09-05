@@ -74,4 +74,8 @@ Na výslovnou žádost uživatele přibyla samostatná karta BAU-STAV a.s., stav
 
 Vizuálně ověřeno ve stejných světlých tokenech na desktopu 1250 × 1212 (`output/playwright/ivory/baustav-desktop.png`) a mobilu 390 × 844 (`baustav-mobile.png`), bez horizontálního přetečení. Jde o nově vyžádaný obsah mimo původní hero obrázek, nikoli o odchylku od něj. Regresní test ověřuje firmu, město, cíl odkazu a absenci citace/hodnocení. Celá finální sada: 2375/2375 v 465 souborech; typecheck, build, dokumentace, boundaries a legacy prošly.
 
+## Odolnost selektorů po revizi
+
+Připomínka k nepodporovanému `:has()` je vyřešena použitím odpouštějícího seznamu `:is(...)` pro sdílené tokeny. Neznámý selektor lišty tak nevyřadí platný selektor veřejné stránky. Chování odpovídá dokumentaci MDN pro :is() (https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:is). Výsledný minifikovaný CSS zachovává :is(); v prohlížeči byla jeho větev :has() nahrazena neznámou pseudotřídou při read-only dotazu, který nadále správně našel landing page. Skutečné pozadí zůstalo #f5f2ec. Vzhled a dříve schválené kompozice se nemění; plná sada 2375 testů znovu prošla. Starší Firefox nebyl samostatně spuštěn.
+
 final result: passed

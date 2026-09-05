@@ -424,8 +424,9 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
 }
 
 /* Selected public palette: ivory, ink and burnt orange. Auth keeps its own theme. */
-.landing-apex:not(.auth-apex-page),
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner {
+/* Forgiving selector list keeps public tokens when :has() is unsupported. */
+:is(.landing-apex:not(.auth-apex-page),
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner) {
   color-scheme:light;
   --bg:#f5f2ec;
   --bg-elevated:#f0ece5;
