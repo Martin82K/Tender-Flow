@@ -18,11 +18,31 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("uvádí BAU-STAV jako firemní referenci s odkazem bez smyšlené citace", () => {
+    render(<LandingPage />);
+
+    const reference = screen.getByRole("article", { name: "Firemní reference BAU-STAV a.s." });
+    expect(reference).toHaveTextContent("Karlovy Vary");
+    expect(within(reference).getByRole("link", { name: /baustav.cz/i })).toHaveAttribute("href", "https://www.baustav.cz/cs/");
+    expect(reference).not.toHaveTextContent(/[„“★]/);
+  });
+
+  it("nezahlcuje úvod tlačítkem pro demo a nabízí kontakt v závěru stránky", () => {
+    render(<LandingPage />);
+
+    const hero = screen.getByRole("heading", { level: 1 }).closest("section")!;
+    expect(within(hero).queryByRole("link", { name: "Domluvit ukázku" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Domluvit ukázku" })).toHaveAttribute("href", expect.stringContaining("mailto:"));
+  });
+
   it("uvádí fakturaci převodem bez platební brány", () => {
     render(<LandingPage />);
 
     expect(screen.queryByText(/stripe/i)).not.toBeInTheDocument();
     expect(screen.getByText("Fakturace · Bankovní převod")).toBeInTheDocument();
+    const pricing = screen.getByRole("heading", { name: /Firemní licence/ }).closest("section")!;
+    expect(within(pricing).getAllByRole("link")).toHaveLength(1);
+    expect(within(pricing).getByRole("link", { name: "Kontaktujte nás" })).toHaveAttribute("href", expect.stringContaining("mailto:martin@tenderflow.cz"));
   });
 
   it("ujišťuje o ochraně dokumentů srozumitelně a odkazuje na podmínky", () => {
@@ -114,7 +134,7 @@ describe("LandingPage nové moduly", () => {
   it("nabízí demo pouze na vyžádání a nespouští veřejnou demo session", () => {
     render(<LandingPage />);
 
-    const requestLinks = screen.getAllByRole("link", { name: /vyžádat demo/i });
+    const requestLinks = screen.getAllByRole("link", { name: /domluvit ukázku|demo na vyžádání/i });
     expect(requestLinks.length).toBeGreaterThan(0);
     requestLinks.forEach((link) => {
       expect(link).toHaveAttribute(

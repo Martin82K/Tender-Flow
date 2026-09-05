@@ -34,7 +34,7 @@ Datum: 5. 9. 2026. Rozsah: zvolená varianta 3 pro landing page a veřejné prá
 - Přihlášení se otevřelo a zachovalo vlastní motiv (`--bg: #0c1210`); aplikační a přihlašovací téma nejsou součástí změny.
 - Mobilní důkazy: `mobile.png`, `mobile-mcp.png`, `mobile-terms.png` ve stejném adresáři výstupů. Právní nadpisy jsou tmavé a čitelné.
 - Prohlížeč v ověřených stavech nehlásil chyby v konzoli. Ilustrace se načetla.
-- Regresní test nejprve RED (chybějící světlé tokeny), následně GREEN. Cílené testy: 18/18. Celá sada: 2372/2372, 465 souborů, bez přeskočených testů.
+- Regresní test nejprve RED (chybějící světlé tokeny), následně GREEN. Cílené testy: 18/18. Celá sada po dodatečných opravách: 2373/2373, 465 souborů, bez přeskočených testů.
 - Typecheck, produkční build, kontrola dokumentace, hranic modulů a legacy struktury prošly. Desktop TypeScript byl zkontrolován přímo pomocí existujícího kompilátoru bez instalace balíčků.
 - První běh celé sady zablokoval sandbox při otevření lokálního portu; opakovaný běh mimo toto omezení prošel.
 - Build zachovává existující varování o velikosti chunků. Není změněna autentizace, oprávnění, CSP, API ani závislosti; nevznikla migrace či desktopový instalátor.
@@ -49,5 +49,33 @@ GitHub Code Scanning při kontrole neposkytl analýzu (404). Dřívější obsah
 - [x] Ilustrace, průsvitné karty, stíny a CTA sladěny.
 - [x] Kontrast, desktop a mobil ověřeny.
 - [x] Společné vizuální srovnání po opravě bez zbývajícího P0/P1/P2 v rozsahu palety.
+
+## Dodatečná revize PR #410
+
+Po prvním merge dorazily tři P2 připomínky. Všechny byly ověřeny a opraveny:
+
+- Barevný štítek Riziko a iniciály referencí měly nedostatečný kontrast. Nyní mají neprůsvitné povrchy s explicitními páry tokenů (modrá `#24549a` na `#e8effb`, inkoust `#20252c` na `#e7e1d8`). Nový regresní test nejprve selhal a po opravě prošel; prohlížeč potvrdil stejné skutečné barvy. Důkaz: `output/playwright/ivory/references-final.png`.
+- Na nízkém desktopu se výška ilustrace nyní omezuje podle viewportu, pod 700 px výšky se upravuje velikost hlavního titulku. Při 1366 × 657 px je spodní hrana fází 612.41 px a CTA 527.67 px. Důkaz: `output/playwright/ivory/low-final.png`.
+- Cookie lišta je sourozenec stránky. Sdílí proto světlé tokeny pomocí selektoru `body:has(.landing-apex:not(.auth-apex-page))`; stav souhlasu ani analytika se nemění. První návštěva na čistém originu localhost ověřila světlou lištu i funkční volbu Jen nezbytné. Důkaz: `output/playwright/ivory/low-cookie.png`. Před volbou je lišta očekávaně překryvem nad spodní částí stránky.
+- Nové společné srovnání zdroje a implementace po opravách při 1280 × 720: `output/playwright/ivory/comparison-followup.png`, implementace `desktop-followup.png`. Kompozice, typografie, paleta, ilustrace a obsah zůstávají v přijatých mezích; žádné zbývající P0/P1/P2 v rozsahu této palety.
+- Opakovaně prošlo všech 2373 testů, typecheck, build, dokumentace, boundaries, legacy a desktop TypeScript. Konzole kontrolovaných stavů bez chyb. CI předchozího PR zaznamenalo 7 existujících moderate závislostních nálezů, žádné high/critical; tato změna závislosti nemění.
+
+## Zapracování uživatelských anotací
+
+Uživatel při prohlížení náhledu upřesnil finální obsah: úvod bez tlačítka Domluvit ukázku; v ceníku jediné tlačítko Kontaktujte nás; nadpis Co tedy získáte? bez ikony; položka Tender Flow MCP server. Tyto explicitní změny mají přednost před původním obrazovým návrhem. Odsazení pod úvodním odstavcem bylo zmenšeno.
+
+Finální společné porovnání: `output/playwright/ivory/comparison-user-comments.png` (zdroj vlevo, nová implementace vpravo, 1280 × 720 na každé straně). Aktuální hero: `hero-no-cta.png`; ceník po úpravách: `pricing-contact.png` (1250 × 1212). Odstraněné CTA je záměrná změna uživatele, nikoli vizuální vada. Kontaktní odkaz má správný mailto cíl. Nový test ověřuje absenci CTA v úvodu a jediný kontakt v ceníku; test původního demo odkazu nyní kontroluje zachované odkazy v závěru stránky a patičce.
+
+Po odstranění nevyužitého importu z ceníku se počet hran architektonického grafu snížil z 1791 na 1790 (vyřešených 1509 → 1508); odpovídající kontrolní počty byly aktualizovány. Celá sada po těchto změnách: 2374/2374 v 465 souborech; typecheck, build, dokumentace a strukturální kontroly prošly.
+
+## Firemní reference BAU-STAV
+
+Na výslovnou žádost uživatele přibyla samostatná karta BAU-STAV a.s., stavební společnost, Karlovy Vary, s odkazem na https://www.baustav.cz/cs/. Název a sídlo byly ověřeny na této oficiální stránce dne 5. 9. 2026; zařazení mezi reference je podloženo pokynem uživatele. Karta nemá připsanou citaci ani hvězdičkové hodnocení. Externí odkaz používá noopener noreferrer, bez načítání cizích skriptů či obrázků.
+
+Vizuálně ověřeno ve stejných světlých tokenech na desktopu 1250 × 1212 (`output/playwright/ivory/baustav-desktop.png`) a mobilu 390 × 844 (`baustav-mobile.png`), bez horizontálního přetečení. Jde o nově vyžádaný obsah mimo původní hero obrázek, nikoli o odchylku od něj. Regresní test ověřuje firmu, město, cíl odkazu a absenci citace/hodnocení. Celá finální sada: 2375/2375 v 465 souborech; typecheck, build, dokumentace, boundaries a legacy prošly.
+
+## Odolnost selektorů po revizi
+
+Připomínka k nepodporovanému `:has()` je vyřešena použitím odpouštějícího seznamu `:is(...)` pro sdílené tokeny. Neznámý selektor lišty tak nevyřadí platný selektor veřejné stránky. Chování odpovídá dokumentaci MDN pro :is() (https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:is). Výsledný minifikovaný CSS zachovává :is(); v prohlížeči byla jeho větev :has() nahrazena neznámou pseudotřídou při read-only dotazu, který nadále správně našel landing page. Skutečné pozadí zůstalo #f5f2ec. Vzhled a dříve schválené kompozice se nemění; plná sada 2375 testů znovu prošla. Starší Firefox nebyl samostatně spuštěn.
 
 final result: passed

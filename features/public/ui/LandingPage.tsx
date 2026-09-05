@@ -75,11 +75,6 @@ export const LandingPage: React.FC = () => {
               TenderFlow propojí poptávky, nabídky, dodavatele, termíny i
               smlouvy do jednoho řízeného procesu.
             </p>
-            <div className="hero-actions">
-              <a className="btn-hero-primary" href={DEMO_REQUEST_URL}>
-                Domluvit ukázku
-              </a>
-            </div>
             <div className="social-strip">
               <div className="social-text">
                 Jeden proces. Jedna historie. Jasné rozhodnutí.
@@ -452,6 +447,16 @@ export const LandingPage: React.FC = () => {
               <span className="serif">klienti</span>
             </h2>
           </div>
+          <article className="client-reference" aria-label="Firemní reference BAU-STAV a.s.">
+            <div>
+              <span className="integration-eyebrow">Firemní reference</span>
+              <h3>BAU-STAV a.s.</h3>
+            </div>
+            <p>Stavební společnost · Karlovy Vary</p>
+            <a className="integration-link" href="https://www.baustav.cz/cs/" target="_blank" rel="noopener noreferrer">
+              baustav.cz →
+            </a>
+          </article>
           <div className="testi-grid">
             <div className="testi-card">
               <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
@@ -464,10 +469,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background:
-                      "linear-gradient(135deg,var(--orange),var(--orange-dim))",
-                  }}
                 >
                   JN
                 </div>
@@ -490,9 +491,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background: "linear-gradient(135deg,#06b6d4,#0891b2)",
-                  }}
                 >
                   PS
                 </div>
@@ -512,10 +510,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background:
-                      "linear-gradient(135deg,var(--green),#059669)",
-                  }}
                 >
                   MK
                 </div>

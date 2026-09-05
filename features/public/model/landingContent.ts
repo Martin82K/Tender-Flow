@@ -80,7 +80,7 @@ export const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
       "Desktopová aplikace",
       "Automatické aktualizace v aplikaci",
       "Okamžitý přístup k novinkám",
-      "Vlastní MCP server",
+      "Tender Flow MCP server",
       "Geokódování kontaktů",
       "Integrace mapy s kontakty",
       "Onboarding asistence",
