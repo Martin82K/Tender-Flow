@@ -215,7 +215,7 @@ export const LandingPage: React.FC = () => {
               <p>
                 Mistral AI čte naskenované dokumenty a pomáhá získat
                 jejich klíčové údaje. Výsledky si zkontrolujete před uložením
-                ke smlouvě. ZDR chrání obsah zpracovaný podporovaným API.
+                ke smlouvě. Mistral AI po zpracování neuchovává obsah dokumentu.
               </p>
             </div>
             <div className="f-card f-3">
