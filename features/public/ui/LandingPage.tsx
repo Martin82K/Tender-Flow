@@ -3,6 +3,8 @@ import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { APP_VERSION } from "@/config/version";
 import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
+import contractScanVideo from "@/assets/landing/contract-scan.mp4";
+import contractScanPoster from "@/assets/landing/contract-scan-poster.jpg";
 import { TENDER_STORY_STEPS } from "../model/landingContent";
 import { LandingPricing } from "./LandingPricing";
 import { LandingIntegrations } from "./LandingIntegrations";
@@ -198,6 +200,22 @@ export const LandingPage: React.FC = () => {
                 jejich klíčové údaje. Výsledky si zkontrolujete před uložením
                 ke smlouvě. Mistral AI po zpracování neuchovává obsah dokumentu.
               </p>
+              <figure className="ocr-video">
+                <video
+                  aria-label="Ilustrační video zpracování smlouvy"
+                  src={contractScanVideo}
+                  poster={contractScanPoster}
+                  width={1280}
+                  height={720}
+                  controls
+                  playsInline
+                  preload="none"
+                >
+                  Váš prohlížeč nepodporuje přehrávání videa.
+                  <a href={contractScanVideo}>Otevřít video zpracování smlouvy</a>
+                </video>
+                <figcaption>Ilustrace AI zpracování dokumentu.</figcaption>
+              </figure>
             </div>
             <div className="f-card f-3">
               <h3>CRM kontakty</h3>
