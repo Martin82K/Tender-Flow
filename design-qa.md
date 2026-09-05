@@ -79,3 +79,31 @@ Vizuálně ověřeno ve stejných světlých tokenech na desktopu 1250 × 1212 (
 Připomínka k nepodporovanému `:has()` je vyřešena použitím odpouštějícího seznamu `:is(...)` pro sdílené tokeny. Neznámý selektor lišty tak nevyřadí platný selektor veřejné stránky. Chování odpovídá dokumentaci MDN pro :is() (https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:is). Výsledný minifikovaný CSS zachovává :is(); v prohlížeči byla jeho větev :has() nahrazena neznámou pseudotřídou při read-only dotazu, který nadále správně našel landing page. Skutečné pozadí zůstalo #f5f2ec. Vzhled a dříve schválené kompozice se nemění; plná sada 2375 testů znovu prošla. Starší Firefox nebyl samostatně spuštěn.
 
 final result: passed
+
+## Postup výstavby v hero — 5. 9. 2026
+
+**Zdroj a rozsah:** uživatel schválil postupnou výstavbu ve stávajícím obrázku. Vizuální pravda je `assets/landing/tender-landscape-ivory.jpg` a čtyři jeho cílené editace, produkční výstupy `assets/landing/construction-{site,foundations,shell,finishing,complete}.webp`. Úplné zadání a původ jsou v `assets/landing/construction.md`. Scény představují metaforu postupu tendru, popisy zachovávají skutečné funkce produktu. Žádné změny sloganu, ceníku nebo jiných sekcí.
+
+**Společné srovnání:** `output/playwright/construction/comparison-full.png` obsahuje zdrojovou produkci (`source-production.png`) a novou implementaci (`desktop-finishing.png`) vedle sebe, stejný krok 04, posun stránky 0, viewport 1250 × 1211 CSS px, screenshoty 1250 × 1211 px, hustota 1. Výsledný obraz 2500 × 1211 px. Rozdílná poloha běžícího marquee není odchylkou layoutu. Předchozí nesrovnatelný snímek sekce referencí byl nahrazen správným zdrojem před hodnocením.
+
+**Detail:** `comparison-complete.png` porovnává finální zdroj a odpovídající výřez skutečné scény po přepnutí na 05. Zdroj 1586 × 992 je normalizován stejným cover výřezem na 760 × 517 px; implementace má cca 760.4 × 517.3 CSS px, bez hustotního rozdílu. Zdroj bez UI a implementace se schváleným panelem a navigací jsou očekávaně odlišné pouze překryvy. Scéna, cesta, velikost budovy, světlo i odstín odpovídají.
+
+**Pět povinných povrchů:**
+- Typografie: fonty, hierarchie, slogan a desktopové zalomení zachované, malé texty čitelné; žádné zkrácené popisy.
+- Rozestupy/layout: desktop stejné rozměry a překryvy; mobil záměrně používá panel nad obrazem, aby stavbu nic nezakrývalo. Výška obrazu rezervována před načtením.
+- Barvy/tokeny: stávající ivory/ink/orange, původní tokeny a kontrastní stavy tlačítek zachovány.
+- Ilustrace: pět skutečných lokálních bitmap, shodná kamera a oranžová cesta; jemné generativní rozdíly detailů modelu akceptovány jako P3, nikoli měřítkový nebo kompoziční skok. WebP bez viditelných rušivých artefaktů při cílové velikosti.
+- Obsah: každý krok má vlastní ilustraci, správný popisek a původní vysvětlení tendru. Výchozí krok 01 umožní prohlédnout postup od pláně.
+
+**Historie oprav:**
+1. [P2] Původní mobilní cover výřez a panel překrývaly budovu. Důkaz `mobile-before.png`. Opraveno oddělením panelu a zobrazením celé scény; následný `mobile-complete.png` (390 × 844) ukazuje celý model, celý popis a pět tlačítek.
+2. [P2] Na 320 px přesahovaly dlouhé názvy svou buňku (Vyhodnocení scrollWidth 62 při clientWidth 52). Pod 360 px nyní lišta umožňuje vodorovný posun, tlačítka 66 px bez přesahu. `mobile-320-final.png` (320 × 740), dokument scrollWidth=viewport=320. Všechna tlačítka dostupná; fokus zvoleného koncového kroku posune lištu správně.
+3. Společné desktopové srovnání po opravách zachovává schválené rozložení. Žádné zbývající P0/P1/P2 v rozsahu změny.
+
+**Ověření chování:** všech pět klikacích kroků a Tab/Enter, správná dostupná aktivní ilustrace, žádný prázdný přechod při čekání na další asset; opožděné načtení starší volby a chyba assetu ověřeny regresními testy. Konzole prohlížeče bez chyb, všech pět obrazů skutečně načteno s naturalWidth > 0. V načteném produkčním CSS ověřeno transition:none pro ilustrace pod prefers-reduced-motion; samostatná OS emulace omezeného pohybu nebyla spuštěna. Na mobilu 390 px všech pět tlačítek viditelných, pod 360 px záměrně posuvná lišta.
+
+**Technické kontroly:** první RED 3 nové testy selhaly, po implementaci všechny prošly. Finální plná sada 2378/2378, 465 souborů. Typecheck, web build, docs, boundaries, legacy a lokální desktop tsc prošly. Nové závislosti ani instalace nejsou potřeba. Pět assetů celkem 540194 B, první 87724 B s vysokou prioritou, ostatní nízká priorita. První úplný běh nalezl pouze očekávanou změnu počtu obrazových importů v architektonickém snapshotu; po ověření a aktualizaci prošel druhý úplný běh.
+
+**Bezpečnost a omezení:** pouze statické assety ze stejného originu a lokální UI stav, žádné nové síťové API, tenant data, tajemství, oprávnění nebo změny CSP. Code-scanning signál GitHubu nebyl dostupný (404/no analysis); předchozí nesouvisející nálezy popsané výše tato změna neřeší. Nenahrazuje měření výkonu na fyzickém pomalém zařízení. Celkem se načítá přibližně o 348 kB více obrazových dat než u předchozího jediného JPEG, první snímek je menší.
+
+final result: passed

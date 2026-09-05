@@ -165,6 +165,7 @@ describe("LandingPage nové moduly", () => {
     const offersStep = screen.getByRole("button", { name: /02 nabídky/i });
     const contractStep = screen.getByRole("button", { name: /05 smlouva/i });
 
+    fireEvent.click(offersStep);
     expect(offersStep).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/nabídky na jednom místě/i)).toBeInTheDocument();
 
@@ -173,5 +174,50 @@ describe("LandingPage nové moduly", () => {
     expect(contractStep).toHaveAttribute("aria-pressed", "true");
     expect(offersStep).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText(/rozhodnutí má dohledatelnou historii/i)).toBeInTheDocument();
+  });
+
+  it("začíná plání a pro každý krok zobrazí vlastní fázi stavby", () => {
+    render(<LandingPage />);
+    const phases = ["Stavební pláň", "Základy stavby", "Hrubá stavba", "Dokončování stavby", "Hotová stavba s upraveným okolím"];
+    const steps = [/01 zadání/i, /02 nabídky/i, /03 vyhodnocení/i, /04 rozhodnutí/i, /05 smlouva/i];
+    const images = phases.map((name) => screen.getByAltText(name));
+    expect(new Set(images.map((img) => img.getAttribute("src"))).size).toBe(5);
+    expect(screen.getByRole("button", { name: steps[0] })).toHaveAttribute("aria-pressed", "true");
+    expect(images[0]).toHaveAttribute("fetchpriority", "high");
+    images.slice(1).forEach((img) => expect(img).toHaveAttribute("fetchpriority", "low"));
+    images.forEach((img, index) => {
+      fireEvent.load(img);
+      fireEvent.click(screen.getByRole("button", { name: steps[index] }));
+      expect(screen.getByRole("img", { name: phases[index] })).toHaveClass("is-visible");
+      expect(images.filter((image) => image.classList.contains("is-visible"))).toHaveLength(1);
+    });
+  });
+
+  it("ponechá načtenou scénu při čekání a ignoruje pozdní načtení opuštěného kroku", () => {
+    render(<LandingPage />);
+    const site = screen.getByAltText("Stavební pláň");
+    const foundations = screen.getByAltText("Základy stavby");
+    const complete = screen.getByAltText("Hotová stavba s upraveným okolím");
+    fireEvent.load(site);
+    fireEvent.click(screen.getByRole("button", { name: /02 nabídky/i }));
+    expect(site).toHaveClass("is-visible");
+    fireEvent.click(screen.getByRole("button", { name: /05 smlouva/i }));
+    fireEvent.load(foundations);
+    expect(site).toHaveClass("is-visible");
+    fireEvent.load(complete);
+    expect(complete).toHaveClass("is-visible");
+    expect(site).not.toHaveClass("is-visible");
+  });
+
+  it("při chybě obrázku zachová předchozí scénu i funkční kroky", () => {
+    render(<LandingPage />);
+    const site = screen.getByAltText("Stavební pláň");
+    fireEvent.load(site);
+    fireEvent.click(screen.getByRole("button", { name: /05 smlouva/i }));
+    fireEvent.error(screen.getByAltText("Hotová stavba s upraveným okolím"));
+    expect(site).toHaveClass("is-visible");
+    expect(screen.getByRole("status")).toHaveTextContent("Ilustraci se nepodařilo načíst.");
+    fireEvent.click(screen.getByRole("button", { name: /01 zadání/i }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
