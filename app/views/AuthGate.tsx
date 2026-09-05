@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
-import { LandingPage } from "@/components/LandingPage";
+import { LandingPage } from "@features/public/ui/LandingPage";
 import { ForgotPasswordPage } from "@/features/auth/ui/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/ui/LoginPage";
 import { MfaPage } from "@/features/auth/ui/MfaPage";

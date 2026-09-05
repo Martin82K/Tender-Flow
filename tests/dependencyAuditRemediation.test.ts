@@ -61,7 +61,7 @@ describe("dependency audit remediation", () => {
     ["node_modules/filelist/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
     ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
-    ["node_modules/fast-uri", "3.1.5"],
+    ["node_modules/fast-uri", "3.1.7"],
     ["node_modules/hono", "4.12.34"],
     ["node_modules/ip-address", "10.4.0"],
     ["node_modules/js-yaml", "4.3.1"],

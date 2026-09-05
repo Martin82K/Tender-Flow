@@ -14,7 +14,7 @@ export const DEFAULT_SEO: SeoMeta = {
   title:
     "Tender Flow — Platforma přípravy a vedení staveb | Stavební tendry, subdodavatelé, AI",
   description:
-    "Tender Flow je česká platforma pro přípravu a vedení staveb: stavební tendry, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub a harmonogram. Web i desktop. 14 dní zdarma.",
+    "TenderFlow propojuje stavební tendry, nabídky a smlouvy. Mistral AI pro dokumenty, vlastní MCP server. Firemní licence na fakturu a bankovní převod.",
   canonical: `${SITE_URL}/`,
   image: DEFAULT_OG_IMAGE,
 };
@@ -29,9 +29,9 @@ export const ROUTE_SEO: Record<string, SeoMeta> = {
     noindex: true,
   },
   "/register": {
-    title: "Registrace — 14 dní zdarma | Tender Flow",
+    title: "Registrace | Tender Flow",
     description:
-      "Vytvořte si účet v Tender Flow a vyzkoušejte 14 dní zdarma bez kreditní karty. Platforma pro přípravu a vedení staveb, stavební tendry a AI analýzu smluv.",
+      "Registrace do TenderFlow pro uživatele firemních licencí. Podmínky přístupu a fakturaci sjednáváme při firemní konzultaci.",
     canonical: `${SITE_URL}/register`,
     noindex: true,
   },

@@ -8,6 +8,9 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
 - [Katalog funkcí](product/feature-catalog.md) – uživatelské oblasti, dostupnost
   na webu/desktopu a vazba na feature flags.
 
+- [Mistral AI, ZDR a MCP](product/ai-data-and-mcp.md) – zpracování dat, připojení a fakturace.
+- [Další workflow a modernizace](product/workflow-opportunities.md) – návrh závazků ze smluv.
+
 ## Architektura
 
 - [Systémový přehled](architecture/system-overview.md) – runtime povrchy,
@@ -55,6 +58,7 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
 ## Provoz
 
 - [Deployment a release](operations/deployment-and-release.md)
+- [Vyřazení asistenta](operations/assistant-retirement.md) – rozsah, nasazení a ověření.
 - [Troubleshooting](operations/troubleshooting.md)
 - [Známá omezení](operations/known-limitations.md)
 - [Lokální statický deploy](local-static-deploy.md)
