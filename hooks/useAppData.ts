@@ -6,6 +6,7 @@ import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { useContactsQuery, CONTACT_KEYS } from "./queries/useContactsQuery";
 import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatusesQuery";
 import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
+import { ProjectUnavailableError } from "@features/projects/model/projectDetailError";
 import {
     useAddProjectMutation,
     useCloneTenderToRealizationMutation,
@@ -48,9 +49,26 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useProjectsQuery();
     const { data: contactStatuses = [], isLoading: statusesLoading, error: statusesError } = useContactStatusesQuery();
     const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useContactsQuery();
-    const { data: allProjectDetails = {}, isLoading: detailsLoading } = useAllProjectDetailsQuery(projects);
+    const { data: allProjectDetails = {}, isLoading: detailsLoading, results: detailResults } = useAllProjectDetailsQuery(projects);
 
-    const isDataLoading = projectsLoading || statusesLoading || contactsLoading || detailsLoading;
+    const selectedProjectQuery = detailResults[projects.findIndex(project => project.id === selectedProjectId)];
+    const selectedProjectDetailsStatus = useMemo(() => {
+        if (!selectedProjectId) return "idle";
+        if (projectsLoading) return "loading";
+        if (!selectedProjectQuery || selectedProjectQuery.error instanceof ProjectUnavailableError) return "unavailable";
+        if (selectedProjectQuery.data) return "ready";
+        if (selectedProjectQuery.isError || selectedProjectQuery.errorUpdatedAt > 0) return "error";
+        return "loading";
+    }, [selectedProjectId, projectsLoading, selectedProjectQuery]);
+    const isSelectedProjectDetailsFetching = selectedProjectQuery?.isFetching ?? false;
+    const canRetrySelectedProjectDetails = !!selectedProjectQuery && !projectsLoading;
+
+    // An open project owns its loader and retry; other detail queries must not hide it.
+    const isDataLoading = projectsLoading || statusesLoading || contactsLoading || (detailsLoading && !selectedProjectId);
+    const retrySelectedProjectDetails = useCallback(async () => {
+        if (!canRetrySelectedProjectDetails || selectedProjectQuery?.isFetching) return;
+        await selectedProjectQuery?.refetch({ cancelRefetch: false });
+    }, [canRetrySelectedProjectDetails, selectedProjectQuery]);
 
     // Surface critical loading errors to the UI instead of silently swallowing them.
     // If all three core queries fail, it's likely a systemic issue (auth, network, etc.)
@@ -282,6 +300,9 @@ export const useAppData = (showUiModal: (props: any) => void) => {
             isBackgroundLoading,
             backgroundWarning,
             selectedProjectId,
+            selectedProjectDetailsStatus,
+            isSelectedProjectDetailsFetching,
+            canRetrySelectedProjectDetails,
             isAdmin
         },
         actions: {
@@ -290,6 +311,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
             setContacts,
             setContactStatuses,
             setSelectedProjectId,
+            retrySelectedProjectDetails,
             setBackgroundWarning,
             setIsBackgroundLoading: () => { }, // no-op
             loadInitialData,

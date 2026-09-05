@@ -2,6 +2,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { applyLocalBudgetAttachments } from "@features/projects/model/budgetAttachmentLocalStore";
+import { ProjectUnavailableError } from "@features/projects/model/projectDetailError";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { withRetry } from "@shared/async/asyncControl";
 import type {
@@ -169,7 +170,7 @@ const fetchProjectDetails = async (
     investorInvoicesRes,
   ] = await Promise.all([
     withRetry<QueryResponse<ProjectDetailsRow>>(async () =>
-      dbAdapter.from("projects").select("*").eq("id", projectId).single(),
+      dbAdapter.from("projects").select("*").eq("id", projectId).maybeSingle(),
     ),
     withRetry<QueryResponse<DemandCategoryRow[]>>(async () =>
       dbAdapter
@@ -213,15 +214,14 @@ const fetchProjectDetails = async (
   ]);
 
   if (projectRes.error) throw projectRes.error;
+  // Missing and RLS-filtered rows intentionally have the same public state.
+  if (!projectRes.data) throw new ProjectUnavailableError();
   if (categoriesRes.error) throw categoriesRes.error;
   if (contractRes.error) throw contractRes.error;
   if (financialsRes.error) throw financialsRes.error;
   if (amendmentsRes.error) throw amendmentsRes.error;
   if (internalAmendmentsRes.error) throw internalAmendmentsRes.error;
   if (investorInvoicesRes.error) throw investorInvoicesRes.error;
-  if (!projectRes.data) {
-    throw new Error("Projekt nebyl při načítání detailu nalezen.");
-  }
 
   const project = projectRes.data;
   const categories: DemandCategory[] = applyLocalBudgetAttachments(

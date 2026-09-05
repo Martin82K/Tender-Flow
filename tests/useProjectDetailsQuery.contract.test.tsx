@@ -159,7 +159,7 @@ describe("useProjectDetailsQuery contract", () => {
     renderHook(() => useProjectDetailsQuery("project-1"));
 
     await expect(state.queryOptions?.queryFn()).rejects.toThrow(
-      "Projekt nebyl při načítání detailu nalezen.",
+      "Projekt není dostupný.",
     );
   });
 
