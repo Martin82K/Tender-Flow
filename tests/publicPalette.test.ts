@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const stylesheet = fs.readFileSync("features/public/ui/landing-apex.css", "utf8");
-const publicTokens = stylesheet.match(/\.landing-apex:not\(\.auth-apex-page\)\s*\{([^}]+)\}/)?.[1] ?? "";
+const publicTokens = stylesheet.match(/\.landing-apex:not\(\.auth-apex-page\)(?:,[^{]+)?\s*\{([^}]+)\}/)?.[1] ?? "";
 const token = (name: string) => {
   const value = publicTokens.match(new RegExp(`--${name}:\\s*(#[a-fA-F0-9]{6})\\s*;`))?.[1];
   if (!value) throw new Error(`Missing public color token: ${name}`);
@@ -33,6 +33,12 @@ describe("public ivory palette readability", () => {
   it("keeps buttons and selected process steps readable, including hover", () => {
     for (const background of ["cta", "cta-hover"]) {
       expect(contrast(token("on-cta"), token(background))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps small risk tags and testimonial initials readable", () => {
+    for (const name of ["tag-blue", "avatar"]) {
+      expect(contrast(token(`${name}-fg`), token(`${name}-bg`))).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

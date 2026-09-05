@@ -34,7 +34,7 @@ Datum: 5. 9. 2026. Rozsah: zvolená varianta 3 pro landing page a veřejné prá
 - Přihlášení se otevřelo a zachovalo vlastní motiv (`--bg: #0c1210`); aplikační a přihlašovací téma nejsou součástí změny.
 - Mobilní důkazy: `mobile.png`, `mobile-mcp.png`, `mobile-terms.png` ve stejném adresáři výstupů. Právní nadpisy jsou tmavé a čitelné.
 - Prohlížeč v ověřených stavech nehlásil chyby v konzoli. Ilustrace se načetla.
-- Regresní test nejprve RED (chybějící světlé tokeny), následně GREEN. Cílené testy: 18/18. Celá sada: 2372/2372, 465 souborů, bez přeskočených testů.
+- Regresní test nejprve RED (chybějící světlé tokeny), následně GREEN. Cílené testy: 18/18. Celá sada po dodatečných opravách: 2373/2373, 465 souborů, bez přeskočených testů.
 - Typecheck, produkční build, kontrola dokumentace, hranic modulů a legacy struktury prošly. Desktop TypeScript byl zkontrolován přímo pomocí existujícího kompilátoru bez instalace balíčků.
 - První běh celé sady zablokoval sandbox při otevření lokálního portu; opakovaný běh mimo toto omezení prošel.
 - Build zachovává existující varování o velikosti chunků. Není změněna autentizace, oprávnění, CSP, API ani závislosti; nevznikla migrace či desktopový instalátor.
@@ -49,5 +49,15 @@ GitHub Code Scanning při kontrole neposkytl analýzu (404). Dřívější obsah
 - [x] Ilustrace, průsvitné karty, stíny a CTA sladěny.
 - [x] Kontrast, desktop a mobil ověřeny.
 - [x] Společné vizuální srovnání po opravě bez zbývajícího P0/P1/P2 v rozsahu palety.
+
+## Dodatečná revize PR #410
+
+Po prvním merge dorazily tři P2 připomínky. Všechny byly ověřeny a opraveny:
+
+- Barevný štítek Riziko a iniciály referencí měly nedostatečný kontrast. Nyní mají neprůsvitné povrchy s explicitními páry tokenů (modrá `#24549a` na `#e8effb`, inkoust `#20252c` na `#e7e1d8`). Nový regresní test nejprve selhal a po opravě prošel; prohlížeč potvrdil stejné skutečné barvy. Důkaz: `output/playwright/ivory/references-final.png`.
+- Na nízkém desktopu se výška ilustrace nyní omezuje podle viewportu, pod 700 px výšky se upravuje velikost hlavního titulku. Při 1366 × 657 px je spodní hrana fází 612.41 px a CTA 527.67 px. Důkaz: `output/playwright/ivory/low-final.png`.
+- Cookie lišta je sourozenec stránky. Sdílí proto světlé tokeny pomocí selektoru `body:has(.landing-apex:not(.auth-apex-page))`; stav souhlasu ani analytika se nemění. První návštěva na čistém originu localhost ověřila světlou lištu i funkční volbu Jen nezbytné. Důkaz: `output/playwright/ivory/low-cookie.png`. Před volbou je lišta očekávaně překryvem nad spodní částí stránky.
+- Nové společné srovnání zdroje a implementace po opravách při 1280 × 720: `output/playwright/ivory/comparison-followup.png`, implementace `desktop-followup.png`. Kompozice, typografie, paleta, ilustrace a obsah zůstávají v přijatých mezích; žádné zbývající P0/P1/P2 v rozsahu této palety.
+- Opakovaně prošlo všech 2373 testů, typecheck, build, dokumentace, boundaries, legacy a desktop TypeScript. Konzole kontrolovaných stavů bez chyb. CI předchozího PR zaznamenalo 7 existujících moderate závislostních nálezů, žádné high/critical; tato změna závislosti nemění.
 
 final result: passed

@@ -424,7 +424,8 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
 }
 
 /* Selected public palette: ivory, ink and burnt orange. Auth keeps its own theme. */
-.landing-apex:not(.auth-apex-page) {
+.landing-apex:not(.auth-apex-page),
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner {
   color-scheme:light;
   --bg:#f5f2ec;
   --bg-elevated:#f0ece5;
@@ -444,6 +445,10 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
   --cta-hover:#983e1b;
   --cta-glow:rgba(175,72,33,.14);
   --on-cta:#ffffff;
+  --tag-blue-bg:#e8effb;
+  --tag-blue-fg:#24549a;
+  --avatar-bg:#e7e1d8;
+  --avatar-fg:#20252c;
   --white:#20252c;
   --gray-0:#20252c;
   --gray-1:#555d67;
@@ -480,9 +485,23 @@ html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.a
 @media(min-width:1121px){
   .landing-apex:not(.auth-apex-page) .hero{padding-top:7rem}
   .landing-apex:not(.auth-apex-page) .hero-landscape{align-self:start;margin-top:3.25rem}
-  .landing-apex:not(.auth-apex-page) .hero-landscape>img{aspect-ratio:1.47}
+  .landing-apex:not(.auth-apex-page) .hero-landscape>img{aspect-ratio:1.47;max-height:max(360px,calc(100svh - 188px))}
 }
 @media(max-width:768px){
   .landing-apex:not(.auth-apex-page) .hero-landscape{background:transparent;border:0;box-shadow:none}
   .landing-apex:not(.auth-apex-page) .hero-landscape>img{box-shadow:var(--panel-shadow)}
+}
+
+.landing-apex:not(.auth-apex-page) .kc-tag.blue{background:var(--tag-blue-bg);color:var(--tag-blue-fg)}
+.landing-apex:not(.auth-apex-page) .testi-avatar{background:var(--avatar-bg);color:var(--avatar-fg)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner{background:var(--bg-card);border-color:var(--border);box-shadow:var(--panel-shadow)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-title{color:var(--white)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-text{color:var(--gray-1)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-link{color:var(--orange)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-essential{background:var(--bg-card);border-color:var(--gray-2);color:var(--white)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-essential:hover{background:var(--bg-elevated)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-accept{background:var(--cta);color:var(--on-cta)}
+body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-accept:hover{background:var(--cta-hover)}
+@media(min-width:1121px) and (max-height:700px){
+  .landing-apex:not(.auth-apex-page) .hero h1{font-size:clamp(3.1rem,4.6vw,4rem)}
 }

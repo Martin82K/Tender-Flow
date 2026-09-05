@@ -464,10 +464,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background:
-                      "linear-gradient(135deg,var(--orange),var(--orange-dim))",
-                  }}
                 >
                   JN
                 </div>
@@ -490,9 +486,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background: "linear-gradient(135deg,#06b6d4,#0891b2)",
-                  }}
                 >
                   PS
                 </div>
@@ -512,10 +505,6 @@ export const LandingPage: React.FC = () => {
               <div className="testi-author">
                 <div
                   className="testi-avatar"
-                  style={{
-                    background:
-                      "linear-gradient(135deg,var(--green),#059669)",
-                  }}
                 >
                   MK
                 </div>
