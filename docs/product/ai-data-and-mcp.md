@@ -42,3 +42,22 @@ Veřejná nabídka je firemní licence Enterprise s individuální cenou.
 Úhrada probíhá bankovním převodem podle faktury. Landing page ani její SEO
 podklady nenabízejí karetní checkout nebo automatický trial. Historická
 billing data a serverová kompatibilita nejsou tímto obsahovým krokem migrovány.
+
+
+## Veřejné ujištění a podmínky od 5. září 2026
+
+Landing page popisuje ochranu dokumentů krátce: Mistral AI po zpracování
+neukládá obsah dokumentu ani odpověď ve svém API. Technický rozsah ZDR
+zůstává popsaný výše. Toto ujištění se týká čtení dokumentů přes Mistral,
+nikoli úložiště TenderFlow nebo samostatně připojených MCP klientů.
+
+Podmínky uvádějí závazek řídit se příslušnými pravidly EU AI Act a nutnost
+kontroly AI výstupů člověkem. Nejde o prohlášení o certifikaci ani o závěr,
+že samotné ZDR zajišťuje soulad se všemi povinnostmi AI Act.
+Zdroj: [Evropská komise – AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai).
+
+Verze podmínek `2026-09-05` nahrazuje `2026-03-12`. Existující mechanismus
+souhlasů vyžádá přijetí aktuálních dokumentů při dalším vstupu do aplikace;
+předchozí souhlas se nepovažuje automaticky za souhlas s novým zněním.
+Verze zásad ochrany osobních údajů se tímto krokem nemění. Nové podmínky
+upřesňují také firemní licenci Enterprise, fakturaci a výhradní platbu převodem.

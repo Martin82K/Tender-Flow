@@ -26,22 +26,19 @@ export const LandingIntegrations: React.FC = () => (
             <a className="integration-link" href="/user-manual/">Prohlédnout uživatelský manuál →</a>
           </article>
           <article className="integration-card integration-card-highlight">
-            <span className="integration-eyebrow">02 / Zero Data Retention</span>
-            <h3>Co znamená Zero Data Retention?</h3>
+            <span className="integration-eyebrow">02 / Ochrana dat</span>
+            <h3>Vaše dokumenty zůstávají vaše</h3>
             <p>
-              ZDR znamená, že Mistral AI u podporovaných API požadavků
-              neuchovává vstupy ani výstupy déle, než je nutné k vytvoření
-              odpovědi. ZDR máme aktivované pro naši produkční organizaci.
+              Mistral AI po zpracování dokumentu neukládá jeho obsah ani odpověď
+              ve svém API. Používáme režim Zero Data Retention.
             </p>
             <p className="integration-note">
-              Vztahuje se na podporované OCR a další bezstavové API.
-              Samostatně uložené soubory a služby s historií mají vlastní
-              pravidla. ZDR nemaže dokumenty, které si uložíte v TenderFlow.
-              Použití dat k trénování modelů je samostatné nastavení.
+              Při používání AI se řídíme příslušnými pravidly EU AI Act.
+              Výsledky máte vždy pod kontrolou a před použitím je ověříte.
             </p>
-            <a className="integration-link" href="https://docs.mistral.ai/admin/monitor-comply/zero-data-retention" target="_blank" rel="noopener noreferrer">
-              Podmínky ZDR u Mistral AI ↗
-            </a>
+            <Link className="integration-link" to="/terms">
+              Ochrana dat a podmínky používání →
+            </Link>
           </article>
         </div>
       </div>

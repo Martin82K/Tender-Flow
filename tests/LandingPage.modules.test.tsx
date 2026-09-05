@@ -25,17 +25,16 @@ describe("LandingPage nové moduly", () => {
     expect(screen.getByText("Fakturace · Bankovní převod")).toBeInTheDocument();
   });
 
-  it("vysvětluje rozsah Zero Data Retention u Mistral AI", () => {
+  it("ujišťuje o ochraně dokumentů srozumitelně a odkazuje na podmínky", () => {
     render(<LandingPage />);
 
     const section = screen.getByRole("region", { name: "Mistral AI pro vaše dokumenty" });
-    expect(within(section).getByRole("heading", { name: "Co znamená Zero Data Retention?" })).toBeInTheDocument();
-    expect(within(section).getByText(/ZDR máme aktivované/i)).toBeInTheDocument();
-    expect(within(section).getByText(/trénování modelů je samostatné nastavení/i)).toBeInTheDocument();
-    expect(within(section).getByRole("link", { name: /podmínky ZDR u Mistral AI/i })).toHaveAttribute(
-      "href", "https://docs.mistral.ai/admin/monitor-comply/zero-data-retention",
-    );
-    expect(section).not.toHaveTextContent(/OpenAI|Gemini|Claude|ChatGPT/i);
+    expect(within(section).getByRole("heading", { name: "Vaše dokumenty zůstávají vaše" })).toBeInTheDocument();
+    expect(section).toHaveTextContent(/po zpracování dokumentu neukládá jeho obsah ani odpověď ve svém API/i);
+    expect(section).toHaveTextContent("Zero Data Retention");
+    expect(section).toHaveTextContent(/řídíme příslušnými pravidly EU AI Act/i);
+    expect(within(section).getByRole("link", { name: /ochrana dat a podmínky používání/i })).toHaveAttribute("href", "/terms");
+    expect(section).not.toHaveTextContent(/bezstavové|produkční organizaci|trénování modelů|OpenAI|Gemini|Claude|ChatGPT/i);
   });
 
   it("popisuje vlastní MCP server, řízené změny a postup připojení", () => {
