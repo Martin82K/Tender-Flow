@@ -60,4 +60,12 @@ Po prvním merge dorazily tři P2 připomínky. Všechny byly ověřeny a oprave
 - Nové společné srovnání zdroje a implementace po opravách při 1280 × 720: `output/playwright/ivory/comparison-followup.png`, implementace `desktop-followup.png`. Kompozice, typografie, paleta, ilustrace a obsah zůstávají v přijatých mezích; žádné zbývající P0/P1/P2 v rozsahu této palety.
 - Opakovaně prošlo všech 2373 testů, typecheck, build, dokumentace, boundaries, legacy a desktop TypeScript. Konzole kontrolovaných stavů bez chyb. CI předchozího PR zaznamenalo 7 existujících moderate závislostních nálezů, žádné high/critical; tato změna závislosti nemění.
 
+## Zapracování uživatelských anotací
+
+Uživatel při prohlížení náhledu upřesnil finální obsah: úvod bez tlačítka Domluvit ukázku; v ceníku jediné tlačítko Kontaktujte nás; nadpis Co tedy získáte? bez ikony; položka Tender Flow MCP server. Tyto explicitní změny mají přednost před původním obrazovým návrhem. Odsazení pod úvodním odstavcem bylo zmenšeno.
+
+Finální společné porovnání: `output/playwright/ivory/comparison-user-comments.png` (zdroj vlevo, nová implementace vpravo, 1280 × 720 na každé straně). Aktuální hero: `hero-no-cta.png`; ceník po úpravách: `pricing-contact.png` (1250 × 1212). Odstraněné CTA je záměrná změna uživatele, nikoli vizuální vada. Kontaktní odkaz má správný mailto cíl. Nový test ověřuje absenci CTA v úvodu a jediný kontakt v ceníku; test původního demo odkazu nyní kontroluje zachované odkazy v závěru stránky a patičce.
+
+Po odstranění nevyužitého importu z ceníku se počet hran architektonického grafu snížil z 1791 na 1790 (vyřešených 1509 → 1508); odpovídající kontrolní počty byly aktualizovány. Celá sada po těchto změnách: 2374/2374 v 465 souborech; typecheck, build, dokumentace a strukturální kontroly prošly.
+
 final result: passed

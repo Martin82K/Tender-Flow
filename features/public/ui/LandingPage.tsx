@@ -75,11 +75,6 @@ export const LandingPage: React.FC = () => {
               TenderFlow propojí poptávky, nabídky, dodavatele, termíny i
               smlouvy do jednoho řízeného procesu.
             </p>
-            <div className="hero-actions">
-              <a className="btn-hero-primary" href={DEMO_REQUEST_URL}>
-                Domluvit ukázku
-              </a>
-            </div>
             <div className="social-strip">
               <div className="social-text">
                 Jeden proces. Jedna historie. Jasné rozhodnutí.
