@@ -275,9 +275,9 @@ describe("architecture graph analysis", () => {
     });
 
     expect(rawGraph.collectionErrors).toEqual([]);
-    expect(rawGraph.nodes).toHaveLength(599);
-    expect(rawGraph.edges).toHaveLength(1_796);
-    expect(resolvedGraph.edges).toHaveLength(1_508);
+    expect(rawGraph.nodes).toHaveLength(601);
+    expect(rawGraph.edges).toHaveLength(1_800);
+    expect(resolvedGraph.edges).toHaveLength(1_512);
     expect(resolvedGraph.unresolvedEdges).toHaveLength(288);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {
@@ -314,7 +314,7 @@ describe("architecture graph analysis", () => {
       ),
     ).toEqual([]);
     expect(resolvedGraph.ambiguousEdges).toEqual([]);
-    expect(analysis.stronglyConnectedComponents).toHaveLength(597);
+    expect(analysis.stronglyConnectedComponents).toHaveLength(599);
     expect(analysis.stronglyConnectedComponents.filter(({ cyclic }) => cyclic)).toEqual([
       {
         id: "services/authSessionService.ts",

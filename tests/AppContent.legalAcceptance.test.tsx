@@ -14,6 +14,8 @@ const mockState = vi.hoisted(() => ({
   logout: vi.fn(),
   showUiModal: vi.fn(),
   navigate: vi.fn(),
+  appDataOverrides: {} as Record<string, unknown>,
+  retrySelectedProjectDetails: vi.fn(),
   currentPlan: "pro",
   isDesktop: false,
   pathname: "/app",
@@ -83,8 +85,10 @@ vi.mock("@/hooks/useAppData", () => ({
       isAdmin: false,
       isBackgroundLoading: false,
       backgroundWarning: null,
+      ...mockState.appDataOverrides,
     },
     actions: {
+      retrySelectedProjectDetails: mockState.retrySelectedProjectDetails,
       setSelectedProjectId: vi.fn(),
       handleUpdateProjectDetails: vi.fn(),
       handleAddCategory: vi.fn(),
@@ -124,9 +128,9 @@ vi.mock("@/shared/routing/router", () => ({
   navigate: mockState.navigate,
 }));
 
-vi.mock("@/shared/routing/routeUtils", () => ({
+vi.mock("@/shared/routing/routeUtils", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/shared/routing/routeUtils")>(),
   DEFAULT_APP_VIEW: "todo",
-  buildAppUrl: vi.fn(),
 }));
 
 vi.mock("@/config/features", () => ({
@@ -156,7 +160,11 @@ vi.mock("@/components/desktop", () => ({
 }));
 
 vi.mock("@app/hooks/useRouteStateSync", () => ({
-  useRouteStateSync: () => undefined,
+  useRouteStateSync: ({ setCurrentView }: { setCurrentView: (view: string) => void }) => {
+    React.useEffect(() => {
+      if (mockState.pathname.startsWith("/app/project/")) setCurrentView("project");
+    }, [setCurrentView]);
+  },
 }));
 
 vi.mock("@app/hooks/useStuckLoadingRecovery", () => ({
@@ -203,15 +211,14 @@ describe("AppContent legal acceptance gate", () => {
         queries: { retry: false },
       },
     });
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <AppContent />
-      </QueryClientProvider>,
-    );
+    return render(<AppContent />, {
+      wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
+    });
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.appDataOverrides = {};
     mockState.currentPlan = "pro";
     mockState.isDesktop = false;
     mockState.pathname = "/app";
@@ -333,4 +340,68 @@ describe("AppContent legal acceptance gate", () => {
       "Kód incidentu: INC-FATAL-1",
     );
   });
+
+  const openProject = (overrides: Record<string, unknown> = {}) => {
+    mockState.pathname = "/app/project/project-1";
+    mockState.legalAcceptance = {
+      termsVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: "2026-06-02T10:00:00.000Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-06-02T10:00:00.000Z",
+    };
+    mockState.appDataOverrides = {
+      selectedProjectId: "project-1",
+      selectedProjectDetailsStatus: "error",
+      isSelectedProjectDetailsFetching: false,
+      canRetrySelectedProjectDetails: true,
+      ...overrides,
+    };
+    return renderAppContent();
+  };
+
+  it("renders a project load error with a scoped retry instead of a skeleton", () => {
+    openProject();
+    expect(screen.getByRole("alert")).toHaveTextContent("Detail projektu se nepodařilo načíst");
+    expect(screen.queryByText("fallback")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(mockState.retrySelectedProjectDetails).toHaveBeenCalledOnce();
+  });
+
+  it("renders an unavailable project without displaying cached project data", () => {
+    openProject({
+      selectedProjectDetailsStatus: "unavailable",
+      canRetrySelectedProjectDetails: false,
+      allProjectDetails: { "project-1": { id: "project-1", title: "Private project" } },
+    });
+    expect(screen.getByText("Projekt není dostupný")).toBeInTheDocument();
+    expect(screen.queryByText("project")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Zpět na projekty" }));
+    expect(mockState.navigate).toHaveBeenCalledWith("/app/projects");
+  });
+
+  it("renders the project skeleton only while the detail is loading", () => {
+    openProject({ selectedProjectDetailsStatus: "loading" });
+    expect(screen.getByText("fallback")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("disables retry while its request is running and keeps navigation available", () => {
+    openProject({ isSelectedProjectDetailsFetching: true });
+    expect(screen.getByRole("button", { name: "Načítání…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Zpět na projekty" })).toBeEnabled();
+  });
+
+  it("renders the detail after a successful retry", () => {
+    const view = openProject();
+    mockState.appDataOverrides = {
+      ...mockState.appDataOverrides,
+      selectedProjectDetailsStatus: "ready",
+      allProjectDetails: { "project-1": { id: "project-1", title: "Project" } },
+    };
+    view.rerender(<AppContent />);
+    expect(screen.getByText("project")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
 });

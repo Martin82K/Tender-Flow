@@ -26,6 +26,7 @@ import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
+import { ProjectDetailLoadErrorView } from "@app/views/ProjectDetailLoadErrorView";
 import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import {
@@ -332,8 +333,21 @@ export const AppContent: React.FC = () => {
           );
         }
 
-        if (!state.allProjectDetails[state.selectedProjectId]) {
-          return <AppLazyFallback />;
+        if (state.selectedProjectDetailsStatus === "error" || state.selectedProjectDetailsStatus === "unavailable") {
+          return (
+            <RequireFeature feature={FEATURES.MODULE_PROJECTS}>
+              <ProjectDetailLoadErrorView
+                unavailable={state.selectedProjectDetailsStatus === "unavailable"}
+                isFetching={state.isSelectedProjectDetailsFetching}
+                onRetry={state.canRetrySelectedProjectDetails ? actions.retrySelectedProjectDetails : undefined}
+                onBack={() => navigate(buildAppUrl("project-management"))}
+              />
+            </RequireFeature>
+          );
+        }
+
+        if (state.selectedProjectDetailsStatus === "loading" || !state.allProjectDetails[state.selectedProjectId]) {
+          return <RequireFeature feature={FEATURES.MODULE_PROJECTS}><AppLazyFallback /></RequireFeature>;
         }
 
         return (
