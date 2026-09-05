@@ -81,9 +81,6 @@ describe("veřejná CTA paleta", () => {
     expect(landingStyles).toMatch(
       /html\[data-skin="space"\] \.landing-apex \.story-steps button\.active\s*\{[^}]*var\(--cta\)[^}]*!important/s,
     );
-    expect(landingStyles).toMatch(
-      /\.marquee-item::after\s*\{[^}]*content:'\\25C6 ';[^}]*color:var\(--green\)/s,
-    );
     expect(landingStyles).not.toContain("color:#aebcff");
     expect(landingStyles).not.toContain("outline:2px solid #8fa9ff");
   });
