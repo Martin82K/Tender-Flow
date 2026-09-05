@@ -161,8 +161,15 @@ describe("desktop build env security", () => {
     );
 
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.22.md`",
+      "Aktuální release notes: `release_notes_v1.9.25.md`",
     );
+
+    const releaseNotes = readFileSync(
+      join(process.cwd(), "docs", "releases", "release_notes_v1.9.23.md"),
+      "utf-8",
+    );
+    expect(releaseNotes).toContain("Realtime");
+    expect(releaseNotes).toContain("MCP");
   });
 
   it("zastaví produkční desktop build, pokud chybí Supabase public env", () => {
