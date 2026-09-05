@@ -447,6 +447,16 @@ export const LandingPage: React.FC = () => {
               <span className="serif">klienti</span>
             </h2>
           </div>
+          <article className="client-reference" aria-label="Firemní reference BAU-STAV a.s.">
+            <div>
+              <span className="integration-eyebrow">Firemní reference</span>
+              <h3>BAU-STAV a.s.</h3>
+            </div>
+            <p>Stavební společnost · Karlovy Vary</p>
+            <a className="integration-link" href="https://www.baustav.cz/cs/" target="_blank" rel="noopener noreferrer">
+              baustav.cz →
+            </a>
+          </article>
           <div className="testi-grid">
             <div className="testi-card">
               <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>

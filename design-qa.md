@@ -68,4 +68,10 @@ Finální společné porovnání: `output/playwright/ivory/comparison-user-comme
 
 Po odstranění nevyužitého importu z ceníku se počet hran architektonického grafu snížil z 1791 na 1790 (vyřešených 1509 → 1508); odpovídající kontrolní počty byly aktualizovány. Celá sada po těchto změnách: 2374/2374 v 465 souborech; typecheck, build, dokumentace a strukturální kontroly prošly.
 
+## Firemní reference BAU-STAV
+
+Na výslovnou žádost uživatele přibyla samostatná karta BAU-STAV a.s., stavební společnost, Karlovy Vary, s odkazem na https://www.baustav.cz/cs/. Název a sídlo byly ověřeny na této oficiální stránce dne 5. 9. 2026; zařazení mezi reference je podloženo pokynem uživatele. Karta nemá připsanou citaci ani hvězdičkové hodnocení. Externí odkaz používá noopener noreferrer, bez načítání cizích skriptů či obrázků.
+
+Vizuálně ověřeno ve stejných světlých tokenech na desktopu 1250 × 1212 (`output/playwright/ivory/baustav-desktop.png`) a mobilu 390 × 844 (`baustav-mobile.png`), bez horizontálního přetečení. Jde o nově vyžádaný obsah mimo původní hero obrázek, nikoli o odchylku od něj. Regresní test ověřuje firmu, město, cíl odkazu a absenci citace/hodnocení. Celá finální sada: 2375/2375 v 465 souborech; typecheck, build, dokumentace, boundaries a legacy prošly.
+
 final result: passed

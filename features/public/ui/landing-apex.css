@@ -496,6 +496,14 @@ html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.a
 .landing-apex:not(.auth-apex-page) .testi-avatar{background:var(--avatar-bg);color:var(--avatar-fg)}
 .landing-apex:not(.auth-apex-page) .hero-sub{margin-bottom:0}
 .landing-apex:not(.auth-apex-page) .social-strip{margin-top:1.5rem}
+.landing-apex .client-reference{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;margin-top:3rem;padding:2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:20px}
+.landing-apex .client-reference h3{font-size:1.5rem;font-weight:650;letter-spacing:-.03em}
+.landing-apex .client-reference p{color:var(--gray-1);font-size:.875rem}
+.landing-apex .client-reference .integration-eyebrow{margin-bottom:.5rem}
+.landing-apex .client-reference .integration-link{margin-top:0;white-space:nowrap}
+@media(max-width:768px){
+  .landing-apex .client-reference{align-items:flex-start;flex-direction:column}
+}
 body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner{background:var(--bg-card);border-color:var(--border);box-shadow:var(--panel-shadow)}
 body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-title{color:var(--white)}
 body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-text{color:var(--gray-1)}

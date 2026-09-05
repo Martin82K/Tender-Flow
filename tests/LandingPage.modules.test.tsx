@@ -18,6 +18,15 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("uvádí BAU-STAV jako firemní referenci s odkazem bez smyšlené citace", () => {
+    render(<LandingPage />);
+
+    const reference = screen.getByRole("article", { name: "Firemní reference BAU-STAV a.s." });
+    expect(reference).toHaveTextContent("Karlovy Vary");
+    expect(within(reference).getByRole("link", { name: /baustav.cz/i })).toHaveAttribute("href", "https://www.baustav.cz/cs/");
+    expect(reference).not.toHaveTextContent(/[„“★]/);
+  });
+
   it("nezahlcuje úvod tlačítkem pro demo a nabízí kontakt v závěru stránky", () => {
     render(<LandingPage />);
 
