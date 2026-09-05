@@ -123,3 +123,15 @@ P2 připomínka PRRT_kwDOQbGm9c6fjT3T správně identifikovala, že při selhán
 Nový test nejprve reprodukoval chybu (1 failed / 15 passed); po opravě 16/16 cílených testů. Pokrývá načtení jiné fáze před selháním první, zachování vybraného Zadání, absenci podstrčené fáze a funkční následný výběr Nabídek. Úspěšné vizuální stavy se nemění; chybový stav ověřen komponentovým testem, nikoli blokováním sítě v prohlížeči.
 
 final result: passed
+
+## Video v OCR kartě — 5. 9. 2026
+
+Na žádost uživatele vloženo skutečné video z jeho knihovny Higgsfield. Po připomínce k náhlému konci bylo pomocí Extend / Sequel doplněno o pětisekundový závěr; celkem 10,042 s. Kontrolní snímky přechodu 4,5 / 5 / 5,5 s a závěru 7 / 8 / 9,5 s (`/tmp/tf-ocr-frames.png`) potvrzují souvislou kompozici a klidnou dokončenou složku s teplým světlem. Jde výslovně o ilustraci, nikoli záznam produktu. Původ a export jsou popsány v `assets/landing/contract-scan.md`.
+
+Společné srovnání `output/playwright/ocr-video/comparison.png` obsahuje produkční zdroj bez videa a implementaci s přehrávačem, obě strany 1250 × 1211 při stejném posunu sekce Funkce. Nový obsah přirozeně zvýšil výšku prvního řádku karet; šířky, mezery, typografie a barevné tokeny zůstávají stejné. Video zachovává celý obraz 16:9. Mobil 390 × 844 (`mobile.png`) má šířku dokumentu 390 px a video 252 × 141,75 px bez přetečení a ořezu. Popisek odlišuje generovanou ilustraci. Žádné zbývající P0/P1/P2 vizuální odchylky v rozsahu změny.
+
+Uživatel odmítl modrý nativní focus ring. Oprava respektuje vstupní zařízení: skutečný klik v prohlížeči má `focus-visible=false` a `outline-style:none`, klávesnice `focus-visible=true` s 2px oranžovým obrysem rgb(152,62,27). Přístupnost klávesnice zůstala zachovaná. Regresní test nejprve selhal, po opravě 23/23 cílených testů; finální plná sada 2381/2381 v 465 souborech. Typecheck, build, docs, boundaries, legacy a desktop tsc prošly. Build má existující upozornění na velikost chunků.
+
+Video je lokální MP4 1280 × 720, bez zvukové stopy, přibližně 4,5 MB, náhled 64 KB. Nativní ovládání, playsInline, preload none, bez autoplay; před spuštěním ověřeno readyState=0. Pětisekundová verze byla přehrána do konce na desktopu i mobilu bez chyby dekodéru; finální desetisekundový klip byl rovněž přehrán do konce (currentTime = duration = 10,041667 s, videoError=false, 1280 × 720) v sestavené aplikaci. Lokální statické assety bez cizích skriptů, bez změn CSP, oprávnění, API nebo závislostí. Code scanning GitHubu neposkytuje analýzu (404); tato změna nepřidává nový bezpečnostní systém ani neřeší nesouvisející starší nálezy.
+
+final result: passed

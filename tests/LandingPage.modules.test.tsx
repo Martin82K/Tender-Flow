@@ -18,6 +18,21 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("nabízí ilustrační video smlouvy na vyžádání bez automatického stahování a přehrávání", () => {
+    render(<LandingPage />);
+
+    const card = screen.getByRole("heading", { name: "OCR čtení objednávek, smluv" }).closest("div")!;
+    const video = within(card).getByLabelText("Ilustrační video zpracování smlouvy");
+    expect(video.tagName).toBe("VIDEO");
+    expect(video).toHaveAttribute("controls");
+    expect(video).toHaveAttribute("playsinline");
+    expect(video).toHaveAttribute("preload", "none");
+    expect(video).not.toHaveAttribute("autoplay");
+    expect(video).toHaveAttribute("src", expect.stringContaining("contract-scan.mp4"));
+    expect(video).toHaveAttribute("poster", expect.stringContaining("contract-scan-poster.jpg"));
+    expect(card).toHaveTextContent("Ilustrace AI zpracování dokumentu.");
+  });
+
   it("uvádí BAU-STAV jako firemní referenci s odkazem bez smyšlené citace", () => {
     render(<LandingPage />);
 

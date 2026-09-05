@@ -63,6 +63,12 @@ describe("veřejná CTA paleta", () => {
     );
   });
 
+  it("zachovává oranžový fokus videa pro klávesnici bez rámečku při kliknutí", () => {
+    const landingStyles = readProjectFile("features/public/ui/landing-apex.css");
+    expect(landingStyles).toMatch(/\.ocr-video video:focus:not\(:focus-visible\)\s*\{[^}]*outline:none/s);
+    expect(landingStyles).toMatch(/\.ocr-video video:focus-visible\s*\{[^}]*outline:2px solid var\(--cta-hover\)/s);
+  });
+
   it("odstraňuje modrou z metriky a interaktivních stavů příběhu na landing page", () => {
     const landingStyles = readProjectFile("features/public/ui/landing-apex.css");
 
