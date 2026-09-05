@@ -6,11 +6,11 @@ const readProjectFile = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("veřejná CTA paleta", () => {
-  it("používá pro landing a přihlášení samostatnou tlumenou zelenou", () => {
+  it("používá pro landing a přihlášení společnou barvu CTA", () => {
     const landingStyles = readProjectFile("features/public/ui/landing-apex.css");
     const authStyles = readProjectFile("features/auth/ui/auth-apex.css");
 
-    expect(landingStyles).toContain("--cta:#86b79b");
+    expect(landingStyles).toContain("--cta:#af4821");
     expect(landingStyles).toMatch(/\.btn-hero-primary\{[^}]*background:var\(--cta\)/);
     expect(landingStyles).toMatch(/\.story-steps button\.active\{[^}]*background:var\(--cta\)/);
     expect(authStyles).toMatch(
@@ -18,11 +18,11 @@ describe("veřejná CTA paleta", () => {
     );
   });
 
-  it("sjednocuje interaktivní auth akcenty do zářivé zelené palety", () => {
+  it("přebírá interaktivní auth akcenty z aktuální landing palety", () => {
     const authStyles = readProjectFile("features/auth/ui/auth-apex.css");
 
-    expect(authStyles).toContain("--auth-accent: #6fdfa3");
-    expect(authStyles).toContain("--auth-accent-hover: #8ceab6");
+    expect(authStyles).toContain("--auth-accent: var(--cta)");
+    expect(authStyles).toContain("--auth-accent-hover: var(--cta-hover)");
     expect(authStyles).toMatch(/\.auth-card-accent\s*\{[^}]*var\(--auth-accent\)/s);
     expect(authStyles).toMatch(/\.auth-input:focus\s*\{[^}]*var\(--auth-accent\)/s);
     expect(authStyles).toMatch(
@@ -32,13 +32,13 @@ describe("veřejná CTA paleta", () => {
       /\.auth-btn-primary:hover\s*\{[^}]*background:\s*var\(--auth-accent-hover\)/s,
     );
     expect(authStyles).toMatch(
-      /html\[data-skin="space"\] \.auth-apex-page \.auth-input:focus\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
+      /html\[data-skin\] \.auth-apex-page \.auth-input:focus\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
     );
     expect(authStyles).toMatch(
-      /html\[data-skin="space"\] \.auth-apex-page :is\(button, a, input, summary, \[tabindex\]\):focus-visible\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
+      /html\[data-skin\] \.auth-apex-page :is\(button, a, input, summary, \[tabindex\]\):focus-visible\s*\{[^}]*var\(--auth-accent\)[^}]*!important/s,
     );
     expect(authStyles).toMatch(
-      /html\[data-skin="space"\] \.auth-apex-page \.auth-input:-webkit-autofill:focus\s*\{[^}]*1000px #0e1118 inset[^}]*var\(--auth-accent-glow\)[^}]*!important/s,
+      /html\[data-skin\] \.auth-apex-page \.auth-input:-webkit-autofill:focus\s*\{[^}]*1000px var\(--bg-card\) inset[^}]*var\(--auth-accent-glow\)[^}]*!important/s,
     );
     expect(authStyles).not.toContain("border-color: #ff8a33");
     expect(authStyles).not.toContain("rgba(255, 138, 51, 0.18)");

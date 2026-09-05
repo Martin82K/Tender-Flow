@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T16:51:35.429Z",
+  "generatedAt": "2026-09-05T17:14:44.629Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -959,22 +959,24 @@
     {
       "slug": "vzhled",
       "title": "Vzhled",
-      "content": "- **Tmavý režim**: přepnutí mezi světlým a tmavým motivem. - **Primární barva**: volba akcentové barvy aplikace. - **Pozadí**: výběr pozadí pracovní plochy.",
+      "content": "- **Motiv**: v uživatelském menu nebo v Nastavení → Profil vyberte vzhled aplikace. - **TF basic**: jednoduchý vzhled v barvách landing page. Světlá varianta používá slonovinové plochy a cihlově oranžové akcenty, tmavá teplé antracitové plochy a světlejší oranžovou. - **Režim**: vyberte **Světlý**, **Tmavý** nebo **Auto** podle systému. Skin a režim se ukládají samostatně a zůstanou vybrané i po opětovném otevření aplikace. - Přihlašovací stránky a obnova hesla používají jednotnou světlou paletu landing page nezávisle na zvoleném skinu aplikace. - **Primární barva**: volba akcentové barvy aplikace. - **Pozadí**: výběr pozadí pracovní plochy.",
       "keywords": [
+        "aplikace",
+        "vzhled",
+        "plochy",
+        "vyberte",
+        "landing",
+        "page",
+        "pou",
+        "oran",
         "tmav",
         "pozad",
-        "vzhled",
-        "epnut",
-        "mezi",
-        "motivem",
-        "prim",
-        "barva",
-        "volba",
-        "akcentov",
-        "barvy",
-        "aplikace",
-        "pracovn",
-        "plochy"
+        "motiv",
+        "ivatelsk",
+        "menu",
+        "nastaven",
+        "profil",
+        "basic"
       ],
       "source_anchor": "#vzhled",
       "level": 3,

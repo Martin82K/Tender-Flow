@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const stylesheet = fs.readFileSync("features/public/ui/landing-apex.css", "utf8");
-const publicTokens = stylesheet.match(/\.landing-apex:not\(\.auth-apex-page\)(?:,[^{]+)?\s*\{([^}]+)\}/)?.[1] ?? "";
+const publicTokens = stylesheet.match(/:is\(\.landing-apex,[^{]+\)\s*\{([^}]+)\}/)?.[1] ?? "";
 const token = (name: string) => {
   const value = publicTokens.match(new RegExp(`--${name}:\\s*(#[a-fA-F0-9]{6})\\s*;`))?.[1];
   if (!value) throw new Error(`Missing public color token: ${name}`);
@@ -20,7 +20,7 @@ const contrast = (foreground: string, background: string) => {
   return (values[1] + 0.05) / (values[0] + 0.05);
 };
 
-describe("public ivory palette readability", () => {
+describe("shared public and auth ivory palette readability", () => {
   it("keeps normal and secondary text readable on every public surface", () => {
     for (const background of ["bg", "bg-elevated", "bg-card", "bg-card-hover"]) {
       expect(luminance(token(background))).toBeGreaterThan(0.8);

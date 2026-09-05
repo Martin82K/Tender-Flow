@@ -13,6 +13,7 @@ export const themeModeOptions: ReadonlyArray<AppearanceOption<ThemeMode>> = [
 ];
 
 export const themeSkinOptions: ReadonlyArray<AppearanceOption<ThemeSkin>> = [
+  { id: "basic", icon: "palette", label: "TF basic" },
   { id: "industrial", icon: "precision_manufacturing", label: "Industrial" },
   { id: "classic", icon: "dashboard_customize", label: "Classic" },
   { id: "botanica", icon: "local_florist", label: "Botanica" },

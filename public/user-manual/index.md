@@ -661,7 +661,10 @@ V sekci **Nastavení** najdete konfiguraci profilu, vzhledu a dalších preferen
 
 ### Vzhled
 
-- **Tmavý režim**: přepnutí mezi světlým a tmavým motivem.
+- **Motiv**: v uživatelském menu nebo v Nastavení → Profil vyberte vzhled aplikace.
+- **TF basic**: jednoduchý vzhled v barvách landing page. Světlá varianta používá slonovinové plochy a cihlově oranžové akcenty, tmavá teplé antracitové plochy a světlejší oranžovou.
+- **Režim**: vyberte **Světlý**, **Tmavý** nebo **Auto** podle systému. Skin a režim se ukládají samostatně a zůstanou vybrané i po opětovném otevření aplikace.
+- Přihlašovací stránky a obnova hesla používají jednotnou světlou paletu landing page nezávisle na zvoleném skinu aplikace.
 - **Primární barva**: volba akcentové barvy aplikace.
 - **Pozadí**: výběr pozadí pracovní plochy.
 

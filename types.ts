@@ -1,3 +1,5 @@
+import type { ThemeSkin } from "./shared/types/theme";
+
 export type View =
   | "project"
   | "contacts"
@@ -292,7 +294,7 @@ export interface ProjectDetails {
 
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
-  skin?: "classic" | "industrial" | "botanica";
+  skin?: ThemeSkin;
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML

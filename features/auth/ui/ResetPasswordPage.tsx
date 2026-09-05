@@ -82,7 +82,7 @@ export const ResetPasswordPage: React.FC = () => {
       <AuthCard title="Nové heslo" subtitle="Nastavte si nové heslo">
         {status === "success" ? (
           <div className="auth-form">
-            <div className="auth-alert" style={{ color: "var(--green)", background: "var(--green-dim)", border: "1px solid rgba(52,211,153,0.2)", padding: "1rem" }}>
+            <div className="auth-alert auth-alert-success">
               <p style={{ fontWeight: 600 }}>Heslo změněno!</p>
               <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem", opacity: 0.9 }}>
                 Vaše heslo bylo úspěšně nastaveno. Nyní se můžete přihlásit.

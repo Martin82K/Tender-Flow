@@ -148,7 +148,7 @@ nezávislých větví UI.
   `components/projectLayoutComponents/documents/`, legacy hook i shared re-export
   byly po migraci všech konzumentů odstraněny.
 - Theme, skin, primary color a UI scale řídí `useTheme` a uživatelské preference.
-- Skiny `classic`, `industrial` a `botanica` jsou nezávislé na režimu
+- Skiny `basic`, `classic`, `industrial`, `botanica`, `nature` a `space` jsou nezávislé na režimu
   `light`/`dark`/`system`; aktivní skin se aplikuje přes `data-skin` na `<html>`.
 - Assetové skiny ukládají verzované, pasivní obrázky do
   `assets/themes/<skin-id>/`. Registr skinů je formátově neutrální: jednoduché
@@ -189,3 +189,26 @@ privátní vazbu. Po odstranění historického importu musí být odstraněna i
 zastaralá allowlist výjimka. Nové výjimky vyžadují explicitní architektonické
 review.
 UI nesmí přímo importovat Supabase klienta ani přistupovat k main procesu.
+
+## Barvy veřejných a přihlašovacích obrazovek
+
+Landing page, přihlášení, registrace, MFA a obnova hesla sdílejí slonovinovou,
+tmavou a cihlově oranžovou paletu v `features/public/ui/landing-apex.css`.
+Auth akcenty v `features/auth/ui/auth-apex.css` odkazují na společné CTA tokeny;
+platí i pro fokus, checkboxy, výběr textu a automatické doplnění formuláře.
+Paleta zůstává světlá i při uloženém tmavém motivu nebo skinu TF Space.
+Úspěch, chyba a varování mají vlastní kontrastní stavové barvy.
+Odhlášení na webu vrací na landing page, na desktopu na přihlášení.
+
+Kontrast ověřuje `tests/publicPalette.test.ts`, navázání akcentů
+`tests/PublicCtaPalette.test.ts` a stavy obnovy hesla `tests/PasswordPages.test.tsx`.
+
+## TF basic
+
+Volitelný skin `basic` nabízí světlou paletu navazující na landing page
+a samostatnou tmavou variantu s teplými antracitovými plochami. Používá
+společnou vrstvu panelů, tabulek, formulářů a nastavení, plné krytí a žádné
+obrazové dekorace ani blur. Tokeny Appica jsou navázané na stejnou paletu.
+Výchozí skin zůstává `industrial`; volba TF basic ani změna režimu nemění
+uloženou primární barvu ostatních skinů. `tests/basicTheme.test.tsx` ověřuje
+výběr, persistenci, automatický režim, odstranění předchozího dekoru a kontrast.
