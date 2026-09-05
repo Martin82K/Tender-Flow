@@ -7,11 +7,13 @@ import type { Project } from "@/types";
 const mocks = vi.hoisted(() => ({
   projects: [{ id: "project-1" }, { id: "project-2" }] as Project[],
   projectsLoading: false,
+  projectsError: null as Error | null,
+  projectsRefetch: vi.fn(),
   from: vi.fn(),
 }));
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
 vi.mock("@/hooks/queries/useProjectsQuery", () => ({
-  useProjectsQuery: () => ({ data: mocks.projects, isLoading: mocks.projectsLoading }),
+  useProjectsQuery: () => ({ data: mocks.projects, isLoading: mocks.projectsLoading, error: mocks.projectsError, refetch: mocks.projectsRefetch }),
 }));
 vi.mock("@/hooks/queries/useContactsQuery", () => ({
   useContactsQuery: () => ({ data: [], isLoading: false }), CONTACT_KEYS: {},
@@ -73,6 +75,8 @@ describe("useAppData project detail recovery", () => {
     mocks.from.mockReset();
     mocks.projects = [{ id: "project-1" }, { id: "project-2" }] as Project[];
     mocks.projectsLoading = false;
+    mocks.projectsError = null;
+    mocks.projectsRefetch.mockReset();
   });
 
   it("surfaces the selected error and retries only its request while preserving other data", async () => {
@@ -175,6 +179,18 @@ describe("useAppData project detail recovery", () => {
     const { result } = setup();
     expect(result.current.state.selectedProjectDetailsStatus).toBe("loading");
     expect(result.current.state.isDataLoading).toBe(false);
+  });
+
+  it("reports a failed project list as an actionable error and retries only that list", async () => {
+    mocks.projects = [];
+    mocks.projectsError = new Error("list request failed");
+    database(success);
+    const { result } = setup();
+    expect(result.current.state.selectedProjectDetailsStatus).toBe("error");
+    expect(result.current.state.canRetrySelectedProjectDetails).toBe(true);
+    await act(async () => { await result.current.actions.retrySelectedProjectDetails(); });
+    expect(mocks.projectsRefetch).toHaveBeenCalledWith({ cancelRefetch: false });
+    expect(mocks.from).not.toHaveBeenCalled();
   });
 
   it("waits for the visible project list before classifying an id as unavailable", () => {
