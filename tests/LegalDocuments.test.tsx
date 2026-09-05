@@ -7,6 +7,8 @@ import { LegalDpa } from "@/features/public/ui/LegalDpa";
 import { LegalPrivacy } from "@/features/public/ui/LegalPrivacy";
 import { LegalTerms } from "@/features/public/ui/LegalTerms";
 
+import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION, hasAcceptedCurrentLegalDocuments } from "@/shared/legal/legalDocumentVersions";
+
 vi.mock("@/features/public/ui/LegalPageLayout", () => ({
   LegalPageLayout: ({
     title,
@@ -47,6 +49,33 @@ describe("legal documents", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/služba nepředstavuje právní, daňové ani účetní poradenství/i)).toBeInTheDocument();
     expect(screen.getByText(/kogentní ustanovení právních předpisů na ochranu spotřebitele/i)).toBeInTheDocument();
+  });
+
+  it("explains invoice payments, AI data protection and controlled MCP access", () => {
+    render(<LegalTerms />);
+
+    expect(screen.getByText(/výhradně bankovním převodem na základě vystavené faktury/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mistral AI po zpracování dokumentu neukládá jeho obsah ani odpověď ve svém API/i)).toBeInTheDocument();
+    expect(screen.getByText(/řídíme příslušnými pravidly EU AI Act/i)).toBeInTheDocument();
+    expect(screen.getByText(/výstupy mohou obsahovat chyby/i)).toBeInTheDocument();
+    expect(screen.getByText(/dokumenty a výsledky uložené v TenderFlow/i)).toBeInTheDocument();
+    expect(screen.getByText(/připojený klient má vlastní pravidla zpracování dat/i)).toBeInTheDocument();
+    expect(screen.getByText(/při volbě jiné AI služby/i)).toBeInTheDocument();
+    expect(screen.getByText(/u dříve uzavřených smluv/i)).toBeInTheDocument();
+    expect(screen.getByText(/pro stávající smluvní vztahy se nové znění použije až po jeho přijetí/i)).toBeInTheDocument();
+    expect(screen.getByText(/Poslední aktualizace: 5. září 2026/)).toBeInTheDocument();
+  });
+
+  it("requires acceptance of revised terms while retaining the current privacy version", () => {
+    const acceptance = {
+      termsVersion: "2026-03-12",
+      termsAcceptedAt: "2026-08-19T12:00:00Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-08-19T12:00:00Z",
+    };
+    expect(hasAcceptedCurrentLegalDocuments(acceptance)).toBe(false);
+    expect(CURRENT_TERMS_VERSION).toBe("2026-09-05");
+    expect(hasAcceptedCurrentLegalDocuments({ ...acceptance, termsVersion: CURRENT_TERMS_VERSION })).toBe(true);
   });
 
   it("renders detailed privacy sections", () => {

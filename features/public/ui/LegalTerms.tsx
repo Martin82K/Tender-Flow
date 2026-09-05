@@ -63,15 +63,28 @@ export const LegalTerms: React.FC = () => {
           4. Tarify, cena a platební podmínky
         </h2>
         <p className="mt-2">
-          Rozsah funkcí se může lišit podle zvoleného tarifu, individuální
-          nabídky nebo aktuálně dostupných modulů. Aktuální ceny jsou uvedeny
-          na webu, v aplikaci nebo v individuální nabídce schválené uživatelem.
+          Službu nabízíme jako firemní licenci Enterprise s individuální
+          cenou. Rozsah funkcí, počet uživatelů, cena, fakturační období a
+          případné další podmínky jsou sjednány v nabídce nebo objednávce
+          schválené zákazníkem.
         </p>
         <p className="mt-2">
-          Není-li výslovně uvedeno jinak, jsou ceny uváděny bez DPH. Uživatel
-          souhlasí s tím, že služba může být účtována opakovaně po sjednaných
-          fakturačních obdobích, případně na základě vystavené faktury nebo
-          objednávky.
+          U nově sjednaných licencí platba probíhá výhradně bankovním převodem
+          na základě vystavené faktury.
+          Číslo účtu, splatnost a platební údaje jsou uvedeny na faktuře.
+          Při opakovaném poskytování služby vystavujeme fakturu za sjednané
+          období. Nové platby kartou ani automatické strhávání z karty nenabízíme.
+        </p>
+        <p className="mt-2">
+          U dříve uzavřených smluv se způsob úhrady řídí dosavadním ujednáním
+          až do sjednání změny. Samotné přijetí těchto podmínek nemění ani
+          neruší dříve sjednaný způsob platby; přechod na fakturaci převodem
+          je třeba dohodnout s provozovatelem.
+        </p>
+        <p className="mt-2">
+          Není-li v nabídce pro podnikatele výslovně uvedeno jinak, jsou ceny
+          uváděny bez DPH. Spotřebiteli je před objednáním sdělena konečná
+          cena včetně všech daní a povinných poplatků.
         </p>
       </section>
 
@@ -143,7 +156,7 @@ export const LegalTerms: React.FC = () => {
 
       <section>
         <h2 className="text-white text-lg font-semibold">
-          9. Ochrana osobních údajů a důvěrnost
+          9. Ochrana dat, umělá inteligence a propojení služeb
         </h2>
         <p className="mt-2">
           Zpracování osobních údajů se řídí samostatným dokumentem „Zásady
@@ -155,6 +168,36 @@ export const LegalTerms: React.FC = () => {
           Provozovatel přijímá přiměřená technická a organizační opatření k
           ochraně dat a zpracovává pouze nezbytné provozní, bezpečnostní a
           incidentní záznamy potřebné pro provoz, obranu systému a řešení chyb.
+        </p>
+        <p className="mt-2">
+          Při čtení dokumentů prostřednictvím Mistral AI platí následující
+          ochrana: Mistral AI po zpracování dokumentu neukládá jeho obsah ani
+          odpověď ve svém API. Pro toto
+          zpracování máme aktivovaný režim Zero Data Retention (ZDR).
+          Dokumenty a výsledky uložené v TenderFlow zůstávají dostupné pro
+          vaši práci a jejich uchování se řídí těmito podmínkami a zásadami
+          ochrany osobních údajů.
+        </p>
+        <p className="mt-2">
+          Toto ujištění platí pro zpracování prostřednictvím Mistral AI.
+          Při volbě jiné AI služby v nastavení organizace se uplatní pravidla
+          dané služby. Správce organizace před takovou změnou ověří ochranu dat
+          a informuje uživatele o zvoleném zpracování.
+        </p>
+        <p className="mt-2">
+          Při používání AI se řídíme příslušnými pravidly EU AI Act
+          (nařízení Evropského parlamentu a Rady (EU) 2024/1689).
+          AI slouží jako pomocný nástroj. Její výstupy mohou obsahovat chyby;
+          uživatel je před použitím zkontroluje podle původních podkladů
+          a odpovídá za konečné rozhodnutí.
+        </p>
+        <p className="mt-2">
+          Vlastní MCP server umožňuje připojení dalších aplikací na základě
+          oprávnění udělených uživatelem. Přístup lze odvolat v nastavení.
+          Podporované změny dat vyžadují potvrzení. Připojený klient má vlastní
+          pravidla zpracování dat; ochrana ZDR pro Mistral AI v TenderFlow se
+          na něj automaticky nevztahuje. Před připojením uživatel ověří, jaká
+          data aplikaci zpřístupňuje a zda k tomu má potřebná oprávnění.
         </p>
       </section>
 
@@ -225,9 +268,15 @@ export const LegalTerms: React.FC = () => {
           13. Změny podmínek a závěrečná ustanovení
         </h2>
         <p className="mt-2">
-          Tyto Podmínky jsou účinné od data uvedeného výše. Provozovatel si
-          vyhrazuje právo Podmínky v přiměřeném rozsahu měnit; o podstatných
-          změnách bude Uživatel informován prostřednictvím aplikace nebo e-mailem.
+          Toto znění je dostupné pro nově uzavírané smlouvy od data uvedeného
+          výše. Pro stávající smluvní vztahy se nové znění použije až po jeho
+          přijetí uživatelem nebo po jiné výslovné dohodě stran. Do té doby
+          platí dosavadní ujednání.
+        </p>
+        <p className="mt-2">
+          Provozovatel může navrhnout přiměřené změny podmínek. O podstatných
+          změnách informuje uživatele prostřednictvím aplikace nebo e-mailem
+          a zpřístupní mu nové znění k přijetí.
         </p>
         <p className="mt-2">
           Pokud některé ustanovení těchto podmínek bude neplatné nebo
