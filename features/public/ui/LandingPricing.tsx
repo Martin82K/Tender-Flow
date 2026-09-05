@@ -1,5 +1,4 @@
 import React from "react";
-import { DEMO_REQUEST_URL } from "../model/demoRequest";
 import { ENTERPRISE_FEATURE_GROUPS } from "../model/landingContent";
 
 export const LandingPricing: React.FC = () => (
@@ -32,8 +31,7 @@ export const LandingPricing: React.FC = () => (
           <div className="enterprise-card">
             <div className="enterprise-card-head">
               <div className="enterprise-card-tier">
-                <div className="tier-icon enterprise">&#9670;</div>
-                <span>Enterprise</span>
+                <span>Co tedy získáte?</span>
               </div>
               <div className="enterprise-card-price">
                 <span className="price-amount custom">Na m&iacute;ru</span>
@@ -74,15 +72,9 @@ export const LandingPricing: React.FC = () => (
             <div className="enterprise-pricing-actions">
               <a
                 className="enterprise-pricing-cta"
-                href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo"
+                href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow"
               >
-                Domluvit firemn&iacute; konzultaci
-              </a>
-              <a
-                className="enterprise-pricing-secondary"
-                href={DEMO_REQUEST_URL}
-              >
-                Vyž&aacute;dat demo
+                Kontaktujte nás
               </a>
             </div>
           </div>
