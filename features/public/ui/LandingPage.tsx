@@ -3,7 +3,6 @@ import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { APP_VERSION } from "@/config/version";
 import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
-import tenderLandscape from "@/assets/landing/tender-landscape-ivory.jpg";
 import { TENDER_STORY_STEPS } from "../model/landingContent";
 import { LandingPricing } from "./LandingPricing";
 import { LandingIntegrations } from "./LandingIntegrations";
@@ -11,10 +10,20 @@ import "./landing-apex.css";
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
-  const [activeStoryStep, setActiveStoryStep] = useState("offers");
+  const [activeStoryStep, setActiveStoryStep] = useState("brief");
+  const [displayedStoryStep, setDisplayedStoryStep] = useState("brief");
+  const [loadedStoryImages, setLoadedStoryImages] = useState<ReadonlySet<string>>(() => new Set());
+  const [failedStoryImages, setFailedStoryImages] = useState<ReadonlySet<string>>(() => new Set());
   const activeStory =
     TENDER_STORY_STEPS.find((step) => step.id === activeStoryStep) ??
-    TENDER_STORY_STEPS[1];
+    TENDER_STORY_STEPS[0];
+
+  // Keep the last loaded frame while another image loads or fails.
+  useEffect(() => {
+    if (loadedStoryImages.has(activeStoryStep)) {
+      setDisplayedStoryStep(activeStoryStep);
+    }
+  }, [activeStoryStep, loadedStoryImages]);
 
   useEffect(() => {
     if (!hash) return;
@@ -86,14 +95,23 @@ export const LandingPage: React.FC = () => {
             className="hero-landscape"
             aria-label="Cesta stavebního tendru od podkladů ke smlouvě"
           >
-            <img
-              src={tenderLandscape}
-              alt="Architektonický model krajiny a stavby propojený procesem výběrového řízení"
-              width={1586}
-              height={992}
-              decoding="async"
-              fetchPriority="high"
-            />
+            <div className="hero-scene" aria-busy={!loadedStoryImages.has(activeStoryStep) && !failedStoryImages.has(activeStoryStep)}>
+              {TENDER_STORY_STEPS.map((step, index) => (
+                <img
+                  key={step.id}
+                  className={step.id === displayedStoryStep && !failedStoryImages.has(step.id) ? "story-image is-visible" : "story-image"}
+                  src={step.image}
+                  alt={step.imageAlt}
+                  aria-hidden={step.id !== displayedStoryStep || failedStoryImages.has(step.id)}
+                  width={1586}
+                  height={992}
+                  decoding="async"
+                  fetchPriority={index === 0 ? "high" : "low"}
+                  onLoad={() => setLoadedStoryImages((loaded) => new Set(loaded).add(step.id))}
+                  onError={() => setFailedStoryImages((failed) => new Set(failed).add(step.id))}
+                />
+              ))}
+            </div>
             <div className="story-panel" aria-live="polite">
               <span className="story-panel-kicker">
                 {activeStory.number} / {activeStory.label}
@@ -101,6 +119,7 @@ export const LandingPage: React.FC = () => {
               <strong>{activeStory.title}</strong>
               <p>{activeStory.detail}</p>
               <span className="story-panel-metric">{activeStory.metric}</span>
+              {failedStoryImages.has(activeStoryStep) && <p role="status">Ilustraci se nepodařilo načíst.</p>}
             </div>
             <div className="story-steps" aria-label="Fáze výběrového řízení">
               {TENDER_STORY_STEPS.map((step) => (
@@ -119,39 +138,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* ═══ MARQUEE ═══ */}
-      <div className="marquee-section">
-        <div className="marquee-track">
-          {[
-            "Pipeline tendrů",
-            "Správa kontaktů",
-            "AI analýza smluv",
-            "TODO Osobní",
-            "Dokumentový hub",
-            "Harmonogram",
-            "Excel nástroje",
-            "Desktop & Web",
-            "Reporting",
-          ]
-            .concat([
-              "Pipeline tendrů",
-              "Správa kontaktů",
-              "AI analýza smluv",
-              "TODO Osobní",
-              "Dokumentový hub",
-              "Harmonogram",
-              "Excel nástroje",
-              "Desktop & Web",
-              "Reporting",
-            ])
-            .map((item, i) => (
-              <div key={i} className="marquee-item">
-                {item}
-              </div>
-            ))}
-        </div>
-      </div>
 
       {/* ═══ FEATURES ═══ */}
       <section id="funkce">
