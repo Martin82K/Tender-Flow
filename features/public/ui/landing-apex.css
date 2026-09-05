@@ -422,3 +422,67 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
   .landing-apex .hero-line,.landing-apex .marquee-track{animation:none!important}
   .landing-apex .story-steps button,.landing-apex .btn-hero-primary{transition:none!important}
 }
+
+/* Selected public palette: ivory, ink and burnt orange. Auth keeps its own theme. */
+.landing-apex:not(.auth-apex-page) {
+  color-scheme:light;
+  --bg:#f5f2ec;
+  --bg-elevated:#f0ece5;
+  --bg-card:#fffefb;
+  --bg-card-hover:#faf7f2;
+  --surface:rgba(32,37,44,.025);
+  --surface-hover:rgba(32,37,44,.05);
+  --orange:#af4821;
+  --orange-dim:#983e1b;
+  --orange-glow:rgba(175,72,33,.07);
+  --orange-glow-strong:rgba(175,72,33,.18);
+  --amber:#8f5a13;
+  --amber-glow:rgba(143,90,19,.08);
+  --green:#af4821;
+  --green-dim:rgba(175,72,33,.07);
+  --cta:#af4821;
+  --cta-hover:#983e1b;
+  --cta-glow:rgba(175,72,33,.14);
+  --on-cta:#ffffff;
+  --white:#20252c;
+  --gray-0:#20252c;
+  --gray-1:#555d67;
+  --gray-2:#65676b;
+  --gray-3:#ded8cf;
+  --border:rgba(76,56,35,.14);
+  --border-orange:rgba(175,72,33,.3);
+  --border-hover:rgba(76,56,35,.25);
+  --panel-shadow:0 16px 48px rgba(76,56,35,.06);
+}
+.landing-apex:not(.auth-apex-page) header{background:rgba(245,242,236,.94)}
+.landing-apex:not(.auth-apex-page) .hero,
+.landing-apex:not(.auth-apex-page) .cta-section{background:var(--bg)}
+.landing-apex:not(.auth-apex-page) .hero-grid,
+.landing-apex:not(.auth-apex-page) .cta-section::before{display:none}
+.landing-apex:not(.auth-apex-page) .hero-landscape{background:var(--bg-card);border-color:var(--border);box-shadow:var(--panel-shadow)}
+.landing-apex:not(.auth-apex-page) .hero-landscape::after{display:none}
+.landing-apex:not(.auth-apex-page) .story-panel,
+.landing-apex:not(.auth-apex-page) .story-steps{background:rgba(255,254,251,.96);border-color:var(--border);box-shadow:var(--panel-shadow)}
+.landing-apex:not(.auth-apex-page) .btn-start,
+.landing-apex:not(.auth-apex-page) .btn-hero-primary,
+.landing-apex:not(.auth-apex-page) .enterprise-pricing-cta,
+.landing-apex:not(.auth-apex-page) .app-mini-btn,
+.landing-apex:not(.auth-apex-page) .story-steps button.active,
+.landing-apex:not(.auth-apex-page) .story-steps button.active span{color:var(--on-cta)}
+html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.active{color:var(--on-cta)!important}
+.landing-apex:not(.auth-apex-page) .marquee-section{background:var(--bg-elevated)}
+.landing-apex:not(.auth-apex-page) .integration-card-highlight{background:var(--bg-card);border-color:var(--border-orange)}
+.landing-apex:not(.auth-apex-page) .enterprise-card{background:var(--bg-card);border-color:var(--border-orange);box-shadow:var(--panel-shadow)}
+.landing-apex:not(.auth-apex-page) .enterprise-card::after{display:none}
+.landing-apex:not(.auth-apex-page) .enterprise-card:hover{border-color:var(--cta)}
+.landing-apex:not(.auth-apex-page) .f-card:hover,
+.landing-apex:not(.auth-apex-page) .app-frame{box-shadow:var(--panel-shadow)}
+@media(min-width:1121px){
+  .landing-apex:not(.auth-apex-page) .hero{padding-top:7rem}
+  .landing-apex:not(.auth-apex-page) .hero-landscape{align-self:start;margin-top:3.25rem}
+  .landing-apex:not(.auth-apex-page) .hero-landscape>img{aspect-ratio:1.47}
+}
+@media(max-width:768px){
+  .landing-apex:not(.auth-apex-page) .hero-landscape{background:transparent;border:0;box-shadow:none}
+  .landing-apex:not(.auth-apex-page) .hero-landscape>img{box-shadow:var(--panel-shadow)}
+}

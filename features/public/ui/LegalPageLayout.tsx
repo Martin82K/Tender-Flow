@@ -54,7 +54,7 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
             border: "1px solid var(--border)",
             borderRadius: 20,
             padding: "2.5rem",
-            boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
+            boxShadow: "var(--panel-shadow)",
             position: "relative",
             overflow: "hidden",
           }}

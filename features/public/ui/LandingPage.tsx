@@ -3,7 +3,7 @@ import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { APP_VERSION } from "@/config/version";
 import { DEMO_REQUEST_URL } from "@features/public/model/demoRequest";
 import logo from "@/assets/logo.svg";
-import tenderLandscape from "@/assets/landing/tender-landscape.jpg";
+import tenderLandscape from "@/assets/landing/tender-landscape-ivory.jpg";
 import { TENDER_STORY_STEPS } from "../model/landingContent";
 import { LandingPricing } from "./LandingPricing";
 import { LandingIntegrations } from "./LandingIntegrations";
