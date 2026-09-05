@@ -66,10 +66,10 @@ export const LandingPage: React.FC = () => {
         <div className="hero-shell">
           <div className="hero-content">
             <h1>
-              Méně chaosu
+              Pevný základ
               <br />
-              kolem tendrů.
-              <span> Více jistoty v každé zakázce.</span>
+              každé zakázky.
+              <span> Správné podklady. Jasná rozhodnutí.</span>
             </h1>
             <p className="hero-sub">
               TenderFlow propojí poptávky, nabídky, dodavatele, termíny i
