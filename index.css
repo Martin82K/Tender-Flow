@@ -3966,20 +3966,79 @@ html.dark[data-skin="nature"] {
   color-scheme: dark;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) body,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-shell {
+/* TF basic: landing-inspired solid surfaces, with independent light and dark palettes. */
+html[data-skin="basic"] {
+  --tf-skin-bg: #f5f2ec;
+  --tf-skin-surface: #fffefb;
+  --tf-skin-surface-muted: #f0ece5;
+  --tf-skin-surface-deep: #ece7df;
+  --tf-skin-card: #fffefb;
+  --tf-skin-text: #20252c;
+  --tf-skin-text-2: #555d67;
+  --tf-skin-muted: #65676b;
+  --tf-skin-muted-2: #767471;
+  --tf-skin-line: #ded8cf;
+  --tf-skin-line-2: #b9aea0;
+  --tf-skin-grid: transparent;
+  --tf-skin-grid-2: transparent;
+  --tf-skin-accent: #af4821;
+  --tf-skin-accent-2: #983e1b;
+  --tf-skin-orange: #af4821;
+  --tf-skin-orange-deep: #983e1b;
+  --tf-skin-green: #24633f;
+  --tf-skin-blue: #24549a;
+  --tf-skin-rose: #b4233e;
+  --tf-skin-amber: #8f5a13;
+  --tf-settings-primary: var(--tf-skin-accent);
+  --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: #af4821;
+  --tf-settings-active-foreground: #ffffff;
+  color-scheme: light;
+}
+
+html.dark[data-skin="basic"] {
+  --tf-skin-bg: #1c1b19;
+  --tf-skin-surface: #24221f;
+  --tf-skin-surface-muted: #2e2b27;
+  --tf-skin-surface-deep: #161513;
+  --tf-skin-card: #26231f;
+  --tf-skin-text: #f5f2ec;
+  --tf-skin-text-2: #d5ccc3;
+  --tf-skin-muted: #b8afa5;
+  --tf-skin-muted-2: #a69b8e;
+  --tf-skin-line: #484139;
+  --tf-skin-line-2: #736657;
+  --tf-skin-grid: transparent;
+  --tf-skin-grid-2: transparent;
+  --tf-skin-accent: #eaa079;
+  --tf-skin-accent-2: #ffc5a1;
+  --tf-skin-orange: #eaa079;
+  --tf-skin-orange-deep: #ffc5a1;
+  --tf-skin-green: #90cca5;
+  --tf-skin-blue: #a7c6f0;
+  --tf-skin-rose: #ff9aab;
+  --tf-skin-amber: #e7be79;
+  --tf-settings-primary: var(--tf-skin-accent);
+  --tf-settings-primary-strong: var(--tf-skin-orange-deep);
+  --tf-settings-active-background: #eaa079;
+  --tf-settings-active-foreground: #231b16;
+  color-scheme: dark;
+}
+
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) body,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-shell {
   background-color: var(--tf-skin-bg) !important;
   color: var(--tf-skin-text);
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(h1, h2, h3, h4, h5, h6, .industrial-section-title) {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(h1, h2, h3, h4, h5, h6, .industrial-section-title) {
   font-family: inherit !important;
   font-style: normal !important;
   letter-spacing: -0.015em;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main {
   position: relative;
   isolation: isolate;
   background-color: var(--tf-skin-bg) !important;
@@ -3987,13 +4046,13 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main {
   color: var(--tf-skin-text);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-project-shell {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-project-shell {
   background-color: transparent !important;
   background-image: none !important;
   color: var(--tf-skin-text);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   .tf-project-overview,
   .tf-project-overview-view,
   .tf-project-manager-view,
@@ -4006,7 +4065,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) :is(
   color: var(--tf-skin-text);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -4019,14 +4078,14 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before {
   pointer-events: none;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar {
   isolation: isolate;
   background-color: var(--tf-skin-surface-deep) !important;
   border-color: var(--tf-skin-line) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar::after {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar::after {
   content: "";
   position: absolute;
   z-index: -1;
@@ -4039,23 +4098,23 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar::after {
   pointer-events: none;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar > * {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar > * {
   position: relative;
   z-index: 1;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar-brand,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar-brand,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar {
   border-color: var(--tf-skin-line) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar-brand {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar-brand {
   background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 64%, transparent) !important;
   border-radius: 0.75rem;
   backdrop-filter: blur(3px);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -4064,7 +4123,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar {
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar::after {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar::after {
   content: "";
   position: absolute;
   z-index: -1;
@@ -4077,75 +4136,75 @@ html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar::after {
   pointer-events: none;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-brand-title,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar h1,
-html:is([data-skin="botanica"], [data-skin="nature"]) [class~="text-slate-900"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [class~="dark:text-white"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [class~="dark:text-slate-100"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-brand-title,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar h1,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="text-slate-900"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="dark:text-white"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="dark:text-slate-100"] {
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [class~="text-slate-700"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [class~="text-slate-600"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [class~="dark:text-slate-200"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [class~="dark:text-slate-300"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="text-slate-700"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="text-slate-600"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="dark:text-slate-200"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="dark:text-slate-300"] {
   color: var(--tf-skin-text-2) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [class~="text-slate-500"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [class~="text-slate-400"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="text-slate-500"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [class~="text-slate-400"] {
   color: var(--tf-skin-muted) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .text-primary,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-brand-edition {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .text-primary,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-brand-edition {
   color: var(--tf-skin-orange-deep) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .bg-primary {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary {
   background-color: var(--tf-skin-accent) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .bg-primary\/10,
-html:is([data-skin="botanica"], [data-skin="nature"]) .bg-primary\/15 {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/10,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/15 {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .border-primary,
-html:is([data-skin="botanica"], [data-skin="nature"]) .border-primary\/30,
-html:is([data-skin="botanica"], [data-skin="nature"]) .border-primary\/50 {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .border-primary,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .border-primary\/30,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .border-primary\/50 {
   border-color: var(--tf-skin-accent) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="project-tabs"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] {
   background-color: color-mix(in srgb, var(--tf-skin-surface-muted) 84%, transparent) !important;
   border-color: var(--tf-skin-line) !important;
   box-shadow: inset 0 1px color-mix(in srgb, #ffffff 18%, transparent);
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="project-tabs"] button {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button {
   color: var(--tf-skin-muted) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="project-tabs"] button:hover {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button:hover {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 9%, transparent) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="project-tabs"] button[data-active="true"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button[data-active="true"] {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
   border-color: color-mix(in srgb, var(--tf-skin-accent) 52%, var(--tf-skin-line) 48%) !important;
   color: var(--tf-skin-orange-deep) !important;
   box-shadow: 0 3px 10px color-mix(in srgb, var(--tf-skin-bg) 18%, transparent) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="project-tabs"] button:focus-visible {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 68%, #ffffff 32%) !important;
   outline-offset: 2px;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [data-help-id="tender-plan-header-icon"],
   [data-help-id="tender-plan-tip"]
 ) {
@@ -4153,14 +4212,14 @@ html:is([data-skin="botanica"], [data-skin="nature"]) :is(
   border-color: color-mix(in srgb, var(--tf-skin-accent) 35%, var(--tf-skin-line) 65%) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [data-help-id="tender-plan-header-icon"],
   [data-help-id="tender-plan-tip"]
 ) :is([class~="text-blue-300"], [class~="text-blue-400"], [class~="text-blue-400/80"]) {
   color: var(--tf-skin-orange-deep) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="bg-blue-50"],
   [class~="bg-blue-100"],
   [class~="bg-blue-500/10"],
@@ -4174,7 +4233,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) :is(
   background-color: color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="bg-blue-500"],
   [class~="bg-blue-600"],
   [class~="bg-indigo-500"]
@@ -4182,7 +4241,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) :is(
   background-color: var(--tf-skin-accent) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="text-blue-300"],
   [class~="text-blue-400"],
   [class~="text-blue-400/80"],
@@ -4201,7 +4260,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) :is(
 }
 
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="border-blue-200"],
   [class~="border-blue-300"],
   [class~="border-blue-500/20"],
@@ -4487,34 +4546,34 @@ html[data-skin] .tf-settings-view :is(
   --tw-shadow-color: color-mix(in srgb, var(--tf-settings-primary) 28%, transparent) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] {
   gap: 1rem !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] > .industrial-kpi-card {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] > .industrial-kpi-card {
   padding-block: 1rem !important;
   padding-inline: 1.25rem !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] > .industrial-kpi-card > .gap-2 {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] > .industrial-kpi-card > .gap-2 {
   gap: 0.5rem !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] .text-2xl {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] .text-2xl {
   font-size: 1.5rem !important;
   line-height: 1.15 !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-overview-info-surface {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-overview-info-surface {
   background-color: color-mix(in srgb, var(--tf-skin-card) 84%, transparent) !important;
   box-shadow: inset 0 1px color-mix(in srgb, var(--tf-skin-line) 55%, transparent);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-overview-info-column {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-overview-info-column {
   border-color: var(--tf-skin-line) !important;
 }
 
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] :is(
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] :is(
   [class~="bg-blue-500"],
   [class~="bg-indigo-500"],
   [class~="bg-emerald-500"],
@@ -4523,7 +4582,7 @@ html.dark:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overvi
   background-color: var(--tf-skin-accent) !important;
 }
 
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"] :is(
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"] :is(
   [class~="text-blue-400"],
   [class~="text-indigo-400"],
   [class~="text-emerald-400"],
@@ -4532,32 +4591,32 @@ html.dark:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overvi
   color: var(--tf-skin-accent-2) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar-nav :is(summary, button, a) {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar-nav :is(summary, button, a) {
   background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 54%, transparent);
   color: var(--tf-skin-text-2) !important;
   backdrop-filter: blur(2px);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar [data-help-id="sidebar-project-item"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar [data-help-id="sidebar-project-item"] {
   background-color: color-mix(in srgb, var(--tf-skin-surface-deep) 54%, transparent);
   backdrop-filter: blur(2px);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar-nav :is(summary, button, a):hover,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar [data-help-id="sidebar-project-item"]:hover {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar-nav :is(summary, button, a):hover,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar [data-help-id="sidebar-project-item"]:hover {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-surface-deep) 89%) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar [data-active="true"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar [data-active="true"] {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
   color: var(--tf-skin-orange-deep) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="bg-white"],
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-project-shell [class~="bg-white"],
-html:is([data-skin="botanica"], [data-skin="nature"]) .card-polished,
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="tasks-calendar"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="bg-white"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-project-shell [class~="bg-white"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .card-polished,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="tasks-calendar"] {
   background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-panel-opacity, 88%), transparent) !important;
   background-image: none !important;
   border-color: var(--tf-skin-line) !important;
@@ -4565,38 +4624,38 @@ html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="tasks-calen
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [role="dialog"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [role="menu"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="notification-center"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [role="dialog"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [role="menu"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="notification-center"] {
   background: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
   border-color: var(--tf-skin-line) !important;
   color: var(--tf-skin-text) !important;
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="bg-slate-50"],
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-project-shell [class~="bg-slate-50"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="dark:bg-slate-900"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="dark:bg-slate-900/70"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="dark:bg-slate-800"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-project-shell [class~="dark:bg-slate-900"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="bg-slate-50"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-project-shell [class~="bg-slate-50"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="dark:bg-slate-900"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="dark:bg-slate-900/70"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="dark:bg-slate-800"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-project-shell [class~="dark:bg-slate-900"] {
   background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 88%), transparent) !important;
   border-color: var(--tf-skin-line) !important;
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(input, select, textarea) {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(input, select, textarea) {
   background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(input, textarea)::placeholder {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(input, textarea)::placeholder {
   color: var(--tf-skin-muted) !important;
   opacity: 1;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) table {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) table {
   background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 90%), transparent) !important;
   background-image: none !important;
   border-color: var(--tf-skin-line) !important;
@@ -4604,36 +4663,36 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table {
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="bg-white"] table,
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="dark:bg-slate-900"] table,
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main [class~="dark:bg-slate-900/70"] table {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="bg-white"] table,
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="dark:bg-slate-900"] table,
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main [class~="dark:bg-slate-900/70"] table {
   background-color: transparent !important;
   backdrop-filter: none;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) table :is(thead, th) {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) table :is(thead, th) {
   background-color: color-mix(in srgb, var(--tf-skin-surface-muted) var(--tf-skin-data-opacity, 94%), transparent) !important;
   border-color: var(--tf-skin-line) !important;
   color: var(--tf-skin-text-2) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) table :is(tbody, tr, td) {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) table :is(tbody, tr, td) {
   border-color: var(--tf-skin-line) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-demand-table"] table {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-demand-table"] table {
   background-color: transparent !important;
   backdrop-filter: none;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-demand-table"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-demand-table"] {
   background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 90%), transparent) !important;
   background-image: none !important;
   border-color: var(--tf-skin-line) !important;
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) table tbody tr:hover td {
   background-color: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card) 92%) !important;
 }
 
@@ -4683,7 +4742,7 @@ html:is([data-skin="botanica"], [data-skin="nature"]) table tbody tr:hover td {
   color: var(--tf-skin-text) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="todo-calendar-scroll"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="todo-calendar-scroll"] {
   background-color: color-mix(in srgb, var(--tf-skin-surface) var(--tf-skin-panel-opacity, 88%), transparent) !important;
   background-image:
     linear-gradient(
@@ -4697,40 +4756,40 @@ html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="todo-calend
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="todo-calendar-day"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="todo-calendar-day"] {
   border-color: var(--tf-skin-line) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="todo-calendar-task"][data-has-project="false"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="todo-calendar-task"][data-has-project="false"] {
   background-color: var(--tf-skin-surface-muted) !important;
   background-image: none !important;
   border-color: var(--tf-skin-line-2) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) [data-active="true"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [aria-selected="true"],
-html:is([data-skin="botanica"], [data-skin="nature"]) [aria-pressed="true"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-active="true"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [aria-selected="true"],
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [aria-pressed="true"] {
   border-color: color-mix(in srgb, var(--tf-skin-accent) 72%, var(--tf-skin-line) 28%) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :focus-visible {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--tf-skin-accent) 72%, #ffffff 28%) !important;
   outline-offset: 2px !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) :is(button, a, summary):hover {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(button, a, summary):hover {
   text-decoration-color: var(--tf-skin-accent);
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel label,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel [class~="bg-slate-50"],
-html.dark:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel [class~="dark:bg-slate-950"] {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-account-menu-panel label,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-account-menu-panel [class~="bg-slate-50"],
+html.dark:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-account-menu-panel [class~="dark:bg-slate-950"] {
   background-color: var(--tf-skin-surface-muted) !important;
   border-color: var(--tf-skin-line) !important;
 }
 
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel select,
-html:is([data-skin="botanica"], [data-skin="nature"]) .tf-account-menu-panel option {
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-account-menu-panel select,
+html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-account-menu-panel option {
   background-color: var(--tf-skin-card) !important;
   color: var(--tf-skin-text) !important;
 }
@@ -4967,32 +5026,32 @@ html[data-skin] .tf-role-permissions-scroll::-webkit-scrollbar-corner {
 }
 
 @media (max-width: 900px) {
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before {
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main::before {
     background-position: 58% center;
     background-size: cover;
   }
 
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar::after {
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar::after {
     background-position: 14% center;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before,
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar::after,
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar::after {
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main::before,
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar::after,
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar::after {
     transition: none !important;
   }
 }
 
 @media (forced-colors: active), (prefers-contrast: more) {
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-app-main::before,
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-sidebar::after,
-  html:is([data-skin="botanica"], [data-skin="nature"]) .tf-topbar::after {
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-app-main::before,
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar::after,
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar::after {
     display: none;
   }
 
-  html:is([data-skin="botanica"], [data-skin="nature"]) :is(.tf-app-main [class~="bg-white"], table, input, select, textarea, [role="dialog"], [role="menu"]) {
+  html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(.tf-app-main [class~="bg-white"], table, input, select, textarea, [role="dialog"], [role="menu"]) {
     background-image: none !important;
     background-color: Canvas !important;
     color: CanvasText !important;
@@ -5025,6 +5084,80 @@ html:not([data-skin="space"]) .tf-button-warning:hover:not(:disabled) {
 
 html:not([data-skin="space"]) :is(.tf-button-success, .tf-button-warning)::before {
   display: none !important;
+}
+
+/* TF basic bridges Appica controls to the same opaque, warm palette. */
+html[data-skin="basic"] {
+  --primary: var(--tf-skin-accent);
+  --primary-subtle: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card));
+  --primary-soft: color-mix(in srgb, var(--tf-skin-accent) 16%, var(--tf-skin-card));
+  --primary-muted: var(--tf-skin-accent);
+  --primary-strong: var(--tf-skin-orange-deep);
+  --primary-foreground: var(--tf-settings-active-foreground);
+  --background: var(--tf-skin-bg);
+  --background-subtle: var(--tf-skin-surface);
+  --background-muted: var(--tf-skin-surface-muted);
+  --background-strong: var(--tf-skin-surface-deep);
+  --foreground: var(--tf-skin-text);
+  --foreground-subtle: var(--tf-skin-muted);
+  --foreground-muted: var(--tf-skin-muted);
+  --foreground-strong: var(--tf-skin-text-2);
+  --foreground-emphasis: var(--tf-skin-text);
+  --foreground-intense: var(--tf-skin-text);
+  --card: var(--tf-skin-card);
+  --card-foreground: var(--tf-skin-text);
+  --popover: var(--tf-skin-card);
+  --popover-foreground: var(--tf-skin-text);
+  --border: var(--tf-skin-line);
+  --border-muted: var(--tf-skin-line);
+  --border-strong: var(--tf-skin-line-2);
+  --border-emphasis: var(--tf-skin-accent);
+  --border-overlay: var(--tf-skin-line-2);
+  --input: var(--tf-skin-line-2);
+  --ring: var(--tf-skin-accent);
+  --focus-ring: var(--tf-skin-accent);
+  --focus-ring-input: var(--tf-skin-accent);
+  --focus-ring-primary: var(--tf-skin-accent);
+}
+
+html[data-skin="basic"] :is(.tf-app-main::before, .tf-sidebar::after, .tf-topbar::after) {
+  display: none;
+}
+
+html[data-skin="basic"] .tf-app-shell :is(.tf-sidebar-brand, .tf-sidebar-nav button, .tf-sidebar-nav a, .tf-sidebar-nav summary) {
+  backdrop-filter: none;
+}
+
+html[data-skin="basic"] .tf-account-menu-panel {
+  background: var(--tf-skin-card) !important;
+  border-color: var(--tf-skin-line) !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="basic"] :is(.tf-app-shell, [role="dialog"], .tf-account-menu-panel) :is(
+  .bg-primary, .bg-blue-500, .bg-blue-600, .bg-indigo-500,
+  [data-slot="button"][data-tf-variant="primary"]
+) {
+  background: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-foreground) !important;
+  border-color: var(--tf-settings-active-background) !important;
+}
+
+html[data-skin="basic"] [data-slot="button"]:is([data-tf-variant="secondary"], [data-tf-variant="outline"], [data-tf-variant="ghost"]) {
+  background: var(--tf-skin-surface-muted);
+  color: var(--tf-skin-text);
+  border-color: var(--tf-skin-line-2);
+}
+
+html[data-skin="basic"] :is(.tf-app-shell, [role="dialog"], .tf-account-menu-panel) input:is([type="checkbox"], [type="radio"]):checked {
+  background-color: var(--tf-settings-active-background) !important;
+  border-color: var(--tf-settings-active-background) !important;
+  color: var(--tf-settings-active-background) !important;
+}
+
+html[data-skin="basic"] :is(.tf-app-shell, [role="dialog"], .tf-account-menu-panel) :focus-visible {
+  outline: 2px solid var(--tf-skin-orange-deep) !important;
+  outline-offset: 3px !important;
 }
 
 /* TF Space — Appica-based cosmic glass skin. */

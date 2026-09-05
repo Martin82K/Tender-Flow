@@ -51,7 +51,7 @@ describe("shared Settings skin tokens", () => {
     expect(cssBlock(":root")).toContain("--tf-settings-active-foreground: #ffffff");
     expect(cssBlock("html.dark")).toContain("--tf-settings-primary-strong: #a5b4fc");
 
-    for (const skin of ["industrial", "botanica", "nature", "space"]) {
+    for (const skin of ["industrial", "botanica", "nature", "space", "basic"]) {
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-primary:");
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-active-background:");
       expect(cssBlock(`html[data-skin=\"${skin}\"]`)).toContain("--tf-settings-active-foreground:");
@@ -94,7 +94,7 @@ describe("shared Settings skin tokens", () => {
   it("překládá legacy informační utility přes společnou vrstvu Nastavení", () => {
     const start = css.indexOf("/* Shared settings theme bridge:");
     const end = css.indexOf(
-      'html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"]',
+      'html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"]',
       start,
     );
     const settingsCss = css.slice(start, end);
@@ -142,7 +142,7 @@ describe("shared Settings skin tokens", () => {
   it("nepřepisuje sémantické destructive a error utility", () => {
     const start = css.indexOf("/* Shared settings theme bridge:");
     const end = css.indexOf(
-      'html:is([data-skin="botanica"], [data-skin="nature"]) [data-help-id="overview-kpi-cards"]',
+      'html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="overview-kpi-cards"]',
       start,
     );
     const settingsCss = css.slice(start, end);

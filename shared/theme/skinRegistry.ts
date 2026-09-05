@@ -102,6 +102,7 @@ const spaceDefinitions: Record<ResolvedThemeMode, SkinVisualDefinition> = {
 };
 
 const registry: Record<ThemeSkin, Record<ResolvedThemeMode, SkinVisualDefinition>> = {
+  basic: { light: fallbackDefinition, dark: fallbackDefinition },
   classic: { light: fallbackDefinition, dark: fallbackDefinition },
   industrial: { light: fallbackDefinition, dark: fallbackDefinition },
   botanica: botanicaDefinitions,

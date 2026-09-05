@@ -40,7 +40,7 @@ const contrastRatio = (foreground: string, background: string): number => {
 };
 
 describe("Botanica skin", () => {
-  const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"])';
+  const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"])';
 
   it("definuje samostatnou světlou a tmavou paletu s čitelným textem", () => {
     expect(css).toContain('html[data-skin="botanica"]');

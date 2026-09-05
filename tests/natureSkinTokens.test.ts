@@ -66,7 +66,7 @@ describe("Nature skin", () => {
   it("nepoužívá oranžovou značky jako Nature akcent", () => {
     const lightStart = css.indexOf('html[data-skin="nature"]');
     const darkStart = css.indexOf('html.dark[data-skin="nature"]', lightStart);
-    const sharedStart = css.indexOf('html:is([data-skin="botanica"], [data-skin="nature"])', darkStart);
+    const sharedStart = css.indexOf('html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"])', darkStart);
     const natureTokens = css.slice(lightStart, sharedStart);
 
     expect(natureTokens).not.toMatch(/#ff8a33|#f59e0b|#ff9f1a/i);
@@ -91,7 +91,7 @@ describe("Nature skin", () => {
   });
 
   it("sdílí data-safe shell bez zásahu do ostatních skinů", () => {
-    const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"])';
+    const sharedSkinSelector = 'html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"])';
 
     expect(css).toContain(`${sharedSkinSelector} .tf-app-main::before`);
     expect(css).toContain(`${sharedSkinSelector} .tf-sidebar::after`);

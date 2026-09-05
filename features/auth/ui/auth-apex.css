@@ -1,11 +1,11 @@
 /* ═══════════ AUTH PAGES — APEX STYLE ═══════════ */
 
 .auth-apex-page {
-  --auth-accent: #6fdfa3;
-  --auth-accent-hover: #8ceab6;
-  --auth-accent-surface: rgba(111, 223, 163, 0.06);
-  --auth-accent-glow: rgba(111, 223, 163, 0.2);
-  --auth-accent-glow-strong: rgba(111, 223, 163, 0.34);
+  --auth-accent: var(--cta);
+  --auth-accent-hover: var(--cta-hover);
+  --auth-accent-surface: var(--orange-glow);
+  --auth-accent-glow: var(--cta-glow);
+  --auth-accent-glow-strong: var(--orange-glow-strong);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
 
 .auth-apex-page ::selection {
   background: var(--auth-accent);
-  color: var(--bg);
+  color: var(--on-cta);
 }
 
 /* Background grid */
@@ -108,7 +108,7 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--panel-shadow);
   position: relative;
   overflow: hidden;
 }
@@ -183,9 +183,9 @@
   width: 100%;
   padding: 0.8125rem 1rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f5f7;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--white);
   font-size: 0.875rem;
   font-family: var(--font);
   font-weight: 400;
@@ -193,10 +193,10 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 .auth-input::placeholder {
-  color: #6b6b80;
+  color: var(--gray-2);
 }
 .auth-input:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-hover);
 }
 .auth-input:focus {
   border-color: var(--auth-accent);
@@ -207,17 +207,17 @@
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus,
 .auth-input:-webkit-autofill:active {
-  -webkit-text-fill-color: #f5f5f7 !important;
-  caret-color: #f5f5f7;
-  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset !important;
-  box-shadow: 0 0 0 1000px #0e1118 inset !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  -webkit-text-fill-color: var(--white) !important;
+  caret-color: var(--white);
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  border: 1px solid var(--border) !important;
   transition: background-color 9999s ease-out 0s, color 9999s ease-out 0s;
 }
 .auth-input:-webkit-autofill:focus {
   border: 1px solid var(--auth-accent) !important;
-  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
-  box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 4px var(--auth-accent-glow) !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 4px var(--auth-accent-glow) !important;
 }
 
 .auth-checkbox {
@@ -261,7 +261,7 @@
   top: 1px;
   width: 5px;
   height: 10px;
-  border: solid var(--bg, #111);
+  border: solid var(--on-cta);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -316,15 +316,22 @@
 }
 
 .auth-alert-error {
-  color: #f87171;
+  color: #b42318;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.15);
 }
 
+.auth-alert-success {
+  color: #24633f;
+  background: rgba(36, 99, 63, 0.07);
+  border: 1px solid rgba(36, 99, 63, 0.2);
+  padding: 1rem;
+}
+
 .auth-alert-warn {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.15);
+  color: var(--amber);
+  background: var(--amber-glow);
+  border: 1px solid currentColor;
 }
 
 /* ═══════════ BUTTONS ═══════════ */
@@ -332,7 +339,7 @@
   width: 100%;
   padding: 0.875rem;
   background: var(--auth-accent);
-  color: var(--bg);
+  color: var(--on-cta);
   border: none;
   border-radius: 14px;
   font-size: 0.9375rem;
@@ -424,48 +431,47 @@
   outline-offset: 3px;
 }
 
-/* The global space skin uses cyan !important focus styles. Keep the auth
-   experience on its own green palette without changing the rest of the app. */
-html[data-skin="space"] .auth-apex-page .auth-input {
-  background-color: rgba(255, 255, 255, 0.025) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: #f5f5f7 !important;
+/* User-selected skins must not override the shared public auth palette. */
+html[data-skin] .auth-apex-page .auth-input {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--white) !important;
   caret-color: var(--auth-accent) !important;
 }
-html[data-skin="space"] .auth-apex-page .auth-input:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.15) !important;
+html[data-skin] .auth-apex-page .auth-input:hover:not(:focus) {
+  border-color: var(--border-hover) !important;
 }
-html[data-skin="space"] .auth-apex-page .auth-input:focus {
+html[data-skin] .auth-apex-page .auth-input:focus {
   background-color: var(--auth-accent-surface) !important;
   border-color: var(--auth-accent) !important;
   outline: none !important;
   box-shadow: 0 0 0 4px var(--auth-accent-glow) !important;
 }
-html[data-skin="space"] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"] {
+html[data-skin] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"] {
   background-color: var(--surface) !important;
   border-color: var(--border-hover) !important;
   caret-color: var(--auth-accent) !important;
 }
-html[data-skin="space"] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:hover {
+html[data-skin] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:hover {
   border-color: var(--auth-accent-hover) !important;
 }
-html[data-skin="space"] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:checked {
+html[data-skin] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:checked {
   background-color: var(--auth-accent) !important;
   border-color: var(--auth-accent) !important;
 }
-html[data-skin="space"] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:focus-visible {
+html[data-skin] .auth-apex-page :is(.auth-checkbox, .auth-legal-check) input[type="checkbox"]:focus-visible {
   outline: 2px solid var(--auth-accent) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;
 }
-html[data-skin="space"] .auth-apex-page :is(button, a, input, summary, [tabindex]):focus-visible {
+html[data-skin] .auth-apex-page :is(button, a, input, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--auth-accent) !important;
   outline-offset: 3px !important;
   box-shadow: 0 0 0 4px var(--auth-accent-glow) !important;
 }
-html[data-skin="space"] .auth-apex-page .auth-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
-  box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px var(--auth-accent-glow) !important;
+html[data-skin] .auth-apex-page .auth-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 4px var(--auth-accent-glow) !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 4px var(--auth-accent-glow) !important;
 }
 
 /* ═══════════ DIVIDER ═══════════ */
@@ -511,4 +517,8 @@ html[data-skin="space"] .auth-apex-page .auth-input:-webkit-autofill:focus {
   .auth-card-body {
     padding: 1.5rem;
   }
+}
+
+html[data-skin] .auth-apex-page .auth-input::placeholder {
+  color: var(--gray-2) !important;
 }

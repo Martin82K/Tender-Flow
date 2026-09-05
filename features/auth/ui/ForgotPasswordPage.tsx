@@ -53,7 +53,7 @@ export const ForgotPasswordPage: React.FC = () => {
       <AuthCard title="Obnova hesla" subtitle="Zadejte svůj email">
         {status === "success" ? (
           <div className="auth-form">
-            <div className="auth-alert" style={{ color: "var(--green)", background: "var(--green-dim)", border: "1px solid rgba(52,211,153,0.2)", padding: "1rem" }}>
+            <div className="auth-alert auth-alert-success">
               <p style={{ fontWeight: 600 }}>Odkaz odeslán!</p>
               <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem", opacity: 0.9 }}>
                 Pokud účet s tímto emailem existuje, poslali jsme vám instrukce pro obnovu hesla.

@@ -67,7 +67,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     return (
       <AuthLayout>
         <div
-          className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-white/70 select-none"
+          className="landing-apex auth-apex-page px-6 text-center text-sm select-none"
           style={{ WebkitAppRegion: "drag" } as any}
         >
           Přesměrování na přihlášení...

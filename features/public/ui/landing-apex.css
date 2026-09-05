@@ -419,10 +419,10 @@ html[data-skin="space"] .landing-apex .story-steps button:focus-visible{outline:
   .landing-apex .story-steps button,.landing-apex .btn-hero-primary,.landing-apex .hero-scene>img{transition:none!important}
 }
 
-/* Selected public palette: ivory, ink and burnt orange. Auth keeps its own theme. */
+/* Shared public and authentication palette: ivory, ink and burnt orange. */
 /* Forgiving selector list keeps public tokens when :has() is unsupported. */
-:is(.landing-apex:not(.auth-apex-page),
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner) {
+:is(.landing-apex,
+body:has(.landing-apex) .cookie-consent-banner) {
   color-scheme:light;
   --bg:#f5f2ec;
   --bg-elevated:#f0ece5;
@@ -456,7 +456,7 @@ body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner) {
   --border-hover:rgba(76,56,35,.25);
   --panel-shadow:0 16px 48px rgba(76,56,35,.06);
 }
-.landing-apex:not(.auth-apex-page) header{background:rgba(245,242,236,.94)}
+.landing-apex header{background:rgba(245,242,236,.94)}
 .landing-apex:not(.auth-apex-page) .hero,
 .landing-apex:not(.auth-apex-page) .cta-section{background:var(--bg)}
 .landing-apex:not(.auth-apex-page) .hero-grid,
@@ -500,14 +500,14 @@ html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.a
 @media(max-width:768px){
   .landing-apex .client-reference{align-items:flex-start;flex-direction:column}
 }
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-banner{background:var(--bg-card);border-color:var(--border);box-shadow:var(--panel-shadow)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-title{color:var(--white)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-text{color:var(--gray-1)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-link{color:var(--orange)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-essential{background:var(--bg-card);border-color:var(--gray-2);color:var(--white)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-essential:hover{background:var(--bg-elevated)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-accept{background:var(--cta);color:var(--on-cta)}
-body:has(.landing-apex:not(.auth-apex-page)) .cookie-consent-accept:hover{background:var(--cta-hover)}
+body:has(.landing-apex) .cookie-consent-banner{background:var(--bg-card);border-color:var(--border);box-shadow:var(--panel-shadow)}
+body:has(.landing-apex) .cookie-consent-title{color:var(--white)}
+body:has(.landing-apex) .cookie-consent-text{color:var(--gray-1)}
+body:has(.landing-apex) .cookie-consent-link{color:var(--orange)}
+body:has(.landing-apex) .cookie-consent-essential{background:var(--bg-card);border-color:var(--gray-2);color:var(--white)}
+body:has(.landing-apex) .cookie-consent-essential:hover{background:var(--bg-elevated)}
+body:has(.landing-apex) .cookie-consent-accept{background:var(--cta);color:var(--on-cta)}
+body:has(.landing-apex) .cookie-consent-accept:hover{background:var(--cta-hover)}
 @media(min-width:1121px) and (max-height:700px){
   .landing-apex:not(.auth-apex-page) .hero h1{font-size:clamp(3.1rem,4.6vw,4rem)}
 }
