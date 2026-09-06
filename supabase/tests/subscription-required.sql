@@ -44,6 +44,8 @@ BEGIN
   END IF;
   PERFORM set_config('request.path','/rpc/get_effective_user_tier',true);
   PERFORM public.enforce_subscription_boundary(); -- Recovery remains reachable.
+  EXECUTE 'SET LOCAL ROLE tenderflow_mcp_client';
+  IF public.has_active_subscription() THEN RAISE EXCEPTION 'MCP must not retain unpaid access'; END IF;
   EXECUTE 'RESET ROLE';
   PERFORM set_config('request.jwt.claims','{}',true);
 

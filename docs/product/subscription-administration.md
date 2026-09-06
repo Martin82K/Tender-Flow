@@ -28,7 +28,7 @@ Administrace stále vyžaduje existující roli a MFA. Pokročilá matice uklád
 
 ## Nasazení a kontrola
 
-Před změnou proveďte `supabase db push --dry-run`; očekává se jen výše uvedená migrace. Nejdříve nasaďte migraci, poté změněné Edge Functions přes API a web. Ověřte katalog RLS, granty, počty a security/performance advisors a opakujte dry-run do stavu „Remote database is up to date“.
+Před změnou proveďte `supabase db push --dry-run`. Tato úprava obsahuje hlavní migraci výše a následnou `20260906185438_use_invoker_for_subscription_guard.sql`, která pomocnou kontrolu provozuje s oprávněními volajícího. Kontrola vrací jen stav aktuálního uživatele a deleguje na existující resolver; sama nepotřebuje `SECURITY DEFINER`. Nejdříve nasaďte migraci, poté změněné Edge Functions přes API a web. Ověřte katalog RLS, granty, počty a security/performance advisors a opakujte dry-run do stavu „Remote database is up to date“.
 
 `supabase/tests/subscription-provisioning.sql` kontroluje založení osobní i firemní organizace bez automatického předplatného. `supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
 
