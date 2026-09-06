@@ -44,6 +44,20 @@ describe("usePipelineCategoryNavigation cesta složky VŘ", () => {
     expect(mocks.folderExists).toHaveBeenCalledWith(expectedPath);
   });
 
+  it("zachová fallback na starší název s podtržítky", async () => {
+    mocks.folderExists.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const { result } = renderHook(() => usePipelineCategoryNavigation({
+      projectId: "project-1", categories: [], docHubRoot: "/Projects/Stavba",
+    }));
+    await expect(result.current.resolveDesktopTenderFolderPath("Hrubá stavba")).resolves.toBe(
+      "/Projects/Stavba/03_Vyberova_rizeni/Hruba_stavba",
+    );
+    expect(mocks.folderExists.mock.calls.map(call => call[0])).toEqual([
+      "/Projects/Stavba/03_Vyberova_rizeni/Hrubá stavba",
+      "/Projects/Stavba/03_Vyberova_rizeni/Hruba_stavba",
+    ]);
+  });
+
   it("vrátí null, když lokální složka VŘ není dostupná", async () => {
     mocks.folderExists.mockResolvedValue(false);
 
