@@ -64,15 +64,15 @@ const buildZip64Fixture = (variant: FixtureVariant): Uint8Array => {
 };
 
 const runUnlock = (variant: FixtureVariant) => {
-  const helperUrl = pathToFileURL(resolve("shared/tools/excel/excelUnlockZip.ts")).href;
-  // Execute the actual shared boundary. A regressed synchronous parser must not
+  const helperUrl = pathToFileURL(resolve("shared/tools/excel/excelUnlockZipCore.ts")).href;
+  // Execute the actual parser used by the bundled worker. A regressed synchronous parser must not
   // hang Vitest; a Promise timeout in the same thread cannot interrupt it.
   const script = `
     import { readFileSync } from "node:fs";
     import { strFromU8, unzipSync } from "fflate";
-    import { unlockExcelZipWithStats } from ${JSON.stringify(helperUrl)};
+    import { unlockExcelZipCore } from ${JSON.stringify(helperUrl)};
     try {
-      const result = await unlockExcelZipWithStats(new Uint8Array(readFileSync(0)));
+      const result = await unlockExcelZipCore(new Uint8Array(readFileSync(0)));
       const entries = unzipSync(result.output);
       process.stdout.write(JSON.stringify({
         status: "ok", count: result.worksheetCount,

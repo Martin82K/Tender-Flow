@@ -1,90 +1,64 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import type { ExcelUnlockWorkerMessage, UnlockExcelZipResult } from "./excelUnlockZipCore";
 
-type ProgressReporter = (percent: number, label: string) => void;
+export type { UnlockExcelZipResult } from "./excelUnlockZipCore";
 
-export interface UnlockExcelZipResult {
-  output: Uint8Array;
-  worksheetCount: number;
-}
+const UNLOCK_TIMEOUT_MS = 60_000;
 
-const stripTag = (xml: string, tagName: string) => {
-  const selfClosing = new RegExp(`<${tagName}\\b[^>]*\\/\\s*>`, "gi");
-  const paired = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, "gi");
-  return xml.replace(selfClosing, "").replace(paired, "");
-};
-
-const encodeLikeZipEntry = (source: Uint8Array<ArrayBuffer>, value: string): Uint8Array<ArrayBuffer> => {
-  const encoded = strToU8(value);
-  const next = source.slice(0, encoded.length);
-  next.set(encoded);
-  return next;
-};
-
-export const unlockExcelZipWithStats = async (
+export const unlockExcelZipWithStats = (
   input: ArrayBuffer | Uint8Array,
-  opts?: { onProgress?: ProgressReporter }
-): Promise<UnlockExcelZipResult> => {
-  const onProgress = opts?.onProgress;
-  onProgress?.(5, "Rozbaluji Excel (ZIP)...");
-
-  const zip = unzipSync(input instanceof Uint8Array ? input : new Uint8Array(input));
-  const allPaths = Object.keys(zip);
-  const worksheetPaths = allPaths.filter((p) =>
-    /^xl\/worksheets\/.+\.xml$/i.test(p)
-  );
-
-  if (worksheetPaths.length === 0) {
-    throw new Error(
-      "V souboru nebyly nalezeny worksheet XML soubory (xl/worksheets/*.xml)."
-    );
+  opts?: { onProgress?: (percent: number, label: string) => void },
+): Promise<UnlockExcelZipResult> => new Promise((resolve, reject) => {
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL("./excelUnlock.worker.ts", import.meta.url), { type: "module" });
+  } catch {
+    reject(new Error("Bezpečné zpracování souboru se nepodařilo spustit. Zkuste aplikaci znovu otevřít."));
+    return;
   }
 
-  let patchedCount = 0;
-  for (const p of worksheetPaths) {
-    const raw = zip[p];
-    const xml = strFromU8(raw);
-    const next = stripTag(xml, "sheetProtection");
-    if (next !== xml) {
-      zip[p] = encodeLikeZipEntry(raw, next);
+  const finish = (error?: Error, result?: UnlockExcelZipResult) => {
+    clearTimeout(timeout);
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.onmessageerror = null;
+    worker.terminate();
+    if (error) reject(error);
+    else if (result) resolve(result);
+  };
+  const timeout = setTimeout(() => finish(new Error(
+    "Zpracování překročilo časový limit. Ověřte soubor nebo zkuste menší sešit.",
+  )), UNLOCK_TIMEOUT_MS);
+
+  worker.onmessage = (event: MessageEvent<ExcelUnlockWorkerMessage>) => {
+    const message = event.data;
+    if (message.type === "result") {
+      finish(undefined, { output: message.output, worksheetCount: message.worksheetCount });
+    } else if (message.type === "error") {
+      finish(new Error(message.message));
+    } else {
+      try {
+        opts?.onProgress?.(message.percent, message.label);
+      } catch (error) {
+        finish(error instanceof Error ? error : new Error("Zpracování souboru bylo přerušeno."));
+      }
     }
-    patchedCount += 1;
-    const percent = 5 + Math.round((patchedCount / worksheetPaths.length) * 55);
-    onProgress?.(percent, `Odstraňuji ochranu listů (${patchedCount}/${worksheetPaths.length})...`);
-    await new Promise((r) => setTimeout(r, 0));
-  }
-
-  // Keep changes minimal for best compatibility: do not rewrite other XML parts unless necessary.
-
-  onProgress?.(80, "Zabaluji odemčený soubor...");
-
-  // Office apps can be picky about entry order; keep common files first.
-  const ordered: Record<string, Uint8Array> = {};
-  const pushIf = (p: string) => {
-    const v = (zip as any)[p] as Uint8Array | undefined;
-    if (v) ordered[p] = v;
   };
-  pushIf("[Content_Types].xml");
-  pushIf("_rels/.rels");
-  pushIf("xl/workbook.xml");
-  pushIf("xl/_rels/workbook.xml.rels");
-
-  const remaining = allPaths.filter((p) => !(p in ordered)).sort((a, b) => a.localeCompare(b));
-  for (const p of remaining) {
-    ordered[p] = zip[p];
-  }
-
-  const out = zipSync(ordered, { level: 6 });
-  onProgress?.(95, "Připravuji stažení...");
-  return {
-    output: out,
-    worksheetCount: worksheetPaths.length,
+  worker.onerror = (event) => {
+    event.preventDefault();
+    finish(new Error("Zpracování souboru selhalo. Ověřte, že jde o platný Excel sešit."));
   };
-};
+  worker.onmessageerror = () => finish(new Error("Výsledek zpracování souboru se nepodařilo načíst."));
+
+  try {
+    // Transfer a copy: preserve the caller's buffer and any Uint8Array subrange.
+    const bytes = input instanceof Uint8Array ? new Uint8Array(input) : new Uint8Array(input.slice(0));
+    worker.postMessage(bytes, [bytes.buffer]);
+  } catch (error) {
+    finish(error instanceof Error ? error : new Error("Soubor se nepodařilo předat ke zpracování."));
+  }
+});
 
 export const unlockExcelZip = async (
   input: ArrayBuffer | Uint8Array,
-  opts?: { onProgress?: ProgressReporter }
-): Promise<Uint8Array> => {
-  const result = await unlockExcelZipWithStats(input, opts);
-  return result.output;
-};
+  opts?: { onProgress?: (percent: number, label: string) => void },
+): Promise<Uint8Array> => (await unlockExcelZipWithStats(input, opts)).output;

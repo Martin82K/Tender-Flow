@@ -135,6 +135,11 @@ URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 
+Lokální odemčení Excelu zpracovává soubor v samostatném workeru, aby uživatelské
+rozhraní zůstalo dostupné. Soubor se nikam neodesílá. Po 60 sekundách se
+nedokončená operace ukončí s chybou; uživatel může ověřit soubor a pokus
+zopakovat. Poškozený archiv se nesmí vydávat za úspěšně odemčený sešit.
+
 ### Nápověda a What's New
 
 Kontextová nápověda, vyhledávání, klávesové ovládání, discovery indikátory a
