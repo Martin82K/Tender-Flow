@@ -53,3 +53,9 @@ Před sjednocením balíčků je nutné inventarizovat produkční přiřazení 
 Regresní testy `tests/AdminSettings.subscriptions.test.tsx` ověřují přehled bez zápisů, navigaci, otevření a zavření pokročilé správy, obnovení dat, chybu s opakováním, prázdný katalog a nepřístupnost bez administrátorské role. Testy `tests/SubscriptionFeaturesManagement.busy.test.tsx` navíc ověřují vzájemné blokování přepnutí, úpravy a mazání během zápisu. Při ruční kontrole rozbalte funkce balíčku, otevřete pokročilou správu a po dokončení změny ověřte aktualizovaný přehled. Zápisovou kontrolu provádějte na testovacích datech.
 
 V této etapě nejsou dostupné produkční code-scanning nálezy (GitHub vrací „no analysis found“) a Dependabot alerts jsou vypnuté. Lokální bezpečnostní regresní testy a CI tak nepředstavují náhradu těchto nedostupných signálů.
+
+### Obnovení platebního období
+
+Migrace `20260906192005_reconcile_subscription_periods.sql` používá u Stripe organizací `expires_at`, aby staré ruční `billing_period_end` nezkrátilo ani neprodloužilo předplatné. Webhook zapisuje obě hodnoty společně. Při `past_due` zachovává pouze původní konec přístupu; `incomplete` nedostane placené období. Stav `pending` vyžaduje konkrétní budoucí konec. Ověřeno SQL testem s rollbackem, testy výpočtu období a zpracováním webhooku včetně odmítnutí neplatného podpisu. Rozdíl stavů odpovídá [životnímu cyklu předplatného Stripe](https://docs.stripe.com/billing/subscriptions/overview).
+
+Hlavní migrace před přidáním restriktivní politiky kontroluje existenci volitelných tabulek. Na již nasazené databázi tato úprava nic nemění; umožňuje průchod instalacemi bez volitelných rozpočtových tabulek.

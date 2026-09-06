@@ -33,6 +33,8 @@ import {
   verifyStripeWebhookSignature,
 } from "../_shared/stripeBilling.ts";
 
+import { stripeOrgPeriodUpdate } from "../_shared/stripeOrgPeriod.ts";
+
 interface StripeEvent {
   id: string;
   type: string;
@@ -186,6 +188,7 @@ interface ApplyOrgUpdateInput {
   newTier: string;
   newStatus: "active" | "trial" | "cancelled" | "expired" | "pending";
   newExpiresAt: Date | null;
+  stripeStatus: string | null;
   customerId: string | null;
   subscriptionId: string | null;
   seats: number | null;
@@ -204,16 +207,15 @@ const applyOrgSubscriptionUpdate = async (
     throw new Error(`Organization not found: ${input.orgId}`);
   }
 
-  const finalExpiresAt = input.keepExistingExpires
-    ? existing.expires_at ?? null
-    : input.newExpiresAt
-      ? input.newExpiresAt.toISOString()
-      : null;
-
   const updateData: Record<string, unknown> = {
     subscription_tier: input.newTier,
     subscription_status: input.newStatus,
-    expires_at: finalExpiresAt,
+    ...stripeOrgPeriodUpdate({
+      stripeStatus: input.stripeStatus,
+      newExpiresAt: input.newExpiresAt,
+      existingExpiresAt: existing.expires_at,
+      keepExistingExpires: input.keepExistingExpires,
+    }),
     updated_at: new Date().toISOString(),
   };
 
@@ -388,6 +390,7 @@ const handleCheckoutCompleted = async (
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,
+    stripeStatus: subscription?.status ?? null,
     newTier: tier,
     newStatus: internalStatus,
     newExpiresAt: expiresAt,
@@ -452,6 +455,7 @@ const handleSubscriptionUpdated = async (
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,
+    stripeStatus: subscription?.status ?? null,
     newTier: tier,
     newStatus: internalStatus,
     newExpiresAt: expiresAt,
@@ -483,6 +487,7 @@ const handleSubscriptionDeleted = async (
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,
+    stripeStatus: subscription.status,
     newTier: "free",
     newStatus: "expired",
     newExpiresAt: null,
@@ -536,6 +541,7 @@ const handleInvoicePaymentSucceeded = async (
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,
+    stripeStatus: subscription?.status ?? null,
     newTier: tier,
     newStatus: internalStatus,
     newExpiresAt: expiresAt,
@@ -603,6 +609,7 @@ const handleInvoicePaymentFailed = async (
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,
+    stripeStatus: subscription?.status ?? null,
     newTier: tier,
     newStatus: internalStatus === "active" ? "pending" : internalStatus,
     newExpiresAt: null,

@@ -14,7 +14,7 @@ BEGIN
     subscription_status = 'expired', subscription_expires_at = now() - interval '1 day', trial_ends_at = now() - interval '1 day'
     WHERE user_id=u;
   UPDATE public.organizations SET subscription_tier='enterprise', override_tier = NULL, subscription_status = 'expired',
-    billing_period_end = now() - interval '1 day', expires_at = now() - interval '1 day'
+    billing_customer_id = NULL, billing_period_end = now() - interval '1 day', expires_at = now() - interval '1 day'
     WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
   IF public.get_effective_user_tier(u)->>'tier' IS DISTINCT FROM 'free' OR public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN
     RAISE EXCEPTION 'Expired subscriptions must not fall back to an unchecked organization';
@@ -48,6 +48,26 @@ BEGIN
   IF public.has_active_subscription() THEN RAISE EXCEPTION 'MCP must not retain unpaid access'; END IF;
   EXECUTE 'RESET ROLE';
   PERFORM set_config('request.jwt.claims','{}',true);
+
+  -- Stripe renewal must ignore stale manual dates in either direction.
+  UPDATE public.organizations SET subscription_status='active',billing_customer_id='cus_regression',
+    billing_period_end=now()-interval '1 day',expires_at=now()+interval '1 day'
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'enterprise' THEN RAISE EXCEPTION 'Stripe renewal must override the old manual deadline'; END IF;
+  UPDATE public.organizations SET billing_period_end=now()+interval '2 days',expires_at=now()-interval '1 day'
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Old manual dates must not extend a Stripe subscription'; END IF;
+  UPDATE public.organizations SET subscription_status='pending',expires_at=now()+interval '1 day'
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'enterprise' THEN RAISE EXCEPTION 'Payment retry must retain the previously paid period'; END IF;
+  UPDATE public.organizations SET expires_at=NULL
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Incomplete payment without a paid period must not grant access'; END IF;
+  UPDATE public.organizations SET expires_at=now()
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Payment retry must stop at the original deadline'; END IF;
+  UPDATE public.organizations SET billing_customer_id=NULL
+    WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
 
   UPDATE public.organizations SET subscription_status='cancelled',billing_period_end=now()+interval '1 day'
     WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);

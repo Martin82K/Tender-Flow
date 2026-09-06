@@ -166,7 +166,10 @@ BEGIN
     'backup_history', 'notifications', 'notification_preferences', 'short_urls',
     'mcp_change_proposals', 'microsoft_todo_list_mappings'
   ] LOOP
-    EXECUTE format('CREATE POLICY subscription_required ON public.%I AS RESTRICTIVE FOR ALL TO authenticated, tenderflow_mcp_client USING ((SELECT public.has_active_subscription())) WITH CHECK ((SELECT public.has_active_subscription()))', table_name);
+    -- Some installations omit optional budget tables.
+    IF to_regclass(format('public.%I', table_name)) IS NOT NULL THEN
+      EXECUTE format('CREATE POLICY subscription_required ON public.%I AS RESTRICTIVE FOR ALL TO authenticated, tenderflow_mcp_client USING ((SELECT public.has_active_subscription())) WITH CHECK ((SELECT public.has_active_subscription()))', table_name);
+    END IF;
   END LOOP;
 END;
 $$;
