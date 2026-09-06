@@ -75,6 +75,18 @@ export const buildSearchIndex = (sources: SearchInputSources): SearchIndex => {
   }
 
   return {
+    tasks: (sources.tasksEnabled ? sources.tasks ?? [] : []).map(task => ({
+      task, haystacks: { primary: normalize(task.title), secondary: normalize(task.note ?? "") },
+    })),
+    contracts: (sources.contractsEnabled ? sources.contracts ?? [] : [])
+      .filter(contract => visibleProjectIds.has(contract.projectId))
+      .map(contract => {
+        const projectTitle = projects.find(project => project.id === contract.projectId)?.name ?? "";
+        return { contract, projectTitle, haystacks: {
+          primary: normalize(contract.title),
+          secondary: normalize(joinFields(contract.contractNumber, contract.vendorName, projectTitle)),
+        } };
+      }),
     projects: projectEntries,
     contacts: contactEntries,
     categories: categoryEntries,
@@ -130,6 +142,7 @@ const scoreEntity = (tokens: string[], fields: FieldWeight[]): number => {
 export const searchAll = (
   query: string,
   index: SearchIndex,
+  maxPerGroup = MAX_PER_GROUP,
 ): SearchResultGroup[] => {
   const q = query.trim();
   if (q.length < MIN_QUERY_LENGTH) return [];
@@ -201,13 +214,39 @@ export const searchAll = (
     }
   }
 
+  const taskResults: SearchResult[] = [];
+  for (const { task, haystacks } of index.tasks) {
+    const score = scoreEntity(tokens, [
+      { haystack: haystacks.primary, weight: 100 },
+      { haystack: haystacks.secondary, weight: 10 },
+    ]);
+    if (score > 0) taskResults.push({
+      id: `task:${task.id}`, title: task.title, category: "tasks", icon: "task_alt",
+      navigateTo: { view: "todo", taskId: task.id }, score,
+    });
+  }
+  const contractResults: SearchResult[] = [];
+  for (const { contract, projectTitle, haystacks } of index.contracts) {
+    const score = scoreEntity(tokens, [
+      { haystack: haystacks.primary, weight: 100 },
+      { haystack: haystacks.secondary, weight: 10 },
+    ]);
+    if (score > 0) contractResults.push({
+      id: `contract:${contract.id}`, title: contract.title, category: "contracts", icon: "description",
+      subtitle: [contract.contractNumber, contract.vendorName, projectTitle].filter(Boolean).join(" · "),
+      navigateTo: { view: "project", projectId: contract.projectId, tab: "contracts", contractId: contract.id }, score,
+    });
+  }
+
   const sortAndCap = (arr: SearchResult[]) =>
-    arr.sort((a, b) => b.score - a.score).slice(0, MAX_PER_GROUP);
+    arr.sort((a, b) => b.score - a.score).slice(0, maxPerGroup);
 
   const groups: SearchResultGroup[] = [
-    { category: "projects", label: "Projekty", items: sortAndCap(projectResults) },
-    { category: "contacts", label: "Kontakty", items: sortAndCap(contactResults) },
-    { category: "categories", label: "Poptávky", items: sortAndCap(categoryResults) },
+    { category: "projects", label: "Projekty", totalCount: projectResults.length, items: sortAndCap(projectResults) },
+    { category: "contacts", label: "Kontakty", totalCount: contactResults.length, items: sortAndCap(contactResults) },
+    { category: "categories", label: "Poptávky", totalCount: categoryResults.length, items: sortAndCap(categoryResults) },
+    { category: "tasks", label: "Úkoly", totalCount: taskResults.length, items: sortAndCap(taskResults) },
+    { category: "contracts", label: "Smlouvy", totalCount: contractResults.length, items: sortAndCap(contractResults) },
   ];
 
   return groups.filter((g) => g.items.length > 0);

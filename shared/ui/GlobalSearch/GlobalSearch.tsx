@@ -26,7 +26,7 @@ const LISTBOX_ID = "gs-listbox";
  * rendered inline inside a full-screen overlay (wrapper handles overlay).
  */
 export const GlobalSearch: React.FC<GlobalSearchProps> = ({
-  placeholder = "Hledat projekty, kontakty, poptávky…",
+  placeholder = "Hledat v aplikaci…",
   autoFocus = false,
   onDismiss,
   variant,
@@ -36,6 +36,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   const ctx = useGlobalSearchContext();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [maxPerGroup, setMaxPerGroup] = useState(5);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sources = ctx?.sources ?? { projects: [], contacts: [], projectDetails: {} };
@@ -49,7 +50,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
     hasQuery,
     totalProjectCount,
     loadedProjectDetailsCount,
-  } = useGlobalSearch(query, sources);
+  } = useGlobalSearch(query, sources, maxPerGroup);
+
+  useEffect(() => { setMaxPerGroup(5); }, [query, isOpen]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -64,14 +67,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
-      const { view, projectId, tab, categoryId } = result.navigateTo;
-      navigate(
-        buildAppUrl(view as any, {
-          projectId,
-          tab: tab as any,
-          categoryId: categoryId ?? null,
-        }),
-      );
+      const { view, ...options } = result.navigateTo;
+      navigate(buildAppUrl(view, options));
       setQuery("");
       onOpenChange(false);
       onDismiss?.();
@@ -113,7 +110,10 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
     [flatResults.length, isOpen, activeIndex],
   );
 
-  const showEmpty = !sources.isProjectSearchLoading && !sources.projectSearchError && isOpen && hasQuery && !isQueryTooShort && results.length === 0;
+  const isLoading = sources.isProjectSearchLoading || sources.isExtendedSearchLoading;
+  const hasError = sources.projectSearchError || sources.extendedSearchError;
+  const hasMore = results.some(group => (group.totalCount ?? group.items.length) > group.items.length);
+  const showEmpty = !isLoading && !hasError && isOpen && hasQuery && !isQueryTooShort && results.length === 0;
   const showTooShort = isOpen && isQueryTooShort;
   const showHint = isOpen && !hasQuery;
   const projectsCoveragePartial =
@@ -121,7 +121,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
   const panel = isOpen ? (
     <>
-      {sources.isProjectSearchLoading && (
+      {isLoading && (
         <div role="status" className="px-4 py-3 text-xs text-slate-500">Načítám podklady pro hledání…</div>
       )}
       {sources.projectSearchError && (
@@ -131,9 +131,16 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
             onClick={sources.retryProjectSearch}>Zkusit znovu</button>
         </div>
       )}
+      {sources.extendedSearchError && (
+        <div role="alert" className="px-4 py-3 text-xs text-red-600">
+          Vyhledávání v úkolech nebo smlouvách se nepodařilo načíst. Výsledky mohou být neúplné.
+          <button type="button" className="ml-2 underline" disabled={sources.isExtendedSearchLoading}
+            onClick={sources.retryExtendedSearch}>Zkusit znovu</button>
+        </div>
+      )}
       {showHint && (
         <div className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-          Začněte psát — hledá se v projektech, kontaktech a poptávkách.
+          Začněte psát — hledá se v projektech, kontaktech a poptávkách{sources.tasksEnabled ? ", úkolech" : ""}{sources.contractsEnabled ? " a smlouvách" : ""}.
           <div className="mt-2 text-[10px] opacity-70">
             <kbd className="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">↑</kbd>
             <kbd className="ml-1 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600">↓</kbd>
@@ -170,6 +177,12 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
             onHover={setActiveIndex}
             listboxId={LISTBOX_ID}
           />
+          {hasMore && (
+            <button type="button" className="w-full px-3 py-2 text-xs text-primary underline"
+              onClick={() => setMaxPerGroup(limit => limit + 5)}>
+              Zobrazit další výsledky
+            </button>
+          )}
           {projectsCoveragePartial && (
             <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500">
               Prohledáno {loadedProjectDetailsCount} z {totalProjectCount} projektů

@@ -18,6 +18,7 @@ const DEBOUNCE_MS = 120;
 export const useGlobalSearch = (
   query: string,
   sources: SearchInputSources,
+  maxPerGroup = 5,
 ): UseGlobalSearchResult => {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
@@ -29,8 +30,8 @@ export const useGlobalSearch = (
   const index = useMemo(() => buildSearchIndex(sources), [sources]);
 
   const results = useMemo(
-    () => searchAll(debouncedQuery, index),
-    [debouncedQuery, index],
+    () => searchAll(debouncedQuery, index, maxPerGroup),
+    [debouncedQuery, index, maxPerGroup],
   );
 
   const flatResults = useMemo(
