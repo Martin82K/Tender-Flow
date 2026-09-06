@@ -9,9 +9,16 @@ const state = vi.hoisted(() => ({
   isDesktop: false,
   loadedInternal: vi.fn(),
   publicTheme: vi.fn(),
-  identity: vi.fn(),
+  readSettings: vi.fn(),
 }));
-vi.mock("@app/hooks/usePosthogIdentity", () => ({ usePosthogIdentity: () => state.identity() }));
+vi.mock("@/services/dbAdapter", () => ({
+  dbAdapter: {
+    from: () => {
+      state.readSettings();
+      return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) };
+    },
+  },
+}));
 vi.mock("@infra/diagnostics/incidentLogger", () => ({ setIncidentContext: vi.fn() }));
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => state.auth }));
 vi.mock("@/hooks/useDesktop", () => ({ useDesktop: () => ({ isDesktop: state.isDesktop }) }));
@@ -33,7 +40,8 @@ beforeEach(() => {
   state.location = { pathname: "/", search: "" };
   state.isDesktop = false;
   state.publicTheme.mockClear();
-  state.identity.mockClear();
+  state.readSettings.mockClear();
+  window.localStorage.clear();
 });
 
 describe("AppEntry", () => {
@@ -41,6 +49,7 @@ describe("AppEntry", () => {
     render(<AppEntry />);
     expect(screen.getByText("public:/:false")).toBeInTheDocument();
     expect(state.loadedInternal).not.toHaveBeenCalled();
+    expect(state.readSettings).not.toHaveBeenCalled();
   });
   it("waits for the auth session before redirecting a protected deep link", () => {
     state.auth.isLoading = true;
@@ -51,6 +60,7 @@ describe("AppEntry", () => {
     view.rerender(<AppEntry />);
     expect(screen.getByText("public:/app/todo?taskId=task-1:false")).toBeInTheDocument();
     expect(state.loadedInternal).not.toHaveBeenCalled();
+    expect(state.readSettings).not.toHaveBeenCalled();
   });
   it("preserves desktop login routing and the original next query", () => {
     state.isDesktop = true;
@@ -67,6 +77,7 @@ describe("AppEntry", () => {
     view.rerender(<AppEntry />);
     expect(screen.getByText("short:abc")).toBeInTheDocument();
     expect(state.loadedInternal).not.toHaveBeenCalled();
+    expect(state.readSettings).not.toHaveBeenCalled();
   });
   it("loads internal guards after authentication and unmounts them on logout", async () => {
     const view = render(<AppEntry />);
@@ -76,11 +87,21 @@ describe("AppEntry", () => {
     await waitFor(() => expect(screen.getByText("authenticated app with existing legal gate")).toBeInTheDocument());
     expect(state.loadedInternal).toHaveBeenCalledOnce();
     expect(state.publicTheme).not.toHaveBeenCalled();
-    state.identity.mockClear();
+    state.readSettings.mockClear();
     state.auth.isAuthenticated = false;
     view.rerender(<AppEntry />);
-    expect(state.identity).toHaveBeenCalledOnce();
+    expect(state.readSettings).not.toHaveBeenCalled();
     expect(screen.queryByText("authenticated app with existing legal gate")).not.toBeInTheDocument();
     expect(screen.getByText("public:/:false")).toBeInTheDocument();
+  });
+  it.each(["essential_only", "accepted_all"])("does not read analytics configuration after %s consent and session changes", async (decision) => {
+    window.localStorage.setItem("tf_cookie_consent_v1", decision);
+    const view = render(<AppEntry />);
+    state.auth.isAuthenticated = true;
+    await act(async () => { view.rerender(<AppEntry />); });
+    window.dispatchEvent(new CustomEvent("tf:cookie-consent-change", { detail: decision }));
+    state.auth.isAuthenticated = false;
+    view.rerender(<AppEntry />);
+    expect(state.readSettings).not.toHaveBeenCalled();
   });
 });

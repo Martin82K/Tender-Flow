@@ -9,8 +9,6 @@ const WEB_REPORT_ONLY_CONNECT_SOURCES = [
   'https://api.mapy.com',
   'https://ares.gov.cz',
   'https://api.openai.com',
-  'https://eu.i.posthog.com',
-  'https://eu.posthog.com',
 ];
 
 export const buildWebReportOnlyCsp = () =>

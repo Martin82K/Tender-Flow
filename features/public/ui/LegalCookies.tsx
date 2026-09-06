@@ -6,7 +6,7 @@ export const LegalCookies: React.FC = () => {
     <LegalPageLayout
       title="Zásady používání cookies"
       lead="Tyto zásady vysvětlují, jaké cookies a podobné technologie můžeme používat na webu a v souvisejících částech služby Tender Flow."
-      updatedAt="18. srpna 2026"
+      updatedAt="6. září 2026"
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Co jsou cookies</h2>
@@ -48,7 +48,7 @@ export const LegalCookies: React.FC = () => {
           odpovídající souhlas.
         </p>
         <p className="mt-2">
-          Nepovinné analytické cookies, PostHog a detailnější produktová
+          Nepovinné analytické cookies a detailnější produktová
           analytika zůstávají blokované až do udělení souhlasu přes cookie
           lištu. Agregované provozní měření přihlášené aplikace je však
           nezbytnou součástí poskytované služby a probíhá u všech přihlášených
@@ -66,9 +66,7 @@ export const LegalCookies: React.FC = () => {
         <p className="mt-2">
           Některé cookies mohou být nastavovány nebo vyhodnocovány také
           externími poskytovateli, například v souvislosti s hostingem,
-          analytikou nebo technickou podporou. PostHog je v aplikaci připravený
-          jako preferovaný analytický nástroj, ale inicializuje se pouze při
-          zapnuté konfiguraci a po udělení souhlasu. Google Analytics ani Google
+          analytikou nebo technickou podporou. Google Analytics ani Google
           Tag Manager nejsou v aktuální implementaci nasazené jako měřicí
           skripty. Tito poskytovatelé mohou vystupovat jako samostatní správci
           nebo zpracovatelé podle povahy konkrétní služby.
