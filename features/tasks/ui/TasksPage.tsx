@@ -43,6 +43,7 @@ const getViewCount = (tree: TaskWithSubtasks[], view: TaskViewFilter): number =>
 interface TasksPageProps {
   skin?: ThemeSkin;
   initialTaskId?: string;
+  onCloseInitialTask?: () => void;
 }
 
 export const TasksPage: React.FC<TasksPageProps> = (props) => {
@@ -54,6 +55,7 @@ export const TasksPage: React.FC<TasksPageProps> = (props) => {
 const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> = ({
   skin = "classic",
   initialTaskId,
+  onCloseInitialTask,
   user,
 }) => {
   const [view, setView] = useState<TaskViewFilter>("calendar");
@@ -213,6 +215,7 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   };
 
   const handleCloseDetail = () => {
+    if (initialTaskId) onCloseInitialTask?.();
     setSelectedTaskId(null);
     setIsTaskEditorOpen(false);
     setIsDetailAutoSelectPaused(true);

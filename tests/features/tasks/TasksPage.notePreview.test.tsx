@@ -275,6 +275,23 @@ describe("TasksPage note preview", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("po zavření odkazu umožní znovu otevřít stejný výsledek hledání", () => {
+    taskState.tasks = [makeTask({ id: "repeat-link", title: "Opakovaný odkaz" })];
+    const LinkedPage = () => {
+      const [taskId, setTaskId] = React.useState<string | undefined>("repeat-link");
+      return <>
+        <button onClick={() => setTaskId("repeat-link")}>Otevřít výsledek hledání</button>
+        <TasksPage initialTaskId={taskId} onCloseInitialTask={() => setTaskId(undefined)} />
+      </>;
+    };
+    render(<LinkedPage />);
+    expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít výsledek hledání" }));
+    expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toBeInTheDocument();
+  });
+
   it("nezobrazí cizí úkol a po změně uživatele odstraní otevřený detail", () => {
     taskState.tasks = [makeTask({ id: "private", title: "Soukromý úkol" })];
     const { rerender } = render(<TasksPage initialTaskId="private" />);

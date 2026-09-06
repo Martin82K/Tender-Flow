@@ -16,7 +16,9 @@ DOM strukturu, styly, lokální stav formulářů a stávající mutační hooky
 
 `buildAppUrl("todo", { taskId })` vytváří `/app/todo?taskId=…`.
 `parseAppRoute` vrací identifikátor v `taskId`; aplikační integrace jej předává
-jako `TasksPage.initialTaskId`. Bez parametru zůstává výchozí kalendář bez detailu.
+jako `TasksPage.initialTaskId`. Callback `onCloseInitialTask` při zavření detailu
+odstraní `taskId` z aktuální URL pomocí běžné aplikační navigace; díky tomu lze
+stejný výsledek hledání znovu otevřít. Bez parametru zůstává výchozí kalendář bez detailu.
 Odkaz otevře přímo detail úkolu nebo podúkolu i mimo aktuální filtr, včetně
 archivovaných a dokončených úkolů. Na mobilu používá stávající celoobrazovkový detail.
 Při nedostupném úkolu se zobrazí hlášení; chyba načítání má odlišné hlášení.
