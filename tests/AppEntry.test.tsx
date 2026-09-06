@@ -5,7 +5,7 @@ import { AppEntry } from "@/components/providers/AppProviders";
 
 const state = vi.hoisted(() => ({
   auth: { isAuthenticated: false, isLoading: false, user: null, logout: vi.fn(), updatePreferences: vi.fn() },
-  features: { currentPlan: "enterprise", isLoading: false, refetchFeatures: vi.fn() },
+  features: { currentPlan: "enterprise", isLoading: false, refetchFeatures: vi.fn().mockResolvedValue(true) },
   location: { pathname: "/", search: "" },
   isDesktop: false,
   loadedInternal: vi.fn(),

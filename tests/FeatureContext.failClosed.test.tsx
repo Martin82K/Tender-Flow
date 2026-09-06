@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SubscriptionRequiredView } from "@app/views/SubscriptionRequiredView";
 import { FeatureProvider, useFeatures } from "../context/FeatureContext";
 
 const mocks = vi.hoisted(() => ({
@@ -43,6 +44,11 @@ const Probe = () => {
   );
 };
 
+const RecoveryProbe = () => {
+  const { refetchFeatures, verificationError } = useFeatures();
+  return <SubscriptionRequiredView onRefresh={refetchFeatures} onLogout={async () => {}} verificationError={verificationError} />;
+};
+
 describe("FeatureProvider fail-closed behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,4 +78,15 @@ describe("FeatureProvider fail-closed behavior", () => {
       expect(screen.getByTestId("plan").textContent).toBe("free");
     });
   });
+  it("reports a failed manual verification without claiming it completed successfully", async () => {
+    mocks.getEnabledFeatures.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("Network unavailable"));
+    mocks.getCurrentTier.mockResolvedValue("free");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<FeatureProvider><RecoveryProbe /></FeatureProvider>);
+    await waitFor(() => expect(mocks.getEnabledFeatures).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Znovu ověřit předplatné" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Předplatné se nepodařilo ověřit"));
+    expect(screen.getByRole("status")).not.toHaveTextContent("Ověření dokončeno");
+  });
+
 });

@@ -14,6 +14,8 @@ Free není nabízený účet ani tarif. Interní hodnota `free` zůstává kvůl
 
 `AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Bez platného předplatného zůstává obrazovka obnovy, kontakt na podporu a odhlášení. Právní dokumenty a veřejné krátké odkazy si zachovávají vlastní přístupová pravidla. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
 
+Nové osobní i firemní organizace se vytvářejí bez aktivního tarifu. Automatické založení organizace nepředstavuje úhradu ani časově neomezený nárok. Existující placená a ručně spravovaná předplatná se tím nepřepisují.
+
 Obě generace databázových RPC používají stejný resolver. Platí aktivní firemní členství a nevypršené firemní nebo osobní předplatné. Platné zkušební období a ruční přidělení jsou zachované. Zrušené předplatné funguje do konce již uhrazeného období, musí však mít datum konce. Individuální příznak funkce sám přístup neobnoví. Správci platformy se ověřují přes `platform_admins`.
 
 Ověření se obnovuje každou minutu a při návratu do okna. Známé datum vypršení uzamkne UI i při neodpovídajícím serveru; poslední ověření bez kratšího data má nejvýše 90 sekund platnosti. Backend kontroluje každý nový datový požadavek. Starší klienti používají opravené RPC a stejnou databázovou ochranu.
@@ -28,7 +30,7 @@ Administrace stále vyžaduje existující roli a MFA. Pokročilá matice uklád
 
 Před změnou proveďte `supabase db push --dry-run`; očekává se jen výše uvedená migrace. Nejdříve nasaďte migraci, poté změněné Edge Functions přes API a web. Ověřte katalog RLS, granty, počty a security/performance advisors a opakujte dry-run do stavu „Remote database is up to date“.
 
-`supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
+`supabase/tests/subscription-provisioning.sql` kontroluje založení osobní i firemní organizace bez automatického předplatného. `supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
 
 Po nasazení ověřte přihlášení bez předplatného, pokus o otevření projektu přímou URL, odhlášení a obnovení platného předplatného. Testovací prodloužení ani rušení skutečných předplatných neprovádějte mimo rollbackovou transakci.
 

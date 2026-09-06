@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface SubscriptionRequiredViewProps {
   verificationError?: boolean;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => Promise<boolean>;
   onLogout: () => Promise<void>;
 }
 
@@ -14,7 +14,11 @@ export const SubscriptionRequiredView: React.FC<SubscriptionRequiredViewProps> =
     setBusy(true);
     setMessage('');
     try {
-      await onRefresh();
+      const verified = await onRefresh();
+      if (!verified) {
+        setMessage('Předplatné se nepodařilo ověřit. Zkontrolujte připojení a zkuste to znovu.');
+        return;
+      }
       setMessage('Ověření dokončeno. Pokud přístup zůstává uzamčený, kontaktujte správce své firmy.');
     } catch {
       setMessage('Předplatné se nepodařilo ověřit. Zkontrolujte připojení a zkuste to znovu.');

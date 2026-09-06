@@ -173,6 +173,172 @@ $$;
 CREATE POLICY subscription_required ON storage.objects AS RESTRICTIVE FOR ALL TO authenticated, tenderflow_mcp_client
 USING ((SELECT public.has_active_subscription())) WITH CHECK ((SELECT public.has_active_subscription()));
 
+-- Bootstrap is not a purchase. Existing manual paid organizations are unchanged.
+ALTER TABLE public.organizations ALTER COLUMN subscription_tier SET DEFAULT 'free';
+ALTER TABLE public.organizations ALTER COLUMN subscription_status SET DEFAULT 'expired';
+
+CREATE OR REPLACE FUNCTION public.get_or_create_user_organization(p_user_id uuid, p_email text, p_display_name text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+    v_org_id UUID;
+    v_domain TEXT;
+    v_org_name TEXT;
+    v_caller_uid UUID;
+    v_verified_email TEXT;
+    v_effective_email TEXT;
+BEGIN
+    IF p_user_id IS NULL OR p_email IS NULL OR p_email = '' THEN
+        RAISE EXCEPTION 'user_id and email are required';
+    END IF;
+
+    -- Pokud je volání z user contextu, user smí volat jen sám za sebe.
+    v_caller_uid := auth.uid();
+    IF v_caller_uid IS NOT NULL AND v_caller_uid <> p_user_id THEN
+        RAISE EXCEPTION 'unauthorized user context';
+    END IF;
+
+    -- Ověření e-mailu proti auth.users.
+    SELECT email INTO v_verified_email
+    FROM auth.users
+    WHERE id = p_user_id;
+
+    IF v_verified_email IS NULL THEN
+        RAISE EXCEPTION 'user email not found';
+    END IF;
+
+    IF lower(v_verified_email) <> lower(p_email) THEN
+        RAISE EXCEPTION 'email mismatch for user';
+    END IF;
+
+    v_effective_email := lower(v_verified_email);
+    v_domain := split_part(v_effective_email, '@', 2);
+
+    -- Už existující členství.
+    SELECT organization_id INTO v_org_id
+    FROM public.organization_members
+    WHERE user_id = p_user_id
+    LIMIT 1;
+
+    IF v_org_id IS NOT NULL THEN
+        RETURN v_org_id;
+    END IF;
+
+    -- Personal org pro free mail.
+    IF public.is_free_email_provider(v_effective_email) THEN
+        v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(v_effective_email, '@', 1));
+
+        INSERT INTO public.organizations (name, type, owner_user_id, subscription_tier, subscription_status)
+        VALUES (v_org_name, 'personal', p_user_id, 'free', 'expired')
+        RETURNING id INTO v_org_id;
+
+        INSERT INTO public.organization_members (organization_id, user_id, role)
+        VALUES (v_org_id, p_user_id, 'owner')
+        ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+        RETURN v_org_id;
+    END IF;
+
+    -- Business org podle domény.
+    SELECT id INTO v_org_id
+    FROM public.organizations
+    WHERE v_domain = ANY(domain_whitelist)
+    LIMIT 1;
+
+    IF v_org_id IS NOT NULL THEN
+        INSERT INTO public.organization_members (organization_id, user_id, role)
+        VALUES (v_org_id, p_user_id, 'member')
+        ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+        RETURN v_org_id;
+    END IF;
+
+    v_org_name := initcap(split_part(v_domain, '.', 1));
+
+    INSERT INTO public.organizations (name, type, domain_whitelist, owner_user_id, subscription_tier, subscription_status)
+    VALUES (v_org_name, 'business', ARRAY[v_domain], p_user_id, 'free', 'expired')
+    RETURNING id INTO v_org_id;
+
+    INSERT INTO public.organization_members (organization_id, user_id, role)
+    VALUES (v_org_id, p_user_id, 'owner')
+    ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+    RETURN v_org_id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.get_or_create_user_organization_internal(p_user_id uuid, p_email text, p_display_name text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+    v_org_id UUID;
+    v_domain TEXT;
+    v_org_name TEXT;
+BEGIN
+    IF p_user_id IS NULL OR p_email IS NULL OR p_email = '' THEN
+        RAISE EXCEPTION 'user_id and email are required';
+    END IF;
+
+    v_domain := lower(split_part(p_email, '@', 2));
+
+    SELECT organization_id INTO v_org_id
+    FROM public.organization_members
+    WHERE user_id = p_user_id
+    LIMIT 1;
+
+    IF v_org_id IS NOT NULL THEN
+        RETURN v_org_id;
+    END IF;
+
+    IF public.is_free_email_provider(p_email) THEN
+        v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(p_email, '@', 1));
+
+        INSERT INTO public.organizations (name, type, owner_user_id, subscription_tier, subscription_status)
+        VALUES (v_org_name, 'personal', p_user_id, 'free', 'expired')
+        RETURNING id INTO v_org_id;
+
+        INSERT INTO public.organization_members (organization_id, user_id, role)
+        VALUES (v_org_id, p_user_id, 'owner')
+        ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+        RETURN v_org_id;
+    END IF;
+
+    SELECT id INTO v_org_id
+    FROM public.organizations
+    WHERE v_domain = ANY(domain_whitelist)
+    LIMIT 1;
+
+    IF v_org_id IS NOT NULL THEN
+        INSERT INTO public.organization_members (organization_id, user_id, role)
+        VALUES (v_org_id, p_user_id, 'member')
+        ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+        RETURN v_org_id;
+    END IF;
+
+    v_org_name := initcap(split_part(v_domain, '.', 1));
+
+    INSERT INTO public.organizations (name, type, domain_whitelist, owner_user_id, subscription_tier, subscription_status)
+    VALUES (v_org_name, 'business', ARRAY[v_domain], p_user_id, 'free', 'expired')
+    RETURNING id INTO v_org_id;
+
+    INSERT INTO public.organization_members (organization_id, user_id, role)
+    VALUES (v_org_id, p_user_id, 'owner')
+    ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+    RETURN v_org_id;
+END;
+$function$
+;
+
 -- Historical free flags must not be presented as an available plan by older clients.
 UPDATE public.subscription_plans SET is_visible = false WHERE tier = 'free' AND is_visible;
 UPDATE public.subscription_tier_features SET enabled = false WHERE tier = 'free' AND enabled;

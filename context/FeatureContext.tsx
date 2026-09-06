@@ -16,7 +16,7 @@ interface FeatureContextType {
   currentPlan: string;
   hasFeature: (feature: FeatureKey) => boolean;
   isLoading: boolean;
-  refetchFeatures: () => Promise<void>;
+  refetchFeatures: () => Promise<boolean>;
   verificationError: boolean;
 }
 
@@ -45,14 +45,14 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const userRole = user?.role;
 
   // Fetch features from backend
-  const fetchFeatures = useCallback(async () => {
+  const fetchFeatures = useCallback(async (): Promise<boolean> => {
     const version = ++requestVersion.current;
     // While auth is still resolving (e.g. right after a desktop reload),
     // keep isLoading=true so gates that depend on currentPlan don't fire
     // with a stale 'free' value before the real tier is fetched.
     if (authLoading) {
       setIsLoading(true);
-      return;
+      return false;
     }
 
     if (!isAuthenticated || !userId) {
@@ -64,7 +64,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = null;
       setFetchedForUserId(null);
-      return;
+      return false;
     }
 
     // Detect user switch — force a fresh loading gate and drop stale features
@@ -88,7 +88,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
       setFetchedForUserId(userId);
-      return;
+      return true;
     }
 
     // Only show the loading gate on the very first fetch or after a user switch.
@@ -116,7 +116,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (code !== 'PGRST202' && code !== '42883') throw error;
         [features, tier] = await Promise.all([getEnabledFeatures(), getCurrentTier()]);
       }
-      if (version !== requestVersion.current) return;
+      if (version !== requestVersion.current) return false;
       setVerificationError(false);
       // Even unlimited subscriptions need fresh server verification. A request
       // that never finishes must not keep stale access alive indefinitely.
@@ -125,16 +125,18 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
       lastRefreshRef.current = Date.now();
+      return true;
     } catch (error) {
-      if (version !== requestVersion.current) return;
+      if (version !== requestVersion.current) return false;
       setVerificationError(true);
       setValidUntil(null);
       console.error('[FeatureContext] Failed to load features from backend:', error);
       // Fail closed on backend errors to prevent stale or spoofed feature access.
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      return false;
     } finally {
-      if (version !== requestVersion.current) return;
+      if (version !== requestVersion.current) return false;
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
