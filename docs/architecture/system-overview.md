@@ -17,7 +17,7 @@ izolované adaptéry a Electron IPC.
 | Node server | `server.js` | statické hostování a serverové pomocné endpointy |
 | Supabase | `supabase/` | Auth, Postgres, RLS, Storage, Realtime, RPC a Edge Functions |
 | MCP server | `server/mcp/` + `mcp-service/` | kanonické MCP 2.0 nástroje pro remote HTTP a stdio klienty |
-| Excel pomocné služby | `server/excel_tools_api/`, `server_py/` | merge/unlock a specializované zpracování souborů |
+| Excel pomocné služby | `server_py/` | Python merge/unlock a specializované zpracování souborů |
 
 ## Hlavní tok webové aplikace
 

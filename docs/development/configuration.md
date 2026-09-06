@@ -107,7 +107,6 @@ dalším spuštění.
 Používané provozní hodnoty zahrnují:
 
 - `NODE_ENV`, `PORT`, `CI`, `ELECTRON_BUILD`,
-- `EXCEL_TOOLS_PORT`,
 - Supabase serverové hodnoty pro důvěryhodné helpery,
 - MCP client/access/read-only konfiguraci,
 - OAuth/Resend hodnoty pro serverové toky.

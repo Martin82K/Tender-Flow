@@ -120,16 +120,21 @@ OAuth `client_id` a `azp`.
 ## Node server
 
 `server.js` je startovaný přes `npm run start`. `server/` obsahuje bezpečnostní
-hlavičky, MCP handler a Excel tools API. Přesné hostingové použití se musí
+hlavičky a MCP handler. Přesné hostingové použití se musí
 ověřit proti cílové platformě; webový produkční build je statický `dist/`.
 
 ## Excel služby
 
-- `server/excel_tools_api/`: TypeScript/Node implementace merge a bezpečnostních
-  kontrol.
-- `server_py/excel_merge_tool/`: Python merge nástroj.
-- `server_py/excel_unlock_api/`: Python API pro unlock scénář.
+- `server_py/excel_merge_tool/`: Python merge nástroj volaný v desktopu přes
+  `python:mergeExcel` pro soubor zadaný cestou.
+- `server_py/excel_unlock_api/`: Python HTTP API pro merge a unlock scénáře.
 - `infra/excel-tools/`: klientský resolver mezi HTTP a nativním providerem.
+
+Samostatná nepoužívaná TypeScriptová alternativa Excel API byla odstraněna.
+HTTP provider pro merge deleguje na Supabase Edge Function `excel-merge`;
+jeho konfigurovaná základní URL slouží pro `/health` a `/unlock`.
+Nativní provider pro vstup typu `File` zpracovává merge lokálně přes ExcelJS.
+Společné HTTP nastavení a vývojové proxy zůstávají zachované pro Python API.
 
 Volba provideru je konfigurovaná přes veřejné Excel tools proměnné. Citlivé
 operace se nemají provádět v browseru, pokud vyžadují serverový secret nebo
