@@ -329,7 +329,11 @@ export const AppContent: React.FC = () => {
       case "todo":
         return (
           <RequireFeature feature={FEATURES.MODULE_TASKS}>
-            <TasksPage skin={skin} />
+            <TasksPage
+              skin={skin}
+              initialTaskId={"view" in route && route.view === "todo" ? route.taskId : undefined}
+              onCloseInitialTask={() => navigate(buildAppUrl("todo"))}
+            />
           </RequireFeature>
         );
       case "project":
@@ -520,7 +524,11 @@ export const AppContent: React.FC = () => {
       default:
         return (
           <RequireFeature feature={FEATURES.MODULE_TASKS}>
-            <TasksPage skin={skin} />
+            <TasksPage
+              skin={skin}
+              initialTaskId={"view" in route && route.view === "todo" ? route.taskId : undefined}
+              onCloseInitialTask={() => navigate(buildAppUrl("todo"))}
+            />
           </RequireFeature>
         );
     }
