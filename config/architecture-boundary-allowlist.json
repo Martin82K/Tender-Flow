@@ -182,7 +182,7 @@
     },
     {
       "type": "feature-private-import",
-      "file": "features/tasks/ui/TasksPage.tsx",
+      "file": "features/tasks/hooks/useTaskProjectOptions.ts",
       "specifier": "@features/projects/model/useProjectsState"
     }
   ]

@@ -3,7 +3,7 @@ import { ConfirmationModal } from "@shared/ui/ConfirmationModal";
 import { Header } from "@shared/ui/Header";
 import { HelpButton } from "@features/help";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
-import { useAuthIdentity } from "@shared/auth/AuthIdentityContext";
+import { useAuthIdentity, type AuthIdentity } from "@shared/auth/AuthIdentityContext";
 import type { ThemeSkin } from "@/shared/types/theme";
 import { buildTaskTree, filterTaskTreeByTodoProject, findTaskSelection, getTodoProjectRootCount, matchesTaskView, type TaskViewFilter, type TaskWithSubtasks } from "../model/taskTree";
 import { useTaskProjectsQuery } from "../hooks/useTaskProjectsQuery";
@@ -42,13 +42,24 @@ const getViewCount = (tree: TaskWithSubtasks[], view: TaskViewFilter): number =>
 
 interface TasksPageProps {
   skin?: ThemeSkin;
+  initialTaskId?: string;
 }
 
-export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
+export const TasksPage: React.FC<TasksPageProps> = (props) => {
+  const user = useAuthIdentity();
+  // A different identity or deep link starts a fresh workspace, including draft forms.
+  return <TasksWorkspace key={JSON.stringify([user?.id, user?.role, props.initialTaskId])} {...props} user={user} />;
+};
+
+const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> = ({
+  skin = "classic",
+  initialTaskId,
+  user,
+}) => {
   const [view, setView] = useState<TaskViewFilter>("calendar");
   const [selectedTodoProjectId, setSelectedTodoProjectId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId ?? null);
+  const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(Boolean(initialTaskId));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(() => new Set());
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
@@ -61,14 +72,18 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [isDeleteCompletedOpen, setIsDeleteCompletedOpen] = useState(false);
   const [deleteCompletedError, setDeleteCompletedError] = useState<string | null>(null);
   const isMobileLayout = useIsTasksMobileLayout();
-  const user = useAuthIdentity();
   const tasksQuery = useTasksQuery({ user, filter: { includeArchived: true } });
   const todoProjectsQuery = useTaskProjectsQuery({ user });
   const updateTask = useUpdateTaskMutation();
   const deleteCompletedTasks = useDeleteCompletedTasksMutation();
   const microsoftTodoSync = useMicrosoftTodoSync();
 
-  const tasks = tasksQuery.data ?? [];
+  const tasks = useMemo(
+    () => user && user.role !== "demo"
+      ? (tasksQuery.data ?? []).filter((task) => task.createdBy === user.id)
+      : [],
+    [tasksQuery.data, user?.id, user?.role],
+  );
   const taskTree = useMemo(() => buildTaskTree(tasks), [tasks]);
   const projectTaskIds = new Set(tasks.filter((task) => task.projectId).map((task) => task.id));
   const personalParentIdsWithProjectChildren = new Set(
@@ -83,7 +98,12 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       (!task.parentTaskId || !projectTaskIds.has(task.parentTaskId)) &&
       !personalParentIdsWithProjectChildren.has(task.id),
   ).length;
-  const todoProjects = todoProjectsQuery.data ?? [];
+  const todoProjects = useMemo(
+    () => user && user.role !== "demo"
+      ? (todoProjectsQuery.data ?? []).filter((project) => project.createdBy === user.id)
+      : [],
+    [todoProjectsQuery.data, user?.id, user?.role],
+  );
   const selectedTodoProject = todoProjects.find((project) => project.id === selectedTodoProjectId);
   const visibleTree = useMemo(() => {
     if (selectedTodoProjectId) {
@@ -110,6 +130,8 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   }, [selectedTodoProjectId, taskTree, view]);
 
   useEffect(() => {
+    // Linked tasks (including archived tasks and subtasks) may be outside the current view.
+    if (initialTaskId && isTaskEditorOpen) return;
     if (visibleTree.length === 0) {
       setSelectedTaskId(null);
       setIsDetailAutoSelectPaused(false);
@@ -120,9 +142,11 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       setSelectedTaskId(null);
       setIsTaskEditorOpen(false);
     }
-  }, [selectedTaskId, visibleTree]);
+  }, [initialTaskId, isTaskEditorOpen, selectedTaskId, visibleTree]);
 
-  const selectedSelection = findTaskSelection(visibleTree, selectedTaskId);
+  const selectedSelection = findTaskSelection(initialTaskId ? taskTree : visibleTree, selectedTaskId);
+  const isLinkedTaskUnavailable = initialTaskId && !tasksQuery.isLoading && !tasksQuery.isFetching
+    && !findTaskSelection(taskTree, initialTaskId);
   const activeRootCount = taskTree.filter(({ task }) => !task.archivedAt).length;
   const listTitle = selectedTodoProject?.name ?? VIEW_LABELS[view].label;
   const canAddTask = Boolean(selectedTodoProjectId || view !== "archive");
@@ -485,6 +509,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
             >
               {deleteCompletedError}
+            </p>
+          )}
+
+          {isLinkedTaskUnavailable && (
+            <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+              {tasksQuery.isError
+                ? "Úkol se nepodařilo načíst. Zkuste stránku obnovit."
+                : "Úkol není dostupný. Byl odstraněn nebo k němu nemáte přístup."}
             </p>
           )}
 

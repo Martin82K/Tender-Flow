@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@shared/ui/Button";
-import { useProjectsState } from "@features/projects/model/useProjectsState";
+import { useTaskProjectOptions } from "../hooks/useTaskProjectOptions";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
 import type { Task, TaskCreateInput, TaskPriority } from "../types";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
@@ -56,7 +56,7 @@ export const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const { projects } = useProjectsState();
+  const projects = useTaskProjectOptions();
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [dueAt, setDueAt] = useState("");

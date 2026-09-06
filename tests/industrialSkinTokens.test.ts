@@ -34,6 +34,7 @@ const organizationDashboardSource = readFileSync(join(process.cwd(), "features/o
 const orgOverviewSource = readFileSync(join(process.cwd(), "features/organization/ui/OrgOverviewTab.tsx"), "utf8");
 const orgBillingSource = readFileSync(join(process.cwd(), "features/organization/ui/OrgBillingTab.tsx"), "utf8");
 const projectManagerSource = readFileSync(join(process.cwd(), "features/projects/ProjectManager.tsx"), "utf8");
+const todoProjectSectionSource = readFileSync(join(process.cwd(), "features/tasks/ui/TodoProjectSection.tsx"), "utf8");
 const tasksPageSource = readFileSync(join(process.cwd(), "features/tasks/ui/TasksPage.tsx"), "utf8");
 const tenantOverviewSource = readFileSync(join(process.cwd(), "features/projects/ProjectOverview.tsx"), "utf8");
 const statusDistributionChartSource = readFileSync(join(process.cwd(), "shared/ui/overview/StatusDistributionChart.tsx"), "utf8");
@@ -389,7 +390,7 @@ describe("industrial skin tokens", () => {
 
   it("industrial TODO menu drží vybraný stav i mimo hover", () => {
     expect(tasksPageSource).toContain('data-help-id="tasks-menu-item"');
-    expect(tasksPageSource).toContain('data-help-id="todo-project-item"');
+    expect(todoProjectSectionSource).toContain('data-help-id="todo-project-item"');
     expect(tasksPageSource).toContain('data-help-id="tasks-mobile-menu-toggle"');
     expect(tasksPageSource).toContain('aria-current={active ? "page" : undefined}');
     expect(css).toContain("@media (max-width: 767px)");

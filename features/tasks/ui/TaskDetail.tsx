@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@shared/ui/Button";
 import { ConfirmationModal } from "@shared/ui/ConfirmationModal";
 import { Input } from "@shared/ui/Input";
-import { useProjectsState } from "@features/projects/model/useProjectsState";
+import { useTaskProjectOptions } from "../hooks/useTaskProjectOptions";
 import { getSubtaskProgress, type TaskWithSubtasks } from "../model/taskTree";
 import { useCreateTaskMutation, useDeleteTaskMutation, useToggleTaskMutation, useUpdateTaskMutation } from "../hooks/useTaskMutations";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
@@ -36,7 +36,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({
   onDeleted,
   onCloseDetail,
 }) => {
-  const { projects } = useProjectsState();
+  const projects = useTaskProjectOptions();
   const updateTask = useUpdateTaskMutation();
   const deleteTask = useDeleteTaskMutation();
   const toggleTask = useToggleTaskMutation();

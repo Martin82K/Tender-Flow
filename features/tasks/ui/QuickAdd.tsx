@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@shared/ui/Button";
-import { useProjectsState } from "@features/projects/model/useProjectsState";
+import { useTaskProjectOptions } from "../hooks/useTaskProjectOptions";
 import { type TaskViewFilter } from "../model/taskTree";
 import { useCreateTaskMutation } from "../hooks/useTaskMutations";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
@@ -31,7 +31,7 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const createTask = useCreateTaskMutation();
-  const { projects } = useProjectsState();
+  const projects = useTaskProjectOptions();
 
   useEffect(() => {
     setSelectedTodoProjectId(todoProjectId ?? "");

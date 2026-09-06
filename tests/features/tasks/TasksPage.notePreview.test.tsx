@@ -7,6 +7,8 @@ import type { AuthIdentity } from "@shared/auth/AuthIdentityContext";
 
 const taskState = vi.hoisted(() => ({
   tasks: [] as Task[],
+  isLoading: false,
+  isError: false,
   todoProjects: [] as TodoProject[],
   toggleTask: vi.fn(),
   createTask: vi.fn(),
@@ -101,7 +103,8 @@ vi.mock("@features/tasks/hooks/useTasksQuery", () => ({
     taskState.tasksQueryInput = input;
     return {
       data: taskState.tasks,
-      isLoading: false,
+      isLoading: taskState.isLoading,
+      isError: taskState.isError,
       isFetching: false,
     };
   },
@@ -211,6 +214,9 @@ describe("TasksPage note preview", () => {
   beforeEach(() => {
     setViewportWidth(1024);
     taskState.tasks = [];
+    taskState.isLoading = false;
+    taskState.isError = false;
+    taskState.identity = { id: "user-1", email: "user@example.com", role: "user" };
     taskState.todoProjects = [];
     taskState.toggleTask.mockReset();
     taskState.createTask.mockReset();
@@ -219,6 +225,65 @@ describe("TasksPage note preview", () => {
     taskState.deleteCompletedTasks.mockReset();
     taskState.tasksQueryInput = null;
     taskState.taskProjectsQueryInput = null;
+  });
+
+  it("otevře deep link archivovaného podúkolu mimo aktuální filtr", () => {
+    taskState.tasks = [
+      makeTask({ id: "root", title: "Rodič", archivedAt: "2026-05-18T10:00:00Z" }),
+      makeTask({ id: "child", title: "Odkázaný podúkol", parentTaskId: "root", archivedAt: "2026-05-18T10:00:00Z" }),
+    ];
+    render(<TasksPage initialTaskId="child" />);
+    expect(screen.getByRole("dialog", { name: "Detail podúkolu" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Odkázaný podúkol")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("počká na načtení deep linku a reaguje na další navigaci", () => {
+    taskState.isLoading = true;
+    const { rerender } = render(<TasksPage initialTaskId="first" />);
+    expect(screen.getByText("Načítám úkoly...")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    taskState.tasks = [makeTask({ id: "first", title: "První úkol" }), makeTask({ id: "second", title: "Druhý úkol" })];
+    taskState.isLoading = false;
+    rerender(<TasksPage initialTaskId="first" />);
+    expect(screen.getByDisplayValue("První úkol")).toBeInTheDocument();
+    rerender(<TasksPage initialTaskId="second" />);
+    expect(screen.getByDisplayValue("Druhý úkol")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("První úkol")).not.toBeInTheDocument();
+    rerender(<TasksPage />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("odliší neexistující deep link od chyby načítání", () => {
+    const { rerender } = render(<TasksPage initialTaskId="missing" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Úkol není dostupný");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    taskState.isError = true;
+    rerender(<TasksPage initialTaskId="missing" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Úkol se nepodařilo načíst");
+  });
+
+  it("otevře deep link na mobilu a po obnovení dat zůstane zavřený", () => {
+    setViewportWidth(390);
+    taskState.tasks = [makeTask({ id: "mobile-linked", title: "Mobilní odkaz" })];
+    const { rerender } = render(<TasksPage initialTaskId="mobile-linked" />);
+    expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toHaveClass("fixed", "inset-0");
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
+    taskState.tasks = [...taskState.tasks];
+    rerender(<TasksPage initialTaskId="mobile-linked" />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("nezobrazí cizí úkol a po změně uživatele odstraní otevřený detail", () => {
+    taskState.tasks = [makeTask({ id: "private", title: "Soukromý úkol" })];
+    const { rerender } = render(<TasksPage initialTaskId="private" />);
+    expect(screen.getByDisplayValue("Soukromý úkol")).toBeInTheDocument();
+    taskState.identity = { id: "user-2", email: "second@example.com", role: "user" };
+    rerender(<TasksPage initialTaskId="private" />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("Soukromý úkol")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Úkol není dostupný");
   });
 
   it("předá stejnou identitu oběma read-only query", () => {

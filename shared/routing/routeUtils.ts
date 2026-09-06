@@ -19,6 +19,7 @@ export const buildAppUrl = (
     view: View,
     opts?: {
         projectId?: string;
+        taskId?: string;
         tab?: ProjectTab;
         categoryId?: string | null;
         contractId?: string | null;
@@ -30,8 +31,12 @@ export const buildAppUrl = (
     switch (view) {
         case "contacts":
             return `${APP_BASE}/contacts`;
-        case "todo":
-            return `${APP_BASE}/todo`;
+        case "todo": {
+            const params = new URLSearchParams();
+            if (opts?.taskId) params.set("taskId", opts.taskId);
+            const qs = params.toString();
+            return `${APP_BASE}/todo${qs ? `?${qs}` : ""}`;
+        }
         case "settings": {
             const params = new URLSearchParams();
             if (opts?.settingsTab) params.set("tab", opts.settingsTab);
@@ -68,7 +73,8 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
+    | { isApp: true; view: "todo"; taskId?: string }
+    | { isApp: true; view: "contacts" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
@@ -92,7 +98,10 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     const sub = parts[1];
     if (sub === "command-center") return { isApp: true as const, redirectTo: DEFAULT_APP_URL };
     if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
-    if (sub === "todo") return { isApp: true as const, view: "todo" as const };
+    if (sub === "todo") {
+        const taskId = new URLSearchParams(search).get("taskId");
+        return { isApp: true as const, view: "todo" as const, ...(taskId ? { taskId } : {}) };
+    }
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
     if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
