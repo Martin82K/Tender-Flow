@@ -11,7 +11,6 @@ import { ShortUrlRedirect } from "@shared/routing/ShortUrlRedirect";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
-import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { setIncidentContext } from "@infra/diagnostics/incidentLogger";
 import { getLegalPage } from "@app/views/LegalPageRouter";
 
@@ -48,7 +47,6 @@ const PublicEntry: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 export const AppEntry: React.FC = () => {
-  usePosthogIdentity();
   const { isAuthenticated, isLoading, logout } = useAuth();
   const { pathname, search } = useLocation();
   const { isDesktop } = useDesktop();

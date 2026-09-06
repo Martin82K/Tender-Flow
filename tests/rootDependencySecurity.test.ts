@@ -25,7 +25,8 @@ describe("root dependency security versions", () => {
     expect(manifest.dependencies?.["@modelcontextprotocol/sdk"]).toBeUndefined();
     expect(manifest.dependencies?.dompurify).toBe("3.4.13");
     expect(manifest.dependencies?.express).toBe("^4.22.2");
-    expect(manifest.dependencies?.["posthog-js"]).toBe("1.379.1");
+    expect(manifest.dependencies?.fflate).toBe("^0.8.3");
+    expect(manifest.dependencies?.["posthog-js"]).toBeUndefined();
     expect(manifest.devDependencies?.["@vitejs/plugin-react"]).toBe("6.0.3");
     expect(manifest.devDependencies?.electron).toBe("^43.3.0");
     expect(manifest.devDependencies?.["electron-builder"]).toBe("^26.15.3");
@@ -88,7 +89,7 @@ describe("root dependency security versions", () => {
     ["node_modules/ip-address", "10.4.0"],
     ["node_modules/joi", "18.2.1"],
     ["node_modules/js-yaml", "4.3.1"],
-    ["node_modules/posthog-js", "1.379.1"],
+    ["node_modules/fflate", "0.8.3"],
     ["node_modules/postcss", "8.5.26"],
     ["node_modules/qs", "6.15.2"],
     ["node_modules/sharp", "0.35.3"],
@@ -102,6 +103,10 @@ describe("root dependency security versions", () => {
     ["node_modules/ws", "8.21.0"],
   ])("resolves %s to patched version %s", (packagePath, expectedVersion) => {
     expect(lockfile.packages?.[packagePath]?.version).toBe(expectedVersion);
+  });
+
+  it("does not retain the removed analytics SDK or its transitive packages", () => {
+    expect(Object.keys(lockfile.packages ?? {}).filter((path) => /(?:posthog|node_modules\/fflate$)/.test(path))).toEqual(["node_modules/fflate"]);
   });
 
   it("does not retain the removed Babel-based React transform", () => {

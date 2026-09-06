@@ -52,16 +52,6 @@
       "target": "services/incidentLogger"
     },
     {
-      "file": "app/hooks/usePosthogIdentity.ts",
-      "specifier": "@/context/AuthContext",
-      "target": "context/AuthContext"
-    },
-    {
-      "file": "app/hooks/usePosthogIdentity.ts",
-      "specifier": "@/services/dbAdapter",
-      "target": "services/dbAdapter"
-    },
-    {
       "file": "app/views/AuthGate.tsx",
       "specifier": "@/components/layouts/AuthLayout",
       "target": "components/layouts/AuthLayout"

@@ -104,7 +104,7 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
   `Content-Security-Policy-Report-Only`.
 - Report-only politika nepovoluje `unsafe-inline`, `unsafe-eval`, obecné
   `https:` ani wildcard zdroj. Síťový allowlist pokrývá Supabase, Mapy.com,
-  ARES, OpenAI Realtime a výchozí EU PostHog endpointy.
+  ARES a OpenAI Realtime.
 - Dynamické cíle importu kontaktů a konfigurovatelný Excel tools provider se
   nepovolují obecným `https:` ani produkčním `localhost` pravidlem. Jejich
   legitimní reporty jsou vstupem pro samostatný návrh explicitní konfigurace
@@ -125,7 +125,8 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
 
 ## Privacy a telemetrie
 
-- PostHog/usage tracking se řídí souhlasem a session kontextem.
+- Volitelné měření využití funkcí se řídí souhlasem a session kontextem.
+- Externí PostHog SDK bylo odstraněno; aplikace jej nenačítá ani neodesílá události jeho prostřednictvím.
 - Demo režim a nepřihlášené stavy nesmí odesílat identifikovanou telemetrii.
 - Cookie consent, právní verze a acceptance mají samostatné modely.
 - Retention, DSR, breach a access review jsou dostupné v compliance administraci.

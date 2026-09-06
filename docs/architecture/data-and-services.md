@@ -143,7 +143,7 @@ neomezený filesystem.
 - e-mail provider (Resend)
 - mapové/geokódovací služby
 - OpenAI/Google AI podle konkrétní feature
-- PostHog se souhlasem uživatele
+- vlastní volitelné měření využití funkcí se souhlasem uživatele
 - ARES a další veřejné registry podle služby
 
 Každá integrace musí mít timeout, sanitizaci chyb, jasný fallback a oddělené

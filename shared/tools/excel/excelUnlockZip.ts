@@ -13,7 +13,7 @@ const stripTag = (xml: string, tagName: string) => {
   return xml.replace(selfClosing, "").replace(paired, "");
 };
 
-const encodeLikeZipEntry = (source: Uint8Array, value: string): Uint8Array => {
+const encodeLikeZipEntry = (source: Uint8Array<ArrayBuffer>, value: string): Uint8Array<ArrayBuffer> => {
   const encoded = strToU8(value);
   const next = source.slice(0, encoded.length);
   next.set(encoded);

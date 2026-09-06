@@ -1,27 +1,24 @@
 # Analytics and telemetry audit
 
-Last reviewed: 2026-05-20
+Last reviewed: 2026-09-06
 
 ## Current decision
 
 Tender Flow does not ship Google Analytics or Google Tag Manager tracking scripts.
-PostHog is the preferred optional product analytics provider, but it remains
-disabled unless both conditions are true:
+PostHog has been removed from the application, including its SDK, startup
+configuration query, identity handling and network allowlist entries. Existing
+PostHog configuration columns remain in the database for migration history and
+older-client compatibility; the current client does not read them.
 
-- `app_settings.posthog_enabled = true` and `posthog_project_key` is populated.
-- The browser has stored the optional cookie consent decision `accepted_all`.
-
-Optional product analytics are consent-gated consistently in the client.
-Without `accepted_all`, the client must not send PostHog events or detailed
-feature usage events. Privacy-minimized application heartbeat and aggregate
-action counters are necessary service operations and remain active for signed-in
+Optional feature usage analytics remain consent-gated: without `accepted_all`,
+the client must not send detailed feature usage events. Privacy-minimized
+application heartbeat and aggregate action counters are necessary service operations and remain active for signed-in
 non-demo users independently of optional consent.
 
 ## Inventory
 
 | Flow | Storage / recipient | Classification | Consent behavior | Retention / cleanup |
 | --- | --- | --- | --- | --- |
-| PostHog | PostHog EU cloud by default (`https://eu.i.posthog.com`) | Optional product analytics | Disabled by DB config by default; initialized opt-out; captures only after `accepted_all` | Controlled in PostHog project settings |
 | Feature usage | Supabase `feature_usage_events` | Optional usage analytics | `trackFeatureUsage` returns without RPC unless `accepted_all` | `feature-usage-events`, 180 days |
 | App usage heartbeat | Supabase `usage_daily_stats` plus short-lived `usage_session_state` | Necessary aggregate B2B service operations | Runs for authenticated non-demo users; visible, focused and non-idle window only | Aggregated daily stats; session state expires in DB; no raw heartbeat history or content |
 | App usage actions | Supabase `usage_daily_stats` | Necessary aggregate B2B service operations | Runs for authenticated non-demo users independently of optional cookie consent | Aggregated daily counters only; no content or per-action event history |
@@ -30,22 +27,15 @@ non-demo users independently of optional consent.
 
 ## Security and privacy guardrails
 
-- PostHog is configured with `autocapture: false`, `capture_pageview: false`,
-  `capture_pageleave: false`, `disable_session_recording: true`, and
-  `opt_out_capturing_by_default: true`.
-- Demo users are not identified in PostHog and app usage heartbeat is disabled
-  for demo role in the app shell.
-- PostHog project keys are publishable keys. Secrets must not be stored in
-  `app_settings`; sensitive analytics or service tokens belong in server-side
-  secret storage.
+- App usage heartbeat is disabled for demo users.
+- Sensitive analytics or service tokens belong in server-side secret storage.
 - Logs must use sanitized error summaries and must not print tokens, cookies,
   authorization headers, or raw provider payloads.
 
 ## Production verification checklist
 
-- Verify the production row `app_settings.id = 'default'` before saying PostHog
-  is active in production.
-- Confirm allowed origins in PostHog before enabling a production project key.
+- Confirm the browser neither loads the removed SDK nor requests PostHog hosts,
+  including after login, logout and optional-consent changes.
 - Confirm `/cookies` and privacy copy whenever a new tracking provider or
   telemetry table is added.
 - Keep analytics packages reviewed under the repository supply-chain policy:
