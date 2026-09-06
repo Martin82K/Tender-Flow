@@ -522,7 +522,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     <span className="material-symbols-outlined text-[20px]">
                       tune
                     </span>
-                    Předplatné
+                    Balíčky a funkce
                   </div>
                 </button>
 

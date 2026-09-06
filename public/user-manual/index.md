@@ -690,6 +690,15 @@ Administrace je dostupná jen účtům s rolí **Admin**. Obsahuje správu regis
 
 > 💡 **Tip:** Pokud v Nastavení nevidíte sekce „Administrace systému", nemáte potřebná oprávnění.
 
+### Balíčky a funkce
+
+V **Nastavení → Administrace → Balíčky a funkce** najdete přehled obsahu tarifů pouze pro čtení. U balíčku rozbalte **Zobrazit funkce**. Prohlížení nemění dostupnost funkcí.
+
+Tlačítko **Spravovat firmy** otevře správu organizací, kde upravíte plán, licence a fakturační údaje vybrané firmy. Individuální výjimky a oprávnění uživatelů mohou ovlivnit jejich skutečný přístup; přehled balíčků ukazuje společná pravidla tarifů.
+
+Podrobnou matici otevřete tlačítkem **Otevřít pokročilou správu**. Přepínače v ní se ukládají okamžitě a mění společná pravidla celého tarifu. Pro úpravu jediné firmy použijte správu firem. Po zavření pokročilé správy se přehled znovu načte.
+
+
 ### Registrace a whitelist
 
 V sekci **Nastavení registrací** (Admin) určíte, kdo se může do Tender Flow registrovat:
