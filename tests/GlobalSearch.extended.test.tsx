@@ -39,3 +39,10 @@ it('keeps errors and pending extended indexes visible instead of claiming no mat
   expect(retry).toHaveBeenCalledTimes(1);
   expect(screen.queryByText(/Žádné výsledky/)).not.toBeInTheDocument();
 });
+
+it('opens the exact task result using the shared deep-link contract', async () => {
+  render(view());
+  fireEvent.change(screen.getByRole('combobox'), { target: { value: 'vykres 11' } });
+  fireEvent.click(await screen.findByRole('option', { name: /Výkres 11/ }));
+  expect(mocks.navigate).toHaveBeenCalledWith('/app/todo?taskId=t11');
+});

@@ -1,5 +1,6 @@
+import { useExtendedSearchQuery } from "@features/search";
 import { CategoryPlanNotices } from "@features/projects/ui/CategoryPlanNotices";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
@@ -67,7 +68,7 @@ export const AppContent: React.FC = () => {
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
   const { isDesktop } = useDesktop();
-  const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
+  const { currentPlan, hasFeature, isLoading: isFeaturesLoading } = useFeatures();
 
   const route = parseAppRoute(pathname, search);
   const { state, actions } = useAppData(
@@ -76,6 +77,16 @@ export const AppContent: React.FC = () => {
     "projectId" in route ? route.projectId : undefined,
   );
   const projectSearch = useProjectSearchQuery({ userId: user?.id, projects: state.projects });
+  const tasksSearchEnabled = !isFeaturesLoading && hasFeature(FEATURES.MODULE_TASKS);
+  const contractsSearchEnabled = !isFeaturesLoading && hasFeature(FEATURES.MODULE_PROJECTS) && hasFeature(FEATURES.MODULE_CONTRACTS);
+  const extendedSearch = useExtendedSearchQuery({
+    userId: user?.id, isDemo: user?.role === "demo", projects: state.projects,
+    tasksEnabled: tasksSearchEnabled, contractsEnabled: contractsSearchEnabled,
+  });
+  const requestGlobalSearch = useCallback(() => {
+    projectSearch.requestSearch();
+    extendedSearch.requestSearch();
+  }, [projectSearch.requestSearch, extendedSearch.requestSearch]);
   const criticalLoadIncident = useCriticalLoadIncident(state.loadingErrorDiagnostic);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
@@ -550,7 +561,14 @@ export const AppContent: React.FC = () => {
     projects: state.projects,
     contacts: state.contacts,
     projectDetails: projectSearch.data ?? {},
-    requestSearch: projectSearch.requestSearch,
+    requestSearch: requestGlobalSearch,
+    tasks: extendedSearch.tasks,
+    contracts: extendedSearch.contracts,
+    tasksEnabled: tasksSearchEnabled,
+    contractsEnabled: contractsSearchEnabled,
+    isExtendedSearchLoading: extendedSearch.isSearchLoading,
+    extendedSearchError: extendedSearch.isError,
+    retryExtendedSearch: () => { void extendedSearch.retrySearch(); },
     isProjectSearchLoading: projectSearch.isSearchLoading,
     projectSearchError: projectSearch.isError,
     retryProjectSearch: () => { void projectSearch.refetch({ cancelRefetch: false }); },

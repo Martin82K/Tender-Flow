@@ -17,6 +17,9 @@ const mockState = vi.hoisted(() => ({
   appDataOverrides: {} as Record<string, unknown>,
   retrySelectedProjectDetails: vi.fn(),
   currentPlan: "pro",
+  disabledFeatures: [] as string[],
+  featuresLoading: false,
+  extendedSearch: vi.fn(),
   isDesktop: false,
   pathname: "/app",
   search: "",
@@ -62,9 +65,12 @@ vi.mock("@/context/UIContext", () => ({
 vi.mock("@/context/FeatureContext", () => ({
   useFeatures: () => ({
     currentPlan: mockState.currentPlan,
-    isLoading: false,
+    isLoading: mockState.featuresLoading,
+    hasFeature: (feature: string) => !mockState.disabledFeatures.includes(feature),
   }),
 }));
+
+vi.mock("@features/search", () => ({ useExtendedSearchQuery: (input: unknown) => { mockState.extendedSearch(input); return { tasks: [], contracts: [], requestSearch: () => {}, isSearchLoading: false, isError: false, retrySearch: async () => {} }; } }));
 
 vi.mock("@/hooks/useDesktop", () => ({
   useDesktop: () => ({ isDesktop: mockState.isDesktop }),
@@ -138,6 +144,7 @@ vi.mock("@/config/features", () => ({
     MODULE_PROJECTS: "projects",
     MODULE_CONTACTS: "contacts",
     MODULE_TASKS: "tasks",
+    MODULE_CONTRACTS: "contracts",
     FEATURE_ADVANCED_REPORTING: "reporting",
     URL_SHORTENER: "shortener",
   },
@@ -217,6 +224,8 @@ describe("AppContent legal acceptance gate", () => {
   };
 
   beforeEach(() => {
+    mockState.disabledFeatures = [];
+    mockState.featuresLoading = false;
     vi.clearAllMocks();
     mockState.appDataOverrides = {};
     mockState.currentPlan = "pro";
@@ -246,6 +255,19 @@ describe("AppContent legal acceptance gate", () => {
         privacyVersion: CURRENT_PRIVACY_VERSION,
       });
     });
+  });
+
+  it.each([
+    [[], false, true, true],
+    [["tasks"], false, false, true],
+    [["projects"], false, true, false],
+    [["contracts"], false, true, false],
+    [[], true, false, false],
+  ])("gates the extended indexes before requesting data (%j, loading=%s)", (disabledFeatures, loading, tasksEnabled, contractsEnabled) => {
+    mockState.disabledFeatures = disabledFeatures as string[];
+    mockState.featuresLoading = loading as boolean;
+    renderAppContent();
+    expect(mockState.extendedSearch).toHaveBeenCalledWith(expect.objectContaining({ userId: "user-1", tasksEnabled, contractsEnabled }));
   });
 
   it("passes the task deep link into TODO and clears it on explicit close", () => {
