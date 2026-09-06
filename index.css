@@ -1,4 +1,4 @@
-@import "@appica/ui-react/styles.css";
+@import "@appica/ui-react/styles.css" source(none);
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
 @source "./app/**/*.{js,ts,jsx,tsx}";
@@ -10,8 +10,11 @@
 @source "./shared/**/*.{js,ts,jsx,tsx}";
 @source "./services/**/*.{js,ts,jsx,tsx}";
 @source "./utils/**/*.{js,ts,jsx,tsx}";
-@source "./*.{js,ts,jsx,tsx}";
-@source "./node_modules/@appica/ui-react/dist/**/*.{js,mjs}";
+@source "./*.{js,ts,jsx,tsx,html}";
+@source "./config/**/*.{js,ts,jsx,tsx}";
+/* Keep the component list aligned with Appica imports; cssSourceBoundary.test.ts checks it. */
+@source "./node_modules/@appica/ui-react/dist/components/{background-pattern,border-beam,button,button-group,combobox,input,sparkline,toggle}/**/*.js";
+@source "./node_modules/@appica/ui-react/dist/{internal,hooks,providers}/**/*.js";
 @custom-variant dark (&:where(.dark, .dark *));
 
 .tabular-nums,

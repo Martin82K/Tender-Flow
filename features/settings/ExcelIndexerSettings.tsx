@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import * as XLSX from "xlsx";
 import { fillDescriptions } from "@/shared/tools/excel/indexMatcher";
 import type { IndexMap } from "@/shared/tools/excel/indexMatcher";
 import { fillOddily } from "@/shared/tools/excel/fillOddily";
@@ -173,6 +172,7 @@ export const ExcelIndexerSettings: React.FC = () => {
 
     setIsSaving(true);
     try {
+      const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];

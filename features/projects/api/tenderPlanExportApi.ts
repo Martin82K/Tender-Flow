@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import type { TenderPlanItem } from "@/types";
 
 const formatDate = (dateString: string): string => {
@@ -32,7 +31,8 @@ const parseExcelDate = (value: unknown): string => {
   return "";
 };
 
-export const exportTenderPlanToXLSX = (items: TenderPlanItem[], projectTitle: string): void => {
+export const exportTenderPlanToXLSX = async (items: TenderPlanItem[], projectTitle: string): Promise<void> => {
+  const XLSX = await import("xlsx");
   const workbook = XLSX.utils.book_new();
   const data: (string | number)[][] = [
     ["PLÁN VÝBĚROVÝCH ŘÍZENÍ", "", "", "", ""],
@@ -68,7 +68,8 @@ export const exportTenderPlanToXLSX = (items: TenderPlanItem[], projectTitle: st
   XLSX.writeFile(workbook, filename);
 };
 
-export const downloadTenderImportTemplate = (): void => {
+export const downloadTenderImportTemplate = async (): Promise<void> => {
+  const XLSX = await import("xlsx");
   const workbook = XLSX.utils.book_new();
   const data = [
     ["Název poptávky", "Popis", "SOD Rozpočet", "Plánovaný náklad", "Termín (Deadline)", "Zahájení realizace", "Konec realizace"],
@@ -91,6 +92,7 @@ export const downloadTenderImportTemplate = (): void => {
 };
 
 export const importTenderPlanFromXLSX = async (file: File): Promise<Partial<TenderPlanItem>[]> => {
+  const XLSX = await import("xlsx");
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 

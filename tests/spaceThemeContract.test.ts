@@ -56,7 +56,7 @@ describe("TF Space theme contract", () => {
 
   it("načítá Appica styly a definuje přístupnou TF Space vrstvu", () => {
     expect(css).toContain('@import "@appica/ui-react/styles.css"');
-    expect(css).toContain('@source "./node_modules/@appica/ui-react/dist/**/*.{js,mjs}"');
+    expect(css).toContain("dist/components/{background-pattern,border-beam,button,button-group,combobox,input,sparkline,toggle}");
     expect(css).toContain('html[data-skin="space"]');
     expect(css).toContain("--tf-space-red: #f43f5e");
     expect(css).toContain("--tf-space-cyan: #67e8f9");

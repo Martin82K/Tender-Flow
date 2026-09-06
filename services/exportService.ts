@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import {
   DemandCategory,
   Bid,
@@ -843,7 +842,8 @@ export async function exportSupplierAnalysisToPDF(
 /**
  * Export Tender Plan to XLSX
  */
-export function exportTenderPlanToXLSX(items: TenderPlanItem[], projectTitle: string): void {
+export async function exportTenderPlanToXLSX(items: TenderPlanItem[], projectTitle: string): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
 
   // Create data array
@@ -891,7 +891,8 @@ export function exportTenderPlanToXLSX(items: TenderPlanItem[], projectTitle: st
  * Download Template for Tender Plan import (or just generic Tender import template)
  * As per request: "template for importing data into Tenders"
  */
-export function downloadTenderImportTemplate(): void {
+export async function downloadTenderImportTemplate(): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
 
   // Simplified template for creating Demands
@@ -958,6 +959,7 @@ export async function importTenderPlanFromXLSX(file: File): Promise<Partial<Tend
   if (file.size > TENDER_PLAN_IMPORT_MAX_FILE_BYTES) {
     throw new Error("Soubor plánu VŘ je příliš velký. Maximum je 5 MB.");
   }
+  const XLSX = await import('xlsx');
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1067,7 +1069,8 @@ export async function importTenderPlanFromXLSX(file: File): Promise<Partial<Tend
 /**
  * Export Contacts to XLSX
  */
-export function exportContactsToXLSX(contacts: Subcontractor[], statuses: StatusConfig[]): void {
+export async function exportContactsToXLSX(contacts: Subcontractor[], statuses: StatusConfig[]): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
 
   // Create data array
@@ -1135,7 +1138,8 @@ export function exportContactsToXLSX(contacts: Subcontractor[], statuses: Status
 /**
  * Export Contacts to CSV
  */
-export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusConfig[]): void {
+export async function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusConfig[]): Promise<void> {
+  const XLSX = await import('xlsx');
   const sanitizeCsvCell = (value: string): string => {
     return /^\s*[=+\-@]/.test(value) ? `'${value}` : value;
   };
@@ -1859,6 +1863,7 @@ export async function exportContractSummariesToXlsx(
   contracts: ContractSummaryDto[],
   meta: ContractSummaryExportMeta,
 ): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
   const rows: (string | number)[][] = [
     [meta.organizationName || 'Organizace'],

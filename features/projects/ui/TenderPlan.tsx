@@ -1,4 +1,5 @@
 import React from 'react';
+import { useFileExport } from '@shared/hooks/useFileExport';
 import type { DemandCategory } from '@/types';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { AlertModal } from '@/shared/ui/AlertModal';
@@ -16,6 +17,7 @@ interface TenderPlanProps {
 }
 
 export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, onCreateCategory }) => {
+    const { runExport, isExporting, exportError } = useFileExport();
     const {
         items,
         isAdding,
@@ -61,6 +63,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
             className="tf-tender-plan-view h-full min-h-screen overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 md:p-6 lg:p-8"
         >
             <div className="max-w-7xl mx-auto w-full">
+                {exportError && <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{exportError}</p>}
                 {/* Header */}
                 <div className="mb-5 flex items-center gap-3">
                     <div data-help-id="tender-plan-header-icon" className="flex size-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
@@ -164,7 +167,8 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                         <p className="text-sm text-slate-500 mb-4">Nahrajte hromadně plány VŘ z excelovské tabulky.</p>
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => downloadTenderImportTemplate()}
+                                                disabled={isExporting}
+                                                onClick={() => void runExport(downloadTenderImportTemplate)}
                                                 className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg text-xs font-bold"
                                             >
                                                 Stáhnout šablonu
@@ -206,7 +210,8 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                         </h4>
                                         <p className="text-sm text-slate-500 mb-4">Stáhnout aktuální plán VŘ do Excelu pro reporting.</p>
                                         <button
-                                            onClick={() => exportTenderPlanToXLSX(items, projectId)}
+                                            disabled={isExporting}
+                                            onClick={() => void runExport(() => exportTenderPlanToXLSX(items, projectId))}
                                             className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg text-xs font-bold"
                                         >
                                             Exportovat data

@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { loadPdfRuntime, registerRobotoFont } from '@/shared/pdf/pdfRuntime';
 
 /**
@@ -26,13 +25,14 @@ function formatDate(d: Date): string {
 /**
  * Export schedule to XLSX format (simple list)
  */
-export function exportScheduleToXLSX(
+export async function exportScheduleToXLSX(
   rows: ScheduleRow[],
   projectTitle: string,
   rangeStart: Date,
   rangeEnd: Date,
   mode: 'realization' | 'tender'
-): void {
+): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
 
   const modeLabel = mode === 'realization' ? 'Realizace' : 'Výběrová řízení';
@@ -160,6 +160,7 @@ export async function exportScheduleWithTimelineToXLSX(
   mode: 'realization' | 'tender',
   zoom: 'month' | 'week' | 'day' = 'month'
 ): Promise<void> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
   const modeLabel = mode === 'realization' ? 'Realizace' : 'Výběrová řízení';
   const zoomLabel = zoom === 'day' ? 'denní' : zoom === 'week' ? 'týdenní' : 'měsíční';
