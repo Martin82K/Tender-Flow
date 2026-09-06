@@ -223,9 +223,11 @@ export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManage
   const [isSavingFeature, setIsSavingFeature] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
+  const isWriting = isSavingFeature || savingFlag !== null || deletingKey !== null;
+
   useEffect(() => {
-    onBusyChange?.(isSavingFeature || savingFlag !== null || deletingKey !== null);
-  }, [isSavingFeature, savingFlag, deletingKey, onBusyChange]);
+    onBusyChange?.(isWriting);
+  }, [isWriting, onBusyChange]);
 
   const ensureFeatureExists = async (seed: FeatureSeed) => {
     const existing = features.find((feature) => feature.key === seed.key);
@@ -547,6 +549,7 @@ export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManage
             <button
               type="button"
               onClick={loadAll}
+              disabled={isWriting}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800/50"
             >
               <span className="material-symbols-outlined text-[18px]">
@@ -701,7 +704,7 @@ export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManage
                           {DISPLAY_TIERS.map((tier) => {
                             const flagKey: FlagKey = `${tier.id}:${feature.key}`;
                             const checked = !!flags[flagKey];
-                            const busy = savingFlag !== null;
+                            const busy = isWriting;
 
                             return (
                               <div
@@ -861,7 +864,7 @@ export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManage
               <button
                 type="button"
                 onClick={() => deleteFeature(editingFeature.key)}
-                disabled={editingFeature.isSystem || deletingKey === editingFeature.key}
+                disabled={editingFeature.isSystem || isWriting}
                 className="flex items-center gap-2 rounded-xl border border-red-500/40 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-300"
               >
                 <span
@@ -885,7 +888,7 @@ export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManage
                 <button
                   type="button"
                   onClick={saveEdit}
-                  disabled={isSavingFeature}
+                  disabled={isWriting}
                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg transition-all hover:from-amber-500 hover:to-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span

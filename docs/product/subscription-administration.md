@@ -6,7 +6,7 @@ V Nastavení → Administrace → Balíčky a funkce se nejprve zobrazuje přehl
 
 `features/settings/SubscriptionOverview.tsx` načítá katalog a přiřazení funkcí přes veřejný entrypoint `SubscriptionApi`. React Query spravuje načítání, chybu a opakování. Přehled zahrnuje jen explicitně povolené položky přítomné v katalogu; chybějící přiřazení neznamená povolení. Používá skutečná data backendu, nikoli statické definice `PLANS`. Nejde o výpočet efektivního přístupu konkrétního uživatele.
 
-Původní `SubscriptionFeaturesManagement` se připojí až po otevření pokročilé správy. Nad maticí je vysvětleno, že změny jsou okamžité a platí pro společná pravidla celého tarifu. Během ukládání nelze pokročilou správu zavřít; po zavření se přehled znovu načte.
+Původní `SubscriptionFeaturesManagement` se připojí až po otevření pokročilé správy. Nad maticí je vysvětleno, že změny jsou okamžité a platí pro společná pravidla celého tarifu. Během libovolného zápisu (přepnutí, úpravy metadat nebo mazání) jsou ostatní zápisové ovladače i ruční obnova blokované a nelze pokročilou správu zavřít; po zavření se přehled znovu načte.
 
 ## Zachované hranice
 
@@ -32,6 +32,6 @@ Před sjednocením balíčků je nutné inventarizovat produkční přiřazení 
 
 ## Ověření
 
-Regresní testy `tests/AdminSettings.subscriptions.test.tsx` ověřují přehled bez zápisů, navigaci, otevření a zavření pokročilé správy, obnovení dat, chybu s opakováním, prázdný katalog a nepřístupnost bez administrátorské role. Při ruční kontrole rozbalte funkce balíčku, otevřete pokročilou správu a po dokončení změny ověřte aktualizovaný přehled. Zápisovou kontrolu provádějte na testovacích datech.
+Regresní testy `tests/AdminSettings.subscriptions.test.tsx` ověřují přehled bez zápisů, navigaci, otevření a zavření pokročilé správy, obnovení dat, chybu s opakováním, prázdný katalog a nepřístupnost bez administrátorské role. Testy `tests/SubscriptionFeaturesManagement.busy.test.tsx` navíc ověřují vzájemné blokování přepnutí, úpravy a mazání během zápisu. Při ruční kontrole rozbalte funkce balíčku, otevřete pokročilou správu a po dokončení změny ověřte aktualizovaný přehled. Zápisovou kontrolu provádějte na testovacích datech.
 
 V této etapě nejsou dostupné produkční code-scanning nálezy (GitHub vrací „no analysis found“) a Dependabot alerts jsou vypnuté. Lokální bezpečnostní regresní testy a CI tak nepředstavují náhradu těchto nedostupných signálů.
