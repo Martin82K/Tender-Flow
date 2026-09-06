@@ -1,4 +1,5 @@
 import React from "react";
+import { useFileExport } from "@shared/hooks/useFileExport";
 import type { DemandCategory } from "@/types";
 import {
   diffDaysUtc,
@@ -14,6 +15,7 @@ import {
 import { runPdfExportSafely } from "@/shared/pdf/pdfExportError";
 
 export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: string; categories: DemandCategory[] }> = ({ projectId, projectTitle, categories }) => {
+  const { runExport, isExporting, exportError: fileExportError } = useFileExport();
   const [exportError, setExportError] = React.useState<string | null>(null);
   const {
     isLoading,
@@ -136,6 +138,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                 <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
                   <button
                     type="button"
+                    disabled={isExporting}
                     onClick={() => {
                       setShowExportMenu(false);
                       const exportRows = rows.map((r) => ({
@@ -145,13 +148,14 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      exportScheduleToXLSX(
+                      setExportError(null);
+                      void runExport(() => exportScheduleToXLSX(
                         exportRows,
                         projectTitle || 'Harmonogram',
                         rangeStart,
                         rangeEnd,
                         includeRealization ? 'realization' : 'tender'
-                      );
+                      ));
                     }}
                     className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   >
@@ -160,6 +164,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   </button>
                   <button
                     type="button"
+                    disabled={isExporting}
                     onClick={() => {
                       setShowExportMenu(false);
                       const exportRows = rows.map((r) => ({
@@ -169,7 +174,8 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      void runPdfExportSafely(
+                      void runExport(async () => {
+                        await runPdfExportSafely(
                         () => exportScheduleToPDF(
                           exportRows,
                           projectTitle || 'Harmonogram',
@@ -178,7 +184,8 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                           includeRealization ? 'realization' : 'tender'
                         ),
                         setExportError,
-                      );
+                        );
+                      });
                     }}
                     className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   >
@@ -188,7 +195,8 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   <div className="border-t border-slate-200 dark:border-slate-700/50" />
                   <button
                     type="button"
-                    onClick={async () => {
+                    disabled={isExporting}
+                    onClick={() => {
                       setShowExportMenu(false);
                       const exportRows = rows.map((r) => ({
                         label: r.label,
@@ -197,14 +205,15 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                         end: r.end,
                         kind: r.kind,
                       }));
-                      await exportScheduleWithTimelineToXLSX(
+                      setExportError(null);
+                      void runExport(() => exportScheduleWithTimelineToXLSX(
                         exportRows,
                         projectTitle || 'Harmonogram',
                         rangeStart,
                         rangeEnd,
                         includeRealization ? 'realization' : 'tender',
                         zoom
-                      );
+                      ));
                     }}
                     className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   >
@@ -217,9 +226,9 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
           </div>
         </div>
 
-        {exportError && (
+        {(exportError || fileExportError) && (
           <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-            {exportError}
+            {exportError || fileExportError}
           </div>
         )}
 

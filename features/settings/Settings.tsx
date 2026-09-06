@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useFileExport } from "@shared/hooks/useFileExport";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -170,6 +171,7 @@ export const Settings: React.FC<SettingsProps> = ({
   }, [isAdmin, search]);
 
   // Internal State for Tabs (Syncs with URL)
+  const { runExport, isExporting, exportError } = useFileExport();
   const [activeTab, setActiveTab] = useState<"user" | "tools" | "admin" | "organization">(() => {
     if (settingsRoute.tab === "organization") return "organization";
     if (settingsRoute.tab === "admin" && isAdmin) return "admin";
@@ -854,16 +856,19 @@ export const Settings: React.FC<SettingsProps> = ({
                     <p className="text-sm text-slate-500 mb-6 max-w-2xl">
                       Stáhněte si kompletní databázi kontaktů ve formátu Excel nebo CSV. Export obsahuje všechny dodavatele, kontaktní osoby a detaily.
                     </p>
+                    {exportError && <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{exportError}</p>}
                     <div className="flex flex-wrap gap-3">
                       <button
-                        onClick={() => exportContactsToXLSX(contacts, contactStatuses)}
+                        disabled={isExporting}
+                        onClick={() => void runExport(() => exportContactsToXLSX(contacts, contactStatuses))}
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 rounded-lg font-medium border border-emerald-200 dark:border-emerald-500/20 transition-all hover:shadow-sm"
                       >
                         <span className="material-symbols-outlined">table_view</span>
                         Stáhnout Excel (.xlsx)
                       </button>
                       <button
-                        onClick={() => exportContactsToCSV(contacts, contactStatuses)}
+                        disabled={isExporting}
+                        onClick={() => void runExport(() => exportContactsToCSV(contacts, contactStatuses))}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
                       >
                         <span className="material-symbols-outlined">csv</span>
