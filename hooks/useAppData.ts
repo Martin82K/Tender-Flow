@@ -30,12 +30,8 @@ import { useAuth } from "../context/AuthContext";
 import { isUserAdmin } from "../utils/helpers";
 import { syncContactsFromUrl } from "../services/contactsImportService";
 import { recordUsageAction } from "@/infra/usage/appUsageService";
-import {
-    createTenderPlan,
-    createTenderPlanId,
-    getTenderPlans,
-    linkTenderPlanToCategory,
-} from "@/features/projects/api";
+import { useCategoryPlanRecovery } from "@features/projects/hooks/useCategoryPlanRecovery";
+import { synchronizeCategoryPlan } from "@features/projects/api/categoryPlanRecoveryApi";
 import {
     APP_CORE_DATA_LOAD_ERROR_MESSAGE,
     buildCoreDataLoadDiagnostic,
@@ -171,44 +167,16 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
         recordAppUsageAction({ updatedRecordsCount: 1 });
     };
 
-    const handleAddCategory = async (projectId: string, category: DemandCategory) => {
-        await addCategoryMutation.mutateAsync({ projectId, category });
-        recordAppUsageAction({ createdRecordsCount: 1 });
-
-        // Backward Sync: Check if Tender Plan exists, if not create one
-        try {
-            const existingPlans = (await getTenderPlans(projectId)).find(
-                (plan) => plan.name.trim().toLowerCase() === category.title.trim().toLowerCase()
-            );
-
-            if (!existingPlans) {
-                // Determine sensible default dates since we don't have them in the category creation form effectively yet
-                // Or use what we have
-                try {
-                    await createTenderPlan({
-                        id: createTenderPlanId(),
-                        projectId,
-                        name: category.title,
-                        dateFrom: category.realizationStart || null,
-                        dateTo: category.realizationEnd || null,
-                        categoryId: category.id
-                    });
-                } catch (insertError) {
-                    console.error("Auto-sync to Tender Plan failed:", insertError);
-                }
-            } else {
-                try {
-                    if (!existingPlans.categoryId) {
-                        await linkTenderPlanToCategory(existingPlans.id, category.id);
-                    }
-                } catch (updateError) {
-                    console.error("Auto-sync link to Tender Plan failed:", updateError);
-                }
-            }
-        } catch (err) {
-            console.error("Error in backward sync:", err);
-        }
-    };
+    const categoryPlanRecovery = useCategoryPlanRecovery({
+        userId: user?.id,
+        syncEnabled: user?.role !== "demo",
+        save: async (projectId, category) => {
+            await addCategoryMutation.mutateAsync({ projectId, category });
+            recordAppUsageAction({ createdRecordsCount: 1 });
+        },
+        sync: synchronizeCategoryPlan,
+    });
+    const handleAddCategory = categoryPlanRecovery.addCategory;
 
     const handleEditCategory = async (projectId: string, category: DemandCategory) => {
         await editCategoryMutation.mutateAsync({ projectId, category });
@@ -323,6 +291,7 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
             appLoadProgress,
             isBackgroundLoading,
             backgroundWarning,
+            categoryPlanNotices: categoryPlanRecovery.notices,
             selectedProjectId,
             selectedProjectDetailsStatus,
             isSelectedProjectDetailsFetching,
@@ -347,6 +316,8 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
             handleUpdateProjectDetails,
 
             handleAddCategory,
+            retryCategoryPlan: categoryPlanRecovery.retry,
+            dismissCategoryPlanNotice: categoryPlanRecovery.dismiss,
             handleEditCategory,
             handleDeleteCategory,
 

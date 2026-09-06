@@ -5,15 +5,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "@/types";
 
 const mocks = vi.hoisted(() => ({
+  user: { id: "user-1", role: "user" },
   projects: [{ id: "project-1" }, { id: "project-2" }] as Project[],
   projectsLoading: false,
   projectsError: null as Error | null,
   projectsRefetch: vi.fn(),
+  addCategory: vi.fn().mockResolvedValue(undefined),
+  getPlans: vi.fn(),
   from: vi.fn(),
   writeBid: vi.fn(),
   onRealtimeBid: undefined as ((id: string | null) => void) | undefined,
 }));
-vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
+vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock("@/hooks/queries/useProjectsQuery", () => ({
   useProjectsQuery: () => ({ data: mocks.projects, isLoading: mocks.projectsLoading, error: mocks.projectsError, refetch: mocks.projectsRefetch }),
 }));
@@ -26,7 +29,7 @@ vi.mock("@/hooks/queries/useContactStatusesQuery", () => ({
 vi.mock("@/hooks/mutations/useProjectMutations", () => ({
   useAddProjectMutation: () => ({}), useCloneTenderToRealizationMutation: () => ({}),
   useDeleteProjectMutation: () => ({}), useArchiveProjectMutation: () => ({}),
-  useUpdateProjectDetailsMutation: () => ({}), useAddCategoryMutation: () => ({}),
+  useUpdateProjectDetailsMutation: () => ({}), useAddCategoryMutation: () => ({ mutateAsync: mocks.addCategory }),
   useEditCategoryMutation: () => ({}), useDeleteCategoryMutation: () => ({}),
 }));
 vi.mock("@/hooks/mutations/useContactMutations", () => ({
@@ -36,7 +39,8 @@ vi.mock("@/hooks/mutations/useContactMutations", () => ({
 }));
 vi.mock("@/services/contactsImportService", () => ({ syncContactsFromUrl: vi.fn() }));
 vi.mock("@/infra/usage/appUsageService", () => ({ recordUsageAction: vi.fn() }));
-vi.mock("@/features/projects/api", () => ({}));
+vi.mock("@features/projects/api/categoryPlanRecoveryApi", () => ({ synchronizeCategoryPlan: mocks.getPlans }));
+vi.mock("@/features/projects/api", () => ({ getTenderPlans: mocks.getPlans, createTenderPlanId: () => "tp1", createTenderPlan: vi.fn(), linkTenderPlanToCategory: vi.fn() }));
 vi.mock("@features/projects/api/projectBidRealtimeApi", () => ({ projectBidRealtimeApi: {
   subscribeToBidUpdates: ({ onBidUpdated }: { onBidUpdated: (id: string | null) => void }) => {
     mocks.onRealtimeBid = onBidUpdated;
@@ -307,4 +311,30 @@ describe("useAppData project detail recovery", () => {
     expect(result.current.state.selectedProjectDetailsStatus).toBe("loading");
     expect(result.current.state.isDataLoading).toBe(true);
   });
+});
+
+
+it("surfaces a saved category whose tender plan failed without requiring category recreation", async () => {
+  database(success);
+  mocks.getPlans.mockRejectedValue(new Error("offline"));
+  const { result } = setup(false);
+  await act(async () => { await result.current.actions.handleAddCategory("project-1", { id: "c1", title: "Okna" } as never); });
+  expect(result.current.state.categoryPlanNotices).toEqual([expect.objectContaining({ status: "error", categoryTitle: "Okna" })]);
+});
+
+
+it("preserves the demo category mutation without cloud synchronization or a saved notice", async () => {
+  mocks.user = { id: "demo-user", role: "demo" };
+  mocks.addCategory.mockClear();
+  mocks.getPlans.mockReset().mockRejectedValue(new Error("demo must not query the cloud"));
+  const { result } = setup(false);
+  const category = { id: "demo-category", title: "Demo kategorie" } as never;
+  try {
+    await act(async () => { await result.current.actions.handleAddCategory("project-demo", category); });
+    expect(mocks.addCategory).toHaveBeenCalledExactlyOnceWith({ projectId: "project-demo", category });
+    expect(mocks.getPlans).not.toHaveBeenCalled();
+    expect(result.current.state.categoryPlanNotices).toEqual([]);
+  } finally {
+    mocks.user = { id: "user-1", role: "user" };
+  }
 });

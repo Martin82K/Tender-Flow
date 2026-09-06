@@ -1,3 +1,4 @@
+import { CategoryPlanNotices } from "@features/projects/ui/CategoryPlanNotices";
 import React, { Suspense, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
@@ -574,6 +575,7 @@ export const AppContent: React.FC = () => {
         onReloadData={() => actions.loadInitialData(true)}
         onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
       >
+        <CategoryPlanNotices notices={state.categoryPlanNotices} onRetry={actions.retryCategoryPlan} onDismiss={actions.dismissCategoryPlanNotice} />
         <LazyViewErrorBoundary
           key={currentView}
           onReload={() => window.location.reload()}
