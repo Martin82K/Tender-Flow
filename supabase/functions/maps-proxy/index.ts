@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getFirstEnvSecret } from "../_shared/env.ts";
@@ -207,6 +208,9 @@ const recordMapUsage = async (
 };
 
 Deno.serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
     // Handle CORS preflight request
     const corsResponse = handleCors(req);
     if (corsResponse) return corsResponse;

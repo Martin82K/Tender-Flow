@@ -29,6 +29,7 @@ export const orgSubscriptionRpc = {
     return {
       tier: data?.tier || 'free',
       source: data?.source || 'default',
+      validUntil: data?.validUntil ?? null,
     };
   },
 

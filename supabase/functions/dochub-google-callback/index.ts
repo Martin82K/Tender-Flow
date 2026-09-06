@@ -320,6 +320,11 @@ Deno.serve(async (req) => {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
+    const { data: subscription, error: subscriptionError } = await service.rpc('get_effective_user_tier', { target_user_id: stateRow.user_id });
+    if (subscriptionError || !['starter', 'pro', 'enterprise', 'admin'].includes(subscription?.tier)) {
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
+    }
+
     const { data: project, error: projectAccessError } = await service
       .from("projects")
       .select("id, owner_id")

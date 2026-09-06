@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { FeatureKey, FEATURES, PLANS } from '../config/features';
+import { FeatureKey, DEMO_FEATURES } from '../config/features';
 import { useAuth } from './AuthContext';
 import {
   getCurrentTier,
@@ -9,33 +9,25 @@ import {
 } from '@/features/subscription/api';
 
 // Periodic refresh interval for subscription tier validation
-const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60 * 30; // 30 minutes
+const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60; // Revalidate access while the application is open.
 
 interface FeatureContextType {
   enabledFeatures: FeatureKey[];
   currentPlan: string;
   hasFeature: (feature: FeatureKey) => boolean;
   isLoading: boolean;
-  refetchFeatures: () => Promise<void>;
+  refetchFeatures: () => Promise<boolean>;
+  verificationError: boolean;
 }
 
 const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
 
-// Persist v2 RPC availability across page navigations within the same browser
-// session.  This avoids repeated red 400 POST errors in the console when the
-// v2 Supabase RPCs have not been deployed yet.
-const V2_STORAGE_KEY = 'tf_v2_rpcs_available';
-let v2RpcsAvailable = (() => {
-  try {
-    return sessionStorage.getItem(V2_STORAGE_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-})();
-
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
+  const [verificationError, setVerificationError] = useState(false);
+  const [validUntil, setValidUntil] = useState<number | null>(null);
+  const requestVersion = useRef(0);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,23 +45,26 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const userRole = user?.role;
 
   // Fetch features from backend
-  const fetchFeatures = useCallback(async () => {
+  const fetchFeatures = useCallback(async (): Promise<boolean> => {
+    const version = ++requestVersion.current;
     // While auth is still resolving (e.g. right after a desktop reload),
     // keep isLoading=true so gates that depend on currentPlan don't fire
     // with a stale 'free' value before the real tier is fetched.
     if (authLoading) {
       setIsLoading(true);
-      return;
+      return false;
     }
 
     if (!isAuthenticated || !userId) {
+      setValidUntil(null);
+      setVerificationError(false);
       setEnabledFeatures([]);
       setCurrentPlan('free');
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = null;
       setFetchedForUserId(null);
-      return;
+      return false;
     }
 
     // Detect user switch — force a fresh loading gate and drop stale features
@@ -78,6 +73,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const isUserSwitch =
       lastFetchedUserRef.current !== null && lastFetchedUserRef.current !== userId;
     if (isUserSwitch) {
+      setValidUntil(null);
+      setVerificationError(false);
       setEnabledFeatures([]);
       setCurrentPlan('free');
     }
@@ -86,12 +83,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Use a local "demo plan" feature set (acts like a subscription tier for demo).
     if (userRole === 'demo') {
       setIsLoading(false);
-      setEnabledFeatures([...PLANS.FREE.features, FEATURES.MODULE_TASKS] as FeatureKey[]);
+      setEnabledFeatures([...DEMO_FEATURES] as FeatureKey[]);
       setCurrentPlan('demo');
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
       setFetchedForUserId(userId);
-      return;
+      return true;
     }
 
     // Only show the loading gate on the very first fetch or after a user switch.
@@ -105,45 +102,41 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
 
-      if (v2RpcsAvailable) {
-        try {
-          // Probe with a single call first to avoid two parallel 400 errors
-          // if the v2 RPCs have not been deployed yet.
-          const tierResult = await getEffectiveUserTier();
-          const v2Features = await getEnabledFeaturesV2();
-          features = v2Features;
-          tier = tierResult.tier;
-        } catch {
-          // v2 RPCs not deployed — remember for the rest of this browser session
-          v2RpcsAvailable = false;
-          try { sessionStorage.setItem(V2_STORAGE_KEY, 'false'); } catch { /* SSR / sandbox */ }
-          console.debug('[FeatureContext] v2 RPCs not available, using v1');
-          const [v1Features, v1Tier] = await Promise.all([
-            getEnabledFeatures(),
-            getCurrentTier(),
-          ]);
-          features = v1Features;
-          tier = v1Tier;
-        }
-      } else {
-        const [v1Features, v1Tier] = await Promise.all([
-          getEnabledFeatures(),
-          getCurrentTier(),
-        ]);
-        features = v1Features;
-        tier = v1Tier;
+      let deadline: number | null = null;
+      try {
+        const tierResult = await getEffectiveUserTier();
+        features = await getEnabledFeaturesV2();
+        tier = tierResult.tier;
+        deadline = tierResult.validUntil ? Date.parse(tierResult.validUntil) : null;
+        if (deadline !== null && !Number.isFinite(deadline)) throw new Error('Invalid subscription expiration');
+      } catch (error) {
+        // Only a missing RPC permits compatibility fallback. Authorization/network
+        // failures must not retry through an older, less restrictive path.
+        const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+        if (code !== 'PGRST202' && code !== '42883') throw error;
+        [features, tier] = await Promise.all([getEnabledFeatures(), getCurrentTier()]);
       }
-
+      if (version !== requestVersion.current) return false;
+      setVerificationError(false);
+      // Even unlimited subscriptions need fresh server verification. A request
+      // that never finishes must not keep stale access alive indefinitely.
+      setValidUntil(Math.min(deadline ?? Infinity, Date.now() + 90_000));
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
       lastRefreshRef.current = Date.now();
+      return true;
     } catch (error) {
+      if (version !== requestVersion.current) return false;
+      setVerificationError(true);
+      setValidUntil(null);
       console.error('[FeatureContext] Failed to load features from backend:', error);
       // Fail closed on backend errors to prevent stale or spoofed feature access.
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      return false;
     } finally {
+      if (version !== requestVersion.current) return false;
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
@@ -153,8 +146,22 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Fetch features when auth state changes
   useEffect(() => {
-    fetchFeatures();
+    void fetchFeatures();
+    return () => { requestVersion.current += 1; };
   }, [fetchFeatures]);
+
+  useEffect(() => {
+    if (!isAuthenticated || userRole === 'demo' || validUntil === null) return;
+    const timeout = window.setTimeout(() => {
+      // Invalidate an in-flight response before clearing access at the deadline.
+      requestVersion.current += 1;
+      setEnabledFeatures([]);
+      setCurrentPlan('free');
+      setIsLoading(false);
+      void fetchFeatures();
+    }, Math.max(0, validUntil - Date.now()));
+    return () => window.clearTimeout(timeout);
+  }, [validUntil, isAuthenticated, userRole, fetchFeatures]);
 
   // Periodic refresh to keep subscription tier validated against database
   useEffect(() => {
@@ -170,11 +177,17 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     }, SUBSCRIPTION_REFRESH_INTERVAL);
 
-    return () => clearInterval(interval);
+    const onFocus = () => { void fetchFeatures(); };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [isAuthenticated, userId, userRole, fetchFeatures]);
 
   // Check if user has a specific feature (checks against backend-loaded list)
   const hasFeature = useCallback((feature: FeatureKey): boolean => {
+    if (!['starter', 'pro', 'enterprise', 'admin', 'demo'].includes(currentPlan)) return false;
     // Admin tier always has access to everything
     if (currentPlan === 'admin') return true;
     return enabledFeatures.includes(feature);
@@ -192,6 +205,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   return (
     <FeatureContext.Provider value={{
       enabledFeatures,
+      verificationError,
       currentPlan,
       hasFeature,
       isLoading: effectiveIsLoading,

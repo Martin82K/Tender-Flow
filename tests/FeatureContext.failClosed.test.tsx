@@ -1,9 +1,12 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SubscriptionRequiredView } from "@app/views/SubscriptionRequiredView";
 import { FeatureProvider, useFeatures } from "../context/FeatureContext";
 
 const mocks = vi.hoisted(() => ({
+  getEffectiveUserTier: vi.fn(),
+  getEnabledFeaturesV2: vi.fn(),
   getEnabledFeatures: vi.fn(),
   getCurrentTier: vi.fn(),
 }));
@@ -22,6 +25,8 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 vi.mock("@/features/subscription/api", () => ({
+  getEffectiveUserTier: mocks.getEffectiveUserTier,
+  getEnabledFeaturesV2: mocks.getEnabledFeaturesV2,
   getEnabledFeatures: mocks.getEnabledFeatures,
   getCurrentTier: mocks.getCurrentTier,
 }));
@@ -39,9 +44,15 @@ const Probe = () => {
   );
 };
 
+const RecoveryProbe = () => {
+  const { refetchFeatures, verificationError } = useFeatures();
+  return <SubscriptionRequiredView onRefresh={refetchFeatures} onLogout={async () => {}} verificationError={verificationError} />;
+};
+
 describe("FeatureProvider fail-closed behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getEffectiveUserTier.mockRejectedValue({ code: "PGRST202" });
   });
 
   it("po backend chybě shodí stale tier i feature flags na free", async () => {
@@ -67,4 +78,15 @@ describe("FeatureProvider fail-closed behavior", () => {
       expect(screen.getByTestId("plan").textContent).toBe("free");
     });
   });
+  it("reports a failed manual verification without claiming it completed successfully", async () => {
+    mocks.getEnabledFeatures.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("Network unavailable"));
+    mocks.getCurrentTier.mockResolvedValue("free");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<FeatureProvider><RecoveryProbe /></FeatureProvider>);
+    await waitFor(() => expect(mocks.getEnabledFeatures).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Znovu ověřit předplatné" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Předplatné se nepodařilo ověřit"));
+    expect(screen.getByRole("status")).not.toHaveTextContent("Ověření dokončeno");
+  });
+
 });

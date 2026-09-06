@@ -613,73 +613,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
-            {/* Free Plan */}
-            <div
-              className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
-                subscription.effectiveTier === "free"
-                  ? "border-slate-400 bg-slate-400/5 ring-1 ring-slate-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
-                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
-                  Free
-                </span>
-                {subscription.effectiveTier === "free" && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
-                    AKTIVNÍ
-                  </span>
-                )}
-              </div>
-              <div className="mb-5">
-                <p className="text-3xl font-black text-slate-900 dark:text-white">
-                  Zdarma
-                </p>
-              </div>
-              <ul className="space-y-2 mb-6 flex-1">
-                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                  Základní funkce
-                </li>
-                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />1 aktivní
-                  projekt
-                </li>
-              </ul>
-              {subscription.effectiveTier !== "free" && (
-                <button
-                  onClick={async () => {
-                    setActionLoading(true);
-                    setMessage(null);
-                    try {
-                      const result = await cancelRecurrence();
-                      if (result.success) {
-                        setMessage({
-                          type: "success",
-                          text: result.message || "Předplatné bude zrušeno na konci období.",
-                        });
-                        await loadSubscription();
-                      } else {
-                        setMessage({
-                          type: "error",
-                          text: result.error || "Nepodařilo se zrušit předplatné.",
-                        });
-                      }
-                    } catch {
-                      setMessage({ type: "error", text: "Došlo k chybě." });
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  disabled={actionLoading}
-                  className="w-full py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                >
-                  Downgrade
-                </button>
-              )}
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
             {/* Starter Plan */}
             <div
               className={`border rounded-2xl p-6 transition-all flex flex-col relative ${

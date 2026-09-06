@@ -1,6 +1,6 @@
 import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeatureProvider, useFeatures } from "../context/FeatureContext";
 
 type AuthState = {
@@ -53,6 +53,8 @@ const Probe = () => {
   );
 };
 
+afterEach(() => vi.useRealTimers());
+
 describe("FeatureProvider — stable refetch without loading flash", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,6 +79,27 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
       isAuthenticated: true,
       isLoading: false,
     };
+  });
+
+  it("revokes access at expiry even when the next server request never completes", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro", validUntil: new Date(Date.now() + 1_000).toISOString() });
+    mocks.getEffectiveUserTier.mockImplementationOnce(() => new Promise(() => {}));
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await act(async () => {});
+    expect(screen.getByTestId("plan")).toHaveTextContent("pro");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
+  });
+
+  it("fails closed without a legacy retry on authorization or network failure", async () => {
+    mocks.getEffectiveUserTier.mockRejectedValue(new Error("Verification unavailable"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
+    expect(mocks.getCurrentTier).not.toHaveBeenCalled();
+    expect(mocks.getEnabledFeatures).not.toHaveBeenCalled();
   });
 
   it("preferences update (same id/role, new user reference) neprobliká isLoading=true", async () => {

@@ -5,6 +5,7 @@ import { AppEntry } from "@/components/providers/AppProviders";
 
 const state = vi.hoisted(() => ({
   auth: { isAuthenticated: false, isLoading: false, user: null, logout: vi.fn(), updatePreferences: vi.fn() },
+  features: { currentPlan: "enterprise", isLoading: false, refetchFeatures: vi.fn().mockResolvedValue(true) },
   location: { pathname: "/", search: "" },
   isDesktop: false,
   loadedInternal: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("@/services/dbAdapter", () => ({
 }));
 vi.mock("@infra/diagnostics/incidentLogger", () => ({ setIncidentContext: vi.fn() }));
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => state.auth }));
+vi.mock("@/context/FeatureContext", () => ({ useFeatures: () => state.features }));
 vi.mock("@/hooks/useDesktop", () => ({ useDesktop: () => ({ isDesktop: state.isDesktop }) }));
 vi.mock("@/hooks/useTheme", () => ({ useTheme: () => state.publicTheme() }));
 vi.mock("@shared/routing/router", () => ({ useLocation: () => state.location }));
@@ -35,6 +37,8 @@ vi.mock("@app/AuthenticatedApp", () => {
 });
 
 beforeEach(() => {
+  state.features.currentPlan = "enterprise";
+  state.features.isLoading = false;
   state.auth.isAuthenticated = false;
   state.auth.isLoading = false;
   state.location = { pathname: "/", search: "" };
@@ -79,6 +83,27 @@ describe("AppEntry", () => {
     expect(state.loadedInternal).not.toHaveBeenCalled();
     expect(state.readSettings).not.toHaveBeenCalled();
   });
+  it.each([false, true])("blocks an account without a subscription before loading work data (desktop=%s)", async (desktop) => {
+    state.auth.isAuthenticated = true;
+    state.isDesktop = desktop;
+    state.features.currentPlan = "free";
+    state.location = { pathname: "/app/projects", search: "" };
+    render(<AppEntry />);
+    expect(await screen.findByRole("heading", { name: "Předplatné není aktivní" })).toBeInTheDocument();
+    expect(state.loadedInternal).not.toHaveBeenCalled();
+    expect(state.readSettings).not.toHaveBeenCalled();
+    screen.getByRole("button", { name: "Odhlásit se" }).click();
+    expect(state.auth.logout).toHaveBeenCalled();
+    await act(async () => { screen.getByRole("button", { name: "Znovu ověřit předplatné" }).click(); });
+    expect(state.features.refetchFeatures).toHaveBeenCalled();
+  });
+  it("waits for verified entitlements before loading the internal application", () => {
+    state.auth.isAuthenticated = true;
+    state.features.isLoading = true;
+    render(<AppEntry />);
+    expect(screen.getByText("loading")).toBeInTheDocument();
+    expect(state.loadedInternal).not.toHaveBeenCalled();
+  });
   it("loads internal guards after authentication and unmounts them on logout", async () => {
     const view = render(<AppEntry />);
     state.publicTheme.mockClear();
@@ -87,6 +112,13 @@ describe("AppEntry", () => {
     await waitFor(() => expect(screen.getByText("authenticated app with existing legal gate")).toBeInTheDocument());
     expect(state.loadedInternal).toHaveBeenCalledOnce();
     expect(state.publicTheme).not.toHaveBeenCalled();
+    state.features.currentPlan = "free";
+    view.rerender(<AppEntry />);
+    expect(screen.getByRole("heading", { name: "Předplatné není aktivní" })).toBeInTheDocument();
+    expect(screen.queryByText("authenticated app with existing legal gate")).not.toBeInTheDocument();
+    state.features.currentPlan = "enterprise";
+    await act(async () => { view.rerender(<AppEntry />); });
+    expect(screen.getByText("authenticated app with existing legal gate")).toBeInTheDocument();
     state.readSettings.mockClear();
     state.auth.isAuthenticated = false;
     view.rerender(<AppEntry />);

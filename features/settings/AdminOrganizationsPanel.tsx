@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { orgSubscriptionRpc } from '@/infra/org-billing/orgSubscriptionRpc';
-import { getTierLabel, getTierBadgeClass, getDisplayTiers } from '@/config/subscriptionTiers';
+import { getTierLabel, getTierBadgeClass, getAllTiers } from '@/config/subscriptionTiers';
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 type OrgRow = Awaited<ReturnType<typeof orgSubscriptionRpc.getAllOrganizationsAdmin>>[number];
@@ -99,7 +99,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
     o.org_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const tiers = getDisplayTiers().filter((tier) => tier.id === 'free' || tier.id === 'enterprise');
+  const tiers = getAllTiers().filter((tier) => tier.id === 'free' || tier.id === 'enterprise');
   const statusOptions = ['trial', 'active', 'past_due', 'paused', 'canceled'];
 
   return (

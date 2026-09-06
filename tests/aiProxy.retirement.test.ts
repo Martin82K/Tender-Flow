@@ -16,6 +16,7 @@ function loadHandler(tier = 'enterprise') {
   vm.runInNewContext(outputText, {
     Request, Response, URL, console: { log() {}, error() {} }, fetch,
     createClient: () => ({ rpc }),
+    requireActiveSubscription: async () => tier === 'free' ? new Response(null, { status: 402 }) : null,
     handleCors: () => null, buildCorsHeaders: () => ({}),
     Deno: {
       env: { get: (key: string) => key === 'SUPABASE_URL' ? 'https://example.supabase.co' : 'test' },
@@ -49,6 +50,6 @@ describe('AI proxy after assistant removal', () => {
 
   it('continues to reject model discovery for a user without a subscription', async () => {
     const app = loadHandler('free');
-    expect((await app.request({ action: 'list-models', provider: 'mistral' })).status).toBe(403);
+    expect((await app.request({ action: 'list-models', provider: 'mistral' })).status).toBe(402);
   });
 });

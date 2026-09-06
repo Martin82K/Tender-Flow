@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
-import { FeatureProvider } from '../../context/FeatureContext';
+import { FeatureProvider, useFeatures } from '../../context/FeatureContext';
 import { UIProvider } from '../../context/UIContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../../services/queryClient';
@@ -12,6 +12,7 @@ import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
 import { setIncidentContext } from "@infra/diagnostics/incidentLogger";
+import { SubscriptionRequiredView } from "@app/views/SubscriptionRequiredView";
 import { getLegalPage } from "@app/views/LegalPageRouter";
 
 interface AppProvidersProps {
@@ -48,6 +49,7 @@ const PublicEntry: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const AppEntry: React.FC = () => {
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const { currentPlan, isLoading: featuresLoading, refetchFeatures, verificationError } = useFeatures();
   const { pathname, search } = useLocation();
   const { isDesktop } = useDesktop();
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
@@ -69,6 +71,14 @@ export const AppEntry: React.FC = () => {
         <AuthGate pathname={pathname} search={search} isDesktop={isDesktop} />
       </PublicEntry>
     );
+  }
+
+  if (featuresLoading) {
+    return <PublicEntry><AppLoadingView authLoading={false} isDataLoading={false} /></PublicEntry>;
+  }
+
+  if (!["starter", "pro", "enterprise", "admin", "demo"].includes(currentPlan)) {
+    return <PublicEntry><SubscriptionRequiredView verificationError={verificationError} onRefresh={refetchFeatures} onLogout={logout} /></PublicEntry>;
   }
 
   return (

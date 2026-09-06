@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
@@ -170,6 +171,9 @@ const refreshForConfiguredApplication = async (refreshToken: string) => {
 };
 
 Deno.serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
   const cors = handleCors(req);
   if (cors) return cors;
 

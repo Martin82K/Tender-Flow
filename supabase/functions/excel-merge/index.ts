@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 /**
  * Excel Merge - Supabase Edge Function
  * Merges multiple sheets from an Excel file into a single "Merged Data" sheet
@@ -145,6 +146,9 @@ function copyCellStyle(srcCell: ExcelJS.Cell, destCell: ExcelJS.Cell): void {
 }
 
 serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: buildCorsHeaders(req) });

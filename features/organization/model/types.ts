@@ -63,7 +63,8 @@ export interface OrgSeatUsage {
 /** Result of get_effective_user_tier RPC */
 export interface EffectiveTierResult {
   tier: string;
-  source: 'org_override' | 'org_subscription' | 'user_legacy' | 'default';
+  source: 'org_override' | 'org_subscription' | 'user_legacy' | 'platform_admin' | 'default';
+  validUntil?: string | null;
 }
 
 /** Per-user feature override */

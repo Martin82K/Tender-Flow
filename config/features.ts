@@ -46,21 +46,20 @@ export const FEATURES = {
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
 
+/** Local sample data only; demo is not a subscription or a backend entitlement. */
+export const DEMO_FEATURES = [
+  FEATURES.MODULE_PROJECTS,
+  FEATURES.MODULE_CONTACTS,
+  FEATURES.URL_SHORTENER,
+  FEATURES.MODULE_MAPS,
+  FEATURES.MODULE_TASKS,
+] as const;
+
 /**
  * Subscription Plans
  * Defines sets of features available for different tiers.
  */
 export const PLANS = {
-  FREE: {
-    id: 'free',
-    label: 'Free',
-    features: [
-      FEATURES.MODULE_PROJECTS, // Limited probably in real SaaS logic
-      FEATURES.MODULE_CONTACTS,
-      FEATURES.URL_SHORTENER,
-      FEATURES.MODULE_MAPS,
-    ]
-  },
   STARTER: {
     id: 'starter',
     label: 'Starter',
