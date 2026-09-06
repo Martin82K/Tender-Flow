@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { QuickAdd } from "@features/tasks/ui/TasksPage";
+import { QuickAdd } from "@features/tasks/ui/QuickAdd";
 
 const mutationState = vi.hoisted(() => ({
   createTask: vi.fn(),
