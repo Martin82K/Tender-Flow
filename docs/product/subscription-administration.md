@@ -8,13 +8,29 @@ V Nastavení → Administrace → Balíčky a funkce se nejprve zobrazuje přehl
 
 Původní `SubscriptionFeaturesManagement` se připojí až po otevření pokročilé správy. Nad maticí je vysvětleno, že změny jsou okamžité a platí pro společná pravidla celého tarifu. Během libovolného zápisu (přepnutí, úpravy metadat nebo mazání) jsou ostatní zápisové ovladače i ruční obnova blokované a nelze pokročilou správu zavřít; po zavření se přehled znovu načte.
 
-## Zachované hranice
+## Povinné předplatné
 
-- Administrace zůstává za existujícím ověřením role a `AdminMfaGuard`.
-- Přehled provádí jen čtení. Stávající zápisová API, RLS, tarify a individuální výjimky se nemění.
-- Viditelnost ovládacích prvků nenahrazuje autorizaci backendu.
-- Změna nevyžaduje migrace, nové balíčky ani změnu Electron IPC.
-- Pokročilá matice zatím stále ukládá jednotlivé změny okamžitě; publikování verzí tarifu není součástí této etapy.
+Free není nabízený účet ani tarif. Interní hodnota `free` zůstává kvůli starším klientům a databázovým vazbám a znamená **bez přístupu**. Administrátor může tento stav rozpoznat jako „Bez předplatného“; otevření existujícího záznamu nepřiřadí automaticky placený tarif.
+
+`AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Bez platného předplatného zůstává obrazovka obnovy, kontakt na podporu a odhlášení. Právní dokumenty a veřejné krátké odkazy si zachovávají vlastní přístupová pravidla. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
+
+Obě generace databázových RPC používají stejný resolver. Platí aktivní firemní členství a nevypršené firemní nebo osobní předplatné. Platné zkušební období a ruční přidělení jsou zachované. Zrušené předplatné funguje do konce již uhrazeného období, musí však mít datum konce. Individuální příznak funkce sám přístup neobnoví. Správci platformy se ověřují přes `platform_admins`.
+
+Ověření se obnovuje každou minutu a při návratu do okna. Známé datum vypršení uzamkne UI i při neodpovídajícím serveru; poslední ověření bez kratšího data má nejvýše 90 sekund platnosti. Backend kontroluje každý nový datový požadavek. Starší klienti používají opravené RPC a stejnou databázovou ochranu.
+
+Migrace `20260906181346_require_active_subscription.sql` skládá REST kontrolu s existující ochranou MCP. Restriktivní RLS doplňuje dosavadní pravidla firem a rolí u pracovních tabulek a Storage. Edge Functions ověřují předplatné před použitím servisního klienta nebo externího poskytovatele; OAuth callback kontroluje vlastníka spotřebovaného stavu.
+
+Odebrání přístupu nemaže zákaznická data. Již stažené soubory nelze odvolat a dříve vydané podepsané odkazy mohou fungovat do své expirace. Externí oprávnění k souborům v Google Drive nebo Microsoft 365 se řídí také pravidly daného poskytovatele.
+
+Administrace stále vyžaduje existující roli a MFA. Pokročilá matice ukládá změny okamžitě; publikování verzí tarifů není součástí této úpravy. Nové závislosti nejsou potřeba.
+
+## Nasazení a kontrola
+
+Před změnou proveďte `supabase db push --dry-run`; očekává se jen výše uvedená migrace. Nejdříve nasaďte migraci, poté změněné Edge Functions přes API a web. Ověřte katalog RLS, granty, počty a security/performance advisors a opakujte dry-run do stavu „Remote database is up to date“.
+
+`supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
+
+Po nasazení ověřte přihlášení bez předplatného, pokus o otevření projektu přímou URL, odhlášení a obnovení platného předplatného. Testovací prodloužení ani rušení skutečných předplatných neprovádějte mimo rollbackovou transakci.
 
 ## Návrh dalšího rozdělení katalogu
 

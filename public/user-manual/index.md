@@ -690,6 +690,10 @@ Administrace je dostupná jen účtům s rolí **Admin**. Obsahuje správu regis
 
 > 💡 **Tip:** Pokud v Nastavení nevidíte sekce „Administrace systému", nemáte potřebná oprávnění.
 
+### Přístup a předplatné
+
+Tender Flow vyžaduje platné předplatné; bezplatný účet není k dispozici. Po vypršení předplatného se pracovní část aplikace uzamkne. Data se tím nemažou. Obnovení domluvte se správcem firmy nebo podporou a poté zvolte **Znovu ověřit předplatné**. Na uzamčené obrazovce se můžete také odhlásit. Při zrušení automatického obnovování zůstává přístup do konce platného uhrazeného období.
+
 ### Balíčky a funkce
 
 V **Nastavení → Administrace → Balíčky a funkce** najdete přehled obsahu tarifů pouze pro čtení. U balíčku rozbalte **Zobrazit funkce**. Prohlížení nemění dostupnost funkcí.

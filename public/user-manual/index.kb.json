@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T17:02:40.606Z",
+  "generatedAt": "2026-09-06T18:27:27.111Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -1049,6 +1049,32 @@
       "source_anchor": "#nastaveni-aplikace",
       "level": 2,
       "parentTitle": null
+    },
+    {
+      "slug": "pristup-a-predplatne",
+      "title": "Přístup a předplatné",
+      "content": "Tender Flow vyžaduje platné předplatné; bezplatný účet není k dispozici. Po vypršení předplatného se pracovní část aplikace uzamkne. Data se tím nemažou. Obnovení domluvte se správcem firmy nebo podporou a poté zvolte **Znovu ověřit předplatné**. Na uzamčené obrazovce se můžete také odhlásit. Při zrušení automatického obnovování zůstává přístup do konce platného uhrazeného období.",
+      "keywords": [
+        "edplatn",
+        "stup",
+        "platn",
+        "tender",
+        "flow",
+        "aduje",
+        "bezplatn",
+        "nen",
+        "dispozici",
+        "vypr",
+        "pracovn",
+        "aplikace",
+        "uzamkne",
+        "data",
+        "nema",
+        "obnoven"
+      ],
+      "source_anchor": "#pristup-a-predplatne",
+      "level": 3,
+      "parentTitle": "🛡️ Administrace systému"
     },
     {
       "slug": "balicky-a-funkce",

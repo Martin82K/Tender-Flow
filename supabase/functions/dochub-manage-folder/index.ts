@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 import { getAccessTokenForUser } from "../_shared/tokens.ts";
@@ -105,6 +106,9 @@ const deleteMicrosoftFolder = async (args: { accessToken: string; itemId: string
 
 
 Deno.serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
     const cors = handleCors(req);
     if (cors) return cors;
 

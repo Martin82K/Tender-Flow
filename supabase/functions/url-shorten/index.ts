@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient } from "../_shared/supabase.ts";
 
@@ -83,6 +84,9 @@ const normalizeSafeShortRedirectUrl = (targetUrl: string): string | null => {
 };
 
 Deno.serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
   const cors = handleCors(req);
   if (cors) return cors;
 

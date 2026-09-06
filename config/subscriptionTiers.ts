@@ -26,10 +26,10 @@ export type SubscriptionTierId = 'free' | 'starter' | 'pro' | 'enterprise' | 'ad
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTierId, TierConfig> = {
   free: {
     id: 'free',
-    label: 'Free',
+    label: 'Bez předplatného',
     badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     sortOrder: 0,
-    isVisible: true,
+    isVisible: false, // Legacy sentinel, never a product offering.
   },
   starter: {
     id: 'starter',

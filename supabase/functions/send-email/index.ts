@@ -1,3 +1,4 @@
+import { requireActiveSubscription } from '../_shared/subscriptionAccess.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -47,6 +48,9 @@ const sanitizeUrl = (value: unknown, fallback: string): string => {
 };
 
 serve(async (req) => {
+  const subscriptionDenied = await requireActiveSubscription(req);
+  if (subscriptionDenied) return subscriptionDenied;
+
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: buildCorsHeaders(req) });

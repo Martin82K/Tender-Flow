@@ -45,8 +45,8 @@ describe('administrace balíčků', () => {
       { key: 'export_pdf', name: 'Export PDF' },
     ]);
     mocks.flags.mockResolvedValue([
-      { tier: 'free', featureKey: 'module_projects', enabled: true },
-      { tier: 'free', featureKey: 'export_pdf', enabled: false },
+      { tier: 'starter', featureKey: 'module_projects', enabled: true },
+      { tier: 'starter', featureKey: 'export_pdf', enabled: false },
       { tier: 'pro', featureKey: 'export_pdf', enabled: true },
       { tier: 'pro', featureKey: 'unknown', enabled: true },
     ]);
@@ -54,9 +54,10 @@ describe('administrace balíčků', () => {
 
   it('zobrazuje balíčky pouze pro čtení a nenačítá registrační nastavení', async () => {
     renderAdmin();
-    const free = await screen.findByRole('region', { name: 'Free' });
+    const free = await screen.findByRole('region', { name: 'Starter' });
     expect(within(free).getByText('Projekty')).toBeInTheDocument();
     expect(within(free).queryByText('Export PDF')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Free' })).not.toBeInTheDocument();
     const pro = screen.getByRole('region', { name: 'Pro' });
     expect(within(pro).getByText('Export PDF')).toBeInTheDocument();
     expect(within(pro).queryByText('unknown')).not.toBeInTheDocument();
@@ -75,7 +76,7 @@ describe('administrace balíčků', () => {
 
   it('otevírá matici jen na požádání a při návratu obnoví přehled', async () => {
     renderAdmin();
-    await screen.findByRole('region', { name: 'Free' });
+    await screen.findByRole('region', { name: 'Starter' });
     const open = screen.getByRole('button', { name: 'Otevřít pokročilou správu' });
     expect(open).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(open);
@@ -84,9 +85,9 @@ describe('administrace balíčků', () => {
     expect(mocks.write).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: 'Zavřít pokročilou správu' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Dokončit uložení' }));
-    mocks.flags.mockResolvedValue([{ tier: 'free', featureKey: 'export_pdf', enabled: true }]);
+    mocks.flags.mockResolvedValue([{ tier: 'starter', featureKey: 'export_pdf', enabled: true }]);
     fireEvent.click(screen.getByRole('button', { name: 'Zavřít pokročilou správu' }));
-    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Free' })).getByText('Export PDF')).toBeInTheDocument());
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Starter' })).getByText('Export PDF')).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Testovací změna tarifu' })).not.toBeInTheDocument();
   });
 
@@ -94,17 +95,17 @@ describe('administrace balíčků', () => {
     mocks.flags.mockRejectedValueOnce(new Error('sensitive backend details'));
     renderAdmin();
     expect(await screen.findByRole('alert')).toHaveTextContent('Přehled balíčků se nepodařilo načíst');
-    expect(screen.queryByRole('region', { name: 'Free' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Starter' })).not.toBeInTheDocument();
     expect(screen.queryByText('sensitive backend details')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Zkusit znovu' }));
-    expect(await screen.findByRole('region', { name: 'Free' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Starter' })).toBeInTheDocument();
   });
 
   it('rozlišuje prázdný katalog od načítání', async () => {
     mocks.features.mockResolvedValue([]);
     renderAdmin();
     expect(await screen.findByText('Katalog funkcí je prázdný.')).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Free' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Starter' })).not.toBeInTheDocument();
   });
 
   it('bez oprávnění administrátora nic nenačítá ani nezobrazuje', () => {

@@ -21,14 +21,14 @@ describe('ukládání společných pravidel tarifu', () => {
     mocks.save.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));
     const onBusyChange = vi.fn();
     render(<SubscriptionFeaturesManagement onBusyChange={onBusyChange} />);
-    const free = await screen.findByRole('button', { name: 'Povolit OCR – Free' });
+    const free = await screen.findByRole('button', { name: 'Povolit OCR – Starter' });
     const pro = screen.getByRole('button', { name: 'Povolit OCR – Pro' });
     fireEvent.click(free);
     expect(free).toBeDisabled();
     expect(pro).toBeDisabled();
     expect(onBusyChange).toHaveBeenLastCalledWith(true);
     fireEvent.click(pro);
-    await waitFor(() => expect(mocks.save).toHaveBeenCalledExactlyOnceWith('free', 'ai_ocr', true));
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledExactlyOnceWith('starter', 'ai_ocr', true));
     fireEvent.click(screen.getByText('Export PDF', { exact: true }));
     expect(screen.getByRole('button', { name: /Uložit$/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Smazat$/ })).toBeDisabled();
@@ -49,14 +49,14 @@ describe('ukládání společných pravidel tarifu', () => {
     fireEvent.click(screen.getByRole('button', { name: action === 'metadata' ? /Uložit$/ : /Smazat$/ }));
     await waitFor(() => expect(write).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole('button', { name: 'Zavřít detail funkce' }));
-    const toggle = screen.getByRole('button', { name: 'Povolit OCR – Free' });
+    const toggle = screen.getByRole('button', { name: 'Povolit OCR – Starter' });
     expect(toggle).toBeDisabled();
     expect(onBusyChange).toHaveBeenLastCalledWith(true);
     fireEvent.click(toggle);
     expect(mocks.save).not.toHaveBeenCalled();
     finish();
     await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(false));
-    expect(await screen.findByRole('button', { name: 'Povolit OCR – Free' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Povolit OCR – Starter' })).toBeEnabled();
   });
 
 });

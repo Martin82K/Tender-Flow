@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeatureProvider, useFeatures } from "../context/FeatureContext";
 
 const mocks = vi.hoisted(() => ({
+  getEffectiveUserTier: vi.fn(),
+  getEnabledFeaturesV2: vi.fn(),
   getEnabledFeatures: vi.fn(),
   getCurrentTier: vi.fn(),
 }));
@@ -22,6 +24,8 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 vi.mock("@/features/subscription/api", () => ({
+  getEffectiveUserTier: mocks.getEffectiveUserTier,
+  getEnabledFeaturesV2: mocks.getEnabledFeaturesV2,
   getEnabledFeatures: mocks.getEnabledFeatures,
   getCurrentTier: mocks.getCurrentTier,
 }));
@@ -42,6 +46,7 @@ const Probe = () => {
 describe("FeatureProvider fail-closed behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getEffectiveUserTier.mockRejectedValue({ code: "PGRST202" });
   });
 
   it("po backend chybě shodí stale tier i feature flags na free", async () => {
