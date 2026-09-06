@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   projectsError: null as Error | null,
   projectsRefetch: vi.fn(),
   from: vi.fn(),
+  writeBid: vi.fn(),
+  onRealtimeBid: undefined as ((id: string | null) => void) | undefined,
 }));
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
 vi.mock("@/hooks/queries/useProjectsQuery", () => ({
@@ -35,6 +37,16 @@ vi.mock("@/hooks/mutations/useContactMutations", () => ({
 vi.mock("@/services/contactsImportService", () => ({ syncContactsFromUrl: vi.fn() }));
 vi.mock("@/infra/usage/appUsageService", () => ({ recordUsageAction: vi.fn() }));
 vi.mock("@/features/projects/api", () => ({}));
+vi.mock("@features/projects/api/projectBidRealtimeApi", () => ({ projectBidRealtimeApi: {
+  subscribeToBidUpdates: ({ onBidUpdated }: { onBidUpdated: (id: string | null) => void }) => {
+    mocks.onRealtimeBid = onBidUpdated;
+    return () => { mocks.onRealtimeBid = undefined; };
+  },
+} }));
+vi.mock("@/infra/projects/pipelineRepository", () => ({ pipelineRepository: {
+  updateBid: mocks.writeBid, updateBidStatus: mocks.writeBid, updateBidContracted: mocks.writeBid,
+  insertBids: mocks.writeBid, deleteBid: mocks.writeBid,
+} }));
 vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: { from: mocks.from } }));
 vi.mock("@features/projects/api/projectDemoDataApi", () => ({
   projectDemoDataApi: { isDemoSession: () => false, isDemoProjectId: () => false },
@@ -44,6 +56,8 @@ vi.mock("@features/projects/model/budgetAttachmentLocalStore", () => ({
 }));
 
 import { useAppData } from "@/hooks/useAppData";
+import { useProjectBidRealtimeSync } from "@features/projects/hooks/useProjectBidRealtimeSync";
+import { updateBid, updateBidStatus, updateBidContracted, insertBids, deleteBid } from "@features/projects/api/pipelineApi";
 
 type Response = { data: unknown; error: unknown };
 const database = (respond: (table: string, id: string) => Response | Promise<Response>) => {
@@ -67,7 +81,7 @@ const setup = (openProject = true) => {
   );
   const hook = renderHook(({ active, routeId }: { active: boolean; routeId?: string }) => useAppData(vi.fn(), active, routeId), { wrapper, initialProps: { active: openProject } });
   if (openProject) act(() => hook.result.current.actions.setSelectedProjectId("project-1"));
-  return { ...hook, client };
+  return { ...hook, client, wrapper };
 };
 
 describe("useAppData project detail recovery", () => {
@@ -108,6 +122,67 @@ describe("useAppData project detail recovery", () => {
     act(() => result.current.actions.setSelectedProjectId("project-2"));
     await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
     expect(requests).toEqual(["project-1", "project-2"]);
+  });
+
+  it.each([
+    ["price", () => updateBid({ id: "b1", price: "300", status: "offer" } as never, 300)],
+    ["status", () => updateBidStatus("b1", "sod")],
+    ["contracted", () => updateBidContracted("b1", true)],
+    ["insert", () => insertBids([])],
+    ["delete", () => deleteBid("b1")],
+  ])("invalidates the overview only after persisting a bid %s change", async (_name, persist) => {
+    database(success);
+    const { client } = setup();
+    client.setQueryDefaults(["overviewTenantData"], { gcTime: Infinity });
+    client.setQueryDefaults(["unrelated"], { gcTime: Infinity });
+    const overviewKey = ["overviewTenantData", "user-1", ["project-1"]];
+    client.setQueryData(overviewKey, { total: 1 });
+    client.setQueryData(["unrelated"], { unchanged: true });
+    let complete: ((response: { error: null }) => void) | undefined;
+    mocks.writeBid.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    let pending: Promise<unknown>;
+    act(() => { pending = persist(); });
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(false);
+    await act(async () => { complete?.({ error: null }); await pending; });
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["unrelated"])?.isInvalidated).toBe(false);
+    await expect(client.fetchQuery({ queryKey: overviewKey, staleTime: 120_000,
+      queryFn: async () => ({ total: 2 }) })).resolves.toEqual({ total: 2 });
+  });
+
+  it("does not report a persisted bid change when the write fails", async () => {
+    database(success);
+    const { client } = setup();
+    client.setQueryDefaults(["overviewTenantData"], { gcTime: Infinity });
+    client.setQueryDefaults(["unrelated"], { gcTime: Infinity });
+    const overviewKey = ["overviewTenantData", "user-1"];
+    client.setQueryData(overviewKey, { total: 1 });
+    mocks.writeBid.mockResolvedValue({ error: new Error("write failed") });
+    await act(async () => { await updateBidStatus("b1", "sod"); });
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(false);
+  });
+
+  it("refreshes summary data for incoming realtime bid changes", () => {
+    database(success);
+    const { client, wrapper } = setup();
+    client.setQueryDefaults(["overviewTenantData"], { gcTime: Infinity });
+    const overviewKey = ["overviewTenantData", "user-1"];
+    client.setQueryData(overviewKey, { total: 1 });
+    renderHook(() => useProjectBidRealtimeSync({ allProjectDetails: {}, selectedProjectId: null }), { wrapper });
+    act(() => mocks.onRealtimeBid?.("c1"));
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(true);
+  });
+
+  it("removes summary invalidation listeners when the app data hook unmounts", async () => {
+    database(success);
+    const { client, unmount } = setup();
+    client.setQueryDefaults(["overviewTenantData"], { gcTime: Infinity });
+    const overviewKey = ["overviewTenantData", "user-1"];
+    client.setQueryData(overviewKey, { total: 1 });
+    unmount();
+    mocks.writeBid.mockResolvedValue({ error: null });
+    await updateBidStatus("b1", "sod");
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(false);
   });
 
   it("surfaces the selected error and retries only its request while preserving other data", async () => {

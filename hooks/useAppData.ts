@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Project, ProjectDetails, DemandCategory, Bid, Subcontractor, StatusConfig } from "../types";
 import { useProjectsQuery } from "./queries/useProjectsQuery";
@@ -6,6 +6,8 @@ import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { useContactsQuery, CONTACT_KEYS } from "./queries/useContactsQuery";
 import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatusesQuery";
 import { useProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
+import { OVERVIEW_TENANT_DATA_KEY } from "@features/projects/hooks/useOverviewTenantDataQuery";
+import { subscribeToProjectBidChanges } from "@features/projects/model/projectBidEvents";
 import { ProjectUnavailableError } from "@features/projects/model/projectDetailError";
 import {
     useAddProjectMutation,
@@ -44,6 +46,10 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
     const { user } = useAuth();
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [backgroundWarning, setBackgroundWarning] = useState<{ message: string; type: "warning" | "error" | "info" } | null>(null);
+
+    useEffect(() => subscribeToProjectBidChanges(() => {
+        void queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+    }), [queryClient]);
 
     // Queries
     const { data: projects = [], isLoading: projectsLoading, isFetching: projectsFetching, error: projectsError, refetch: refetchProjects } = useProjectsQuery();
