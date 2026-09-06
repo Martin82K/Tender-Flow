@@ -7,8 +7,8 @@ beforeEach(() => {
   mocks.fail = "";
   mocks.rows = {
     projects: [{ id: "p1", name: "Osobní stavba", location: "Praha", status: "tender", finish_date: "2026-09-30", organization_id: null }],
-    demand_categories: [{ id: "c1", project_id: "p1", title: "Okna", sod_budget: 500, plan_budget: 400, deadline: "2026-08-30", documents: [{ id: "d1", name: "Podklad", url: "https://example.com/file" }] }],
-    bids: [{ id: "b1", demand_category_id: "c1", company_name: "Dodavatel", subcontractor_id: "s1", status: "sod", price: 300 }],
+    demand_categories: [{ id: "c1", project_id: "p1", title: "Okna", sod_budget: 500, plan_budget: 400, deadline: "2026-08-30" }],
+    bids: [{ id: "b1", demand_category_id: "c1", company_name: "Dodavatel", subcontractor_id: "s1", status: "sod", price: 300, price_display: "" }],
     project_investor_financials: [{ project_id: "p1", sod_price: 2000 }],
     project_amendments: [{ id: "a1", project_id: "p1", label: "Dodatek", price: 100 }],
   };
@@ -24,11 +24,12 @@ it("loads complete analytical summaries for visible personal projects without fu
   expect(summary.projects.map(project => project.id)).toEqual(["p1"]);
   expect(summary.projectDetails.p1).toMatchObject({ title: "Osobní stavba", finishDate: "2026-09-30",
     investorFinancials: { sodPrice: 2000, amendments: [{ id: "a1", label: "Dodatek", price: 100 }] },
-    categories: [{ id: "c1", title: "Okna", sodBudget: 500, subcontractorCount: 1, deadline: "2026-08-30", documents: [{ id: "d1", name: "Podklad", url: "https://example.com/file" }] }],
+    categories: [{ id: "c1", title: "Okna", sodBudget: 500, subcontractorCount: 1, deadline: "2026-08-30" }],
     bids: { c1: [{ id: "b1", price: "300", status: "sod", companyName: "Dodavatel" }] },
   });
   expect(mocks.calls).toHaveLength(5);
   expect(mocks.calls.every(call => call.columns !== "*")).toBe(true);
+  expect(mocks.calls.find(call => call.table === "demand_categories")?.columns).not.toContain("documents");
   expect(mocks.calls.filter(call => call.table !== "projects").every(call => !call.ids.includes("no-access"))).toBe(true);
 });
 it("paginates categories and bids and rejects an error instead of returning a partial summary", async () => {

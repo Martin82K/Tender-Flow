@@ -40,7 +40,6 @@ interface CategoryRow {
   plan_budget?: number | null;
   status?: DemandCategory["status"] | null;
   deadline?: string | null;
-  documents?: DemandCategory["documents"] | null;
   realization_start?: string | null;
   realization_end?: string | null;
 }
@@ -66,7 +65,7 @@ export const fetchPersonalProjectOverview = async (visiblePersonalIds: string[])
   if (ids.length === 0) return { projects: [], projectDetails: {} };
 
   const [categories, financials, amendments] = await Promise.all([
-    readRows<CategoryRow>("demand_categories", "id,project_id,title,budget_display,sod_budget,plan_budget,status,deadline,documents,realization_start,realization_end", "project_id", ids),
+    readRows<CategoryRow>("demand_categories", "id,project_id,title,budget_display,sod_budget,plan_budget,status,deadline,realization_start,realization_end", "project_id", ids),
     readRows<FinancialRow>("project_investor_financials", "project_id,sod_price", "project_id", ids, "project_id"),
     readRows<AmendmentRow>("project_amendments", "id,project_id,label,price", "project_id", ids),
   ]);
@@ -77,7 +76,7 @@ export const fetchPersonalProjectOverview = async (visiblePersonalIds: string[])
     (bidsByCategory[bid.demand_category_id] ??= []).push({
       id: bid.id, subcontractorId: bid.subcontractor_id, companyName: bid.company_name,
       contactPerson: "", status: bid.status,
-      price: bid.price_display ?? (bid.price == null ? undefined : String(bid.price)),
+      price: bid.price_display || (bid.price == null ? undefined : String(bid.price)),
       updateDate: bid.update_date ?? undefined,
     });
   }
@@ -92,7 +91,7 @@ export const fetchPersonalProjectOverview = async (visiblePersonalIds: string[])
         id: category.id, title: category.title, description: "", budget: category.budget_display ?? "",
         sodBudget: category.sod_budget ?? 0, planBudget: category.plan_budget ?? 0, status: category.status ?? "open",
         subcontractorCount: bidsByCategory[category.id]?.length ?? 0,
-        deadline: category.deadline ?? undefined, documents: category.documents ?? [],
+        deadline: category.deadline ?? undefined,
         realizationStart: category.realization_start ?? undefined, realizationEnd: category.realization_end ?? undefined,
       })),
       bids: Object.fromEntries(projectCategories.map(category => [category.id, bidsByCategory[category.id] ?? []])),
