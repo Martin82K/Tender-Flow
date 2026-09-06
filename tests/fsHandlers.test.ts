@@ -61,6 +61,56 @@ describe("fsHandlers", () => {
     vi.resetModules();
   });
 
+  it.each([true, false])("fs:folderExists ověří typ cíle (%s) bez průchodu obsahu", async isDirectory => {
+    const folder = "/Users/tester/Library/Application Support/TenderFlow/large-folder";
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockResolvedValue({ isDirectory: () => isDirectory });
+    fsMock.readdir.mockRejectedValue(new Error("EACCES: unreadable child"));
+    const requireAuth = vi.fn();
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: async () => folder,
+      resolvePortableWritePath: async value => value,
+      requireAuth,
+    });
+    const sender = {};
+    await expect(handlers.get("fs:folderExists")?.({ sender }, "C:\\OldUser\\OneDrive\\large-folder")).resolves.toBe(isDirectory);
+    expect(requireAuth).toHaveBeenCalledWith(sender, "fs:folderExists");
+    expect(normalizePathForAssert(fsMock.stat.mock.calls[0][0])).toBe(folder);
+    expect(fsMock.stat).toHaveBeenCalledTimes(1);
+    expect(fsMock.readdir).not.toHaveBeenCalled();
+  });
+
+  it.each(["/etc/private-folder", "/Users/tester/Library/Application Support/TenderFlow/link"])(
+    "fs:folderExists odmítne cestu mimo povolené kořeny i přes symlink: %s", async requestedPath => {
+      fsMock.realpath.mockImplementation(async (targetPath: string) =>
+        targetPath.endsWith("/link") ? "/etc/private-folder" : targetPath);
+      const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+      registerFsHandlers({
+        resolvePortableReadPath: async value => value,
+        resolvePortableWritePath: async value => value,
+        requireAuth: vi.fn(),
+      });
+      await expect(handlers.get("fs:folderExists")?.({}, requestedPath)).resolves.toBe(false);
+      expect(fsMock.stat).not.toHaveBeenCalled();
+      expect(fsMock.readdir).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fs:folderExists nepřistoupí k disku bez autentizace", async () => {
+    const resolvePortableReadPath = vi.fn(async (value: string) => value);
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath,
+      resolvePortableWritePath: async value => value,
+      requireAuth: () => { throw new Error("IPC_AUTH_DENIED"); },
+    });
+    await expect(handlers.get("fs:folderExists")?.({}, "/private/project")).rejects.toThrow("IPC_AUTH_DENIED");
+    expect(resolvePortableReadPath).not.toHaveBeenCalled();
+    expect(fsMock.stat).not.toHaveBeenCalled();
+    expect(fsMock.realpath).not.toHaveBeenCalled();
+  });
+
   it("vrati chybu kdyz shell.openPath vrati text chyby", async () => {
     const { shell } = await import("electron");
     vi.mocked(shell.openPath).mockResolvedValue("The file does not exist");

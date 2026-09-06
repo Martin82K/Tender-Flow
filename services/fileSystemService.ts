@@ -21,6 +21,7 @@ import {
     validateSubcontractorCompanyName,
 } from '../shared/dochub/subcontractorNameRules';
 import { logIncident } from './incidentLogger';
+import { measureFolderOperation } from '@infra/files/fileSystemTiming';
 
 export interface FileSystemStatus {
     available: boolean;
@@ -330,10 +331,9 @@ export async function copyFile(
  */
 export async function folderExists(folderPath: string): Promise<boolean> {
     if (isDesktop) {
-        // On desktop, we list files and check if any exist
         try {
-            await fileSystemAdapter.listFiles(folderPath);
-            return true; // If listFiles succeeds, folder exists
+            // The native handler checks the directory and access without walking its contents.
+            return await measureFolderOperation("folder_exists", () => fileSystemAdapter.folderExists(folderPath));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             const lowerMessage = message.toLowerCase();
@@ -1067,17 +1067,17 @@ export async function openPath(path: string): Promise<{ success: boolean; error?
 export async function openInExplorer(folderPath: string): Promise<{ success: boolean; error?: string }> {
     if (isDesktop) {
         try {
-            await ensureDesktopIpcAuthenticated();
-            const result = await fileSystemAdapter.openInExplorer(folderPath);
+            await measureFolderOperation("authenticate", ensureDesktopIpcAuthenticated);
+            const result = await measureFolderOperation("open_in_explorer", () => fileSystemAdapter.openInExplorer(folderPath));
             if (result.success) {
                 return result;
             }
 
             let retryResult: { success: boolean; error?: string } | null = null;
             try {
-                const granted = await fileSystemAdapter.grantAccess(folderPath);
+                const granted = await measureFolderOperation("grant_access", () => fileSystemAdapter.grantAccess(folderPath));
                 if (granted) {
-                    retryResult = await fileSystemAdapter.openInExplorer(folderPath);
+                    retryResult = await measureFolderOperation("retry_open_in_explorer", () => fileSystemAdapter.openInExplorer(folderPath));
                     if (retryResult.success) {
                         await logFileSystemIncident({
                             severity: "info",
