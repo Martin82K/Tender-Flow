@@ -20,7 +20,6 @@ import type {
   View,
 } from "@/types";
 import { platformAdapter } from "@infra/platform/platformAdapter";
-import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
 import { useCriticalLoadIncident } from "@app/hooks/useCriticalLoadIncident";
 import { useProjectBidRealtimeSync } from "@features/projects/hooks/useProjectBidRealtimeSync";
@@ -167,7 +166,6 @@ export const AppContent: React.FC = () => {
     };
   }, [showUiModal]);
 
-  usePosthogIdentity();
   useAppUsageHeartbeat({
     enabled: isAuthenticated && !authLoading && user?.role !== "demo" && user?.isOrgMemberActive !== false,
     sessionKey: user?.id ?? null,
