@@ -158,6 +158,8 @@ export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
 
 export interface Project {
   id: string;
+  investor?: string;
+  address?: string;
   name: string;
   location: string;
   status: ProjectStatus;

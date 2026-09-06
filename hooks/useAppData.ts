@@ -5,7 +5,7 @@ import { useProjectsQuery } from "./queries/useProjectsQuery";
 import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { useContactsQuery, CONTACT_KEYS } from "./queries/useContactsQuery";
 import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatusesQuery";
-import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
+import { useProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
 import { ProjectUnavailableError } from "@features/projects/model/projectDetailError";
 import {
     useAddProjectMutation,
@@ -39,7 +39,7 @@ import {
     buildCoreDataLoadDiagnostic,
 } from "@/shared/errors/appLoadError";
 
-export const useAppData = (showUiModal: (props: any) => void) => {
+export const useAppData = (showUiModal: (props: any) => void, isProjectView = true) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -49,24 +49,35 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const { data: projects = [], isLoading: projectsLoading, isFetching: projectsFetching, error: projectsError, refetch: refetchProjects } = useProjectsQuery();
     const { data: contactStatuses = [], isLoading: statusesLoading, error: statusesError } = useContactStatusesQuery();
     const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useContactsQuery();
-    const { data: allProjectDetails = {}, isLoading: detailsLoading, results: detailResults } = useAllProjectDetailsQuery(projects);
-
-    const selectedProjectQuery = detailResults[projects.findIndex(project => project.id === selectedProjectId)];
+    const canLoadSelectedProject = isProjectView && !!selectedProjectId &&
+        !projectsLoading && projects.some(project => project.id === selectedProjectId);
+    const detailQuery = useProjectDetailsQuery(canLoadSelectedProject ? selectedProjectId : undefined);
+    const selectedProjectQuery = canLoadSelectedProject ? detailQuery : undefined;
+    // Keep previously opened, still-visible details available to realtime invalidation.
+    // Reading cache does not subscribe to or fetch the rest of the portfolio.
+    const allProjectDetails = useMemo<Record<string, ProjectDetails>>(() => {
+        const cachedDetails: Record<string, ProjectDetails> = {};
+        for (const project of projects) {
+            const cached = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(project.id));
+            if (cached) cachedDetails[project.id] = cached;
+        }
+        return cachedDetails;
+    }, [projects, queryClient, selectedProjectId, detailQuery.data]);
     const needsProjectListRetry = !!projectsError && !selectedProjectQuery;
     const selectedProjectDetailsStatus = useMemo(() => {
-        if (!selectedProjectId) return "idle";
+        if (!isProjectView || !selectedProjectId) return "idle";
         if (projectsLoading) return "loading";
         if (needsProjectListRetry) return "error";
         if (!selectedProjectQuery || selectedProjectQuery.error instanceof ProjectUnavailableError) return "unavailable";
         if (selectedProjectQuery.data) return "ready";
         if (selectedProjectQuery.isError || selectedProjectQuery.errorUpdatedAt > 0) return "error";
         return "loading";
-    }, [selectedProjectId, projectsLoading, needsProjectListRetry, selectedProjectQuery]);
+    }, [isProjectView, selectedProjectId, projectsLoading, needsProjectListRetry, selectedProjectQuery]);
     const isSelectedProjectDetailsFetching = needsProjectListRetry ? projectsFetching : selectedProjectQuery?.isFetching ?? false;
     const canRetrySelectedProjectDetails = needsProjectListRetry || (!!selectedProjectQuery && !projectsLoading);
 
     // An open project owns its loader and retry; other detail queries must not hide it.
-    const isDataLoading = projectsLoading || statusesLoading || contactsLoading || (detailsLoading && !selectedProjectId);
+    const isDataLoading = projectsLoading || statusesLoading || contactsLoading;
     const retrySelectedProjectDetails = useCallback(async () => {
         if (needsProjectListRetry) {
             if (!projectsFetching) await refetchProjects({ cancelRefetch: false });

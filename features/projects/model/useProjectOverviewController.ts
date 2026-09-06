@@ -35,13 +35,16 @@ export const useProjectOverviewController = ({
     userId: user?.id,
     userRole: user?.role,
   });
+  const isDemoSession = projectDemoDataApi.isDemoSession();
   const {
     data: tenantData,
     isLoading: tenantLoading,
     error: tenantError,
+    isFetching: tenantFetching,
+    refetch: retryTenantData,
   } = useOverviewTenantDataQuery({
     userId: user?.id,
-    isDemoSession: projectDemoDataApi.isDemoSession(),
+    isDemoSession,
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -56,9 +59,13 @@ export const useProjectOverviewController = ({
 
   const tenantProjects = tenantData?.projects ?? [];
   const tenantProjectDetails = tenantData?.projectDetails ?? {};
-  const availableProjects = tenantProjects.length > 0 ? tenantProjects : projects;
-  const availableProjectDetails =
-    tenantProjects.length > 0 ? tenantProjectDetails : projectDetails;
+  // Authenticated analytics use the complete summary, including an empty result.
+  const usesTenantSummary = !!user?.id && !isDemoSession;
+  const availableProjects = usesTenantSummary || tenantData ? tenantProjects : projects;
+  const demoDetails = useMemo(() => isDemoSession
+    ? Object.fromEntries(projects.map(project => [project.id, projectDemoDataApi.getProjectDetails(project.id)]))
+    : projectDetails, [isDemoSession, projects, projectDetails]);
+  const availableProjectDetails = usesTenantSummary || tenantData ? tenantProjectDetails : demoDetails;
 
   const isAdmin = isUserAdmin(user?.email);
   const showDebugBanner = useMemo(() => {
@@ -173,6 +180,8 @@ export const useProjectOverviewController = ({
   return {
     tenantLoading,
     tenantError,
+    tenantFetching,
+    retryTenantData,
     tenantProjects,
     tenantProjectDetails,
     availableProjects,

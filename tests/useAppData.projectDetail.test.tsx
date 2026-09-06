@@ -60,13 +60,13 @@ const database = (respond: (table: string, id: string) => Response | Promise<Res
 const success = (table: string, id: string): Response => ({
   data: table === "projects" ? { id, name: id, status: "realization" } : [], error: null,
 });
-const setup = () => {
+const setup = (openProject = true) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const hook = renderHook(() => useAppData(vi.fn()), { wrapper });
-  act(() => hook.result.current.actions.setSelectedProjectId("project-1"));
+  const hook = renderHook(({ active }) => useAppData(vi.fn(), active), { wrapper, initialProps: { active: openProject } });
+  if (openProject) act(() => hook.result.current.actions.setSelectedProjectId("project-1"));
   return { ...hook, client };
 };
 
@@ -77,6 +77,23 @@ describe("useAppData project detail recovery", () => {
     mocks.projectsLoading = false;
     mocks.projectsError = null;
     mocks.projectsRefetch.mockReset();
+  });
+
+  it("starts TODO without requesting project details and fetches only the opened project", async () => {
+    const requests: string[] = [];
+    database((table, id) => { if (table === "projects") requests.push(id); return success(table, id); });
+    const { result, rerender, client } = setup(false);
+    expect(result.current.state.isDataLoading).toBe(false);
+    expect(mocks.from).not.toHaveBeenCalled();
+    act(() => result.current.actions.setSelectedProjectId("project-2"));
+    expect(mocks.from).not.toHaveBeenCalled();
+    rerender({ active: true });
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
+    expect(requests).toEqual(["project-2"]);
+    rerender({ active: false });
+    expect(result.current.state.allProjectDetails["project-2"]).toBeDefined();
+    await act(async () => { await client.invalidateQueries({ queryKey: ["projectDetails"] }); });
+    expect(requests).toEqual(["project-2"]);
   });
 
   it("surfaces the selected error and retries only its request while preserving other data", async () => {
@@ -90,12 +107,12 @@ describe("useAppData project detail recovery", () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("error"));
     expect(result.current.state.loadingError).toBeNull();
-    expect(result.current.state.allProjectDetails["project-2"]).toBeDefined();
+    expect(result.current.state.allProjectDetails["project-2"]).toBeUndefined();
     expect(result.current.state.canRetrySelectedProjectDetails).toBe(true);
     fail = false;
     await act(async () => { await result.current.actions.retrySelectedProjectDetails(); });
     await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
-    expect(requests).toEqual(["project-1", "project-2", "project-1"]);
+    expect(requests).toEqual(["project-1", "project-1"]);
   });
 
   it("uses the selected project's state when switching away from a failed project", async () => {
@@ -104,7 +121,7 @@ describe("useAppData project detail recovery", () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("error"));
     act(() => result.current.actions.setSelectedProjectId("project-2"));
-    expect(result.current.state.selectedProjectDetailsStatus).toBe("ready");
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
   });
 
   it("shows a missing project as unavailable and never refetches an id outside the visible list", async () => {

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
-import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
+import { PROJECT_KEYS, PROJECT_SEARCH_KEY } from "@/shared/queryKeys/projectKeys";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 import { OVERVIEW_TENANT_DATA_KEY } from "../queries/useOverviewTenantDataQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
@@ -135,6 +135,7 @@ export const useAddProjectMutation = () => {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         },
     });
 };
@@ -171,6 +172,7 @@ export const useDeleteProjectMutation = () => {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         },
     });
 };
@@ -309,6 +311,7 @@ export const useCloneTenderToRealizationMutation = () => {
                 queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
                 queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.all }),
                 queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
+                queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY }),
             ]);
         },
     });
@@ -399,6 +402,7 @@ export const useArchiveProjectMutation = () => {
                 queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
                 queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(id) }),
                 queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
+                queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY }),
             ]);
         }
     });
@@ -618,6 +622,7 @@ export const useUpdateProjectDetailsMutation = () => {
             // Also invalidate list if name/status changed
             queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         }
     });
 };
@@ -690,6 +695,7 @@ export const useAddCategoryMutation = () => {
         onSettled: (_data, _err, { projectId }) => {
             queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         }
     });
 };
@@ -768,6 +774,7 @@ export const useEditCategoryMutation = () => {
         onSettled: (_data, _err, { projectId }) => {
             queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         }
     });
 };
@@ -816,6 +823,7 @@ export const useDeleteCategoryMutation = () => {
         onSettled: (_data, _err, { projectId }) => {
             queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
+            queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
         }
     });
 };

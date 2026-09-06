@@ -15,7 +15,7 @@ import {
 } from "../hooks/mutations/useProjectMutations";
 import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantDataQuery";
 import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
-import { PROJECT_KEYS } from "../shared/queryKeys/projectKeys";
+import { PROJECT_KEYS, PROJECT_SEARCH_KEY } from "../shared/queryKeys/projectKeys";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -149,6 +149,7 @@ const expectOverviewInvalidation = (
   });
 
   expect(found).toBe(true);
+  expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: PROJECT_SEARCH_KEY });
 };
 
 describe("useProjectMutations -> overview cache invalidation", () => {
