@@ -3,5 +3,5 @@
 Sjednocené místo pro release poznámky projektu.
 
 - Historické soubory: `release-notes.md`, `release_notes_v1.2.3.md`
-- Aktuální release notes: `release_notes_v1.9.25.md`
+- Aktuální release notes: `release_notes_v1.9.26.md` (připravované vydání)
 - Nové release poznámky přidávejte sem do `docs/releases/`.

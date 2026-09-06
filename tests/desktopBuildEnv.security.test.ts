@@ -161,7 +161,7 @@ describe("desktop build env security", () => {
     );
 
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.25.md`",
+      "Aktuální release notes: `release_notes_v1.9.26.md`",
     );
 
     const releaseNotes = readFileSync(
