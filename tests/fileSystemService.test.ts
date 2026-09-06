@@ -5,6 +5,8 @@ const mockState = vi.hoisted(() => ({
   logIncident: vi.fn().mockResolvedValue({ incidentId: "INC-1" }),
   selectFolder: vi.fn(),
   listFiles: vi.fn(),
+  folderExists: vi.fn(),
+  logRuntimeEvent: vi.fn(),
   copyFile: vi.fn(),
   createFolder: vi.fn(),
   deleteFolder: vi.fn(),
@@ -17,6 +19,10 @@ const mockState = vi.hoisted(() => ({
 
 vi.mock("../services/incidentLogger", () => ({
   logIncident: mockState.logIncident,
+}));
+
+vi.mock("@infra/diagnostics/runtimeDiagnostics", () => ({
+  logRuntimeEvent: mockState.logRuntimeEvent,
 }));
 
 vi.mock("../services/functionsClient", () => ({
@@ -43,7 +49,7 @@ vi.mock("../services/platformAdapter", () => ({
     openInExplorer: mockState.openInExplorer,
     openFile: mockState.openFile,
     grantAccess: mockState.grantAccess,
-    folderExists: vi.fn(),
+    folderExists: mockState.folderExists,
   },
   watcherAdapter: {
     start: vi.fn(),
@@ -55,6 +61,7 @@ vi.mock("../services/platformAdapter", () => ({
 describe("fileSystemService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.folderExists.mockReset().mockResolvedValue(false);
     mockState.openFile.mockResolvedValue({ success: false, error: "fail" });
     mockState.grantAccess.mockResolvedValue(false);
     mockState.getSession.mockResolvedValue({
@@ -125,13 +132,59 @@ describe("fileSystemService", () => {
   });
 
   it("neloguje bezne nenalezeni slozky pri folderExists", async () => {
-    mockState.listFiles.mockRejectedValue(new Error("ENOENT: no such file or directory"));
+    mockState.folderExists.mockResolvedValue(false);
 
     const { folderExists } = await import("../services/fileSystemService");
     const result = await folderExists("/tmp/chybi");
 
     expect(result).toBe(false);
     expect(mockState.logIncident).not.toHaveBeenCalled();
+  });
+
+  it("ověří i velkou složku bez načítání souborů a podsložek", async () => {
+    mockState.folderExists.mockResolvedValue(true);
+    mockState.listFiles.mockRejectedValue(new Error("EACCES: unreadable child in a large tree"));
+    const { folderExists } = await import("../services/fileSystemService");
+
+    await expect(folderExists("/private/project/large-folder")).resolves.toBe(true);
+    expect(mockState.folderExists).toHaveBeenCalledExactlyOnceWith("/private/project/large-folder");
+    expect(mockState.listFiles).not.toHaveBeenCalled();
+    expect(mockState.logIncident).not.toHaveBeenCalled();
+    expect(mockState.logRuntimeEvent).toHaveBeenCalledWith("filesystem", "operation_timing", {
+      stage: "folder_exists", duration_ms: expect.any(Number), outcome: "success",
+    });
+  });
+
+  it("při odmítnutí IPC nezkouší obejít oprávnění procházením obsahu", async () => {
+    mockState.folderExists.mockRejectedValue(new Error("IPC_AUTH_DENIED"));
+    const { folderExists } = await import("../services/fileSystemService");
+    await expect(folderExists("/private/project")).resolves.toBe(false);
+    expect(mockState.listFiles).not.toHaveBeenCalled();
+    expect(mockState.grantAccess).not.toHaveBeenCalled();
+    expect(mockState.logIncident).toHaveBeenCalledWith(expect.objectContaining({ code: "FS_FOLDER_EXISTS_FAILED" }));
+  });
+
+  it("měří autentizaci a otevření odděleně a zachová jejich pořadí", async () => {
+    mockState.openInExplorer.mockResolvedValue({ success: true });
+    const { openInExplorer } = await import("../services/fileSystemService");
+    await expect(openInExplorer("/private/customer-secret")).resolves.toEqual({ success: true });
+    const events = mockState.logRuntimeEvent.mock.calls.map(call => call[2]);
+    expect(events).toEqual([
+      { stage: "authenticate", duration_ms: expect.any(Number), outcome: "success" },
+      { stage: "open_in_explorer", duration_ms: expect.any(Number), outcome: "success" },
+    ]);
+    expect(JSON.stringify(events)).not.toContain("customer-secret");
+    expect(JSON.stringify(events)).not.toContain("token-123");
+    const authenticate = vi.mocked(window.electronAPI!.auth.setAuthenticated);
+    expect(authenticate.mock.invocationCallOrder[0]).toBeLessThan(mockState.openInExplorer.mock.invocationCallOrder[0]);
+  });
+
+  it("při neúspěšné autentizaci neotevře složku ani nevyžádá přístup", async () => {
+    vi.mocked(window.electronAPI!.auth.setAuthenticated).mockRejectedValue(new Error("IPC_AUTH_DENIED"));
+    const { openInExplorer } = await import("../services/fileSystemService");
+    await expect(openInExplorer("/private/project")).resolves.toEqual({ success: false, error: "IPC_AUTH_DENIED" });
+    expect(mockState.openInExplorer).not.toHaveBeenCalled();
+    expect(mockState.grantAccess).not.toHaveBeenCalled();
   });
 
   it("loguje chybu pri selhani otevreni slozky", async () => {
