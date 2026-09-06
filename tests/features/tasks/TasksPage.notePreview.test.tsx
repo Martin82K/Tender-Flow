@@ -210,6 +210,15 @@ const selectCalendarMode = (container: HTMLElement, modeName: string) => {
   fireEvent.click(within(calendar as HTMLElement).getByRole("button", { name: modeName }));
 };
 
+const LinkedTasksPage = ({ initialTaskId = "linked-root" }: { initialTaskId?: string }) => {
+  const [taskId, setTaskId] = React.useState<string | undefined>(initialTaskId);
+  return <>
+    <output data-testid="task-route">{taskId ?? ""}</output>
+    <button onClick={() => setTaskId("linked-root")}>Znovu otevřít odkaz</button>
+    <TasksPage initialTaskId={taskId} onCloseInitialTask={() => setTaskId(undefined)} />
+  </>;
+};
+
 describe("TasksPage note preview", () => {
   beforeEach(() => {
     setViewportWidth(1024);
@@ -290,6 +299,68 @@ describe("TasksPage note preview", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Otevřít výsledek hledání" }));
     expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toBeInTheDocument();
+  });
+
+  it("spotřebuje odkaz při změně pohledu a zachová nově vybraný pohled", () => {
+    taskState.tasks = [makeTask({ id: "linked-root", title: "Odkázaný rodič" })];
+    const { container } = render(<LinkedTasksPage />);
+    selectSystemView(container, /Inbox/i);
+    expect(screen.getByTestId("task-route")).toBeEmptyDOMElement();
+    expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít odkaz" }));
+    expect(screen.getByDisplayValue("Odkázaný rodič")).toBeInTheDocument();
+  });
+
+  it("spotřebuje odkaz při změně TODO projektu a zachová vybraný projekt", () => {
+    taskState.todoProjects = [{ id: "todo-project", name: "Navigační projekt", createdBy: "user-1", sortOrder: 0, createdAt: "2026-05-17", updatedAt: "2026-05-17" }];
+    taskState.tasks = [makeTask({ id: "linked-root", title: "Odkázaný rodič", todoProjectId: "todo-project" })];
+    const { container } = render(<LinkedTasksPage />);
+    const menu = container.querySelector('[data-help-id="tasks-menu"]') as HTMLElement;
+    fireEvent.click(within(menu).getByRole("button", { name: /Navigační projekt/ }));
+    expect(screen.getByTestId("task-route")).toBeEmptyDOMElement();
+    expect(screen.getByRole("heading", { name: "Navigační projekt" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít odkaz" }));
+    expect(screen.getByDisplayValue("Odkázaný rodič")).toBeInTheDocument();
+  });
+
+  it("spotřebuje odkaz při otevření archivovaného podúkolu a zachová jeho detail", () => {
+    taskState.tasks = [
+      makeTask({ id: "linked-root", title: "Odkázaný rodič", archivedAt: "2026-05-18T10:00:00Z" }),
+      makeTask({ id: "linked-child", title: "Vybraný podúkol", parentTaskId: "linked-root", archivedAt: "2026-05-18T10:00:00Z" }),
+    ];
+    render(<LinkedTasksPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít detail podúkolu" }));
+    expect(screen.getByTestId("task-route")).toBeEmptyDOMElement();
+    expect(screen.getByRole("dialog", { name: "Detail podúkolu" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Vybraný podúkol")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít odkaz" }));
+    expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Odkázaný rodič")).toBeInTheDocument();
+  });
+
+  it("spotřebuje odkaz při ručním výběru jiné karty a zachová vybraný úkol", () => {
+    taskState.tasks = [
+      makeTask({ id: "linked-root", title: "Odkázaný rodič", dueAt: todayAt(9) }),
+      makeTask({ id: "other-task", title: "Jiná karta", dueAt: todayAt(10) }),
+    ];
+    const { container } = render(<LinkedTasksPage />);
+    const calendar = container.querySelector('[data-help-id="tasks-calendar"]') as HTMLElement;
+    fireEvent.click(within(calendar).getByRole("button", { name: /Jiná karta/ }));
+    expect(screen.getByTestId("task-route")).toBeEmptyDOMElement();
+    expect(screen.getByDisplayValue("Jiná karta")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Znovu otevřít odkaz" }));
+    expect(screen.getByDisplayValue("Odkázaný rodič")).toBeInTheDocument();
+  });
+
+  it("spotřebuje nedostupný odkaz při volbě pohledu bez jeho resetování", () => {
+    const { container } = render(<LinkedTasksPage initialTaskId="missing" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Úkol není dostupný");
+    selectSystemView(container, /Inbox/i);
+    expect(screen.getByTestId("task-route")).toBeEmptyDOMElement();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
   });
 
   it("nezobrazí cizí úkol a po změně uživatele odstraní otevřený detail", () => {

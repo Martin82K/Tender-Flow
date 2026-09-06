@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ContractWithDetails, ProjectDetails } from '@/types';
 import { APP_VERSION } from '@/config/version';
 import { useAuth } from '@/context/AuthContext';
@@ -11,6 +11,7 @@ import { ContractWorkspace } from '../workspace/ContractWorkspace';
 import { ContractEditDialog } from '../forms/ContractEditDialog';
 import { contractQueriesApi } from '../api';
 import { attachContractDocument } from '../utils/attachContractDocument';
+import { useDismissContractDeepLink } from '../hooks/useDismissContractDeepLink';
 
 export type ContractsViewMode = 'split' | 'table';
 
@@ -43,16 +44,31 @@ export const ContractsListPage: React.FC<Props> = ({
   const [filter, setFilter] = useState<ContractFilterKey>('all');
   const [query, setQuery] = useState('');
 
+  const dismissDeepLink = useDismissContractDeepLink(projectId, initialSelectedId);
+  const appliedDeepLink = useRef<string | null>(null);
+  const deepLinkKey = initialSelectedId ? JSON.stringify([projectId, initialSelectedId]) : null;
+  const linkedContractUnavailable = Boolean(initialSelectedId
+    && !contracts.some(contract => contract.id === initialSelectedId));
+
   useEffect(() => {
-    if (initialSelectedId && contracts.some((contract) => contract.id === initialSelectedId)) {
-      setSelectedId(initialSelectedId);
-      onViewModeChange('split');
-    } else if (!selectedId && contracts.length > 0) {
-      setSelectedId(contracts[0].id);
-    } else if (selectedId && !contracts.some((c) => c.id === selectedId)) {
-      setSelectedId(contracts[0]?.id || null);
+    if (linkedContractUnavailable) {
+      appliedDeepLink.current = null;
+      setSelectedId(null);
+      return;
     }
-  }, [contracts, initialSelectedId, onViewModeChange, selectedId]);
+    if (initialSelectedId && deepLinkKey && appliedDeepLink.current !== deepLinkKey) {
+      if (contracts.some(contract => contract.id === initialSelectedId)) {
+        appliedDeepLink.current = deepLinkKey;
+        setSelectedId(initialSelectedId);
+        onViewModeChange('split');
+      } else {
+        setSelectedId(null);
+      }
+      return;
+    }
+    if (!deepLinkKey) appliedDeepLink.current = null;
+    setSelectedId(current => contracts.some(contract => contract.id === current) ? current : contracts[0]?.id ?? null);
+  }, [contracts, deepLinkKey, initialSelectedId, linkedContractUnavailable, onViewModeChange]);
 
   useEffect(() => {
     if (viewMode !== 'table') return;
@@ -61,8 +77,8 @@ export const ContractsListPage: React.FC<Props> = ({
   }, [viewMode]);
 
   const selected = useMemo(
-    () => contracts.find((c) => c.id === selectedId) || null,
-    [contracts, selectedId],
+    () => linkedContractUnavailable ? null : contracts.find((c) => c.id === selectedId) || null,
+    [contracts, selectedId, linkedContractUnavailable],
   );
 
   const openCreate = () => {
@@ -77,7 +93,13 @@ export const ContractsListPage: React.FC<Props> = ({
     }
   };
 
+  const consumeDeepLink = () => {
+    appliedDeepLink.current = deepLinkKey;
+    dismissDeepLink();
+  };
+
   const handleTableSelect = (id: string) => {
+    consumeDeepLink();
     setSelectedId(id);
     onViewModeChange('split');
   };
@@ -158,7 +180,7 @@ export const ContractsListPage: React.FC<Props> = ({
           </button>
           <button
             type="button"
-            onClick={() => onViewModeChange('table')}
+            onClick={() => { consumeDeepLink(); onViewModeChange('table'); }}
             data-active={viewMode === 'table' ? 'true' : 'false'}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'table'
@@ -214,6 +236,11 @@ export const ContractsListPage: React.FC<Props> = ({
       </div>
 
       <ContractsHeadline contracts={contracts} />
+      {linkedContractUnavailable && (
+        <p role="alert" className="mx-5 mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          Požadovaná smlouva není dostupná. Byla odstraněna nebo k ní nemáte přístup.
+        </p>
+      )}
 
       {documentError ? (
         <div className="mx-5 mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
@@ -231,7 +258,7 @@ export const ContractsListPage: React.FC<Props> = ({
             <ContractListPanel
               contracts={contracts}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              onSelect={(id) => { consumeDeepLink(); setSelectedId(id); }}
               filter={filter}
               query={query}
             />

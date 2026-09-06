@@ -211,43 +211,71 @@ interface MarkdownCreateResponse {
   version: Record<string, unknown>;
 }
 
+const CONTRACT_PAGE_SIZE = 500;
+const CONTRACT_RELATION_BATCH_SIZE = 100;
+interface ProjectContractRow extends Record<string, unknown> { id: string; project_id: string }
+interface ContractRelationRow extends Record<string, unknown> { id: string; contract_id: string }
+
+const loadContractRelationRows = async (
+  table: 'contract_amendments' | 'contract_drawdowns' | 'contract_invoices',
+  contractIds: string[],
+  orderColumn: string,
+): Promise<ContractRelationRow[]> => {
+  const result = new Map<string, ContractRelationRow>();
+  for (let offset = 0; offset < contractIds.length; offset += CONTRACT_RELATION_BATCH_SIZE) {
+    const batch = contractIds.slice(offset, offset + CONTRACT_RELATION_BATCH_SIZE);
+    const allowed = new Set(batch);
+    for (let start = 0; ; start += CONTRACT_PAGE_SIZE) {
+      const { data, error } = await supabase.from(table).select('*').in('contract_id', batch)
+        .order(orderColumn, { ascending: true }).order('id', { ascending: true })
+        .range(start, start + CONTRACT_PAGE_SIZE - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as ContractRelationRow[];
+      for (const row of rows) if (allowed.has(row.contract_id)) result.set(row.id, row);
+      if (rows.length < CONTRACT_PAGE_SIZE) break;
+    }
+  }
+  return [...result.values()];
+};
+
 export const contractService = {
   // ============== CONTRACTS ==============
 
   getContractsByProject: async (projectId: string): Promise<ContractWithDetails[]> => {
-    const { data: contracts, error } = await supabase
-      .from('contracts')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!contracts?.length) return [];
-
-    // Fetch amendments, drawdowns and invoices for all contracts
-    const contractIds = contracts.map(c => c.id);
-
-    const [amendmentsRes, drawdownsRes, invoicesRes] = await Promise.all([
-      supabase.from('contract_amendments').select('*').in('contract_id', contractIds).order('amendment_no', { ascending: true }),
-      supabase.from('contract_drawdowns').select('*').in('contract_id', contractIds).order('period', { ascending: true }),
-      supabase.from('contract_invoices').select('*').in('contract_id', contractIds).order('due_date', { ascending: true }),
+    const byId = new Map<string, ProjectContractRow>();
+    for (let start = 0; ; start += CONTRACT_PAGE_SIZE) {
+      const { data, error } = await supabase.from('contracts').select('*').eq('project_id', projectId)
+        .order('created_at', { ascending: false }).order('id', { ascending: true })
+        .range(start, start + CONTRACT_PAGE_SIZE - 1);
+      if (error) throw error;
+      const rows = (data ?? []) as ProjectContractRow[];
+      for (const row of rows) if (row.project_id === projectId) byId.set(row.id, row);
+      if (rows.length < CONTRACT_PAGE_SIZE) break;
+    }
+    const contracts = [...byId.values()];
+    if (!contracts.length) return [];
+    const contractIds = contracts.map(contract => contract.id);
+    const [amendmentRows, drawdownRows, invoiceRows] = await Promise.all([
+      loadContractRelationRows('contract_amendments', contractIds, 'amendment_no'),
+      loadContractRelationRows('contract_drawdowns', contractIds, 'period'),
+      loadContractRelationRows('contract_invoices', contractIds, 'due_date'),
     ]);
 
     const amendmentsByContract: Record<string, ContractAmendment[]> = {};
     const drawdownsByContract: Record<string, ContractDrawdown[]> = {};
     const invoicesByContract: Record<string, ContractInvoice[]> = {};
 
-    (amendmentsRes.data || []).forEach(a => {
+    amendmentRows.forEach(a => {
       if (!amendmentsByContract[a.contract_id]) amendmentsByContract[a.contract_id] = [];
       amendmentsByContract[a.contract_id].push(mapAmendment(a));
     });
 
-    (drawdownsRes.data || []).forEach(d => {
+    drawdownRows.forEach(d => {
       if (!drawdownsByContract[d.contract_id]) drawdownsByContract[d.contract_id] = [];
       drawdownsByContract[d.contract_id].push(mapDrawdown(d));
     });
 
-    (invoicesRes.data || []).forEach(i => {
+    invoiceRows.forEach(i => {
       if (!invoicesByContract[i.contract_id]) invoicesByContract[i.contract_id] = [];
       invoicesByContract[i.contract_id].push(mapInvoice(i));
     });

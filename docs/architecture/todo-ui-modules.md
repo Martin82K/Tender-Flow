@@ -17,13 +17,18 @@ DOM strukturu, styly, lokální stav formulářů a stávající mutační hooky
 `buildAppUrl("todo", { taskId })` vytváří `/app/todo?taskId=…`.
 `parseAppRoute` vrací identifikátor v `taskId`; aplikační integrace jej předává
 jako `TasksPage.initialTaskId`. Callback `onCloseInitialTask` při zavření detailu
-odstraní `taskId` z aktuální URL pomocí běžné aplikační navigace; díky tomu lze
-stejný výsledek hledání znovu otevřít. Bez parametru zůstává výchozí kalendář bez detailu.
+nebo ruční volbě pohledu, TODO projektu či úkolu odstraní `taskId` z aktuální URL
+pomocí běžné aplikační navigace; díky tomu lze stejný výsledek hledání znovu otevřít.
+Toto potvrzené spotřebování odkazu zachová právě zvolený pohled, projekt nebo detail
+včetně detailu archivovaného podúkolu. První vstup bez parametru používá výchozí
+kalendář bez detailu.
 Odkaz otevře přímo detail úkolu nebo podúkolu i mimo aktuální filtr, včetně
 archivovaných a dokončených úkolů. Na mobilu používá stávající celoobrazovkový detail.
 Při nedostupném úkolu se zobrazí hlášení; chyba načítání má odlišné hlášení.
 Zavření detailu jej ponechá zavřený i při obnově dat. Nový odkaz nebo změna identity
 založí novou instanci pracovního prostoru, aby se nepřenášel detail ani rozepsaný formulář.
+Stejně se chová externí odstranění parametru (například historie prohlížeče);
+výjimkou je pouze odstranění vyžádané ruční volbou uvnitř TODO.
 
 Odkaz sám neuděluje přístup. Detail se vybírá pouze z výsledků stávajícího
 uživatelského dotazu `useTasksQuery({ user, filter: { includeArchived: true } })`.
@@ -37,5 +42,6 @@ aplikační guard TODO; serverová oprávnění a mutační hranice zůstávají
 Regrese v `tests/routeUtils.todo.test.ts` ověřují URL encoding a parsování.
 `tests/features/tasks/TasksPage.notePreview.test.tsx` pokrývá archivovaný podúkol,
 načítání, další navigaci, změnu uživatele, nedostupný úkol, chybu dotazu,
-mobilní detail a zavření při obnově dat. Stávající testy zachovávají pokrytí
+mobilní detail, zavření při obnově dat a spotřebování odkazu při ruční volbě
+pohledu, projektu, karty či archivovaného podúkolu se zachováním této volby. Stávající testy zachovávají pokrytí
 kalendáře, drag and drop, seznamu, detailu, přidávání úkolů a projektů TODO.

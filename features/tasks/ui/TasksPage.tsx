@@ -48,8 +48,22 @@ interface TasksPageProps {
 
 export const TasksPage: React.FC<TasksPageProps> = (props) => {
   const user = useAuthIdentity();
-  // A different identity or deep link starts a fresh workspace, including draft forms.
-  return <TasksWorkspace key={JSON.stringify([user?.id, user?.role, props.initialTaskId])} {...props} user={user} />;
+  const [routeState, setRouteState] = useState<{
+    taskId?: string;
+    consumedTaskId?: string;
+    revision: number;
+  }>({ taskId: props.initialTaskId, revision: 0 });
+  if (routeState.taskId !== props.initialTaskId) {
+    // Clearing a consumed link acknowledges a manual choice; a new route starts fresh.
+    const consumed = !props.initialTaskId && routeState.consumedTaskId === routeState.taskId;
+    setRouteState({ taskId: props.initialTaskId, revision: routeState.revision + (consumed ? 0 : 1) });
+  }
+  const consumeInitialTask = () => {
+    setRouteState(current => ({ ...current, consumedTaskId: props.initialTaskId }));
+    props.onCloseInitialTask?.();
+  };
+  return <TasksWorkspace key={JSON.stringify([user?.id, user?.role, routeState.revision])}
+    {...props} user={user} onCloseInitialTask={consumeInitialTask} />;
 };
 
 const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> = ({
@@ -62,6 +76,7 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   const [selectedTodoProjectId, setSelectedTodoProjectId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId ?? null);
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(Boolean(initialTaskId));
+  const [isLinkedTaskEditor, setIsLinkedTaskEditor] = useState(Boolean(initialTaskId));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(() => new Set());
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
@@ -133,7 +148,7 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
 
   useEffect(() => {
     // Linked tasks (including archived tasks and subtasks) may be outside the current view.
-    if (initialTaskId && isTaskEditorOpen) return;
+    if (isLinkedTaskEditor && isTaskEditorOpen) return;
     if (visibleTree.length === 0) {
       setSelectedTaskId(null);
       setIsDetailAutoSelectPaused(false);
@@ -144,9 +159,9 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
       setSelectedTaskId(null);
       setIsTaskEditorOpen(false);
     }
-  }, [initialTaskId, isTaskEditorOpen, selectedTaskId, visibleTree]);
+  }, [isLinkedTaskEditor, isTaskEditorOpen, selectedTaskId, visibleTree]);
 
-  const selectedSelection = findTaskSelection(initialTaskId ? taskTree : visibleTree, selectedTaskId);
+  const selectedSelection = findTaskSelection(isLinkedTaskEditor ? taskTree : visibleTree, selectedTaskId);
   const isLinkedTaskUnavailable = initialTaskId && !tasksQuery.isLoading && !tasksQuery.isFetching
     && !findTaskSelection(taskTree, initialTaskId);
   const activeRootCount = taskTree.filter(({ task }) => !task.archivedAt).length;
@@ -179,7 +194,13 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
     setIsQuickAddExpanded(false);
   };
 
+  const consumeInitialTask = () => {
+    if (initialTaskId) onCloseInitialTask?.();
+  };
+
   const handleSelectView = (item: TaskViewFilter) => {
+    consumeInitialTask();
+    setIsLinkedTaskEditor(false);
     setSelectedTodoProjectId(null);
     setView(item);
     setIsTaskEditorOpen(false);
@@ -191,6 +212,8 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   };
 
   const handleSelectTodoProject = (projectId: string) => {
+    consumeInitialTask();
+    setIsLinkedTaskEditor(false);
     setSelectedTodoProjectId(projectId);
     setSelectedTaskId(null);
     setIsTaskEditorOpen(false);
@@ -199,6 +222,7 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   };
 
   const handleSelectTask = (taskId: string) => {
+    consumeInitialTask();
     setSelectedTaskId(taskId);
     if (isMobileLayout) {
       setIsTaskEditorOpen(true);
@@ -208,6 +232,7 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   };
 
   const handleOpenTaskEditor = (taskId: string) => {
+    consumeInitialTask();
     setSelectedTaskId(taskId);
     setIsTaskEditorOpen(true);
     setIsDetailAutoSelectPaused(false);
@@ -215,7 +240,8 @@ const TasksWorkspace: React.FC<TasksPageProps & { user: AuthIdentity | null }> =
   };
 
   const handleCloseDetail = () => {
-    if (initialTaskId) onCloseInitialTask?.();
+    consumeInitialTask();
+    setIsLinkedTaskEditor(false);
     setSelectedTaskId(null);
     setIsTaskEditorOpen(false);
     setIsDetailAutoSelectPaused(true);
