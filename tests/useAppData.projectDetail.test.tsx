@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project } from "@/types";
 
 const mocks = vi.hoisted(() => ({
+  user: { id: "user-1", role: "user" },
   projects: [{ id: "project-1" }, { id: "project-2" }] as Project[],
   projectsLoading: false,
   projectsError: null as Error | null,
@@ -15,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   writeBid: vi.fn(),
   onRealtimeBid: undefined as ((id: string | null) => void) | undefined,
 }));
-vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: { id: "user-1" } }) }));
+vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock("@/hooks/queries/useProjectsQuery", () => ({
   useProjectsQuery: () => ({ data: mocks.projects, isLoading: mocks.projectsLoading, error: mocks.projectsError, refetch: mocks.projectsRefetch }),
 }));
@@ -319,4 +320,21 @@ it("surfaces a saved category whose tender plan failed without requiring categor
   const { result } = setup(false);
   await act(async () => { await result.current.actions.handleAddCategory("project-1", { id: "c1", title: "Okna" } as never); });
   expect(result.current.state.categoryPlanNotices).toEqual([expect.objectContaining({ status: "error", categoryTitle: "Okna" })]);
+});
+
+
+it("preserves the demo category mutation without cloud synchronization or a saved notice", async () => {
+  mocks.user = { id: "demo-user", role: "demo" };
+  mocks.addCategory.mockClear();
+  mocks.getPlans.mockReset().mockRejectedValue(new Error("demo must not query the cloud"));
+  const { result } = setup(false);
+  const category = { id: "demo-category", title: "Demo kategorie" } as never;
+  try {
+    await act(async () => { await result.current.actions.handleAddCategory("project-demo", category); });
+    expect(mocks.addCategory).toHaveBeenCalledExactlyOnceWith({ projectId: "project-demo", category });
+    expect(mocks.getPlans).not.toHaveBeenCalled();
+    expect(result.current.state.categoryPlanNotices).toEqual([]);
+  } finally {
+    mocks.user = { id: "user-1", role: "user" };
+  }
 });

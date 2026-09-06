@@ -169,6 +169,7 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
 
     const categoryPlanRecovery = useCategoryPlanRecovery({
         userId: user?.id,
+        syncEnabled: user?.role !== "demo",
         save: async (projectId, category) => {
             await addCategoryMutation.mutateAsync({ projectId, category });
             recordAppUsageAction({ createdRecordsCount: 1 });

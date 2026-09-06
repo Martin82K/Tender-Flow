@@ -56,4 +56,51 @@ describe('category plan recovery', () => {
     await act(async () => { await result.current.addCategory('p1', category); });
     expect(save).toHaveBeenCalledTimes(2);
   });
+  it('dismisses an error but retains the saved marker when the category is submitted again', async () => {
+    const { result, save, sync } = setup();
+    sync.mockRejectedValueOnce(new Error('permission revoked'));
+    await act(async () => { await result.current.addCategory('p1', category); });
+    const key = result.current.notices[0].key;
+    act(() => result.current.dismiss(key));
+    expect(result.current.notices).toEqual([]);
+    await act(async () => { await result.current.addCategory('p1', category); });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledTimes(2);
+    expect(result.current.notices[0].status).toBe('complete');
+  });
+  it('does not repeat completed synchronization after its notice is dismissed', async () => {
+    const { result, save, sync } = setup();
+    await act(async () => { await result.current.addCategory('p1', category); });
+    const key = result.current.notices[0].key;
+    act(() => result.current.dismiss(key));
+    await act(async () => { await result.current.addCategory('p1', category); await result.current.retry(key); });
+    expect(result.current.notices).toEqual([]);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
+  it('keeps pending synchronization visible when dismissal is requested', async () => {
+    const { result, sync } = setup(); const syncing = deferred();
+    sync.mockReturnValueOnce(syncing.promise);
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.addCategory('p1', category); });
+    act(() => result.current.dismiss(result.current.notices[0].key));
+    expect(result.current.notices[0].status).toBe('syncing');
+    await act(async () => { syncing.resolve(); await pending; });
+    expect(result.current.notices[0].status).toBe('complete');
+  });
+
+  it('stops a pending real-user follow-up when the same identity switches to demo mode', async () => {
+    const saving = deferred(); const save = vi.fn().mockReturnValue(saving.promise); const sync = vi.fn();
+    const { result, rerender } = renderHook(({ syncEnabled }) => useCategoryPlanRecovery({
+      userId: 'u1', syncEnabled, save, sync,
+    }), { initialProps: { syncEnabled: true } });
+    let pending!: Promise<void>;
+    await act(async () => { pending = result.current.addCategory('p1', category); });
+    expect(save).toHaveBeenCalledTimes(1);
+    rerender({ syncEnabled: false });
+    await act(async () => { saving.resolve(); await pending; });
+    expect(sync).not.toHaveBeenCalled();
+    expect(result.current.notices).toEqual([]);
+  });
+
 });

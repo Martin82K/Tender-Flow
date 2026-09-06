@@ -10,21 +10,25 @@ interface Operation {
   projectId: string;
   category: DemandCategory;
   saved: boolean;
+  dismissed: boolean;
   status?: CategoryPlanNotice['status'];
   pending?: Promise<void>;
 }
 interface Options {
   userId?: string;
+  syncEnabled?: boolean;
   save: (projectId: string, category: DemandCategory) => Promise<unknown>;
   sync: (projectId: string, category: DemandCategory, isCurrent: () => boolean) => Promise<unknown>;
 }
 
 /** Keeps confirmed primary writes separate from retryable follow-up work. No sensitive state is persisted. */
-export function useCategoryPlanRecovery({ userId, save, sync }: Options) {
-  const scope = useRef({ userId, operations: new Map<string, Operation>() });
+export function useCategoryPlanRecovery({ userId, syncEnabled = true, save, sync }: Options) {
+  const scope = useRef({ userId, syncEnabled, operations: new Map<string, Operation>() });
   const mounted = useRef(true);
   const [, redraw] = useState(0);
-  if (scope.current.userId !== userId) scope.current = { userId, operations: new Map() };
+  if (scope.current.userId !== userId || scope.current.syncEnabled !== syncEnabled) {
+    scope.current = { userId, syncEnabled, operations: new Map() };
+  }
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const currentScope = scope.current;
   const isCurrent = () => mounted.current && scope.current === currentScope;
@@ -45,7 +49,8 @@ export function useCategoryPlanRecovery({ userId, save, sync }: Options) {
           throw error;
         }
       }
-      if (!isCurrent()) return;
+      if (!isCurrent() || !syncEnabled) return;
+      operation.dismissed = false;
       operation.status = 'syncing'; update();
       try {
         await sync(operation.projectId, operation.category, isCurrent);
@@ -62,12 +67,12 @@ export function useCategoryPlanRecovery({ userId, save, sync }: Options) {
   };
   return {
     notices: [...currentScope.operations.entries()].flatMap(([key, operation]): CategoryPlanNotice[] =>
-      operation.status ? [{ key, categoryTitle: operation.category.title, status: operation.status }] : []),
+      operation.status && !operation.dismissed ? [{ key, categoryTitle: operation.category.title, status: operation.status }] : []),
     addCategory: (projectId: string, category: DemandCategory) => {
       const key = JSON.stringify([projectId, category.id]);
       const existing = currentScope.operations.get(key);
       if (existing) return existing.status === 'complete' ? Promise.resolve() : run(key, existing);
-      const operation: Operation = { projectId, category: { ...category }, saved: false };
+      const operation: Operation = { projectId, category: { ...category }, saved: false, dismissed: false };
       currentScope.operations.set(key, operation);
       return run(key, operation);
     },
@@ -75,7 +80,9 @@ export function useCategoryPlanRecovery({ userId, save, sync }: Options) {
     dismiss: (key: string) => {
       const operation = currentScope.operations.get(key);
       // Retain the confirmed-write marker to keep a repeated submit idempotent.
-      if (operation?.status === 'complete') { operation.status = undefined; update(); }
+      if (operation?.status === 'complete' || operation?.status === 'error') {
+        operation.dismissed = true; update();
+      }
     },
   };
 }

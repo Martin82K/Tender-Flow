@@ -13,10 +13,11 @@ export function CategoryPlanNotices({ notices = [], onRetry, onDismiss }: {
         : notice.status === 'error'
           ? `Kategorie „${notice.categoryTitle}“ je uložena, ale plán VŘ se nepodařilo synchronizovat.`
           : `Kategorie „${notice.categoryTitle}“ i plán VŘ jsou uloženy.`}</span>
-      {notice.status !== 'complete' ? <button type="button" disabled={notice.status === 'syncing'}
+      {notice.status !== 'complete' && <button type="button" disabled={notice.status === 'syncing'}
         className="rounded border px-3 py-1 disabled:opacity-50" onClick={() => void onRetry(notice.key)}>
         {notice.status === 'syncing' ? 'Synchronizuji…' : 'Opakovat synchronizaci plánu VŘ'}
-      </button> : <button type="button" className="rounded border px-3 py-1" onClick={() => onDismiss(notice.key)}>Zavřít</button>}
+      </button>}
+      {notice.status !== 'syncing' && <button type="button" className="rounded border px-3 py-1" onClick={() => onDismiss(notice.key)}>Zavřít</button>}
     </div>
   ))}</>;
 }
