@@ -184,7 +184,7 @@ vi.mock("@app/views/LazyViews", () => ({
   ProjectManager: () => <div>project-manager</div>,
   ProjectOverview: () => <div>project-overview</div>,
   Settings: () => <div>settings</div>,
-  TasksPage: () => <div>todo</div>,
+  TasksPage: ({ initialTaskId, onCloseInitialTask }: { initialTaskId?: string; onCloseInitialTask?: () => void }) => <div>todo<span data-testid="linked-task">{initialTaskId}</span><button onClick={onCloseInitialTask}>close linked task</button></div>,
   UrlShortener: () => <div>shortener</div>,
 }));
 
@@ -246,6 +246,15 @@ describe("AppContent legal acceptance gate", () => {
         privacyVersion: CURRENT_PRIVACY_VERSION,
       });
     });
+  });
+
+  it("passes the task deep link into TODO and clears it on explicit close", () => {
+    mockState.pathname = "/app/todo";
+    mockState.search = "?taskId=task-42";
+    renderAppContent();
+    expect(screen.getByTestId("linked-task")).toHaveTextContent("task-42");
+    fireEvent.click(screen.getByRole("button", { name: "close linked task" }));
+    expect(mockState.navigate).toHaveBeenCalledWith("/app/todo");
   });
 
   it("zobrazí chybu z uložení potvrzení bez pádu UI", async () => {

@@ -68,41 +68,48 @@ const mapRow = (row: TaskRow): Task => ({
 });
 
 export const listTasks = async (userId: string, filter?: TaskFilter): Promise<Task[]> => {
-  let query = dbAdapter
-    .from("tasks")
-    .select("*")
-    .eq("created_by", userId)
-    .order("parent_task_id", { ascending: true, nullsFirst: true })
-    .order("sort_order", { ascending: true })
-    .order("due_at", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const PAGE_SIZE = 500;
+  const tasks: Task[] = [];
+  for (let start = 0; ; start += PAGE_SIZE) {
+    let query = dbAdapter
+      .from("tasks")
+      .select("*")
+      .eq("created_by", userId)
+      .order("parent_task_id", { ascending: true, nullsFirst: true })
+      .order("sort_order", { ascending: true })
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
 
-  if (filter?.completed !== undefined) {
-    query = query.eq("completed", filter.completed);
-  }
-  if (filter?.archived === true) {
-    query = query.not("archived_at", "is", null);
-  } else if (filter?.archived === false || !filter?.includeArchived) {
-    query = query.is("archived_at", null);
-  }
-  if (filter?.todoProjectId) {
-    query = query.eq("todo_project_id", filter.todoProjectId);
-  }
-  if (filter?.projectId) {
-    query = query.eq("project_id", filter.projectId);
-  }
-  if (filter?.rootOnly) {
-    query = query.is("parent_task_id", null);
-  } else if (filter && "parentTaskId" in filter) {
-    query =
-      filter.parentTaskId === null
-        ? query.is("parent_task_id", null)
-        : query.eq("parent_task_id", filter.parentTaskId);
-  }
+    if (filter?.completed !== undefined) {
+      query = query.eq("completed", filter.completed);
+    }
+    if (filter?.archived === true) {
+      query = query.not("archived_at", "is", null);
+    } else if (filter?.archived === false || !filter?.includeArchived) {
+      query = query.is("archived_at", null);
+    }
+    if (filter?.todoProjectId) {
+      query = query.eq("todo_project_id", filter.todoProjectId);
+    }
+    if (filter?.projectId) {
+      query = query.eq("project_id", filter.projectId);
+    }
+    if (filter?.rootOnly) {
+      query = query.is("parent_task_id", null);
+    } else if (filter && "parentTaskId" in filter) {
+      query =
+        filter.parentTaskId === null
+          ? query.is("parent_task_id", null)
+          : query.eq("parent_task_id", filter.parentTaskId);
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return ((data ?? []) as TaskRow[]).map(mapRow);
+    const { data, error } = await query.range(start, start + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as TaskRow[];
+    tasks.push(...rows.filter(row => row.created_by === userId).map(mapRow));
+    if (rows.length < PAGE_SIZE) return tasks;
+  }
 };
 
 export const createTask = async (
