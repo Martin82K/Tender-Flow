@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T10:21:46.449Z",
+  "generatedAt": "2026-09-06T17:02:40.606Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -1049,6 +1049,32 @@
       "source_anchor": "#nastaveni-aplikace",
       "level": 2,
       "parentTitle": null
+    },
+    {
+      "slug": "balicky-a-funkce",
+      "title": "Balíčky a funkce",
+      "content": "V **Nastavení → Administrace → Balíčky a funkce** najdete přehled obsahu tarifů pouze pro čtení. U balíčku rozbalte **Zobrazit funkce**. Prohlížení nemění dostupnost funkcí. Tlačítko **Spravovat firmy** otevře správu organizací, kde upravíte plán, licence a fakturační údaje vybrané firmy. Individuální výjimky a oprávnění uživatelů mohou ovlivnit jejich skutečný přístup; přehled balíčků ukazuje společná pravidla tarifů. Podrobnou matici otevřete tlačítkem **Otevřít pokročilou správu**. Přepínače v ní se ukládají okamžitě a mění společná pravidla celého tarifu. Pro úpravu jediné firmy použijte správu firem. Po zavření pokročilé správy se přehled znovu načte.",
+      "keywords": [
+        "bal",
+        "spr",
+        "funkce",
+        "ehled",
+        "firmy",
+        "otev",
+        "tarif",
+        "tla",
+        "spole",
+        "pravidla",
+        "pokro",
+        "nastaven",
+        "administrace",
+        "najdete",
+        "obsahu",
+        "pouze"
+      ],
+      "source_anchor": "#balicky-a-funkce",
+      "level": 3,
+      "parentTitle": "🛡️ Administrace systému"
     },
     {
       "slug": "registrace-a-whitelist",

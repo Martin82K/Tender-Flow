@@ -198,7 +198,11 @@ const ToggleSwitch = ({
   </button>
 );
 
-export const SubscriptionFeaturesManagement: React.FC = () => {
+interface SubscriptionFeaturesManagementProps {
+  onBusyChange?: (busy: boolean) => void;
+}
+
+export const SubscriptionFeaturesManagement: React.FC<SubscriptionFeaturesManagementProps> = ({ onBusyChange }) => {
   const { showAlert, showConfirm } = useUI();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -218,6 +222,10 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
   const [editSortOrder, setEditSortOrder] = useState("0");
   const [isSavingFeature, setIsSavingFeature] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(isSavingFeature || savingFlag !== null || deletingKey !== null);
+  }, [isSavingFeature, savingFlag, deletingKey, onBusyChange]);
 
   const ensureFeatureExists = async (seed: FeatureSeed) => {
     const existing = features.find((feature) => feature.key === seed.key);
@@ -693,7 +701,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
                           {DISPLAY_TIERS.map((tier) => {
                             const flagKey: FlagKey = `${tier.id}:${feature.key}`;
                             const checked = !!flags[flagKey];
-                            const busy = savingFlag === flagKey;
+                            const busy = savingFlag !== null;
 
                             return (
                               <div
