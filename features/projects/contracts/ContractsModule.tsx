@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ProjectDetails } from '@/types';
 import { useContractsWithDetails } from './hooks/useContractsWithDetails';
 import type { UseContractsWithDetailsResult } from './hooks/useContractsWithDetails';
@@ -6,6 +6,7 @@ import { ContractsDashboard } from './dashboard/ContractsDashboard';
 import { ContractsListPage } from './list/ContractsListPage';
 import { InvestorBillingPage } from './investor/InvestorBillingPage';
 import type { ContractsViewMode } from './list/ContractsListPage';
+import { useDismissContractDeepLink } from './hooks/useDismissContractDeepLink';
 
 type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
@@ -28,6 +29,17 @@ export const ContractsModule: React.FC<Props> = ({
   const [contractsViewMode, setContractsViewMode] = useState<ContractsViewMode>(
     initialContractId ? 'split' : 'table',
   );
+  const dismissDeepLink = useDismissContractDeepLink(projectId, initialContractId);
+  useEffect(() => {
+    if (!initialContractId) return;
+    setSubView('smlouvy');
+    setContractsViewMode('split');
+  }, [projectId, initialContractId]);
+  const selectSubView = (view: SubView) => {
+    dismissDeepLink();
+    setSubView(view);
+    if (view === 'smlouvy') setContractsViewMode('table');
+  };
   const ownContractsState = useContractsWithDetails(projectId, !contractsState);
   const { contracts, loading, error, refresh } = contractsState || ownContractsState;
 
@@ -62,7 +74,7 @@ export const ContractsModule: React.FC<Props> = ({
       <div data-help-id="contracts-subtabs" className="px-5 pt-4 flex items-center gap-1">
         <button
           type="button"
-          onClick={() => setSubView('dashboard')}
+          onClick={() => selectSubView('dashboard')}
           data-active={subView === 'dashboard' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'dashboard'
@@ -75,10 +87,7 @@ export const ContractsModule: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          onClick={() => {
-            setSubView('smlouvy');
-            setContractsViewMode('table');
-          }}
+          onClick={() => selectSubView('smlouvy')}
           data-active={subView === 'smlouvy' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'smlouvy'
@@ -91,7 +100,7 @@ export const ContractsModule: React.FC<Props> = ({
         </button>
         <button
           type="button"
-          onClick={() => setSubView('investor')}
+          onClick={() => selectSubView('investor')}
           data-active={subView === 'investor' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'investor'

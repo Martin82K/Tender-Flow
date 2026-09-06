@@ -45,12 +45,12 @@ export const useExtendedSearchQuery = ({ userId, isDemo, projects, tasksEnabled,
     ]);
   };
   return {
-    tasks: tasksActive ? tasksQuery.data ?? [] : [],
-    contracts: contractsActive ? contractsQuery.data ?? [] : [],
+    tasks: tasksActive && !tasksQuery.isFetching && !tasksQuery.isPaused && !tasksQuery.isError ? tasksQuery.data ?? [] : [],
+    contracts: contractsActive && !contractsQuery.isFetching && !contractsQuery.isPaused && !contractsQuery.isError ? contractsQuery.data ?? [] : [],
     requestSearch,
     isSearchLoading: !!userId && !isDemo && (
-      (tasksEnabled && (!requested || tasksQuery.isPending || tasksQuery.isFetching)) ||
-      (contractsEnabled && (!requested || contractsQuery.isPending || contractsQuery.isFetching))
+      (tasksEnabled && (!requested || tasksQuery.isPending || tasksQuery.isFetching || tasksQuery.isPaused)) ||
+      (contractsEnabled && (!requested || contractsQuery.isPending || contractsQuery.isFetching || contractsQuery.isPaused))
     ),
     isError: (tasksActive && tasksQuery.isError) || (contractsActive && contractsQuery.isError),
     retrySearch,

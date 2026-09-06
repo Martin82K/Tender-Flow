@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import type { Project } from '@/types';
 const mocks = vi.hoisted(() => ({ from: vi.fn(), page: vi.fn(), calls: [] as { table: string; filters: [string, unknown][]; start: number; end: number }[] }));
@@ -129,4 +129,39 @@ it('refreshes metadata when search reopens after a locally managed contract edit
   act(() => result.current.requestSearch());
   await waitFor(() => expect(result.current.contracts).toHaveLength(1));
   expect(result.current.contracts[0].title).toBe('Edited');
+});
+it.each(['failed', 'revoked'])('hides previously verified results while access is revalidated and remains empty after %s access', async (outcome) => {
+  const { result } = setup();
+  act(() => result.current.requestSearch());
+  await waitFor(() => expect(result.current.contracts).toHaveLength(1001));
+  await waitFor(() => expect(result.current.tasks).toHaveLength(1001));
+  let resolvePage: ((value: { data: unknown[]; error: Error | null }) => void) | undefined;
+  const pending = new Promise(resolve => { resolvePage = resolve; });
+  mocks.page.mockReturnValue(pending);
+  act(() => result.current.requestSearch());
+  await waitFor(() => expect(result.current.isSearchLoading).toBe(true));
+  expect(result.current.contracts).toEqual([]);
+  expect(result.current.tasks).toEqual([]);
+  await act(async () => { resolvePage?.({ data: [], error: outcome === 'failed' ? new Error('revalidation failed') : null }); });
+  await waitFor(() => expect(result.current.isSearchLoading).toBe(false));
+  expect(result.current.contracts).toEqual([]);
+  expect(result.current.tasks).toEqual([]);
+  expect(result.current.isError).toBe(outcome === 'failed');
+});
+
+it('keeps previous indexes hidden when a new access check is paused offline', async () => {
+  const { result } = setup();
+  act(() => result.current.requestSearch());
+  await waitFor(() => expect(result.current.contracts).toHaveLength(1001));
+  try {
+    onlineManager.setOnline(false);
+    act(() => result.current.requestSearch());
+    await waitFor(() => expect(result.current.contracts).toEqual([]));
+    expect(result.current.tasks).toEqual([]);
+    expect(result.current.isSearchLoading).toBe(true);
+    mocks.page.mockResolvedValue({ data: [], error: null });
+  } finally {
+    await act(async () => { onlineManager.setOnline(true); });
+  }
+  await waitFor(() => expect(result.current.isSearchLoading).toBe(false));
 });

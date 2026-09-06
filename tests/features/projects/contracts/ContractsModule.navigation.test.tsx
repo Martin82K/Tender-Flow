@@ -1,7 +1,8 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContractWithDetails } from '@/types';
+import { navigate, useLocation } from '@shared/routing/router';
 
 const contract: ContractWithDetails = {
   id: 'contract-1',
@@ -56,6 +57,8 @@ vi.mock('@/features/projects/contracts/hooks/useContractsWithDetails', () => ({
     refresh: vi.fn(),
   }),
 }));
+vi.mock('@/features/projects/contracts/investor/InvestorBillingPage', () => ({ InvestorBillingPage: () => <div>Investor obsah</div> }));
+vi.mock('@/features/projects/contracts/dashboard/ContractsDashboard', () => ({ ContractsDashboard: () => <div>Dashboard obsah</div> }));
 vi.mock('@/features/projects/contracts/list/ContractsHeadline', () => ({
   ContractsHeadline: () => <div data-testid="headline" />,
 }));
@@ -141,4 +144,35 @@ describe('ContractsModule navigation', () => {
     expect(screen.getByRole('button', { name: /Split/ })).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('workspace')).toHaveTextContent('contract-1');
   });
+});
+
+it.each(['Investor', 'Dashboard'])('přepne %s na konkrétní detail při novém deep linku', async (tab) => {
+  const { rerender } = render(<ContractsModule projectId="project-1" onUpdateDetails={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(tab) }));
+  expect(screen.getByText(`${tab} obsah`)).toBeInTheDocument();
+  rerender(<ContractsModule projectId="project-1" initialContractId="contract-1" onUpdateDetails={vi.fn()} />);
+  await waitFor(() => expect(screen.getByTestId('workspace')).toHaveTextContent('contract-1'));
+  expect(screen.queryByText(`${tab} obsah`)).not.toBeInTheDocument();
+});
+
+it('po přepnutí Investor spotřebuje odkaz a dovolí nové hledání stejné smlouvy', async () => {
+  const url = '/app/project/project-1?tab=contracts&contractId=contract-1&categoryId=keep';
+  window.history.replaceState({}, '', url);
+  const Harness = () => {
+    const { search } = useLocation();
+    return <ContractsModule projectId="project-1" initialContractId={new URLSearchParams(search).get('contractId') ?? undefined} onUpdateDetails={vi.fn()} />;
+  };
+  const { unmount } = render(<Harness />);
+  try {
+    expect(screen.getByTestId('workspace')).toHaveTextContent('contract-1');
+    fireEvent.click(screen.getByRole('button', { name: /Investor/ }));
+    expect(screen.getByText('Investor obsah')).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).get('contractId')).toBeNull();
+    expect(new URLSearchParams(window.location.search).get('categoryId')).toBe('keep');
+    act(() => navigate(url));
+    await waitFor(() => expect(screen.getByTestId('workspace')).toHaveTextContent('contract-1'));
+  } finally {
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
 });

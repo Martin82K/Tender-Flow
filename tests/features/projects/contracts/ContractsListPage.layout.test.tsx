@@ -136,3 +136,34 @@ describe('ContractsListPage layout', () => {
     expect(within(listRail as HTMLElement).getByText('Uzavřená smlouva')).toBeInTheDocument();
   });
 });
+
+it('po otevření deep linku dovolí ruční výběr jiné smlouvy i tabulkové zobrazení', () => {
+  const Harness = () => {
+    const [viewMode, setViewMode] = React.useState<'split' | 'table'>('split');
+    return <ContractsListPage projectId="project-1" contracts={contracts} refresh={vi.fn()} viewMode={viewMode} onViewModeChange={setViewMode} initialSelectedId="alpha" />;
+  };
+  render(<Harness />);
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Aktivní smlouva');
+  const rail = document.querySelector('[data-help-id="contracts-list-rail"]') as HTMLElement;
+  fireEvent.click(within(rail).getByText('Uzavřená smlouva'));
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Uzavřená smlouva');
+  fireEvent.click(screen.getByRole('button', { name: /Tabulka/ }));
+  expect(screen.queryByTestId('workspace')).not.toBeInTheDocument();
+});
+it('neotevře jinou smlouvu místo nedostupného deep linku', () => {
+  render(<ContractsListPage projectId="project-1" contracts={contracts} refresh={vi.fn()} viewMode="split" onViewModeChange={vi.fn()} initialSelectedId="missing" />);
+  expect(screen.queryByTestId('workspace')).not.toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent('Požadovaná smlouva není dostupná');
+});
+
+it('aplikuje deep link až po načtení cílové smlouvy a nepřepíše pozdější ruční výběr při obnově dat', () => {
+  const props = { projectId: 'project-1', refresh: vi.fn(), viewMode: 'split' as const, onViewModeChange: vi.fn(), initialSelectedId: 'beta' };
+  const { rerender } = render(<ContractsListPage {...props} contracts={[]} />);
+  expect(screen.queryByTestId('workspace')).not.toBeInTheDocument();
+  rerender(<ContractsListPage {...props} contracts={contracts} />);
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Uzavřená smlouva');
+  const rail = document.querySelector('[data-help-id="contracts-list-rail"]') as HTMLElement;
+  fireEvent.click(within(rail).getByText('Aktivní smlouva'));
+  rerender(<ContractsListPage {...props} contracts={[...contracts]} />);
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Aktivní smlouva');
+});
