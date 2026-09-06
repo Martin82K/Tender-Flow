@@ -73,6 +73,7 @@ describe("useProjectOverviewController auth boundary", () => {
     expect(mocks.useOverviewTenantDataQuery).toHaveBeenCalledWith({
       userId: "explicit-user",
       isDemoSession: false,
+      personalProjectIds: [],
     });
     expect(mocks.isUserAdmin).toHaveBeenCalledWith("admin@example.com");
     expect(mocks.useAuth).not.toHaveBeenCalled();
@@ -94,6 +95,7 @@ describe("useProjectOverviewController auth boundary", () => {
     expect(mocks.useOverviewTenantDataQuery).toHaveBeenCalledWith({
       userId: undefined,
       isDemoSession: false,
+      personalProjectIds: [],
     });
     expect(mocks.isUserAdmin).toHaveBeenCalledWith(undefined);
     expect(mocks.useAuth).not.toHaveBeenCalled();

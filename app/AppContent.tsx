@@ -70,7 +70,11 @@ export const AppContent: React.FC = () => {
   const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
 
   const route = parseAppRoute(pathname, search);
-  const { state, actions } = useAppData(showUiModal, "view" in route && route.view === "project");
+  const { state, actions } = useAppData(
+    showUiModal,
+    "view" in route && route.view === "project",
+    "projectId" in route ? route.projectId : undefined,
+  );
   const projectSearch = useProjectSearchQuery({ userId: user?.id, projects: state.projects });
   const criticalLoadIncident = useCriticalLoadIncident(state.loadingErrorDiagnostic);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);

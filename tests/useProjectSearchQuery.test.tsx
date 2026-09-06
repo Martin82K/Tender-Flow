@@ -48,7 +48,10 @@ it("drops old search data immediately when user or visible project permissions c
   mocks.range.mockReturnValue(new Promise(() => {}));
   rerender({ userId: "u2", projects: [project("p2")] });
   expect(result.current.data?.p1).toBeUndefined();
+  const calls = mocks.range.mock.calls.length;
   rerender({ userId: "u2", projects: [] });
+  expect(mocks.range).toHaveBeenCalledTimes(calls);
+  act(() => result.current.requestSearch());
   await waitFor(() => expect(result.current.data).toEqual({}));
 });
 it("reports a failed page and retries the complete index without duplicates", async () => {
@@ -66,4 +69,16 @@ it("chunks large portfolios and keeps demo search local", async () => {
   await waitFor(() => expect(Object.keys(result.current.data ?? {})).toHaveLength(206));
   expect(mocks.range).toHaveBeenCalledTimes(3);
   expect(result.current.data?.demo.categories[0].id).toBe("demo-cat");
+});
+
+it("requires a fresh search request after logout and login in the same desktop renderer", async () => {
+  const { result, rerender } = setup();
+  act(() => result.current.requestSearch());
+  await waitFor(() => expect(result.current.data?.p1).toBeDefined());
+  const calls = mocks.from.mock.calls.length;
+  rerender({ userId: "", projects: [] });
+  rerender({ userId: "u2", projects: [project("p2")] });
+  expect(mocks.from).toHaveBeenCalledTimes(calls);
+  act(() => result.current.requestSearch());
+  await waitFor(() => expect(result.current.data?.p2).toBeDefined());
 });

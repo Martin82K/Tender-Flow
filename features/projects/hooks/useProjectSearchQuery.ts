@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { PROJECT_SEARCH_KEY } from "@shared/queryKeys/projectKeys";
@@ -20,8 +20,10 @@ export const useProjectSearchQuery = ({ userId, projects }: {
   userId?: string;
   projects: Project[];
 }) => {
-  const [requested, setRequested] = useState(false);
-  const requestSearch = useCallback(() => setRequested(true), []);
+  const [requestedUserId, setRequestedUserId] = useState<string | null>(null);
+  const requested = !!userId && requestedUserId === userId;
+  useEffect(() => { setRequestedUserId(current => current === userId ? current : null); }, [userId]);
+  const requestSearch = useCallback(() => setRequestedUserId(userId ?? null), [userId]);
   const projectIds = projects.map(project => project.id).sort();
   const query = useQuery({
     // Never reuse results across users or a change in the visible project set.

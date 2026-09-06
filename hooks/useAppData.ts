@@ -39,7 +39,7 @@ import {
     buildCoreDataLoadDiagnostic,
 } from "@/shared/errors/appLoadError";
 
-export const useAppData = (showUiModal: (props: any) => void, isProjectView = true) => {
+export const useAppData = (showUiModal: (props: any) => void, isProjectView = true, routeProjectId?: string) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -49,7 +49,8 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
     const { data: projects = [], isLoading: projectsLoading, isFetching: projectsFetching, error: projectsError, refetch: refetchProjects } = useProjectsQuery();
     const { data: contactStatuses = [], isLoading: statusesLoading, error: statusesError } = useContactStatusesQuery();
     const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useContactsQuery();
-    const canLoadSelectedProject = isProjectView && !!selectedProjectId &&
+    const selectionMatchesRoute = routeProjectId === undefined || routeProjectId === selectedProjectId;
+    const canLoadSelectedProject = isProjectView && selectionMatchesRoute && !!selectedProjectId &&
         !projectsLoading && projects.some(project => project.id === selectedProjectId);
     const detailQuery = useProjectDetailsQuery(canLoadSelectedProject ? selectedProjectId : undefined);
     const selectedProjectQuery = canLoadSelectedProject ? detailQuery : undefined;
@@ -66,13 +67,13 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
     const needsProjectListRetry = !!projectsError && !selectedProjectQuery;
     const selectedProjectDetailsStatus = useMemo(() => {
         if (!isProjectView || !selectedProjectId) return "idle";
-        if (projectsLoading) return "loading";
+        if (projectsLoading || !selectionMatchesRoute) return "loading";
         if (needsProjectListRetry) return "error";
         if (!selectedProjectQuery || selectedProjectQuery.error instanceof ProjectUnavailableError) return "unavailable";
         if (selectedProjectQuery.data) return "ready";
         if (selectedProjectQuery.isError || selectedProjectQuery.errorUpdatedAt > 0) return "error";
         return "loading";
-    }, [isProjectView, selectedProjectId, projectsLoading, needsProjectListRetry, selectedProjectQuery]);
+    }, [isProjectView, selectionMatchesRoute, selectedProjectId, projectsLoading, needsProjectListRetry, selectedProjectQuery]);
     const isSelectedProjectDetailsFetching = needsProjectListRetry ? projectsFetching : selectedProjectQuery?.isFetching ?? false;
     const canRetrySelectedProjectDetails = needsProjectListRetry || (!!selectedProjectQuery && !projectsLoading);
 

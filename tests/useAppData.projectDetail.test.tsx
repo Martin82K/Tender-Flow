@@ -65,7 +65,7 @@ const setup = (openProject = true) => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const hook = renderHook(({ active }) => useAppData(vi.fn(), active), { wrapper, initialProps: { active: openProject } });
+  const hook = renderHook(({ active, routeId }: { active: boolean; routeId?: string }) => useAppData(vi.fn(), active, routeId), { wrapper, initialProps: { active: openProject } });
   if (openProject) act(() => hook.result.current.actions.setSelectedProjectId("project-1"));
   return { ...hook, client };
 };
@@ -94,6 +94,20 @@ describe("useAppData project detail recovery", () => {
     expect(result.current.state.allProjectDetails["project-2"]).toBeDefined();
     await act(async () => { await client.invalidateQueries({ queryKey: ["projectDetails"] }); });
     expect(requests).toEqual(["project-2"]);
+  });
+
+  it("does not refetch the previous selection while route state catches up to another project", async () => {
+    const requests: string[] = [];
+    database((table, id) => { if (table === "projects") requests.push(id); return success(table, id); });
+    const { result, rerender, client } = setup();
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
+    rerender({ active: false });
+    await act(async () => { await client.invalidateQueries({ queryKey: ["projectDetails"] }); });
+    rerender({ active: true, routeId: "project-2" });
+    expect(requests).toEqual(["project-1"]);
+    act(() => result.current.actions.setSelectedProjectId("project-2"));
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
+    expect(requests).toEqual(["project-1", "project-2"]);
   });
 
   it("surfaces the selected error and retries only its request while preserving other data", async () => {

@@ -186,3 +186,10 @@ it("searches investor and address from unopened project summaries and ignores hi
   expect(searchAll("Tajná", index)).toEqual([]);
   expect(index.loadedProjectDetailsCount).toBe(0);
 });
+
+it("uses the current project name for cached category labels and searching after rename", () => {
+  const index = buildSearchIndex({ projects: [makeProject({ name: "Nová stavba" })], contacts: [],
+    projectDetails: { p1: makeDetails({ title: "Původní stavba", categories: [{ id: "c1", title: "Okna" } as never] }) },
+  });
+  expect(searchAll("Nová Okna", index)[0]?.items[0]?.subtitle).toBe("Nová stavba");
+});

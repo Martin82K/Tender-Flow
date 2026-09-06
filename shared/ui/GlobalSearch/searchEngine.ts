@@ -56,7 +56,7 @@ export const buildSearchIndex = (sources: SearchInputSources): SearchIndex => {
   for (const [projectId, details] of Object.entries(projectDetails)) {
     if (!details || !visibleProjectIds.has(projectId)) continue;
     loadedIds.add(projectId);
-    const projectTitle = details.title || projects.find((p) => p.id === projectId)?.name || "";
+    const projectTitle = projects.find((p) => p.id === projectId)?.name || details.title || "";
     for (const cat of details.categories ?? []) {
       categoryEntries.push({
         projectId,

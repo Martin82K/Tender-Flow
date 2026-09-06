@@ -45,6 +45,7 @@ export const useProjectOverviewController = ({
   } = useOverviewTenantDataQuery({
     userId: user?.id,
     isDemoSession,
+    personalProjectIds: projects.filter(project => !project.organizationId && !project.isDemo).map(project => project.id),
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");

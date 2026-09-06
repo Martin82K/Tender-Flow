@@ -10,6 +10,7 @@ type QueryOptions = {
 const mocks = vi.hoisted(() => ({
   queryOptions: null as QueryOptions | null,
   rpc: vi.fn(),
+  personal: vi.fn(),
   useAuth: vi.fn(),
   isDemoSession: vi.fn(),
 }));
@@ -19,6 +20,10 @@ vi.mock("@tanstack/react-query", () => ({
     mocks.queryOptions = options;
     return { data: undefined, isLoading: false, error: null };
   },
+}));
+
+vi.mock("@features/projects/api/projectOverviewSummaryApi", () => ({
+  fetchPersonalProjectOverview: mocks.personal,
 }));
 
 vi.mock("@infra/db/dbAdapter", () => ({
@@ -47,6 +52,7 @@ describe("useOverviewTenantDataQuery contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.queryOptions = null;
+    mocks.personal.mockResolvedValue({ projects: [], projectDetails: {} });
     mocks.isDemoSession.mockReturnValue(false);
     mocks.useAuth.mockReturnValue({ user: { id: "user-1" } });
     mocks.rpc.mockResolvedValue({
@@ -128,6 +134,17 @@ describe("useOverviewTenantDataQuery contract", () => {
       },
     });
     expect(mocks.rpc).toHaveBeenCalledWith("get_overview_tenant_data");
+  });
+
+  it("combines personal projects outside the tenant RPC and scopes their cache by visible IDs", async () => {
+    const personal = { projects: [{ id: "personal", name: "Osobní stavba" }], projectDetails: { personal: { title: "Osobní stavba", categories: [] } } };
+    mocks.personal.mockResolvedValue(personal);
+    useOverviewTenantDataQuery({ userId: "user-1", isDemoSession: false, personalProjectIds: ["personal"] });
+    expect(mocks.queryOptions?.queryKey).toEqual([...OVERVIEW_TENANT_DATA_KEY, "user-1", ["personal"]]);
+    await expect(mocks.queryOptions?.queryFn()).resolves.toEqual(personal);
+    expect(mocks.personal).toHaveBeenCalledWith(["personal"]);
+    mocks.personal.mockRejectedValue(new Error("personal failed"));
+    await expect(mocks.queryOptions?.queryFn()).rejects.toThrow("personal failed");
   });
 
   it("propagates the RPC error without returning partial data", async () => {
