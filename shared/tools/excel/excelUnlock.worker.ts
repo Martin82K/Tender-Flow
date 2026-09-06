@@ -8,7 +8,8 @@ self.onmessage = async (event: MessageEvent<Uint8Array>) => {
     const result = await unlockExcelZipCore(event.data, {
       onProgress: (percent, label) => send({ type: "progress", percent, label }),
     });
-    send({ type: "result", ...result });
+    const message: ExcelUnlockWorkerMessage = { type: "result", ...result };
+    self.postMessage(message, { transfer: [result.output.buffer] });
   } catch (error) {
     send({ type: "error", message: error instanceof Error ? error.message : "Neplatný Excel soubor." });
   }

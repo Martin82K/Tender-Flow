@@ -6,7 +6,8 @@ provideru. Celé rozbalení, úprava worksheet XML a opětovné zabalení běž�
 v bundlovaném workeru. Při dokončení, chybě přenosu, chybě parseru nebo vypršení
 60sekundového limitu se worker ukončí. Není povolen synchronní fallback při
 nedostupném workeru. Kopírování vstupu zachovává původní buffer a respektuje
-rozsah `Uint8Array`; soubor neopouští zařízení.
+rozsah `Uint8Array`; soubor neopouští zařízení. Výsledný buffer se vrací
+přenosem vlastnictví, aby ve workeru nezůstávala další kopie hotového XLSX.
 
 ## ZIP64 parser a ověření
 
@@ -22,6 +23,8 @@ spouští skutečné jádro odemykání v odděleném procesu a kontroluje nepla
 i platná ZIP64 pole. `tests/excelUnlockWorker.test.ts` ověřuje ukončení workeru,
 timeout, chyby, původní vstupní buffer a další pokus. Testy Excelu kontrolují
 zachování hodnot, vzorců, formátování, metadat, médií a nechráněných listů.
+`tests/excelUnlockWorkerRuntime.test.ts` spouští skutečnou obsluhu workeru
+a ověřuje odpojení zdrojového bufferu při přenosu i čitelnost výsledku.
 
 Worker omezuje dobu operace a umožňuje její přerušení při zablokování parseru.
 Není samostatným limitem rozbalené paměti ani úplným auditem ostatních importních

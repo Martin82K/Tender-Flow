@@ -3,7 +3,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 type ProgressReporter = (percent: number, label: string) => void;
 
 export interface UnlockExcelZipResult {
-  output: Uint8Array;
+  output: Uint8Array<ArrayBuffer>;
   worksheetCount: number;
 }
 
