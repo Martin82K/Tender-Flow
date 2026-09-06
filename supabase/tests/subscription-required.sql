@@ -24,7 +24,7 @@ BEGIN
   UPDATE public.subscription_tier_features SET enabled=true WHERE tier='free';
   INSERT INTO public.user_feature_overrides(user_id, feature_key, expires_at) VALUES(u,'module_projects',NULL)
     ON CONFLICT(user_id,feature_key) DO UPDATE SET expires_at=NULL;
-  PERFORM set_config('request.jwt.claims', jsonb_build_object('sub',u,'role','authenticated')::text, true);
+  PERFORM set_config('request.jwt.claims', jsonb_build_object('sub',u,'role','authenticated','user_metadata',jsonb_build_object('subscription_tier','admin'))::text, true);
   IF public.has_active_subscription() OR public.user_has_feature('module_projects') OR public.user_id_has_feature(u,'module_projects') THEN
     RAISE EXCEPTION 'Free flags must never grant application access';
   END IF;
@@ -52,6 +52,13 @@ BEGIN
   UPDATE public.organizations SET subscription_status='cancelled',billing_period_end=now()+interval '1 day'
     WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
   IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'enterprise' THEN RAISE EXCEPTION 'Paid-through cancellation must retain access'; END IF;
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',u,'role','tenderflow_mcp_client')::text,true);
+  EXECUTE 'SET LOCAL ROLE tenderflow_mcp_client';
+  IF NOT public.has_active_subscription() THEN RAISE EXCEPTION 'Paid MCP access must remain available'; END IF;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF NOT public.has_active_subscription() THEN RAISE EXCEPTION 'Paid authenticated access must remain available'; END IF;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claims','{}',true);
   UPDATE public.organizations SET subscription_status='active',billing_period_end=now()
     WHERE id IN (SELECT organization_id FROM public.organization_members WHERE user_id=u);
   IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Access expires at the exact deadline'; END IF;
