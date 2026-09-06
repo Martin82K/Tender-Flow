@@ -39,6 +39,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const sources = ctx?.sources ?? { projects: [], contacts: [], projectDetails: {} };
+  useEffect(() => {
+    if (isOpen) sources.requestSearch?.();
+  }, [isOpen, sources.requestSearch]);
   const {
     results,
     flatResults,
@@ -110,7 +113,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
     [flatResults.length, isOpen, activeIndex],
   );
 
-  const showEmpty = isOpen && hasQuery && !isQueryTooShort && results.length === 0;
+  const showEmpty = !sources.isProjectSearchLoading && !sources.projectSearchError && isOpen && hasQuery && !isQueryTooShort && results.length === 0;
   const showTooShort = isOpen && isQueryTooShort;
   const showHint = isOpen && !hasQuery;
   const projectsCoveragePartial =
@@ -118,6 +121,16 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
   const panel = isOpen ? (
     <>
+      {sources.isProjectSearchLoading && (
+        <div role="status" className="px-4 py-3 text-xs text-slate-500">Načítám podklady pro hledání…</div>
+      )}
+      {sources.projectSearchError && (
+        <div role="alert" className="px-4 py-3 text-xs text-red-600">
+          Vyhledávání v poptávkách se nepodařilo načíst. Výsledky mohou být neúplné.
+          <button type="button" className="ml-2 underline" disabled={sources.isProjectSearchLoading}
+            onClick={sources.retryProjectSearch}>Zkusit znovu</button>
+        </div>
+      )}
       {showHint && (
         <div className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
           Začněte psát — hledá se v projektech, kontaktech a poptávkách.
@@ -160,7 +173,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
           {projectsCoveragePartial && (
             <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500">
               Prohledáno {loadedProjectDetailsCount} z {totalProjectCount} projektů
-              (poptávky jen z otevřených).
+              (podklady pro poptávky ještě nejsou úplné).
             </div>
           )}
         </>

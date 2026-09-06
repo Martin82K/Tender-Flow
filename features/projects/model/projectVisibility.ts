@@ -4,6 +4,8 @@ export interface ProjectVisibilityRow {
   id: string;
   name: string;
   location: string | null;
+  investor?: string | null;
+  address?: string | null;
   status: ProjectStatus | null;
   archived_original_status: ActiveProjectStatus | null;
   is_demo: boolean;
@@ -65,6 +67,8 @@ export const mapVisibleProjects = (
         id: project.id,
         name: project.name,
         location: project.location || "",
+        ...(project.investor != null ? { investor: project.investor } : {}),
+        ...(project.address != null ? { address: project.address } : {}),
         status: project.status || "realization",
         archivedOriginalStatus: project.archived_original_status ?? null,
         isDemo: project.is_demo,

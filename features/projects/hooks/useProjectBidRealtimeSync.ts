@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ProjectDetails } from "@/types";
 import { projectBidRealtimeApi } from "../api/projectBidRealtimeApi";
+import { notifyProjectBidsPersisted } from "@features/projects/model/projectBidEvents";
 import { PROJECT_DETAILS_KEYS } from "./useProjectDetailsQuery";
 
 const BACKGROUND_REFRESH_INTERVAL_MS = 60_000;
@@ -40,6 +41,7 @@ export const useProjectBidRealtimeSync = ({
 
     return projectBidRealtimeApi.subscribeToBidUpdates({
       onBidUpdated: (demandCategoryId) => {
+        notifyProjectBidsPersisted();
         const matchingProject = demandCategoryId
           ? Object.values(projectDetailsRef.current).find((project) =>
               project.categories.some(

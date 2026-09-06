@@ -160,3 +160,10 @@ describe("project visibility mapping", () => {
     expect(metadata).toEqual(metadataSnapshot);
   });
 });
+
+it("preserves searchable metadata only for projects visible to the current identity", () => {
+  const rows = projectRows.map(row => ({ ...row, investor: "Investor Slunce", address: "Jasná 42" }));
+  const visible = mapVisibleProjects(rows, metadataRows, { userId: "user-1", userEmail: "user@example.com" });
+  expect(visible.find(project => project.id === "owner-project")).toMatchObject({ investor: "Investor Slunce", address: "Jasná 42" });
+  expect(visible.find(project => project.id === "foreign-project")).toBeUndefined();
+});

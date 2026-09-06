@@ -78,6 +78,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const {
     tenantLoading,
     tenantError,
+    tenantFetching,
+    retryTenantData,
     tenantProjects,
     tenantProjectDetails,
     availableProjects,
@@ -167,6 +169,23 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     )}.`;
   };
 
+  if (tenantLoading || tenantError) {
+    return (
+      <div className="tf-project-overview-view flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" skin={skin} />
+        <div className="m-6 rounded-xl border border-slate-200 dark:border-slate-700 p-6" role={tenantError ? "alert" : "status"}>
+          {tenantError ? <>
+            <p>Souhrnná data přehledu se nepodařilo načíst.</p>
+            <button type="button" className="mt-3 underline" disabled={tenantFetching}
+              onClick={() => { void retryTenantData({ cancelRefetch: false }); }}>
+              {tenantFetching ? "Načítám…" : "Zkusit znovu"}
+            </button>
+          </> : "Načítám souhrnná data přehledu…"}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tf-project-overview-view flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <div className="no-print">
@@ -193,7 +212,6 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               <div>Status filter: {statusFilter}</div>
               <div>Selected project: {selectedProjectId}</div>
               <div>Tenant loading: {tenantLoading ? "ano" : "ne"}</div>
-              <div>Tenant error: {tenantError ? (tenantError instanceof Error ? tenantError.message : "ano") : "ne"}</div>
             </div>
           </div>
         ) : null}

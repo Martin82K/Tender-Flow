@@ -3,12 +3,13 @@ import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
-import { DEFAULT_APP_VIEW, buildAppUrl } from "@/shared/routing/routeUtils";
+import { DEFAULT_APP_VIEW, buildAppUrl, parseAppRoute } from "@/shared/routing/routeUtils";
 import { FEATURES } from "@/config/features";
 import { useAuth } from "@/context/AuthContext";
 import { useFeatures } from "@/context/FeatureContext";
 import { useUI } from "@/context/UIContext";
 import { useDesktop } from "@/hooks/useDesktop";
+import { useProjectSearchQuery } from "@features/projects/hooks/useProjectSearchQuery";
 import { useAppData } from "@/hooks/useAppData";
 import { useTheme } from "@/hooks/useTheme";
 import type {
@@ -68,7 +69,13 @@ export const AppContent: React.FC = () => {
   const { isDesktop } = useDesktop();
   const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
 
-  const { state, actions } = useAppData(showUiModal);
+  const route = parseAppRoute(pathname, search);
+  const { state, actions } = useAppData(
+    showUiModal,
+    "view" in route && route.view === "project",
+    "projectId" in route ? route.projectId : undefined,
+  );
+  const projectSearch = useProjectSearchQuery({ userId: user?.id, projects: state.projects });
   const criticalLoadIncident = useCriticalLoadIncident(state.loadingErrorDiagnostic);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
@@ -535,7 +542,11 @@ export const AppContent: React.FC = () => {
   const searchSources = {
     projects: state.projects,
     contacts: state.contacts,
-    projectDetails: state.allProjectDetails,
+    projectDetails: projectSearch.data ?? {},
+    requestSearch: projectSearch.requestSearch,
+    isProjectSearchLoading: projectSearch.isSearchLoading,
+    projectSearchError: projectSearch.isError,
+    retryProjectSearch: () => { void projectSearch.refetch({ cancelRefetch: false }); },
   };
   return (
     <GlobalSearchProvider sources={searchSources}>

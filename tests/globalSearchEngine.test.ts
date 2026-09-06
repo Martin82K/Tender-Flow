@@ -175,3 +175,21 @@ describe("searchAll", () => {
     expect(projects?.items[0]?.title).toBe("Nová hala Brno");
   });
 });
+
+it("searches investor and address from unopened project summaries and ignores hidden categories", () => {
+  const index = buildSearchIndex({
+    projects: [makeProject({ investor: "Investor Slunce", address: "Jasná 42" })], contacts: [],
+    projectDetails: { hidden: makeDetails({ categories: [{ id: "private", title: "Tajná kategorie" } as never] }) },
+  });
+  expect(searchAll("Slunce", index)[0]?.items[0]?.id).toBe("project:p1");
+  expect(searchAll("Jasná", index)[0]?.items[0]?.id).toBe("project:p1");
+  expect(searchAll("Tajná", index)).toEqual([]);
+  expect(index.loadedProjectDetailsCount).toBe(0);
+});
+
+it("uses the current project name for cached category labels and searching after rename", () => {
+  const index = buildSearchIndex({ projects: [makeProject({ name: "Nová stavba" })], contacts: [],
+    projectDetails: { p1: makeDetails({ title: "Původní stavba", categories: [{ id: "c1", title: "Okna" } as never] }) },
+  });
+  expect(searchAll("Nová Okna", index)[0]?.items[0]?.subtitle).toBe("Nová stavba");
+});

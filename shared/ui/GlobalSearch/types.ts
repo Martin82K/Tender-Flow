@@ -1,4 +1,4 @@
-import type { Project, ProjectDetails, Subcontractor } from "@/types";
+import type { Project, ProjectDetails, DemandCategory, Subcontractor } from "@/types";
 
 export type SearchCategory = "projects" | "contacts" | "categories";
 
@@ -54,8 +54,16 @@ export interface SearchIndex {
   loadedProjectDetailsCount: number;
 }
 
+export type ProjectSearchSummary = Pick<ProjectDetails, "title" | "investor" | "address" | "location"> & {
+  categories: Pick<DemandCategory, "id" | "title" | "description" | "workItems">[];
+};
+
 export interface SearchInputSources {
   projects: Project[];
   contacts: Subcontractor[];
-  projectDetails: Record<string, ProjectDetails>;
+  projectDetails: Record<string, ProjectSearchSummary>;
+  requestSearch?: () => void;
+  isProjectSearchLoading?: boolean;
+  projectSearchError?: boolean;
+  retryProjectSearch?: () => void;
 }

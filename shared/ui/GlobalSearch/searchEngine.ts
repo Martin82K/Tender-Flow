@@ -27,7 +27,7 @@ export const buildSearchIndex = (sources: SearchInputSources): SearchIndex => {
       haystacks: {
         primary: normalize(p.name || ""),
         secondary: normalize(
-          joinFields(p.location, details?.investor, details?.address, details?.location),
+          joinFields(p.location, p.investor, p.address, details?.investor, details?.address, details?.location),
         ),
       },
     };
@@ -52,10 +52,11 @@ export const buildSearchIndex = (sources: SearchInputSources): SearchIndex => {
 
   const categoryEntries: SearchIndex["categories"] = [];
   const loadedIds = new Set<string>();
+  const visibleProjectIds = new Set(projects.map(project => project.id));
   for (const [projectId, details] of Object.entries(projectDetails)) {
-    if (!details) continue;
+    if (!details || !visibleProjectIds.has(projectId)) continue;
     loadedIds.add(projectId);
-    const projectTitle = details.title || projects.find((p) => p.id === projectId)?.name || "";
+    const projectTitle = projects.find((p) => p.id === projectId)?.name || details.title || "";
     for (const cat of details.categories ?? []) {
       categoryEntries.push({
         projectId,
