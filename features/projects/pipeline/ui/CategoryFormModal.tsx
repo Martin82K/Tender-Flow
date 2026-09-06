@@ -81,6 +81,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
   const [planPercentDraft, setPlanPercentDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const budgetAttachmentSelectionSessionRef =
     useRef<BudgetAttachmentSelectionSession>({ inFlight: 0 });
   const [alertModal, setAlertModal] = useState<{
@@ -128,6 +129,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
       // Sync description with workItems if needed, or just pass both
@@ -137,6 +140,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       };
       await onSubmit(submissionData);
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };

@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   projectsLoading: false,
   projectsError: null as Error | null,
   projectsRefetch: vi.fn(),
+  addCategory: vi.fn().mockResolvedValue(undefined),
+  getPlans: vi.fn(),
   from: vi.fn(),
   writeBid: vi.fn(),
   onRealtimeBid: undefined as ((id: string | null) => void) | undefined,
@@ -26,7 +28,7 @@ vi.mock("@/hooks/queries/useContactStatusesQuery", () => ({
 vi.mock("@/hooks/mutations/useProjectMutations", () => ({
   useAddProjectMutation: () => ({}), useCloneTenderToRealizationMutation: () => ({}),
   useDeleteProjectMutation: () => ({}), useArchiveProjectMutation: () => ({}),
-  useUpdateProjectDetailsMutation: () => ({}), useAddCategoryMutation: () => ({}),
+  useUpdateProjectDetailsMutation: () => ({}), useAddCategoryMutation: () => ({ mutateAsync: mocks.addCategory }),
   useEditCategoryMutation: () => ({}), useDeleteCategoryMutation: () => ({}),
 }));
 vi.mock("@/hooks/mutations/useContactMutations", () => ({
@@ -36,7 +38,8 @@ vi.mock("@/hooks/mutations/useContactMutations", () => ({
 }));
 vi.mock("@/services/contactsImportService", () => ({ syncContactsFromUrl: vi.fn() }));
 vi.mock("@/infra/usage/appUsageService", () => ({ recordUsageAction: vi.fn() }));
-vi.mock("@/features/projects/api", () => ({}));
+vi.mock("@features/projects/api/categoryPlanRecoveryApi", () => ({ synchronizeCategoryPlan: mocks.getPlans }));
+vi.mock("@/features/projects/api", () => ({ getTenderPlans: mocks.getPlans, createTenderPlanId: () => "tp1", createTenderPlan: vi.fn(), linkTenderPlanToCategory: vi.fn() }));
 vi.mock("@features/projects/api/projectBidRealtimeApi", () => ({ projectBidRealtimeApi: {
   subscribeToBidUpdates: ({ onBidUpdated }: { onBidUpdated: (id: string | null) => void }) => {
     mocks.onRealtimeBid = onBidUpdated;
@@ -307,4 +310,13 @@ describe("useAppData project detail recovery", () => {
     expect(result.current.state.selectedProjectDetailsStatus).toBe("loading");
     expect(result.current.state.isDataLoading).toBe(true);
   });
+});
+
+
+it("surfaces a saved category whose tender plan failed without requiring category recreation", async () => {
+  database(success);
+  mocks.getPlans.mockRejectedValue(new Error("offline"));
+  const { result } = setup(false);
+  await act(async () => { await result.current.actions.handleAddCategory("project-1", { id: "c1", title: "Okna" } as never); });
+  expect(result.current.state.categoryPlanNotices).toEqual([expect.objectContaining({ status: "error", categoryTitle: "Okna" })]);
 });

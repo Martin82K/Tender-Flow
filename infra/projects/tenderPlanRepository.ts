@@ -33,17 +33,25 @@ const toNullableDate = (value?: string | null) => {
 
 export const tenderPlanRepository = {
   async listByProject(projectId: string): Promise<TenderPlanItem[]> {
-    const { data, error } = await supabase
-      .from("tender_plans")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      throw error;
+    const rows: TenderPlanItem[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase.from("tender_plans").select("*")
+        .eq("project_id", projectId).order("created_at", { ascending: true })
+        .order("id", { ascending: true }).range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const page = data || [];
+      rows.push(...page.map(row => mapTenderPlanRow(row as TenderPlanRow)));
+      if (page.length < pageSize) return rows;
     }
+  },
 
-    return (data || []).map((row) => mapTenderPlanRow(row as TenderPlanRow));
+  async linkUnassignedToCategory(projectId: string, id: string, categoryId: string) {
+    const { data, error } = await supabase.from("tender_plans")
+      .update({ category_id: categoryId }).eq("project_id", projectId).eq("id", id)
+      .is("category_id", null).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Položka plánu se změnila. Opakujte synchronizaci.");
   },
 
   async create(input: {
