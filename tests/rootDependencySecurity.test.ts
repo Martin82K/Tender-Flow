@@ -55,7 +55,7 @@ describe("root dependency security versions", () => {
       hono: "4.13.0",
       "ip-address": "10.4.0",
       joi: "18.2.1",
-      qs: "6.15.2",
+      qs: "6.16.0",
       sharp: "0.35.3",
       "std-env": "4.1.0",
       tar: "7.5.22",
@@ -65,6 +65,8 @@ describe("root dependency security versions", () => {
   });
 
   it.each([
+    ["node_modules/@humanfs/node", "0.16.8"],
+    ["node_modules/@xmldom/xmldom", "0.8.15"],
     ["node_modules/@hono/node-server", "2.1.0"],
     ["node_modules/@modelcontextprotocol/core", "2.0.0"],
     ["node_modules/@modelcontextprotocol/server", "2.0.0"],
@@ -91,7 +93,7 @@ describe("root dependency security versions", () => {
     ["node_modules/js-yaml", "4.3.1"],
     ["node_modules/fflate", "0.8.3"],
     ["node_modules/postcss", "8.5.26"],
-    ["node_modules/qs", "6.15.2"],
+    ["node_modules/qs", "6.16.0"],
     ["node_modules/sharp", "0.35.3"],
     ["node_modules/shell-quote", "1.9.0"],
     ["node_modules/vitest/node_modules/std-env", "4.1.0"],

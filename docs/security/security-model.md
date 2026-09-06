@@ -146,6 +146,21 @@ necommitnutého prostředí. `.env*` obsah se nekopíruje do logů ani dokumenta
   commitnutého lockfile a ne z automaticky dorovnaného dependency stromu,
 - release build vychází z ověřeného zdroje a lokálních artefaktů.
 
+Root override `qs` udržuje společnou opravenou verzi pro Express 4 i tranzitivní
+MCP SDK; změna parseru nesmí měnit hlavní verzi Expressu ani formát OAuth/MCP.
+`@humanfs/node` patří do stromu ESLintu a `@xmldom/xmldom` do desktop build
+toolingu přes `plist`. Jejich přítomnost v auditu sama nepotvrzuje dosažitelnost
+zranitelné operace z uživatelského vstupu.
+
+Test `tests/rootTransitiveDependencies.regression.test.ts` ověřuje chování
+skutečně instalovaných knihoven: limity nestandardního qs parsování, bezpečnou
+serializaci `constructor.isBuffer`, kopírování symlinků, striktní XML serializaci
+a zachování běžných query/form a plist dat. Tyto testy používají pouze lokální
+HTTP listener a dočasné soubory; nevyžadují produkční účet. Při aktualizaci se
+navíc kontrolují MCP adaptéry, exporty a desktop IPC. Srovnání auditů před a po
+změně musí vycházet ze stejného způsobu instalace; samotný rozdíl mezi auditem
+lockfilu a instalovaného stromu není důkaz opravy.
+
 ## Povinné kontroly před merge
 
 ```bash
