@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import ExcelJS from "exceljs";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import {
-  unlockExcelZip,
-  unlockExcelZipWithStats,
-} from "@/shared/tools/excel/excelUnlockZip";
-import { unlockExcelZipWithStats as unlockExcelZipWithStatsFromLegacy } from "../utils/excelUnlockZip";
+import { unlockExcelZipCore } from "@/shared/tools/excel/excelUnlockZipCore";
 
 const buildProtectedWorkbook = async (): Promise<ArrayBuffer> => {
   const workbook = new ExcelJS.Workbook();
@@ -19,7 +15,7 @@ describe("excelUnlockZip", () => {
   it("odstrani sheetProtection ze vsech worksheet XML souboru", async () => {
     const input = await buildProtectedWorkbook();
 
-    const result = await unlockExcelZipWithStats(input);
+    const result = await unlockExcelZipCore(input);
     const zip = unzipSync(result.output);
     const worksheetPaths = Object.keys(zip).filter((path) =>
       /^xl\/worksheets\/.+\.xml$/i.test(path),
@@ -30,20 +26,10 @@ describe("excelUnlockZip", () => {
     expect(strFromU8(zip[worksheetPaths[0]])).not.toContain("sheetProtection");
   });
 
-  it("zachova legacy entrypoint a vraci odemceny vystup", async () => {
-    const input = await buildProtectedWorkbook();
-
-    const result = await unlockExcelZipWithStatsFromLegacy(input);
-    const output = await unlockExcelZip(input);
-
-    expect(result.worksheetCount).toBe(1);
-    expect(output.length).toBeGreaterThan(0);
-  });
-
   it("odmitne archiv bez worksheet XML souboru", async () => {
     const input = zipSync({ "[Content_Types].xml": strToU8("<Types></Types>") });
 
-    await expect(unlockExcelZipWithStats(input)).rejects.toThrow(
+    await expect(unlockExcelZipCore(input)).rejects.toThrow(
       /worksheet XML/,
     );
   });
@@ -60,7 +46,7 @@ describe("excelUnlockZip", () => {
     await second.protect("test", {});
     const input = new Uint8Array(await workbook.xlsx.writeBuffer() as ArrayBuffer);
     const before = unzipSync(input);
-    const result = await unlockExcelZipWithStats(input);
+    const result = await unlockExcelZipCore(input);
     const after = unzipSync(result.output);
 
     expect(result.worksheetCount).toBe(2);
@@ -86,8 +72,26 @@ describe("excelUnlockZip", () => {
     const padded = new Uint8Array(input.length + 16);
     padded.set(input, 8);
     const onProgress = vi.fn();
-    const result = await unlockExcelZipWithStats(padded.subarray(8, 8 + input.length), { onProgress });
+    const result = await unlockExcelZipCore(padded.subarray(8, 8 + input.length), { onProgress });
     expect(result.worksheetCount).toBe(1);
     expect(onProgress).toHaveBeenLastCalledWith(95, "Připravuji stažení...");
+  });
+  it("preserves workbook metadata, media and unprotected sheets", async () => {
+    const files = {
+      "xl/worksheets/sheet1.xml": strToU8('<worksheet><sheetProtection password="x"/><data>Český text</data></worksheet>'),
+      "xl/worksheets/sheet2.xml": strToU8("<worksheet><data>Další list</data></worksheet>"),
+      "xl/workbook.xml": strToU8('<workbook><workbookProtection lockStructure="1"/></workbook>'),
+      "xl/media/image1.png": new Uint8Array([0, 255, 13, 10, 128]),
+    };
+    const archive = zipSync(files);
+    const padded = new Uint8Array(archive.length + 4);
+    padded.set(archive, 2);
+    const { output, worksheetCount } = await unlockExcelZipCore(padded.subarray(2, -2));
+    const result = unzipSync(output);
+    expect(worksheetCount).toBe(2);
+    expect(strFromU8(result["xl/worksheets/sheet1.xml"])).toBe("<worksheet><data>Český text</data></worksheet>");
+    for (const name of ["xl/worksheets/sheet2.xml", "xl/workbook.xml", "xl/media/image1.png"] as const) {
+      expect(Array.from(result[name])).toEqual(Array.from(files[name]));
+    }
   });
 });

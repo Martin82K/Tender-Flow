@@ -5,7 +5,8 @@ projektů, dodavatelů, smluv, dokumentů a navazujících týmových procesů.
 Aplikace běží jako webová aplikace a jako desktopová aplikace postavená na
 Electronu. Cloudová data, autentizaci a serverové funkce zajišťuje Supabase.
 
-Aktuální verze repozitáře: **1.8.12**.
+Aktuální verzi repozitáře určuje pole `version` v [package.json](package.json).
+Stejnou verzi aplikace zobrazuje v uživatelském rozhraní.
 
 ## Rychlý start
 
@@ -57,7 +58,7 @@ Nejdůležitější vstupy:
 - Tailwind CSS 4
 - TanStack React Query
 - Supabase Auth, Postgres, Realtime, Storage a Edge Functions
-- Electron 40
+- Electron (verze podle `package.json`)
 - Vitest a Testing Library
 
 ## Pravidla přispívání

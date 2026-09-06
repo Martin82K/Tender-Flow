@@ -1,0 +1,15 @@
+import { unlockExcelZipCore } from "./excelUnlockZipCore";
+import type { ExcelUnlockWorkerMessage } from "./excelUnlockZipCore";
+
+const send = (message: ExcelUnlockWorkerMessage) => self.postMessage(message);
+
+self.onmessage = async (event: MessageEvent<Uint8Array>) => {
+  try {
+    const result = await unlockExcelZipCore(event.data, {
+      onProgress: (percent, label) => send({ type: "progress", percent, label }),
+    });
+    send({ type: "result", ...result });
+  } catch (error) {
+    send({ type: "error", message: error instanceof Error ? error.message : "Neplatný Excel soubor." });
+  }
+};
