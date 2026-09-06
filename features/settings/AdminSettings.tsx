@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserManagement } from "./UserManagement";
-import { SubscriptionFeaturesManagement } from "./SubscriptionFeaturesManagement";
+import { SubscriptionOverview } from "./SubscriptionOverview";
 import { EmailWhitelistManagement } from "./EmailWhitelistManagement";
 import { AIApiTest } from "./AIApiTest";
 import { EmailTestPanel } from "./EmailTestPanel";
@@ -91,7 +91,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </h2>
         </div>
         <p className="text-sm text-slate-500">
-          Správa uživatelů, registrací a nastavení AI
+          Správa firem, uživatelů, balíčků a registrací
         </p>
       </div>
 
@@ -219,7 +219,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       )}
 
       {(section === undefined || section === "subscriptions") && (
-        <SubscriptionFeaturesManagement />
+        <SubscriptionOverview />
       )}
     </div>
   );
