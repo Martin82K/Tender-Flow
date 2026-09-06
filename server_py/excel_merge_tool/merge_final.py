@@ -57,10 +57,15 @@ def _iter_sheets_to_process(wb) -> Iterable:
 def copy_format(src, tgt) -> None:
     if not src.has_style:
         return
-    tgt._style = copy(src._style)
+    # Style indices belong to one workbook; register each value in the target.
+    tgt.font = copy(src.font)
+    tgt.fill = copy(src.fill)
+    tgt.border = copy(src.border)
     tgt.number_format = src.number_format
     tgt.protection = copy(src.protection)
     tgt.alignment = copy(src.alignment)
+    tgt.quotePrefix = src.quotePrefix
+    tgt.pivotButton = src.pivotButton
 
 
 def merge_final(input_file: str, output_file: str) -> None:
@@ -70,6 +75,9 @@ def merge_final(input_file: str, output_file: str) -> None:
     print(f"Processing {len(sheets)} sheets")
 
     target_wb = openpyxl.Workbook()
+    target_wb.loaded_theme = source_wb.loaded_theme
+    # Indexed colors also depend on the source workbook's palette.
+    target_wb._colors = copy(source_wb._colors)
     target_wb.remove(target_wb.active)
     combined = target_wb.create_sheet("Kombinovane")
 
@@ -99,6 +107,7 @@ def merge_final(input_file: str, output_file: str) -> None:
 
         # Blue separator row per sheet
         header_cell = combined.cell(row=row, column=1, value=f"=== {sheet_name} ===")
+        header_cell.data_type = "s"  # Leading '=' is a label, not an Excel formula.
         header_cell.font = SHEET_HEADER_FONT
         header_cell.fill = HEADER_FILL
         header_cell.alignment = SHEET_HEADER_ALIGNMENT
@@ -185,4 +194,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

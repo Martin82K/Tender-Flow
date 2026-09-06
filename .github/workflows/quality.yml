@@ -41,6 +41,13 @@ jobs:
       - name: Run test suite
         run: npm run test:run
 
+      - name: Run Python Excel merge regressions
+        run: |
+          python3 -m venv "$RUNNER_TEMP/excel-merge-tests"
+          "$RUNNER_TEMP/excel-merge-tests/bin/python" -m pip install --only-binary=:all: --require-hashes -r tests/python/requirements.txt
+          "$RUNNER_TEMP/excel-merge-tests/bin/python" -m pip check
+          "$RUNNER_TEMP/excel-merge-tests/bin/python" -m unittest discover -s tests/python -p 'test_*.py' -v -b
+
       - name: Run TypeScript typecheck
         run: npm run typecheck
 
