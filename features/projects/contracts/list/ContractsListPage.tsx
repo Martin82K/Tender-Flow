@@ -47,10 +47,15 @@ export const ContractsListPage: React.FC<Props> = ({
   const dismissDeepLink = useDismissContractDeepLink(projectId, initialSelectedId);
   const appliedDeepLink = useRef<string | null>(null);
   const deepLinkKey = initialSelectedId ? JSON.stringify([projectId, initialSelectedId]) : null;
-  const linkedContractUnavailable = Boolean(initialSelectedId && appliedDeepLink.current !== deepLinkKey
+  const linkedContractUnavailable = Boolean(initialSelectedId
     && !contracts.some(contract => contract.id === initialSelectedId));
 
   useEffect(() => {
+    if (linkedContractUnavailable) {
+      appliedDeepLink.current = null;
+      setSelectedId(null);
+      return;
+    }
     if (initialSelectedId && deepLinkKey && appliedDeepLink.current !== deepLinkKey) {
       if (contracts.some(contract => contract.id === initialSelectedId)) {
         appliedDeepLink.current = deepLinkKey;
@@ -63,7 +68,7 @@ export const ContractsListPage: React.FC<Props> = ({
     }
     if (!deepLinkKey) appliedDeepLink.current = null;
     setSelectedId(current => contracts.some(contract => contract.id === current) ? current : contracts[0]?.id ?? null);
-  }, [contracts, deepLinkKey, initialSelectedId, onViewModeChange]);
+  }, [contracts, deepLinkKey, initialSelectedId, linkedContractUnavailable, onViewModeChange]);
 
   useEffect(() => {
     if (viewMode !== 'table') return;

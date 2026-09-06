@@ -167,3 +167,14 @@ it('aplikuje deep link až po načtení cílové smlouvy a nepřepíše pozděj�
   rerender(<ContractsListPage {...props} contracts={[...contracts]} />);
   expect(screen.getByTestId('workspace')).toHaveTextContent('Aktivní smlouva');
 });
+it('po ztrátě otevřené smlouvy nevybere jinou a po obnovení znovu otevře původní cíl', () => {
+  const props = { projectId: 'project-1', refresh: vi.fn(), viewMode: 'split' as const, onViewModeChange: vi.fn(), initialSelectedId: 'alpha' };
+  const { rerender } = render(<ContractsListPage {...props} contracts={contracts} />);
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Aktivní smlouva');
+  rerender(<ContractsListPage {...props} contracts={[contracts[1]]} />);
+  expect(screen.queryByTestId('workspace')).not.toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent('Požadovaná smlouva není dostupná');
+  rerender(<ContractsListPage {...props} contracts={[contracts[1], contracts[0]]} />);
+  expect(screen.getByTestId('workspace')).toHaveTextContent('Aktivní smlouva');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
