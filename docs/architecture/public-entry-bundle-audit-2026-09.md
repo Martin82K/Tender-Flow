@@ -72,3 +72,15 @@ runtime se ověřují v navazující integrační kontrole koordinátora.
 Změna neinstaluje závislosti, nemění oprávnění ani databázi. Oddělení balíčků
 nenahrazuje autentizaci a RLS; interní ochrany zůstávají na místě. Rozpracované
 změny ZIP/Excel v jiném checkoutu nejsou součástí tohoto kroku.
+
+## Ověření po integraci bodů 6 a 7
+
+Opakovaný cold browser run `/login` na produkčním preview: 16 skutečně vyžádaných
+JS/CSS souborů, 1 404 301 B raw a 268 689 B jako součet lokálních gzip velikostí.
+Společné CSS mělo 772 235 B / 81 993 B gzip; Excel mezi požadavky nebyl.
+Tato drobná změna proti izolovanému měření výše pochází z integrovaného obsahu.
+Skutečný export z plánu VŘ poté vyžádal jediný Excel chunk a vytvořil platný
+XLSX o 17 172 B; dekódování ověřilo název plánované položky a oba termíny.
+Veřejný login a export byly bez chyb JavaScriptu. Přihlášené datové toky používaly
+syntetické odpovědi; veřejné fonty se při vizuální kontrole načítaly standardně.
+Samostatná integrovaná sada: 482 souborů / 2 483 testů, bez skip/todo.
