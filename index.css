@@ -4852,12 +4852,32 @@ html[data-skin] .tf-appearance-section {
   background: var(--tf-skin-surface-muted) !important;
 }
 
-html[data-skin] .tf-documents-tab[aria-selected="true"] {
+/* Keep tab states together above the broad skin surface/text overrides. */
+html[data-skin] .tf-app-main .tf-documents-view [data-help-id="documents-sidebar"] .tf-documents-tab {
+  background: transparent !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin] .tf-app-main .tf-documents-view [data-help-id="documents-sidebar"] .tf-documents-tab:hover:not([aria-selected="true"]) {
+  background: color-mix(in srgb, var(--tf-skin-text) 18%, var(--tf-skin-card) 82%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin] .tf-app-main .tf-documents-view [data-help-id="documents-sidebar"] .tf-documents-tab[aria-selected="true"] {
   border-color: var(--tf-settings-active-background) !important;
   background-color: var(--tf-settings-active-background) !important;
   background-image: none !important;
   color: var(--tf-settings-active-foreground) !important;
   box-shadow: none !important;
+}
+
+html[data-skin] .tf-app-main .tf-documents-view [data-help-id="documents-sidebar"] .tf-documents-tab:focus-visible {
+  outline: 2px solid var(--tf-skin-text) !important;
+  outline-offset: -2px;
+}
+
+html[data-skin] .tf-app-main .tf-documents-view [data-help-id="documents-sidebar"] .tf-documents-tab .material-symbols-outlined {
+  color: inherit !important;
 }
 
 html[data-skin] .tf-theme-mode-button:focus-visible {
