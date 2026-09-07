@@ -160,9 +160,12 @@ describe("desktop build env security", () => {
       "utf-8",
     );
 
+    const { version } = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf-8"));
     expect(releaseIndex).toContain(
-      "Aktuální release notes: `release_notes_v1.9.26.md`",
+      `Aktuální release notes: \`release_notes_v${version}.md\``,
     );
+    expect(readFileSync(join(process.cwd(), "docs", "releases", `release_notes_v${version}.md`), "utf-8"))
+      .toContain(`# Tender Flow v${version}`);
 
     const releaseNotes = readFileSync(
       join(process.cwd(), "docs", "releases", "release_notes_v1.9.23.md"),
