@@ -1,4 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
+import { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
+export { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
 
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { applyLocalBudgetAttachments } from "@features/projects/model/budgetAttachmentLocalStore";
@@ -142,12 +144,6 @@ interface BidRow {
   selection_round?: number;
   contracted?: boolean | null;
 }
-
-export const PROJECT_DETAILS_KEYS = {
-  all: ["projectDetails"] as const,
-  detail: (projectId: string) =>
-    [...PROJECT_DETAILS_KEYS.all, projectId] as const,
-};
 
 const fetchProjectDetails = async (
   projectId: string,

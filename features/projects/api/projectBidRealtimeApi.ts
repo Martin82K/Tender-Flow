@@ -15,12 +15,14 @@ export const projectBidRealtimeApi = {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "bids",
         },
         (payload) => {
-          const demandCategoryId = payload.new?.demand_category_id;
+          const demandCategoryId = "demand_category_id" in payload.new
+            ? payload.new.demand_category_id
+            : "demand_category_id" in payload.old ? payload.old.demand_category_id : null;
           onBidUpdated(
             typeof demandCategoryId === "string" ? demandCategoryId : null,
           );

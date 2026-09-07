@@ -16,6 +16,13 @@ export type BidInsertPayload = {
   tags: string[];
 };
 
+export type PersistedBidRow = BidInsertPayload & {
+  price_history?: Record<number, string> | null;
+  update_date?: string | null;
+  selection_round?: number | null;
+  contracted?: boolean | null;
+};
+
 export const pipelineRepository = {
   fetchLinkedTenderPlanDates(projectId: string, categoryId: string, categoryTitle: string) {
     return supabase
@@ -36,7 +43,19 @@ export const pipelineRepository = {
   },
 
   insertBids(payload: BidInsertPayload[]) {
-    return supabase.from("bids").insert(payload).select();
+    return supabase.from("bids")
+      .upsert(payload, { onConflict: "demand_category_id,subcontractor_id", ignoreDuplicates: true })
+      .select()
+      .abortSignal(AbortSignal.timeout(30_000))
+      .returns<PersistedBidRow[]>();
+  },
+
+  fetchBidsForSuppliers(categoryId: string, supplierIds: string[]) {
+    return supabase.from("bids").select("*")
+      .eq("demand_category_id", categoryId)
+      .in("subcontractor_id", supplierIds)
+      .abortSignal(AbortSignal.timeout(15_000))
+      .returns<PersistedBidRow[]>();
   },
 
   updateBid(

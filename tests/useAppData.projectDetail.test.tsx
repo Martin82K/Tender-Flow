@@ -50,6 +50,7 @@ vi.mock("@features/projects/api/projectBidRealtimeApi", () => ({ projectBidRealt
 vi.mock("@/infra/projects/pipelineRepository", () => ({ pipelineRepository: {
   updateBid: mocks.writeBid, updateBidStatus: mocks.writeBid, updateBidContracted: mocks.writeBid,
   insertBids: mocks.writeBid, deleteBid: mocks.writeBid,
+  fetchBidsForSuppliers: async () => ({ data: [{ id: "b1", demand_category_id: "c1", subcontractor_id: "s1" }], error: null }),
 } }));
 vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: { from: mocks.from } }));
 vi.mock("@features/projects/api/projectDemoDataApi", () => ({
@@ -132,7 +133,7 @@ describe("useAppData project detail recovery", () => {
     ["price", () => updateBid({ id: "b1", price: "300", status: "offer" } as never, 300)],
     ["status", () => updateBidStatus("b1", "sod")],
     ["contracted", () => updateBidContracted("b1", true)],
-    ["insert", () => insertBids([])],
+    ["insert", () => insertBids([{ id: "b1", demand_category_id: "c1", subcontractor_id: "s1", company_name: "Firma", contact_person: "Kontakt", email: null, phone: null, price: null, price_display: "?", notes: null, status: "contacted", tags: [] }])],
     ["delete", () => deleteBid("b1")],
   ])("invalidates the overview only after persisting a bid %s change", async (_name, persist) => {
     database(success);

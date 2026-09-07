@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
-  changeHandler: undefined as undefined | ((payload: { new?: Record<string, unknown> }) => void),
+  changeHandler: undefined as undefined | ((payload: { new: Record<string, unknown>; old?: Record<string, unknown> }) => void),
   statusHandler: undefined as undefined | ((status: string) => void),
   channel: { id: "bid-channel" },
   on: vi.fn(),
@@ -37,7 +37,7 @@ describe("projectBidRealtimeApi", () => {
     });
   });
 
-  it("odebírá pouze UPDATE události nabídek a předá ID kategorie", () => {
+  it("odebírá i INSERT události nabídek a předá ID kategorie", () => {
     const onBidUpdated = vi.fn();
 
     projectBidRealtimeApi.subscribeToBidUpdates({ onBidUpdated });
@@ -45,7 +45,7 @@ describe("projectBidRealtimeApi", () => {
 
     expect(state.on).toHaveBeenCalledWith(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "bids" },
+      { event: "*", schema: "public", table: "bids" },
       expect.any(Function),
     );
     expect(onBidUpdated).toHaveBeenCalledWith("category-1");

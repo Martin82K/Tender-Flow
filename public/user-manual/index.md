@@ -192,6 +192,8 @@ Plán VŘ slouží k naplánování výběrových řízení v čase a (dle potř
 
 Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop).
 
+Dodavatele vyberte v dialogu a potvrďte **Přenést do pipeline**. Během ukládání se zobrazí **Přidávám…** a výběr nelze znovu odeslat ani měnit. Karta se objeví po potvrzení uložení. Pokud uložení nelze ověřit, výběr zůstane otevřený; zkontrolujte připojení a oprávnění a zkuste přidání znovu. Opakování stejného dodavatele ve stejné poptávce nevytvoří druhou nabídku ani nepřepíše původní cenu či stav. Stejného dodavatele lze nadále přidat do jiných poptávek a projektů. Zpráva **Dodavatelé uloženi** při chybě obnovy znamená, že zápis proběhl a stačí obnovit projekt.
+
 V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil.
 
 ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg)

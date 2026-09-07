@@ -7,6 +7,7 @@ import { SubcontractorSelectorModal } from "./SubcontractorSelectorModal";
 export interface PipelineContactModalsProps {
   isSelectorOpen: boolean;
   isSelectorMaximized: boolean;
+  isSubmittingSelection?: boolean;
   contacts: Subcontractor[];
   selectorStatuses: StatusConfig[];
   contactStatuses: StatusConfig[];
@@ -30,6 +31,7 @@ export interface PipelineContactModalsProps {
 export const PipelineContactModals: React.FC<PipelineContactModalsProps> = ({
   isSelectorOpen,
   isSelectorMaximized,
+  isSubmittingSelection,
   contacts,
   selectorStatuses,
   contactStatuses,
@@ -53,6 +55,7 @@ export const PipelineContactModals: React.FC<PipelineContactModalsProps> = ({
     <SubcontractorSelectorModal
       isOpen={isSelectorOpen}
       isMaximized={isSelectorMaximized}
+      isSubmitting={isSubmittingSelection}
       contacts={contacts}
       statuses={selectorStatuses}
       selectedIds={selectedIds}
