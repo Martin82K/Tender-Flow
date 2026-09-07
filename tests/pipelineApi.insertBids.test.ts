@@ -70,11 +70,31 @@ describe("idempotent pipeline insert", () => {
     expect(mocks.notify).not.toHaveBeenCalled();
   });
 
-  it("does not turn a failed reconciliation read into success", async () => {
+  it("does not resurrect a returning row that a later successful RLS read no longer exposes", async () => {
+    mocks.write.mockResolvedValue({ data: [payload], error: null });
+    mocks.read.mockResolvedValue({ data: [], error: null });
+    const response = await insertBids([payload]);
+    expect(response.data).toBeNull();
+    expect(response.error).toBeInstanceOf(Error);
+    expect(mocks.notify).not.toHaveBeenCalled();
+  });
+
+  it("retains a successful returning row when reconciliation is unavailable", async () => {
     const error = new Error("offline");
     mocks.write.mockResolvedValue({ data: [payload], error: null });
     mocks.read.mockResolvedValue({ data: null, error });
-    expect(await insertBids([payload])).toEqual({ data: null, error, insertedIds: [payload.id] });
+    expect(await insertBids([payload])).toEqual({ data: [payload], error: null, insertedIds: [payload.id] });
+  });
+
+  it("preserves committed earlier batches even when reconciliation also fails", async () => {
+    const rows = Array.from({ length: 1001 }, (_, i) => ({ ...payload, id: `bid-${i}`, subcontractor_id: `supplier-${i}` }));
+    const committed = rows.slice(0, 1000);
+    const error = new Error("offline during reconciliation");
+    mocks.write.mockResolvedValueOnce({ data: committed, error: null })
+      .mockResolvedValueOnce({ data: null, error: { code: "42501" }, status: 403 });
+    mocks.read.mockResolvedValue({ data: null, error });
+    expect(await insertBids(rows)).toEqual({ data: committed, error, insertedIds: committed.map(row => row.id) });
+    expect(mocks.notify).toHaveBeenCalledOnce();
   });
 
   it("deduplicates a batch by category and supplier, preserving other categories", async () => {

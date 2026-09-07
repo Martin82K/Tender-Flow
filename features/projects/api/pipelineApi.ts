@@ -49,11 +49,20 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
   // A batch can contain the same pair twice. Never overwrite an existing offer.
   const unique = [...new Map(payload.map(row => [JSON.stringify([row.demand_category_id, row.subcontractor_id]), row])).values()];
   const insertedIds: string[] = [];
+  const returnedRows: PersistedBidRow[] = [];
+  const verifiedPairs = new Set<string>();
   let completedBatches = 0;
   let writeError: unknown = null;
   const finish = (data: PersistedBidRow[], error: unknown): InsertBidsResult => {
-    if (data.length > 0) notifyProjectBidsPersisted();
-    return { data: data.length > 0 ? data : null, error, insertedIds };
+    // A successful read supersedes RETURNING, including an empty RLS-filtered
+    // result. Failed reads must not discard rows already confirmed by the RPC.
+    const confirmed = [...data, ...returnedRows.filter(row => !verifiedPairs.has(
+      JSON.stringify([row.demand_category_id, row.subcontractor_id]),
+    ))];
+    const found = new Set(confirmed.map(row => JSON.stringify([row.demand_category_id, row.subcontractor_id])));
+    const complete = unique.every(row => found.has(JSON.stringify([row.demand_category_id, row.subcontractor_id])));
+    if (confirmed.length > 0) notifyProjectBidsPersisted();
+    return { data: confirmed.length > 0 ? confirmed : null, error: complete ? null : error, insertedIds };
   };
   try {
     for (let offset = 0; offset < unique.length; offset += 1000) {
@@ -65,6 +74,7 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
         writeError = written.error;
         break;
       }
+      returnedRows.push(...(written.data ?? []));
       insertedIds.push(...(written.data ?? []).map(row => row.id));
       completedBatches += 1;
     }
@@ -87,6 +97,9 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
       for (let offset = 0; offset < supplierIds.length; offset += 100) {
         const response = await pipelineRepository.fetchBidsForSuppliers(categoryId, supplierIds.slice(offset, offset + 100));
         if (response.error) return finish(data, response.error);
+        for (const supplierId of supplierIds.slice(offset, offset + 100)) {
+          verifiedPairs.add(JSON.stringify([categoryId, supplierId]));
+        }
         data.push(...(response.data ?? []));
       }
     }
