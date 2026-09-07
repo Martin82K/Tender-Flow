@@ -196,11 +196,12 @@ try {
 } finally {
   socket?.close();
   for (const entry of pending.values()) { clearTimeout(entry.timeout); entry.reject(new Error('Browser check ended')); }
-  if (chrome && chrome.exitCode === null) {
+  if (chrome && chrome.exitCode === null && chrome.signalCode === null) {
     chrome.kill('SIGTERM');
     await Promise.race([new Promise(resolve => chrome.once('exit', resolve)), sleep(2000)]);
-    if (chrome.exitCode === null) chrome.kill('SIGKILL');
+    if (chrome.exitCode === null && chrome.signalCode === null) chrome.kill('SIGKILL');
   }
   if (server) await new Promise(resolve => server.httpServer.close(resolve));
-  await rm(temporary, { recursive: true, force: true });
+  // Chromium helpers can finish profile writes shortly after the parent exits.
+  await rm(temporary, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 }
