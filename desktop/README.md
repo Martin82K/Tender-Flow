@@ -109,7 +109,8 @@ pro desktop build nebo upload.
 - Kontroluje veřejné GitHub repozitáře `Martin82K/Tender-Flow-Releases` a původní
   `Martin82K/Tender-Flow`. Vybere nejvyšší způsobilou SemVer verzi; při shodě
   upřednostní nový repozitář. Do aplikace se nevkládá GitHub token.
-- Každý zdroj má 15 sekund na kontrolu metadat. Výpadek, 404 po změně viditelnosti
+- Zdroje se kontrolují postupně, aby používaly stejný uložený identifikátor
+  postupné distribuce. Každý zdroj má 15 sekund na kontrolu metadat. Výpadek, 404 po změně viditelnosti
   nebo prázdný release repozitář neblokuje dostupný druhý zdroj. Pokud neodpoví
   žádný, aplikace nabídne opakování kontroly.
 - Stahování začne až po výběru jednoho zdroje. Ověření SHA-512, případného podpisu,

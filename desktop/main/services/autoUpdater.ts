@@ -161,7 +161,13 @@ export class AutoUpdaterService {
         this.selectedSource = null;
         this.updateStatus = { status: 'checking' };
         this.sendStatusToRenderer();
-        const checks = await Promise.allSettled(this.sources.map(source => this.probe(source)));
+        // electron-updater creates .updaterId lazily. Serial probes prevent two new
+        // instances from racing to overwrite it on first launch and changing rollout cohorts.
+        const checks: PromiseSettledResult<Awaited<ReturnType<AutoUpdaterClient['checkForUpdates']>>>[] = [];
+        for (const source of this.sources) {
+            const [check] = await Promise.allSettled([this.probe(source)]);
+            checks.push(check);
+        }
         const candidates: { source: AutoUpdaterClient; info: UpdateInfo }[] = [];
         let checkedSource = false;
         checks.forEach((check, index) => {

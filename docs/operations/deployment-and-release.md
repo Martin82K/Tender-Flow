@@ -111,7 +111,9 @@ CI logy. Tag ve veřejném repozitáři tedy označuje jeho vlastní README hist
 shodu binárek se zdrojovým commitem eviduje release manifest a kontrolní součty.
 
 `electron-builder.yml` má jako hlavní cíl `Tender-Flow-Releases`. Windows updater
-kontroluje nový i původní veřejný repozitář a porovná jejich způsobilé verze.
+kontroluje postupně nový i původní veřejný repozitář a porovná jejich způsobilé
+verze. Postupné kontroly brání souběhu při prvním vytvoření společného `.updaterId`
+pro staged rollout; každý zdroj má časový limit 15 sekund.
 Při shodě vybere nový repozitář; při výpadku jednoho pokračuje druhým.
 macOS zůstává v dosavadním manuálním režimu. Publikační oprávnění patří jen
 release správci/build prostředí, nikdy koncovým uživatelům aplikace.

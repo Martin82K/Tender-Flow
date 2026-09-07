@@ -26,8 +26,10 @@ const hash = crypto.createHash('sha512').update(payload).digest('base64');
 let versions = ['1.9.27', '1.10.0'], unavailable = -1, corrupt = false;
 const downloaded = [];
 const errors = [];
+const stagingIds = [];
 const server = http.createServer((req, res) => {
   const source = req.url.startsWith('/primary/') ? 0 : 1;
+  if (req.url.includes('latest.yml')) stagingIds.push(req.headers['x-user-staging-id']);
   if (source === unavailable) { res.writeHead(404); return res.end('missing'); }
   if (req.url.includes('latest.yml')) {
     res.setHeader('content-type', 'text/yaml');
@@ -49,7 +51,7 @@ const server = http.createServer((req, res) => {
     { name: 'primary unavailable', versions: ['1.9.27','1.9.28'], unavailable: 0, selected: 1 },
     { name: 'bad checksum blocks install', versions: ['1.9.28','1.9.27'], corrupt: true, selected: 0 },
   ]) {
-    versions = scenario.versions; unavailable = scenario.unavailable ?? -1; corrupt = !!scenario.corrupt; downloaded.length = 0; errors.length = 0;
+    versions = scenario.versions; unavailable = scenario.unavailable ?? -1; corrupt = !!scenario.corrupt; downloaded.length = 0; errors.length = 0; stagingIds.length = 0;
     const data = path.join(work, String(reports.length));fs.mkdirSync(data);
     const config = path.join(data, 'app-update.yml');fs.writeFileSync(config, 'updaterCacheDirName: isolated-cache\n');
     const adapter = { version:'1.9.26',name:'isolated-test',isPackaged:true,appUpdateConfigPath:config,userDataPath:data,baseCachePath:data,whenReady:async()=>{},onQuit(){},quit(){throw Error('Must not install')},relaunch(){throw Error('Must not relaunch')} };
@@ -68,6 +70,9 @@ const server = http.createServer((req, res) => {
     assert.equal(await service.checkForUpdates(), true);
     await service.downloadUpdate();
     assert.deepEqual(downloaded,[scenario.selected]);
+    assert.equal(stagingIds.length, 2);
+    assert.equal(new Set(stagingIds).size, 1, 'Both sources must use the same persistent rollout identity');
+    assert.equal(stagingIds[0], fs.readFileSync(path.join(data, '.updaterId'), 'utf8'));
     assert.equal(service.getStatus().status, scenario.corrupt ? 'error' : 'downloaded');
     assert.equal(errors.length, scenario.corrupt || scenario.unavailable !== undefined ? 1 : 0);
     reports.push({scenario:scenario.name,status:service.getStatus().status,downloads:downloaded.slice()});
