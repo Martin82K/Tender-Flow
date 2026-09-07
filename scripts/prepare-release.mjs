@@ -53,18 +53,19 @@ try {
     console.log('3. Commit version changes:');
     console.log(`   git add package.json config/version.ts`);
     console.log(`   git commit -m "chore: bump version to ${version}"`);
-    console.log('4. Create and push tag:');
-    console.log(`   git tag -a v${version} -m "Release v${version}"`);
-    console.log('   git push origin main --tags');
+    console.log('4. After green PR checks and review, merge main and fast-forward release; then tag release:');
+    console.log(`   git tag -a v${version} release -m "Release v${version}"`);
+    console.log(`   git push origin release v${version}`);
     console.log('5. Build the application:');
     console.log('   npm run desktop:build:win');
     console.log('6. Verify auto-update artifacts:');
     console.log('   npm run release:verify-artifacts');
     console.log('7. Upload to GitHub Releases:');
-    console.log(`   https://github.com/Martin82K/Tender-Flow/releases/new?tag=v${version}`);
+    console.log(`   https://github.com/Martin82K/Tender-Flow-Releases/releases/new?tag=v${version}`);
     console.log('   - Upload the Windows installer, .blockmap, and latest.yml from dist-electron');
     console.log('   - Add release notes');
-    console.log('   - Publish release\n');
+    console.log('   - During migration, mirror the same local assets to Martin82K/Tender-Flow for older clients');
+    console.log('   - Verify both repositories before publishing releases\n');
 
     console.log('💡 Tip: After publishing, the auto-updater will detect the new version!\n');
 

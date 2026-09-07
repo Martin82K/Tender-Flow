@@ -1,76 +1,185 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
 
-const updaterMocks = vi.hoisted(() => ({
-  eventHandlers: new Map<string, (...args: unknown[]) => void>(),
-  handle: vi.fn(),
-  updater: {
-    autoDownload: false,
-    autoInstallOnAppQuit: false,
-    forceDevUpdateConfig: false,
-    requestHeaders: null as Record<string, string> | null,
-    on: vi.fn(),
-    checkForUpdates: vi.fn(),
-    downloadUpdate: vi.fn(),
-    quitAndInstall: vi.fn(),
-  },
-}));
+const mocks = vi.hoisted(() => ({ handle: vi.fn(), nsis: vi.fn() }));
+vi.mock('electron-updater', () => ({ autoUpdater: {}, NsisUpdater: mocks.nsis }));
+vi.mock('electron', () => ({ app: { getVersion: () => '1.9.26', isPackaged: true }, ipcMain: { handle: mocks.handle } }));
+const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
+Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' });
+afterAll(() => { if (platformDescriptor) Object.defineProperty(process, 'platform', platformDescriptor); });
+afterEach(() => vi.useRealTimers());
+beforeEach(() => { mocks.handle.mockReset(); mocks.nsis.mockReset(); });
 
-vi.mock("electron-updater", () => ({
-  autoUpdater: updaterMocks.updater,
-}));
+const info = (version: string) => ({ version, files: [], releaseDate: '2026-09-07T00:00:00Z' });
+const client = (version = '1.9.27', available = true) => {
+  const events = new EventEmitter();
+  const value = {
+    autoDownload: true, autoInstallOnAppQuit: false, forceDevUpdateConfig: false,
+    requestHeaders: null, allowDowngrade: false,
+    on: events.on.bind(events), emit: events.emit.bind(events),
+    checkForUpdates: vi.fn(async () => {
+      events.emit(available ? 'update-available' : 'update-not-available', info(version));
+      return { updateInfo: info(version), isUpdateAvailable: available };
+    }),
+    downloadUpdate: vi.fn(async () => ['installer.exe']), quitAndInstall: vi.fn(),
+  };
+  return value;
+};
+const create = async (sources: ReturnType<typeof client>[]) => {
+  const { AutoUpdaterService } = await import('../desktop/main/services/autoUpdater');
+  return new AutoUpdaterService(sources);
+};
 
-vi.mock("electron", () => ({
-  app: {
-    getVersion: vi.fn(() => "1.9.6"),
-    isPackaged: true,
-  },
-  ipcMain: {
-    handle: updaterMocks.handle,
-  },
-}));
-
-const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
-Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
-
-afterAll(() => {
-  if (platformDescriptor) {
-    Object.defineProperty(process, "platform", platformDescriptor);
-  }
-});
-
-describe("AutoUpdaterService", () => {
-  beforeEach(() => {
-    updaterMocks.eventHandlers.clear();
-    updaterMocks.handle.mockReset();
-    updaterMocks.updater.autoDownload = false;
-    updaterMocks.updater.autoInstallOnAppQuit = false;
-    updaterMocks.updater.on.mockReset();
-    updaterMocks.updater.on.mockImplementation((event, handler) => {
-      updaterMocks.eventHandlers.set(event, handler);
-      return updaterMocks.updater;
-    });
-    updaterMocks.updater.quitAndInstall.mockReset();
+describe('updates from two release repositories', () => {
+  it('uses exactly the two trusted public GitHub repositories by default', async () => {
+    const primary = client(), legacy = client();
+    mocks.nsis.mockImplementationOnce(function () { return primary; });
+    mocks.nsis.mockImplementationOnce(function () { return legacy; });
+    const { AutoUpdaterService } = await import('../desktop/main/services/autoUpdater');
+    const service = new AutoUpdaterService();
+    await service.checkForUpdates();
+    expect(mocks.nsis.mock.calls).toEqual([
+      [{ provider: 'github', owner: 'Martin82K', repo: 'Tender-Flow-Releases', private: false }],
+      [{ provider: 'github', owner: 'Martin82K', repo: 'Tender-Flow', private: false }],
+    ]);
+    expect(primary.requestHeaders).toEqual({ 'Cache-Control': 'no-cache', Pragma: 'no-cache' });
+    expect(legacy.allowDowngrade).toBe(false);
   });
-
-  it("stahuje aktualizaci automaticky na pozadí", async () => {
-    const { AutoUpdaterService } = await import("../desktop/main/services/autoUpdater");
-
-    new AutoUpdaterService(updaterMocks.updater);
-
-    expect(updaterMocks.updater.autoDownload).toBe(true);
-    expect(updaterMocks.updater.autoInstallOnAppQuit).toBe(true);
+  it('keeps macOS in manual update mode', async () => {
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'darwin' });
+    try {
+      const source = client();
+      const service = await create([source]);
+      expect(await service.checkForUpdates()).toBe(false);
+      await service.downloadUpdate();
+      service.quitAndInstall();
+      expect(source.checkForUpdates).not.toHaveBeenCalled();
+      expect(source.downloadUpdate).not.toHaveBeenCalled();
+      expect(source.quitAndInstall).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' });
+    }
   });
-
-  it("povolí pouze tichý restart po ověřeném stažení aktualizace", async () => {
-    const { AutoUpdaterService } = await import("../desktop/main/services/autoUpdater");
-    const service = new AutoUpdaterService(updaterMocks.updater);
-
+  it('checks both sources and downloads only the newer release, comparing versions numerically', async () => {
+    const primary = client('1.9.99'), legacy = client('1.10.0');
+    const service = await create([primary, legacy]);
+    expect(await service.checkForUpdates()).toBe(true);
+    expect(primary.checkForUpdates).toHaveBeenCalledOnce();
+    expect(legacy.checkForUpdates).toHaveBeenCalledOnce();
+    expect(primary.autoDownload).toBe(false);
+    expect(primary.downloadUpdate).not.toHaveBeenCalled();
+    expect(legacy.downloadUpdate).toHaveBeenCalledOnce();
+    expect(legacy.autoInstallOnAppQuit).toBe(true);
+  });
+  it('prefers the new repository when both versions are equal', async () => {
+    const primary = client(), legacy = client();
+    await (await create([primary, legacy])).checkForUpdates();
+    expect(primary.downloadUpdate).toHaveBeenCalledOnce();
+    expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it.each([0, 1])('continues when source %i is private, empty or unavailable', async (failed) => {
+    const sources = [client(), client()];
+    sources[failed].checkForUpdates.mockRejectedValue(new Error('HTTP 404'));
+    const service = await create(sources);
+    expect(await service.checkForUpdates()).toBe(true);
+    expect(sources[1 - failed].downloadUpdate).toHaveBeenCalledOnce();
+    expect(service.getStatus().status).toBe('downloading');
+  });
+  it('does not expose a rejected probe event as a global updater error', async () => {
+    const primary = client(), legacy = client();
+    legacy.checkForUpdates.mockImplementation(async () => { legacy.emit('error', new Error('private')); throw Error('private'); });
+    const service = await create([primary, legacy]);
+    await service.checkForUpdates();
+    legacy.emit('update-not-available', info('1.9.26'));
+    expect(service.getStatus().status).toBe('downloading');
+  });
+  it('shows a recoverable error when neither source can be checked', async () => {
+    const sources = [client(), client()];
+    sources.forEach(s => s.checkForUpdates.mockRejectedValue(Error('network')));
+    const service = await create(sources);
+    expect(await service.checkForUpdates()).toBe(false);
+    expect(service.getStatus()).toEqual({ status: 'error', error: expect.any(String) });
+  });
+  it('does not report an update when the only reachable source is current', async () => {
+    const primary = client('1.9.26', false), legacy = client();
+    legacy.checkForUpdates.mockRejectedValue(Error('404'));
+    const service = await create([primary, legacy]);
+    expect(await service.checkForUpdates()).toBe(false);
+    expect(service.getStatus().status).toBe('not-available');
+    expect(primary.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it.each(['1.9.25', 'invalid'])('never downloads an older or invalid candidate: %s', async version => {
+    const source = client(version);
+    const service = await create([source]);
+    expect(await service.checkForUpdates()).toBe(false);
+    expect(source.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it('honours updater eligibility such as staged rollout or minimum OS version', async () => {
+    const source = client('1.10.0', false);
+    expect(await (await create([source])).checkForUpdates()).toBe(false);
+    expect(source.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it('selects a stable release above a prerelease and ignores build metadata for precedence', async () => {
+    const primary = client('1.10.0-rc.2'), legacy = client('1.10.0+build.1');
+    await (await create([primary, legacy])).checkForUpdates();
+    expect(legacy.downloadUpdate).toHaveBeenCalledOnce();
+  });
+  it('coalesces parallel checks and protects an ongoing download from a subsequent check', async () => {
+    const source = client();
+    source.downloadUpdate.mockImplementation(() => new Promise(() => {}));
+    const service = await create([source]);
+    await Promise.all([service.checkForUpdates(), service.checkForUpdates()]);
+    await service.checkForUpdates();
+    expect(source.checkForUpdates).toHaveBeenCalledOnce();
+    expect(source.downloadUpdate).toHaveBeenCalledOnce();
+  });
+  it('allows only the selected source to report progress and trigger a verified restart', async () => {
+    const primary = client(), legacy = client();
+    const service = await create([primary, legacy]);
     service.quitAndInstall();
-    expect(updaterMocks.updater.quitAndInstall).not.toHaveBeenCalled();
-
-    updaterMocks.eventHandlers.get("update-downloaded")?.({ version: "1.9.7" });
+    expect(primary.quitAndInstall).not.toHaveBeenCalled();
+    await service.checkForUpdates();
+    legacy.emit('update-downloaded', info('1.9.99'));
     service.quitAndInstall();
-
-    expect(updaterMocks.updater.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(legacy.quitAndInstall).not.toHaveBeenCalled();
+    expect(primary.quitAndInstall).not.toHaveBeenCalled();
+    primary.emit('update-downloaded', info('1.9.27'));
+    await service.checkForUpdates();
+    service.quitAndInstall();
+    expect(service.getStatus().status).toBe('downloaded');
+    expect(primary.quitAndInstall).toHaveBeenCalledWith(true, true);
+    expect(primary.checkForUpdates).toHaveBeenCalledOnce();
+  });
+  it('does not switch to an older source after a checksum or signature failure', async () => {
+    const primary = client('1.10.0'), legacy = client();
+    primary.downloadUpdate.mockRejectedValue(Error('checksum mismatch'));
+    const service = await create([primary, legacy]);
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    expect(service.getStatus().status).toBe('error');
+    expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+    service.quitAndInstall();
+    expect(primary.quitAndInstall).not.toHaveBeenCalled();
+  });
+  it('allows a healthy source through after another source times out and ignores its late result', async () => {
+    vi.useFakeTimers();
+    const primary = client(), legacy = client('1.10.0');
+    let resolve!: (value: Awaited<ReturnType<typeof legacy.checkForUpdates>>) => void;
+    legacy.checkForUpdates.mockImplementation(() => new Promise(r => { resolve = r; }));
+    const service = await create([primary, legacy]);
+    const check = service.checkForUpdates();
+    await vi.advanceTimersByTimeAsync(15_001);
+    expect(await check).toBe(true);
+    expect(primary.downloadUpdate).toHaveBeenCalledOnce();
+    resolve({ updateInfo: info('1.10.0'), isUpdateAvailable: true });
+    await Promise.resolve();
+    legacy.emit('update-available', info('1.10.0'));
+    expect(service.getStatus().info?.version).toBe('1.9.27');
+    expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it('does not download before any eligible release has been selected', async () => {
+    const source = client();
+    await (await create([source])).downloadUpdate();
+    expect(source.downloadUpdate).not.toHaveBeenCalled();
   });
 });

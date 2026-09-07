@@ -31,7 +31,7 @@ asarUnpack:
 publish:
   provider: github
   owner: Martin82K
-  repo: Tender-Flow
+  repo: Tender-Flow-Releases
   private: false
 
 mac:

@@ -76,6 +76,9 @@ jobs:
       - name: Smoke compile (desktop)
         run: npm run desktop:compile
 
+      - name: Check dual-source updater runtime
+        run: node scripts/check-update-sources.cjs
+
       - name: Audit desktop dependencies
         run: npm audit --prefix desktop --audit-level=high
 

@@ -14,7 +14,9 @@ npm run build:local-assets
 npm run verify:web-dist
 ```
 
-Vercel používá standardní webový build a vytváří preview pro PR.
+Vercel vytváří preview pro PR a produkci nasazuje z větve `release`.
+Po zelených kontrolách a review se PR sloučí do `main`; teprve potom se
+`release` posune fast-forward z ověřeného `main`.
 
 Webové delivery konfigurace (`vercel.json`, `public/_headers`, `app.yaml` a
 Node middleware) musí držet stejnou `Content-Security-Policy-Report-Only`.
@@ -97,6 +99,60 @@ Typické artefakty:
 
 - Windows `.exe`, blockmap a latest YAML,
 - macOS `.dmg`, `.zip`, blockmap a latest YAML.
+
+## Veřejná distribuce a dva zdroje aktualizací
+
+Zdrojový repozitář `Martin82K/Tender-Flow` a distribuční repozitář
+[Martin82K/Tender-Flow-Releases](https://github.com/Martin82K/Tender-Flow-Releases)
+mají odlišný účel. Do distribučního repozitáře patří README, veřejné release
+poznámky a pouze ověřené lokální instalátory, blockmapy a latest YAML soubory.
+Nepřenáší se do něj zdrojový kód, git historie, `.env`, přístupové klíče ani interní
+CI logy. Tag ve veřejném repozitáři tedy označuje jeho vlastní README historii;
+shodu binárek se zdrojovým commitem eviduje release manifest a kontrolní součty.
+
+`electron-builder.yml` má jako hlavní cíl `Tender-Flow-Releases`. Windows updater
+kontroluje nový i původní veřejný repozitář a porovná jejich způsobilé verze.
+Při shodě vybere nový repozitář; při výpadku jednoho pokračuje druhým.
+macOS zůstává v dosavadním manuálním režimu. Publikační oprávnění patří jen
+release správci/build prostředí, nikdy koncovým uživatelům aplikace.
+
+Postup vydání:
+
+1. Zelené PR a review → merge do `main` → fast-forward `release`.
+2. Ze stejného zdrojového commitu sestavit artefakty lokálně a provést kontroly.
+3. Vytvořit release draft s odpovídajícím tagem v `Martin82K/Tender-Flow-Releases`.
+4. Nahrát konkrétní soubory z `dist-electron/` příkazem `gh release upload`
+   s explicitním `--repo Martin82K/Tender-Flow-Releases`; nenahrávat celý adresář
+   (obsahuje také pracovní a diagnostické soubory).
+5. Během přechodu stejnou verzi se stejnými soubory/metadata zrcadlit také do
+   `Martin82K/Tender-Flow`, aby ji našly starší instalace. Ověřit velikosti a
+   kontrolní součty v obou repozitářích a poté publikovat obě vydání.
+
+Samotné vytvoření nového repozitáře ani změna konfigurace nemění již nainstalované
+aplikace. Verze 1.9.26 a starší znají pouze původní zdroj. Původní repozitář musí
+zůstat veřejný, dokud se nedistribuuje a neověří přechodová verze. Změna na private
+je samostatný schvalovaný krok; později bude pro nepřevedené instalace nutná ruční
+instalace z nového repozitáře. Původní název repozitáře se nesmí uvolnit či předat
+jinému vlastníkovi, dokud jej staré klienty používají jako důvěryhodný zdroj.
+
+Před ukončením přechodu na Windows ověřit na nainstalované aplikaci:
+
+1. Původní verze → přechodová verze dostupná ve starém repozitáři.
+2. Přechodová verze → vyšší verze dostupná pouze v novém repozitáři.
+3. Nový zdroj nedostupný / prázdný, starý dostupný; poté opačný stav s 404 starého.
+4. Rozdílné verze, shoda verzí, souběžná ruční/periodická kontrola a opožděná odpověď.
+5. Poškozený SHA-512/podpis nesmí vést k instalaci ani tichému přechodu na starší soubor.
+
+Lokální a CI regresní kontrola po desktop kompilaci:
+
+```bash
+node scripts/check-update-sources.cjs
+```
+
+Používá skutečný `electron-updater` a loopback HTTP server s neproveditelnými
+testovacími soubory. Ověří výběr zdroje, fallback na dostupný repozitář a odmítnutí
+chybného SHA-512 v dočasném adresáři. Nespouští aplikaci ani instalátor, nesahá do
+uživatelského profilu a nenahrazuje test skutečné instalace/podpisu na Windows.
 
 ## Versioning
 

@@ -106,6 +106,17 @@ pro desktop build nebo upload.
 ### Průběh automatické aktualizace
 
 - Windows klient kontroluje novou verzi po spuštění a následně každých 6 hodin.
+- Kontroluje veřejné GitHub repozitáře `Martin82K/Tender-Flow-Releases` a původní
+  `Martin82K/Tender-Flow`. Vybere nejvyšší způsobilou SemVer verzi; při shodě
+  upřednostní nový repozitář. Do aplikace se nevkládá GitHub token.
+- Každý zdroj má 15 sekund na kontrolu metadat. Výpadek, 404 po změně viditelnosti
+  nebo prázdný release repozitář neblokuje dostupný druhý zdroj. Pokud neodpoví
+  žádný, aplikace nabídne opakování kontroly.
+- Stahování začne až po výběru jednoho zdroje. Ověření SHA-512, případného podpisu,
+  minimální verze OS a staged rollout zajišťuje `electron-updater`. Po chybě
+  integrity se automaticky nepřechází na starší verzi z druhého zdroje.
+- Probíhající kontrola/stahování se sdílí mezi ručním a periodickým požadavkem;
+  opožděný výsledek druhého zdroje nepřepíše stav připravené instalace.
 - Dostupná verze se automaticky stahuje na pozadí. Průběh je vidět ve footeru
   sidebaru a neblokuje práci v aplikaci.
 - Po ověřeném stažení footer nabídne jedinou akci **Restartovat**. Aktualizace se
