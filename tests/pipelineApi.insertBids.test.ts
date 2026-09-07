@@ -67,6 +67,17 @@ describe("idempotent pipeline insert", () => {
     expect(mocks.read).toHaveBeenNthCalledWith(2, "category-2", ["supplier-1"]);
   });
 
+  it("splits a large selection into bounded RPC batches and verifies every supplier", async () => {
+    const rows = Array.from({ length: 1001 }, (_, i) => ({ ...payload, id: `bid-${i}`, subcontractor_id: `supplier-${i}` }));
+    mocks.write.mockImplementation(async batch => ({ data: batch, error: null }));
+    mocks.read.mockImplementation(async (_categoryId, ids: string[]) => ({ data: rows.filter(row => ids.includes(row.subcontractor_id)), error: null }));
+    const response = await insertBids(rows);
+    expect(response.error).toBeNull();
+    expect(response.data).toHaveLength(1001);
+    expect(mocks.write.mock.calls.map(call => call[0].length)).toEqual([1000, 1]);
+    expect(response.insertedIds).toHaveLength(1001);
+  });
+
   it("does nothing for an empty selection", async () => {
     expect(await insertBids([])).toEqual({ data: [], error: null, insertedIds: [] });
     expect(mocks.write).not.toHaveBeenCalled();

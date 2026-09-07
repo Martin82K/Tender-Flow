@@ -19,10 +19,10 @@ export const toPipelineBid = (row: PersistedBidRow): Bid => ({
 });
 
 export const mergeConfirmedBids = (existing: Bid[], confirmed: Bid[]): Bid[] => {
-  const bySupplier = new Map(confirmed.map(bid => [bid.subcontractorId, bid]));
-  const existingSuppliers = new Set(existing.map(bid => bid.subcontractorId));
+  const byId = new Map(confirmed.map(bid => [bid.id, bid]));
+  const existingIds = new Set(existing.map(bid => bid.id));
   return [
-    ...existing.map(bid => bySupplier.get(bid.subcontractorId) ?? bid),
-    ...confirmed.filter(bid => !existingSuppliers.has(bid.subcontractorId)),
+    ...existing.map(bid => byId.get(bid.id) ?? bid),
+    ...confirmed.filter(bid => !existingIds.has(bid.id)),
   ];
 };

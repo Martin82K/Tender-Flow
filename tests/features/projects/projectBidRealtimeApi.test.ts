@@ -29,7 +29,7 @@ describe("projectBidRealtimeApi", () => {
     state.removeChannel.mockReset();
     state.on.mockImplementation((_kind, _filter, handler) => {
       state.changeHandler = handler;
-      return { subscribe: state.subscribe };
+      return { on: state.on, subscribe: state.subscribe };
     });
     state.subscribe.mockImplementation((handler) => {
       state.statusHandler = handler;
@@ -45,10 +45,11 @@ describe("projectBidRealtimeApi", () => {
 
     expect(state.on).toHaveBeenCalledWith(
       "postgres_changes",
-      { event: "*", schema: "public", table: "bids" },
+      { event: "INSERT", schema: "public", table: "bids" },
       expect.any(Function),
     );
     expect(onBidUpdated).toHaveBeenCalledWith("category-1");
+    expect(state.on.mock.calls.map(call => call[1].event)).toEqual(["INSERT", "UPDATE"]);
   });
 
   it("ohlásí výpadek a při cleanup odstraní kanál", () => {

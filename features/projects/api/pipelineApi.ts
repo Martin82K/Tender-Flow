@@ -50,10 +50,13 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
   const unique = [...new Map(payload.map(row => [JSON.stringify([row.demand_category_id, row.subcontractor_id]), row])).values()];
   let insertedIds: string[] = [];
   try {
-    const written = await pipelineRepository.insertBids(unique);
-    // Only transport failures are ambiguous; permission/validation errors remain errors.
-    if (written.error && written.status !== 0) return { data: null, error: written.error, insertedIds };
-    insertedIds = (written.data ?? []).map(row => row.id);
+    for (let offset = 0; offset < unique.length; offset += 1000) {
+      const written = await pipelineRepository.insertBids(unique.slice(offset, offset + 1000));
+      // Only transport failures are ambiguous; permission/validation errors remain errors.
+      if (written.error && written.status !== 0) return { data: null, error: written.error, insertedIds };
+      insertedIds.push(...(written.data ?? []).map(row => row.id));
+      if (written.error) break;
+    }
   } catch (error) {
     if (!(error instanceof TypeError) && !(error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name))) {
       return { data: null, error, insertedIds };

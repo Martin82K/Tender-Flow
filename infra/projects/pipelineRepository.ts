@@ -43,11 +43,12 @@ export const pipelineRepository = {
   },
 
   insertBids(payload: BidInsertPayload[]) {
-    return supabase.from("bids")
-      .upsert(payload, { onConflict: "demand_category_id,subcontractor_id", ignoreDuplicates: true })
-      .select()
-      .abortSignal(AbortSignal.timeout(30_000))
-      .returns<PersistedBidRow[]>();
+    return supabase.rpc<
+      "insert_pipeline_bids",
+      { p_bids: BidInsertPayload[] },
+      { Row: PersistedBidRow; Result: PersistedBidRow[]; RelationName: "insert_pipeline_bids"; Relationships: null }
+    >("insert_pipeline_bids", { p_bids: payload })
+      .abortSignal(AbortSignal.timeout(30_000));
   },
 
   fetchBidsForSuppliers(categoryId: string, supplierIds: string[]) {
