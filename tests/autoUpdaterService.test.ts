@@ -10,7 +10,7 @@ afterAll(() => { if (platformDescriptor) Object.defineProperty(process, 'platfor
 afterEach(() => vi.useRealTimers());
 beforeEach(() => { mocks.handle.mockReset(); mocks.nsis.mockReset(); });
 
-const info = (version: string) => ({ version, files: [], releaseDate: '2026-09-07T00:00:00Z' });
+const info = (version: string) => ({ version, files: [{ url: 'installer.exe', sha512: 'same-payload-sha512', size: 10 }], releaseDate: '2026-09-07T00:00:00Z' });
 const client = (version = '1.9.27', available = true) => {
   const events = new EventEmitter();
   const value = {
@@ -160,6 +160,61 @@ describe('updates from two release repositories', () => {
     expect(legacy.downloadUpdate).not.toHaveBeenCalled();
     service.quitAndInstall();
     expect(primary.quitAndInstall).not.toHaveBeenCalled();
+  });
+  it.each([
+    new Error('Cannot download "https://example.test/installer.exe", status 404: Not Found'),
+    Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }),
+    new Error('net::ERR_CONNECTION_RESET'),
+  ])('downloads an identical mirror after a transport failure: %s', async error => {
+    const primary = client(), legacy = client();
+    primary.downloadUpdate.mockRejectedValue(error);
+    legacy.downloadUpdate.mockImplementation(async () => {
+      legacy.emit('update-downloaded', info('1.9.27'));
+      return ['installer.exe'];
+    });
+    const service = await create([primary, legacy]);
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    expect(primary.downloadUpdate).toHaveBeenCalledOnce();
+    expect(legacy.downloadUpdate).toHaveBeenCalledOnce();
+    expect(service.getStatus().status).toBe('downloaded');
+    primary.emit('error', error);
+    primary.emit('update-downloaded', info('1.9.27'));
+    expect(service.getStatus().status).toBe('downloaded');
+    service.quitAndInstall();
+    expect(primary.quitAndInstall).not.toHaveBeenCalled();
+    expect(legacy.quitAndInstall).toHaveBeenCalledWith(true, true);
+  });
+  it.each(['ERR_CHECKSUM_MISMATCH', 'ERR_UPDATER_INVALID_SIGNATURE', 'ERR_CERT_AUTHORITY_INVALID', 'ENOSPC'])
+    ('does not switch even to an identical mirror after %s', async code => {
+      const primary = client(), legacy = client();
+      primary.downloadUpdate.mockRejectedValue(Object.assign(new Error('blocked'), { code }));
+      const service = await create([primary, legacy]);
+      await service.checkForUpdates();
+      await service.downloadUpdate();
+      expect(service.getStatus().status).toBe('error');
+      expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+    });
+  it.each(['different version', 'different checksum'])('rejects a non-equivalent mirror: %s', async difference => {
+    const primary = client('1.9.28'), legacy = client(difference === 'different version' ? '1.9.27' : '1.9.28');
+    if (difference === 'different checksum') {
+      legacy.checkForUpdates.mockResolvedValue({ updateInfo: { ...info('1.9.28'), files: [{ url: 'installer.exe', sha512: 'different-payload', size: 10 }] }, isUpdateAvailable: true });
+    }
+    primary.downloadUpdate.mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+    const service = await create([primary, legacy]);
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    expect(service.getStatus().status).toBe('error');
+    expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it('reports an error after both mirrors fail without looping', async () => {
+    const sources = [client(), client()];
+    sources.forEach(s => s.downloadUpdate.mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' })));
+    const service = await create(sources);
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    expect(service.getStatus().status).toBe('error');
+    sources.forEach(s => expect(s.downloadUpdate).toHaveBeenCalledOnce());
   });
   it('allows a healthy source through after another source times out and ignores its late result', async () => {
     vi.useFakeTimers();

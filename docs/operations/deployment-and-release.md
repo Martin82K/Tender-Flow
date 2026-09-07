@@ -116,6 +116,9 @@ verze. Po timeoutu se klient zdroje vyřadí a další pokus použije novou inst
 aby opakování nečekalo na původní zaseknutý požadavek. Postupné kontroly brání souběhu při prvním vytvoření společného `.updaterId`
 pro staged rollout; každý zdroj má časový limit 15 sekund.
 Při shodě vybere nový repozitář; při výpadku jednoho pokračuje druhým.
+Při známé síťové/HTTP chybě stahování může jednou přejít na druhý zdroj, pouze
+pokud metadata uvádějí stejnou verzi, SHA-512 a velikosti souborů. Chyba integrity,
+certifikátu, disku či neznámá chyba aktualizaci zastaví bez přepnutí.
 macOS zůstává v dosavadním manuálním režimu. Publikační oprávnění patří jen
 release správci/build prostředí, nikdy koncovým uživatelům aplikace.
 
@@ -143,6 +146,7 @@ Před ukončením přechodu na Windows ověřit na nainstalované aplikaci:
 1. Původní verze → přechodová verze dostupná ve starém repozitáři.
 2. Přechodová verze → vyšší verze dostupná pouze v novém repozitáři.
 3. Nový zdroj nedostupný / prázdný, starý dostupný; poté opačný stav s 404 starého.
+   Také dostupná metadata a 404 instalátoru: identický mirror musí dokončit stažení.
 4. Rozdílné verze, shoda verzí, souběžná ruční/periodická kontrola a opožděná odpověď.
 5. Poškozený SHA-512/podpis nesmí vést k instalaci ani tichému přechodu na starší soubor.
 

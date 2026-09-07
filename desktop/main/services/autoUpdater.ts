@@ -28,6 +28,29 @@ interface UpdateSource {
     client: AutoUpdaterClient | null;
 }
 type SourceResult = Awaited<ReturnType<AutoUpdaterClient['checkForUpdates']>>;
+interface UpdateCandidate { source: AutoUpdaterClient; info: UpdateInfo; }
+
+const isDownloadTransportError = (error: unknown): boolean => {
+    if (!(error instanceof Error)) return false;
+    // Allow only known transport failures. Integrity, certificate, permission and
+    // unknown errors must stop the update even when another mirror is available.
+    if ('code' in error && typeof error.code === 'string') {
+        return /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|ENETUNREACH|EHOSTUNREACH|EAI_AGAIN|ENOTFOUND|HTTP_ERROR_(403|404|408|410|429|5\d\d))$/.test(error.code);
+    }
+    // builder-util-runtime download HTTP errors and timeouts have no error code.
+    return /^Cannot download "https?:\/\/[^"\r\n]+", status (403|404|408|410|429|5\d\d):/.test(error.message)
+        || error.message === 'Request timed out'
+        || /^net::ERR_(CONNECTION_(RESET|REFUSED|CLOSED|TIMED_OUT|FAILED)|TIMED_OUT|INTERNET_DISCONNECTED|NETWORK_CHANGED|NAME_NOT_RESOLVED|ADDRESS_UNREACHABLE)$/.test(error.message);
+};
+
+const isIdenticalMirror = (selected: UpdateInfo, other: UpdateInfo): boolean => {
+    if (compare(selected.version, other.version) !== 0 || !Array.isArray(selected.files)
+        || !Array.isArray(other.files) || selected.files.length === 0
+        || selected.files.length !== other.files.length) return false;
+    const identities = (info: UpdateInfo) => info.files.map(file => `${file.sha512}:${file.size ?? ''}`).sort();
+    if ([...selected.files, ...other.files].some(file => !file.sha512)) return false;
+    return JSON.stringify(identities(selected)) === JSON.stringify(identities(other));
+};
 
 const createUpdateSourceFactories = (): UpdateSourceFactory[] => process.platform === 'win32'
     ? UPDATE_REPOSITORIES.map(repo => () => new NsisUpdater({
@@ -55,6 +78,7 @@ export class AutoUpdaterService {
     private selectedSource: AutoUpdaterClient | null = null;
     private checkPromise: Promise<boolean> | null = null;
     private downloadPromise: Promise<void> | null = null;
+    private downloadCandidates: UpdateCandidate[] = [];
     private readonly sources: UpdateSource[];
 
     private readonly isDevMode = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -179,6 +203,7 @@ export class AutoUpdaterService {
 
     private async checkSources(): Promise<boolean> {
         this.selectedSource = null;
+        this.downloadCandidates = [];
         this.updateStatus = { status: 'checking' };
         this.sendStatusToRenderer();
         // electron-updater creates .updaterId lazily. Serial probes prevent two new
@@ -188,7 +213,7 @@ export class AutoUpdaterService {
             const [check] = await Promise.allSettled([this.probe(source)]);
             checks.push(check);
         }
-        const candidates: { source: AutoUpdaterClient; info: UpdateInfo }[] = [];
+        const candidates: UpdateCandidate[] = [];
         let checkedSource = false;
         checks.forEach(check => {
             if (check.status !== 'fulfilled' || !check.value.result?.updateInfo) return;
@@ -211,6 +236,8 @@ export class AutoUpdaterService {
             this.sendStatusToRenderer();
             return false;
         }
+        this.downloadCandidates = candidates.filter(candidate => candidate === selected
+            || isIdenticalMirror(selected.info, candidate.info));
         this.selectedSource = selected.source;
         this.updateStatus = { status: 'available', info: selected.info };
         this.sendStatusToRenderer();
@@ -218,17 +245,15 @@ export class AutoUpdaterService {
         return true;
     }
 
-    /** Download only from the selected provider; never fall back after integrity failure. */
+    /** Retry an identical mirror only for transport failures, never integrity errors. */
     downloadUpdate(): Promise<void> {
         if (!this.isWinAutoUpdateEnabled || !this.selectedSource || this.updateStatus.status === 'downloaded') {
             return Promise.resolve();
         }
         if (this.downloadPromise) return this.downloadPromise;
-        const source = this.selectedSource;
         this.updateStatus = { status: 'downloading', info: this.updateStatus.info };
         this.sendStatusToRenderer();
-        this.downloadPromise = Promise.resolve().then(() => source.downloadUpdate())
-            .then(() => undefined)
+        this.downloadPromise = Promise.resolve().then(() => this.downloadFromMirrors())
             .catch((error: unknown) => {
                 this.updateStatus = {
                     status: 'error', info: this.updateStatus.info,
@@ -238,6 +263,23 @@ export class AutoUpdaterService {
             })
             .finally(() => { this.downloadPromise = null; });
         return this.downloadPromise;
+    }
+
+    private async downloadFromMirrors(): Promise<void> {
+        const start = this.downloadCandidates.findIndex(candidate => candidate.source === this.selectedSource);
+        if (start < 0) throw new Error('No update source selected');
+        for (let index = start; index < this.downloadCandidates.length; index++) {
+            const candidate = this.downloadCandidates[index];
+            this.selectedSource = candidate.source;
+            this.updateStatus = { status: 'downloading', info: candidate.info };
+            this.sendStatusToRenderer();
+            try {
+                await candidate.source.downloadUpdate();
+                return;
+            } catch (error) {
+                if (!isDownloadTransportError(error) || index === this.downloadCandidates.length - 1) throw error;
+            }
+        }
     }
 
     /**
@@ -273,11 +315,10 @@ export class AutoUpdaterService {
             this.updateStatus = { status: 'downloaded', info };
             this.sendStatusToRenderer();
         });
-        source.on('error', (error: Error) => {
-            if (source !== this.selectedSource || !this.downloadPromise) return;
-            this.updateStatus = { status: 'error', error: error.message, info: this.updateStatus.info };
-            this.sendStatusToRenderer();
-        });
+        // checkForUpdates/downloadUpdate reject with the same emitted error. Their
+        // promises decide recovery, so intermediate mirror failures cannot flash a
+        // terminal error in the UI. Also consume late errors from retired probes.
+        source.on('error', () => {});
     }
 
     private registerIpcHandlers(): void {
