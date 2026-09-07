@@ -152,7 +152,7 @@ export const usePipelineSubcontractorSelection = ({
           email: bid.email, phone: bid.phone, price: null, price_display: bid.price,
           notes: null, status: bid.status, tags: bid.tags || [],
         })));
-        if (response.error || !response.data) throw new Error("Uložení dodavatelů se nepodařilo ověřit.");
+        if (!response.data?.length) throw new Error("Uložení dodavatelů se nepodařilo ověřit.");
 
         const confirmed = response.data.map(toPipelineBid);
         const queryKey = PROJECT_DETAILS_KEYS.detail(projectDataId);
@@ -165,7 +165,7 @@ export const usePipelineSubcontractorSelection = ({
         try {
           await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: "active" }, { throwOnError: true });
         } catch {
-          if (current()) showAlert({
+          if (current() && !response.error) showAlert({
             title: "Dodavatelé uloženi",
             message: "Uložení proběhlo, ale přehled se nepodařilo obnovit. Zkuste obnovit projekt.",
             variant: "info",
@@ -174,6 +174,18 @@ export const usePipelineSubcontractorSelection = ({
         if (current()) {
           const insertedIds = new Set(response.insertedIds);
           void createSupplierFolders(category, confirmed.filter(bid => insertedIds.has(bid.id)));
+        }
+        if (response.error) {
+          if (current()) {
+            const confirmedSuppliers = new Set(confirmed.map(bid => bid.subcontractorId));
+            setSelectedSubcontractorIds(previous => new Set([...previous].filter(id => !confirmedSuppliers.has(id))));
+            showAlert({
+              title: "Uložena část dodavatelů",
+              message: `Potvrzeno ${confirmedSuppliers.size} z ${new Set(contacts.map(contact => contact.id)).size} dodavatelů. Zbývající výběr můžete zkusit přidat znovu.`,
+              variant: "info",
+            });
+          }
+          return;
         }
       }
       if (current()) {

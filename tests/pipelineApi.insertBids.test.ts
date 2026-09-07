@@ -36,6 +36,25 @@ describe("idempotent pipeline insert", () => {
     expect(mocks.notify).toHaveBeenCalledOnce();
   });
 
+  it.each([408, 429, 500, 502, 503, 504])("reconciles a committed write after HTTP %s without another write", async status => {
+    mocks.write.mockResolvedValue({ data: null, error: { message: "gateway failure" }, status });
+    mocks.read.mockResolvedValue({ data: [payload], error: null });
+    expect(await insertBids([payload])).toEqual({ data: [payload], error: null, insertedIds: [] });
+    expect(mocks.write).toHaveBeenCalledOnce();
+    expect(mocks.notify).toHaveBeenCalledOnce();
+  });
+
+  it("returns confirmed rows when a later batch fails and leaves the remaining selection retryable", async () => {
+    const rows = Array.from({ length: 1001 }, (_, i) => ({ ...payload, id: `bid-${i}`, subcontractor_id: `supplier-${i}` }));
+    const committed = rows.slice(0, 1000);
+    const error = { code: "42501", message: "permission changed" };
+    mocks.write.mockResolvedValueOnce({ data: committed, error: null })
+      .mockResolvedValueOnce({ data: null, error, status: 403 });
+    mocks.read.mockImplementation(async (_categoryId, ids: string[]) => ({ data: committed.filter(row => ids.includes(row.subcontractor_id)), error: null }));
+    expect(await insertBids(rows)).toEqual({ data: committed, error, insertedIds: committed.map(row => row.id) });
+    expect(mocks.notify).toHaveBeenCalledOnce();
+  });
+
   it("does not disguise denied permission as a successful existing bid", async () => {
     const error = { code: "42501", message: "denied" };
     mocks.write.mockResolvedValue({ data: null, error, status: 403 });

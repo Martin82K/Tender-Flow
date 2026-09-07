@@ -48,44 +48,55 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
   if (payload.length === 0) return { data: [], error: null, insertedIds: [] };
   // A batch can contain the same pair twice. Never overwrite an existing offer.
   const unique = [...new Map(payload.map(row => [JSON.stringify([row.demand_category_id, row.subcontractor_id]), row])).values()];
-  let insertedIds: string[] = [];
+  const insertedIds: string[] = [];
+  let completedBatches = 0;
+  let writeError: unknown = null;
+  const finish = (data: PersistedBidRow[], error: unknown): InsertBidsResult => {
+    if (data.length > 0) notifyProjectBidsPersisted();
+    return { data: data.length > 0 ? data : null, error, insertedIds };
+  };
   try {
     for (let offset = 0; offset < unique.length; offset += 1000) {
       const written = await pipelineRepository.insertBids(unique.slice(offset, offset + 1000));
-      // Only transport failures are ambiguous; permission/validation errors remain errors.
-      if (written.error && written.status !== 0) return { data: null, error: written.error, insertedIds };
+      if (written.error) {
+        const ambiguous = written.status === 0 || written.status === 408 || written.status === 429
+          || (written.status >= 500 && written.status <= 599);
+        if (!ambiguous && completedBatches === 0) return finish([], written.error);
+        writeError = written.error;
+        break;
+      }
       insertedIds.push(...(written.data ?? []).map(row => row.id));
-      if (written.error) break;
+      completedBatches += 1;
     }
   } catch (error) {
-    if (!(error instanceof TypeError) && !(error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name))) {
-      return { data: null, error, insertedIds };
-    }
+    const ambiguous = error instanceof TypeError
+      || (error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name));
+    if (!ambiguous && completedBatches === 0) return finish([], error);
+    writeError = error;
   }
 
+  const data: PersistedBidRow[] = [];
   try {
-    // Read both inserted and pre-existing rows under the caller's RLS. This also
-    // reconciles a lost response after commit, without issuing a second write.
+    // Reconcile both ambiguous responses and earlier committed batches, always
+    // under caller RLS. Never reissue a write here or discard confirmed rows.
     const groups = new Map<string, string[]>();
     for (const row of unique) {
       groups.set(row.demand_category_id, [...(groups.get(row.demand_category_id) ?? []), row.subcontractor_id]);
     }
-    const data: PersistedBidRow[] = [];
     for (const [categoryId, supplierIds] of groups) {
       for (let offset = 0; offset < supplierIds.length; offset += 100) {
         const response = await pipelineRepository.fetchBidsForSuppliers(categoryId, supplierIds.slice(offset, offset + 100));
-        if (response.error) return { data: null, error: response.error, insertedIds };
+        if (response.error) return finish(data, response.error);
         data.push(...(response.data ?? []));
       }
     }
     const found = new Set(data.map(row => JSON.stringify([row.demand_category_id, row.subcontractor_id])));
     if (unique.some(row => !found.has(JSON.stringify([row.demand_category_id, row.subcontractor_id])))) {
-      return { data: null, error: new Error("Uložení všech dodavatelů zatím nelze ověřit. Opakování je bezpečné."), insertedIds };
+      return finish(data, writeError ?? new Error("Uložení všech dodavatelů zatím nelze ověřit. Opakování je bezpečné."));
     }
-    notifyProjectBidsPersisted();
-    return { data, error: null, insertedIds };
+    return finish(data, null);
   } catch (error) {
-    return { data: null, error, insertedIds };
+    return finish(data, error);
   }
 };
 

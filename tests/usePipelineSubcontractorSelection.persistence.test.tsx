@@ -91,6 +91,28 @@ describe("pipeline supplier persistence", () => {
     expect(h.showAlert).toHaveBeenCalledWith(expect.objectContaining({ variant: "danger" }));
   });
 
+  it("keeps confirmed partial results and folders while retrying only the remaining supplier", async () => {
+    const nextContact = { ...contact, id: "supplier-2", company: "Druhá firma" };
+    const nextRow = { ...row, id: "saved-2", subcontractor_id: nextContact.id, company_name: nextContact.company };
+    const nextBid = { ...bid, id: nextRow.id, subcontractorId: nextContact.id, companyName: nextContact.company };
+    mocks.insert.mockResolvedValueOnce({ ...savedResponse, error: { code: "42501" } })
+      .mockResolvedValueOnce({ data: [nextRow], error: null, insertedIds: [nextRow.id] });
+    mocks.autoCreate.mockResolvedValue({});
+    const h = setup("user", true); h.setServerBids({ [category.id]: [bid] });
+    act(() => h.result.current.setSelectedSubcontractorIds(new Set([contact.id, nextContact.id])));
+    await act(async () => { await h.result.current.handleAddSubcontractors([contact, nextContact]); });
+    await waitFor(() => expect(h.result.current.bids[category.id]).toEqual([bid]));
+    expect(h.result.current.isSubcontractorModalOpen).toBe(true);
+    expect(h.result.current.selectedSubcontractorIds).toEqual(new Set([nextContact.id]));
+    expect(h.showAlert).toHaveBeenCalledWith(expect.objectContaining({ title: "Uložena část dodavatelů", variant: "info" }));
+    expect(mocks.autoCreate).toHaveBeenCalledOnce();
+    h.setServerBids({ [category.id]: [bid, nextBid] });
+    await act(async () => { await h.result.current.handleAddSubcontractors([contact, nextContact]); });
+    expect(mocks.insert.mock.calls[1][0].map((item: { subcontractor_id: string }) => item.subcontractor_id)).toEqual([nextContact.id]);
+    expect(h.result.current.isSubcontractorModalOpen).toBe(false);
+    await waitFor(() => expect(h.result.current.bids[category.id]).toEqual([bid, nextBid]));
+  });
+
   it("retains a saved bid when refreshing fails and explains that the save succeeded", async () => {
     mocks.insert.mockResolvedValue(savedResponse);
     const h = setup(); h.queryFn.mockRejectedValue(new Error("offline"));
