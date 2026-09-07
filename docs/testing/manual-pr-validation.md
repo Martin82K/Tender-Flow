@@ -28,6 +28,22 @@ potvrzen v cílovém prostředí.
 | [#179](https://github.com/Martin82K/Tender-Flow/pull/179) | Identita notifikací | Pod účtem A otevřít notifikační centrum, označit jednu/všechny notifikace jako přečtené a jednu/všechny skrýt. Bez reloadu přepnout na B; badge ani obsah A se nesmí zobrazit a pozdní realtime událost A nesmí vyvolat desktopovou notifikaci. Po odhlášení a v demo režimu nesmí otevření ani čekání přes polling interval spustit notifikační RPC, realtime kanál nebo desktopovou notifikaci. | čeká |
 | [#180](https://github.com/Martin82K/Tender-Flow/pull/180) | Autor hodnocení dodavatele | Na detailu smlouvy pod účtem A uložit hvězdičky s poznámkou, pouze poznámku a následně clear; po refreshi ověřit hodnoty a autorizovaně zkontrolovat serverový `vendor_rating_by` a `vendor_rating_at`. Se síťovým throttlingem přepnout během save na B; B nesmí zdědit dialog, chybu ani refresh A. Bez identity, v demo režimu a jako uživatel bez edit práva ověřit bezpečné odmítnutí bez změny řádku. | čeká |
 
+## Karty nabídek a záložky Dokumentů
+
+- Ve VŘ zobrazit nabídku s dlouhým názvem dodavatele, všemi akcemi v hlavičce
+  a cenou CN. Ověřit sloupce široké 240, 280 a 360 px, název bez mezer i cenu
+  s nezalomitelnými mezerami. Celý název a částka musí zůstat čitelné uvnitř
+  karty; při nedostatku místa se badge zalomí pod název. Ověřit editaci,
+  otevření složky, odebrání a přetažení karty.
+- V Dokumentech přepínat Projektovou dokumentaci a Ceníky ve všech šesti
+  motivech, ve světlém i tmavém režimu. Aktivní záložka musí mít viditelné
+  zvýraznění a čitelný text i ikonu, najetí myší na jinou záložku musí změnit
+  její pozadí. Tabulátorem ověřit viditelný focus a klávesnicí aktivovat záložku.
+  Zopakovat při šířce okna 390 px a zvětšení rozhraní.
+- Při úpravách CSS měřit výsledné barvy v prohlížeči, včetně složení
+  průsvitného pozadí. Samotná přítomnost pravidla v souboru nestačí: obecné
+  styly motivů dříve přepisovaly pozadí aktivní záložky nezávisle na textu.
+
 ## Jak mapu udržovat
 
 - Nový PR přidat po vytvoření stabilního čísla nebo v bezprostředně následující
