@@ -10,8 +10,8 @@ Nedostupný projekt zobrazuje společnou zprávu pro odstraněný projekt a proj
 - `useAppData` odvozuje stav vybraného detailu z odpovídajícího výsledku dotazu a aktuálního seznamu projektů. Při otevřeném projektu se načítání detailů řeší uvnitř obrazovky; základní data aplikace si zachovávají globální načítání a zpracování chyb.
 - `retrySelectedProjectDetails` volá pouze `refetch` vybraného výsledku. `cancelRefetch: false` a kontrola probíhajícího požadavku brání duplicitnímu opakování. Nekoná se globální invalidace cache.
 - Pokud selže samotný seznam projektů a pro vybrané ID ještě neexistuje dotaz na detail, obrazovka hlásí chybu načtení a opakuje pouze seznam projektů. Selhání seznamu se nepovažuje za důkaz nedostupnosti projektu.
-- Dotaz na řádek projektu používá `maybeSingle()`: prázdný výsledek se převádí na `ProjectUnavailableError`. RLS a autentizace zůstávají v existujícím databázovém adaptéru. Databázové zprávy se nevypisují do obrazovky.
-- Stav nedostupnosti má přednost před starším detailem v cache. Chyba jiného projektu neovlivňuje stav otevřeného detailu.
+- Dotaz na řádek projektu používá `maybeSingle()`: potvrzený prázdný výsledek ukládá do cache `null` a nahrazuje předchozí detail. RLS a autentizace zůstávají v existujícím databázovém adaptéru. Databázové zprávy se nevypisují do obrazovky.
+- Nedostupný detail není ani v mapě dříve otevřených projektů. Síťová chyba dalšího pokusu, změna obrazovky ani zrušení dotazu původní data neobnoví; dostupnost obnoví až úspěšné načtení skutečného detailu. Běžný výpadek bez předchozího potvrzení nedostupnosti nadále zachovává poslední úspěšná data. Chyba jiného projektu neovlivňuje stav otevřeného detailu.
 
 ## Ověření a provoz
 
@@ -36,3 +36,5 @@ Přehledy používají existující `get_overview_tenant_data`, včetně jeho ko
 Ruční kontrola startu: v síťovém panelu otevřít TODO a ověřit absenci požadavků na detailové tabulky. Otevřít hledání, najít pracovní položku dosud neotevřeného projektu a otevřít kategorii. Detailové požadavky musí patřit jen tomuto projektu. Přehled musí použít souhrnný RPC a po vynucené chybě nabídnout **Zkusit znovu**.
 
 Souhrnná cache se zneplatní také po úspěšném uložení, přidání nebo smazání nabídky, změně jejího stavu či příznaku smlouvy a při realtime události nabídky. Událost se publikuje až po potvrzení databázového zápisu, takže návrat do přehledu nezůstane na starých součtech; neúspěšný zápis se za uloženou změnu nepovažuje.
+
+Rollback neúspěšné úpravy nebo archivace neobnovuje původní detail, pokud mezitím refetch přístup zamítl nebo cache zanikla. Ověřují to regrese s rozpracovanou mutací a následnou síťovou chybou.

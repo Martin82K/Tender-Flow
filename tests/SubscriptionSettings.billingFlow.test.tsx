@@ -114,4 +114,25 @@ describe("SubscriptionSettings billing flow", () => {
       ).toBeInTheDocument();
     });
   });
+
+  it.each([true, false])("cancels Stripe recurrence through the provider and reports success=%s", async (success) => {
+    getSubscriptionStateMock.mockResolvedValue({ tier: 'pro', effectiveTier: 'pro', status: 'active',
+      expiresAt: '2030-01-01', cancelAtPeriodEnd: false, billingProvider: 'stripe', billingCustomerId: 'cus_test', daysRemaining: 30 });
+    cancelRecurrenceMock.mockResolvedValue(success ? { success: true } : { success: false, error: 'Stripe cancellation failed' });
+    render(<SubscriptionSettings />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Zrušit automatické platby' }));
+    await waitFor(() => expect(cancelRecurrenceMock).toHaveBeenCalledTimes(1));
+    expect(cancelPlanMock).not.toHaveBeenCalled();
+    await screen.findByText(success ? 'Automatické platby budou zrušeny na konci období.' : 'Stripe cancellation failed');
+  });
+
+  it.each([true, false])("does not offer a database-only renewal toggle for Stripe (cancelled=%s)", async (cancelAtPeriodEnd) => {
+    getSubscriptionStateMock.mockResolvedValue({ tier: 'pro', effectiveTier: 'pro', status: 'active',
+      expiresAt: '2030-01-01', cancelAtPeriodEnd, billingProvider: 'stripe', billingCustomerId: 'cus_test', daysRemaining: 30 });
+    render(<SubscriptionSettings />);
+    await screen.findByText('Změnit tarif');
+    expect(screen.queryByText('Automatické obnovení')).not.toBeInTheDocument();
+    expect(cancelPlanMock).not.toHaveBeenCalled();
+    expect(reactivatePlanMock).not.toHaveBeenCalled();
+  });
 });

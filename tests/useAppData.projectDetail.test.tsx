@@ -270,6 +270,36 @@ describe("useAppData project detail recovery", () => {
       await client.refetchQueries({ queryKey: ["projectDetails", "project-1"], exact: true });
     });
     await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("unavailable"));
+    expect(result.current.state.allProjectDetails["project-1"]).toBeUndefined();
+    expect(client.getQueryData(["projectDetails", "project-1"])).toBeNull();
+  });
+
+  it("does not restore denied data after a network failure or navigation and recovers only on success", async () => {
+    database(success);
+    const { result, client, rerender } = setup();
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
+    database((table, id) => table === "projects" ? { data: null, error: null } : success(table, id));
+    await act(async () => { await client.refetchQueries({ queryKey: ["projectDetails", "project-1"], exact: true }); });
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("unavailable"));
+    database((table, id) => table === "projects" ? { data: null, error: new Error("network offline") } : success(table, id));
+    await act(async () => { await result.current.actions.retrySelectedProjectDetails(); });
+    await waitFor(() => expect(result.current.state.isSelectedProjectDetailsFetching).toBe(false));
+    expect(result.current.state.selectedProjectDetailsStatus).toBe("unavailable");
+    expect(result.current.state.allProjectDetails["project-1"]).toBeUndefined();
+    rerender({ active: false });
+    rerender({ active: true });
+    expect(result.current.state.selectedProjectDetailsStatus).toBe("unavailable");
+    await waitFor(() => expect(result.current.state.isSelectedProjectDetailsFetching).toBe(false));
+    expect(client.getQueryData(["projectDetails", "project-1"])).toBeNull();
+    database((table, id) => table === "projects" ? new Promise<Response>(() => {}) : success(table, id));
+    act(() => { void result.current.actions.retrySelectedProjectDetails(); });
+    await waitFor(() => expect(result.current.state.isSelectedProjectDetailsFetching).toBe(true));
+    await act(async () => { await client.cancelQueries({ queryKey: ["projectDetails", "project-1"], exact: true }); });
+    await waitFor(() => expect(result.current.state.isSelectedProjectDetailsFetching).toBe(false));
+    expect(client.getQueryData(["projectDetails", "project-1"])).toBeNull();
+    database(success);
+    await act(async () => { await result.current.actions.retrySelectedProjectDetails(); });
+    await waitFor(() => expect(result.current.state.selectedProjectDetailsStatus).toBe("ready"));
     expect(result.current.state.allProjectDetails["project-1"]).toBeDefined();
   });
 

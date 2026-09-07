@@ -2,7 +2,6 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { applyLocalBudgetAttachments } from "@features/projects/model/budgetAttachmentLocalStore";
-import { ProjectUnavailableError } from "@features/projects/model/projectDetailError";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { withRetry } from "@shared/async/asyncControl";
 import type {
@@ -152,7 +151,7 @@ export const PROJECT_DETAILS_KEYS = {
 
 const fetchProjectDetails = async (
   projectId: string,
-): Promise<ProjectDetails> => {
+): Promise<ProjectDetails | null> => {
   if (
     projectDemoDataApi.isDemoSession() ||
     projectDemoDataApi.isDemoProjectId(projectId)
@@ -214,8 +213,10 @@ const fetchProjectDetails = async (
   ]);
 
   if (projectRes.error) throw projectRes.error;
+  // A confirmed denial replaces cached data. A thrown error would retain it
+  // and a later transient failure could expose the old detail again.
   // Missing and RLS-filtered rows intentionally have the same public state.
-  if (!projectRes.data) throw new ProjectUnavailableError();
+  if (!projectRes.data) return null;
   if (categoriesRes.error) throw categoriesRes.error;
   if (contractRes.error) throw contractRes.error;
   if (financialsRes.error) throw financialsRes.error;

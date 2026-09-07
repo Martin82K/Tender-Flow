@@ -155,6 +155,24 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     }
   };
 
+  const handleCancelRecurrence = async () => {
+    setActionLoading(true);
+    setMessage(null);
+    try {
+      const result = await cancelRecurrence();
+      if (result.success) {
+        setMessage({ type: "success", text: result.message || "Automatické platby budou zrušeny na konci období." });
+        await loadSubscription();
+      } else {
+        setMessage({ type: "error", text: result.error || "Nepodařilo se zrušit automatické platby." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Nepodařilo se zrušit automatické platby." });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleReactivate = async () => {
     setActionLoading(true);
     setMessage(null);
@@ -438,6 +456,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
             {/* Auto-renewal Toggle */}
             {(isActive || (isCancelled && !isExpired)) &&
+              subscription.billingProvider !== "stripe" &&
               subscription.tier !== "admin" &&
               subscription.tier !== "free" && (
                 <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -517,6 +536,17 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   </button>
                 </div>
               )}
+
+            {subscription.billingProvider === "stripe" && !subscription.cancelAtPeriodEnd && !isExpired && subscription.tier !== "free" && (
+              <button
+                type="button"
+                onClick={handleCancelRecurrence}
+                disabled={actionLoading}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
+              >
+                Zrušit automatické platby
+              </button>
+            )}
 
             {/* Expired Renewal Action */}
             {isExpired && subscription.tier !== "free" && (

@@ -395,7 +395,9 @@ export const useArchiveProjectMutation = () => {
         },
         onError: (_error, { id }, context) => {
             queryClient.setQueryData(PROJECT_KEYS.list(), context?.previousProjects);
-            queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail(id), context?.previousDetails);
+            queryClient.setQueryData<ProjectDetails | null>(PROJECT_DETAILS_KEYS.detail(id), (current) =>
+                current == null ? current : context?.previousDetails
+            );
         },
         onSettled: async (_data, _error, { id }) => {
             await Promise.all([
@@ -615,7 +617,9 @@ export const useUpdateProjectDetailsMutation = () => {
             return { previousDetails };
         },
         onError: (_err, { id }, context) => {
-            queryClient.setQueryData(PROJECT_DETAILS_KEYS.detail(id), context?.previousDetails);
+            queryClient.setQueryData<ProjectDetails | null>(PROJECT_DETAILS_KEYS.detail(id), (current) =>
+                current == null ? current : context?.previousDetails
+            );
         },
         onSettled: (_data, _error, { id }) => {
             queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(id) });
