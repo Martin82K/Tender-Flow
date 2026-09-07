@@ -276,8 +276,8 @@ describe("architecture graph analysis", () => {
 
     expect(rawGraph.collectionErrors).toEqual([]);
     expect(rawGraph.nodes).toHaveLength(627);
-    expect(rawGraph.edges).toHaveLength(1903);
-    expect(resolvedGraph.edges).toHaveLength(1610);
+    expect(rawGraph.edges).toHaveLength(1902);
+    expect(resolvedGraph.edges).toHaveLength(1609);
     expect(resolvedGraph.unresolvedEdges).toHaveLength(293);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {

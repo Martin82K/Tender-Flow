@@ -71,7 +71,7 @@ export const useAppData = (showUiModal: (props: any) => void, isProjectView = tr
         if (!isProjectView || !selectedProjectId) return "idle";
         if (projectsLoading || !selectionMatchesRoute) return "loading";
         if (needsProjectListRetry) return "error";
-        if (!selectedProjectQuery || selectedProjectQuery.error instanceof ProjectUnavailableError) return "unavailable";
+        if (!selectedProjectQuery || selectedProjectQuery.data === null || selectedProjectQuery.error instanceof ProjectUnavailableError) return "unavailable";
         if (selectedProjectQuery.data) return "ready";
         if (selectedProjectQuery.isError || selectedProjectQuery.errorUpdatedAt > 0) return "error";
         return "loading";

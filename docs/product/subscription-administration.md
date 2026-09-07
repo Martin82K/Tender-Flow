@@ -59,3 +59,13 @@ V této etapě nejsou dostupné produkční code-scanning nálezy (GitHub vrací
 Migrace `20260906192005_reconcile_subscription_periods.sql` používá u Stripe organizací `expires_at`, aby staré ruční `billing_period_end` nezkrátilo ani neprodloužilo předplatné. Webhook zapisuje obě hodnoty společně. Při `past_due` zachovává pouze původní konec přístupu; `incomplete` nedostane placené období. Stav `pending` vyžaduje konkrétní budoucí konec. Ověřeno SQL testem s rollbackem, testy výpočtu období a zpracováním webhooku včetně odmítnutí neplatného podpisu. Rozdíl stavů odpovídá [životnímu cyklu předplatného Stripe](https://docs.stripe.com/billing/subscriptions/overview).
 
 Hlavní migrace před přidáním restriktivní politiky kontroluje existenci volitelných tabulek. Na již nasazené databázi tato úprava nic nemění; umožňuje průchod instalacemi bez volitelných rozpočtových tabulek.
+
+### Opravy hranic vydání 1.9.26
+
+Migrace `20260907065230_close_release_subscription_boundaries.sql` obnovuje veřejný provisioning pouze pro vlastní přihlášenou identitu. Argumenty mohou zůstat prázdné jako v původním wrapperu; explicitní ID a e-mail se porovnávají s ověřeným účtem. Anonymní volání nemá oprávnění ani k veřejné, ani k interní funkci. Interní bootstrap zůstává dostupný servisní roli a registračnímu triggeru a vytváří organizace bez automatického předplatného.
+
+REST výjimka zahrnuje přesně `get_short_url_target`, aby existující veřejný odkaz fungoval i přihlášenému uživateli bez předplatného. Ochrana MCP, přímý přístup k tabulce a ostatní RPC zůstávají zachované. Test `supabase/tests/release-subscription-boundaries.sql` kontroluje oprávnění, identitu, vlastní provisioning a přesný rozsah výjimky; končí rollbackem.
+
+`stripe-sync-org-subscription` sdílí výpočet období s webhookem. Synchronizuje oba sloupce konce přístupu a u `past_due` zachovává pouze již uložený konec; `incomplete` neuděluje nové období. Stejnou hodnotu vrací klientovi. Regrese handleru používají mockované Stripe odpovědi a neprovádějí skutečné platby.
+
+Legacy `SubscriptionSettings`, která není připojena v hlavních Nastaveních, opět obsahuje samostatnou akci **Zrušit automatické platby** přes Stripe. Odstranění nabídky Free tuto akci neruší. Stripe nepoužívá původní přepínač, který měnil pouze databázi bez změny u poskytovatele; tento přepínač zůstává pro ostatní předplatná. Nejde o nový samoobslužný prodej v `OrgBillingTab`; současný firemní Enterprise přehled zůstává zachován.

@@ -1,5 +1,5 @@
 import React from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -16,6 +16,7 @@ import {
 import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantDataQuery";
 import { PROJECT_DETAILS_KEYS } from "../hooks/queries/useProjectDetailsQuery";
 import { PROJECT_KEYS, PROJECT_SEARCH_KEY } from "../shared/queryKeys/projectKeys";
+import { expectConsoleError } from "./utils/consoleGuard";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -153,6 +154,36 @@ const expectOverviewInvalidation = (
 };
 
 describe("useProjectMutations -> overview cache invalidation", () => {
+  it.each(['archive', 'update'] as const)("does not restore denied detail after a late %s rollback", async (operation) => {
+    let finish!: (response: { data: null; error: { message: string } }) => void;
+    const pending = new Promise<{ data: null; error: { message: string } }>((resolve) => { finish = resolve; });
+    if (operation === 'archive') mocks.rpcMock.mockReturnValueOnce(pending);
+    else mocks.fromMock.mockReturnValueOnce({ update: () => ({ eq: () => pending }) });
+    const { queryClient, wrapper } = createWrapper();
+    const key = PROJECT_DETAILS_KEYS.detail('p-denied');
+    queryClient.setQueryData(key, { id: 'p-denied', title: 'Private project', status: 'tender' });
+    const { result } = renderHook(() => ({ archive: useArchiveProjectMutation(), update: useUpdateProjectDetailsMutation() }), { wrapper });
+    let mutation!: Promise<unknown>;
+    act(() => {
+      mutation = (operation === 'archive'
+        ? result.current.archive.mutateAsync({ id: 'p-denied', currentStatus: 'tender', archivedOriginalStatus: null })
+        : result.current.update.mutateAsync({ id: 'p-denied', updates: { location: 'Changed location' } })).catch((error: unknown) => error);
+    });
+    await waitFor(() => expect(queryClient.getQueryData(key)).toEqual(expect.objectContaining(
+      operation === 'archive' ? { status: 'archived' } : { location: 'Changed location' },
+    )));
+    // A successful RLS-filtered refetch revokes the cached detail while the write is pending.
+    queryClient.setQueryData(key, null);
+    if (operation === 'update') expectConsoleError('Error updating project:');
+    await act(async () => {
+      finish({ data: null, error: { message: 'Permission denied' } });
+      await mutation;
+    });
+    expect(queryClient.getQueryData(key)).toBeNull();
+    await expect(queryClient.fetchQuery({ queryKey: key, queryFn: () => Promise.reject(new Error('Offline')) })).rejects.toThrow('Offline');
+    expect(queryClient.getQueryData(key)).toBeNull();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fromMock.mockImplementation(() => createFromResult());

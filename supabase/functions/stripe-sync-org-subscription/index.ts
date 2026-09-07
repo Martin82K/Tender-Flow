@@ -17,6 +17,7 @@
 
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
+import { stripeOrgPeriodUpdate } from "../_shared/stripeOrgPeriod.ts";
 import {
   type Tier,
   mapStripeSubscriptionStatusToInternal,
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
 
     const { data: org, error: orgError } = await service
       .from("organizations")
-      .select("billing_customer_id, subscription_tier, max_seats, billing_period")
+      .select("billing_customer_id, subscription_tier, max_seats, billing_period, expires_at")
       .eq("id", orgId)
       .maybeSingle();
 
@@ -143,6 +144,11 @@ Deno.serve(async (req) => {
       internalStatus === "expired"
         ? null
         : stripePeriodEndToDate(subscription.current_period_end);
+    const periodUpdate = stripeOrgPeriodUpdate({
+      stripeStatus: subscription.status,
+      newExpiresAt: expiresAt,
+      existingExpiresAt: (org as { expires_at?: string | null }).expires_at ?? null,
+    });
 
     const item = subscription.items?.data?.[0];
     const seatsFromItem =
@@ -165,7 +171,7 @@ Deno.serve(async (req) => {
     const updateData: Record<string, unknown> = {
       subscription_tier: newTier,
       subscription_status: internalStatus,
-      expires_at: expiresAt ? expiresAt.toISOString() : null,
+      ...periodUpdate,
       billing_customer_id: subscription.customer ?? customerId,
       updated_at: new Date().toISOString(),
     };
@@ -205,7 +211,7 @@ Deno.serve(async (req) => {
         id: subscription.id,
         tier: newTier,
         status: internalStatus,
-        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        expiresAt: periodUpdate.expires_at,
         seats: newSeats,
         billingPeriod: newBillingPeriod,
       },

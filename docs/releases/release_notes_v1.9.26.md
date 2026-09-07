@@ -5,6 +5,7 @@ Patch přináší rychlejší načítání aplikace, rozšířené hledání a o
 ## Projekty a hledání
 
 - Detail projektu se načítá až při otevření; při chybě lze načtení zopakovat.
+- Po odebrání přístupu zůstává detail projektu skrytý i při výpadku sítě nebo opožděném selhání ukládání.
 - Globální hledání zahrnuje úkoly a umožňuje otevřít konkrétní detail smlouvy.
 - Úkoly lze otevírat přímým odkazem.
 - Částečné uložení kategorie má samostatné upozornění a možnost obnovit synchronizaci plánu výběrových řízení.
@@ -23,8 +24,12 @@ Patch přináší rychlejší načítání aplikace, rozšířené hledání a o
 - Správa balíčků odděluje přehled funkcí od pokročilých úprav.
 - Přístup do aplikace vyžaduje platné předplatné; bez něj je dostupná obrazovka pro obnovu přístupu.
 
+- Oprávnění vytvářet organizaci je omezeno na vlastní přihlášenou identitu.
+- Synchronizace Stripe neprodlužuje přístup za nezaplacené období; původní správa předplatného opět umožňuje zrušit automatické platby u poskytovatele.
+- Veřejné zkrácené odkazy fungují i přihlášeným uživatelům bez aktivního předplatného.
+
 ## Verze a desktop
 
 - Web i desktop používají verzi 1.9.26.
 - Instalační soubory pro macOS (Apple Silicon) a Windows (x64) se sestavují a ověřují lokálně. GitHub Actions nevkládá soubory do GitHub Release.
-- Publikace čeká na uzavření nevyřešených release připomínek v PR #417 a #430, kontrolu výsledného commitu a ověření instalačních souborů.
+- Publikace vyžaduje nasazení migrace a aktualizované Stripe synchronizace, kontrolu výsledného commitu a ověření instalačních souborů.
