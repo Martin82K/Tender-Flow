@@ -22,11 +22,18 @@ type AutoUpdaterClient = Pick<
 export const UPDATE_REPOSITORIES = ['Tender-Flow-Releases', 'Tender-Flow'] as const;
 const SOURCE_TIMEOUT_MS = 15_000;
 
-const createUpdateSources = (): AutoUpdaterClient[] => process.platform === 'win32'
-    ? UPDATE_REPOSITORIES.map(repo => new NsisUpdater({
+type UpdateSourceFactory = () => AutoUpdaterClient;
+interface UpdateSource {
+    create: UpdateSourceFactory;
+    client: AutoUpdaterClient | null;
+}
+type SourceResult = Awaited<ReturnType<AutoUpdaterClient['checkForUpdates']>>;
+
+const createUpdateSourceFactories = (): UpdateSourceFactory[] => process.platform === 'win32'
+    ? UPDATE_REPOSITORIES.map(repo => () => new NsisUpdater({
         provider: 'github', owner: 'Martin82K', repo, private: false,
     }))
-    : [autoUpdater];
+    : [() => autoUpdater];
 
 export interface UpdateStatus {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -48,28 +55,31 @@ export class AutoUpdaterService {
     private selectedSource: AutoUpdaterClient | null = null;
     private checkPromise: Promise<boolean> | null = null;
     private downloadPromise: Promise<void> | null = null;
-    private readonly pendingSources = new Set<AutoUpdaterClient>();
+    private readonly sources: UpdateSource[];
 
     private readonly isDevMode = process.env.NODE_ENV === 'development' || !app.isPackaged;
     private readonly isWinAutoUpdateEnabled = process.platform === 'win32';
     private readonly isMacArmManualMode = process.platform === 'darwin' && process.arch === 'arm64';
 
-    constructor(private readonly sources: AutoUpdaterClient[] = createUpdateSources()) {
-        for (const source of sources) {
-            // Probe without downloading. Only the selected, newest eligible source may download.
-            source.autoDownload = false;
-            source.autoInstallOnAppQuit = true;
-            source.allowDowngrade = false;
-            applyNoCacheUpdateRequestHeaders(source);
-            if (this.isDevMode) source.forceDevUpdateConfig = true;
-            if (this.isWinAutoUpdateEnabled) this.setupEventListeners(source);
-        }
+    constructor(sourceFactories: UpdateSourceFactory[] = createUpdateSourceFactories()) {
+        this.sources = sourceFactories.map(create => ({ create, client: this.configureSource(create()) }));
 
         if (this.isMacArmManualMode) {
             console.log('[AutoUpdater] macOS arm64 manual update mode enabled (no auto-update)');
         }
 
         this.registerIpcHandlers();
+    }
+
+    private configureSource(source: AutoUpdaterClient): AutoUpdaterClient {
+        // Probe without downloading. Only the selected, newest eligible source may download.
+        source.autoDownload = false;
+        source.autoInstallOnAppQuit = true;
+        source.allowDowngrade = false;
+        applyNoCacheUpdateRequestHeaders(source);
+        if (this.isDevMode) source.forceDevUpdateConfig = true;
+        if (this.isWinAutoUpdateEnabled) this.setupEventListeners(source);
+        return source;
     }
 
     /**
@@ -139,19 +149,29 @@ export class AutoUpdaterService {
         return this.checkPromise;
     }
 
-    private async probe(source: AutoUpdaterClient) {
-        if (this.pendingSources.has(source)) throw new Error('Previous source check is still pending');
-        this.pendingSources.add(source);
+    private async probe(source: UpdateSource): Promise<{ client: AutoUpdaterClient; result: SourceResult }> {
+        const client = source.client ?? this.configureSource(source.create());
+        source.client = client;
         let timer: ReturnType<typeof setTimeout> | undefined;
-        const request = Promise.resolve().then(() => source.checkForUpdates())
-            .finally(() => { this.pendingSources.delete(source); });
+        let timedOut = false;
+        const request = Promise.resolve().then(() => client.checkForUpdates());
         try {
-            return await Promise.race([
+            const result = await Promise.race([
                 request,
                 new Promise<never>((_, reject) => {
-                    timer = setTimeout(() => reject(new Error('Update source timed out')), SOURCE_TIMEOUT_MS);
+                    timer = setTimeout(() => {
+                        timedOut = true;
+                        reject(new Error('Update source timed out'));
+                    }, SOURCE_TIMEOUT_MS);
                 }),
             ]);
+            return { client, result };
+        } catch (error) {
+            // Metadata checks have no public cancellation API. Retire the instance:
+            // the next attempt gets a fresh request and cannot reuse its stuck promise.
+            // Its late events stay ignored because it can never be selected to download.
+            if (timedOut) source.client = null;
+            throw error;
         } finally {
             clearTimeout(timer);
         }
@@ -163,21 +183,21 @@ export class AutoUpdaterService {
         this.sendStatusToRenderer();
         // electron-updater creates .updaterId lazily. Serial probes prevent two new
         // instances from racing to overwrite it on first launch and changing rollout cohorts.
-        const checks: PromiseSettledResult<Awaited<ReturnType<AutoUpdaterClient['checkForUpdates']>>>[] = [];
+        const checks: PromiseSettledResult<{ client: AutoUpdaterClient; result: SourceResult }>[] = [];
         for (const source of this.sources) {
             const [check] = await Promise.allSettled([this.probe(source)]);
             checks.push(check);
         }
         const candidates: { source: AutoUpdaterClient; info: UpdateInfo }[] = [];
         let checkedSource = false;
-        checks.forEach((check, index) => {
-            if (check.status !== 'fulfilled' || !check.value?.updateInfo) return;
-            const { updateInfo, isUpdateAvailable } = check.value;
+        checks.forEach(check => {
+            if (check.status !== 'fulfilled' || !check.value.result?.updateInfo) return;
+            const { updateInfo, isUpdateAvailable } = check.value.result;
             if (!valid(updateInfo.version)) return;
             checkedSource = true;
             // Retain electron-updater's OS/staged-rollout checks as well as version ordering.
             if (isUpdateAvailable && gt(updateInfo.version, app.getVersion())) {
-                candidates.push({ source: this.sources[index], info: updateInfo });
+                candidates.push({ source: check.value.client, info: updateInfo });
             }
         });
         // Stable sort keeps the new repository first for equal versions.

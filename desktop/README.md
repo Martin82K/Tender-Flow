@@ -112,7 +112,8 @@ pro desktop build nebo upload.
 - Zdroje se kontrolují postupně, aby používaly stejný uložený identifikátor
   postupné distribuce. Každý zdroj má 15 sekund na kontrolu metadat. Výpadek, 404 po změně viditelnosti
   nebo prázdný release repozitář neblokuje dostupný druhý zdroj. Pokud neodpoví
-  žádný, aplikace nabídne opakování kontroly.
+  žádný, aplikace nabídne opakování kontroly. Po timeoutu se klient daného zdroje
+  vyřadí; další pokus vytvoří nový klient a skutečně zahájí nový požadavek.
 - Stahování začne až po výběru jednoho zdroje. Ověření SHA-512, případného podpisu,
   minimální verze OS a staged rollout zajišťuje `electron-updater`. Po chybě
   integrity se automaticky nepřechází na starší verzi z druhého zdroje.

@@ -112,7 +112,8 @@ shodu binárek se zdrojovým commitem eviduje release manifest a kontrolní sou�
 
 `electron-builder.yml` má jako hlavní cíl `Tender-Flow-Releases`. Windows updater
 kontroluje postupně nový i původní veřejný repozitář a porovná jejich způsobilé
-verze. Postupné kontroly brání souběhu při prvním vytvoření společného `.updaterId`
+verze. Po timeoutu se klient zdroje vyřadí a další pokus použije novou instanci,
+aby opakování nečekalo na původní zaseknutý požadavek. Postupné kontroly brání souběhu při prvním vytvoření společného `.updaterId`
 pro staged rollout; každý zdroj má časový limit 15 sekund.
 Při shodě vybere nový repozitář; při výpadku jednoho pokračuje druhým.
 macOS zůstává v dosavadním manuálním režimu. Publikační oprávnění patří jen

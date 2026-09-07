@@ -27,7 +27,7 @@ const client = (version = '1.9.27', available = true) => {
 };
 const create = async (sources: ReturnType<typeof client>[]) => {
   const { AutoUpdaterService } = await import('../desktop/main/services/autoUpdater');
-  return new AutoUpdaterService(sources);
+  return new AutoUpdaterService(sources.map(source => () => source));
 };
 
 describe('updates from two release repositories', () => {
@@ -176,6 +176,26 @@ describe('updates from two release repositories', () => {
     legacy.emit('update-available', info('1.10.0'));
     expect(service.getStatus().info?.version).toBe('1.9.27');
     expect(legacy.downloadUpdate).not.toHaveBeenCalled();
+  });
+  it('starts fresh requests on retry when both original checks never settle', async () => {
+    vi.useFakeTimers();
+    const stale = [client(), client()];
+    const fresh = [client('1.9.28'), client('1.9.27')];
+    stale.forEach(s => s.checkForUpdates.mockImplementation(() => new Promise(() => {})));
+    const factories = stale.map((source, index) => vi.fn().mockReturnValueOnce(source).mockReturnValue(fresh[index]));
+    const { AutoUpdaterService } = await import('../desktop/main/services/autoUpdater');
+    const service = new AutoUpdaterService(factories);
+    const first = service.checkForUpdates();
+    await vi.advanceTimersByTimeAsync(30_001);
+    expect(await first).toBe(false);
+    expect(service.getStatus().status).toBe('error');
+    expect(await service.checkForUpdates()).toBe(true);
+    fresh.forEach(s => expect(s.checkForUpdates).toHaveBeenCalledOnce());
+    stale.forEach(s => expect(s.checkForUpdates).toHaveBeenCalledOnce());
+    factories.forEach(factory => expect(factory).toHaveBeenCalledTimes(2));
+    expect(fresh[0].downloadUpdate).toHaveBeenCalledOnce();
+    stale[0].emit('update-downloaded', info('1.9.99'));
+    expect(service.getStatus().info?.version).toBe('1.9.28');
   });
   it('does not download before any eligible release has been selected', async () => {
     const source = client();

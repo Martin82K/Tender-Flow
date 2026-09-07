@@ -65,7 +65,7 @@ const server = http.createServer((req, res) => {
       return updater;
     });
     Object.defineProperty(process,'platform',{configurable:true,value:'win32'});
-    const service = new AutoUpdaterService(sources);
+    const service = new AutoUpdaterService(sources.map(source => () => source));
     Object.defineProperty(process,'platform',platform);
     assert.equal(await service.checkForUpdates(), true);
     await service.downloadUpdate();
