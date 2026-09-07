@@ -171,10 +171,8 @@ export const usePipelineSubcontractorSelection = ({
             variant: "info",
           });
         }
-        if (current()) {
-          const insertedIds = new Set(response.insertedIds);
-          void createSupplierFolders(category, confirmed.filter(bid => insertedIds.has(bid.id)));
-        }
+        const insertedIds = new Set(response.insertedIds);
+        void createSupplierFolders(category, confirmed.filter(bid => insertedIds.has(bid.id)));
         if (response.error) {
           if (current()) {
             const confirmedSuppliers = new Set(confirmed.map(bid => bid.subcontractorId));

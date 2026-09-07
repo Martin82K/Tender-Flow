@@ -169,6 +169,20 @@ describe("pipeline supplier persistence", () => {
     expect(h.result.current.bids[category.id][0]).toEqual(existing);
   });
 
+  it.each(["category", "project", "unmount"])("finishes the original project's DocHub after changing %s without stale alerts", async scope => {
+    const pending = deferred<typeof savedResponse>(); mocks.insert.mockReturnValue(pending.promise);
+    mocks.autoCreate.mockRejectedValue(new Error("folder failure"));
+    const h = setup("user", true); h.setServerBids({ [category.id]: [bid] });
+    let request!: Promise<void>;
+    act(() => { request = h.result.current.handleAddSubcontractors([contact]); });
+    h.client.setQueryData(["projectDetails", "project-2"], { id: "project-2", bids: {} });
+    if (scope === "unmount") h.unmount();
+    else h.rerender({ projectId: scope === "project" ? "project-2" : "project-1", activeCategory: { ...category, id: "category-2" } });
+    await act(async () => { pending.resolve(savedResponse); await request; });
+    expect(mocks.autoCreate).toHaveBeenCalledWith("dochub-autocreate", { body: { projectId: "project-1" } });
+    expect(h.showAlert).not.toHaveBeenCalled();
+  });
+
   it.each([true, false])("only creates DocHub folders for new rows (new: %s)", async isNew => {
     mocks.insert.mockResolvedValue({ ...savedResponse, insertedIds: isNew ? [row.id] : [] });
     mocks.autoCreate.mockResolvedValue({});
