@@ -318,7 +318,13 @@ export class AutoUpdaterService {
         // checkForUpdates/downloadUpdate reject with the same emitted error. Their
         // promises decide recovery, so intermediate mirror failures cannot flash a
         // terminal error in the UI. Also consume late errors from retired probes.
-        source.on('error', () => {});
+        source.on('error', (error: Error) => {
+            // Installation has no rejecting promise: preserve its error reporting
+            // after download completion, including auto-install on normal app quit.
+            if (source !== this.selectedSource || this.updateStatus.status !== 'downloaded') return;
+            this.updateStatus = { status: 'error', error: error.message, info: this.updateStatus.info };
+            this.sendStatusToRenderer();
+        });
     }
 
     private registerIpcHandlers(): void {

@@ -150,6 +150,19 @@ describe('updates from two release repositories', () => {
     expect(primary.quitAndInstall).toHaveBeenCalledWith(true, true);
     expect(primary.checkForUpdates).toHaveBeenCalledOnce();
   });
+  it('preserves installation error reporting from the selected source after downloading', async () => {
+    const source = client();
+    source.downloadUpdate.mockImplementation(async () => {
+      source.emit('update-downloaded', info('1.9.27'));
+      return ['installer.exe'];
+    });
+    source.quitAndInstall.mockImplementation(() => source.emit('error', new Error('Installer could not start')));
+    const service = await create([source]);
+    await service.checkForUpdates();
+    await service.downloadUpdate();
+    service.quitAndInstall();
+    expect(service.getStatus()).toMatchObject({ status: 'error', error: 'Installer could not start' });
+  });
   it('does not switch to an older source after a checksum or signature failure', async () => {
     const primary = client('1.10.0'), legacy = client();
     primary.downloadUpdate.mockRejectedValue(Error('checksum mismatch'));
