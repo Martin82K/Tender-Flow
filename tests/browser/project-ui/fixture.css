@@ -1,0 +1,4 @@
+.fixture-cards { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; }
+.fixture-column { width: 280px; padding: 12px; }
+/* Stable icon metrics without depending on Google's font CDN in CI. */
+.material-symbols-outlined { display: inline-block; width: 1em; overflow: hidden; white-space: nowrap; }

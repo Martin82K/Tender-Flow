@@ -30,6 +30,15 @@ potvrzen v cílovém prostředí.
 
 ## Karty nabídek a záložky Dokumentů
 
+Automatická regrese: `npm run test:project-ui` (také součást CI). Vyžaduje
+Node 22+ a nainstalovaný Chrome/Chromium; vlastní umístění lze zadat přes
+`CHROME_BIN`. Nepřidává browser balíčky ani nepoužívá osobní profil prohlížeče.
+`PROJECT_UI_ARTIFACTS` určuje adresář pro výsledky a screenshoty. Test sestaví
+skutečné komponenty i CSS do dočasného adresáře, backend nahradí testovacími
+službami a přes lokální Chrome ověří geometrické hranice, kontrast, hover,
+focus a ovládání. Metriky ikon jsou lokální, aby CI nezáviselo na fontovém CDN;
+vizuální kontrola s produkčními fonty zůstává součástí manuálního ověření.
+
 - Ve VŘ zobrazit nabídku s dlouhým názvem dodavatele, všemi akcemi v hlavičce
   a cenou CN. Ověřit sloupce široké 240, 280 a 360 px, název bez mezer i cenu
   s nezalomitelnými mezerami. Celý název a částka musí zůstat čitelné uvnitř

@@ -41,6 +41,11 @@ jobs:
       - name: Run test suite
         run: npm run test:run
 
+      - name: Check project UI layout and theme states in Chrome
+        run: npm run test:project-ui
+        env:
+          PROJECT_UI_ARTIFACTS: ${{ runner.temp }}/project-ui-artifacts
+
       - name: Run Python Excel merge regressions
         run: |
           python3 -m venv "$RUNNER_TEMP/excel-merge-tests"
