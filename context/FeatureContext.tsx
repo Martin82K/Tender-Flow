@@ -10,6 +10,7 @@ import {
 
 // Periodic refresh interval for subscription tier validation
 const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60; // Revalidate access while the application is open.
+const SUBSCRIPTION_VERIFICATION_TTL = 90_000;
 
 interface FeatureContextType {
   enabledFeatures: FeatureKey[];
@@ -28,6 +29,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [verificationError, setVerificationError] = useState(false);
   const [validUntil, setValidUntil] = useState<number | null>(null);
   const requestVersion = useRef(0);
+  const inFlightRequest = useRef<number | null>(null);
+  const verificationTimeout = useRef<number | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +40,6 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // for the new user — otherwise consumers (e.g. desktop plan blocker) would see
   // stale state (`currentPlan='free'` left over from a prior logout cleanup).
   const [fetchedForUserId, setFetchedForUserId] = useState<string | null>(null);
-  const lastRefreshRef = useRef<number>(0);
   const hasFetchedRef = useRef(false);
   const lastFetchedUserRef = useRef<string | null>(null);
 
@@ -47,6 +49,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Fetch features from backend
   const fetchFeatures = useCallback(async (): Promise<boolean> => {
     const version = ++requestVersion.current;
+    if (verificationTimeout.current !== null) window.clearTimeout(verificationTimeout.current);
+    verificationTimeout.current = null;
+    inFlightRequest.current = null;
     // While auth is still resolving (e.g. right after a desktop reload),
     // keep isLoading=true so gates that depend on currentPlan don't fire
     // with a stale 'free' value before the real tier is fetched.
@@ -98,6 +103,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!hasFetchedRef.current || isUserSwitch) {
       setIsLoading(true);
     }
+    inFlightRequest.current = version;
+    // Retry even a hung initial request, before an access deadline exists.
+    const timeout = window.setTimeout(() => {
+      if (version === requestVersion.current) void fetchFeatures();
+    }, SUBSCRIPTION_VERIFICATION_TTL);
+    verificationTimeout.current = timeout;
     try {
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
@@ -120,11 +131,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setVerificationError(false);
       // Even unlimited subscriptions need fresh server verification. A request
       // that never finishes must not keep stale access alive indefinitely.
-      setValidUntil(Math.min(deadline ?? Infinity, Date.now() + 90_000));
+      setValidUntil(Math.min(deadline ?? Infinity, Date.now() + SUBSCRIPTION_VERIFICATION_TTL));
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
-      lastRefreshRef.current = Date.now();
       return true;
     } catch (error) {
       if (version !== requestVersion.current) return false;
@@ -136,6 +146,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCurrentPlan('free');
       return false;
     } finally {
+      window.clearTimeout(timeout);
+      if (verificationTimeout.current === timeout) verificationTimeout.current = null;
+      // An old response must not unlock background refresh for a newer request.
+      if (inFlightRequest.current === version) inFlightRequest.current = null;
       if (version !== requestVersion.current) return false;
       setIsLoading(false);
       hasFetchedRef.current = true;
@@ -147,7 +161,11 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Fetch features when auth state changes
   useEffect(() => {
     void fetchFeatures();
-    return () => { requestVersion.current += 1; };
+    return () => {
+      requestVersion.current += 1;
+      if (verificationTimeout.current !== null) window.clearTimeout(verificationTimeout.current);
+      verificationTimeout.current = null;
+    };
   }, [fetchFeatures]);
 
   useEffect(() => {
@@ -169,14 +187,16 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Skip for demo mode
     if (userRole === 'demo') return;
 
-    const interval = setInterval(() => {
-      const timeSinceLastRefresh = Date.now() - lastRefreshRef.current;
-      if (timeSinceLastRefresh >= SUBSCRIPTION_REFRESH_INTERVAL) {
-        console.debug('[FeatureContext] Periodic subscription tier refresh');
-        fetchFeatures();
-      }
-    }, SUBSCRIPTION_REFRESH_INTERVAL);
+    const refreshInBackground = () => {
+      // Never skip a tick based on the last response time: network latency or
+      // a focus refresh can otherwise postpone verification to 120s, beyond
+      // the 90s access deadline, unmounting the user's open editor.
+      // Keep a pending response alive. Its own timeout retries a hung request.
+      if (inFlightRequest.current === null) void fetchFeatures();
+    };
+    const interval = setInterval(refreshInBackground, SUBSCRIPTION_REFRESH_INTERVAL);
 
+    // Preserve immediate recovery on returning to the window after a network outage.
     const onFocus = () => { void fetchFeatures(); };
     window.addEventListener('focus', onFocus);
     return () => {
