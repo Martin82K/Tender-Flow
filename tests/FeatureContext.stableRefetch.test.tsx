@@ -150,6 +150,19 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     expect(editor).toHaveFocus();
   });
 
+  it("retries a hung initial verification without an existing access deadline", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockImplementationOnce(() => new Promise(() => {}));
+    mocks.getEffectiveUserTier.mockResolvedValue({ tier: "pro" });
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledOnce();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("pro");
+    expect(screen.getByTestId("loading")).toHaveTextContent("false");
+  });
+
   it("applies server-side access revocation on the next periodic verification", async () => {
     vi.useFakeTimers();
     mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" }).mockResolvedValue({ tier: "free" });

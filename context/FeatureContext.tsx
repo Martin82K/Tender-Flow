@@ -10,6 +10,7 @@ import {
 
 // Periodic refresh interval for subscription tier validation
 const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60; // Revalidate access while the application is open.
+const SUBSCRIPTION_VERIFICATION_TTL = 90_000;
 
 interface FeatureContextType {
   enabledFeatures: FeatureKey[];
@@ -28,7 +29,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [verificationError, setVerificationError] = useState(false);
   const [validUntil, setValidUntil] = useState<number | null>(null);
   const requestVersion = useRef(0);
-  const inFlightRequest = useRef<number | null>(null);
+  const inFlightRequest = useRef<{ version: number; startedAt: number } | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +100,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!hasFetchedRef.current || isUserSwitch) {
       setIsLoading(true);
     }
-    inFlightRequest.current = version;
+    inFlightRequest.current = { version, startedAt: Date.now() };
     try {
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
@@ -122,7 +123,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setVerificationError(false);
       // Even unlimited subscriptions need fresh server verification. A request
       // that never finishes must not keep stale access alive indefinitely.
-      setValidUntil(Math.min(deadline ?? Infinity, Date.now() + 90_000));
+      setValidUntil(Math.min(deadline ?? Infinity, Date.now() + SUBSCRIPTION_VERIFICATION_TTL));
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
@@ -138,7 +139,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return false;
     } finally {
       // An old response must not unlock background refresh for a newer request.
-      if (inFlightRequest.current === version) inFlightRequest.current = null;
+      if (inFlightRequest.current?.version === version) inFlightRequest.current = null;
       if (version !== requestVersion.current) return false;
       setIsLoading(false);
       hasFetchedRef.current = true;
@@ -176,8 +177,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Never skip a tick based on the last response time: network latency or
       // a focus refresh can otherwise postpone verification to 120s, beyond
       // the 90s access deadline, unmounting the user's open editor.
-      // Reuse an ongoing verification instead of invalidating its response.
-      if (inFlightRequest.current === null) void fetchFeatures();
+      // Reuse a pending verification, but allow recovery if the initial request
+      // hangs before any access deadline has been established.
+      const pending = inFlightRequest.current;
+      if (!pending || Date.now() - pending.startedAt >= SUBSCRIPTION_VERIFICATION_TTL) {
+        void fetchFeatures();
+      }
     };
     const interval = setInterval(refreshInBackground, SUBSCRIPTION_REFRESH_INTERVAL);
 
