@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.resolve(__dirname, "..", "dist");
-const SITE_URL = "https://tenderflow.cz";
+const SITE_URL = "https://www.tenderflow.cz";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 const ROUTES = [
@@ -72,7 +72,7 @@ const ROUTES = [
     type: "article",
     noindex: false,
     summary:
-      "Provozovatelem platformy Tender Flow je společnost TenderFlow s.r.o. Tato stránka obsahuje povinné identifikační údaje, kontaktní e-mail (info@tenderflow.cz) a informace o registraci. Pro obchodní dotazy a podporu nás kontaktujte přímo e-mailem.",
+      "Provozovatelem platformy Tender Flow je Martin Kalkuš, fyzická osoba podnikající (OSVČ), IČO 74907026. Tato stránka obsahuje identifikační a kontaktní údaje provozovatele.",
   },
 ];
 
@@ -133,8 +133,8 @@ const replaceMeta = (html, { title, description, canonical, type, noindex }) => 
 
 /**
  * Per-page JSON-LD: BreadcrumbList + WebPage. Injektuje se před uzavírací
- * </head> tag, takže existující JSON-LD bloky pro Organization, WebSite,
- * SoftwareApplication, FAQPage a HowTo zůstávají zachované.
+ * </head> tag. Právní stránky sdílejí jen Organization a WebSite;
+ * produktové FAQ a nabídka patří výhradně na domovskou stránku.
  */
 const injectPerPageJsonLd = (html, route, canonical) => {
   const breadcrumb = {
@@ -181,7 +181,14 @@ const injectPerPageJsonLd = (html, route, canonical) => {
   <script type="application/ld+json">${JSON.stringify(webPage)}</script>
 `;
 
-  return html.replace("</head>", `${block}</head>`);
+  const pageHtml = html.replace(
+    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
+    (script, json) => {
+      const schema = JSON.parse(json);
+      return ["Organization", "WebSite"].includes(schema["@type"]) ? script : "";
+    },
+  );
+  return pageHtml.replace("</head>", `${block}</head>`);
 };
 
 const injectNoscriptSummary = (html, route, canonical) => {

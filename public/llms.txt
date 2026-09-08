@@ -1,164 +1,88 @@
 # Tender Flow
 
-> Česká **platforma pro přípravu a vedení staveb**. Pokrývá celý cyklus: poptávky, stavební tendry, výběrová řízení, správu subdodavatelů, AI analýzu smluv a objednávek, dokumentový hub, harmonogram a reporting. Není to generické CRM — všechny moduly jsou navržené přímo pro přípraváře staveb, stavbyvedoucí, projektové manažery a kalkulanty. Dostupná jako webová i nativní desktopová aplikace pro Windows a macOS. Cílový trh: Česká republika a Slovensko.
+> Česká platforma pro přípravu a vedení staveb: poptávky, výběrová řízení, nabídky subdodavatelů, smlouvy, dokumenty a harmonogram. Veřejná nabídka je firemní licence Enterprise na míru.
 
-## Klíčové informace
+Aktualizováno: 8. září 2026.
 
-- **Název:** Tender Flow (TenderFlow, TenderFlow s.r.o.)
-- **Webová stránka:** https://tenderflow.cz/
-- **Kontakt:** info@tenderflow.cz
-- **Jazyk aplikace:** čeština
-- **Kategorie:** Platforma přípravy a vedení staveb, Construction Project Management, Tender Management, Subcontractor Management, SaaS pro stavebnictví
-- **Klíčová slova:** příprava staveb, vedení staveb, stavební tendry, platforma přípravy staveb, výběrová řízení, subdodavatelé, nabídková řízení, AI analýza smluv
-- **Cílová skupina:** stavební firmy, generální dodavatelé, přípraváři staveb, stavbyvedoucí, projektoví manažeři, kalkulanti, divize výběrových řízení
-- **Platforma:** web (libovolný moderní prohlížeč), desktop (Windows 10/11, macOS 11+)
-- **Cenová politika:** placené tarify Starter (399 Kč/měs.) a Pro (499 Kč/měs.), Enterprise na míru. Pro tarif má 14 dní zdarma bez kreditní karty. Roční předplatné je o 20 % levnější. Platby přes Stripe.
-- **Bezpečnost:** GDPR compliant, Row Level Security (PostgreSQL/Supabase), šifrování v klidu i při přenosu (TLS 1.2+), auditní logy přístupů, DPA k dispozici
-- **Hosting dat:** EU (Frankfurt), v souladu s GDPR
+## Produkt a kontakt
 
-## Co Tender Flow řeší (problém → řešení)
+- Web: https://www.tenderflow.cz/
+- Název produktu: Tender Flow (TenderFlow).
+- Provozovatel: Martin Kalkuš, fyzická osoba podnikající (OSVČ), IČO 74907026; kontaktní údaje jsou na stránce Provozovatel.
+- Obchodní konzultace a individuální ukázka: martin@tenderflow.cz.
+- Obecný kontakt: info@tenderflow.cz.
+- Jazyk aplikace: čeština. Zaměření: stavební firmy v České republice a na Slovensku.
+- Platformy: web, desktop pro Windows a macOS. Dostupnost funkcí závisí na licenci, roli, platformě a konfiguraci.
 
-| Problém v přípravě a vedení staveb | Řešení v Tender Flow |
-|------------------------------------|---------------------|
-| Excely, e-maily a sdílené složky se mísí napříč stavbami | Jednotná pipeline tendrů a databáze subdodavatelů |
-| Hodiny strávené čtením naskenovaných smluv | OCR + AI extrakce klíčových parametrů (cena, termín, sankce, záruky) |
-| Ztráta termínů u rozpracovaných nabídek a milníků stavby | Notifikace, deadliny v Ganttově harmonogramu |
-| Ruční přepisování IČ z rejstříků při zakládání dodavatele | Auto-doplnění z veřejných českých rejstříků (ARES) |
-| Nekonzistentní struktura projektových složek mezi stavbami | Složkomat — automaticky generovaná standardizovaná struktura složek |
-| Listy v Excelu od subdodavatelů jsou zamčené | Excel – odemčení v jednom kliku |
-| Roztříštěná evidence smluv a dodatků | Modul Smlouvy s extrakcí parametrů z PDF |
+## Aktuální funkce
 
-## Funkce
+- Projekty: základní údaje o stavbě, investor, lokace, termíny, odpovědné osoby, sdílení a archivace.
+- Výběrová řízení: plán VŘ, poptávkové kategorie, pipeline nabídek, výběr subdodavatele a vazba nabídky na smlouvu.
+- Komunikace v pipeline: příprava e-mailových konceptů; jejich odeslání provádí uživatel v e-mailovém klientu.
+- Smlouvy: smluvní ceny, dodatky, fakturace, pozastávky a dokumenty. OCR předvyplňuje návrh údajů, které uživatel kontroluje.
+- Investor: evidence smlouvy s objednatelem, dodatků, faktur, pozastávek a skutečných úhrad v projektu.
+- Kontakty: dodavatelé, kontaktní osoby, specializace, hodnocení, import a doplnění firemních údajů z ARES.
+- Dokumenty a Složkomat: organizace projektové dokumentace, šablony a práce s připojeným úložištěm či lokálními složkami podle platformy.
+- Harmonogram a přehledy: termíny a souhrny stavby; export přehledu stavby do Excelu.
+- TODO Osobní: seznamy, projekty, podúkoly, termíny a připomínky; volitelné propojení s Microsoft To Do.
+- Nástroje: Excel Spojení listů, Excel odemčení a Excel Indexace VŘ podle dostupnosti na dané platformě.
+- Mapy: zobrazení projektů a kontaktů, geokódování a související nástroje podle konfigurace.
 
-### Pipeline stavebních tendrů
-Vizuální Kanban board pro sledování nabídkových řízení od první poptávky po podepsání smlouvy. Automatické notifikace, deadliny a přehled win rate v reálném čase. Fáze: nové, v nabídce, ve vyjednávání, vyhrané, prohrané, archivované.
+## Licence a ukázka
 
-### AI analýza smluv a objednávek (OCR)
-Automatické čtení naskenovaných smluv, objednávek a nabídek pomocí OCR a integrovaného AI modelu (Google Gemini). Extrahuje cenu, termín, sankce, záruky a další parametry subdodávek — šetří hodiny ručního pročítání PDF.
+Veřejně nabízíme Enterprise s individuálně sjednanou cenou, počtem licencí a fakturačním obdobím. Platba probíhá bankovním převodem na základě faktury. Přístup a ukázku domlouváme při firemní konzultaci. Historická smluvní ujednání se změnou veřejné nabídky automaticky nemění.
 
-### CRM subdodavatelů
-360° pohled na každého dodavatele: historie spolupráce, hodnocení, kontaktní osoby, přehled nabídek. Auto-doplnění základních údajů z veřejných českých rejstříků (ARES) podle IČ.
+## AI, MCP a připojené služby
 
-### Dokumentový hub (Složkomat)
-Centralizovaná správa projektové dokumentace s automaticky generovanou standardizovanou strukturou složek (verze v1). Podporuje Google Drive, OneDrive a lokální disk. Multi-link dokumenty.
+Mistral AI zpracovává dokumenty přes API. Pro podporované požadavky používáme Zero Data Retention; režim se nevztahuje na všechny služby poskytovatele ani na data uložená v Tender Flow. Výstup AI musí zkontrolovat člověk. Při změně poskytovatele v administraci je nutné ověřit jeho vlastní pravidla zpracování dat.
 
-### Harmonogram
-Ganttův diagram s milníky, závislostmi mezi úkoly a týmovou kolaborací v reálném čase. Pohledy: měsíc / týden / den.
+Vlastní MCP server: https://www.tenderflow.cz/api/mcp. Připojení vyžaduje přihlášení a udělení oprávnění. Podporované zápisy procházejí přípravou návrhu, potvrzením a provedením; přístup klienta lze odvolat. MCP není veřejný zdroj zákaznických dat.
 
-### Excel nástroje
-- **Excel Spojení listů** — spojení více listů z různých sešitů do jednoho souboru.
-- **Excel – odemčení** — odemknutí ochrany listů zaslaných od subdodavatelů.
-- **Excel Indexace VŘ** (Enterprise) — automatická tvorba podkladů pro VŘ.
+E-maily a kalendář v AI klientovi vyžadují samostatné konektory. Microsoft To Do synchronizuje pouze podporovaná data ve spárovaných seznamech. Připojené služby a klienti mají vlastní pravidla ochrany dat.
 
-### Plán výběrových řízení
-Strukturovaný plán s milníky pro každé výběrové řízení od poptávky až po vyhodnocení nabídek.
+## Časté otázky
 
-### Smlouvy
-Modul pro správu smluv s extrakcí parametrů z PDF, evidencí dodatků a sledováním platnosti.
+### Co je Tender Flow?
 
-### Reporting a export
-Exporty do PDF, Excelu (XLSX) a CSV jedním klikem. Přehled objemu tendrů (Kč), aktivních projektů a win rate.
+Tender Flow je česká platforma pro přípravu a vedení staveb. Propojuje poptávky, výběrová řízení, nabídky subdodavatelů, smlouvy, projektové dokumenty a harmonogram. Je určena stavebním firmám, přípravářům, stavbyvedoucím, projektovým manažerům a kalkulantům.
 
-### Sdílení projektů
-Sdílení vybraných projektů s externími účastníky (subdodavatelé, investoři) s granulárním řízením přístupu.
+### Kolik stojí Tender Flow a jak získám ukázku?
 
-### Geokódování a integrace mapy
-(Enterprise) Vizualizace dodavatelů a projektů na mapě podle adresy.
+Tender Flow nabízíme jako firemní licenci Enterprise s individuální cenou podle počtu licencí a dohodnutého období. Platba probíhá bankovním převodem na základě faktury. Ukázku a podmínky přístupu domluvíte na martin@tenderflow.cz.
 
-## Tarify a ceny
+### Jak funguje AI čtení smluv a ochrana dokumentů?
 
-| Tarif | Měsíčně | Ročně (sleva 20 %) | Komu |
-|-------|---------|---------------------|------|
-| **Starter** | 399 Kč | 319 Kč/měs. (3 830 Kč/rok) | Jednotlivci a malé týmy. Neomezené projekty, základní přehledy, modul subdodavatelé, export Excel/PDF, Excel – odemčení. |
-| **Pro** | 499 Kč | 399 Kč/měs. (4 790 Kč/rok) | Profesionální stavební firmy. Vše ze Starter + desktop aplikace, Složkomat, plán VŘ, importy VŘ, harmonogram, modul Smlouvy, Excel Spojení listů, archivace a sdílení projektů. **14 dní zdarma bez karty.** |
-| **Enterprise** | Na míru | Na míru | Velké organizace. Vše z Pro + OCR dokumenty, automatické aktualizace, pokročilé integrace, hodnocení dodavatelů, detailní reporty, onboarding asistence, Excel Indexace VŘ, geokódování, mapa kontaktů. Kontakt: info@tenderflow.cz. |
+Mistral AI pomáhá přečíst naskenované smlouvy a objednávky a získat klíčové údaje. Výsledky před uložením kontroluje uživatel. Pro podporovaná API používáme Zero Data Retention: vstupy a výstupy se u Mistralu neuchovávají déle, než je nutné k odpovědi. Tento režim nemaže dokumenty uložené v Tender Flow a nevztahuje se automaticky na připojené AI klienty. Nastavení trénování modelů je samostatné.
 
-Platby: Stripe. Zrušení kdykoliv. Bez závazku.
+### Co umožňuje vlastní MCP server?
 
-## Business pravidla aplikace
+Kompatibilní AI klient může s udělenými oprávněními číst projektové údaje, nabídky a smluvní přehledy. Podporované změny, například vytvoření úkolu nebo úprava stavu či ceny nabídky, vyžadují přípravu návrhu, potvrzení a provedení. Přístup lze odvolat. E-mail a kalendář vyžadují vlastní konektory klienta a mají vlastní pravidla ochrany dat.
 
-- Nabídka musí být odeslána do **14 dnů** od vytvoření poptávky.
-- Maximum **5 dodavatelů** na jednu poptávkovou kategorii.
-- Standardizovaná struktura projektových složek je **verze v1** (kompatibilní zpětně).
+### Co zahrnuje TODO Osobní a propojení s Microsoft To Do?
 
-## Bezpečnost a compliance
+TODO Osobní nabízí seznamy, projekty, podúkoly, termíny a připomínky. Volitelné propojení s Microsoft To Do synchronizuje podporované údaje ve spárovaných seznamech obousměrně. Přílohy, opakování a ostatní osobní seznamy Microsoft To Do se touto integrací nepřenášejí.
 
-- **GDPR:** plná shoda, DPA k dispozici (https://tenderflow.cz/dpa).
-- **Row Level Security (RLS):** izolace dat na úrovni databáze — uživatel nikdy nevidí cizí data.
-- **Šifrování:** TLS 1.2+ při přenosu, šifrování at-rest v PostgreSQL.
-- **Auditní logy:** záznam přístupů a změn pro forenzní analýzu.
-- **Hosting:** EU (Frankfurt), datacentra v souladu s GDPR a Schrems II.
-- **Autentizace:** e-mail + heslo, biometrie v desktop aplikaci, OAuth pro Google Drive/OneDrive.
-- **Bezpečnostní reporty:** odpovědné nahlášení zranitelností: info@tenderflow.cz.
+### Je Tender Flow dostupný na webu a desktopu? Funguje offline?
 
-## Integrace
+Tender Flow je dostupný jako webová aplikace a desktopová aplikace pro Windows a macOS. Přihlášení, ověření licence, sdílená data, synchronizace a AI služby vyžadují připojení k internetu. Některé lokální nástroje pracují se soubory v počítači; nejde o plný offline režim celé aplikace.
 
-- **Cloud úložiště:** Google Drive, OneDrive, lokální souborový systém.
-- **Platby:** Stripe.
-- **AI agenti:** MCP (Model Context Protocol) server pro read-only přístup k projektům, tendrům, kontaktům, harmonogramu, nabídkám, vítězům VŘ a smluvním podmínkám. Podporované nástroje: `tf_find_project`, `tf_list_projects`, `tf_list_tenders`, `tf_list_contacts`, `tf_get_project_detail`, `tf_get_tender_detail`, `tf_get_tender_winner`, `tf_list_tender_bids`, `tf_list_project_winners`, `tf_get_contract_detail`, `tf_get_schedule`, `tf_get_tender_plan`.
-- **Webhooky:** Stripe platební události.
-- **Veřejné rejstříky:** ARES (ČR) pro auto-doplnění firemních údajů podle IČ.
+### Jaké podklady lze v projektu evidovat a exportovat?
 
-## Často kladené dotazy
+Projekt propojuje plán výběrových řízení, nabídky, smlouvy, dodatky, fakturaci, dokumenty a harmonogram. Přehled stavby lze exportovat do Excelu. Další exporty a lokální nástroje jsou dostupné podle konkrétního modulu, platformy a oprávnění.
 
-**Pro koho je Tender Flow určený?**
-Pro české a slovenské stavební firmy, generální dodavatele, přípraváře staveb, stavbyvedoucí, projektové manažery a kalkulanty, kteří připravují a vedou stavby — od nabídkových řízení a výběrových řízení až po smlouvy, harmonogram a předání díla. Funguje pro jednotlivce, malé týmy i velké organizace s desítkami uživatelů.
+### Jak jsou řízena přístupová práva?
 
-**Čím se Tender Flow liší od běžného CRM nebo projektového nástroje?**
-Tender Flow není generické CRM (Salesforce, HubSpot, Pipedrive) ani projektový nástroj (Asana, Monday) — je to platforma postavená přímo pro přípravu a vedení staveb. Pracuje s pojmy poptávka, výběrové řízení, subdodavatel, nabídka, smlouva, harmonogram a předání díla. Obsahuje stavební workflow (pipeline tendrů, OCR smluv, Ganttův harmonogram, Excel nástroje pro kalkulanty), které generické CRM ani projektové nástroje nenabízí ani s pluginy. Oproti zahraničním stavebním ERP (Procore) je cenově dostupný a v češtině.
+Přístup k projektovým datům se řídí účtem, organizací, rolí a sdílením projektu. Databázová pravidla Row Level Security omezují přístup k záznamům. Podmínky zpracování dat popisují zásady ochrany osobních údajů a zpracovatelská doložka DPA. Dostupnost funkcí závisí také na licenci a konfiguraci.
 
-**Je k dispozici zkušební verze?**
-Ano, Pro tarif lze vyzkoušet 14 dní zdarma bez zadávání kreditní karty. Pro přístup stačí registrace na https://tenderflow.cz/register. Individuální demo je dostupné pouze na vyžádání e-mailem na martin@tenderflow.cz.
+## Veřejné podklady
 
-**Funguje aplikace offline?**
-Nativní desktopová verze pro Windows a macOS poskytuje plnou funkčnost a synchronizuje data při připojení. Webová verze vyžaduje aktivní připojení k internetu.
+- [Produkt, funkce a licence](https://www.tenderflow.cz/)
+- [Uživatelský manuál](https://www.tenderflow.cz/user-manual/)
+- [Obchodní podmínky](https://www.tenderflow.cz/terms)
+- [Ochrana osobních údajů](https://www.tenderflow.cz/privacy)
+- [Zpracovatelská doložka DPA](https://www.tenderflow.cz/dpa)
+- [Provozovatel](https://www.tenderflow.cz/imprint)
+- [Zásady cookies](https://www.tenderflow.cz/cookies)
+- [Sitemap](https://www.tenderflow.cz/sitemap.xml)
 
-**Jaké jsou integrace?**
-Google Drive, OneDrive, lokální souborový systém. Platby Stripe. ARES pro auto-doplnění IČ. MCP server pro AI agenty. Export PDF/Excel/CSV.
-
-**Jak jsou chráněna data?**
-Row Level Security na úrovni databáze, šifrování v klidu i při přenosu (TLS 1.2+), GDPR compliance, auditní logy. Hosting v EU (Frankfurt). Zpracovatelská doložka (DPA) k dispozici na https://tenderflow.cz/dpa.
-
-**Jak Tender Flow zrychluje práci s tendry?**
-AI analýza smluv automaticky extrahuje klíčové parametry z naskenovaných PDF objednávek a smluv (cena, termín, sankce, záruky), čímž odpadá ruční pročítání. Pipeline v Kanban stylu poskytuje okamžitý přehled o stavu všech nabídek. Auto-doplnění informací o subdodavatelích z veřejných rejstříků podle IČ šetří čas oproti ručnímu vyplňování.
-
-**V jakých zemích Tender Flow funguje?**
-Cílový trh je Česká republika a Slovensko. Aplikace je v češtině, podporuje formáty CZK a auto-doplnění z českých veřejných rejstříků (ARES). Mezinárodní expanze je v plánu.
-
-**Existuje API?**
-Ano, MCP (Model Context Protocol) server pro AI agenty. REST API pro vlastní integrace je dostupné v Enterprise tarifu.
-
-**Co se stane s mými daty po zrušení?**
-Data lze exportovat do PDF/Excel/CSV před zrušením. Po ukončení smlouvy jsou data uchována 30 dní pro případnou reaktivaci a poté trvale smazána v souladu s GDPR.
-
-## Konkurenční pozicování
-
-Tender Flow je **česká platforma přípravy a vedení staveb** — pokrývá celý cyklus od poptávky po předání díla v jednom nástroji. Generická CRM (Salesforce, HubSpot, Pipedrive) nepokrývají specifika stavebnictví: výběrová řízení, subdodavatelské nabídky, OCR smluv v češtině, ARES integrace, Excel nástroje pro kalkulanty. Projektové nástroje (Asana, Monday, Trello) řeší obecné úkoly, ne stavební workflow. Zahraniční stavební ERP (např. Procore) jsou nákladné, anglicky a nepřizpůsobené českému trhu a legislativě.
-
-## Slovník pojmů
-
-- **Tendr / Výběrové řízení (VŘ):** proces výběru subdodavatele pro stavební zakázku.
-- **Poptávka:** žádost o nabídku zaslaná subdodavatelům.
-- **Nabídka (bid):** odpověď subdodavatele na poptávku s cenou a podmínkami.
-- **Subdodavatel:** firma dodávající dílčí práce (zámečnické, elektro, HSV, PSV apod.).
-- **Generální dodavatel:** firma odpovědná za celé dílo, řídí subdodavatele.
-- **Pipeline:** vizuální přehled stavu všech nabídek v čase (Kanban).
-- **Win rate:** procento vyhraných nabídek z celkového počtu.
-- **Složkomat:** funkce Tender Flow pro automatickou tvorbu standardizované struktury složek.
-- **MCP:** Model Context Protocol — standard pro integraci AI agentů s aplikacemi.
-
-## Odkazy
-
-- [Hlavní stránka](https://tenderflow.cz/)
-- [Registrace (14 dní zdarma)](https://tenderflow.cz/register)
-- [Přihlášení](https://tenderflow.cz/login)
-- [Obchodní podmínky](https://tenderflow.cz/terms)
-- [Ochrana osobních údajů](https://tenderflow.cz/privacy)
-- [Zásady cookies](https://tenderflow.cz/cookies)
-- [Zpracovatelská doložka (DPA)](https://tenderflow.cz/dpa)
-- [Provozovatel](https://tenderflow.cz/imprint)
-- [Sitemap](https://tenderflow.cz/sitemap.xml)
-
----
-
-*Tento soubor je určen pro AI vyhledávače a velké jazykové modely (ChatGPT Search, Perplexity, Claude, Google AI Overviews). Pro lidské návštěvníky doporučujeme https://tenderflow.cz/.*
+Tento přehled popisuje veřejnou nabídku. Nezpřístupňuje účty, projekty ani zákaznické dokumenty a nenahrazuje individuální smlouvu.

@@ -145,7 +145,7 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
             color: "var(--gray-2)",
           }}
         >
-          &copy; {new Date().getFullYear()} TenderFlow s.r.o. v{APP_VERSION}
+          &copy; {new Date().getFullYear()} Tender Flow · Martin Kalkuš v{APP_VERSION}
         </div>
       </main>
     </div>
