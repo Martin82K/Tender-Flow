@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T18:27:27.111Z",
+  "generatedAt": "2026-09-07T10:49:23.870Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -317,24 +317,24 @@
     {
       "slug": "vyberova-rizeni-pipeline",
       "title": "📋 Výběrová řízení (Pipeline)",
-      "content": "Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop). V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil. ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg) #### Stavy nabídky (sloupce) | Sloupec | Význam | |---------|--------| | **Oslovení** | Připraven k oslovení (může se zobrazit „Generovat poptávku\") | | **Odesláno** | Poptávka odeslána, čeká se na reakci | | **Cenová nabídka** | Dorazila nabídka od subdodavatele | | **Užší výběr** | Shortlist kandidátů | | **Jednání o SOD** | Finalisté / jednání o smlouvě | | **Odmítnuto** | Neúspěšní subdodavatelé | #### Karta nabídky Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email. - Karta zaznamenává až **3 kola VŘ** – do aktuální ceny se počítá aktivně vybrané kolo. - Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz). - Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena). - Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv). - Po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo). ![Karta nabídky v Tender Flow](./assets/06-bid-card.svg) #### Další funkce pipeline - **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné). - **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší. - **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší. - **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele. Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.",
+      "content": "Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop). Dodavatele vyberte v dialogu a potvrďte **Přenést do pipeline**. Během ukládání se zobrazí **Přidávám…** a výběr nelze znovu odeslat ani měnit. Karta se objeví po potvrzení uložení. Pokud uložení nelze ověřit, výběr zůstane otevřený; zkontrolujte připojení a oprávnění a zkuste přidání znovu. Opakování stejného dodavatele ve stejné poptávce nevytvoří druhou nabídku ani nepřepíše původní cenu či stav. Stejného dodavatele lze nadále přidat do jiných poptávek a projektů. Zpráva **Dodavatelé uloženi** při chybě obnovy znamená, že zápis proběhl a stačí obnovit projekt. Zpráva **Uložena část dodavatelů** znamená, že potvrzené nabídky už zůstávají uložené; v dialogu je pro další pokus vybraná pouze zbývající část. V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil. ![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg) #### Stavy nabídky (sloupce) | Sloupec | Význam | |---------|--------| | **Oslovení** | Připraven k oslovení (může se zobrazit „Generovat poptávku\") | | **Odesláno** | Poptávka odeslána, čeká se na reakci | | **Cenová nabídka** | Dorazila nabídka od subdodavatele | | **Užší výběr** | Shortlist kandidátů | | **Jednání o SOD** | Finalisté / jednání o smlouvě | | **Odmítnuto** | Neúspěšní subdodavatelé | #### Karta nabídky Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email. - Karta zaznamenává až **3 kola VŘ** – do aktuální ceny se počítá aktivně vybrané kolo. - Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz). - Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena). - Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv). - Po aktivaci všech smluv se",
       "keywords": [
-        "zen",
-        "nab",
-        "rov",
-        "popt",
-        "dky",
-        "pipeline",
+        "ulo",
         "dodavatel",
-        "stavu",
+        "zen",
+        "popt",
+        "nab",
+        "dky",
+        "dodavatele",
         "stejn",
-        "board",
-        "osloven",
-        "odesl",
-        "dka",
-        "jedn",
-        "organizovan",
-        "kategorie"
+        "rov",
+        "pipeline",
+        "dialogu",
+        "nelze",
+        "znovu",
+        "potvrzen",
+        "lze",
+        "projekt"
       ],
       "source_anchor": "#vyberova-rizeni-pipeline",
       "level": 3,

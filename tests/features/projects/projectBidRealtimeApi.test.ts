@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
-  changeHandler: undefined as undefined | ((payload: { new?: Record<string, unknown> }) => void),
+  changeHandler: undefined as undefined | ((payload: { new: Record<string, unknown>; old?: Record<string, unknown> }) => void),
   statusHandler: undefined as undefined | ((status: string) => void),
   channel: { id: "bid-channel" },
   on: vi.fn(),
@@ -29,7 +29,7 @@ describe("projectBidRealtimeApi", () => {
     state.removeChannel.mockReset();
     state.on.mockImplementation((_kind, _filter, handler) => {
       state.changeHandler = handler;
-      return { subscribe: state.subscribe };
+      return { on: state.on, subscribe: state.subscribe };
     });
     state.subscribe.mockImplementation((handler) => {
       state.statusHandler = handler;
@@ -37,7 +37,7 @@ describe("projectBidRealtimeApi", () => {
     });
   });
 
-  it("odebírá pouze UPDATE události nabídek a předá ID kategorie", () => {
+  it("odebírá i INSERT události nabídek a předá ID kategorie", () => {
     const onBidUpdated = vi.fn();
 
     projectBidRealtimeApi.subscribeToBidUpdates({ onBidUpdated });
@@ -45,10 +45,11 @@ describe("projectBidRealtimeApi", () => {
 
     expect(state.on).toHaveBeenCalledWith(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "bids" },
+      { event: "INSERT", schema: "public", table: "bids" },
       expect.any(Function),
     );
     expect(onBidUpdated).toHaveBeenCalledWith("category-1");
+    expect(state.on.mock.calls.map(call => call[1].event)).toEqual(["INSERT", "UPDATE"]);
   });
 
   it("ohlásí výpadek a při cleanup odstraní kanál", () => {

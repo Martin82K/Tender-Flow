@@ -11,6 +11,7 @@ import type { StatusConfig, Subcontractor } from "@/types";
 export interface SubcontractorSelectorModalProps {
     isOpen: boolean;
     isMaximized: boolean;
+    isSubmitting?: boolean;
     contacts: Subcontractor[];
     statuses: StatusConfig[];
     selectedIds: Set<string>;
@@ -26,6 +27,7 @@ export interface SubcontractorSelectorModalProps {
 export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProps> = ({
     isOpen,
     isMaximized,
+    isSubmitting = false,
     contacts,
     statuses,
     selectedIds,
@@ -64,6 +66,8 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                         </button>
                         <button
                             onClick={onClose}
+                            disabled={isSubmitting}
+                            aria-label="Zavřít výběr dodavatelů"
                             className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                             <span className="material-symbols-outlined">close</span>
@@ -72,7 +76,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
+                <div inert={isSubmitting} aria-busy={isSubmitting} className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
                     <SubcontractorSelector
                         contacts={contacts}
                         statuses={statuses}
@@ -96,16 +100,17 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                     <div className="flex gap-2">
                         <button
                             onClick={onClose}
+                            disabled={isSubmitting}
                             className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
                         >
                             Zrušit
                         </button>
                         <button
                             onClick={onConfirm}
-                            disabled={selectedIds.size === 0}
+                            disabled={isSubmitting || selectedIds.size === 0}
                             className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Přenést do pipeline
+                            {isSubmitting ? "Přidávám…" : "Přenést do pipeline"}
                         </button>
                     </div>
                 </div>

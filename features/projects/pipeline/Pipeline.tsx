@@ -165,6 +165,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const {
     isSubcontractorModalOpen,
+    isAddingSubcontractors,
     setIsSubcontractorModalOpen,
     isSubcontractorModalMaximized,
     setIsSubcontractorModalMaximized,
@@ -456,6 +457,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         <PipelineContactModals
           isSelectorOpen={isSubcontractorModalOpen}
           isSelectorMaximized={isSubcontractorModalMaximized}
+          isSubmittingSelection={isAddingSubcontractors}
           contacts={localContacts}
           selectorStatuses={DEFAULT_STATUSES}
           contactStatuses={externalStatuses}

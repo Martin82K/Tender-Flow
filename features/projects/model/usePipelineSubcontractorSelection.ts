@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
-import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/types";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
+import { mergeConfirmedBids, toPipelineBid } from "./pipelineBidPersistence";
+import type { Bid, DemandCategory, DocHubStructureV1, ProjectDetails, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
@@ -34,7 +37,6 @@ interface UsePipelineSubcontractorSelectionInput {
 
 export const usePipelineSubcontractorSelection = ({
   activeCategory,
-  bids,
   updateBidsInternal,
   userRole,
   projectDataId,
@@ -44,7 +46,7 @@ export const usePipelineSubcontractorSelection = ({
   docHubRoot,
   showAlert,
 }: UsePipelineSubcontractorSelectionInput) => {
-  const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
+  const [isSubcontractorModalOpen, setModalOpen] =
     useState(false);
   const [isSubcontractorModalMaximized, setIsSubcontractorModalMaximized] =
     useState(true);
@@ -58,199 +60,150 @@ export const usePipelineSubcontractorSelection = ({
     Set<string>
   >(new Set());
 
+  const queryClient = useQueryClient();
+  const [isAddingSubcontractors, setIsAddingSubcontractors] = useState(false);
+  const operationRef = useRef<object | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; operationRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    // A request owns the selector it started in, never a later project/category.
+    operationRef.current = null;
+    setIsAddingSubcontractors(false);
+    setModalOpen(false);
+    setSelectedSubcontractorIds(new Set());
+  }, [projectDataId, activeCategory?.id]);
+
+  const setIsSubcontractorModalOpen = (open: boolean) => {
+    if (!operationRef.current) setModalOpen(open);
+  };
+
+  const scopeRef = useRef({ projectId: projectDataId, categoryId: activeCategory?.id });
+  scopeRef.current = { projectId: projectDataId, categoryId: activeCategory?.id };
+
+  const createSupplierFolders = async (category: DemandCategory, newBids: Bid[]) => {
+    if (!isDocHubEnabled || newBids.length === 0) return;
+    const notify = (args: ShowAlertArgs) => {
+      if (mountedRef.current && scopeRef.current.projectId === projectDataId && scopeRef.current.categoryId === category.id) showAlert(args);
+    };
+    try {
+      if (projectDataDocHubProvider === "onedrive") {
+        if (!isDesktop) {
+          notify({ title: "Složky nelze vytvořit", message: "Pro automatické vytváření složek dodavatelů spusťte Tender Flow Desktop.", variant: "info" });
+          return;
+        }
+        const structure = resolveDocHubStructureV1(projectDataDocHubStructureV1 || undefined);
+        const result = await ensureStructure({
+          rootPath: docHubRoot, structure,
+          categories: [{ id: category.id, title: category.title }],
+          suppliers: { [category.id]: newBids.map(bid => ({ id: bid.subcontractorId, name: bid.companyName })) },
+          hierarchy: buildHierarchyTree(ensureExtraHierarchy(structure.extraHierarchy)),
+        });
+        if (!result.success) throw new Error("Folder creation failed");
+      } else if (projectDataDocHubProvider === "gdrive" || projectDataDocHubProvider === "onedrive_cloud") {
+        await invokeAuthedFunction("dochub-autocreate", { body: { projectId: projectDataId } });
+      } else {
+        notify({ title: "DocHub není připojen", message: "Nastavte poskytovatele DocHub v záložce Dokumenty.", variant: "info" });
+      }
+    } catch {
+      notify({ title: "Chyba vytvoření složek", message: "Dodavatelé jsou uloženi, ale složky se nepodařilo vytvořit.", variant: "info" });
+    }
+  };
+
   const handleAddSubcontractors = async (localContacts: Subcontractor[]) => {
-    if (!activeCategory) return;
+    if (!activeCategory || operationRef.current) return;
+    const operation = {};
+    operationRef.current = operation;
+    setIsAddingSubcontractors(true);
+    const category = activeCategory;
+    const current = () => mountedRef.current && operationRef.current === operation;
+    const contacts = localContacts.filter(contact => selectedSubcontractorIds.has(contact.id));
 
-    const newBids: Bid[] = [];
-    selectedSubcontractorIds.forEach((id) => {
-      const contact = localContacts.find((c) => c.id === id);
-      if (!contact) return;
-
-      const existing = (bids[activeCategory.id] || []).find(
-        (bid) => bid.subcontractorId === contact.id,
-      );
-      if (existing) return;
-
-      const primaryContact = contact.contacts[0];
-      newBids.push({
-        id: `bid_${Date.now()}_${contact.id}`,
+    try {
+      if (contacts.length === 0) return;
+      const newBids: Bid[] = contacts.map(contact => ({
+        id: crypto.randomUUID(),
         subcontractorId: contact.id,
         companyName: contact.company,
-        contactPerson: primaryContact?.name || "-",
-        email: primaryContact?.email || "-",
-        phone: primaryContact?.phone || "-",
-        price: "?",
-        status: "contacted",
-        tags: [],
-      });
-    });
-
-    if (newBids.length > 0) {
-      updateBidsInternal((prev) => ({
-        ...prev,
-        [activeCategory.id]: [...(prev[activeCategory.id] || []), ...newBids],
+        contactPerson: contact.contacts[0]?.name || "-",
+        email: contact.contacts[0]?.email || "-",
+        phone: contact.contacts[0]?.phone || "-",
+        price: "?", status: "contacted", tags: [],
       }));
 
-      try {
-        if (userRole === "demo") {
-          const demoData = projectDemoDataApi.getDemoData();
-          if (demoData && demoData.projectDetails[projectDataId]) {
-            const projectBids = demoData.projectDetails[projectDataId].bids || {};
-            projectBids[activeCategory.id] = [
-              ...(projectBids[activeCategory.id] || []),
-              ...newBids,
-            ];
-            demoData.projectDetails[projectDataId].bids = projectBids;
-            projectDemoDataApi.saveDemoData(demoData);
-          }
-        } else {
-          const bidsToInsert = newBids.map((bid) => ({
-            id: bid.id,
-            demand_category_id: activeCategory.id,
-            subcontractor_id: bid.subcontractorId,
-            company_name: bid.companyName,
-            contact_person: bid.contactPerson,
-            email: bid.email,
-            phone: bid.phone,
-            price: null,
-            price_display: bid.price,
-            notes: bid.notes || null,
-            status: bid.status,
-            tags: bid.tags || [],
-          }));
+      if (userRole === "demo") {
+        const demoData = projectDemoDataApi.getDemoData();
+        const details = demoData?.projectDetails[projectDataId];
+        if (!demoData || !details) throw new Error("Demo projekt není dostupný.");
+        const existing = details.bids?.[category.id] ?? [];
+        const added = newBids.filter(bid => !existing.some(item => item.subcontractorId === bid.subcontractorId));
+        const next = { ...details.bids, [category.id]: [...existing, ...added] };
+        demoData.projectDetails[projectDataId] = { ...details, bids: next };
+        projectDemoDataApi.saveDemoData(demoData);
+        if (current()) updateBidsInternal(prev => ({ ...prev, [category.id]: next[category.id] }));
+      } else {
+        const response = await insertBids(newBids.map(bid => ({
+          id: bid.id, demand_category_id: category.id, subcontractor_id: bid.subcontractorId,
+          company_name: bid.companyName, contact_person: bid.contactPerson,
+          email: bid.email, phone: bid.phone, price: null, price_display: bid.price,
+          notes: null, status: bid.status, tags: bid.tags || [],
+        })));
+        if (!response.data?.length) throw new Error("Uložení dodavatelů se nepodařilo ověřit.");
 
-          const { data, error } = await insertBids(bidsToInsert);
-
-          if (error) {
-            console.error("Error inserting bids:", {
-              message: error.message,
-              code: error.code,
-              details: error.details,
-              hint: error.hint,
-            });
-            showAlert({
-              title: "Chyba při ukládání",
-              message: `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code}\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`,
-              variant: "danger",
-            });
-          } else {
-            console.log("Successfully inserted bids:", data);
-
-            const provider = projectDataDocHubProvider;
-            console.info("[DocHub] bid-added auto-create eval", {
-              isDocHubEnabled,
-              provider: provider ?? null,
-              isDesktop,
-              docHubRoot: docHubRoot || "(empty)",
-              newSupplierCount: newBids.length,
-            });
-
-            if (!isDocHubEnabled) {
-              console.info(
-                "[DocHub] Skipping auto-create: DocHub is not enabled or docHubRoot is empty",
-              );
-            } else if (provider === "onedrive") {
-              if (!isDesktop) {
-                console.warn(
-                  "[DocHub] Cannot auto-create local folders from web — desktop app required",
-                );
-                showAlert({
-                  title: "Složky nelze vytvořit",
-                  message:
-                    "Pro automatické vytváření složek dodavatelů spusťte Tender Flow Desktop. Ve webovém prohlížeči nelze zapisovat do lokálního souborového systému.",
-                  variant: "info",
-                });
-              } else {
-                const localSuppliers: Record<
-                  string,
-                  Array<{ id: string; name: string }>
-                > = {};
-                localSuppliers[activeCategory.id] = newBids.map((bid) => ({
-                  id: bid.subcontractorId,
-                  name: bid.companyName,
-                }));
-
-                const structure = resolveDocHubStructureV1(
-                  projectDataDocHubStructureV1 || undefined,
-                );
-                const hierarchyTree = buildHierarchyTree(
-                  ensureExtraHierarchy(structure.extraHierarchy),
-                );
-
-                console.info("[DocHub] Calling ensureStructure for new bids", {
-                  rootPath: docHubRoot,
-                  categoryId: activeCategory.id,
-                  suppliers: localSuppliers[activeCategory.id],
-                });
-
-                console.info("[DocHub] hierarchyTree being used:", hierarchyTree);
-
-                ensureStructure({
-                  rootPath: docHubRoot,
-                  structure,
-                  categories: [
-                    { id: activeCategory.id, title: activeCategory.title },
-                  ],
-                  suppliers: localSuppliers,
-                  hierarchy: hierarchyTree,
-                }).then((res) => {
-                  console.info("[DocHub] ensureStructure result", {
-                    success: res.success,
-                    createdCount: res.createdCount,
-                    reusedCount: res.reusedCount,
-                    error: res.error,
-                  });
-                  console.info("[DocHub] ensureStructure step-by-step logs:");
-                  for (const line of res.logs || []) {
-                    console.info("  " + line);
-                  }
-                  if (!res.success) {
-                    console.error("Auto-create folders failed:", res.error);
-                    showAlert({
-                      title: "Chyba vytvoření složek",
-                      message: res.error || "Neznámá chyba",
-                      variant: "danger",
-                    });
-                  }
-                });
-              }
-            } else if (provider === "gdrive" || provider === "onedrive_cloud") {
-              console.info("[DocHub] Triggering cloud auto-create");
-              invokeAuthedFunction("dochub-autocreate", {
-                body: { projectId: projectDataId },
-              }).catch((err) =>
-                console.error("Cloud auto-create trigger failed:", err),
-              );
-            } else {
-              console.warn(
-                "[DocHub] Unknown or missing provider — auto-create skipped",
-                { provider },
-              );
-              showAlert({
-                title: "DocHub není připojen",
-                message:
-                  "Projekt nemá nastaveného poskytovatele DocHub (Google Drive / Tender Flow Desktop). Složky dodavatelů se nevytvoří automaticky. Nastavte provider v záložce Dokumenty.",
-                variant: "info",
-              });
-            }
-          }
+        const confirmed = response.data.map(toPipelineBid);
+        const queryKey = PROJECT_DETAILS_KEYS.detail(projectDataId);
+        // An old in-flight snapshot must not erase a write that just committed.
+        await queryClient.cancelQueries({ queryKey, exact: true });
+        queryClient.setQueryData<ProjectDetails | null>(queryKey, old => old ? {
+          ...old,
+          bids: { ...old.bids, [category.id]: mergeConfirmedBids(old.bids?.[category.id] ?? [], confirmed) },
+        } : old);
+        try {
+          await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: "active" }, { throwOnError: true });
+        } catch {
+          if (current() && !response.error) showAlert({
+            title: "Dodavatelé uloženi",
+            message: "Uložení proběhlo, ale přehled se nepodařilo obnovit. Zkuste obnovit projekt.",
+            variant: "info",
+          });
         }
-      } catch (error) {
-        console.error("Unexpected error inserting bids:", error);
-        showAlert({
-          title: "Chyba",
-          message: `Neočekávaná chyba: ${error}`,
-          variant: "danger",
-        });
+        const insertedIds = new Set(response.insertedIds);
+        void createSupplierFolders(category, confirmed.filter(bid => insertedIds.has(bid.id)));
+        if (response.error) {
+          if (current()) {
+            const confirmedSuppliers = new Set(confirmed.map(bid => bid.subcontractorId));
+            setSelectedSubcontractorIds(previous => new Set([...previous].filter(id => !confirmedSuppliers.has(id))));
+            showAlert({
+              title: "Uložena část dodavatelů",
+              message: `Potvrzeno ${confirmedSuppliers.size} z ${new Set(contacts.map(contact => contact.id)).size} dodavatelů. Zbývající výběr můžete zkusit přidat znovu.`,
+              variant: "info",
+            });
+          }
+          return;
+        }
       }
+      if (current()) {
+        setModalOpen(false);
+        setSelectedSubcontractorIds(new Set());
+      }
+    } catch {
+      if (current()) showAlert({
+        title: "Uložení se nepodařilo ověřit",
+        message: "Zkontrolujte připojení a oprávnění k projektu a zkuste přidání znovu. Již uložené dodavatele opakování nezdvojí.",
+        variant: "danger",
+      });
+    } finally {
+      if (current()) { operationRef.current = null; setIsAddingSubcontractors(false); }
     }
-
-    setIsSubcontractorModalOpen(false);
-    setSelectedSubcontractorIds(new Set());
   };
 
   return {
     isSubcontractorModalOpen,
+    isAddingSubcontractors,
     setIsSubcontractorModalOpen,
     isSubcontractorModalMaximized,
     setIsSubcontractorModalMaximized,
