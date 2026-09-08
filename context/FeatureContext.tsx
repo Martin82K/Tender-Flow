@@ -28,6 +28,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [verificationError, setVerificationError] = useState(false);
   const [validUntil, setValidUntil] = useState<number | null>(null);
   const requestVersion = useRef(0);
+  const inFlightRequest = useRef<number | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +47,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Fetch features from backend
   const fetchFeatures = useCallback(async (): Promise<boolean> => {
     const version = ++requestVersion.current;
+    inFlightRequest.current = null;
     // While auth is still resolving (e.g. right after a desktop reload),
     // keep isLoading=true so gates that depend on currentPlan don't fire
     // with a stale 'free' value before the real tier is fetched.
@@ -97,6 +99,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!hasFetchedRef.current || isUserSwitch) {
       setIsLoading(true);
     }
+    inFlightRequest.current = version;
     try {
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
@@ -134,6 +137,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCurrentPlan('free');
       return false;
     } finally {
+      // An old response must not unlock background refresh for a newer request.
+      if (inFlightRequest.current === version) inFlightRequest.current = null;
       if (version !== requestVersion.current) return false;
       setIsLoading(false);
       hasFetchedRef.current = true;
@@ -167,18 +172,19 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Skip for demo mode
     if (userRole === 'demo') return;
 
-    const interval = setInterval(() => {
+    const refreshInBackground = () => {
       // Never skip a tick based on the last response time: network latency or
       // a focus refresh can otherwise postpone verification to 120s, beyond
       // the 90s access deadline, unmounting the user's open editor.
-      void fetchFeatures();
-    }, SUBSCRIPTION_REFRESH_INTERVAL);
+      // Reuse an ongoing verification instead of invalidating its response.
+      if (inFlightRequest.current === null) void fetchFeatures();
+    };
+    const interval = setInterval(refreshInBackground, SUBSCRIPTION_REFRESH_INTERVAL);
 
-    const onFocus = () => { void fetchFeatures(); };
-    window.addEventListener('focus', onFocus);
+    window.addEventListener('focus', refreshInBackground);
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('focus', refreshInBackground);
     };
   }, [isAuthenticated, userId, userRole, fetchFeatures]);
 

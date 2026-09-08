@@ -126,6 +126,30 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     expect(screen.getByTestId("plan")).toHaveTextContent("free");
   });
 
+  it("keeps a slow focus verification alive across the periodic tick and repeated focus events", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({ tier: "pro" }), 40_000);
+    }));
+    render(<FeatureProvider><GatedEditor /></FeatureProvider>);
+    await act(async () => {});
+    const editor = screen.getByRole("textbox", { name: "Rozepsaná poznámka" });
+    fireEvent.change(editor, { target: { value: "Nabídka na pomalé síti" } });
+    editor.focus();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    fireEvent(window, new Event("focus"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    fireEvent(window, new Event("focus"));
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(2);
+    // The focus request completes at 70s and must extend the original 90s deadline.
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(screen.getByRole("textbox", { name: "Rozepsaná poznámka" })).toBe(editor);
+    expect(editor).toHaveValue("Nabídka na pomalé síti");
+    expect(editor).toHaveFocus();
+  });
+
   it("applies server-side access revocation on the next periodic verification", async () => {
     vi.useFakeTimers();
     mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" }).mockResolvedValue({ tier: "free" });
