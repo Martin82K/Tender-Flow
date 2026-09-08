@@ -126,7 +126,7 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     expect(screen.getByTestId("plan")).toHaveTextContent("free");
   });
 
-  it("keeps a slow focus verification alive across the periodic tick and repeated focus events", async () => {
+  it("keeps a slow focus verification alive across the periodic tick", async () => {
     vi.useFakeTimers();
     mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
     mocks.getEffectiveUserTier.mockImplementation(() => new Promise(resolve => {
@@ -140,7 +140,6 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     fireEvent(window, new Event("focus"));
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-    fireEvent(window, new Event("focus"));
     expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(2);
     // The focus request completes at 70s and must extend the original 90s deadline.
     await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
@@ -158,9 +157,38 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
     expect(screen.getByTestId("plan")).toHaveTextContent("free");
     expect(mocks.getEffectiveUserTier).toHaveBeenCalledOnce();
-    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
     expect(screen.getByTestId("plan")).toHaveTextContent("pro");
     expect(screen.getByTestId("loading")).toHaveTextContent("false");
+  });
+
+  it("recovers a hung periodic verification on focus before the access deadline", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
+    mocks.getEffectiveUserTier.mockImplementationOnce(() => new Promise(() => {}));
+    mocks.getEffectiveUserTier.mockResolvedValue({ tier: "pro" });
+    render(<FeatureProvider><GatedEditor /></FeatureProvider>);
+    await act(async () => {});
+    const editor = screen.getByRole("textbox", { name: "Rozepsaná poznámka" });
+    fireEvent.change(editor, { target: { value: "Nabídka po obnovení sítě" } });
+    editor.focus();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    await act(async () => { fireEvent(window, new Event("focus")); });
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(3);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(screen.getByRole("textbox", { name: "Rozepsaná poznámka" })).toBe(editor);
+    expect(editor).toHaveValue("Nabídka po obnovení sítě");
+    expect(editor).toHaveFocus();
+  });
+
+  it("cancels verification retries when the provider unmounts", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(() => {}));
+    const view = render(<FeatureProvider><Probe /></FeatureProvider>);
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledOnce();
   });
 
   it("applies server-side access revocation on the next periodic verification", async () => {
