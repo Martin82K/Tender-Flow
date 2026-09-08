@@ -81,6 +81,57 @@ describe("project overview Excel export", () => {
     expect(sheet.getRow(8).values).not.toContain("SOD");
   });
 
+  it.each([
+    options.visibleColumns,
+    { ...options.visibleColumns, sod: false, sod_vr: false, nabidky: false, smlouvy: false },
+  ])("formats the whole tender row including blank prices after saving and reopening XLSX (%j)", async (visibleColumns) => {
+    const workbook = await buildProjectOverviewWorkbook({
+      ...project, categories: [...project.categories, category("zz", "Žulové obklady", "open")],
+    }, { ...options, visibleColumns });
+    const reopened = new ExcelJS.Workbook();
+    await reopened.xlsx.load(await workbook.xlsx.writeBuffer());
+    const sheet = reopened.getWorksheet("Poptávky")!;
+    const lastColumn = sheet.getRow(8).cellCount;
+    for (const rowNumber of [11, 12]) {
+      const row = sheet.getRow(rowNumber);
+      const reference = row.getCell(2);
+      for (let column = 1; column <= lastColumn; column += 1) {
+        const cell = row.getCell(column);
+        expect(cell.fill, cell.address).toEqual(reference.fill);
+        expect(cell.font, cell.address).toEqual(reference.font);
+        expect(cell.alignment, cell.address).toEqual(reference.alignment);
+      }
+      const priceColumn = (sheet.getRow(8).values as ExcelJS.CellValue[]).indexOf("Cena VŘ");
+      expect(row.getCell(priceColumn).value).toBeNull();
+      expect(row.getCell(priceColumn).numFmt).toContain("Kč");
+    }
+    expect(sheet.getCell("B11").fill).toMatchObject({ type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } });
+  });
+
+  it.each(["", "Bet", "nenalezeno"])("formats totals across the full width, including leading and trailing empty cells (search: %s)", async (searchQuery) => {
+    const workbook = await buildProjectOverviewWorkbook(project, { ...options, searchQuery });
+    const reopened = new ExcelJS.Workbook();
+    await reopened.xlsx.load(await workbook.xlsx.writeBuffer());
+    const sheet = reopened.getWorksheet("Poptávky")!;
+    const lastColumn = sheet.getRow(8).cellCount;
+    const totals: ExcelJS.Row[] = [];
+    sheet.eachRow(row => {
+      if (["Součet exportovaných řádků", "Celková bilance stavby"].includes(String(row.getCell(2).value))) totals.push(row);
+    });
+    expect(totals).toHaveLength(searchQuery ? 2 : 1);
+    for (const row of totals) {
+      for (let column = 1; column <= lastColumn; column += 1) {
+        const cell = row.getCell(column);
+        expect(cell.border?.top, cell.address).toMatchObject({ style: "thin", color: { argb: "FF94A3B8" } });
+        expect(cell.fill, cell.address).toMatchObject({ type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } });
+        expect(cell.font?.bold, cell.address).toBe(true);
+        expect(cell.alignment, cell.address).toMatchObject({ vertical: "middle", wrapText: true });
+      }
+      expect(row.getCell(1).value).toBeNull();
+      expect(row.getCell(lastColumn).value).toBeNull();
+    }
+  });
+
   it("preserves user text as strings, never executable formulas or external links", async () => {
     const malicious = "\t=HYPERLINK(\"https://evil.invalid\",\"x\")";
     const workbook = await buildProjectOverviewWorkbook({

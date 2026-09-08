@@ -8,6 +8,8 @@ Stáhne soubor `prehled_<stavba>_<cas-UTC>.xlsx` se dvěma listy:
 
 Oba listy obsahují vložené logo Tender Flow, název stavby, zdroj `Tender Flow → stavba → Přehled` a datum i čas exportu v pásmu `Europe/Prague`. Částky jsou číselné buňky s formátem Kč, nikoliv text. Nulová vítězná nabídka zůstává nulou; chybějící vítěz má prázdnou cenu a rozdíly. Záhlaví poptávek je ukotvené a opakuje se při tisku na šířku.
 
+Střídavé pozadí, písmo a zarovnání řádků zahrnují i prázdné buňky cen a rozdílů. Součtové řádky mají souvislé pozadí a horní ohraničení od prvního až po poslední exportovaný sloupec, včetně prázdných buněk. Formátování zachovává prázdné hodnoty a platí i pro omezený výběr sloupců nebo prázdný výsledek hledání.
+
 Tlačítko je dostupné také u stavby bez poptávek. Po dobu exportu blokuje další kliknutí; chyba nabídne opakování bez zobrazení interních detailů.
 
 ## Implementace a bezpečnost
