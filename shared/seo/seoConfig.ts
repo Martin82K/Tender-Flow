@@ -1,4 +1,4 @@
-export const SITE_URL = "https://tenderflow.cz";
+export const SITE_URL = "https://www.tenderflow.cz";
 export const SITE_NAME = "Tender Flow";
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
 

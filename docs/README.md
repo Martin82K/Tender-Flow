@@ -9,6 +9,7 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
   na webu/desktopu a vazba na feature flags.
 
 - [Mistral AI, ZDR a MCP](product/ai-data-and-mcp.md) – zpracování dat, připojení a fakturace.
+- [Veřejný obsah a AEO](product/public-aeo-content.md) – aktuální produktová fakta a shoda webu s podklady pro vyhledávače.
 - [Další workflow a modernizace](product/workflow-opportunities.md) – návrh závazků ze smluv.
 
 ## Architektura

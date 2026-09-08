@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@features/public/ui/LandingPage";
@@ -18,6 +19,20 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 describe("LandingPage nové moduly", () => {
+  it("shows every structured FAQ answer to visitors and avoids unsupported offline testimonials", () => {
+    render(<LandingPage />);
+    const html = new DOMParser().parseFromString(fs.readFileSync("index.html", "utf8"), "text/html");
+    const faq = [...html.querySelectorAll('script[type="application/ld+json"]')]
+      .map((script) => JSON.parse(script.textContent || "{}"))
+      .find((schema) => schema["@type"] === "FAQPage");
+    const section = screen.getByRole("region", { name: "Časté otázky" });
+    for (const question of faq.mainEntity) {
+      expect(within(section).getByRole("heading", { name: question.name })).toBeInTheDocument();
+      expect(within(section).getByText(question.acceptedAnswer.text)).toBeInTheDocument();
+    }
+    expect(screen.queryByText(/skvělá pro práci offline|ROI se nám vrátil/i)).not.toBeInTheDocument();
+  });
+
   it("nabízí ilustrační video smlouvy na vyžádání bez automatického stahování a přehrávání", () => {
     render(<LandingPage />);
 

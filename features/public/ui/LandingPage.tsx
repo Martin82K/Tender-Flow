@@ -8,6 +8,7 @@ import contractScanPoster from "@/assets/landing/contract-scan-poster.jpg";
 import { TENDER_STORY_STEPS } from "../model/landingContent";
 import { LandingPricing } from "./LandingPricing";
 import { LandingIntegrations } from "./LandingIntegrations";
+import { LandingFaq } from "./LandingFaq";
 import "./landing-apex.css";
 
 export const LandingPage: React.FC = () => {
@@ -438,6 +439,7 @@ export const LandingPage: React.FC = () => {
 
       <LandingIntegrations />
       <LandingPricing />
+      <LandingFaq />
 
       {/* ═══ TESTIMONIALS ═══ */}
       <section id="reference">
@@ -447,8 +449,7 @@ export const LandingPage: React.FC = () => {
               Reference
             </div>
             <h2 className="sec-title" style={{ margin: "0 auto" }}>
-              Co ř&iacute;kaj&iacute; naši{" "}
-              <span className="serif">klienti</span>
+              Firemní <span className="serif">reference</span>
             </h2>
           </div>
           <article className="client-reference" aria-label="Firemní reference BAU-STAV a.s.">
@@ -461,71 +462,7 @@ export const LandingPage: React.FC = () => {
               baustav.cz →
             </a>
           </article>
-          <div className="testi-grid">
-            <div className="testi-card">
-              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-              <p className="testi-text">
-                &bdquo;TenderFlow n&aacute;m přinesl ř&aacute;d do
-                nab&iacute;dkov&yacute;ch ř&iacute;zen&iacute;. Co dř&iacute;v
-                trvalo dny, zvl&aacute;dneme za hodiny. ROI se n&aacute;m
-                vr&aacute;til do tř&iacute; měs&iacute;ců.&ldquo;
-              </p>
-              <div className="testi-author">
-                <div
-                  className="testi-avatar"
-                >
-                  JN
-                </div>
-                <div className="testi-info">
-                  <div className="testi-name">Ing. Jan Nov&aacute;k</div>
-                  <div className="testi-role">
-                    Ředitel divize, Stavebn&iacute; firma
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="testi-card">
-              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-              <p className="testi-text">
-                &bdquo;Konečně n&aacute;stroj, kter&yacute; rozum&iacute;
-                stavebnictv&iacute;. Pipeline tendrů a automatick&aacute;
-                spr&aacute;va dokumentů n&aacute;m ušetřily des&iacute;tky
-                hodin měs&iacute;čně.&ldquo;
-              </p>
-              <div className="testi-author">
-                <div
-                  className="testi-avatar"
-                >
-                  PS
-                </div>
-                <div className="testi-info">
-                  <div className="testi-name">Petr Svoboda</div>
-                  <div className="testi-role">Projektov&yacute; manažer</div>
-                </div>
-              </div>
-            </div>
-            <div className="testi-card">
-              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-              <p className="testi-text">
-                &bdquo;Desktop aplikace je skvěl&aacute; pro pr&aacute;ci
-                offline. AI anal&yacute;za smluv zachytila podm&iacute;nky,
-                kter&eacute; bychom ručně přehl&eacute;dli.&ldquo;
-              </p>
-              <div className="testi-author">
-                <div
-                  className="testi-avatar"
-                >
-                  MK
-                </div>
-                <div className="testi-info">
-                  <div className="testi-name">
-                    Mgr. Marie Kratochv&iacute;lov&aacute;
-                  </div>
-                  <div className="testi-role">Legal & Compliance</div>
-                </div>
-              </div>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -601,7 +538,7 @@ export const LandingPage: React.FC = () => {
           </div>
           <div className="footer-bottom">
             <span>
-              &copy; {new Date().getFullYear()} TenderFlow s.r.o.
+              &copy; {new Date().getFullYear()} Tender Flow · Martin Kalkuš
               Všechna pr&aacute;va vyhrazena. v{APP_VERSION}
             </span>
             <div className="footer-bottom-links">
