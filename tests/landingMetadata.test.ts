@@ -57,11 +57,12 @@ describe("public landing metadata", () => {
     expect(sitemap).not.toContain("https://tenderflow.cz");
   });
 
-  it("retains private-route exclusions for every explicitly listed crawler", () => {
-    const robots = fs.readFileSync("public/robots.txt", "utf8");
+  it.each(["LF", "CRLF"])("retains private-route exclusions for every explicitly listed crawler with %s line endings", (lineEnding) => {
+    const robots = fs.readFileSync("public/robots.txt", "utf8")
+      .replace(/\r?\n/g, lineEnding === "CRLF" ? "\r\n" : "\n");
     const groups = robots.split(/\n\s*\n/).filter((group) => /User-agent:/i.test(group));
     for (const crawler of ["*", "Googlebot", "OAI-SearchBot", "GPTBot", "Bingbot"]) {
-      const group = groups.find((entry) => entry.split("\n").includes(`User-agent: ${crawler}`));
+      const group = groups.find((entry) => entry.split(/\r?\n/).includes(`User-agent: ${crawler}`));
       expect(group, crawler).toContain("Disallow: /app/");
       expect(group, crawler).toContain("Disallow: /api/");
       expect(group, crawler).toContain("Disallow: /s/");
