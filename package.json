@@ -4,7 +4,7 @@
   "workspaces": [
     "mcp-service"
   ],
-  "version": "1.9.26",
+  "version": "1.9.28",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:project-ui": "node scripts/check-project-ui.mjs",
     "typecheck": "tsc -p tsconfig.typecheck.json",
     "audit:architecture": "node scripts/audit-architecture-debt.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",

@@ -71,7 +71,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "overview",
     label: "Přehled poptávek",
     description: "Tabulka všech poptávkových kategorií s cenami, nabídkami a stavy. Kliknutím přejdete do Pipeline dané kategorie.",
-    detail: "Každý řádek je jedna poptávková kategorie (např. Elektroinstalace). Zobrazuje cenu SOD, plán, cenu z VŘ, rozdíly a počet nabídek. Barva stavu indikuje fázi: zelená = zasmluvněno, modrá = probíhá, šedá = ukončeno.",
+    detail: "Každý řádek je jedna poptávková kategorie (např. Elektroinstalace). Zobrazuje cenu SOD, plán, cenu z VŘ, rozdíly a počet nabídek. Samostatná ikona stahování před lištou filtrů (Export do Excelu) exportuje souhrn stavby a poptávky do XLSX s logem Tender Flow, názvem stavby, zdrojem a časem exportu. Respektuje filtr, hledání a zvolené sloupce a zahrnuje i řádky pod Zobrazit více. Součet exportovaných řádků je oddělen od celkové bilance stavby. Finanční souhrn vždy patří celé stavbě.",
     category: "data-flow",
     tourOrder: 7,
     dataFlow: [

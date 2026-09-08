@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeatureProvider, useFeatures } from "../context/FeatureContext";
 
@@ -53,6 +53,13 @@ const Probe = () => {
   );
 };
 
+// Model the AppEntry subscription gate: losing the plan unmounts the editor.
+const GatedEditor = () => {
+  const { currentPlan, isLoading } = useFeatures();
+  if (isLoading || currentPlan !== "pro") return <div>Ověření přístupu</div>;
+  return <input aria-label="Rozepsaná poznámka" defaultValue="" />;
+};
+
 afterEach(() => vi.useRealTimers());
 
 describe("FeatureProvider — stable refetch without loading flash", () => {
@@ -79,6 +86,119 @@ describe("FeatureProvider — stable refetch without loading flash", () => {
       isAuthenticated: true,
       isLoading: false,
     };
+  });
+
+  it.each([false, true])("preserves the editor across background verification with server latency (focus refresh: %s)", async (focusRefresh) => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({ tier: "pro" }), 100);
+    }));
+    render(<FeatureProvider><GatedEditor /></FeatureProvider>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    const editor = screen.getByRole("textbox", { name: "Rozepsaná poznámka" });
+    fireEvent.change(editor, { target: { value: "Nedokončená nabídka" } });
+    editor.focus();
+    if (focusRefresh) {
+      await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+      fireEvent(window, new Event("focus"));
+      await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    }
+    // Check repeatedly, including while RPC responses are pending, for six minutes.
+    for (let elapsed = 0; elapsed < 360_000; elapsed += 1_000) {
+      await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+      expect(screen.getByRole("textbox", { name: "Rozepsaná poznámka" })).toBe(editor);
+      expect(editor).toHaveValue("Nedokončená nabídka");
+      expect(editor).toHaveFocus();
+    }
+    expect(mocks.getEffectiveUserTier.mock.calls.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("revokes stale access when periodic verification hangs past the verification deadline", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(() => {}));
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("pro");
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
+  });
+
+  it("keeps a slow focus verification alive across the periodic tick", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(resolve => {
+      setTimeout(() => resolve({ tier: "pro" }), 40_000);
+    }));
+    render(<FeatureProvider><GatedEditor /></FeatureProvider>);
+    await act(async () => {});
+    const editor = screen.getByRole("textbox", { name: "Rozepsaná poznámka" });
+    fireEvent.change(editor, { target: { value: "Nabídka na pomalé síti" } });
+    editor.focus();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    fireEvent(window, new Event("focus"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(2);
+    // The focus request completes at 70s and must extend the original 90s deadline.
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    expect(screen.getByRole("textbox", { name: "Rozepsaná poznámka" })).toBe(editor);
+    expect(editor).toHaveValue("Nabídka na pomalé síti");
+    expect(editor).toHaveFocus();
+  });
+
+  it("retries a hung initial verification without an existing access deadline", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockImplementationOnce(() => new Promise(() => {}));
+    mocks.getEffectiveUserTier.mockResolvedValue({ tier: "pro" });
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledOnce();
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("pro");
+    expect(screen.getByTestId("loading")).toHaveTextContent("false");
+  });
+
+  it("recovers a hung periodic verification on focus before the access deadline", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" });
+    mocks.getEffectiveUserTier.mockImplementationOnce(() => new Promise(() => {}));
+    mocks.getEffectiveUserTier.mockResolvedValue({ tier: "pro" });
+    render(<FeatureProvider><GatedEditor /></FeatureProvider>);
+    await act(async () => {});
+    const editor = screen.getByRole("textbox", { name: "Rozepsaná poznámka" });
+    fireEvent.change(editor, { target: { value: "Nabídka po obnovení sítě" } });
+    editor.focus();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
+    await act(async () => { fireEvent(window, new Event("focus")); });
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledTimes(3);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(screen.getByRole("textbox", { name: "Rozepsaná poznámka" })).toBe(editor);
+    expect(editor).toHaveValue("Nabídka po obnovení sítě");
+    expect(editor).toHaveFocus();
+  });
+
+  it("cancels verification retries when the provider unmounts", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockImplementation(() => new Promise(() => {}));
+    const view = render(<FeatureProvider><Probe /></FeatureProvider>);
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+    expect(mocks.getEffectiveUserTier).toHaveBeenCalledOnce();
+  });
+
+  it("applies server-side access revocation on the next periodic verification", async () => {
+    vi.useFakeTimers();
+    mocks.getEffectiveUserTier.mockResolvedValueOnce({ tier: "pro" }).mockResolvedValue({ tier: "free" });
+    render(<FeatureProvider><Probe /></FeatureProvider>);
+    await act(async () => {});
+    expect(screen.getByTestId("plan")).toHaveTextContent("pro");
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(screen.getByTestId("plan")).toHaveTextContent("free");
   });
 
   it("revokes access at expiry even when the next server request never completes", async () => {

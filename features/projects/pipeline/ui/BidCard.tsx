@@ -55,9 +55,9 @@ export const BidCard: React.FC<BidCardProps> = ({
       onDoubleClick={() => onDoubleClick?.(bid)}
       className="tf-kanban-bid-card bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2">
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+      <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
+        <div className="flex min-w-0 flex-1 basis-40 items-center gap-2">
+          <h3 className="min-w-0 flex-1 [overflow-wrap:anywhere] font-bold text-slate-900 dark:text-white text-sm">
             {bid.companyName}
           </h3>
           {onOpenDocHubFolder && (
@@ -66,7 +66,7 @@ export const BidCard: React.FC<BidCardProps> = ({
                 e.stopPropagation();
                 onOpenDocHubFolder(bid);
               }}
-              className="text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+              className="shrink-0 text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
               title="DocHub složka dodavatele"
             >
               <span className="material-symbols-outlined text-[16px]">
@@ -79,7 +79,8 @@ export const BidCard: React.FC<BidCardProps> = ({
               e.stopPropagation();
               onEdit(bid);
             }}
-            className="text-slate-500 hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100"
+            className="shrink-0 text-slate-500 hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100"
+            aria-label="Upravit nabídku"
           >
             <span className="material-symbols-outlined text-[16px]">edit</span>
           </button>
@@ -89,7 +90,7 @@ export const BidCard: React.FC<BidCardProps> = ({
                 e.stopPropagation();
                 onDelete(bid.id);
               }}
-              className="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+              className="shrink-0 text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
               title="Odebrat z výběrového řízení"
             >
               <span className="material-symbols-outlined text-[16px]">
@@ -99,7 +100,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           )}
         </div>
         {shouldShowPrice && priceDisplayMode === "badge" && (
-          <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+          <span className="ml-auto min-w-0 max-w-full [overflow-wrap:anywhere] text-right text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
             {displayedPrice}
           </span>
         )}

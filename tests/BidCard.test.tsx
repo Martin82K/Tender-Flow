@@ -15,6 +15,30 @@ const baseBid: Bid = {
 };
 
 describe("BidCard", () => {
+  it("keeps the full supplier name and price with working actions in a crowded header", () => {
+    const bid: Bid = {
+      ...baseBid,
+      companyName: "VÝTAHY SCHMITT+SOHN sro",
+      price: "123\u00a0456\u00a0789\u00a0000,00\u00a0Kč",
+    };
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const onOpenDocHubFolder = vi.fn();
+    const onClick = vi.fn();
+    render(<BidCard bid={bid} onDragStart={vi.fn()} onClick={onClick}
+      onEdit={onEdit} onDelete={onDelete} onOpenDocHubFolder={onOpenDocHubFolder} />);
+
+    expect(screen.getByRole("heading", { name: bid.companyName })).toBeInTheDocument();
+    expect(screen.getByText("123 456 789 000,00 Kč").textContent).toBe(bid.price);
+    fireEvent.click(screen.getByRole("button", { name: "Upravit nabídku" }));
+    fireEvent.click(screen.getByTitle("DocHub složka dodavatele"));
+    fireEvent.click(screen.getByTitle("Odebrat z výběrového řízení"));
+    expect(onEdit).toHaveBeenCalledWith(bid);
+    expect(onOpenDocHubFolder).toHaveBeenCalledWith(bid);
+    expect(onDelete).toHaveBeenCalledWith(bid.id);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("renders inquiry and material inquiry buttons and triggers callbacks", () => {
     const onGenerateInquiry = vi.fn();
     const onGenerateMaterialInquiry = vi.fn();
