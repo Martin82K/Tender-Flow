@@ -20,6 +20,8 @@ Obě generace databázových RPC používají stejný resolver. Platí aktivní 
 
 Ověření se obnovuje každou minutu a při návratu do okna. Známé datum vypršení uzamkne UI i při neodpovídajícím serveru; poslední ověření bez kratšího data má nejvýše 90 sekund platnosti. Backend kontroluje každý nový datový požadavek. Starší klienti používají opravené RPC a stejnou databázovou ochranu.
 
+Pravidelná kontrola probíhá na pozadí bez zavření formulářů, ztráty rozepsaného textu nebo fokusu. Minutový časovač nesmí vynechat kontrolu kvůli nedávno dokončené odpovědi serveru či návratu do okna: další pokus až za dvě minuty by překročil 90sekundovou platnost a zbytečně odpojil rozhraní. Skutečné vypršení nebo neúspěšné ověření přístup nadále uzamkne. Při ruční kontrole ponechte rozepsaný formulář otevřený alespoň šest minut, zopakujte návrat do okna a ověřte zachování textu i kurzoru.
+
 Migrace `20260906181346_require_active_subscription.sql` skládá REST kontrolu s existující ochranou MCP. Restriktivní RLS doplňuje dosavadní pravidla firem a rolí u pracovních tabulek a Storage. Edge Functions ověřují předplatné před použitím servisního klienta nebo externího poskytovatele; OAuth callback kontroluje vlastníka spotřebovaného stavu.
 
 Odebrání přístupu nemaže zákaznická data. Již stažené soubory nelze odvolat a dříve vydané podepsané odkazy mohou fungovat do své expirace. Externí oprávnění k souborům v Google Drive nebo Microsoft 365 se řídí také pravidly daného poskytovatele.

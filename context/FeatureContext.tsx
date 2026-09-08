@@ -37,7 +37,6 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // for the new user — otherwise consumers (e.g. desktop plan blocker) would see
   // stale state (`currentPlan='free'` left over from a prior logout cleanup).
   const [fetchedForUserId, setFetchedForUserId] = useState<string | null>(null);
-  const lastRefreshRef = useRef<number>(0);
   const hasFetchedRef = useRef(false);
   const lastFetchedUserRef = useRef<string | null>(null);
 
@@ -124,7 +123,6 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
-      lastRefreshRef.current = Date.now();
       return true;
     } catch (error) {
       if (version !== requestVersion.current) return false;
@@ -170,11 +168,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (userRole === 'demo') return;
 
     const interval = setInterval(() => {
-      const timeSinceLastRefresh = Date.now() - lastRefreshRef.current;
-      if (timeSinceLastRefresh >= SUBSCRIPTION_REFRESH_INTERVAL) {
-        console.debug('[FeatureContext] Periodic subscription tier refresh');
-        fetchFeatures();
-      }
+      // Never skip a tick based on the last response time: network latency or
+      // a focus refresh can otherwise postpone verification to 120s, beyond
+      // the 90s access deadline, unmounting the user's open editor.
+      void fetchFeatures();
     }, SUBSCRIPTION_REFRESH_INTERVAL);
 
     const onFocus = () => { void fetchFeatures(); };
