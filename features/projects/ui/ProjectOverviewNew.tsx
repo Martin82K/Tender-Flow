@@ -13,6 +13,7 @@ import {
 } from "@/features/projects/model/projectOverviewNewModel";
 import { useProjectOverviewNewController } from "@/features/projects/model/useProjectOverviewNewController";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
+import { useFileExport } from "@shared/hooks/useFileExport";
 
 const formatCzechDateOnly = (value?: string): string => {
   if (!value) return "-";
@@ -128,6 +129,24 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     .join(" ");
 
   const columnsButtonClass = "tf-demand-columns-button";
+
+  const { runExport, isExporting, exportError } = useFileExport();
+  const exportButton = (
+    <button
+      type="button"
+      aria-label="Export do Excelu"
+      title={isExporting ? "Exportuji…" : "Export do Excelu"}
+      disabled={isExporting}
+      aria-busy={isExporting}
+      className={`${columnsButtonClass} shrink-0 disabled:cursor-wait disabled:opacity-50`}
+      onClick={() => void runExport(async () => {
+        const { exportProjectOverviewToXlsx } = await import("@features/projects/api/projectOverviewExportApi");
+        await exportProjectOverviewToXlsx(project, { demandFilter, searchQuery, visibleColumns });
+      })}
+    >
+      <span aria-hidden="true" className="material-symbols-outlined text-lg">download</span>
+    </button>
+  );
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -1865,6 +1884,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       )}
 
       {/* Demand Categories Overview Table */}
+      {exportError && <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{exportError}</p>}
+      {project.categories.length === 0 && <div className="flex justify-end">{exportButton}</div>}
       {project.categories.length > 0 && (
             <div data-help-id="overview-demand-table" className={demandTableClass}>
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800/50">
@@ -1878,6 +1899,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
 
                 {/* Filter Buttons */}
+                <div className="flex min-w-0 items-center gap-2">
+                  {exportButton}
                 <div className={demandFilterShellClass}>
                   <button
                     type="button"
@@ -1958,6 +1981,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
               <div className="overflow-x-auto min-h-[300px]">
