@@ -197,7 +197,9 @@ export const buildProjectOverviewWorkbook = async (
     const row = sheet.getRow(9 + index);
     row.values = columns.map(column => safeCell(values[column.key]));
     row.height = Math.max(28, ...columns.map(column => Math.ceil(String(values[column.key] ?? "").length / (column.width * 0.8)) * 15));
-    row.eachCell(cell => {
+    // Include empty prices and differences so the row band spans the full table.
+    columns.forEach((_, columnIndex) => {
+      const cell = row.getCell(columnIndex + 1);
       cell.font = { name: "Aptos", size: 10, color: { argb: "FF334155" } };
       cell.alignment = { vertical: "middle", wrapText: true };
       if (index % 2 === 0) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
@@ -208,9 +210,11 @@ export const buildProjectOverviewWorkbook = async (
     row.values = columns.map(column => column.key === "title" ? label : column.money
       ? data.reduce((sum, values) => sum + (typeof values[column.key] === "number" ? values[column.key] as number : 0), 0) : null);
     row.height = 32;
-    row.eachCell(cell => {
+    columns.forEach((_, columnIndex) => {
+      const cell = row.getCell(columnIndex + 1);
       cell.font = { name: "Aptos", size: 10, bold: true, color: { argb: "FF334155" } };
       cell.alignment = { vertical: "middle", wrapText: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
       cell.border = { top: { style: "thin", color: { argb: "FF94A3B8" } } };
     });
   };
