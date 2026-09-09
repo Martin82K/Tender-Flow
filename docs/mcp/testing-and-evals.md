@@ -76,3 +76,16 @@ Produkční release gate vyžaduje automatické testy i runtime canary. Mockovan
 JWT nebo statický SQL test není náhradou živého RLS/OAuth scénáře.
 Veřejný canary ověřuje metadata, OAuth discovery, PKCE/JWKS a bezpečné 401;
 nepracuje s tokenem a nesmí být vydáván za tokenový nebo cross-tenant test.
+
+## Regrese OAuth a platnosti kontaktního grantu
+
+- `tests/router.initialNavigation.test.tsx`: přesměrování z mount efektu
+  podřízené stránky se projeví bez ručního refresh.
+- `tests/AppContent.legalAcceptance.test.tsx`: obnova relace před OAuth
+  souhlasem, návrat z loginu a odmítnutí externího cíle v této cestě.
+- `supabase/tests/mcp-contact-grant-duration.sql`: transakční databázový test
+  kopie aktuální funkce nad dočasnými fixture tabulkami, ukončený rollbackem.
+  Ověřuje 180 dní, obnovení a audit, trvalý zápis, odvolání, izolaci uživatele
+  a zákaz udělování grantů OAuth klientem. Nemění živé granty ani souhlasy.
+  Spouští se v PostgreSQL s Tender Flow schématem pod správcovskou testovací
+  relací; nejde o test přístupových ACL role, které se kontrolují v katalogu.

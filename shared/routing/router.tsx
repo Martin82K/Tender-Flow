@@ -83,6 +83,12 @@ export const useLocation = (): LocationState => {
 
     window.addEventListener("popstate", onPopState);
     window.addEventListener("hashchange", onHashChange);
+    // A child may navigate in its mount effect before this subscription exists.
+    // Reconcile after subscribing so the redirect does not require a page refresh.
+    const currentLocation = getLocation();
+    setLocation((previous) => previous.pathname === currentLocation.pathname
+      && previous.search === currentLocation.search && previous.hash === currentLocation.hash
+      ? previous : currentLocation);
     return () => {
       window.removeEventListener("popstate", onPopState);
       window.removeEventListener("hashchange", onHashChange);

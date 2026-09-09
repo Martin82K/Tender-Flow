@@ -13,6 +13,17 @@
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 
+## 2026-09-09 — obnova OAuth přihlášení a 180denní kontaktní přístup
+
+- Router zachytí i přesměrování při prvním vykreslení, které dříve mohlo
+  nechat okno z desktopového AI klienta čekat až do ručního refresh.
+- OAuth souhlas počká na obnovu přihlášení; přihlášená relace se z OAuth
+  návratové přihlašovací stránky vrátí k původní žádosti bez refresh.
+- Nově povolené nebo obnovené kontaktní granty platí 180 dní; existující
+  expirace a možnost okamžitého odvolání zůstávají zachované.
+- Obecný a finanční zápis stále platí do odvolání; nemění se vazba na uživatele
+  a generaci OAuth souhlasu ani potvrzování obchodních změn.
+
 ## 2026-09-01 — opravy autorizace a souběžných změn ceny nabídky
 
 - finanční grant je nyní uznáván autoritativní databázovou permission funkcí,

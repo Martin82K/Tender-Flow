@@ -36,6 +36,7 @@ describe("McpAccessSettings", () => {
   it("renders only three simple permission switches and saves a write toggle directly", async () => {
     render(<McpAccessSettings />);
     await screen.findByText("ChatGPT Tender Flow");
+    expect(screen.getByText("Kontakty a detail nabídek dodavatelů. Platnost 180 dní od povolení nebo obnovení.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByText("Skupiny oprávnění")).not.toBeInTheDocument();
     expect(screen.getAllByRole("switch")).toHaveLength(3);

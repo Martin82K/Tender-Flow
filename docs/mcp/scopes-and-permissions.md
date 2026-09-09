@@ -1,6 +1,6 @@
 # Scopes a oprávnění
 
-Stav: OAuth/permission matice odpovídá `server/mcp/scopePolicy.js` k 2026-09-01
+Stav: OAuth/permission matice odpovídá `server/mcp/scopePolicy.js` k 2026-09-09
 Zdroj pravdy: `server/mcp/scopePolicy.js` a autoritativní Supabase RLS/RPC
 
 OAuth scope popisuje identitu předanou Supabase Auth. Interní MCP permission
@@ -17,7 +17,7 @@ uživatel přístup. Žádná z těchto vrstev nenahrazuje ostatní.
 | Interní permission | Význam | Aktuální remote/stdio stav |
 | --- | --- | --- |
 | `tenderflow.read` | obecná data projektů, VŘ, smluv, plánů, termínů a vlastní tasky | automaticky pro aktivně consentovaného registrovaného klienta |
-| `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | volitelný user+client grant na 30 dní |
+| `tenderflow.contacts.read` | kontaktní PII a data nabídek navíc k read | volitelný user+client grant na 180 dní |
 | `tenderflow.write` | třífázové business změny a úzká přímá Outlook metadata vazba; vyžaduje také read | volitelný user+client grant do odvolání |
 | `tenderflow.bids.offer.write` | finanční zápis celkové ceny nabídky bez DPH v CZK a append-only podmínek; vyžaduje také read + write | samostatný volitelný user+client grant do odvolání |
 
