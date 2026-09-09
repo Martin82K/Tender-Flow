@@ -140,7 +140,9 @@ export const McpAccessSettings: React.FC = () => {
                       <p className="font-medium text-slate-900 dark:text-white">{option.label}</p>
                       <p className="mt-1 text-sm text-slate-500">{option.description}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {option.active ? `Zapnuto · ${formatExpiry(option.expiry)}` : option.disabled ? "Nejprve zapněte zápisové operace." : "Vypnuto"}
+                        {option.permission === "tenderflow.bids.offer.write" && option.active && !writeActive
+                          ? "Povoleno, ale nejprve zapněte zápisové operace."
+                          : option.active ? `Zapnuto · ${formatExpiry(option.expiry)}` : option.disabled ? "Nejprve zapněte zápisové operace." : "Vypnuto"}
                       </p>
                     </div>
                     <button

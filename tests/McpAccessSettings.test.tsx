@@ -78,6 +78,7 @@ describe("McpAccessSettings", () => {
     const financial = await screen.findByRole("switch", { name: "Zápis ceny nabídky" });
     expect(financial).toBeEnabled();
     expect(financial).toBeChecked();
+    expect(screen.getByText("Povoleno, ale nejprve zapněte zápisové operace.")).toBeInTheDocument();
     fireEvent.click(financial);
     await waitFor(() => expect(grantMocks.set).toHaveBeenCalledWith("client-1", "tenderflow.bids.offer.write", false));
   });
