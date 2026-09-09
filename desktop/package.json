@@ -11,7 +11,7 @@
     },
     "overrides": {
         "electron-updater": {
-            "js-yaml": "4.3.1"
+            "js-yaml": "4.3.2"
         },
         "exceljs": {
             "tmp": "0.2.7",
