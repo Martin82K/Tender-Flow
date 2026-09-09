@@ -420,7 +420,7 @@ export const authService = {
     logout: async (): Promise<void> => {
         clearUserCache(); // Clear cached user data
         clearSubscriptionTierCache(); // Clear subscription tier cache
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
         if (error) throw error;
     },
 

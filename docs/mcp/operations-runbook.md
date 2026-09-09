@@ -67,10 +67,15 @@ výstupech nevypisují; ověřuje se pouze přítomnost a fingerprint.
    grantu a chování expirovaného tokenu.
    Po revoke a nové autorizaci stejného klienta ověřit, že původní
    contacts/write grant zůstává neaktivní a audit přežije odstranění klienta.
-   Současně ověřit, že aktivní consent má právě jednu `auth.sessions` session
-   pro stejného uživatele a `oauth_client_id`, alespoň jeden nerevokovaný
-   refresh-token řádek a že tři first-party session tento OAuth řádek
-   neodstraní. Kontrola nesmí vybírat ani logovat sloupec s tokenem.
+   Současně ověřit, že stejný uživatel a `oauth_client_id` mohou mít až deset
+   `auth.sessions` session, každou s nerevokovaným refresh-token řádkem.
+   Deset first-party session ani jiné OAuth klienty tato připojení neodstraní.
+   Jedenácté připojení odstraní pouze nejstarší session ve své skupině.
+   Kontrola nesmí vybírat ani logovat sloupec s tokenem.
+   Transakční test `supabase/tests/auth-concurrent-sessions.sql` prověřuje
+   nasazenou funkci na dočasných datech včetně oddělení uživatelů a klientů.
+   Po migraci `20260909171000_allow_ten_concurrent_sessions.sql` ověřit také,
+   že v Supabase Auth není zapnutý režim „Single session per user“.
 10. Ověřit skutečný resource/audience claim tokenu. Při neshodě zachovat
    fail-closed stav a opravit kontrakt podle živého vydaného tokenu.
 11. Na testovacím projektu a účtu povolit write grant do odvolání, provést

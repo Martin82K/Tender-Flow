@@ -20,6 +20,18 @@ const readOAuthFixMigration = (): string => {
 };
 
 describe("limit tří aktivních přihlašovacích session", () => {
+  it("nová změna limitů zachová trigger a neotevře jej přímým API voláním", () => {
+    const migration = fs.readdirSync(MIGRATIONS_DIR)
+      .find((file) => file.endsWith("_allow_ten_concurrent_sessions.sql"));
+    expect(migration).toBeDefined();
+    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, migration!), "utf8");
+
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.handle_new_session() FROM PUBLIC, anon, authenticated, service_role;");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).not.toMatch(/DROP\s+TRIGGER/i);
+    expect(sql).not.toMatch(/ALTER\s+TABLE/i);
+  });
+
   it("ponechá tři nejnovější session uživatele bez omezení podle platformy", () => {
     const sql = readMigration();
 

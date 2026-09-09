@@ -1,5 +1,14 @@
 # MCP changelog
 
+## 2026-09-09 — souběžná připojení
+
+- Až deset session na uživatele a OAuth klienta; web, desktop a mobil
+  Tender Flow mají společný samostatný limit deseti přihlášení.
+- Jedenácté přihlášení odstraní pouze nejstarší session stejné skupiny.
+- Běžné odhlášení z Tender Flow zachová ostatní zařízení i MCP klienty.
+- Oprávnění, jejich expirace a odpojení celého MCP klienta zůstávají společné
+  pro všechna jeho připojení. Migrace nemění existující session ani granty.
+
 ## 2026-09-09 — povolení zápisu při připojení a diagnostika
 
 - OAuth consent má obecný zápis předvolený, s možností vypnutí před schválením;
