@@ -22,11 +22,51 @@ const searchOutputSchema = z.object({
   })),
 });
 
-export const registerDiscoveryModule = ({ auth, supabase, tools, resources }) => {
+export const MCP_ACCESS_INSTRUCTIONS = 'If write tools are missing or a user cannot write, call tf_get_access_status and explain the missing Tender Flow permissions and settings link. Never claim the server has no write support based only on a filtered tools list. After the user enables permissions, refresh tools/list; if the client caches tools, refresh its connector tools. Do not revoke or recreate OAuth consent just to refresh tools.';
+
+export const registerDiscoveryModule = ({ auth, supabase, tools, resources, includeWriteTools = true }) => {
   const canReadContacts = hasMcpPermissions(auth.permissions, [
     MCP_PERMISSIONS.read,
     MCP_PERMISSIONS.contactsRead,
   ]);
+
+  tools.register(
+    'tf_get_access_status',
+    {
+      title: 'Tender Flow Access Status',
+      description: 'Diagnose missing write tools or permissions for this connection. Returns current access, supported write operations and instructions to enable access in Tender Flow settings. Does not grant permissions or change business data.',
+      inputSchema: {},
+      outputSchema: toolResultSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    async () => {
+      const missingWritePermissions = [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write]
+        .filter((permission) => !hasMcpPermissions(auth.permissions, [permission]));
+      const missingFinancialWritePermissions = [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write, MCP_PERMISSIONS.bidOfferWrite]
+        .filter((permission) => !hasMcpPermissions(auth.permissions, [permission]));
+      const writeEnabled = includeWriteTools && missingWritePermissions.length === 0;
+      const financialWriteEnabled = includeWriteTools && missingFinancialWritePermissions.length === 0;
+      return { ok: true, data: {
+        clientId: auth.clientId,
+        writeEnabled,
+        financialWriteEnabled,
+        contactsEnabled: canReadContacts,
+        writeToolsDisabled: !includeWriteTools,
+        missingWritePermissions,
+        missingFinancialWritePermissions,
+        settingsUrl: 'https://www.tenderflow.cz/app/settings?tab=tools&subTab=mcp',
+        supportedWriteOperations: ['create_task', 'update_bid_status', 'update_bid_offer', 'link_outlook_message'],
+        nextSteps: [
+          ...(missingWritePermissions.length > 0 ? ['V nastavení AI a MCP přístupů vyberte klienta se shodným clientId a zapněte přepínač Zápisové operace.'] : []),
+          ...(!canReadContacts ? ['Pro vyhledání dodavatelů a detailu nabídek povolte také kontaktní údaje na 30 dní.'] : []),
+          ...(!financialWriteEnabled ? ['Pro změnu ceny nabídky je nutný také samostatný finanční zápis.'] : []),
+          ...(!includeWriteTools ? ['Lokální MCP je spuštěný v režimu pouze pro čtení; upravte jeho konfiguraci.'] : []),
+          'Po změně oprávnění obnovte seznam nástrojů připojení (tools/list). Pokud klient drží starý katalog, použijte jeho aktualizaci nástrojů; neodvolávejte kvůli tomu OAuth souhlas.',
+          'Zápis stále vyžaduje oprávnění ke konkrétní stavbě. Business změny připravte, ukažte rozdíl a proveďte až po výslovném potvrzení uživatele.',
+        ],
+      } };
+    },
+  );
 
   resources.register(
     'tender-flow-catalog',

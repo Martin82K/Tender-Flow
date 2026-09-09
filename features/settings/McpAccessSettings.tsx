@@ -6,7 +6,6 @@ import {
   type McpClientGrant,
   type McpElevatedPermission,
 } from "@/features/settings/api/mcpGrantService";
-import { McpToolMatrix } from "@/features/settings/components/McpToolMatrix";
 
 const isActive = (expiresAt: string | null): boolean =>
   expiresAt === "infinity" || Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now());
@@ -24,8 +23,6 @@ export const McpAccessSettings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
-  const [pendingWriteClientId, setPendingWriteClientId] = useState<string | null>(null);
-  const [pendingBidOfferClientId, setPendingBidOfferClientId] = useState<string | null>(null);
   const [pendingDisconnectClientId, setPendingDisconnectClientId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -53,8 +50,6 @@ export const McpAccessSettings: React.FC = () => {
     setError(null);
     try {
       await setMyMcpClientGrant(clientId, permission, enabled);
-      setPendingWriteClientId(null);
-      setPendingBidOfferClientId(null);
       await load();
     } catch (changeError) {
       setError(changeError instanceof Error ? changeError.message : String(changeError));
@@ -70,8 +65,6 @@ export const McpAccessSettings: React.FC = () => {
     try {
       await revokeMyMcpClientAccess(clientId);
       setPendingDisconnectClientId(null);
-      setPendingWriteClientId(null);
-      setPendingBidOfferClientId(null);
       await load();
     } catch (disconnectError) {
       setError(disconnectError instanceof Error ? disconnectError.message : String(disconnectError));
@@ -88,19 +81,17 @@ export const McpAccessSettings: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">AI a MCP přístupy</h2>
         </div>
         <p className="max-w-3xl text-sm text-slate-500">
-          Správa oprávnění, která Tender Flow přidělí konkrétnímu OAuth klientovi po vašem přihlášení.
-          Oprávnění nikdy nerozšiřují přístup nad vaše role, projektové členství a databázové RLS.
+          Vyberte, co smí připojená AI dělat. Přístup vždy respektuje vaše práva ke stavbám.
         </p>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-        Kontaktní údaje se povolují nejvýše na 30 dní. Zápisové operace jsou povoleny do odvolání.
-        Rizikové business změny vyžadují prepare/confirm/execute; omezené propojení Outlook message ID
-        zapisuje jen identifikátory a vždy vyžaduje projektové právo a audit.
-      </div>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Nové připojení má zápis předvolený. Pokud stávající AI nabízí jen čtení, zapněte
+        u ní zápis a potom v AI obnovte seznam nástrojů připojení.
+      </p>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
           {error}
         </div>
       )}
@@ -109,7 +100,7 @@ export const McpAccessSettings: React.FC = () => {
 
       {!isLoading && clients.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-          Není dostupný žádný aktivní MCP OAuth klient. Zkontrolujte registraci klienta v provozním runbooku.
+          Zatím nemáte připojenou žádnou AI. Připojení spusťte v aplikaci svého AI asistenta.
         </div>
       )}
 
@@ -118,9 +109,6 @@ export const McpAccessSettings: React.FC = () => {
           const contactsActive = isActive(client.contactsReadExpiresAt);
           const writeActive = isActive(client.writeExpiresAt);
           const bidOfferWriteActive = isActive(client.bidOfferWriteExpiresAt);
-          const contactsKey = `${client.clientId}:tenderflow.contacts.read`;
-          const writeKey = `${client.clientId}:tenderflow.write`;
-          const bidOfferWriteKey = `${client.clientId}:tenderflow.bids.offer.write`;
           const disconnectKey = `${client.clientId}:disconnect`;
 
           return (
@@ -141,135 +129,34 @@ export const McpAccessSettings: React.FC = () => {
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-                  <h4 className="font-semibold text-slate-900 dark:text-white">Kontaktní údaje</h4>
-                  <p className="mt-1 text-sm text-slate-500">
-                    E-maily, telefony a detail nabídek v rozsahu vašich oprávnění.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    {contactsActive ? `Platí do ${formatExpiry(client.contactsReadExpiresAt)}` : "Není povoleno"}
-                  </p>
-                  <button
-                    type="button"
-                    disabled={savingKey === contactsKey}
-                    onClick={() => void changeGrant(
-                      client.clientId,
-                      "tenderflow.contacts.read",
-                      !contactsActive,
-                    )}
-                    className="mt-4 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-                  >
-                    {contactsActive ? "Odebrat kontaktní údaje" : "Povolit kontaktní údaje"}
-                  </button>
-                </div>
-
-                <div className="rounded-lg border border-amber-200 p-4 dark:border-amber-500/30">
-                  <h4 className="font-semibold text-slate-900 dark:text-white">Zápisové operace</h4>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Potvrzované business změny a omezené auditované propojení Outlook zprávy.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    {writeActive ? `Platí ${formatExpiry(client.writeExpiresAt)}` : "Není povoleno"}
-                  </p>
-
-                  {!writeActive && pendingWriteClientId === client.clientId ? (
-                    <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
-                      <p>Rizikové změny stále vyžadují prepare/confirm/execute a mohou změnit vaše data.</p>
-                      <p className="mt-2">Outlook message ID se propojuje přímo, ale jen k povolené kartě a bez obsahu e-mailu.</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={savingKey === writeKey}
-                          onClick={() => void changeGrant(client.clientId, "tenderflow.write", true)}
-                          className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:opacity-60"
-                        >
-                          Potvrdit zápis do odvolání
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPendingWriteClientId(null)}
-                          className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold"
-                        >
-                          Zrušit
-                        </button>
-                      </div>
+              <div className="mt-4 divide-y divide-slate-200 dark:divide-slate-700">
+                {([
+                  { permission: "tenderflow.write", label: "Zápisové operace", active: writeActive, expiry: client.writeExpiresAt, description: "Úkoly a stav nabídek po vašem potvrzení; propojení zpráv Outlooku.", disabled: false },
+                  { permission: "tenderflow.contacts.read", label: "Kontaktní údaje", active: contactsActive, expiry: client.contactsReadExpiresAt, description: "Kontakty a detail nabídek dodavatelů. Platnost 30 dní.", disabled: false },
+                  { permission: "tenderflow.bids.offer.write", label: "Zápis ceny nabídky", active: bidOfferWriteActive, expiry: client.bidOfferWriteExpiresAt, description: "Cena bez DPH a podmínky nabídky po vašem potvrzení.", disabled: !writeActive && !bidOfferWriteActive },
+                ] satisfies Array<{ permission: McpElevatedPermission; label: string; active: boolean; expiry: string | null; description: string; disabled: boolean }>).map((option) => (
+                  <div key={option.permission} className="flex items-center justify-between gap-4 py-4">
+                    <div>
+                      <p className="font-medium text-slate-900 dark:text-white">{option.label}</p>
+                      <p className="mt-1 text-sm text-slate-500">{option.description}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {option.active ? `Zapnuto · ${formatExpiry(option.expiry)}` : option.disabled ? "Nejprve zapněte zápisové operace." : "Vypnuto"}
+                      </p>
                     </div>
-                  ) : (
                     <button
                       type="button"
-                      disabled={savingKey === writeKey}
-                      onClick={() => {
-                        if (writeActive) {
-                          void changeGrant(client.clientId, "tenderflow.write", false);
-                        } else {
-                          setPendingWriteClientId(client.clientId);
-                        }
-                      }}
-                      className="mt-4 rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 disabled:opacity-60 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/10"
+                      role="switch"
+                      aria-label={option.label}
+                      aria-checked={option.active}
+                      disabled={savingKey !== null || option.disabled}
+                      onClick={() => void changeGrant(client.clientId, option.permission, !option.active)}
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:cursor-wait disabled:opacity-50 ${option.active ? "bg-violet-600" : "bg-slate-300 dark:bg-slate-600"}`}
                     >
-                      {writeActive ? "Odebrat zápis" : "Povolit zápis"}
+                      <span aria-hidden="true" className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${option.active ? "left-0.5 translate-x-5" : "left-0.5"}`} />
                     </button>
-                  )}
-                </div>
-
-                <div className="rounded-lg border border-violet-200 p-4 dark:border-violet-500/30">
-                  <h4 className="font-semibold text-slate-900 dark:text-white">Cena nabídky bez DPH</h4>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Umožní agentovi po vašem potvrzení zapsat celkovou cenu v CZK a připojit podmínky nabídky do poznámky.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    {bidOfferWriteActive ? `Platí ${formatExpiry(client.bidOfferWriteExpiresAt)}` : "Není povoleno"}
-                  </p>
-
-                  {!bidOfferWriteActive && pendingBidOfferClientId === client.clientId ? (
-                    <div className="mt-4 rounded-lg bg-violet-50 p-3 text-sm text-violet-900 dark:bg-violet-500/10 dark:text-violet-100">
-                      <p>Agent může zapisovat finanční hodnotu bez DPH. Každá změna stále vyžaduje prepare/confirm/execute a zobrazí before/after souhrn.</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={savingKey === bidOfferWriteKey}
-                          onClick={() => void changeGrant(client.clientId, "tenderflow.bids.offer.write", true)}
-                          className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
-                        >
-                          Potvrdit finanční zápis
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPendingBidOfferClientId(null)}
-                          className="rounded-lg border border-violet-300 px-3 py-2 text-sm font-semibold"
-                        >
-                          Zrušit
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={savingKey === bidOfferWriteKey || (!bidOfferWriteActive && !writeActive)}
-                      onClick={() => {
-                        if (bidOfferWriteActive) {
-                          void changeGrant(client.clientId, "tenderflow.bids.offer.write", false);
-                        } else {
-                          setPendingBidOfferClientId(client.clientId);
-                        }
-                      }}
-                      className="mt-4 rounded-lg border border-violet-300 px-3 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-50 disabled:opacity-60 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-500/10"
-                    >
-                      {bidOfferWriteActive ? "Odebrat finanční zápis" : "Povolit finanční zápis"}
-                    </button>
-                  )}
-                  {!writeActive && !bidOfferWriteActive && (
-                    <p className="mt-2 text-xs text-slate-500">Nejprve povolte obecné zápisové operace.</p>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-
-              <McpToolMatrix
-                contactsActive={contactsActive}
-                writeActive={writeActive}
-                bidOfferWriteActive={bidOfferWriteActive}
-              />
 
               <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
                 {pendingDisconnectClientId === client.clientId ? (
@@ -302,9 +189,8 @@ export const McpAccessSettings: React.FC = () => {
                 ) : (
                   <button
                     type="button"
+                    disabled={savingKey !== null}
                     onClick={() => {
-                      setPendingWriteClientId(null);
-                      setPendingBidOfferClientId(null);
                       setPendingDisconnectClientId(client.clientId);
                     }}
                     className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"

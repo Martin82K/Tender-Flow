@@ -15,7 +15,7 @@ describe("MCP tool catalog and permissions", () => {
   it("udržuje zobrazovanou matici jako úplný zdroj serverových tool policy", () => {
     const toolNames = MCP_TOOL_CATALOG.map((tool) => tool.name);
 
-    expect(toolNames).toHaveLength(21);
+    expect(toolNames).toHaveLength(22);
     expect(new Set(toolNames).size).toBe(toolNames.length);
     expect(toolNames).toEqual(expect.arrayContaining([
       "search",

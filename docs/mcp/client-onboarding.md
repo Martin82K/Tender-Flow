@@ -17,12 +17,18 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
    `WWW-Authenticate` odpovědi 401.
 2. Provést OAuth authorization code flow s resource indikátorem MCP endpointu.
 3. Zobrazit uživateli Tender Flow consent oddělující identity scopes od
-   interních oprávnění.
+   interních oprávnění. Uživatel může samostatně zaškrtnout kontaktní údaje,
+   zápisové operace a finanční zápis. Obecný zápis je předvolený a uživatel
+   jej může před schválením vypnout; kontakty a finanční zápis jsou volitelné.
+   Finanční zápis vyžaduje také obecný zápis. Aplikace nejprve dokončí OAuth
+   souhlas a pak udělí vybrané granty přes first-party RPC. Do AI se vrátí až
+   po jejich úspěšném uložení. Při chybě lze uložení opakovat bez druhého
+   schvalování již spotřebované OAuth žádosti; callback zůstává jen v paměti.
 4. Posílat `Authorization: Bearer …`, `MCP-Protocol-Version: 2026-07-28`,
    odpovídající `Mcp-Method`/`Mcp-Name` a klientská metadata v `_meta`.
 5. Volitelně zavolat `server/discover`, potom `tools/list` a resource seznamy.
 6. Provést read-only canary a ověřit audit.
-7. Potřebuje-li klient kontaktní data nebo zápis, uživatel je povolí pro tento
+7. Potřebuje-li již připojený klient kontaktní data nebo zápis, uživatel je povolí pro tento
    consentovaný klient v Nastavení → Nástroje → MCP přístupy. Contacts grant
    platí 30 dní, write grant do odvolání; rozšíření OAuth scope je nenahrazuje.
 8. Po změně registrace nebo databázové role provést nový OAuth flow. Starší
@@ -72,3 +78,14 @@ nepovolují automaticky a uživatel je případně udělí samostatně v Tender 
 - po odebrání oprávnění zahodí cache a znovu autorizuje.
 
 Produkční údaje o klientovi a secrets se necommitují do tohoto repozitáře.
+
+## AI nabízí jen čtení
+
+Zavolejte `tf_get_access_status`. Vraťte uživateli odkaz na nastavení a přesný
+`clientId`, aby zapnul přepínač Zápisové operace u správného připojení. Pro práci s nabídkami
+potřebuje také kontaktní grant; pro cenu navíc samostatný finanční grant.
+Po udělení grantů obnovte `tools/list`, případně použijte aktualizaci nástrojů
+v klientovi. Kvůli aktualizaci katalogu neodvolávejte OAuth souhlas.
+Pokud má klient stále původní katalog bez diagnostiky, otevřete Nastavení →
+Nástroje → MCP přístupy přímo v Tender Flow. Udělení grantu nikdy nepřekračuje
+uživatelova projektová ani organizační práva.

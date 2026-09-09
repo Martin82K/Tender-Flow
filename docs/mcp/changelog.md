@@ -1,5 +1,15 @@
 # MCP changelog
 
+## 2026-09-09 — povolení zápisu při připojení a diagnostika
+
+- OAuth consent má obecný zápis předvolený, s možností vypnutí před schválením;
+  kontakty a finanční zápis jsou volitelné. Granty uloží před návratem do AI.
+- Nastavení MCP používá tři jednoduché přepínače bez matice nástrojů.
+- Selhání ukládání zobrazí a umožní opakování bez opětovného OAuth schválení.
+- `tf_get_access_status` vysvětluje chybějící oprávnění aktuálního připojení
+  a odkazuje na nastavení. Katalog má 22 nástrojů, 11 se základním read grantem.
+- Serverová implementace `0.6.2`; databázové role, grantová pravidla a RLS beze změn.
+
 Formát zaznamenává uživatelsky nebo integračně významné změny. Git historie je
 detailní zdroj jednotlivých diffů.
 

@@ -33,7 +33,7 @@ zneplatní.
 
 | Požadované interní permissions | Nástroje |
 | --- | --- |
-| read | `search`, `fetch`, `tf_list_projects`, `tf_get_project_summary`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines`, `tf_list_tasks` |
+| read | `tf_get_access_status`, `search`, `fetch`, `tf_list_projects`, `tf_get_project_summary`, `tf_list_tenders`, `tf_list_contracts`, `tf_get_contract_overview`, `tf_list_tender_plan`, `tf_list_upcoming_deadlines`, `tf_list_tasks` |
 | read + contacts | kontaktní větev `search`/`fetch`, `tf_get_project_detail`, `tf_list_bids`, `tf_list_winners`, `tf_list_contacts`, `tf_match_outlook_reply` |
 | read + write | `tf_prepare_change`, `tf_confirm_change`, `tf_execute_change`, `tf_link_outlook_message` |
 | read + write + bid offer write | `tf_prepare_bid_offer_update`; potvrzení a provedení dále používá společné `tf_confirm_change` a `tf_execute_change` |
