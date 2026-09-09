@@ -385,12 +385,14 @@ export const UserSecuritySettings: React.FC = () => {
                 Aktivní session
               </h3>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {activeSessionCount} z 3 aktivních
+                {activeSessionCount} z 10 aktivních
               </span>
             </div>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Účet může mít současně nejvýše tři aktivní session, například Windows, macOS a mobil.
-              Nové přihlášení nad limit odhlásí nejstarší session. Jednotlivé session můžete odhlásit bez vypnutí 2FA.
+              Účet může mít současně až 10 přihlášení na webu, desktopu a mobilu dohromady.
+              Každý MCP klient má samostatný limit 10 připojení.
+              Přihlášení nad limit odhlásí nejstarší session pouze v příslušné skupině.
+              Jednotlivé session můžete odhlásit bez vypnutí 2FA a bez odpojení ostatních zařízení.
             </p>
           </div>
 

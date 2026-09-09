@@ -34,6 +34,19 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
 8. Po změně registrace nebo databázové role provést nový OAuth flow. Starší
    token bez `role=tenderflow_mcp_client` server záměrně odmítne.
 
+## Souběžná připojení
+
+Jeden účet může současně používat až deset připojení každého MCP OAuth
+klienta, například jeho webovou i desktopovou aplikaci. Každý klient má
+vlastní limit; dalších deset přihlášení je vyhrazeno pro web, desktop a mobil
+Tender Flow dohromady. Jedenácté připojení ruší nejstarší session pouze
+ve stejné skupině. Běžné odhlášení z Tender Flow odpojí pouze aktuální session.
+
+Oprávnění a tlačítko „Odpojit klienta“ v MCP nastavení platí pro celý daný
+OAuth klient na účtu, tedy pro všechna jeho připojení. Ostatní MCP klienty
+zůstanou připojené. Ztracené webové nebo desktopové zařízení lze samostatně
+odhlásit v přehledu aktivních session.
+
 Konfigurační příklad bez secretu:
 
 ```json
