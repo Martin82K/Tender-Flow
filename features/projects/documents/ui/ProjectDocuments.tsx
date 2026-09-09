@@ -337,6 +337,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
     copyableText?: string;
   }>({ isOpen: false, title: "", message: "", variant: "info" });
 
+  const { modalRequest } = docHub.state;
+  const { clearModalRequest } = docHub.setters;
+  useEffect(() => {
+    if (!modalRequest) return;
+    setUiModal({ ...modalRequest, isOpen: true });
+    clearModalRequest();
+  }, [modalRequest, clearModalRequest]);
+
   const showModal = (args: {
     title: string;
     message: string;

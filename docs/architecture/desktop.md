@@ -87,6 +87,12 @@ marker je doplňková kontrola identity: jeho chybění lokální přístup nebl
 ale prokazatelný nesoulad projektu nebo generace připojení se odmítne. Cloudový
 provider zůstává zdrojem pravdy a jeho synchronizace
 je eventual-consistent, nikoli transakčně řízená aplikací Tender Flow.
+Po uložení lokálního kořene se ověřený stav UI váže na právě uloženou cestu a
+identifikátor připojení, nikoli na hodnoty před zahájením operace. Obnova projektu
+během čekání na IPC tak nezneplatní dokončené připojení. Kontroly markeru,
+oprávnění a kompenzační návrat při selhání zůstávají součástí ukládání.
+Obrazovka Dokumenty přebírá výsledkové a chybové hlášky integračního hooku do
+uživatelského dialogu.
 Pokud sdílený uživatel nemá lokální složku ani klientská cloudová ID, renderer
 pošle pouze projektový a doménový identifikátor do autorizovaného
 `dochub-get-link`. Edge Function nejprve ověří RLS a explicitní sdílení, potom
