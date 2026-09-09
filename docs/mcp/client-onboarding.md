@@ -84,8 +84,11 @@ Produkční údaje o klientovi a secrets se necommitují do tohoto repozitáře.
 Zavolejte `tf_get_access_status`. Vraťte uživateli odkaz na nastavení a přesný
 `clientId`, aby zapnul přepínač Zápisové operace u správného připojení. Pro práci s nabídkami
 potřebuje také kontaktní grant; pro cenu navíc samostatný finanční grant.
-Po udělení grantů obnovte `tools/list`, případně použijte aktualizaci nástrojů
-v klientovi. Kvůli aktualizaci katalogu neodvolávejte OAuth souhlas.
+Po udělení grantů u vzdáleného HTTP připojení obnovte `tools/list`, případně použijte
+aktualizaci nástrojů v klientovi. Lokální stdio MCP načítá oprávnění při startu:
+nejprve restartujte jeho proces a potom obnovte katalog. Kvůli aktualizaci katalogu
+neodvolávejte OAuth souhlas. Při nové autorizaci je třeba znovu zvolit také kontaktní
+a finanční oprávnění; granty předchozí generace souhlasu se nepřenášejí.
 Pokud má klient stále původní katalog bez diagnostiky, otevřete Nastavení →
 Nástroje → MCP přístupy přímo v Tender Flow. Udělení grantu nikdy nepřekračuje
 uživatelova projektová ani organizační práva.

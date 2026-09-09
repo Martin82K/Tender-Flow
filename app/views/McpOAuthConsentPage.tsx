@@ -240,7 +240,7 @@ export const McpOAuthConsentPage: React.FC = () => {
               <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
                 Zápisové operace jsou předvolené a povolíte je schválením připojení.
                 Pokud chcete jen čtení, zápis před schválením vypněte.
-                Dříve udělená oprávnění tím neodeberete. Přístup nikdy nepřekročí vaše role a práva ke stavbám.
+                Při novém připojení znovu vyberte i kontaktní a finanční oprávnění, pokud je chcete používat. Přístup nikdy nepřekročí vaše role a práva ke stavbám.
                 Oprávnění můžete kdykoliv změnit v nastavení AI a MCP přístupů.
               </div>
 

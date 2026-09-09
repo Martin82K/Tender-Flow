@@ -84,6 +84,8 @@ describe("McpOAuthConsentPage", () => {
     expect(screen.getByText("- základní profil")).toBeInTheDocument();
     expect(screen.getByText(/čtení projektů, výběrových řízení, smluv, plánů a termínů/)).toBeInTheDocument();
     expect(screen.getByText(/Kontaktní údaje a zápis vyžadují váš samostatný souhlas/)).toBeInTheDocument();
+    expect(screen.getByText(/Při novém připojení znovu vyberte i kontaktní a finanční oprávnění/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dříve udělená oprávnění tím neodeberete/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Zobrazit správu MCP oprávnění" })).toHaveAttribute(
       "href",
       "/app/settings?tab=tools&subTab=mcp",

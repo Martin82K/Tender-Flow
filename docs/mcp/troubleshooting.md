@@ -8,7 +8,7 @@ Zdroj pravdy: HTTP handler, token validation, scope policy a provozní logy
 | 401 + `WWW-Authenticate` | chybí/neplatný token | načíst metadata, zopakovat OAuth; token nelogovat |
 | „client is not allowed“ | client ID není v allowlistu | ověřit fingerprint/ID a schválení klienta |
 | resource/audience mismatch | token vydán pro jiné API | vyžádat nový token s kanonickým MCP resource |
-| tool není v katalogu / AI nabízí pouze čtení | chybí interní permission nebo klient drží starý katalog | zavolat `tf_get_access_status`, povolit zápis pro shodný clientId v nastavení a obnovit `tools/list`; neodvolávat kvůli tomu OAuth souhlas |
+| tool není v katalogu / AI nabízí pouze čtení | chybí interní permission nebo klient drží starý katalog | zavolat `tf_get_access_status`, povolit zápis pro shodný clientId v nastavení a obnovit `tools/list` (lokální stdio proces nejprve restartovat); neodvolávat kvůli tomu OAuth souhlas |
 | připojený klient hlásí „žádné nástroje“ | klient má zastaralý katalog nebo tool descriptor postrádá `_meta.securitySchemes` | ověřit wire odpověď `tools/list`, reconnectnout klienta po deployi; nikdy kvůli tomu nerozšiřovat DB roli ani interní grant |
 | data jsou prázdná | RLS, filtr nebo skutečně žádná data | ověřit stejný účet/projekt v TF; neobcházet RLS |
 | project not visible | chybné ID nebo oprávnění | znovu získat ID přes list/search a ověřit roli |
