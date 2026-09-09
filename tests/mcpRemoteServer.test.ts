@@ -392,6 +392,7 @@ describe("remote MCP server", () => {
     );
     const readNames = (readOnly.result.tools as Array<{ name: string }>).map((tool) => tool.name);
     expect(readNames).toContain("search");
+    expect(readNames).toContain("tf_get_access_status");
     expect(readNames).toContain("fetch");
     expect(readNames).toContain("tf_list_projects");
     expect(readNames).toContain("tf_get_project_summary");
@@ -428,6 +429,29 @@ describe("remote MCP server", () => {
     expect(writeNames).not.toContain("tf_prepare_bid_offer_update");
   });
 
+  it("diagnoses read-only access over the wire without touching business or grant tables", async () => {
+    vi.stubEnv("SUPABASE_URL", "https://tf-test.supabase.co");
+    vi.stubEnv("SUPABASE_ANON_KEY", "test-anon-key");
+    vi.stubEnv("SUPABASE_MCP_SECRET_KEY", "sb_secret_test_backend");
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/rpc/consume_mcp_rate_limit")) {
+        return new Response(JSON.stringify({ allowed: true }), { headers: { "content-type": "application/json" } });
+      }
+      if (url.includes("/mcp_audit_events")) return new Response("[]", { status: 201 });
+      throw new Error(`Unexpected database access: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await callAuthorizedMcp("tools/call", {
+      name: "tf_get_access_status", arguments: {},
+    }, ["openid"], ["tenderflow.read"]);
+    expect(response.result).toMatchObject({
+      isError: false,
+      structuredContent: { ok: true, data: { writeEnabled: false, missingWritePermissions: ["tenderflow.write"] } },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("publikuje kanbanové instrukce pouze klientům s dostupnými write nástroji", () => {
     const source = fs.readFileSync(
       path.join(ROOT, "server/mcp/tenderFlowMcp.js"),
@@ -437,7 +461,8 @@ describe("remote MCP server", () => {
     expect(source).toContain(
       "const canUseWriteTools = includeWriteTools && hasMcpPermissions(auth.permissions, [MCP_PERMISSIONS.write]);",
     );
-    expect(source).toContain("instructions: canUseWriteTools ? KANBAN_WRITE_INSTRUCTIONS : undefined");
+    expect(source).toContain("`${MCP_ACCESS_INSTRUCTIONS} ${KANBAN_WRITE_INSTRUCTIONS}`");
+    expect(source).toContain(": MCP_ACCESS_INSTRUCTIONS");
   });
 
   it("publikuje u každého dostupného toolu OAuth security scheme pro ChatGPT", async () => {

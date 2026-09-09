@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import {
   approveMcpOAuthAuthorization,
@@ -8,6 +8,13 @@ import {
 } from "@/infra/auth/mcpOAuthConsentService";
 import { navigate } from "@/shared/routing/router";
 import { buildAppUrl } from "@/shared/routing/routeUtils";
+import { setMyMcpClientGrant, type McpElevatedPermission } from "@/features/settings/api/mcpGrantService";
+
+const permissionChoices: ReadonlyArray<{ permission: McpElevatedPermission; label: string; description: string }> = [
+  { permission: "tenderflow.contacts.read", label: "Povolit kontaktní údaje na 30 dní", description: "Kontakty a detail dodavatelských nabídek v rozsahu vašich práv." },
+  { permission: "tenderflow.write", label: "Povolit zápisové operace", description: "Do odvolání: vytváření úkolů a změny stavu nabídek po potvrzení. Propojení Outlook zprávy ukládá jen identifikátory." },
+  { permission: "tenderflow.bids.offer.write", label: "Povolit zápis ceny nabídky", description: "Do odvolání: cena bez DPH v CZK a doplnění podmínek nabídky po potvrzení. Vyžaduje také zápisové operace." },
+];
 
 const scopeLabel = (scope: string): string => {
   switch (scope) {
@@ -60,6 +67,10 @@ export const McpOAuthConsentPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPermissions, setSelectedPermissions] = useState<McpElevatedPermission[]>(["tenderflow.write"]);
+  const [approvedRedirect, setApprovedRedirect] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const clientId = details?.client?.id || details?.client?.client_id;
   const mcpSettingsUrl = buildAppUrl("settings", {
     settingsTab: "tools",
     settingsSubTab: "mcp",
@@ -83,7 +94,17 @@ export const McpOAuthConsentPage: React.FC = () => {
         return;
       }
 
-      const { data, error: authError } = await getMcpOAuthAuthorizationDetails(authorizationId);
+      let response;
+      try {
+        response = await getMcpOAuthAuthorizationDetails(authorizationId);
+      } catch {
+        if (isMounted) {
+          setError("Žádost se nepodařilo načíst. Obnovte stránku a zkuste to znovu.");
+          setIsLoading(false);
+        }
+        return;
+      }
+      const { data, error: authError } = response;
       if (!isMounted) return;
       if (authError) {
         setError(authError.message);
@@ -106,27 +127,41 @@ export const McpOAuthConsentPage: React.FC = () => {
   }, [authorizationId]);
 
   const decide = async (approve: boolean) => {
-    if (!authorizationId) return;
+    if (!authorizationId || submittingRef.current) return;
+    if (approve && selectedPermissions.length > 0 && !clientId) {
+      setError("Chybí identifikátor klienta pro udělení oprávnění. Připojení spusťte znovu.");
+      return;
+    }
+    submittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
-    const response = approve
-      ? await approveMcpOAuthAuthorization(authorizationId)
-      : await denyMcpOAuthAuthorization(authorizationId);
-
-    if (response.error) {
-      setError(response.error.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const redirectUrl = getOAuthRedirectUrl(response.data);
-    if (redirectUrl) {
+    try {
+      let redirectUrl = approvedRedirect;
+      if (!redirectUrl) {
+        const response = approve
+          ? await approveMcpOAuthAuthorization(authorizationId)
+          : await denyMcpOAuthAuthorization(authorizationId);
+        if (response.error) throw new Error(response.error.message);
+        redirectUrl = getOAuthRedirectUrl(response.data);
+        if (!redirectUrl) throw new Error("OAuth server nevrátil redirect URL.");
+        // Retain the callback only in memory: retry grants without consuming the OAuth request again.
+        if (approve) setApprovedRedirect(redirectUrl);
+      }
+      if (approve && clientId) {
+        for (const permission of selectedPermissions) {
+          const result = await setMyMcpClientGrant(clientId, permission, true);
+          if (!result.enabled || result.permission !== permission || !result.expiresAt) {
+            throw new Error("Server nepotvrdil udělení vybraného oprávnění.");
+          }
+        }
+      }
       window.location.assign(redirectUrl);
-      return;
+    } catch (decisionError) {
+      setError(decisionError instanceof Error ? decisionError.message : "Přístup se nepodařilo dokončit. Zkuste to znovu.");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    setError("OAuth server nevrátil redirect URL.");
-    setIsSubmitting(false);
   };
 
   return (
@@ -143,8 +178,9 @@ export const McpOAuthConsentPage: React.FC = () => {
           {isLoading && <p className="text-sm text-white/70">Načítám žádost o oprávnění...</p>}
 
           {!isLoading && error && (
-            <div className="mb-4 rounded-md border border-red-300/40 bg-red-500/15 px-4 py-3 text-sm text-red-100">
+            <div role="alert" className="mb-4 rounded-md border border-red-300/40 bg-red-500/15 px-4 py-3 text-sm text-red-100">
               {error}
+              {approvedRedirect && <p className="mt-2">Připojení je schválené, ale vybraná oprávnění se nepodařilo dokončit. Zkuste jejich uložení znovu; již udělená oprávnění zůstávají aktivní.</p>}
             </div>
           )}
 
@@ -175,13 +211,37 @@ export const McpOAuthConsentPage: React.FC = () => {
                 <p className="text-xs uppercase tracking-wide text-white/50">Oprávnění v Tender Flow</p>
                 <ul className="mt-2 space-y-2 text-sm text-white/80">
                   <li>- čtení projektů, výběrových řízení, smluv, plánů a termínů v rozsahu vašich oprávnění</li>
-                  <li>- Bez samostatného časově omezeného grantu nejsou kontaktní údaje ani zápis povoleny.</li>
+                  <li>- Kontaktní údaje a zápis vyžadují váš samostatný souhlas níže nebo v nastavení.</li>
                 </ul>
               </div>
 
+              <fieldset disabled={isSubmitting || Boolean(approvedRedirect)} className="space-y-3 rounded-md border border-white/10 bg-black/20 p-4">
+                <legend className="px-1 text-sm font-semibold text-white">Volitelná oprávnění</legend>
+                {permissionChoices.map(({ permission, label, description }) => (
+                  <label key={permission} className="flex items-start gap-3 text-sm text-white/80">
+                    <input
+                      type="checkbox"
+                      aria-label={label}
+                      checked={selectedPermissions.includes(permission)}
+                      disabled={!clientId || (permission === "tenderflow.bids.offer.write" && !selectedPermissions.includes("tenderflow.write"))}
+                      onChange={(event) => {
+                        const enabled = event.target.checked;
+                        setSelectedPermissions((current) => enabled
+                          ? permissionChoices.map((choice) => choice.permission).filter((value) => value === permission || current.includes(value))
+                          : current.filter((value) => value !== permission && !(permission === "tenderflow.write" && value === "tenderflow.bids.offer.write")));
+                      }}
+                      className="mt-1 accent-white"
+                    />
+                    <span><span className="block font-semibold text-white">{label}</span><span className="mt-1 block text-xs text-white/70">{description}</span></span>
+                  </label>
+                ))}
+              </fieldset>
+
               <div className="rounded-md border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-50">
-                AI bude po připojení moct pouze číst obecná data, která už smíte zobrazit v Tender Flow.
-                Rozšířená oprávnění můžete samostatně povolit a kdykoliv odebrat v nastavení AI a MCP přístupů.
+                Zápisové operace jsou předvolené a povolíte je schválením připojení.
+                Pokud chcete jen čtení, zápis před schválením vypněte.
+                Při novém připojení znovu vyberte i kontaktní a finanční oprávnění, pokud je chcete používat. Přístup nikdy nepřekročí vaše role a práva ke stavbám.
+                Oprávnění můžete kdykoliv změnit v nastavení AI a MCP přístupů.
               </div>
 
               <a
@@ -202,11 +262,11 @@ export const McpOAuthConsentPage: React.FC = () => {
                   onClick={() => decide(true)}
                   className="flex-1 rounded-md bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-white/90 disabled:opacity-60"
                 >
-                  Schválit přístup
+                  {approvedRedirect ? "Znovu uložit oprávnění" : "Schválit přístup"}
                 </button>
                 <button
                   type="button"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || Boolean(approvedRedirect)}
                   onClick={() => decide(false)}
                   className="flex-1 rounded-md border border-white/20 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 disabled:opacity-60"
                 >

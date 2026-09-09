@@ -1,13 +1,13 @@
 # Reference MCP tools
 
-Stav: 21 nástrojů v policy katalogu; 10 obecných read-only nástrojů dostupných
-bez zvýšeného grantu, dalších 11 podmíněných user+client grantem k 2026-09-01
+Stav: 22 nástrojů v policy katalogu; 11 obecných read-only nástrojů dostupných
+bez zvýšeného grantu, dalších 11 podmíněných user+client grantem k 2026-09-09
 Zdroj pravdy: sdílený katalog `shared/mcp/toolCatalog.js`, doménové registrace
 v `server/mcp/modules/`, společný bezpečnostní runtime v `server/mcp/core/`
 a datové adaptéry v `server/mcp/data.js`.
-Stejný katalog vykresluje uživatelská matice v Nastavení → Nástroje → MCP
-přístupy, takže názvy, požadované interní permissions a riziko nejsou v UI
-udržované odděleně od serverové autorizace.
+Nastavení → Nástroje → MCP přístupy obsahuje jen přepínače stabilních skupin
+oprávnění: zápis, kontaktní údaje a finanční zápis. Konkrétní nástroje a jejich
+požadované permissions vyhodnocuje server podle sdíleného katalogu.
 
 Všechny výsledky jsou JSON v `structuredContent` a současně textový JSON pro
 klienty bez strukturovaného zpracování. Doménové tools vracejí obálku
@@ -27,6 +27,19 @@ scope `openid`. MCP 2.0 server ji na wire přenáší v
 o popis autentizace pro klienta, nikoli o autorizační rozhodnutí. Dostupný
 katalog se stále sestavuje podle aktuálních interních user+client permissions
 a stejné permissions se znovu kontrolují při invokaci.
+
+## Diagnostika přístupu
+
+### `tf_get_access_status`
+
+- Permissions: read; riziko low; pouze čtení, bez vstupních parametrů.
+- Vrátí `clientId`, dostupnost obecného a finančního zápisu, kontaktních dat,
+  chybějící permissions, případný lokální režim read-only a odkaz na nastavení.
+- Vysvětlí postup povolení zápisu pro aktuálního klienta a obnovy `tools/list`.
+  Neuděluje oprávnění, nevrací token ani data jiných připojení či uživatelů.
+- Použít, pokud AI nabízí pouze čtení. Samotný filtrovaný katalog není důkaz,
+  že server zápis nepodporuje. Odvolání OAuth souhlasu kvůli obnově katalogu
+  není vhodné: zneplatní jeho rozšířená oprávnění.
 
 ## Discovery a načtení výsledku
 

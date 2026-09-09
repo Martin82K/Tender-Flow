@@ -5,6 +5,7 @@ import { MCP_PERMISSIONS, hasMcpPermissions } from './scopePolicy.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
 import { isMcpPermissionServiceUnavailableError } from './permissionGrants.js';
 import { KANBAN_WRITE_INSTRUCTIONS } from './modules/changes.js';
+import { MCP_ACCESS_INSTRUCTIONS } from './modules/discovery.js';
 import { registerTenderFlowMcpModules } from './modules/index.js';
 
 export {
@@ -21,10 +22,12 @@ export const createTenderFlowMcpServer = (auth, options = {}) => {
   const server = new McpServer(
     {
       name: 'Tender Flow MCP',
-      version: '0.6.1',
+      version: '0.6.2',
     },
     {
-      instructions: canUseWriteTools ? KANBAN_WRITE_INSTRUCTIONS : undefined,
+      instructions: canUseWriteTools
+        ? `${MCP_ACCESS_INSTRUCTIONS} ${KANBAN_WRITE_INSTRUCTIONS}`
+        : MCP_ACCESS_INSTRUCTIONS,
       capabilities: {
         tools: { listChanged: false },
         resources: { listChanged: false },

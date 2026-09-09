@@ -23,6 +23,15 @@ const BID_OFFER_WRITE = Object.freeze([
  */
 export const MCP_TOOL_CATALOG = Object.freeze([
   {
+    name: "tf_get_access_status",
+    title: "Stav MCP oprávnění",
+    category: "Vyhledávání",
+    data: "Oprávnění aktuálního připojení a postup povolení zápisu; žádná obchodní data ani změna oprávnění.",
+    requiredPermissions: READ,
+    riskLevel: "low",
+    mode: "read",
+  },
+  {
     name: "search",
     title: "Vyhledávání Tender Flow",
     category: "Vyhledávání",

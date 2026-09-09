@@ -5,6 +5,7 @@ export interface McpOAuthConsentDetails {
   redirect_to?: string;
   redirect_url?: string;
   client?: {
+    id?: string;
     client_id?: string;
     name?: string;
     uri?: string;

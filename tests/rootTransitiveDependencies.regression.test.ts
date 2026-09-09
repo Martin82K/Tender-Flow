@@ -15,6 +15,28 @@ const runNode = (script: string) => {
 };
 
 describe("installed root dependency security regressions", () => {
+  it("bounds repeated empty YAML merge sources while preserving updater metadata round trips", () => {
+    runNode(`
+      import yaml from 'js-yaml';
+      assert.throws(() => yaml.load('base: &base [{}, {}, {}]\\ntarget: { <<: *base }', { maxTotalMergeKeys: 2 }), /maxTotalMergeKeys/);
+      const metadata = { version: '1.9.29', files: [{ url: 'TenderFlow.exe', sha512: 'test-digest' }] };
+      assert.deepEqual(yaml.load(yaml.dump(metadata)), metadata);
+    `);
+  });
+
+  it("uses patched libheif and preserves native icon image conversion", () => {
+    runNode(`
+      import sharp from 'sharp';
+      const [major, minor, patch] = sharp.versions.heif.split('.').map(Number);
+      assert.ok(major > 1 || (major === 1 && (minor > 23 || (minor === 23 && patch >= 2))), 'libheif must include the 1.23.2 security fixes');
+      const image = await sharp({ create: { width: 8, height: 8, channels: 4, background: '#ff8800' } }).resize(32, 32).png().toBuffer();
+      const info = await sharp(image).metadata();
+      assert.equal(info.width, 32);
+      assert.equal(info.height, 32);
+      assert.equal(info.format, 'png');
+    `);
+  });
+
   it.each(["allowPrototypes", "plainObjects"])("serializes parsed constructor.isBuffer safely with %s", (option) => {
     runNode(`
       import qs from 'qs';

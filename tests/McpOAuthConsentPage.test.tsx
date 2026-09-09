@@ -9,6 +9,7 @@ const oauthMocks = vi.hoisted(() => ({
   getAuthorizationDetails: vi.fn(),
   approveAuthorization: vi.fn(),
   denyAuthorization: vi.fn(),
+  setGrant: vi.fn(),
 }));
 
 const routerMocks = vi.hoisted(() => ({ navigate: vi.fn() }));
@@ -25,6 +26,10 @@ vi.mock("@/infra/auth/mcpOAuthConsentService", () => ({
   denyMcpOAuthAuthorization: oauthMocks.denyAuthorization,
 }));
 
+vi.mock("@/features/settings/api/mcpGrantService", () => ({
+  setMyMcpClientGrant: oauthMocks.setGrant,
+}));
+
 describe("McpOAuthConsentPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,7 +38,7 @@ describe("McpOAuthConsentPage", () => {
       data: {
         authorization_id: "auth-1",
         client: {
-          client_id: "client-1",
+          id: "client-1",
           name: "ChatGPT",
           uri: "https://chatgpt.com",
         },
@@ -43,6 +48,30 @@ describe("McpOAuthConsentPage", () => {
     });
     oauthMocks.approveAuthorization.mockResolvedValue({ data: {}, error: null });
     oauthMocks.denyAuthorization.mockResolvedValue({ data: {}, error: null });
+    oauthMocks.setGrant.mockImplementation(async (_client, permission) => ({
+      permission, enabled: true, expiresAt: "infinity",
+    }));
+  });
+
+  it("enables general write with the initial approval by default while leaving contacts and prices optional", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    render(<McpOAuthConsentPage />);
+    expect(await screen.findByRole("checkbox", { name: "Povolit zápisové operace" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.setGrant.mock.calls).toEqual([["client-1", "tenderflow.write", true]]);
+  });
+
+  it("supports legacy client_id metadata without using a client id from the URL", async () => {
+    window.history.pushState({}, "", "/oauth/consent?authorization_id=auth-1&client_id=attacker");
+    oauthMocks.getAuthorizationDetails.mockResolvedValue({ data: { authorization_id: "auth-1", client: { client_id: "legacy-client", name: "ChatGPT" } }, error: null });
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    render(<McpOAuthConsentPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Schválit přístup" }));
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.setGrant).toHaveBeenCalledWith("legacy-client", "tenderflow.write", true);
   });
 
   it("načte authorization details a oddělí OAuth identitu od základního MCP oprávnění", async () => {
@@ -54,7 +83,9 @@ describe("McpOAuthConsentPage", () => {
     expect(screen.getByText("- e-mail uživatele")).toBeInTheDocument();
     expect(screen.getByText("- základní profil")).toBeInTheDocument();
     expect(screen.getByText(/čtení projektů, výběrových řízení, smluv, plánů a termínů/)).toBeInTheDocument();
-    expect(screen.getByText(/Bez samostatného časově omezeného grantu nejsou kontaktní údaje ani zápis povoleny/)).toBeInTheDocument();
+    expect(screen.getByText(/Kontaktní údaje a zápis vyžadují váš samostatný souhlas/)).toBeInTheDocument();
+    expect(screen.getByText(/Při novém připojení znovu vyberte i kontaktní a finanční oprávnění/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dříve udělená oprávnění tím neodeberete/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Zobrazit správu MCP oprávnění" })).toHaveAttribute(
       "href",
       "/app/settings?tab=tools&subTab=mcp",
@@ -76,7 +107,7 @@ describe("McpOAuthConsentPage", () => {
 
     render(<McpOAuthConsentPage />);
 
-    expect(await screen.findByText(/AI bude po připojení moct pouze číst obecná data/)).toBeInTheDocument();
+    expect(await screen.findByText(/Zápisové operace jsou předvolené a povolíte je schválením připojení/)).toBeInTheDocument();
     expect(screen.queryByText(/Každý zápis vyžaduje/)).not.toBeInTheDocument();
     expect(screen.queryByText(/čtení kontaktních údajů dodavatelů/)).not.toBeInTheDocument();
   });
@@ -102,6 +133,89 @@ describe("McpOAuthConsentPage", () => {
     await waitFor(() => {
       expect(oauthMocks.approveAuthorization).toHaveBeenCalledWith("auth-1");
     });
+  });
+
+  it("grants the selected client permission before redirect", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    let finishGrant: (value: unknown) => void = () => {};
+    oauthMocks.setGrant.mockReturnValueOnce(new Promise((resolve) => { finishGrant = resolve; }));
+    render(<McpOAuthConsentPage />);
+
+    const write = await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
+    expect(write).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+
+    await waitFor(() => expect(oauthMocks.setGrant).toHaveBeenCalledWith("client-1", "tenderflow.write", true));
+    expect(oauthMocks.approveAuthorization.mock.invocationCallOrder[0]).toBeLessThan(oauthMocks.setGrant.mock.invocationCallOrder[0]);
+    expect(window.location.hash).toBe("");
+    expect(write).toBeDisabled();
+    finishGrant({ permission: "tenderflow.write", enabled: true, expiresAt: "infinity" });
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.setGrant).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a failed write grant without approving the consumed OAuth request again", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    oauthMocks.setGrant.mockRejectedValueOnce(new Error("Dočasně nedostupné"));
+    render(<McpOAuthConsentPage />);
+    await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dočasně nedostupné");
+    expect(window.location.hash).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Znovu uložit oprávnění" }));
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.approveAuthorization).toHaveBeenCalledTimes(1);
+    expect(oauthMocks.setGrant).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not grant anything when OAuth approval fails or the user denies access", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: null, error: { message: "Schválení selhalo" } });
+    render(<McpOAuthConsentPage />);
+    await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Schválení selhalo");
+    expect(oauthMocks.setGrant).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Zamítnout" }));
+    await waitFor(() => expect(oauthMocks.denyAuthorization).toHaveBeenCalledWith("auth-1"));
+    expect(oauthMocks.setGrant).not.toHaveBeenCalled();
+  });
+
+  it("grants financial access only with separately selected general write access", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    render(<McpOAuthConsentPage />);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" }));
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.setGrant.mock.calls).toEqual([
+      ["client-1", "tenderflow.contacts.read", true],
+      ["client-1", "tenderflow.write", true],
+      ["client-1", "tenderflow.bids.offer.write", true],
+    ]);
+  });
+
+  it("clears financial selection when general write is unchecked and preserves read-only consent", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    render(<McpOAuthConsentPage />);
+    const write = await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" }));
+    fireEvent.click(write);
+    expect(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    await waitFor(() => expect(window.location.hash).toBe("#connected"));
+    expect(oauthMocks.setGrant).not.toHaveBeenCalled();
+  });
+
+  it("does not report a rejected grant result as successful consent", async () => {
+    oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
+    oauthMocks.setGrant.mockResolvedValueOnce({ permission: "tenderflow.write", enabled: false, expiresAt: null });
+    render(<McpOAuthConsentPage />);
+    await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
+    fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Server nepotvrdil udělení vybraného oprávnění.");
+    expect(window.location.hash).toBe("");
   });
 
   it("preferuje Supabase OAuth redirect_to a drží fallback na redirect_url", () => {

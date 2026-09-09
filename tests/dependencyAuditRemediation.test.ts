@@ -64,7 +64,7 @@ describe("dependency audit remediation", () => {
     ["node_modules/fast-uri", "3.1.7"],
     ["node_modules/hono", "4.12.34"],
     ["node_modules/ip-address", "10.4.0"],
-    ["node_modules/js-yaml", "4.3.1"],
+    ["node_modules/js-yaml", "4.3.2"],
     ["node_modules/postcss", "8.5.23"],
     ["node_modules/sharp", "0.35.0"],
     ["node_modules/shell-quote", "1.9.0"],
@@ -78,7 +78,7 @@ describe("dependency audit remediation", () => {
     ["node_modules/builder-util-runtime", "9.7.0"],
     ["node_modules/minimatch/node_modules/brace-expansion", "1.1.18"],
     ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
-    ["node_modules/js-yaml", "4.3.1"],
+    ["node_modules/js-yaml", "4.3.2"],
   ])("resolves desktop %s outside the vulnerable range", (packagePath, minimum) => {
     expectPatchedVersion(desktopLockfile, packagePath, minimum);
   });

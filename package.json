@@ -111,7 +111,7 @@
     "@hono/node-server": "2.1.0",
     "axios": "1.19.0",
     "electron-builder": {
-      "js-yaml": "4.3.1"
+      "js-yaml": "4.3.2"
     },
     "es-module-lexer": "2.1.0",
     "exceljs": {
@@ -124,7 +124,7 @@
     "joi": "18.2.1",
     "qs": "6.16.0",
     "std-env": "4.1.0",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "tar": "7.5.22",
     "tmp": "0.2.7",
     "ws": "8.21.0"

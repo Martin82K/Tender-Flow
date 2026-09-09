@@ -23,7 +23,7 @@ describe("desktop dependency security overrides", () => {
     expect(manifest.dependencies?.["electron-updater"]).toBe("6.8.9");
     expect(manifest.overrides).toEqual({
       "electron-updater": {
-        "js-yaml": "4.3.1",
+        "js-yaml": "4.3.2",
       },
       exceljs: {
         tmp: "0.2.7",
@@ -37,7 +37,7 @@ describe("desktop dependency security overrides", () => {
     ["node_modules/readdir-glob/node_modules/brace-expansion", "2.1.4"],
     ["node_modules/builder-util-runtime", "9.7.0"],
     ["node_modules/electron-updater", "6.8.9"],
-    ["node_modules/js-yaml", "4.3.1"],
+    ["node_modules/js-yaml", "4.3.2"],
     ["node_modules/tmp", "0.2.7"],
     ["node_modules/uuid", "11.1.1"],
   ])("resolves %s to patched version %s", (packagePath, expectedVersion) => {
