@@ -30,7 +30,7 @@ Zdroj pravdy: OAuth konfigurace a `server/mcp/response.js`
 6. Provést read-only canary a ověřit audit.
 7. Potřebuje-li již připojený klient kontaktní data nebo zápis, uživatel je povolí pro tento
    consentovaný klient v Nastavení → Nástroje → MCP přístupy. Contacts grant
-   platí 30 dní, write grant do odvolání; rozšíření OAuth scope je nenahrazuje.
+   platí 180 dní, write grant do odvolání; rozšíření OAuth scope je nenahrazuje.
 8. Po změně registrace nebo databázové role provést nový OAuth flow. Starší
    token bez `role=tenderflow_mcp_client` server záměrně odmítne.
 
@@ -92,3 +92,17 @@ a finanční oprávnění; granty předchozí generace souhlasu se nepřenášej
 Pokud má klient stále původní katalog bez diagnostiky, otevřete Nastavení →
 Nástroje → MCP přístupy přímo v Tender Flow. Udělení grantu nikdy nepřekračuje
 uživatelova projektová ani organizační práva.
+
+## Obnova přihlášení při připojování z webu a desktopového AI klienta
+
+Při otevření `/oauth/consent` se nejprve dokončí obnova relace Tender Flow.
+Teprve potom aplikace zobrazí souhlas nebo přihlášení s původním `next`.
+Přihlášený uživatel na `/login?next=...` s cílem `/oauth/consent` automaticky
+pokračuje k téže autorizační žádosti bez ručního refresh. Externí `next` se
+v této návratové cestě nepoužije. Platí také pro prohlížeč otevřený z ChatGPT
+nebo Codex desktopu. Callback AI klienta se nemění.
+
+Nový nebo výslovně obnovený kontaktní grant platí 180 dní. Již udělené granty
+si ponechají uloženou expiraci; migrace je automaticky neprodlužuje. Zápis
+a samostatný finanční grant dále platí do odvolání. Odpojeného klienta je
+nutné znovu autorizovat a zvolit požadovaná oprávnění.

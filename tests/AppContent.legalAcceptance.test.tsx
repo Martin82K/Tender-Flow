@@ -17,6 +17,8 @@ const mockState = vi.hoisted(() => ({
   appDataOverrides: {} as Record<string, unknown>,
   retrySelectedProjectDetails: vi.fn(),
   currentPlan: "pro",
+  isAuthenticated: true,
+  authLoading: false,
   disabledFeatures: [] as string[],
   featuresLoading: false,
   extendedSearch: vi.fn(),
@@ -46,8 +48,8 @@ vi.mock("@/context/AuthContext", () => ({
       },
       legalAcceptance: mockState.legalAcceptance,
     },
-    isAuthenticated: true,
-    isLoading: false,
+    isAuthenticated: mockState.isAuthenticated,
+    isLoading: mockState.authLoading,
     logout: mockState.logout,
     updatePreferences: mockState.updatePreferences,
     acceptLegalDocuments: mockState.acceptLegalDocuments,
@@ -199,6 +201,10 @@ vi.mock("@app/views/LegalPageRouter", () => ({
   getLegalPage: () => null,
 }));
 
+vi.mock("@app/views/McpOAuthConsentPage", () => ({
+  McpOAuthConsentPage: () => <div>oauth-consent</div>,
+}));
+
 vi.mock("@app/views/AuthGate", () => ({
   AuthGate: () => <div>auth-gate</div>,
 }));
@@ -229,11 +235,68 @@ describe("AppContent legal acceptance gate", () => {
     vi.clearAllMocks();
     mockState.appDataOverrides = {};
     mockState.currentPlan = "pro";
+    mockState.isAuthenticated = true;
+    mockState.authLoading = false;
     mockState.isDesktop = false;
     mockState.pathname = "/app";
     mockState.search = "";
     mockState.legalAcceptance = null;
     mockState.acceptLegalDocuments.mockResolvedValue(undefined);
+  });
+
+  it("waits for restored authentication before rendering OAuth consent", () => {
+    mockState.pathname = "/oauth/consent";
+    mockState.search = "?authorization_id=auth-request";
+    mockState.authLoading = true;
+    mockState.isAuthenticated = false;
+    const view = renderAppContent();
+    expect(screen.getByText("loading")).toBeInTheDocument();
+    expect(screen.queryByText("auth-gate")).not.toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+
+    mockState.authLoading = false;
+    mockState.isAuthenticated = true;
+    view.rerender(<AppContent />);
+    expect(screen.getByText("oauth-consent")).toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+  });
+
+  it("requires login when OAuth session restoration finishes without a user", () => {
+    mockState.pathname = "/oauth/consent";
+    mockState.isAuthenticated = false;
+    renderAppContent();
+    expect(screen.getByText("auth-gate")).toBeInTheDocument();
+    expect(screen.queryByText("oauth-consent")).not.toBeInTheDocument();
+  });
+
+  it("returns a restored login session to its exact OAuth request instead of TODO", () => {
+    mockState.pathname = "/login";
+    mockState.search = "?next=%2Foauth%2Fconsent%3Fauthorization_id%3Dauth-request";
+    mockState.authLoading = true;
+    mockState.isAuthenticated = false;
+    const view = renderAppContent();
+    expect(screen.getByText("loading")).toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+    mockState.authLoading = false;
+    mockState.isAuthenticated = true;
+    view.rerender(<AppContent />);
+    expect(mockState.navigate).toHaveBeenCalledWith("/oauth/consent?authorization_id=auth-request", { replace: true });
+    expect(screen.queryByText("todo")).not.toBeInTheDocument();
+  });
+
+  it.each(["https://evil.example/oauth/consent", "//evil.example/oauth/consent", "/oauth/consent-extra", "/oauth/consent\\evil.example"])("does not follow an invalid OAuth return path: %s", (next) => {
+    mockState.pathname = "/login";
+    mockState.search = `?next=${encodeURIComponent(next)}`;
+    renderAppContent();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the public landing available during session restoration", () => {
+    mockState.pathname = "/";
+    mockState.authLoading = true;
+    mockState.isAuthenticated = false;
+    renderAppContent();
+    expect(screen.getByText("auth-gate")).toBeInTheDocument();
   });
 
   it("po přihlášení zobrazí modal a uloží potvrzení po zaškrtnutí obou voleb", async () => {

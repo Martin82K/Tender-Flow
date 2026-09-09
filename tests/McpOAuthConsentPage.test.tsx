@@ -57,7 +57,7 @@ describe("McpOAuthConsentPage", () => {
     oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
     render(<McpOAuthConsentPage />);
     expect(await screen.findByRole("checkbox", { name: "Povolit zápisové operace" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 180 dní" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" })).not.toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
     await waitFor(() => expect(window.location.hash).toBe("#connected"));
@@ -143,7 +143,7 @@ describe("McpOAuthConsentPage", () => {
 
     const write = await screen.findByRole("checkbox", { name: "Povolit zápisové operace" });
     expect(write).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Povolit kontaktní údaje na 180 dní" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
 
@@ -185,7 +185,7 @@ describe("McpOAuthConsentPage", () => {
   it("grants financial access only with separately selected general write access", async () => {
     oauthMocks.approveAuthorization.mockResolvedValue({ data: { redirect_to: "#connected" }, error: null });
     render(<McpOAuthConsentPage />);
-    fireEvent.click(await screen.findByRole("checkbox", { name: "Povolit kontaktní údaje na 30 dní" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Povolit kontaktní údaje na 180 dní" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Povolit zápis ceny nabídky" }));
     fireEvent.click(screen.getByRole("button", { name: "Schválit přístup" }));
     await waitFor(() => expect(window.location.hash).toBe("#connected"));

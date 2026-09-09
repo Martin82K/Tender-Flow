@@ -207,8 +207,20 @@ export const AppContent: React.FC = () => {
     navigate(nextPath.startsWith("/") ? nextPath : buildAppUrl(DEFAULT_APP_VIEW), { replace: true });
   }, [isAuthenticated, pathname, search]);
 
+  // Only resume the local OAuth consent route; never follow an external `next` URL.
+  const nextPath = new URLSearchParams(search).get("next");
+  const mcpReturnPath = pathname === "/login" && nextPath && /^\/oauth\/consent(?:\?|$)/.test(nextPath)
+    ? nextPath
+    : null;
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !mcpReturnPath) return;
+    navigate(mcpReturnPath, { replace: true });
+  }, [authLoading, isAuthenticated, mcpReturnPath]);
+
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
-  const shouldShowLoader = (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
+  const isMcpAuthPath = pathname === "/oauth/consent" || Boolean(mcpReturnPath);
+  const shouldShowLoader = (authLoading && (isAppPath || isMcpAuthPath))
+    || (isAuthenticated && (state.isDataLoading || Boolean(mcpReturnPath)));
 
   useStuckLoadingRecovery({
     shouldShowLoader,

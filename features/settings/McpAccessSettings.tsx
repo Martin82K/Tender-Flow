@@ -132,7 +132,7 @@ export const McpAccessSettings: React.FC = () => {
               <div className="mt-4 divide-y divide-slate-200 dark:divide-slate-700">
                 {([
                   { permission: "tenderflow.write", label: "Zápisové operace", active: writeActive, expiry: client.writeExpiresAt, description: "Úkoly a stav nabídek po vašem potvrzení; propojení zpráv Outlooku.", disabled: false },
-                  { permission: "tenderflow.contacts.read", label: "Kontaktní údaje", active: contactsActive, expiry: client.contactsReadExpiresAt, description: "Kontakty a detail nabídek dodavatelů. Platnost 30 dní.", disabled: false },
+                  { permission: "tenderflow.contacts.read", label: "Kontaktní údaje", active: contactsActive, expiry: client.contactsReadExpiresAt, description: "Kontakty a detail nabídek dodavatelů. Platnost 180 dní od povolení nebo obnovení.", disabled: false },
                   { permission: "tenderflow.bids.offer.write", label: "Zápis ceny nabídky", active: bidOfferWriteActive, expiry: client.bidOfferWriteExpiresAt, description: "Cena bez DPH a podmínky nabídky po vašem potvrzení.", disabled: !writeActive && !bidOfferWriteActive },
                 ] satisfies Array<{ permission: McpElevatedPermission; label: string; active: boolean; expiry: string | null; description: string; disabled: boolean }>).map((option) => (
                   <div key={option.permission} className="flex items-center justify-between gap-4 py-4">

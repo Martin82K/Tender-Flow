@@ -11,7 +11,7 @@ import { buildAppUrl } from "@/shared/routing/routeUtils";
 import { setMyMcpClientGrant, type McpElevatedPermission } from "@/features/settings/api/mcpGrantService";
 
 const permissionChoices: ReadonlyArray<{ permission: McpElevatedPermission; label: string; description: string }> = [
-  { permission: "tenderflow.contacts.read", label: "Povolit kontaktní údaje na 30 dní", description: "Kontakty a detail dodavatelských nabídek v rozsahu vašich práv." },
+  { permission: "tenderflow.contacts.read", label: "Povolit kontaktní údaje na 180 dní", description: "Kontakty a detail dodavatelských nabídek v rozsahu vašich práv." },
   { permission: "tenderflow.write", label: "Povolit zápisové operace", description: "Do odvolání: vytváření úkolů a změny stavu nabídek po potvrzení. Propojení Outlook zprávy ukládá jen identifikátory." },
   { permission: "tenderflow.bids.offer.write", label: "Povolit zápis ceny nabídky", description: "Do odvolání: cena bez DPH v CZK a doplnění podmínek nabídky po potvrzení. Vyžaduje také zápisové operace." },
 ];
