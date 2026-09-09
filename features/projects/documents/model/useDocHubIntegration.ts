@@ -78,6 +78,11 @@ type DocHubProjectActionToken = {
     generation: number;
 };
 
+const getPersonalLocationIdentity = (project: ProjectDetails, userId: string | null): string | null =>
+    isDesktop && project.docHubProvider === 'onedrive' && project.id && userId
+        ? JSON.stringify([project.id, project.ownerId ?? null, project.docHubRootLink ?? null, project.docHubRootId ?? null, userId])
+        : null;
+
 const getDocHubConnectionSnapshot = (project: ProjectDetails): Partial<ProjectDetails> => ({
     docHubEnabled: project.docHubEnabled,
     docHubProvider: project.docHubProvider ?? null,
@@ -118,9 +123,7 @@ export const useDocHubIntegration = (
     const isProjectOwner = project.ownerId ? project.ownerId === userId : !userId;
     const isSharedProject = !!userId && !isProjectOwner;
     const canManageGlobal = isProjectOwner;
-    const personalLocationIdentity = isDesktop && project.docHubProvider === 'onedrive' && project.id && userId
-        ? JSON.stringify([project.id, project.ownerId ?? null, project.docHubRootLink ?? null, project.docHubRootId ?? null, userId])
-        : null;
+    const personalLocationIdentity = getPersonalLocationIdentity(project, userId);
     const initialRootLink = project.docHubProvider === 'onedrive'
         ? resolveEffectiveLocalRoot({
             isProjectOwner,
@@ -987,8 +990,17 @@ export const useDocHubIntegration = (
         personalLocationLoadSequenceRef.current += 1;
         notifyProjectDocHubPersonalRootChanged(project.id, userId);
         setHasPersonalLocalRoot(true);
-        setValidatedPersonalLocationIdentity(personalLocationIdentity);
-    }, [assertCurrentProjectAction, isProjectOwner, personalLocationIdentity, project.id, userId]);
+        // The global update may already have refreshed props while this save was
+        // awaiting IPC. Validate the connection we saved, not the old render's root.
+        setValidatedPersonalLocationIdentity(globalUpdate
+            ? getPersonalLocationIdentity({
+                ...project,
+                docHubProvider: 'onedrive',
+                docHubRootLink: path,
+                docHubRootId: connectionId,
+            }, userId)
+            : personalLocationIdentity);
+    }, [assertCurrentProjectAction, isProjectOwner, personalLocationIdentity, project, userId]);
 
     const resolveRoot = useCallback(async () => {
         const actionIdentity = captureCurrentProjectAction();

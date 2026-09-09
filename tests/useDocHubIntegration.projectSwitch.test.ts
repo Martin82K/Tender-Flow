@@ -79,6 +79,42 @@ describe("useDocHubIntegration project identity", () => {
     ));
   });
 
+
+  it.each(["pickLocalFolder", "resolveRoot"] as const)(
+    "keeps the root connected after %s when project props update before persistence finishes",
+    async (action) => {
+      mocks.storageGet.mockResolvedValue(null);
+      mocks.storageSet.mockResolvedValue(undefined);
+      mocks.readFile.mockRejectedValue(new Error("marker missing"));
+      mocks.writeFile.mockResolvedValue(undefined);
+      mocks.selectFolder.mockResolvedValue({ path: "D:\\Selected", name: "Selected" });
+      let finishUpdate: (() => void) | undefined;
+      const onUpdate = vi.fn((_updates: Partial<ProjectDetails>) => new Promise<void>((resolve) => {
+        finishUpdate = resolve;
+      }));
+      const currentProject = project("project-1");
+      const { result, rerender } = renderHook(
+        ({ currentProject }) => useDocHubIntegration(currentProject, onUpdate, { userId: "owner-1" }),
+        { initialProps: { currentProject } },
+      );
+      await waitFor(() => expect(result.current.state.rootLink).toBe("C:\\Owner\\project-1"));
+      if (action === "resolveRoot") act(() => result.current.setters.setRootLink("D:\\Selected"));
+
+      let pending: Promise<void> | undefined;
+      act(() => { pending = result.current.actions[action](); });
+      await waitFor(() => expect(onUpdate).toHaveBeenCalledTimes(1));
+      rerender({ currentProject: { ...currentProject, ...onUpdate.mock.calls[0][0] } });
+      await waitFor(() => expect(result.current.state.rootLink).toBe("D:\\Selected"));
+      await act(async () => { finishUpdate?.(); await pending; });
+
+      expect(mocks.storageSet).toHaveBeenCalledTimes(1);
+      expect(result.current.state.rootLink).toBe("D:\\Selected");
+      expect(result.current.state.hasPersonalLocalRoot).toBe(true);
+      expect(result.current.state.isConnected).toBe(true);
+      expect(result.current.state.links?.pd).toContain("Selected");
+    },
+  );
+
   it("hides the previous personal root synchronously while a new project is loading", async () => {
     let resolveSecond: ((value: string) => void) | undefined;
     const pendingSecond = new Promise<string>((resolve) => { resolveSecond = resolve; });

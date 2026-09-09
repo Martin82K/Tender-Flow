@@ -63,6 +63,11 @@ stack příkazy jako `supabase start`, lokální DB reset nebo lokální serve.
 
 ## DocHub/OAuth
 
+- po výběru lokální složky musí zůstat vyplněná cesta a po dokončení ukládání
+  se zobrazit potvrzení; vlastníkovi se zobrazí také nastavení struktury,
+- pokud připojení selže, obrazovka Dokumenty zobrazí důvod v dialogu. Ověřit
+  dostupnost složky, oprávnění k zápisu markeru, připojení k serveru a dostupnost
+  zabezpečeného úložiště; po odstranění příčiny lze výběr zopakovat,
 - ověřit provider-specific client ID/secret a redirect URI,
 - zkontrolovat state a callback URL,
 - lokální OneDrive desktop provider nepoužívá stejné cloud token workflow,
