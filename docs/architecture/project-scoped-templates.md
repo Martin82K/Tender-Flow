@@ -108,3 +108,33 @@ Po databázovém nasazení se preferuje dopředná opravná migrace. Bez explici
 provozního rozhodnutí se nemaže `project_id` ani nakopírovaná data. Při problému
 s RLS se nejprve obnoví poslední známé bezpečné politiky se zachovaným feature
 gatingem; obsah šablon se nemění. Destruktivní rollback vyžaduje ověřenou zálohu.
+
+## Registrace a výchozí šablony
+
+Migrace `20260910124903_fix_registration_template_defaults.sql` opravuje
+registrační trigger `copy_default_templates_to_new_user()`. Pokud katalog
+`default_templates` obsahuje více řádků s `is_default = true`, původní trigger
+porušil `uq_templates_one_legacy_default` a vrátil celou registraci zpět
+s hláškou „Database error saving new user“. Povolení e-mailu v administraci
+tuto databázovou chybu neřeší.
+
+Trigger kopíruje všechny katalogové šablony do osobního scope `NEW.id` bez
+projektu. Z označených výchozích vybere jedinou: podle `updated_at DESC`,
+`created_at DESC` (NULL hodnoty poslední), poté `id ASC`. Pokud katalog žádnou
+výchozí šablonu nemá, žádnou sám neoznačí. Existující uživatelské šablony ani
+katalogové řádky se nemění. Unikátní indexy, RLS, granty a foreign keys zůstávají
+zachované; trigger má pevný `search_path` a kvalifikované názvy tabulek.
+
+Databázový regresní test `supabase/tests/registration-template-defaults.sql`
+zkopíruje nasazenou funkci do dočasného schématu a přesměruje její tabulky na
+dočasné fixtures. Kontroluje duplicitní výchozí šablony, shodné časy,
+nejnovější výchozí šablonu, jedinou/žádnou výchozí šablonu, prázdný katalog,
+zachování obsahu a oddělení uživatelů. Test končí `ROLLBACK` a nevytváří
+skutečné účty ani e-maily. Před opravou musí selhat na unikátním indexu;
+po opravě musí vrátit `PASS`.
+
+Před nasazením provést `supabase db push --dry-run --linked` a potvrdit jedinou
+zamýšlenou migraci. Po nasazení zopakovat SQL test, ověřit indexy a RLS,
+zkontrolovat security/performance advisors a opakovat dry-run bez čekajících
+migrací. Uživatel, kterému registrace selhala, poté znovu vyplní registraci
+se svým heslem; ruční vytváření účtu ani reset hesla nejsou součástí opravy.
