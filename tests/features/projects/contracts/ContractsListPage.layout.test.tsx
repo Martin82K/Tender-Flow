@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { ContractWithDetails } from '@/types';
+import type { ContractWithDetails, ProjectDetails } from '@/types';
 
 const makeContract = (
   id: string,
@@ -92,6 +92,22 @@ describe('ContractsListPage layout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aktivní' }));
     expect(within(listRail as HTMLElement).getByText('Aktivní smlouva')).toBeInTheDocument();
     expect(within(listRail as HTMLElement).queryByText('Uzavřená smlouva')).not.toBeInTheDocument();
+  });
+
+  it('otevře z tabulky přesnou kartu ve VŘ bez přepnutí na detail smlouvy', () => {
+    const onOpenSourceBid = vi.fn();
+    const onViewModeChange = vi.fn();
+    const project = { id: 'project-1', categories: [{ id: 'cat-1', title: 'Montáž' }],
+      bids: { 'cat-1': [{ id: 'bid-1' }] } } as unknown as ProjectDetails;
+    render(<ContractsListPage projectId="project-1" projectDetails={project}
+      contracts={[{ ...contracts[0], sourceBidId: 'bid-1' }, contracts[1]]}
+      refresh={vi.fn()} viewMode="table" onViewModeChange={onViewModeChange}
+      onOpenSourceBid={onOpenSourceBid} />);
+    const links = screen.getAllByRole('button', { name: /Otevřít kartu dodavatele ve VŘ/ });
+    expect(links).toHaveLength(1);
+    fireEvent.click(links[0]);
+    expect(onOpenSourceBid).toHaveBeenCalledWith('cat-1', 'bid-1');
+    expect(onViewModeChange).not.toHaveBeenCalled();
   });
 
   it('nezobrazuje splitové hledání a filtry v tabulkovém režimu', () => {

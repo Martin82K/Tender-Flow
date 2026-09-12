@@ -177,6 +177,17 @@ try {
     check(linkSize.fontSize <= 13 && linkSize.height <= 36, `Compact contract link: ${skin}/${dark}`);
     await click(linkSelector);
     check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:linked-contract', `Contract navigation: ${skin}/${dark}`);
+    const tableLink = '#fixture-contracts-table button[aria-label^="Otevřít kartu dodavatele ve VŘ"]';
+    await click(tableLink);
+    check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'source:category:short', `Table source navigation: ${skin}/${dark}`);
+    const tableLinkColors = await colors(tableLink);
+    check(tableLinkColors.contrast >= 4.5, `Table source link contrast: ${skin}/${dark}`);
+    check(await evaluate(selector => {
+      const link = document.querySelector(selector), box = link.getBoundingClientRect();
+      const cell = link.closest('td').getBoundingClientRect();
+      return parseFloat(getComputedStyle(link).fontSize) <= 12 && box.height <= 28 && box.right <= cell.right;
+    }, tableLink), `Compact table source link: ${skin}/${dark}`);
+    if (skin === 'industrial' && dark) await screenshot('contracts-table-source-link');
     const state = { skin, dark, active, icon, normal, hovered, linkColors, linkSize };
     measurements.push(state);
     check(active.contrast >= 4.5 && icon.contrast >= 4.5 && hovered.contrast >= 4.5, `Tab contrast: ${skin}/${dark}`);
@@ -245,6 +256,11 @@ try {
   await evaluate(() => { document.documentElement.style.zoom = '1'; });
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
   await click(selected); await screenshot('mobile');
+  await evaluate(() => document.querySelector('#fixture-contracts-table button[aria-label^="Otevřít kartu dodavatele ve VŘ"]').focus());
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r', unmodifiedText: '\r' });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await sleep(30);
+  check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'source:category:short', 'Table source navigation by keyboard on mobile');
   if (process.env.PROJECT_UI_APP_SMOKE_URL) {
     const smokeUrl = new URL(process.env.PROJECT_UI_APP_SMOKE_URL);
     if (smokeUrl.hostname !== '127.0.0.1') throw new Error('App smoke must use localhost.');

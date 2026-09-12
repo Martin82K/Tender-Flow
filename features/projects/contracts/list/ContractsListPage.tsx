@@ -282,6 +282,8 @@ export const ContractsListPage: React.FC<Props> = ({
         ) : (
           <ContractsTable
             contracts={contracts}
+            projectDetails={projectDetails}
+            onOpenSourceBid={onOpenSourceBid}
             onSelect={handleTableSelect}
             onOpenDocument={openDocument}
             onAttachDocument={handleAttachDocument}

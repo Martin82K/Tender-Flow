@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { ContractWithDetails } from '@/types';
+import { Button } from '@shared/ui/Button';
+import { findContractSourceBid } from '../model/contractSourceBid';
+import type { ContractWithDetails, ProjectDetails } from '@/types';
 import { StatusPill } from './StatusPill';
 import { ContractAmendmentRow } from './ContractAmendmentRow';
 import { formatMoney, formatDate, formatPercent, addMonthsIso } from '../utils/format';
@@ -66,6 +68,8 @@ const renderStars = (value: number | null | undefined): string => {
 
 interface Props {
   contracts: ContractWithDetails[];
+  projectDetails?: ProjectDetails;
+  onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   onSelect: (id: string) => void;
   onOpenDocument?: (contract: ContractWithDetails) => Promise<void> | void;
   onAttachDocument?: (contract: ContractWithDetails, file: File) => Promise<void> | void;
@@ -75,6 +79,8 @@ interface Props {
 
 export const ContractsTable: React.FC<Props> = ({
   contracts,
+  projectDetails,
+  onOpenSourceBid,
   onSelect,
   onOpenDocument,
   onAttachDocument,
@@ -230,6 +236,7 @@ export const ContractsTable: React.FC<Props> = ({
           </thead>
           <tbody>
             {contracts.map((c) => {
+              const sourceBid = findContractSourceBid(c, projectDetails);
               const retention = computeRetention(c);
               const amendmentsDelta = (c.currentTotal || 0) - (c.basePrice || 0);
               const warrantyEnd = addMonthsIso(c.signedAt, c.warrantyMonths ?? null);
@@ -245,7 +252,20 @@ export const ContractsTable: React.FC<Props> = ({
                       case 'number':
                         return (
                           <td key={col} className="px-2.5 py-2.5 font-semibold whitespace-normal text-slate-900 dark:text-slate-200 [overflow-wrap:anywhere]">
-                            <span>{c.contractNumber || '—'}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="min-w-0">{c.contractNumber || '—'}</span>
+                              {sourceBid && onOpenSourceBid && (
+                                <Button type="button" variant="outline" size="sm"
+                                  className="h-6 shrink-0 px-1.5 py-0 text-[10px]"
+                                  title={`Otevřít kartu dodavatele ve VŘ: ${sourceBid.title}`}
+                                  aria-label={`Otevřít kartu dodavatele ve VŘ: ${sourceBid.title} – ${c.vendorName}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onOpenSourceBid(sourceBid.categoryId, sourceBid.bidId);
+                                  }}
+                                >VŘ</Button>
+                              )}
+                            </div>
                             <div className="font-normal text-[11px] whitespace-normal break-words text-slate-600 dark:text-slate-500 [overflow-wrap:anywhere]">{c.title}</div>
                           </td>
                         );
