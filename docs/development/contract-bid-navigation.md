@@ -27,3 +27,5 @@ Security a performance advisors byly spuštěny. Hlásí i nálezy na objektech,
 ### Známý rozdíl výchozího schématu
 
 Audit review zjistil starší drift: propojená databáze má `bids.id` typu text, ale počáteční migrace jej vytváří jako varchar(36); `bid_tags.bid_id` zůstává varchar(36) i v propojené databázi. Tato oprava mění pouze schválené `contracts.source_bid_id` a nezajišťuje obnovu delších ID do nově vytvořené databáze ani jejich použití ve štítcích. Sjednocení autoritativního ID a závislých vazeb vyžaduje samostatnou verzovanou migraci a audit obnovy. Jde o existující omezení mimo propojení smlouvy; nelze tvrdit, že tato migrace opravuje celý import/obnovu.
+
+Navazující migrace `20260912190251_widen_bid_and_tag_ids.sql` je připravena samostatně. [Audit dlouhých ID](bid-id-width.md) popisuje závislé RLS policies, lokální regresní testy, produkční preflight a aktuální stav schválení nasazení.
