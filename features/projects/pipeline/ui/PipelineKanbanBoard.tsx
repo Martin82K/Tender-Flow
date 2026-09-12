@@ -1,5 +1,6 @@
 import React from "react";
 
+import { BidContractLinks } from "@features/projects/contracts/ui/BidContractLinks";
 import { WinnerContractButton } from "@features/projects/contracts/ui/WinnerContractButton";
 import type {
   Bid,
@@ -12,6 +13,9 @@ import { BidCard } from "./BidCard";
 import { Column } from "./Column";
 
 export interface PipelineKanbanBoardProps {
+  projectId?: string;
+  highlightedBidId?: string;
+  onLinkContract?: (contractId: string, bidId: string) => Promise<void>;
   category: DemandCategory;
   bids: Bid[];
   canOpenDocHub: boolean;
@@ -85,6 +89,9 @@ const standardColumnsBeforeWinner: StandardColumnConfig[] = [
 const noopOpenContract = () => undefined;
 
 export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
+  projectId,
+  highlightedBidId,
+  onLinkContract,
   category,
   bids,
   canOpenDocHub,
@@ -124,6 +131,7 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
             <BidCard
               key={bid.id}
               bid={bid}
+              highlighted={bid.id === highlightedBidId}
               data-help-id={
                 config.status === "contacted" && index === 0
                   ? "kanban-bid-card"
@@ -193,7 +201,14 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
                 />
                 <BidCard
                   bid={bid}
+              highlighted={bid.id === highlightedBidId}
                   priceDisplayMode="detail"
+                  contractLinks={projectId && onOpenContract ? <BidContractLinks
+                    key={`${projectId}:${bid.id}`}
+                    projectId={projectId} bid={bid} contracts={contracts}
+                    onOpenContract={onOpenContract} onLinkContract={onLinkContract}
+                    loading={contractsLoading} error={contractsError}
+                  /> : undefined}
                   onDragStart={onDragStart}
                   onDoubleClick={onEditBid}
                   onEdit={onEditBid}
@@ -216,6 +231,7 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
               <BidCard
                 key={bid.id}
                 bid={bid}
+              highlighted={bid.id === highlightedBidId}
                 onDragStart={onDragStart}
                 onDoubleClick={onEditBid}
                 onEdit={onEditBid}

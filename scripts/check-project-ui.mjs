@@ -13,6 +13,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let chrome, server, socket;
 const pending = new Map();
 const errors = [];
+const expectedDiagnostics = [];
 const failures = [];
 const measurements = [];
 let sequence = 0;
@@ -166,7 +167,17 @@ try {
     await click(selected); await move(); await sleep(220);
     const active = await colors(selected), icon = await colors(`${selected} .material-symbols-outlined`), normal = await colors(other);
     await hover(other); const hovered = await colors(other);
-    const state = { skin, dark, active, icon, normal, hovered };
+    const linkSelector = '.tf-kanban-bid-card .tf-button-outline';
+    const linkColors = await colors(linkSelector);
+    const linkSize = await evaluate(selector => {
+      const el = document.querySelector(selector), style = getComputedStyle(el);
+      return { fontSize: parseFloat(style.fontSize), height: el.getBoundingClientRect().height };
+    }, linkSelector);
+    check(linkColors.contrast >= 4.5, `Contract link contrast: ${skin}/${dark}`);
+    check(linkSize.fontSize <= 13 && linkSize.height <= 36, `Compact contract link: ${skin}/${dark}`);
+    await click(linkSelector);
+    check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:linked-contract', `Contract navigation: ${skin}/${dark}`);
+    const state = { skin, dark, active, icon, normal, hovered, linkColors, linkSize };
     measurements.push(state);
     check(active.contrast >= 4.5 && icon.contrast >= 4.5 && hovered.contrast >= 4.5, `Tab contrast: ${skin}/${dark}`);
     check(delta(active.bg, normal.bg) >= 20 && delta(hovered.bg, normal.bg) >= 10, `Tab state distinction: ${skin}/${dark}`);
@@ -182,14 +193,42 @@ try {
     await hover('.tf-kanban-bid-card'); await click(`.tf-kanban-bid-card ${selector}`);
     check(await evaluate(() => document.querySelector('#fixture-action').textContent) === expected, `Card action: ${expected}`);
   }
+  await click('.fixture-column:nth-child(2) .tf-button-ghost');
+  await click('.fixture-column:nth-child(2) [role="combobox"]');
+  await click('[role="option"]:last-child');
+  await click('.fixture-column:nth-child(2) .tf-button-outline');
+  check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'linked:existing-contract:long', 'Explicit contract linking');
+  await click('.fixture-column:nth-child(2) .tf-button-outline');
+  check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:existing-contract', 'Open newly linked contract');
   await evaluate(() => { document.documentElement.style.zoom = '1.5'; });
   check(await evaluate(() => [...document.querySelectorAll('.tf-kanban-bid-card')].every(card => card.scrollWidth <= card.clientWidth + 1)), 'Overflow at 150% zoom');
   await evaluate(() => { document.documentElement.style.zoom = '1'; });
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
   await click(selected); await screenshot('mobile');
+  if (process.env.PROJECT_UI_APP_SMOKE_URL) {
+    const smokeUrl = new URL(process.env.PROJECT_UI_APP_SMOKE_URL);
+    if (smokeUrl.hostname !== '127.0.0.1') throw new Error('App smoke must use localhost.');
+    await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false });
+    const smokeErrorStart = errors.length;
+    await send('Page.navigate', { url: smokeUrl.href });
+    let loaded = false;
+    for (let i = 0; i < 100; i++) {
+      loaded = await evaluate(() => Boolean(document.querySelector('input[type="email"]')));
+      if (loaded) break;
+      await sleep(100);
+    }
+    check(loaded, 'Built app loads the login guard');
+    await screenshot('built-app-login');
+    // The fresh, isolated profile deliberately has no authenticated session.
+    for (let i = errors.length - 1; i >= smokeErrorStart; i--) {
+      if (errors[i] === '[authService] getCurrentUser: No session user') {
+        expectedDiagnostics.push(...errors.splice(i, 1));
+      }
+    }
+  }
   check(errors.length === 0, `Browser errors: ${errors.join('; ')}`);
-  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ failures, errors, measurements }, null, 2));
-  console.log(JSON.stringify({ checks: '3 widths × 3 cards; 12 theme/mode variants; hover, focus, keyboard, actions, zoom, mobile', failures, errors, artifacts }, null, 2));
+  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ failures, errors, expectedDiagnostics, measurements }, null, 2));
+  console.log(JSON.stringify({ checks: '3 widths × 3 cards; 12 theme/mode variants; hover, focus, keyboard, actions, zoom, mobile', failures, errors, expectedDiagnostics, artifacts }, null, 2));
   if (failures.length) process.exitCode = 1;
 } catch (error) {
   console.error(error); process.exitCode = 1;

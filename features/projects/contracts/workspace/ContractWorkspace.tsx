@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { Button } from "@shared/ui/Button";
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from '../list/StatusPill';
 import { HeaderSection } from './sections/HeaderSection';
@@ -11,12 +12,14 @@ import { RetentionSection } from './sections/RetentionSection';
 import { WarrantySection } from './sections/WarrantySection';
 
 interface Props {
+  sourceBid?: { categoryId: string; bidId: string; title: string } | null;
+  onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   contract: ContractWithDetails;
   onEditContract: () => void;
   onRefresh: () => Promise<void> | void;
 }
 
-export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh }) => {
+export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh, sourceBid, onOpenSourceBid }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +33,11 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
           <StatusPill status={contract.status} />
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{contract.title}</div>
           <div className="ml-auto flex gap-2">
+            {sourceBid && onOpenSourceBid && <Button
+              type="button" variant="outline" size="sm" className="text-xs"
+              title={`Otevřít kartu dodavatele ve VŘ: ${sourceBid.title}`}
+              onClick={() => onOpenSourceBid(sourceBid.categoryId, sourceBid.bidId)}
+            >Zpět na kartu ve VŘ</Button>}
             <button
               type="button"
               onClick={onEditContract}

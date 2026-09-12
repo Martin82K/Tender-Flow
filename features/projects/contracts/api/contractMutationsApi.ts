@@ -1,6 +1,12 @@
 import { contractService } from "@/services/contractService";
 
 export const contractMutationsApi = {
+  linkContractToBid(
+    ...args: Parameters<typeof contractService.linkContractToBid>
+  ): ReturnType<typeof contractService.linkContractToBid> {
+    return contractService.linkContractToBid(...args);
+  },
+
   createAmendment(
     ...args: Parameters<typeof contractService.createAmendment>
   ): ReturnType<typeof contractService.createAmendment> {

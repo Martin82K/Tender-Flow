@@ -11,6 +11,7 @@ import { useDismissContractDeepLink } from './hooks/useDismissContractDeepLink';
 type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
 interface Props {
+  onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   projectId: string;
   initialContractId?: string;
   contractsState?: UseContractsWithDetailsResult;
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const ContractsModule: React.FC<Props> = ({
+  onOpenSourceBid,
   projectId,
   initialContractId,
   contractsState,
@@ -129,6 +131,7 @@ export const ContractsModule: React.FC<Props> = ({
           viewMode={contractsViewMode}
           onViewModeChange={setContractsViewMode}
           initialSelectedId={initialContractId}
+          onOpenSourceBid={onOpenSourceBid}
         />
       )}
     </div>

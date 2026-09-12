@@ -479,6 +479,22 @@ export const contractService = {
     });
   },
 
+  // Keep the existing document, source provenance and legacy contracted flag intact.
+  linkContractToBid: async (projectId: string, contractId: string, bidId: string): Promise<void> => {
+    if (!projectId || !contractId || !bidId) throw new Error('Chybí stavba, smlouva nebo nabídka.');
+    const { data: bid, error: bidError } = await supabase.from('bids')
+      .select('demand_category_id').eq('id', bidId).maybeSingle();
+    if (bidError || !bid) throw new Error('Nabídka není dostupná. Obnovte výběrové řízení.');
+    const { data: category, error: categoryError } = await supabase.from('demand_categories')
+      .select('id').eq('id', bid.demand_category_id).eq('project_id', projectId).maybeSingle();
+    if (categoryError || !category) throw new Error('Nabídka nepatří do této stavby nebo k ní nemáte přístup.');
+    // RLS remains authoritative; the null predicate also prevents a stale UI overwriting a link.
+    const { data, error } = await supabase.from('contracts')
+      .update({ source_bid_id: bidId }).eq('id', contractId).eq('project_id', projectId)
+      .is('source_bid_id', null).select('id').maybeSingle();
+    if (error || !data) throw new Error('Propojení nebylo uloženo. Smlouva je již propojena nebo nemáte oprávnění. Obnovte seznam.');
+  },
+
   updateContract: async (id: string, updates: Partial<Contract>): Promise<void> => {
     const dbUpdates: Record<string, unknown> = {};
     const has = (key: keyof Contract): boolean => Object.prototype.hasOwnProperty.call(updates, key);

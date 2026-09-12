@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BidCard } from "@features/projects/pipeline/ui/BidCard";
 import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
-import type { Bid, ProjectDetails } from "@/types";
+import { BidContractLinks } from "@features/projects/contracts/ui/BidContractLinks";
+import type { Bid, ProjectDetails, ContractWithDetails } from "@/types";
 import "@/index.css";
 import "./fixture.css";
 
@@ -14,6 +15,10 @@ const bids: Bid[] = [
 const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [] } as unknown as ProjectDetails;
 
 function Fixture() {
+  const [contracts, setContracts] = useState<ContractWithDetails[]>([
+    { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
+    { id: 'existing-contract', projectId: 'ui-fixture', title: 'Existující smlouva', vendorName: 'Testovací dodavatel' } as ContractWithDetails,
+  ]);
   const [action, setAction] = useState("");
   return <div className="tf-app-main">
     <output id="fixture-action">{action}</output>
@@ -21,7 +26,13 @@ function Fixture() {
       {bids.map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
         <BidCard bid={bid} onDragStart={() => setAction("drag")}
           onEdit={() => setAction("edit")} onDelete={() => setAction("delete")}
-          onOpenDocHubFolder={() => setAction("folder")} />
+          onOpenDocHubFolder={() => setAction("folder")}
+          contractLinks={<BidContractLinks projectId="ui-fixture" bid={bid} contracts={contracts}
+            onOpenContract={id => setAction(`contract:${id}`)}
+            onLinkContract={async (contractId, bidId) => {
+              setContracts(current => current.map(contract => contract.id === contractId ? { ...contract, sourceBidId: bidId } : contract));
+              setAction(`linked:${contractId}:${bidId}`);
+            }} />} />
       </div>)}
     </div>
     <ProjectDocuments project={project} onUpdate={() => {}}

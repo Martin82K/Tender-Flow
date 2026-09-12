@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ContractWithDetails } from '@/types';
 
@@ -62,6 +62,16 @@ describe('ContractWorkspace layout', () => {
 
   afterAll(() => {
     HTMLElement.prototype.scrollTo = originalScrollTo;
+  });
+
+  it('returns to the exact source card without editing the record', () => {
+    const open = vi.fn();
+    const edit = vi.fn();
+    render(<ContractWorkspace contract={contract} onEditContract={edit} onRefresh={vi.fn()}
+      sourceBid={{ categoryId: 'cat', bidId: 'bid', title: 'VŘ' }} onOpenSourceBid={open} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Zpět na kartu ve VŘ' }));
+    expect(open).toHaveBeenCalledWith('cat', 'bid');
+    expect(edit).not.toHaveBeenCalled();
   });
 
   it('vykresluje všechny sekce přes celou šířku bez pravého navigačního panelu', () => {

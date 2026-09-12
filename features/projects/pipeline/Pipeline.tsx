@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "@shared/routing/router";
+import { parseAppRoute } from "@shared/routing/routeUtils";
 import { Header } from "@shared/ui/Header";
 import type {
   DemandCategory,
@@ -66,8 +68,9 @@ interface PipelineProps {
   onUpdateContact?: (contact: Subcontractor) => Promise<void> | void;
   searchQuery?: string;
   initialOpenCategoryId?: string;
-  onCategoryNavigate?: (categoryId: string | null) => void;
+  onCategoryNavigate?: (categoryId: string | null, bidId?: string) => void;
   contracts?: ContractWithDetails[];
+  onLinkContract?: (contractId: string, bidId: string) => Promise<void>;
   onOpenContract?: (contractId: string) => void;
   contractsLoading?: boolean;
   contractsError?: string | null;
@@ -101,9 +104,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onCategoryNavigate,
   contracts = [],
   onOpenContract,
+  onLinkContract,
   contractsLoading = false,
   contractsError = null,
 }) => {
+  const location = useLocation();
+  const route = parseAppRoute(location.pathname, location.search);
+  const highlightedBidId = route.isApp && 'view' in route && route.view === 'project'
+    && route.projectId === projectId && route.tab === 'pipeline' ? route.bidId : undefined;
   const { alertModalNode, showAlert } = usePipelineAlert();
   const { confirmationModalNode, requestConfirmation } =
     usePipelineConfirmation();
@@ -436,6 +444,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
         />
 
         <PipelineKanbanBoard
+          projectId={projectId}
+          highlightedBidId={highlightedBidId}
+          onLinkContract={onLinkContract}
           category={activeCategory}
           bids={categoryBids}
           canOpenDocHub={canOpenDocHub}
@@ -515,6 +526,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
     <div className="tf-pipeline-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
       {alertModalNode}
       <PipelineOverview
+        contracts={contracts.filter(contract => contract.projectId === projectId)}
+        onOpenContract={contractsLoading || contractsError ? undefined : onOpenContract}
+        onOpenBidContracts={(category, bidId) => {
+          setActiveCategory(category);
+          onCategoryNavigate?.(category.id, bidId);
+        }}
         currentUserId={user?.id ?? null}
         categories={projectData.categories}
         bids={bids}

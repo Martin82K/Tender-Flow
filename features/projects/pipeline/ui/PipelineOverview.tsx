@@ -7,7 +7,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@appica/ui-react';
 import { BuildingPlus } from '@appica/icons-react';
-import type { Bid, DemandCategory } from '@/types';
+import { Button as ThemedButton } from "@shared/ui/Button";
+import type { Bid, DemandCategory, ContractWithDetails } from '@/types';
 import { parseFormattedNumber } from '@shared/formatting/decimalFormatters';
 import { formatMoney } from '@shared/formatting/numberFormatters';
 import {
@@ -53,6 +54,9 @@ interface RowContextMenuState {
 }
 
 export interface PipelineOverviewProps {
+    contracts?: ContractWithDetails[];
+    onOpenContract?: (contractId: string) => void;
+    onOpenBidContracts?: (category: DemandCategory, bidId: string) => void;
     currentUserId: string | null;
     categories: DemandCategory[];
     bids: Record<string, Bid[]>;
@@ -71,6 +75,9 @@ export interface PipelineOverviewProps {
 }
 
 export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
+    contracts = [],
+    onOpenContract,
+    onOpenBidContracts,
     currentUserId,
     categories,
     bids,
@@ -721,7 +728,16 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                                                 {Number.isFinite(numericBidPrice) ? 'Ano' : 'Ne'}
                                                             </td>
                                                             <td className="px-3 py-2.5 text-right text-slate-600 dark:text-slate-300">
-                                                                {bid.contracted ? 'Ano' : bid.status === 'sod' ? 'Čeká' : '—'}
+                                                                {onOpenContract && onOpenBidContracts && bid.status === 'sod' ? (
+                                                                    <ThemedButton type="button" variant="ghost" size="sm" className="text-xs"
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation();
+                                                                            const linked = contracts.filter(contract => contract.sourceBidId === bid.id);
+                                                                            if (linked.length === 1) onOpenContract(linked[0].id);
+                                                                            else onOpenBidContracts(category, bid.id);
+                                                                        }}
+                                                                    >{contracts.some(contract => contract.sourceBidId === bid.id) ? 'Ve Smlouvách' : 'Propojit'}</ThemedButton>
+                                                                ) : bid.contracted ? 'Ano' : bid.status === 'sod' ? 'Čeká' : '—'}
                                                             </td>
                                                             <td className="px-3 py-2.5" aria-hidden="true" />
                                                         </tr>

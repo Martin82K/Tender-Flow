@@ -426,7 +426,7 @@ export const AppContent: React.FC = () => {
               initialContractId={activeContractId ?? undefined}
               currentUserId={user?.id}
               currentUser={user}
-              onNavigateToPipeline={(catId: string) => {
+              onNavigateToPipeline={(catId: string, bidId?: string) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);
                 setActiveContractId(null);
@@ -435,16 +435,18 @@ export const AppContent: React.FC = () => {
                     projectId: state.selectedProjectId!,
                     tab: "pipeline",
                     categoryId: catId,
+                    bidId,
                   }),
                 );
               }}
-              onCategoryNavigate={(catId: string | null) => {
+              onCategoryNavigate={(catId: string | null, bidId?: string) => {
                 setActivePipelineCategoryId(catId);
                 navigate(
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId!,
                     tab: "pipeline",
                     categoryId: catId ?? undefined,
+                    bidId,
                   }),
                 );
               }}

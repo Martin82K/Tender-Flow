@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { contractMutationsApi } from "@features/projects/contracts/api";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -46,8 +47,8 @@ interface ProjectLayoutProps {
   onAddContact: (contact: Subcontractor) => Promise<void> | void;
   onUpdateContact: (contact: Subcontractor) => Promise<void> | void;
   initialPipelineCategoryId?: string;
-  onNavigateToPipeline?: (categoryId: string) => void;
-  onCategoryNavigate?: (categoryId: string | null) => void;
+  onNavigateToPipeline?: (categoryId: string, bidId?: string) => void;
+  onCategoryNavigate?: (categoryId: string | null, bidId?: string) => void;
   initialContractId?: string;
   onNavigateToContract?: (contractId: string) => void;
   skin?: ThemeSkin;
@@ -313,7 +314,11 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             initialOpenCategoryId={initialPipelineCategoryId}
             onCategoryNavigate={onCategoryNavigate}
             contracts={contractsState.contracts}
-            onOpenContract={onNavigateToContract}
+            onOpenContract={contractsEnabled ? onNavigateToContract : undefined}
+            onLinkContract={contractsEnabled && !isReadOnly ? async (contractId, bidId) => {
+              await contractMutationsApi.linkContractToBid(projectId, contractId, bidId);
+              await contractsState.refresh();
+            } : undefined}
             contractsLoading={contractsState.loading}
             contractsError={contractsState.error}
           />
@@ -357,6 +362,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdateDetails={onUpdateDetails}
             initialContractId={initialContractId}
             contractsState={contractsState}
+            onOpenSourceBid={visibleTabs.some(tab => tab.id === "pipeline") ? onNavigateToPipeline : undefined}
           />
         )}
         {activeTab === "settings" && (

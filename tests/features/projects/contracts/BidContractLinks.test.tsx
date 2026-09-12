@@ -1,0 +1,43 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { BidContractLinks } from '@/features/projects/contracts/ui/BidContractLinks';
+import type { Bid, ContractWithDetails } from '@/types';
+
+const bid = { id: 'b1', companyName: 'Dodavatel', status: 'sod' } as Bid;
+const contract = (id: string, sourceBidId?: string, projectId = 'p1') => ({
+  id, sourceBidId, projectId, title: `Smlouva ${id}`, vendorName: 'Dodavatel',
+} as ContractWithDetails);
+
+describe('BidContractLinks', () => {
+  it('opens the explicitly linked record without changing the bid', () => {
+    const open = vi.fn();
+    render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1', 'b1')]} onOpenContract={open} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Otevřít ve Smlouvách' }));
+    expect(open).toHaveBeenCalledWith('c1');
+  });
+
+  it('requires a choice when multiple records are linked and excludes another project', () => {
+    const open = vi.fn();
+    render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1', 'b1'), contract('c2', 'b1'), contract('private', 'b1', 'p2')]} onOpenContract={open} />);
+    expect(open).not.toHaveBeenCalled();
+    expect(screen.queryByText('Smlouva private')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Propojená smlouva' }), { target: { value: 'c2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Otevřít ve Smlouvách' }));
+    expect(open).toHaveBeenCalledWith('c2');
+  });
+
+  it('links only after explicit confirmation, hides already assigned records and reports failure', async () => {
+    const link = vi.fn().mockRejectedValue(new Error('Vazba se změnila. Obnovte seznam.'));
+    const open = vi.fn();
+    render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1'), contract('assigned', 'other')]} onOpenContract={open} onLinkContract={link} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Propojit existující smlouvu' }));
+    expect(screen.queryByText('Smlouva assigned')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Existující smlouva' }), { target: { value: 'c1' } });
+    expect(link).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Potvrdit propojení' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Vazba se změnila'));
+    expect(link).toHaveBeenCalledWith('c1', 'b1');
+    expect(open).not.toHaveBeenCalled();
+  });
+});
