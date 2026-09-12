@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BidCard } from "@features/projects/pipeline/ui/BidCard";
 import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
+import { ContractsTable } from "@features/projects/contracts/list/ContractsTable";
 import { BidContractLinks } from "@features/projects/contracts/ui/BidContractLinks";
 import type { Bid, ProjectDetails, ContractWithDetails } from "@/types";
 import "@/index.css";
@@ -12,7 +13,7 @@ const bids: Bid[] = [
   { id: "long", subcontractorId: "long", companyName: "VÝTAHY SCHMITT+SOHN sro", price: "1 670 000,00 Kč", status: "offer", contactPerson: "Testovací kontakt" },
   { id: "unbroken", subcontractorId: "unbroken", companyName: "DodavatelskaSpolecnostBezMezerABCDEFGHIJKLMNOPQRSTUVWXYZ", price: "123\u00a0456\u00a0789\u00a0000,00\u00a0Kč", status: "offer", contactPerson: "Testovací kontakt" },
 ];
-const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [] } as unknown as ProjectDetails;
+const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [], categories: [{ id: "category", title: "Montážní práce" }], bids: { category: bids } } as unknown as ProjectDetails;
 
 function Fixture() {
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
@@ -37,6 +38,15 @@ function Fixture() {
     </div>
     <ProjectDocuments project={project} onUpdate={() => {}}
       canDocHub={true} canTemplates={true} autoShortenProjectDocs={false} />
+    <div className="tf-contracts-module" id="fixture-contracts-table">
+      <ContractsTable contracts={contracts.map(contract => ({
+        ...contract, contractNumber: contract.contractNumber || 'SOD-2026-001',
+        amendments: [], invoices: [], drawdowns: [], status: 'active', currency: 'CZK',
+        basePrice: 100, currentTotal: 100, approvedSum: 0, remaining: 100,
+        invoicedSum: 0, paidSum: 0, overdueSum: 0, source: 'manual',
+      }))} projectDetails={project} onSelect={id => setAction(`table-detail:${id}`)}
+        onOpenSourceBid={(categoryId, bidId) => setAction(`source:${categoryId}:${bidId}`)} />
+    </div>
   </div>;
 }
 

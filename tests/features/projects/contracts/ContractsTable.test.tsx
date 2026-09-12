@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContractWithDetails } from '@/types';
+import type { ContractWithDetails, ProjectDetails } from '@/types';
 import { ContractsTable } from '@/features/projects/contracts/list/ContractsTable';
 
 const contract: ContractWithDetails = {
@@ -30,6 +30,20 @@ const contract: ContractWithDetails = {
 
 describe('ContractsTable', () => {
   beforeEach(() => localStorage.clear());
+
+  it('skryje návrat pro neplatnou nebo cizí vazbu a bez navigačního callbacku', () => {
+    const linked = { ...contract, sourceBidId: 'bid-1' };
+    const project = { id: 'project-1', categories: [{ id: 'cat', title: 'Montáž' }],
+      bids: { cat: [{ id: 'bid-1' }] } } as unknown as ProjectDetails;
+    const { rerender } = render(<ContractsTable contracts={[linked]} onSelect={vi.fn()}
+      projectDetails={{ ...project, id: 'other' }} onOpenSourceBid={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Otevřít kartu dodavatele ve VŘ/ })).not.toBeInTheDocument();
+    rerender(<ContractsTable contracts={[{ ...linked, sourceBidId: 'deleted' }]} onSelect={vi.fn()}
+      projectDetails={project} onOpenSourceBid={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Otevřít kartu dodavatele ve VŘ/ })).not.toBeInTheDocument();
+    rerender(<ContractsTable contracts={[linked]} onSelect={vi.fn()} projectDetails={project} />);
+    expect(screen.queryByRole('button', { name: /Otevřít kartu dodavatele ve VŘ/ })).not.toBeInTheDocument();
+  });
 
   it('zobrazuje dodavatele před číslem smlouvy a dokumentem', () => {
     render(<ContractsTable contracts={[contract]} onSelect={vi.fn()} />);
