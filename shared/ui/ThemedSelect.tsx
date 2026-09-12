@@ -26,6 +26,7 @@ interface ThemedSelectProps<T extends string> {
 }
 
 interface MenuPosition {
+  openAbove: boolean;
   left: number;
   top: number;
   width: number;
@@ -85,9 +86,10 @@ export const ThemedSelect = <T extends string>({
     const roomAbove = rect.top - viewportPadding;
     const openAbove = roomBelow < Math.min(desiredHeight, 180) && roomAbove > roomBelow;
     const maxHeight = Math.max(80, Math.min(desiredHeight, openAbove ? roomAbove : roomBelow));
-    const top = openAbove ? Math.max(viewportPadding, rect.top - maxHeight - 4) : rect.bottom + 4;
+    const top = openAbove ? rect.top - 4 : rect.bottom + 4;
     const width = Math.min(Math.max(rect.width, menuMinWidth), Math.max(0, window.innerWidth - viewportPadding * 2));
     setPosition({
+      openAbove,
       left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding)),
       top,
       width,
@@ -200,7 +202,7 @@ export const ThemedSelect = <T extends string>({
     <div
       ref={menuRef}
       className="tf-themed-select-popover fixed z-[400] flex flex-col overflow-hidden rounded-lg border shadow-xl outline-none"
-      style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight }}
+      style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, transform: position.openAbove ? "translateY(-100%)" : undefined }}
     >
       {searchable && (
         <div className="shrink-0 border-b border-slate-200/80 p-2 dark:border-slate-700/70">

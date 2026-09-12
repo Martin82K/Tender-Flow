@@ -23,3 +23,7 @@ Výběr smlouvy je vyhledávatelný podle názvu, dodavatele i čísla. Rozbalen
 Před migrací byl na syntetickém 54znakovém ID reprodukován PostgreSQL kód `22001`. Po migraci stejný vstup prošel při přiřazení do proměnné typu `contracts.source_bid_id%TYPE` bez zkrácení. Počet řádků a kontrolní součet vazeb před/po zůstaly shodné; stejně tak RLS, ACL, definice policies, indexů a constraints. Závěrečný `db push --dry-run` hlásí aktuální databázi. Zákaznické vazby nebyly pro test změněny.
 
 Security a performance advisors byly spuštěny. Hlásí i nálezy na objektech, které migrace nemění; samotný typový přechod nepřidal policy, grant ani index. Pro tabulku contracts zůstává například téma [indexů cizích klíčů](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) a [vyhodnocování RLS funkcí](https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan). Nejde o prohlášení, že celá databáze nemá bezpečnostní nálezy.
+
+### Známý rozdíl výchozího schématu
+
+Audit review zjistil starší drift: propojená databáze má `bids.id` typu text, ale počáteční migrace jej vytváří jako varchar(36); `bid_tags.bid_id` zůstává varchar(36) i v propojené databázi. Tato oprava mění pouze schválené `contracts.source_bid_id` a nezajišťuje obnovu delších ID do nově vytvořené databáze ani jejich použití ve štítcích. Sjednocení autoritativního ID a závislých vazeb vyžaduje samostatnou verzovanou migraci a audit obnovy. Jde o existující omezení mimo propojení smlouvy; nelze tvrdit, že tato migrace opravuje celý import/obnovu.

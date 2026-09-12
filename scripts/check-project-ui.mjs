@@ -208,6 +208,24 @@ try {
   check(contractMenu.inside && contractMenu.width >= 480 && contractMenu.readable, 'Readable expanded contract menu');
   check(contractMenu.text.includes('JR/01/26026/2026'), 'Full contract identity in options');
   await screenshot('contract-picker-full-text');
+  await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]');
+    trigger.style.position = 'fixed';
+    trigger.style.top = `${innerHeight - 60}px`;
+    window.dispatchEvent(new Event('resize'));
+  });
+  await sleep(100);
+  check(await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]').getBoundingClientRect();
+    const menu = document.querySelector('.tf-themed-select-popover').getBoundingClientRect();
+    return Math.abs(trigger.top - menu.bottom - 4) <= 1;
+  }), 'Short wrapped menu remains anchored above trigger');
+  await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]');
+    trigger.style.position = '';
+    trigger.style.top = '';
+    window.dispatchEvent(new Event('resize'));
+  });
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
   await sleep(100);
   contractMenu = await evaluate(inspectContractMenu);
