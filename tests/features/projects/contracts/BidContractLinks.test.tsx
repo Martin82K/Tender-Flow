@@ -27,6 +27,17 @@ describe('BidContractLinks', () => {
     expect(link).not.toHaveBeenCalled();
   });
 
+  it('hides linking after the contract is linked', () => {
+    const props = { projectId: 'p1', bid, onOpenContract: vi.fn(), onLinkContract: vi.fn() };
+    const { rerender } = render(<BidContractLinks {...props} contracts={[contract('c1')]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Propojit existující smlouvu' }));
+    rerender(<BidContractLinks {...props} contracts={[contract('c1', 'b1')]} />);
+    expect(screen.getByRole('button', { name: 'Otevřít ve Smlouvách' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Propojit existující smlouvu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Existující smlouva' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Potvrdit propojení' })).not.toBeInTheDocument();
+  });
+
   it('opens the explicitly linked record without changing the bid', () => {
     const open = vi.fn();
     render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1', 'b1')]} onOpenContract={open} />);

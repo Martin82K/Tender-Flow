@@ -2,7 +2,7 @@
 
 Na kartě vítěze lze otevřít propojený záznam přímo ve Smlouvách. Při více vazbách uživatel nejdříve zvolí smlouvu. Přehled VŘ nabízí stejný přechod; při chybějící nebo vícečetné vazbě otevře příslušnou kartu. Detail smlouvy obsahuje návrat do zdrojového VŘ a zaměří konkrétní kartu. PDF se tím neotevírá.
 
-**Propojit existující smlouvu** nabízí nepropojené smlouvy aktuální stavby. Výběr se ukládá až po **Potvrdit propojení**. Nejde o generování smlouvy ani automatické přiřazení podle názvu nebo ceny. Původní příznak Zasmluvněno se nemění a sám nepotvrzuje existenci vazby. Historický odznak s navigačním odhadem podle ID dodavatele zůstává zachován; nový prvek používá výhradně explicitní vazbu.
+**Propojit existující smlouvu** nabízí nepropojené smlouvy aktuální stavby. Výběr se ukládá až po **Potvrdit propojení**. Po vytvoření vazby se ovládání pro propojení skryje a zůstane přechod do Smluv. Nejde o generování smlouvy ani automatické přiřazení podle názvu nebo ceny. Původní příznak Zasmluvněno se nemění a sám nepotvrzuje existenci vazby. Historický odznak s navigačním odhadem podle ID dodavatele zůstává zachován; nový prvek používá výhradně explicitní vazbu.
 
 ## Implementace a oprávnění
 

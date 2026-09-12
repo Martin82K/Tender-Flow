@@ -35,7 +35,7 @@ describe('ukládání společných pravidel tarifu', () => {
     expect(screen.getByRole('button', { name: /Obnovit$/ })).toBeDisabled();
     finish();
     await waitFor(() => expect(pro).toBeEnabled());
-    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(false));
     expect(free).toHaveAttribute('aria-pressed', 'true');
   });
 

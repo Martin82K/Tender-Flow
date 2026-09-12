@@ -26,7 +26,7 @@ export const BidContractLinks: React.FC<Props> = ({ projectId, bid, contracts, o
   const selected = linked.length === 1 ? linked[0] : linked.find(contract => contract.id === selectedId);
 
   const confirmLink = async () => {
-    if (saving || !onLinkContract || !available.some(contract => contract.id === existingId)) return;
+    if (linked.length > 0 || saving || !onLinkContract || !available.some(contract => contract.id === existingId)) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -50,8 +50,8 @@ export const BidContractLinks: React.FC<Props> = ({ projectId, bid, contracts, o
           </ThemedNativeSelect>
         )}
         {linked.length > 0 ? <Button type="button" variant="outline" size="sm" className="text-xs" disabled={!selected} onClick={() => selected && onOpenContract(selected.id)}>Otevřít ve Smlouvách</Button> : <span>Smlouva není propojena</span>}
-        {onLinkContract && !choosing && <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setChoosing(true)}>Propojit existující smlouvu</Button>}
-        {onLinkContract && choosing && <>
+        {linked.length === 0 && onLinkContract && !choosing && <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setChoosing(true)}>Propojit existující smlouvu</Button>}
+        {linked.length === 0 && onLinkContract && choosing && <>
           <ThemedNativeSelect searchable wrapOptions menuMinWidth={480} aria-label="Existující smlouva" disabled={saving} value={existingId} onChange={event => { setExistingId(event.target.value); setSaveError(null); }} className="text-xs">
             <option value="">Vyberte smlouvu této stavby</option>
             {available.map(contract => <option key={contract.id} value={contract.id}>{contract.title} · {contract.vendorName}{contract.contractNumber ? ` · ${contract.contractNumber}` : ''}</option>)}

@@ -213,10 +213,13 @@ try {
   contractMenu = await evaluate(inspectContractMenu);
   check(contractMenu.inside && contractMenu.readable, 'Contract menu fits mobile viewport');
   await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false });
-  await click('[role="option"]:last-child');
+  await evaluate(() => document.querySelector('.tf-themed-select-popover input[type="search"]').focus());
+  await key('ArrowDown', 40);
+  await key('Enter', 13);
   check(await evaluate(() => document.querySelector('[aria-label="Vybraná smlouva"]').textContent.includes('JR/01/26026/2026')), 'Full selected contract before confirmation');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'linked:existing-contract:long', 'Explicit contract linking');
+  check(await evaluate(() => !document.querySelector('.fixture-column:nth-child(2) .tf-button-ghost') && !document.querySelector('.fixture-column:nth-child(2) [role="combobox"]')), 'Hide linking controls after success');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:existing-contract', 'Open newly linked contract');
   await evaluate(() => { document.documentElement.style.zoom = '1.5'; });
