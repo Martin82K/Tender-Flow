@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { findContractSourceBid } from "../model/contractSourceBid";
 import type { ContractWithDetails, ProjectDetails } from '@/types';
 import { APP_VERSION } from '@/config/version';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +17,7 @@ import { useDismissContractDeepLink } from '../hooks/useDismissContractDeepLink'
 export type ContractsViewMode = 'split' | 'table';
 
 interface Props {
+  onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   projectId: string;
   projectDetails?: ProjectDetails;
   contracts: ContractWithDetails[];
@@ -26,6 +28,7 @@ interface Props {
 }
 
 export const ContractsListPage: React.FC<Props> = ({
+  onOpenSourceBid,
   projectId,
   projectDetails,
   contracts,
@@ -267,6 +270,8 @@ export const ContractsListPage: React.FC<Props> = ({
                 contract={selected}
                 onEditContract={openEdit}
                 onRefresh={refresh}
+                sourceBid={findContractSourceBid(selected, projectDetails)}
+                onOpenSourceBid={onOpenSourceBid}
               />
             ) : (
               <div className="rounded-xl border border-slate-200 dark:border-slate-800 grid place-items-center text-sm text-slate-600 dark:text-slate-500">

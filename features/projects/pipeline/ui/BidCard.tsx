@@ -4,7 +4,7 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 import type { Bid } from "@/types";
 
@@ -18,6 +18,8 @@ export interface BidCardProps {
   onGenerateInquiry?: (bid: Bid) => void;
   onGenerateMaterialInquiry?: (bid: Bid) => void;
   onOpenDocHubFolder?: (bid: Bid) => void;
+  highlighted?: boolean;
+  contractLinks?: React.ReactNode;
   priceDisplayMode?: "badge" | "detail";
   "data-help-id"?: string;
 }
@@ -32,9 +34,17 @@ export const BidCard: React.FC<BidCardProps> = ({
   onGenerateInquiry,
   onGenerateMaterialInquiry,
   onOpenDocHubFolder,
+  highlighted = false,
+  contractLinks,
   priceDisplayMode = "badge",
   "data-help-id": dataHelpId,
 }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!highlighted) return;
+    cardRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    cardRef.current?.focus({ preventScroll: true });
+  }, [highlighted]);
   const selectedRoundPrice =
     bid.selectionRound !== undefined && bid.selectionRound !== null
       ? bid.priceHistory?.[bid.selectionRound]
@@ -48,12 +58,16 @@ export const BidCard: React.FC<BidCardProps> = ({
 
   return (
     <div
+      ref={cardRef}
+      data-contract-source={highlighted ? "true" : undefined}
+      tabIndex={highlighted ? -1 : undefined}
+      aria-label={highlighted ? `Karta dodavatele ${bid.companyName}` : undefined}
       data-help-id={dataHelpId}
       draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
       onDoubleClick={() => onDoubleClick?.(bid)}
-      className="tf-kanban-bid-card bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
+      className="tf-kanban-bid-card data-[contract-source=true]:ring-2 data-[contract-source=true]:ring-primary bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
         <div className="flex min-w-0 flex-1 basis-40 items-center gap-2">
@@ -206,6 +220,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           )}
         </div>
       )}
+      {contractLinks}
     </div>
   );
 };

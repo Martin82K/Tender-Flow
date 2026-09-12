@@ -23,6 +23,7 @@ export const buildAppUrl = (
         tab?: ProjectTab;
         categoryId?: string | null;
         contractId?: string | null;
+        bidId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
         settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
@@ -57,6 +58,7 @@ export const buildAppUrl = (
             const params = new URLSearchParams();
             if (opts.tab) params.set("tab", opts.tab);
             if (opts.categoryId) params.set("categoryId", opts.categoryId);
+            if (opts.bidId) params.set("bidId", opts.bidId);
             if (opts.contractId) params.set("contractId", opts.contractId);
             if (opts.documentsSubTab) params.set("documentsSubTab", opts.documentsSubTab);
             const qs = params.toString();
@@ -82,6 +84,7 @@ export type ParsedAppRoute =
         tab?: ProjectTab;
         categoryId?: string;
         contractId?: string;
+        bidId?: string;
     };
 
 /**
@@ -121,6 +124,7 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
             tab: isProjectTab(tabParam) ? tabParam : undefined,
             categoryId: categoryIdParam || undefined,
             contractId: contractIdParam || undefined,
+            bidId: params.get("bidId") || undefined,
         };
     }
 
