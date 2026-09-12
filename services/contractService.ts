@@ -492,7 +492,10 @@ export const contractService = {
     const { data, error } = await supabase.from('contracts')
       .update({ source_bid_id: bidId }).eq('id', contractId).eq('project_id', projectId)
       .is('source_bid_id', null).select('id').maybeSingle();
-    if (error || !data) throw new Error('Propojení nebylo uloženo. Smlouva je již propojena nebo nemáte oprávnění. Obnovte seznam.');
+    if (error?.code === '22001') throw new Error('Databáze nepřijala celé ID nabídky. Je potřeba aktualizovat databázovou strukturu propojení.');
+    if (error?.code === '42501') throw new Error('Nemáte oprávnění tuto smlouvu propojit.');
+    if (error) throw new Error('Propojení se kvůli chybě při ukládání nepodařilo. Zkuste to znovu.');
+    if (!data) throw new Error('Propojení nebylo uloženo. Smlouva je již propojena nebo nemáte oprávnění. Obnovte seznam.');
   },
 
   updateContract: async (id: string, updates: Partial<Contract>): Promise<void> => {

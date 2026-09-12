@@ -195,7 +195,26 @@ try {
   }
   await click('.fixture-column:nth-child(2) .tf-button-ghost');
   await click('.fixture-column:nth-child(2) [role="combobox"]');
+  const inspectContractMenu = () => {
+    const menu = document.querySelector('.tf-themed-select-popover');
+    const bounds = menu.getBoundingClientRect();
+    const label = menu.querySelector('[role="option"]:last-child > span');
+    const style = getComputedStyle(label);
+    return { inside: bounds.left >= 0 && bounds.right <= innerWidth, width: bounds.width,
+      readable: style.whiteSpace === 'normal' && style.textOverflow !== 'ellipsis' && label.scrollWidth <= label.clientWidth + 1 && label.getBoundingClientRect().bottom <= bounds.bottom,
+      text: label.textContent };
+  };
+  let contractMenu = await evaluate(inspectContractMenu);
+  check(contractMenu.inside && contractMenu.width >= 480 && contractMenu.readable, 'Readable expanded contract menu');
+  check(contractMenu.text.includes('JR/01/26026/2026'), 'Full contract identity in options');
+  await screenshot('contract-picker-full-text');
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+  await sleep(100);
+  contractMenu = await evaluate(inspectContractMenu);
+  check(contractMenu.inside && contractMenu.readable, 'Contract menu fits mobile viewport');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false });
   await click('[role="option"]:last-child');
+  check(await evaluate(() => document.querySelector('[aria-label="Vybraná smlouva"]').textContent.includes('JR/01/26026/2026')), 'Full selected contract before confirmation');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'linked:existing-contract:long', 'Explicit contract linking');
   await click('.fixture-column:nth-child(2) .tf-button-outline');

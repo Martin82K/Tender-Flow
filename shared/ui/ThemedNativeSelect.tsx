@@ -14,6 +14,8 @@ interface ThemedNativeSelectProps
   defaultValue?: NativeSelectValue;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
   searchable?: boolean;
+  wrapOptions?: boolean;
+  menuMinWidth?: number;
   multiple?: boolean;
 }
 
@@ -56,6 +58,8 @@ export const ThemedNativeSelect: React.FC<ThemedNativeSelectProps> = ({
   multiple = false,
   required,
   searchable,
+  wrapOptions,
+  menuMinWidth,
   title,
   style,
   value,
@@ -231,6 +235,8 @@ export const ThemedNativeSelect: React.FC<ThemedNativeSelectProps> = ({
           onChange={handleChange}
           disabled={disabled}
           searchable={searchable ?? options.length > 12}
+          wrapOptions={wrapOptions}
+          menuMinWidth={menuMinWidth}
           className={fillsContainer ? "min-w-0 w-full" : "min-w-0"}
           triggerClassName={className}
           triggerStyle={style}

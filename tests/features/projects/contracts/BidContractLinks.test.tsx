@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { BidContractLinks } from '@/features/projects/contracts/ui/BidContractLinks';
 import type { Bid, ContractWithDetails } from '@/types';
@@ -10,6 +10,23 @@ const contract = (id: string, sourceBidId?: string, projectId = 'p1') => ({
 } as ContractWithDetails);
 
 describe('BidContractLinks', () => {
+  it('lets the user search full contract text and inspect the selection before confirming', () => {
+    const link = vi.fn();
+    const record = { ...contract('long'), title: 'Objednávka na opravu mostního objektu a navazující stavební práce', vendorName: 'Silniční stavby Test', contractNumber: 'JR/01/26026/2026' };
+    render(<BidContractLinks projectId="p1" bid={bid} contracts={[record, contract('other')]} onOpenContract={vi.fn()} onLinkContract={link} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Propojit existující smlouvu' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Existující smlouva' }));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'JR/01/26026' } });
+    const option = screen.getByRole('option', { name: /Objednávka na opravu/ });
+    expect(option.querySelector('span')).not.toHaveClass('truncate');
+    fireEvent.click(option);
+    const preview = screen.getByRole('region', { name: 'Vybraná smlouva' });
+    expect(within(preview).getByText(record.title)).toBeVisible();
+    expect(preview).toHaveTextContent(record.vendorName);
+    expect(preview).toHaveTextContent(record.contractNumber);
+    expect(link).not.toHaveBeenCalled();
+  });
+
   it('opens the explicitly linked record without changing the bid', () => {
     const open = vi.fn();
     render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1', 'b1')]} onOpenContract={open} />);
