@@ -17,7 +17,7 @@ const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], do
 function Fixture() {
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
     { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
-    { id: 'existing-contract', projectId: 'ui-fixture', title: 'Existující smlouva', vendorName: 'Testovací dodavatel' } as ContractWithDetails,
+    { id: 'existing-contract', projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,
   ]);
   const [action, setAction] = useState("");
   return <div className="tf-app-main">

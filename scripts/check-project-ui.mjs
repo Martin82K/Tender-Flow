@@ -195,9 +195,49 @@ try {
   }
   await click('.fixture-column:nth-child(2) .tf-button-ghost');
   await click('.fixture-column:nth-child(2) [role="combobox"]');
-  await click('[role="option"]:last-child');
+  const inspectContractMenu = () => {
+    const menu = document.querySelector('.tf-themed-select-popover');
+    const bounds = menu.getBoundingClientRect();
+    const label = menu.querySelector('[role="option"]:last-child > span');
+    const style = getComputedStyle(label);
+    return { inside: bounds.left >= 0 && bounds.right <= innerWidth, width: bounds.width,
+      readable: style.whiteSpace === 'normal' && style.textOverflow !== 'ellipsis' && label.scrollWidth <= label.clientWidth + 1 && label.getBoundingClientRect().bottom <= bounds.bottom,
+      text: label.textContent };
+  };
+  let contractMenu = await evaluate(inspectContractMenu);
+  check(contractMenu.inside && contractMenu.width >= 480 && contractMenu.readable, 'Readable expanded contract menu');
+  check(contractMenu.text.includes('JR/01/26026/2026'), 'Full contract identity in options');
+  await screenshot('contract-picker-full-text');
+  await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]');
+    trigger.style.position = 'fixed';
+    trigger.style.top = `${innerHeight - 60}px`;
+    window.dispatchEvent(new Event('resize'));
+  });
+  await sleep(100);
+  check(await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]').getBoundingClientRect();
+    const menu = document.querySelector('.tf-themed-select-popover').getBoundingClientRect();
+    return Math.abs(trigger.top - menu.bottom - 4) <= 1;
+  }), 'Short wrapped menu remains anchored above trigger');
+  await evaluate(() => {
+    const trigger = document.querySelector('.fixture-column:nth-child(2) [role="combobox"]');
+    trigger.style.position = '';
+    trigger.style.top = '';
+    window.dispatchEvent(new Event('resize'));
+  });
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+  await sleep(100);
+  contractMenu = await evaluate(inspectContractMenu);
+  check(contractMenu.inside && contractMenu.readable, 'Contract menu fits mobile viewport');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false });
+  await evaluate(() => document.querySelector('.tf-themed-select-popover input[type="search"]').focus());
+  await key('ArrowDown', 40);
+  await key('Enter', 13);
+  check(await evaluate(() => document.querySelector('[aria-label="Vybraná smlouva"]').textContent.includes('JR/01/26026/2026')), 'Full selected contract before confirmation');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'linked:existing-contract:long', 'Explicit contract linking');
+  check(await evaluate(() => !document.querySelector('.fixture-column:nth-child(2) .tf-button-ghost') && !document.querySelector('.fixture-column:nth-child(2) [role="combobox"]')), 'Hide linking controls after success');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:existing-contract', 'Open newly linked contract');
   await evaluate(() => { document.documentElement.style.zoom = '1.5'; });

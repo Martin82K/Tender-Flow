@@ -27,10 +27,20 @@ describe('linkContractToBid', () => {
     expect(mock.eq).toHaveBeenCalledWith('project_id', 'p1');
     expect(mock.is).toHaveBeenCalledWith('source_bid_id', null);
   });
+  it('reports a storage error without falsely claiming an existing link', async () => {
+    mock.maybeSingle.mockResolvedValueOnce({ data: { demand_category_id: 'cat' }, error: null });
+    mock.maybeSingle.mockResolvedValueOnce({ data: { id: 'cat' }, error: null });
+    mock.maybeSingle.mockResolvedValueOnce({ data: null, error: { code: '22001' } });
+    await expect(contractService.linkContractToBid('p1', 'c1', 'restored-' + 'x'.repeat(45))).rejects.toThrow('Databáze nepřijala celé ID nabídky');
+    expect(mock.update).toHaveBeenCalledWith({ source_bid_id: 'restored-' + 'x'.repeat(45) });
+  });
+
   it('accepts only an acknowledged write', async () => {
     mock.maybeSingle.mockResolvedValueOnce({ data: { demand_category_id: 'cat' }, error: null });
     mock.maybeSingle.mockResolvedValueOnce({ data: { id: 'cat' }, error: null });
     mock.maybeSingle.mockResolvedValueOnce({ data: { id: 'c1' }, error: null });
-    await expect(contractService.linkContractToBid('p1', 'c1', 'b1')).resolves.toBeUndefined();
+    const restoredBidId = 'restored-' + 'x'.repeat(45);
+    await expect(contractService.linkContractToBid('p1', 'c1', restoredBidId)).resolves.toBeUndefined();
+    expect(mock.update).toHaveBeenCalledWith({ source_bid_id: restoredBidId });
   });
 });

@@ -16,6 +16,8 @@ interface ThemedSelectProps<T extends string> {
   className?: string;
   triggerClassName?: string;
   searchable?: boolean;
+  wrapOptions?: boolean;
+  menuMinWidth?: number;
   triggerStyle?: React.CSSProperties;
   onTriggerClick?: React.MouseEventHandler<HTMLButtonElement>;
   onTriggerChange?: (value: string) => void;
@@ -24,6 +26,7 @@ interface ThemedSelectProps<T extends string> {
 }
 
 interface MenuPosition {
+  openAbove: boolean;
   left: number;
   top: number;
   width: number;
@@ -39,6 +42,8 @@ export const ThemedSelect = <T extends string>({
   className = "",
   triggerClassName = "",
   searchable = false,
+  wrapOptions = false,
+  menuMinWidth = 0,
   triggerStyle,
   onTriggerClick,
   onTriggerChange,
@@ -76,16 +81,18 @@ export const ThemedSelect = <T extends string>({
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 8;
     const searchHeight = searchable ? 48 : 0;
-    const desiredHeight = Math.min(368, Math.max(44, visibleOptions.length * 38 + 8 + searchHeight));
+    const desiredHeight = wrapOptions ? 368 : Math.min(368, Math.max(44, visibleOptions.length * 38 + 8 + searchHeight));
     const roomBelow = window.innerHeight - rect.bottom - viewportPadding;
     const roomAbove = rect.top - viewportPadding;
     const openAbove = roomBelow < Math.min(desiredHeight, 180) && roomAbove > roomBelow;
     const maxHeight = Math.max(80, Math.min(desiredHeight, openAbove ? roomAbove : roomBelow));
-    const top = openAbove ? Math.max(viewportPadding, rect.top - maxHeight - 4) : rect.bottom + 4;
+    const top = openAbove ? rect.top - 4 : rect.bottom + 4;
+    const width = Math.min(Math.max(rect.width, menuMinWidth), Math.max(0, window.innerWidth - viewportPadding * 2));
     setPosition({
-      left: Math.min(rect.left, Math.max(viewportPadding, window.innerWidth - rect.width - viewportPadding)),
+      openAbove,
+      left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding)),
       top,
-      width: rect.width,
+      width,
       maxHeight,
     });
   };
@@ -194,11 +201,11 @@ export const ThemedSelect = <T extends string>({
   const menu = isOpen && position ? createPortal(
     <div
       ref={menuRef}
-      className="tf-themed-select-popover fixed z-[400] overflow-hidden rounded-lg border shadow-xl outline-none"
-      style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight }}
+      className="tf-themed-select-popover fixed z-[400] flex flex-col overflow-hidden rounded-lg border shadow-xl outline-none"
+      style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, transform: position.openAbove ? "translateY(-100%)" : undefined }}
     >
       {searchable && (
-        <div className="border-b border-slate-200/80 p-2 dark:border-slate-700/70">
+        <div className="shrink-0 border-b border-slate-200/80 p-2 dark:border-slate-700/70">
           <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-2 dark:border-slate-700 dark:bg-slate-950/70">
             <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">search</span>
             <input
@@ -232,7 +239,7 @@ export const ThemedSelect = <T extends string>({
         id={listboxId}
         role="listbox"
         aria-label={ariaLabel}
-        className="overflow-y-auto p-1"
+        className="min-h-0 overflow-y-auto p-1"
         style={{ maxHeight: searchable ? Math.max(44, position.maxHeight - 49) : position.maxHeight }}
       >
       {visibleOptions.map((option, index) => {
@@ -252,7 +259,7 @@ export const ThemedSelect = <T extends string>({
             onClick={() => selectIndex(index)}
             className="tf-themed-select-option flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="min-w-0 flex-1 truncate">{option.label}</span>
+            <span className={`min-w-0 flex-1 ${wrapOptions ? "whitespace-normal [overflow-wrap:anywhere]" : "truncate"}`}>{option.label}</span>
             {isSelected && (
               <span aria-hidden="true" className="material-symbols-outlined text-[16px]">check</span>
             )}
