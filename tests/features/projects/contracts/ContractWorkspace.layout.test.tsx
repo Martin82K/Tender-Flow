@@ -51,6 +51,9 @@ vi.mock('@/features/projects/contracts/workspace/sections/WarrantySection', () =
   WarrantySection: () => <section data-testid="warranty-section" />,
 }));
 
+vi.mock('@/features/projects/contracts/documents/GeneratedDocumentsSection', () => ({ GeneratedDocumentsSection: () => <section data-testid="generated-section" /> }));
+vi.mock('@/features/projects/contracts/documents/HandoverSection', () => ({ HandoverSection: () => <section data-testid="handover-section" /> }));
+
 import { ContractWorkspace } from '@/features/projects/contracts/workspace/ContractWorkspace';
 
 describe('ContractWorkspace layout', () => {
@@ -74,7 +77,7 @@ describe('ContractWorkspace layout', () => {
     expect(edit).not.toHaveBeenCalled();
   });
 
-  it('vykresluje všechny sekce přes celou šířku bez pravého navigačního panelu', () => {
+  it('přepíná schválené záložky a zachovává hlavičku smlouvy', () => {
     render(
       <ContractWorkspace
         contract={contract}
@@ -85,6 +88,16 @@ describe('ContractWorkspace layout', () => {
 
     expect(document.querySelector('[data-help-id="contract-detail-rail"]')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '✎ Upravit záznam' })).toHaveClass('bg-primary', 'text-white');
-    expect(screen.getAllByTestId(/-section$/)).toHaveLength(8);
+    expect(screen.getAllByTestId(/-section$/)).toHaveLength(3);
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    fireEvent.click(screen.getByRole('tab', {name:'Dokumenty'}));
+    expect(screen.getByTestId('ocr-section')).toBeInTheDocument();
+    expect(screen.getByTestId('generated-section')).toBeInTheDocument();
+    expect(screen.queryByTestId('invoices-section')).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('tab', {name:'Dokumenty'}), {key:'ArrowRight'});
+    expect(screen.getByTestId('invoices-section')).toBeInTheDocument();
+    expect(screen.getByText(contract.title)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', {name:'Předání a záruka'}));
+    expect(screen.getByTestId('handover-section')).toBeInTheDocument();
   });
 });

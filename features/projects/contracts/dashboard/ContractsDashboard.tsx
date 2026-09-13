@@ -29,7 +29,7 @@ export const ContractsDashboard: React.FC<Props> = ({ contracts, projectDetails 
           });
         }
       }
-      const warrantyEnd = addMonthsIso(c.signedAt, c.warrantyMonths ?? null);
+      const warrantyEnd = addMonthsIso(c.warrantyStartAt, c.warrantyMonths ?? null);
       const d = daysUntil(warrantyEnd);
       if (d !== null && d <= 60 && d >= 0) {
         events.push({

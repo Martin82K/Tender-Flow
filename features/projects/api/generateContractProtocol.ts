@@ -120,6 +120,10 @@ const prepareContractProtocol = async (
     throw new Error("Smlouva pro vytvoření protokolu nebyla nalezena.");
   }
 
+  if (contract.id !== input.contractId || contract.projectId !== input.projectId ||
+      (input.projectDetailsSnapshot?.id && input.projectDetailsSnapshot.id !== input.projectId)) {
+    throw new Error("Smlouva a stavba protokolu si neodpovídají.");
+  }
   const projectDetails = await fetchProjectDetails(
     input.projectId,
     input.projectDetailsSnapshot,
@@ -184,7 +188,9 @@ const drawProtocolPrintBranding = async (
               ? "JPEG"
               : "PNG";
         const logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
-        doc.addImage(logoBytes, imageType, pageWidth - marginX - 36, 8, 36, 14);
+        const dimensions = doc.getImageProperties(logoBytes);
+        const scale = Math.min(36 / dimensions.width, 14 / dimensions.height);
+        doc.addImage(logoBytes, imageType, pageWidth - marginX - 36, 8, dimensions.width * scale, dimensions.height * scale);
         return;
       }
     } catch {
@@ -192,9 +198,7 @@ const drawProtocolPrintBranding = async (
     }
   }
 
-  doc.setFontSize(12);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Tender Flow", pageWidth - marginX, 14, { align: "right" });
+  // Missing organization logo leaves the header empty; provenance belongs in the footer.
 };
 
 const renderSignatureSection = (

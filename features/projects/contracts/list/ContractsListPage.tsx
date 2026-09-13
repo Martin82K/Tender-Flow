@@ -267,6 +267,7 @@ export const ContractsListPage: React.FC<Props> = ({
             />
             {selected ? (
               <ContractWorkspace
+                key={selected.id}
                 contract={selected}
                 onEditContract={openEdit}
                 onRefresh={refresh}

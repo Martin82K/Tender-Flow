@@ -39,8 +39,8 @@ export const applyContractFilter = (
         contract.currentTotal > 0 && (contract.invoicedSum || 0) < contract.currentTotal
       );
     case 'warranty': {
-      if (!contract.signedAt || !contract.warrantyMonths) return false;
-      const signed = new Date(contract.signedAt);
+      if (!contract.warrantyStartAt || !contract.warrantyMonths) return false;
+      const signed = new Date(contract.warrantyStartAt);
       if (Number.isNaN(signed.getTime())) return false;
       signed.setMonth(signed.getMonth() + contract.warrantyMonths);
       const d = daysUntil(signed.toISOString().slice(0, 10));

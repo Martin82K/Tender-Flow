@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@shared/ui/Button";
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from '../list/StatusPill';
@@ -9,7 +9,9 @@ import { AmendmentsSection } from './sections/AmendmentsSection';
 import { InvoicesSection } from './sections/InvoicesSection';
 import { DrawdownsSection } from './sections/DrawdownsSection';
 import { RetentionSection } from './sections/RetentionSection';
-import { WarrantySection } from './sections/WarrantySection';
+import { GeneratedDocumentsSection } from '../documents/GeneratedDocumentsSection';
+import { HandoverSection } from '../documents/HandoverSection';
+import { formatMoney } from '../utils/format';
 
 interface Props {
   sourceBid?: { categoryId: string; bidId: string; title: string } | null;
@@ -20,10 +22,13 @@ interface Props {
 }
 
 export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh, sourceBid, onOpenSourceBid }) => {
+  const tabs = ['Přehled', 'Dokumenty', 'Fakturace', 'Pozastávky', 'Předání a záruka'] as const;
+  const [tab, setTab] = useState<string>('Přehled');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollContainerRef.current?.scrollTo({ top: 0 });
+    setTab('Přehled');
+    scrollContainerRef.current?.scrollTo?.({ top: 0 });
   }, [contract.id]);
 
   return (
@@ -51,19 +56,25 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
           {contract.contractNumber ? `${contract.contractNumber} · ` : ''}
           {contract.vendorName}
           {contract.vendorIco ? ` · IČ ${contract.vendorIco}` : ''}
+          <span className="ml-3 font-semibold">{formatMoney(contract.currentTotal, contract.currency)}</span>
         </div>
       </div>
 
-      <div data-help-id="contract-detail-content" className="flex-1 overflow-hidden">
-        <div ref={scrollContainerRef} className="h-full min-w-0 overflow-y-auto px-6 py-2">
-          <HeaderSection contract={contract} onChanged={onRefresh} />
-          <OcrDocumentSection contract={contract} onRefresh={onRefresh} />
-          <FinancialSection contract={contract} />
-          <AmendmentsSection contract={contract} onRefresh={onRefresh} />
-          <InvoicesSection contract={contract} onRefresh={onRefresh} />
-          <DrawdownsSection contract={contract} />
-          <RetentionSection contract={contract} onRefresh={onRefresh} />
-          <WarrantySection contract={contract} />
+      <div role="tablist" aria-label="Detail smlouvy" className="flex flex-wrap border-b border-slate-200 dark:border-slate-800 px-3">
+        {tabs.map((label, index) => <button key={label} role="tab" id={`contract-tab-${index}`} aria-selected={tab === label} aria-controls={`contract-panel-${index}`} tabIndex={tab === label ? 0 : -1} onKeyDown={event => {
+          const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+          if (next !== null) { event.preventDefault(); setTab(tabs[next]); document.getElementById(`contract-tab-${next}`)?.focus(); }
+        }} onClick={() => { setTab(label); scrollContainerRef.current?.scrollTo?.({ top: 0 }); }} className={`px-3 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === label ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-primary'}`}>{label}</button>)}
+      </div>
+      <div data-help-id="contract-detail-content" className="flex-1 min-h-0 overflow-hidden">
+        <div ref={scrollContainerRef} className="h-full min-w-0 overflow-y-auto px-5 py-2">
+          <div role="tabpanel" id={`contract-panel-${tabs.indexOf(tab as typeof tabs[number])}`} aria-labelledby={`contract-tab-${tabs.indexOf(tab as typeof tabs[number])}`} tabIndex={0}>
+            {tab === 'Přehled' && <><HeaderSection contract={contract} onChanged={onRefresh} /><FinancialSection contract={contract} /><AmendmentsSection contract={contract} onRefresh={onRefresh} /></>}
+            {tab === 'Dokumenty' && <><GeneratedDocumentsSection key={contract.id} contract={contract} /><OcrDocumentSection contract={contract} onRefresh={onRefresh} /></>}
+            {tab === 'Fakturace' && <><InvoicesSection contract={contract} onRefresh={onRefresh} /><DrawdownsSection contract={contract} /></>}
+            {tab === 'Pozastávky' && <RetentionSection contract={contract} onRefresh={onRefresh} />}
+            {tab === 'Předání a záruka' && <HandoverSection key={contract.id} contract={contract} onRefresh={onRefresh} />}
+          </div>
         </div>
       </div>
     </section>

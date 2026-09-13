@@ -239,7 +239,7 @@ export const ContractsTable: React.FC<Props> = ({
               const sourceBid = findContractSourceBid(c, projectDetails);
               const retention = computeRetention(c);
               const amendmentsDelta = (c.currentTotal || 0) - (c.basePrice || 0);
-              const warrantyEnd = addMonthsIso(c.signedAt, c.warrantyMonths ?? null);
+              const warrantyEnd = addMonthsIso(c.warrantyStartAt, c.warrantyMonths ?? null);
               const isExpanded = expandedContractIds.has(c.id);
               return (
                 <React.Fragment key={c.id}>

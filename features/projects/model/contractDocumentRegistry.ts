@@ -210,21 +210,9 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
   buildDraft: (context) => {
     const contract = context.contract;
     const project = context.projectDetails;
-    const currentTotal =
-      typeof contract.currentTotal === "number" && contract.currentTotal > 0
-        ? contract.currentTotal
-        : contract.basePrice;
-
-    const warrantySecurity =
-      typeof contract.retentionPercent === "number"
-        ? `${contract.retentionPercent} %`
-        : typeof contract.retentionAmount === "number"
-          ? formatCurrencyCzk(contract.retentionAmount)
-          : currentTotal > 0
-            ? formatCurrencyCzk(currentTotal * 0.05)
-            : "";
-
-    const today = formatCzechDate(context.today);
+    const warrantySecurity = typeof contract.retentionPercent === "number"
+      ? `${contract.retentionPercent} %`
+      : typeof contract.retentionAmount === "number" ? formatCurrencyCzk(contract.retentionAmount) : "";
 
     return {
       issuerRepresentative: project.siteManager || "",
@@ -237,16 +225,16 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
       qualityDocuments: "",
       asBuiltDocuments: "",
       takeoverScheduledAt: formatCzechDate(contract.effectiveTo || project.finishDate),
-      takeoverActualAt: today,
+      takeoverActualAt: "",
       delayPenalty: "",
       defectsList: "",
       defectsRemovalAt: "",
       siteClearanceAt: "",
       defectsPenalty: "",
       irreparableDefectsDiscount: "",
-      warrantyStartAt: today,
+      warrantyStartAt: formatCzechDate(contract.warrantyStartAt),
       warrantySecurity,
-      takeoverDeclarationDate: today,
+      takeoverDeclarationDate: "",
       issuerSigner: project.siteManager || "",
       subcontractorSigner: "",
     };
