@@ -70,7 +70,7 @@ export const ProtocolEditor: React.FC<Props> = ({ contractId, initialFields, log
   </div>}>
     <div className="flex gap-6 text-sm mb-5 text-slate-500"><span className={!preview ? 'text-primary font-semibold' : ''}>1 Údaje protokolu</span><span className={preview ? 'text-primary font-semibold' : ''}>2 Náhled a export</span></div>
     {error && <p role="alert" className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-    {preview ? <div className="space-y-3"><p className="text-xs text-slate-500">Verze {saved?.version} · Finální PDF nebo upravený DOCX můžete připojit v záložce Dokumenty.</p>{pdfUrl ? <iframe className="w-full h-[65vh] rounded-lg border border-slate-300" title="Náhled předávacího protokolu" src={pdfUrl} /> : <p role="status">Připravuji náhled…</p>}</div> : <div className="max-w-4xl mx-auto space-y-5">
+    {preview ? <div className="space-y-3"><p className="text-xs text-slate-500">Verze {saved?.version} · Finální PDF nebo upravený DOCX můžete připojit v záložce Dokumenty.</p>{pdfUrl ? <iframe className="w-full h-[65vh] rounded-lg border border-slate-300" title="Náhled předávacího protokolu" src={pdfUrl} /> : <p role="status">Připravuji náhled…</p>}</div> : <fieldset disabled={busy} className="max-w-4xl mx-auto space-y-5">
       <details className="rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium">{logo && <img src={logo.dataUrl} alt="Logo organizace" className="inline-block h-8 max-w-28 object-contain mr-3 align-middle" />}{fields.vendorName} · {fields.contractNumber || 'Bez čísla'} · {fields.projectName || 'Stavba'} <span className="text-primary ml-2">Upravit údaje</span></summary>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">{!logo && <p className="sm:col-span-2 text-xs text-amber-700 dark:text-amber-400">Logo organizace není nastavené.</p>}{(['organizationName','organizationAddress','vendorName','vendorIco','vendorAddress','contractNumber','projectName','siteLocation'] as const).map(key => field(key))}</div>
@@ -82,6 +82,6 @@ export const ProtocolEditor: React.FC<Props> = ({ contractId, initialFields, log
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><label className="text-xs text-slate-600 dark:text-slate-400">Místo pro ruční doplnění<ThemedSelect ariaLabel="Místo pro ruční doplnění" className="mt-1" value={String(fields.handwritingLines)} options={[{value:"0",label:"Bez dalších řádků"},{value:"5",label:"5 prázdných řádků"},{value:"10",label:"10 prázdných řádků"}]} onChange={value => change('handwritingLines', Number(value) as 0 | 5 | 10)} /></label>{field('defectsDeadline', false, 'date')}</div>
       {field('attachments', true)}
       <p className="text-xs text-slate-500">Předání a začátek záruky potvrdíte samostatně v záložce Předání a záruka.</p>
-    </div>}
+    </fieldset>}
   </Modal>;
 };

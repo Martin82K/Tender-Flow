@@ -27,6 +27,13 @@ describe('contract protocol controls', () => {
     expect(mocks.save.mock.calls[0][3].fields).toMatchObject({ defects:'Doplnit lištu', handwritingLines:10, actualDate:'', result:'' });
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
+  it('locks editing while a version is being saved', async () => {
+    mocks.save.mockReturnValue(new Promise(() => {}));
+    render(<ProtocolEditor contractId="c1" initialFields={createHandoverDraft(contract)} logo={null} onClose={vi.fn()} onSaved={async () => {}} />);
+    fireEvent.click(screen.getByText('Pokračovat na náhled'));
+    expect(screen.getByLabelText('Vady a nedodělky')).toBeDisabled();
+    expect(screen.getByRole('combobox', {name:'Místo pro ruční doplnění'})).toBeDisabled();
+  });
   it('retains entered fields when saving is denied', async () => {
     mocks.save.mockRejectedValue(new Error('Chybí oprávnění'));
     render(<ProtocolEditor contractId="c1" initialFields={createHandoverDraft(contract)} logo={null} onClose={vi.fn()} onSaved={async () => {}} />);
