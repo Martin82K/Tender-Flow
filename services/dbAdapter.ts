@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { getPublicEnvValue } from "../shared/config/publicEnv";
 
 export const dbAdapter = {
+  storage: supabase.storage,
   from: <T extends string>(table: T) => supabase.from(table),
   channel: (...args: Parameters<typeof supabase.channel>) => supabase.channel(...args),
   removeChannel: (...args: Parameters<typeof supabase.removeChannel>) =>

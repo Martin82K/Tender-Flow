@@ -44,6 +44,8 @@ export const buildDesktopCsp = (isDev: boolean): string => {
 
     const frameSrc = [
         "'self'",
+        // In-memory PDF previews generated from a saved contract-document version.
+        'blob:',
         'https://checkout.stripe.com',
     ].join(' ');
 

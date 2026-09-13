@@ -442,7 +442,7 @@ export interface Contract {
   signedAt?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
-  /** Datum skutečného dokončení / předání díla. Slouží jako počátek záruky. */
+  /** Termín dokončení evidovaný ve smlouvě (také z OCR). Nepotvrzuje předání ani začátek záruky. */
   completionDate?: string;
 
   currency: string;
@@ -464,6 +464,8 @@ export interface Contract {
   retentionLongStatus?: ContractRetentionStatus;
 
   siteSetupPercent?: number;
+  /** Explicit audited confirmation; never inferred from signature/completion. */
+  warrantyStartAt?: string;
   warrantyMonths?: number;
   paymentTerms?: string;
   scopeSummary?: string;

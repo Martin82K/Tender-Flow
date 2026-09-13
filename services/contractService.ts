@@ -52,6 +52,7 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   retentionLongStatus:
     (row.retention_long_status as ContractRetentionStatus | null | undefined) ?? undefined,
   siteSetupPercent: row.site_setup_percent ? parseFloat(row.site_setup_percent as string) : undefined,
+  warrantyStartAt: row.warranty_start_at as string | undefined,
   warrantyMonths: row.warranty_months as number | undefined,
   paymentTerms: row.payment_terms as string | undefined,
   scopeSummary: row.scope_summary as string | undefined,

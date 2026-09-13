@@ -22,6 +22,7 @@ const contract: ContractWithDetails = {
   retentionLongPercent: 3,
   warrantyMonths: 24,
   signedAt: "2026-01-15",
+  warrantyStartAt: "2026-09-13",
   paymentTerms: "21 dní",
   vendorRating: 4,
   source: "manual",
@@ -37,6 +38,15 @@ const contract: ContractWithDetails = {
 };
 
 describe("contractTableExport", () => {
+  it("exports warranty only from the explicitly confirmed start", async () => {
+    const workbook = await buildContractTableWorkbook([contract, { ...contract, id: 'unconfirmed', warrantyStartAt: undefined }], {
+      organizationName: 'Firma', projectName: 'Stavba', exportedBy: 'Uživatel', appVersion: 'test', appLogoDataUrl: null,
+    });
+    const sheet = workbook.getWorksheet('Smlouvy');
+    const end = sheet?.getCell('N10').value as Date;
+    expect([end.getFullYear(), end.getMonth(), end.getDate()]).toEqual([2028, 8, 13]);
+    expect(sheet?.getCell('N11').value).toBeNull();
+  });
   it("vytvoří stylizovaný XLSX přehled s metadaty, filtry a číselnými hodnotami", async () => {
     const workbook = await buildContractTableWorkbook([contract], {
       organizationName: "REKO a.s.",

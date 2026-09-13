@@ -28,7 +28,7 @@ describe("desktop CSP", () => {
     // script-src must NOT contain unsafe-inline in production
     expect(csp).toContain("script-src 'self'");
     expect(csp).toContain("script-src-elem 'self'");
-    expect(csp).toContain("frame-src 'self' https://checkout.stripe.com");
+    expect(csp).toContain("frame-src 'self' blob: https://checkout.stripe.com");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
   });
