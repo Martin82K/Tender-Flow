@@ -35,3 +35,5 @@ Klient má nad historií pouze SELECT; zápisy probíhají přes funkce s kontro
 Smazání smlouvy odstraní databázové vazby k dokumentům; soubory v privátním storage pak nejsou přístupné přes běžná oprávnění. Jejich fyzické odstranění patří do správcovského úklidu osiřelých objektů. Tato změna nepřidává automatické mazání uživatelských dokumentů.
 
 Vrácení frontendu nevyžaduje odstranění datové migrace. Při případném rollbacku zachovejte verze, soubory i auditní historii.
+
+Desktopová CSP povoluje `blob:` pouze navíc ve frame-src pro náhled PDF vytvořený v paměti. Skripty nadále vyžadují vlastní původ a object-src zůstává none. Nové vzdálené zdroje se nepřidávají.
