@@ -1731,7 +1731,7 @@ export async function buildContractTableWorkbook(
       contract.retentionShortAmount ?? Math.round(contract.currentTotal * shortPercent / 100),
       longPercent,
       contract.retentionLongAmount ?? Math.round(contract.currentTotal * longPercent / 100),
-      addMonthsForContractExport(contract.signedAt, contract.warrantyMonths),
+      addMonthsForContractExport(contract.warrantyStartAt, contract.warrantyMonths),
       sanitizeSpreadsheetCell(contract.paymentTerms || '—'),
       contract.vendorRating ?? null,
       normalizeContractExportCurrency(contract.currency),

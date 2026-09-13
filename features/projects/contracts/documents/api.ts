@@ -82,8 +82,16 @@ export const snapshotLogo = async (url: string): Promise<DocumentLogo> => {
     const scale = Math.min(1, 640 / Math.max(image.naturalWidth, image.naturalHeight));
     const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
     const context = canvas.getContext('2d'); if (!context) throw new Error('Logo nelze připravit pro export.');
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
+    // Bound encoded bytes, not the compressed source file. Reserve >1.2 MB of
+    // the database's 1.5 MB snapshot limit for the bounded text fields and JSON.
+    while (true) {
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      if (dataUrl.length <= 256_000) return { dataUrl, width: canvas.width, height: canvas.height };
+      if (canvas.width === 1 && canvas.height === 1) throw new Error('Logo nelze zmenšit pro uložení protokolu.');
+      canvas.width = Math.max(1, Math.floor(canvas.width * 0.75));
+      canvas.height = Math.max(1, Math.floor(canvas.height * 0.75));
+    }
   } finally { URL.revokeObjectURL(objectUrl); }
 };
 export const downloadDocumentBlob = (blob: Blob, fileName: string) => {

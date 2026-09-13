@@ -35,7 +35,11 @@ export const exportDocumentPdf = async (snapshot: DocumentSnapshot): Promise<Uin
     }
     y += 6;
   }
-  ensure(32);
+  doc.setFontSize(9);
+  const left = doc.splitTextToSize(`${snapshot.fields.issuerRepresentative || 'Jméno'} · datum a podpis`, 74) as string[];
+  const right = doc.splitTextToSize(`${snapshot.fields.vendorRepresentative || 'Jméno'} · datum a podpis`, 74) as string[];
+  const signatureRows = Math.max(left.length, right.length);
+  ensure(20 + signatureRows * 5);
   y += 10;
   doc.setDrawColor(120, 128, 140);
   doc.line(18, y, 92, y); doc.line(118, y, 192, y);
@@ -44,10 +48,8 @@ export const exportDocumentPdf = async (snapshot: DocumentSnapshot): Promise<Uin
   doc.text('Za organizaci', 18, y); doc.text('Za subdodavatele', 118, y);
   y += 5;
   // Long representatives wrap instead of extending into the other signature column.
-  const left = doc.splitTextToSize(`${snapshot.fields.issuerRepresentative || 'Jméno'} · datum a podpis`, 74) as string[];
-  const right = doc.splitTextToSize(`${snapshot.fields.vendorRepresentative || 'Jméno'} · datum a podpis`, 74) as string[];
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    ensure(5); if (left[i]) doc.text(left[i], 18, y); if (right[i]) doc.text(right[i], 118, y); y += 5;
+  for (let i = 0; i < signatureRows; i++) {
+    if (left[i]) doc.text(left[i], 18, y); if (right[i]) doc.text(right[i], 118, y); y += 5;
   }
   const pages = doc.getNumberOfPages();
   for (let page = 1; page <= pages; page++) {

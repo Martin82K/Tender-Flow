@@ -14,7 +14,7 @@ V Dokumentech zvolte Vytvořit dokument → Předávací protokol. Údaje se př
 
 Vyplňte zástupce, rozsah celého díla nebo jeho části, skutečné datum a výsledek. Datum ani výsledek se nedoplňují automaticky. Vady a nedodělky mají víceřádkové editovatelné pole. Prázdné pole neznamená „bez vad“. Volba 0, 5 nebo 10 prázdných řádků přidá prostor pro ruční zápis; lze ji kombinovat s vyplněným textem. Doklady a přílohy mají samostatné pole.
 
-Uložit koncept uloží obsah. Pokračovat na náhled uloží verzi a zobrazí její skutečný PDF výstup. PDF i DOCX vycházejí z téže verze, včetně tehdejšího loga a údajů. DOCX obsahuje editovatelný text, podpisy a stránkování. Delší obsah se rozloží na další stránky. Chybějící logo organizace se nenahrazuje logem aplikace. Patička uvádí Tender Flow, datum vytvoření, verzi a stránku.
+Uložit koncept uloží obsah. Pokračovat na náhled uloží verzi a zobrazí její skutečný PDF výstup. PDF i DOCX vycházejí z téže verze, včetně tehdejšího loga a údajů. DOCX obsahuje editovatelný text, podpisy a stránkování. Delší obsah se rozloží na další stránky. Velké logo se před uložením zmenšuje podle skutečné velikosti PNG, aby spolu s textem nepřekročilo limit dokumentu. Chybějící logo organizace se nenahrazuje logem aplikace. Patička uvádí Tender Flow, datum vytvoření, verzi a stránku.
 
 Úprava uloženého dokumentu vytváří další verzi; předchozí obsah se nepřepisuje. Souběžnou změnu jiného uživatele aplikace oznámí a vyžádá otevření nejnovější verze. Průvodka subdodávky je zatím označena „Připravujeme“.
 
@@ -24,7 +24,7 @@ Ve Verze a připojené soubory nahrajte finální PDF nebo externě upravený DO
 
 Skutečné předání zapište v Předání a záruka, s datem, výsledkem a zdrojem (například číslo a verze podepsaného protokolu nebo záznam stavbyvedoucího). Počátek záruky potvrďte samostatně. Historie zaznamenává autora, serverový čas a zdroj; oprava je nový záznam. Uvolnění pozastávek je vždy samostatná akce.
 
-Dřívější datum podpisu a termín dokončení se zachovávají. Nejsou důkazem skutečného předání a nově se nepoužívají jako potvrzený začátek záruky. Dokud ho uživatel nepotvrdí, datum konce záruky a příslušné upozornění zůstávají neurčené. Dosavadní XLSX generátor a provizorní předání staveniště zůstávají dostupné přes stávající rozhraní.
+Dřívější datum podpisu a termín dokončení se zachovávají. Nejsou důkazem skutečného předání a nově se nepoužívají jako potvrzený začátek záruky. Tabulkový XLSX export používá stejný potvrzený počátek jako detail smlouvy. Dokud ho uživatel nepotvrdí, datum konce záruky a příslušné upozornění zůstávají neurčené. Dosavadní XLSX generátor a provizorní předání staveniště zůstávají dostupné přes stávající rozhraní.
 
 ## Správa a bezpečnost
 
