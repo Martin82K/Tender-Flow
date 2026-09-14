@@ -341,7 +341,7 @@ export const changeBidOffer = async (supabase, input) => {
 export const listContracts = async (supabase, input = {}) => {
   let query = supabase
     .from('contracts')
-    .select('id,project_id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id')
+    .select('id,project_id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id,contract_bid_links(bid_id)')
     .order('created_at', { ascending: false })
     .limit(limit(input.limit, 30, 100));
 
@@ -361,6 +361,7 @@ export const listContracts = async (supabase, input = {}) => {
     effectiveFrom: row.effective_from || null,
     effectiveTo: row.effective_to || null,
     sourceBidId: row.source_bid_id || null,
+    linkedBidIds: (row.contract_bid_links || []).map(link => link.bid_id),
   }));
 };
 
@@ -406,7 +407,7 @@ export const getProjectDetail = async (supabase, projectId) => {
       .order('date_from', { ascending: true }),
     supabase
       .from('contracts')
-      .select('id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id')
+      .select('id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id,contract_bid_links(bid_id)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false }),
   ]);
@@ -480,6 +481,7 @@ export const getProjectDetail = async (supabase, projectId) => {
       effectiveFrom: row.effective_from || null,
       effectiveTo: row.effective_to || null,
       sourceBidId: row.source_bid_id || null,
+      linkedBidIds: (row.contract_bid_links || []).map(link => link.bid_id),
     })),
   };
 };
@@ -541,7 +543,7 @@ export const getProjectSummary = async (supabase, projectId) => {
       .limit(PROJECT_SUMMARY_LIMITS.tenderPlan),
     supabase
       .from('contracts')
-      .select('id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id')
+      .select('id,title,vendor_name,contract_number,status,base_price,signed_at,effective_from,effective_to,source_bid_id,contract_bid_links(bid_id)')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
       .limit(PROJECT_SUMMARY_LIMITS.contracts),
@@ -606,6 +608,7 @@ export const getProjectSummary = async (supabase, projectId) => {
       effectiveFrom: row.effective_from || null,
       effectiveTo: row.effective_to || null,
       sourceBidId: row.source_bid_id || null,
+      linkedBidIds: (row.contract_bid_links || []).map(link => link.bid_id),
     })),
     potentiallyTruncated: {
       tenders: categories.length >= PROJECT_SUMMARY_LIMITS.tenders,

@@ -51,28 +51,27 @@ export const updateBidRecipient = async (categoryId: string, bid: Bid, recipient
       const ambiguous = status === 0 || status === 408 || status === 429 || status >= 500;
       throw new RecipientSaveError(ambiguous);
     }
-    notifyProjectBidsPersisted();
-    return { contactPerson: data.contact_person, email: data.email, phone: data.phone };
   } catch (cause) {
     const ambiguous = cause instanceof RecipientSaveError ? cause.uncertain
       : cause instanceof TypeError || (cause instanceof DOMException && ["AbortError", "TimeoutError"].includes(cause.name));
     if (!ambiguous) throw cause;
-    // Losing a response does not mean that the database rolled the UPDATE back.
-    // Never reissue a write here: read the same row under the caller's RLS.
-    let response;
-    try {
-      response = await pipelineRepository.fetchBidRecipient(categoryId, bid.id, bid.subcontractorId);
-    } catch {
-      throw new RecipientSaveError(true);
-    }
-    if (!response?.data || response.error || response.data.id !== bid.id) throw new RecipientSaveError(true);
-    const current = { contactPerson: response.data.contact_person, email: response.data.email, phone: response.data.phone };
-    if (current.contactPerson !== recipient.contactPerson || current.email !== email || current.phone !== (recipient.phone || "")) {
-      throw new RecipientSaveError(true, current);
-    }
-    notifyProjectBidsPersisted();
-    return current;
   }
+  // Always read after the write response: another editor may have committed
+  // a newer contact while our response was in flight. A lost response also
+  // does not imply a rollback. Never reissue a write during reconciliation.
+  let response;
+  try {
+    response = await pipelineRepository.fetchBidRecipient(categoryId, bid.id, bid.subcontractorId);
+  } catch {
+    throw new RecipientSaveError(true);
+  }
+  if (!response?.data || response.error || response.data.id !== bid.id) throw new RecipientSaveError(true);
+  const current = { contactPerson: response.data.contact_person, email: response.data.email, phone: response.data.phone };
+  if (current.contactPerson !== recipient.contactPerson || current.email !== email || current.phone !== (recipient.phone || "")) {
+    throw new RecipientSaveError(true, current);
+  }
+  notifyProjectBidsPersisted();
+  return current;
 };
 
 export interface InsertBidsResult {

@@ -58,7 +58,7 @@ describe("saving a bid recipient", () => {
     mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
     const h = setup();
     let request!: Promise<void>;
-    act(() => { request = h.result.current.selectRecipient("bid", "eva"); });
+    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
     expect(h.result.current.saving).toBe(true);
     expect(h.result.current.bids.cat[0].email).toBe(bid.email);
     await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
@@ -71,7 +71,7 @@ describe("saving a bid recipient", () => {
     mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
     const h = setup();
     let request!: Promise<void>;
-    act(() => { request = h.result.current.selectRecipient("bid", "eva"); });
+    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
     h.rerender({ projectId: "other-project", categoryId: "cat" });
     await act(async () => { finish(patch); await request; });
     expect(h.result.current.bids.cat[0]).toEqual(bid);
@@ -81,7 +81,7 @@ describe("saving a bid recipient", () => {
     mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
     const h = setup();
     let request!: Promise<void>;
-    act(() => { request = h.result.current.selectRecipient("bid", "eva"); });
+    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
     h.rerender({ projectId: "other-project", categoryId: "other" });
     h.rerender({ projectId: "project", categoryId: "cat" });
     expect(h.result.current.saving).toBe(true);
@@ -125,7 +125,7 @@ describe("saving a bid recipient", () => {
     mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
     const first = setup();
     let request!: Promise<void>;
-    act(() => { request = first.result.current.selectRecipient("bid", "eva"); });
+    await act(async () => { request = first.result.current.selectRecipient("bid", "eva"); });
     first.unmount();
     const next = setup();
     expect(next.result.current.saving).toBe(true);
@@ -133,6 +133,17 @@ describe("saving a bid recipient", () => {
     expect(mocks.save).toHaveBeenCalledTimes(1);
     await act(async () => { finish(patch); await request; });
     expect(next.result.current.saving).toBe(false);
+  });
+
+  it("does not block remaining cards after an unconfirmed card is removed", async () => {
+    const h = setup();
+    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [] })));
+    expect(h.result.current.unconfirmed).toBe(false);
+    // Restore and confirm the card to leave the shared operation store clean.
+    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [bid] })));
+    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
   });
 
   it("persists demo selection for reload without calling the server", async () => {

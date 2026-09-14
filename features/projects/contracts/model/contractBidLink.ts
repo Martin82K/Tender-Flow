@@ -1,4 +1,9 @@
-import type { Bid, ContractWithDetails } from '@/types';
+import type { Bid, Contract, ContractWithDetails } from '@/types';
+
+export const contractBidIds = (contract: Pick<Contract, 'linkedBidIds' | 'sourceBidId'>): string[] =>
+  contract.linkedBidIds ?? (contract.sourceBidId ? [contract.sourceBidId] : []);
+
+export const isContractLinkedToBid = (contract: Contract, bidId: string): boolean => contractBidIds(contract).includes(bidId);
 
 export type ContractBidMatch = 'sourceBidId' | 'vendorId' | null;
 
@@ -12,7 +17,7 @@ export const resolveBidContractLink = (
   bid: Pick<Bid, 'id' | 'subcontractorId'>,
   contracts: ContractWithDetails[],
 ): ContractBidLinkResult => {
-  const directMatches = contracts.filter((contract) => contract.sourceBidId === bid.id);
+  const directMatches = contracts.filter((contract) => isContractLinkedToBid(contract, bid.id));
   if (directMatches.length === 1) {
     return { contract: directMatches[0], match: 'sourceBidId', ambiguous: false };
   }
@@ -25,7 +30,7 @@ export const resolveBidContractLink = (
   }
 
   const vendorMatches = contracts.filter(
-    (contract) => !contract.sourceBidId && contract.vendorId === bid.subcontractorId,
+    (contract) => contractBidIds(contract).length === 0 && contract.vendorId === bid.subcontractorId,
   );
   if (vendorMatches.length === 1) {
     return { contract: vendorMatches[0], match: 'vendorId', ambiguous: false };

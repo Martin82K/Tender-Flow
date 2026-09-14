@@ -27,7 +27,8 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
   const client = useQueryClient();
   const scope = JSON.stringify([projectId, categoryId]);
   const operation = useSyncExternalStore(subscribe, () => operations.get(scope));
-  const unconfirmed = useSyncExternalStore(subscribe, () => Boolean(unconfirmedRecipients.get(scope)?.size));
+  const hasUnconfirmedRecipient = () => (bids[categoryId || ""] || []).some(bid => unconfirmedRecipients.get(scope)?.has(bid.id));
+  const unconfirmed = useSyncExternalStore(subscribe, hasUnconfirmedRecipient);
   const currentScope = useRef(scope);
   currentScope.current = scope;
   const mounted = useRef(false);
@@ -37,7 +38,7 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
   }, []);
 
   const generateWithRecipientLock = async (generate: () => Promise<void>) => {
-    if (operations.has(scope) || Boolean(unconfirmedRecipients.get(scope)?.size)) return;
+    if (operations.has(scope) || hasUnconfirmedRecipient()) return;
     operations.set(scope, "generating");
     publish();
     try { await generate(); }
@@ -58,7 +59,6 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
     });
     const applyConfirmed = async (patch: BidRecipient) => {
       const queryKey = PROJECT_DETAILS_KEYS.detail(projectId);
-      await client.cancelQueries({ queryKey, exact: true });
       client.setQueryData<ProjectDetails | null>(queryKey, previous => previous ? { ...previous, bids: merge(previous.bids || {}, patch) } : previous);
       if (mounted.current && currentScope.current === scope) updateBidsInternal(previous => merge(previous, patch));
     };
@@ -72,6 +72,8 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
         } });
         if (mounted.current && currentScope.current === scope) updateBidsInternal(previous => merge(previous, recipient));
       } else {
+        // Cancel pre-write snapshots, not newer refetches started by the save event.
+        await client.cancelQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId), exact: true });
         await applyConfirmed(await updateBidRecipient(categoryId, bid, recipient));
       }
       unconfirmedRecipients.get(scope)?.delete(bidId);

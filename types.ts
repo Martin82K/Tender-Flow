@@ -472,6 +472,8 @@ export interface Contract {
 
   source: ContractSource;
   sourceBidId?: string;
+  /** Explicit tender links; undefined only for legacy payloads. */
+  linkedBidIds?: string[];
 
   documentUrl?: string;
   documentStoragePath?: string;

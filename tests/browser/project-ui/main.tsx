@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { BidCard } from "@features/projects/pipeline/ui/BidCard";
 import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
 import { ContractsTable } from "@features/projects/contracts/list/ContractsTable";
+import { ContractTenderLinks } from "@features/projects/contracts/workspace/sections/ContractTenderLinks";
 import { BidContractLinks } from "@features/projects/contracts/ui/BidContractLinks";
 import type { Bid, ProjectDetails, ContractWithDetails } from "@/types";
 import "@/index.css";
@@ -17,7 +18,7 @@ const bids: Bid[] = [
   { id: "long", subcontractorId: "long", companyName: "VÝTAHY SCHMITT+SOHN sro", price: "1 670 000,00 Kč", status: "offer", contactPerson: "Testovací kontakt" },
   { id: "unbroken", subcontractorId: "unbroken", companyName: "DodavatelskaSpolecnostBezMezerABCDEFGHIJKLMNOPQRSTUVWXYZ", price: "123\u00a0456\u00a0789\u00a0000,00\u00a0Kč", status: "offer", contactPerson: "Testovací kontakt" },
 ];
-const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [], categories: [{ id: "category", title: "Montážní práce" }], bids: { category: bids } } as unknown as ProjectDetails;
+const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [], categories: [{ id: "category", title: "Montážní práce" }, { id: "second", title: "Elektro" }, { id: "third", title: "ZTI" }], bids: { category: [bids[0]], second: [bids[1]], third: [bids[2]] } } as unknown as ProjectDetails;
 
 const recipientSupplier: Subcontractor = { id: "short", company: "Schindler", specialization: [], status: "available", contacts: [
   { id: "jan", name: "Jan Novák", email: "jan@example.com", phone: "111", position: "Jednatel" },
@@ -33,13 +34,17 @@ function Fixture() {
   const { selectRecipient, saving } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo", updateBidsInternal: setCurrentBids });
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
     { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
-    { id: 'existing-contract', projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,
+    { id: 'existing-contract', sourceBidId: 'unbroken', linkedBidIds: ['unbroken'], projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,
   ]);
   const [action, setAction] = useState("");
+  (window as unknown as { fixtureUnlink: (projectId: string, contractId: string, bidId: string) => Promise<void> }).fixtureUnlink = async (_, contractId, bidId) => {
+    setContracts(current => current.map(contract => contract.id === contractId ? { ...contract, linkedBidIds: contract.linkedBidIds?.filter(id => id !== bidId) } : contract));
+    setAction(`unlinked:${contractId}:${bidId}`);
+  };
   return <div className="tf-app-main">
     <output id="fixture-action">{action}</output>
     <div className="tf-pipeline-view fixture-cards">
-      {currentBids.category.map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
+      {Object.values(currentBids).flat().map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
         <BidCard bid={bid}
           contacts={bid.id === "short" ? recipientSupplier.contacts : undefined}
           onSelectRecipient={bid.id === "short" ? selectRecipient : undefined}
@@ -51,11 +56,12 @@ function Fixture() {
           contractLinks={<BidContractLinks projectId="ui-fixture" bid={bid} contracts={contracts}
             onOpenContract={id => setAction(`contract:${id}`)}
             onLinkContract={async (contractId, bidId) => {
-              setContracts(current => current.map(contract => contract.id === contractId ? { ...contract, sourceBidId: bidId } : contract));
+              setContracts(current => current.map(contract => contract.id === contractId ? { ...contract, linkedBidIds: [...(contract.linkedBidIds ?? (contract.sourceBidId ? [contract.sourceBidId] : [])), bidId] } : contract));
               setAction(`linked:${contractId}:${bidId}`);
             }} />} />
       </div>)}
     </div>
+    <div id="fixture-tender-links"><ContractTenderLinks contract={contracts[1]} contracts={contracts} project={project} onRefresh={() => {}} onOpenBid={(categoryId, bidId) => setAction(`source:${categoryId}:${bidId}`)} /></div>
     <ProjectDocuments project={project} onUpdate={() => {}}
       canDocHub={true} canTemplates={true} autoShortenProjectDocs={false} />
     <div className="tf-contracts-module" id="fixture-contracts-table">

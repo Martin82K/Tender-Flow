@@ -128,6 +128,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           </button>
           {onDelete && (
             <button
+              disabled={busy}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(bid.id);

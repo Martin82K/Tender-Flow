@@ -58,6 +58,9 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   scopeSummary: row.scope_summary as string | undefined,
   source: row.source as Contract['source'],
   sourceBidId: row.source_bid_id as string | undefined,
+  linkedBidIds: Array.isArray(row.contract_bid_links)
+    ? row.contract_bid_links.map((link: { bid_id: string }) => link.bid_id)
+    : undefined,
   documentUrl: row.document_url as string | undefined,
   documentStoragePath: row.document_storage_path as string | undefined,
   documentFileName: row.document_file_name as string | undefined,
@@ -245,7 +248,7 @@ export const contractService = {
   getContractsByProject: async (projectId: string): Promise<ContractWithDetails[]> => {
     const byId = new Map<string, ProjectContractRow>();
     for (let start = 0; ; start += CONTRACT_PAGE_SIZE) {
-      const { data, error } = await supabase.from('contracts').select('*').eq('project_id', projectId)
+      const { data, error } = await supabase.from('contracts').select('*, contract_bid_links(bid_id)').eq('project_id', projectId)
         .order('created_at', { ascending: false }).order('id', { ascending: true })
         .range(start, start + CONTRACT_PAGE_SIZE - 1);
       if (error) throw error;
@@ -311,7 +314,7 @@ export const contractService = {
 
     const { data: contracts, error } = await supabase
       .from('contracts')
-      .select('*')
+      .select('*, contract_bid_links(bid_id)')
       .in('project_id', projectIds)
       .order('created_at', { ascending: false });
 
@@ -368,7 +371,7 @@ export const contractService = {
   getContractById: async (contractId: string): Promise<ContractWithDetails | null> => {
     const { data: contract, error } = await supabase
       .from('contracts')
-      .select('*')
+      .select('*, contract_bid_links(bid_id)')
       .eq('id', contractId)
       .single();
 
@@ -489,14 +492,20 @@ export const contractService = {
     const { data: category, error: categoryError } = await supabase.from('demand_categories')
       .select('id').eq('id', bid.demand_category_id).eq('project_id', projectId).maybeSingle();
     if (categoryError || !category) throw new Error('Nabídka nepatří do této stavby nebo k ní nemáte přístup.');
-    // RLS remains authoritative; the null predicate also prevents a stale UI overwriting a link.
-    const { data, error } = await supabase.from('contracts')
-      .update({ source_bid_id: bidId }).eq('id', contractId).eq('project_id', projectId)
-      .is('source_bid_id', null).select('id').maybeSingle();
-    if (error?.code === '22001') throw new Error('Databáze nepřijala celé ID nabídky. Je potřeba aktualizovat databázovou strukturu propojení.');
+    const { data, error } = await supabase.from('contract_bid_links')
+      .insert({ contract_id: contractId, project_id: projectId, bid_id: bidId, category_id: category.id })
+      .select('bid_id').maybeSingle();
+    if (error?.code === '23505') throw new Error('Toto VŘ už má propojenou smlouvu. Obnovte seznam.');
     if (error?.code === '42501') throw new Error('Nemáte oprávnění tuto smlouvu propojit.');
     if (error) throw new Error('Propojení se kvůli chybě při ukládání nepodařilo. Zkuste to znovu.');
-    if (!data) throw new Error('Propojení nebylo uloženo. Smlouva je již propojena nebo nemáte oprávnění. Obnovte seznam.');
+    if (!data) throw new Error('Propojení nebylo uloženo. Obnovte seznam.');
+  },
+
+  unlinkContractFromBid: async (projectId: string, contractId: string, bidId: string): Promise<void> => {
+    const { data, error } = await supabase.rpc('unlink_contract_bid', {
+      p_project_id: projectId, p_contract_id: contractId, p_bid_id: bidId,
+    });
+    if (error || data !== true) throw new Error('Vazbu se nepodařilo odpojit. Obnovte seznam a ověřte oprávnění.');
   },
 
   updateContract: async (id: string, updates: Partial<Contract>): Promise<void> => {

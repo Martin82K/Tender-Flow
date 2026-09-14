@@ -8,7 +8,10 @@ import { updateBidRecipient } from "@features/projects/api/pipelineApi";
 const bid: Bid = { id: "bid", subcontractorId: "sub", companyName: "Firma", contactPerson: "Jan", status: "contacted", price: "100" };
 const recipient = { contactPerson: "Eva", email: "eva@example.com", phone: "222" };
 describe("recipient persistence API", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
+  });
   it("sends only the recipient fields with the category and supplier scope", async () => {
     mocks.update.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
     expect(await updateBidRecipient("cat", bid, recipient)).toEqual(recipient);
@@ -24,6 +27,12 @@ describe("recipient persistence API", () => {
     await expect(updateBidRecipient("cat", bid, recipient)).rejects.toThrow();
     expect(mocks.notify).not.toHaveBeenCalled();
   });
+  it("does not overwrite a newer editor's recipient with a delayed successful update response", async () => {
+    mocks.update.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
+    mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Novější kontakt", email: "latest@example.com", phone: "333" }, error: null });
+    await expect(updateBidRecipient("cat", bid, recipient)).rejects.toMatchObject({ recipient: { contactPerson: "Novější kontakt", email: "latest@example.com", phone: "333" } });
+  });
+
   it("reconciles a committed update after its response is lost", async () => {
     mocks.update.mockRejectedValue(new TypeError("network failed"));
     mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });

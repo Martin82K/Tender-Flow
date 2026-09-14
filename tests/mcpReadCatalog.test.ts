@@ -3,6 +3,7 @@ import {
   buildSearchResults,
   getProjectSummary,
   listBids,
+  listContracts,
   listMcpTasks,
 } from "../server/mcp/data.js";
 
@@ -184,4 +185,10 @@ describe("MCP safe read catalog", () => {
       phone: "+420123456789",
     });
   });
+});
+
+it('returns every explicit tender link in MCP contract output', async () => {
+  const query = makeQuery({ data: [{ id: 'c1', source_bid_id: 'b1', contract_bid_links: [{ bid_id: 'b1' }, { bid_id: 'b2' }] }], error: null });
+  const rows = await listContracts({ from: () => query });
+  expect(rows[0].linkedBidIds).toEqual(['b1', 'b2']);
 });
