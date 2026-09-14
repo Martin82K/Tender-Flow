@@ -63,6 +63,14 @@ describe("recipient on a bid card", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Příjemce není ověřený");
   });
 
+  it("lets the user reconfirm a saved manual recipient without directory contacts", async () => {
+    const onSelectRecipient = vi.fn().mockResolvedValue(undefined);
+    render(<BidCard {...props} contacts={[]} onSelectRecipient={onSelectRecipient} recipientUnconfirmed />);
+    fireEvent.click(screen.getByRole("combobox", { name: "Příjemce poptávky" }));
+    fireEvent.click(screen.getByRole("option", { name: /jan@example.com.*uložený příjemce/ }));
+    await waitFor(() => expect(onSelectRecipient).toHaveBeenCalledWith(bid.id, "saved-recipient"));
+  });
+
   it("preserves a manually saved recipient which is absent from the directory", () => {
     render(<BidCard {...props} bid={{ ...bid, contactPerson: "Externí", email: "custom@example.com" }} onSelectRecipient={vi.fn()} />);
     expect(screen.getByRole("combobox", { name: "Příjemce poptávky" })).toHaveTextContent("custom@example.com");

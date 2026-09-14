@@ -18,7 +18,9 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, o
   const selected = contacts.find(contact => contact.name === bid.contactPerson
     && normalizeEmailAddress(contact.email) === normalizeEmailAddress(bid.email || ""));
   const select = async (contactId: string) => {
-    if (disabled || !contacts.some(contact => contact.id === contactId && isValidEmailAddress(contact.email))) return;
+    const available = contacts.some(contact => contact.id === contactId && isValidEmailAddress(contact.email))
+      || (contactId === "saved-recipient" && valid);
+    if (disabled || !available) return;
     setError(false);
     onSavingChange(true);
     try {

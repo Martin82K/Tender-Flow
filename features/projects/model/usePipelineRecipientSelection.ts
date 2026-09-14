@@ -48,7 +48,10 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
   const selectRecipient = async (bidId: string, contactId: string) => {
     if (!categoryId || operations.has(scope)) throw new Error("Počkejte na dokončení ukládání nebo generování.");
     const bid = bids[categoryId]?.find(item => item.id === bidId);
-    const contact = contacts.find(supplier => supplier.id === bid?.subcontractorId)?.contacts.find(person => person.id === contactId);
+    const contact = contacts.find(supplier => supplier.id === bid?.subcontractorId)?.contacts.find(person => person.id === contactId)
+      ?? (contactId === "saved-recipient" && bid ? {
+        id: "saved-recipient", name: bid.contactPerson, email: bid.email || "", phone: bid.phone || "",
+      } : undefined);
     if (!bid || !contact) throw new Error("Kontakt není dostupný pro tohoto dodavatele.");
     const recipient = recipientPatch(contact);
     operations.set(scope, "saving");

@@ -16,12 +16,12 @@ const supplier: Subcontractor = { id: "sub", company: "Firma", status: "availabl
   { id: "eva", name: "Eva", email: "eva@example.com", phone: "222" },
 ] };
 const patch = { contactPerson: "Eva", email: "eva@example.com", phone: "222" };
-function setup(userRole = "user") {
+function setup(userRole = "user", directory: Subcontractor[] = [supplier]) {
   const client = new QueryClient();
   const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   const hook = renderHook(({ projectId, categoryId }) => {
     const [bids, setBids] = useState<Record<string, Bid[]>>({ cat: [bid], other: [{ ...bid, id: "other-bid" }] });
-    const selection = usePipelineRecipientSelection({ projectId, categoryId, bids, contacts: [supplier], userRole, updateBidsInternal: setBids });
+    const selection = usePipelineRecipientSelection({ projectId, categoryId, bids, contacts: directory, userRole, updateBidsInternal: setBids });
     return { ...selection, bids, setBids };
   }, { wrapper, initialProps: { projectId: "project", categoryId: "cat" } });
   return { ...hook, client };
@@ -144,6 +144,19 @@ describe("saving a bid recipient", () => {
     // Restore and confirm the card to leave the shared operation store clean.
     act(() => h.result.current.setBids(prev => ({ ...prev, cat: [bid] })));
     await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
+  });
+
+  it("reconfirms a stored manual recipient after an uncertain write with an empty directory", async () => {
+    const h = setup("user", []);
+    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "saved-recipient")).rejects.toThrow(); });
+    expect(h.result.current.unconfirmed).toBe(true);
+    const stored = { contactPerson: bid.contactPerson, email: bid.email, phone: "" };
+    mocks.save.mockResolvedValue(stored);
+    await act(async () => { await h.result.current.selectRecipient("bid", "saved-recipient"); });
+    expect(mocks.save).toHaveBeenLastCalledWith("cat", bid, stored);
+    expect(h.result.current.unconfirmed).toBe(false);
+    expect(h.result.current.bids.cat[0].email).toBe(bid.email);
   });
 
   it("persists demo selection for reload without calling the server", async () => {

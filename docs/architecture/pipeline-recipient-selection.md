@@ -27,7 +27,9 @@ Po úspěšné i nejednoznačné odpovědi zápisu API načte stejný řádek po
 rozsahem a rozpozná i zápis, jehož odpověď se ztratila, nebo novější volbu jiného editora. Pokud ověření selže
 nebo vrátí jiný kontakt, označí konkrétní kartu za neověřenou a generování
 ve VŘ zablokuje. Nový úspěšný výběr na jiné kartě blokaci nezruší; musí se
-znovu potvrdit právě neověřená karta. Odstraněné karty neblokují zbývající VŘ. Dostupný výsledek čtení se zobrazí,
+znovu potvrdit právě neověřená karta. Položku „uložený příjemce“ lze znovu
+potvrdit i bez kontaktu v adresáři; používá se uložené jméno, e-mail a telefon
+této karty, nikoli libovolná hodnota z volání UI. Odstraněné karty neblokují zbývající VŘ. Dostupný výsledek čtení se zobrazí,
 aniž by se vydával za potvrzení požadované změny. Potvrzená
 kontaktní pole se sloučí do aktuálních dat, aby se nepřepsala souběžná cena nebo
 stav. Odpověď po přechodu do jiného projektu nesmí měnit jeho karty. Demo ukládá
