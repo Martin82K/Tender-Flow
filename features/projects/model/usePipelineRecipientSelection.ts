@@ -45,6 +45,14 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
     finally { operations.delete(scope); publish(); }
   };
 
+  const saveWithRecipientLock = async (save: () => Promise<void>) => {
+    if (operations.has(scope)) return;
+    operations.set(scope, "saving");
+    publish();
+    try { await save(); }
+    finally { operations.delete(scope); publish(); }
+  };
+
   const selectRecipient = async (bidId: string, contactId: string) => {
     if (!categoryId || operations.has(scope)) throw new Error("Počkejte na dokončení ukládání nebo generování.");
     const bid = bids[categoryId]?.find(item => item.id === bidId);
@@ -94,5 +102,5 @@ export const usePipelineRecipientSelection = ({ projectId, categoryId, bids, con
       publish();
     }
   };
-  return { selectRecipient, saving: operation === "saving", generating: operation === "generating", unconfirmed, unconfirmedBidIds: unconfirmedRecipients.get(scope), generateWithRecipientLock };
+  return { selectRecipient, saving: operation === "saving", generating: operation === "generating", unconfirmed, unconfirmedBidIds: unconfirmedRecipients.get(scope), generateWithRecipientLock, saveWithRecipientLock };
 };

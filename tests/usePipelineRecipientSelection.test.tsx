@@ -38,6 +38,22 @@ describe("saving a bid recipient", () => {
     expect(selectBulkInquiryRecipients(h.result.current.bids.cat).emails).toEqual(["eva@example.com"]);
     expect(supplier.contacts[0]).toEqual({ id: "eva", name: "Eva", email: "eva@example.com", phone: "222" });
   });
+  it("locks recipient selection and generation until the full card save finishes across navigation", async () => {
+    const h = setup();
+    let finish!: () => void;
+    let saving!: Promise<void>;
+    act(() => { saving = h.result.current.saveWithRecipientLock(() => new Promise<void>(resolve => { finish = resolve; })); });
+    h.rerender({ projectId: "other-project", categoryId: "other" });
+    h.rerender({ projectId: "project", categoryId: "cat" });
+    expect(h.result.current.saving).toBe(true);
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    const generate = vi.fn();
+    await act(async () => { await h.result.current.generateWithRecipientLock(generate); });
+    expect(generate).not.toHaveBeenCalled();
+    await act(async () => { finish(); await saving; });
+    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
+    expect(h.result.current.bids.cat[0].email).toBe(patch.email);
+  });
   it("keeps the saved contact on a rejected write", async () => {
     mocks.save.mockRejectedValue(new Error("denied"));
     const h = setup();

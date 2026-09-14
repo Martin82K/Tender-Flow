@@ -218,7 +218,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     },
   });
 
-  const { selectRecipient, saving: recipientSaving, generating: inquiryGenerating, unconfirmed: recipientUnconfirmed, unconfirmedBidIds, generateWithRecipientLock } = usePipelineRecipientSelection({
+  const { selectRecipient, saving: recipientSaving, generating: inquiryGenerating, unconfirmed: recipientUnconfirmed, unconfirmedBidIds, generateWithRecipientLock, saveWithRecipientLock } = usePipelineRecipientSelection({
     projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
     userRole: user?.role, updateBidsInternal,
   });
@@ -521,7 +521,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           <EditBidModal
             bid={editingBid}
             onClose={() => setEditingBid(null)}
-            onSave={handleSaveBid}
+            onSave={bid => saveWithRecipientLock(() => handleSaveBid(bid))}
           />
         )}
 

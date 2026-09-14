@@ -52,3 +52,5 @@ rekapitulaci hromadného e-mailu a adresáta konceptu v poštovním klientu.
 Při odebraném právu editace nebo výpadku připojení se musí zobrazit chyba
 uložení; nesmí dojít ke zdánlivému přepnutí kontaktu. Automatické testy pokrývají
 výchozí výběr, chyby uložení, rozsah zápisu, ruční kontakt a návaznost na BCC.
+
+Uložení celého formuláře karty sdílí zámek s výběrem příjemce a generováním. Zámek trvá až do dokončení zápisu i po zavření dialogu a navigaci, aby opožděný zápis formuláře nepřepsal novou volbu z menu.
