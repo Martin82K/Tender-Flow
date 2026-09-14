@@ -10,12 +10,13 @@ const recipient = { contactPerson: "Eva", email: "eva@example.com", phone: "222"
 describe("recipient persistence API", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.read.mockResolvedValueOnce({ data: { id: bid.id, updated_at: "version-1" }, error: null });
     mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
   });
   it("sends only the recipient fields with the category and supplier scope", async () => {
     mocks.update.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
     expect(await updateBidRecipient("cat", bid, recipient)).toEqual(recipient);
-    expect(mocks.update).toHaveBeenCalledWith("cat", "bid", "sub", { contact_person: "Eva", email: recipient.email, phone: "222" });
+    expect(mocks.update).toHaveBeenCalledWith("cat", "bid", "sub", { contact_person: "Eva", email: recipient.email, phone: "222" }, "version-1");
     expect(mocks.notify).toHaveBeenCalledOnce();
   });
   it.each([
@@ -50,6 +51,31 @@ describe("recipient persistence API", () => {
     mocks.update.mockRejectedValue(new DOMException("timeout", "TimeoutError"));
     mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Jan", email: "jan@example.com", phone: "111" }, error: null });
     await expect(updateBidRecipient("cat", bid, recipient)).rejects.toMatchObject({ recipient: { contactPerson: "Jan", email: "jan@example.com", phone: "111" } });
+  });
+  it("prevents a timed-out old write from overwriting a confirmed retry", async () => {
+    mocks.read.mockReset();
+    let row = { id: bid.id, contact_person: "Jan", email: "jan@example.com", phone: "111", updated_at: "version-1" };
+    mocks.read.mockImplementation(async () => ({ data: { ...row }, error: null }));
+    let finishOld!: () => void;
+    mocks.update.mockImplementationOnce(async (_category, _bid, _supplier, payload, expectedVersion) => {
+      finishOld = () => { if (row.updated_at === expectedVersion || expectedVersion === undefined) row = { ...row, ...payload, updated_at: "old-write" }; };
+      throw new TypeError("lost response while update is pending");
+    });
+    await expect(updateBidRecipient("cat", bid, recipient)).rejects.toMatchObject({ uncertain: true });
+    const next = { contactPerson: "Petr", email: "petr@example.com", phone: "333" };
+    mocks.update.mockImplementationOnce(async (_category, _bid, _supplier, payload, expectedVersion) => {
+      if (expectedVersion !== undefined && row.updated_at !== expectedVersion) return { data: null, error: { code: "PGRST116" } };
+      row = { ...row, ...payload, updated_at: "version-2" };
+      return { data: { ...row }, error: null };
+    });
+    expect(await updateBidRecipient("cat", bid, next)).toEqual(next);
+    finishOld();
+    expect(row.email).toBe(next.email);
+  });
+  it("does not write without a readable server version", async () => {
+    mocks.read.mockReset().mockResolvedValue({ data: { id: bid.id }, error: null });
+    await expect(updateBidRecipient("cat", bid, recipient)).rejects.toThrow();
+    expect(mocks.update).not.toHaveBeenCalled();
   });
   it("rejects multiple recipients before a write", async () => {
     await expect(updateBidRecipient("cat", bid, { ...recipient, email: "a@example.com; b@example.com" })).rejects.toThrow();

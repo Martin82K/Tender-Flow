@@ -43,10 +43,18 @@ export const updateBidContracted = async (bidId: string, contracted: boolean) =>
 export const updateBidRecipient = async (categoryId: string, bid: Bid, recipient: BidRecipient): Promise<BidRecipient> => {
   const email = recipient.email?.trim() || "";
   if (!isValidEmailAddress(email)) throw new Error("Kontakt nemá platný e-mail.");
+  const before = await pipelineRepository.fetchBidRecipient(categoryId, bid.id, bid.subcontractorId);
+  if (before.error || before.data?.id !== bid.id
+    || !(before.data.updated_at === null || (typeof before.data.updated_at === "string" && before.data.updated_at.length > 0))) {
+    throw new RecipientSaveError(false);
+  }
+  // Keep the exact server timestamp (including microseconds). A timed-out
+  // request may still commit; CAS prevents it from overwriting a later save.
+  const expectedVersion = before.data.updated_at;
   try {
     const { data, error, status } = await pipelineRepository.updateBidRecipient(categoryId, bid.id, bid.subcontractorId, {
       contact_person: recipient.contactPerson, email, phone: recipient.phone || "",
-    });
+    }, expectedVersion);
     if (error || !data || data.id !== bid.id) {
       const ambiguous = status === 0 || status === 408 || status === 429 || status >= 500;
       throw new RecipientSaveError(ambiguous);
