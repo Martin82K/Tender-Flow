@@ -14,10 +14,6 @@ export interface BidCardProps {
   bid: Bid;
   contacts?: ContactPerson[];
   onSelectRecipient?: (bidId: string, contactId: string) => Promise<void>;
-  recipientSaving?: boolean;
-  inquiryGenerating?: boolean;
-  recipientUnconfirmed?: boolean;
-  generationBlocked?: boolean;
   onClick?: () => void;
   onDoubleClick?: (bid: Bid) => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
@@ -36,10 +32,6 @@ export const BidCard: React.FC<BidCardProps> = ({
   bid,
   contacts = [],
   onSelectRecipient,
-  recipientSaving = false,
-  inquiryGenerating = false,
-  recipientUnconfirmed = false,
-  generationBlocked = false,
   onClick,
   onDoubleClick,
   onDragStart,
@@ -55,16 +47,17 @@ export const BidCard: React.FC<BidCardProps> = ({
 }) => {
   const [savingRecipient, setSavingRecipient] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
   const [generationError, setGenerationError] = useState(false);
-  const busy = savingRecipient || recipientSaving || generating || inquiryGenerating;
-  const canGenerate = !busy && !generationBlocked && !recipientUnconfirmed && isValidEmailAddress(bid.email || "");
+  const canGenerate = !generating && isValidEmailAddress(bid.email || "");
   const generate = async (action: (bid: Bid) => void | Promise<void>) => {
-    if (!canGenerate) return;
+    if (!canGenerate || generatingRef.current) return;
+    generatingRef.current = true;
     setGenerating(true);
     setGenerationError(false);
-    try { await action(bid); }
+    try { await action({ ...bid }); }
     catch { setGenerationError(true); }
-    finally { setGenerating(false); }
+    finally { generatingRef.current = false; setGenerating(false); }
   };
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -90,10 +83,10 @@ export const BidCard: React.FC<BidCardProps> = ({
       tabIndex={highlighted ? -1 : undefined}
       aria-label={highlighted ? `Karta dodavatele ${bid.companyName}` : undefined}
       data-help-id={dataHelpId}
-      draggable={!busy}
+      draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
-      onDoubleClick={() => { if (!busy) onDoubleClick?.(bid); }}
+      onDoubleClick={() => onDoubleClick?.(bid)}
       className="tf-kanban-bid-card data-[contract-source=true]:ring-2 data-[contract-source=true]:ring-primary bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
@@ -116,7 +109,6 @@ export const BidCard: React.FC<BidCardProps> = ({
             </button>
           )}
           <button
-            disabled={busy}
             onClick={(e) => {
               e.stopPropagation();
               onEdit(bid);
@@ -128,8 +120,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           </button>
           {onDelete && (
             <button
-              disabled={busy}
-              onClick={(e) => {
+                onClick={(e) => {
                 e.stopPropagation();
                 onDelete(bid.id);
               }}
@@ -220,11 +211,10 @@ export const BidCard: React.FC<BidCardProps> = ({
       )}
 
       {/* Generate Inquiry Button */}
-      {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={busy}
+      {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={false}
         onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
-      {(savingRecipient || recipientSaving) && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
-      {(generating || inquiryGenerating) && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
-      {recipientUnconfirmed && <span role="alert" className="text-xs text-amber-700 dark:text-amber-400">Příjemce není ověřený. Před generováním zopakujte výběr kontaktu.</span>}
+      {savingRecipient && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
+      {generating && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
       {generationError && <span role="alert" className="text-xs text-red-600 dark:text-red-400">Koncept se nepodařilo připravit. Zkuste to znovu.</span>}
       {bid.status === "contacted" && onGenerateInquiry && (
         <div className="mt-3 flex flex-col gap-2">

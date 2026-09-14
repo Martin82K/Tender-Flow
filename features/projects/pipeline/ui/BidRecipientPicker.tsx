@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import type { Bid, ContactPerson } from "@/types";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 import { isValidEmailAddress, normalizeEmailAddress } from "@features/projects/model/pipelineEmailModel";
@@ -14,6 +14,7 @@ interface Props {
 
 export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, onSelect, onSavingChange, onEdit }) => {
   const [error, setError] = useState(false);
+  const latest = useRef(0);
   const valid = isValidEmailAddress(bid.email || "");
   const selected = contacts.find(contact => contact.name === bid.contactPerson
     && normalizeEmailAddress(contact.email) === normalizeEmailAddress(bid.email || ""));
@@ -21,14 +22,15 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, o
     const available = contacts.some(contact => contact.id === contactId && isValidEmailAddress(contact.email))
       || (contactId === "saved-recipient" && valid);
     if (disabled || !available) return;
+    const request = ++latest.current;
     setError(false);
     onSavingChange(true);
     try {
       await onSelect(bid.id, contactId);
     } catch {
-      setError(true);
+      if (latest.current === request) setError(true);
     } finally {
-      onSavingChange(false);
+      if (latest.current === request) onSavingChange(false);
     }
   };
   return (
@@ -46,7 +48,7 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, o
       </ThemedNativeSelect>
       {!valid && <span className="text-amber-700 dark:text-amber-400">Před generováním vyberte kontakt s platným e-mailem.</span>}
       <button type="button" disabled={disabled} onClick={() => onEdit(bid)} className="self-start text-slate-500 underline hover:text-primary disabled:opacity-50">Upravit kontakt na kartě</button>
-      {error && <span role="alert" className="text-red-600 dark:text-red-400">Příjemce se nepodařilo uložit. Zkontrolujte připojení a oprávnění a zkuste výběr znovu.</span>}
+      {error && <span role="alert" className="text-red-600 dark:text-red-400">Volbu se nepodařilo zapamatovat na kartě. Pro tuto poptávku platí zobrazený příjemce.</span>}
     </div>
   );
 };
