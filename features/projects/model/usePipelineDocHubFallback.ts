@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { collectFallbackSuppliers } from "@/shared/dochub/fallbackSelection";
 import { ensureStructure } from "@infra/files/fileSystemService";
+import { isDesktop } from "@infra/platform/platformAdapter";
 import { buildHierarchyTree, ensureExtraHierarchy } from "@/shared/dochub/docHub";
 import type { Bid, ProjectDetails } from "@/types";
 import { getSafeFallbackProjectId as getSafeFallbackProjectIdModel } from "./pipelineModel";
@@ -45,6 +46,7 @@ export const usePipelineDocHubFallback = ({
       docHubRoot.length > 0 &&
       userRole !== "demo" &&
       !!projectData.docHubProvider &&
+      (projectData.docHubProvider !== "onedrive" || isDesktop) &&
       !!getSafeFallbackProjectId();
 
     if (!enabled) {
@@ -53,6 +55,7 @@ export const usePipelineDocHubFallback = ({
         docHubRootPresent: docHubRoot.length > 0,
         userRole,
         provider: projectData.docHubProvider ?? null,
+        localFileSystemAvailable: isDesktop,
         safeProjectId: getSafeFallbackProjectId(),
       });
     }
