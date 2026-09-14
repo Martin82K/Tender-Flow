@@ -50,7 +50,7 @@ END $body$;
 CREATE FUNCTION public.restore_user_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE FUNCTION public.restore_tenant_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 `.replaceAll('demand_category_id',bidCategoryColumn));
-for (const name of ['20260914184136_shared_contract_tenders','20260914185726_index_shared_contract_tender_foreign_keys','20260914190809_harden_shared_contract_tender_review']) {
+for (const name of ['20260914184136_shared_contract_tenders','20260914185726_index_shared_contract_tender_foreign_keys','20260914190809_harden_shared_contract_tender_review','20260914191602_keep_shared_backup_manifest_single_snapshot']) {
   await db.exec(await readFile(new URL(`../supabase/migrations/${name}.sql`,import.meta.url),'utf8'));
 }
 let checks=0;
