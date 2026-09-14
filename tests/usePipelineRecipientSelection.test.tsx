@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({ save: vi.fn(), getDemoData: vi.fn(), saveDemoD
 vi.mock("@features/projects/api/pipelineApi", () => ({ updateBidRecipient: mocks.save }));
 vi.mock("@features/projects/api/projectDemoDataApi", () => ({ projectDemoDataApi: mocks }));
 import { usePipelineRecipientSelection } from "@features/projects/model/usePipelineRecipientSelection";
+import { RecipientSaveError } from "@features/projects/model/pipelineRecipientModel";
 import { selectBulkInquiryRecipients } from "@features/projects/model/pipelineEmailModel";
 
 const bid: Bid = { id: "bid", subcontractorId: "sub", companyName: "Firma", contactPerson: "Jan", email: "jan@example.com", status: "contacted", price: "100" };
@@ -75,6 +76,65 @@ describe("saving a bid recipient", () => {
     await act(async () => { finish(patch); await request; });
     expect(h.result.current.bids.cat[0]).toEqual(bid);
   });
+  it("keeps the original scope locked after navigating away and back", async () => {
+    let finish!: (value: typeof patch) => void;
+    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
+    const h = setup();
+    let request!: Promise<void>;
+    act(() => { request = h.result.current.selectRecipient("bid", "eva"); });
+    h.rerender({ projectId: "other-project", categoryId: "other" });
+    h.rerender({ projectId: "project", categoryId: "cat" });
+    expect(h.result.current.saving).toBe(true);
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await act(async () => { finish(patch); await request; });
+    expect(h.result.current.bids.cat[0].email).toBe(patch.email);
+  });
+
+  it("locks contact changes until a slow inquiry finishes, even across navigation", async () => {
+    let finish!: () => void;
+    const h = setup();
+    let generation!: Promise<void>;
+    act(() => { generation = h.result.current.generateWithRecipientLock(() => new Promise<void>(resolve => { finish = resolve; })); });
+    h.rerender({ projectId: "other-project", categoryId: "other" });
+    h.rerender({ projectId: "project", categoryId: "cat" });
+    expect(h.result.current.generating).toBe(true);
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    expect(mocks.save).not.toHaveBeenCalled();
+    await act(async () => { finish(); await generation; });
+    expect(h.result.current.generating).toBe(false);
+  });
+
+  it("keeps generation blocked for an unconfirmed card until that card is saved again", async () => {
+    const h = setup();
+    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    expect(h.result.current.unconfirmed).toBe(true);
+    const generate = vi.fn();
+    await act(async () => { await h.result.current.generateWithRecipientLock(generate); });
+    expect(generate).not.toHaveBeenCalled();
+    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [...prev.cat, { ...bid, id: "another" }] })));
+    await act(async () => { await h.result.current.selectRecipient("another", "eva"); });
+    expect(h.result.current.unconfirmed).toBe(true);
+    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
+    expect(h.result.current.unconfirmed).toBe(false);
+  });
+
+  it("keeps a pending write locked when the view is unmounted and remounted", async () => {
+    let finish!: (value: typeof patch) => void;
+    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
+    const first = setup();
+    let request!: Promise<void>;
+    act(() => { request = first.result.current.selectRecipient("bid", "eva"); });
+    first.unmount();
+    const next = setup();
+    expect(next.result.current.saving).toBe(true);
+    await act(async () => { await expect(next.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    await act(async () => { finish(patch); await request; });
+    expect(next.result.current.saving).toBe(false);
+  });
+
   it("persists demo selection for reload without calling the server", async () => {
     mocks.getDemoData.mockReturnValue({ projectDetails: { project: { bids: { cat: [bid] } } } });
     const h = setup("demo");

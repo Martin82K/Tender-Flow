@@ -50,6 +50,12 @@ export const pipelineRepository = {
       .abortSignal(AbortSignal.timeout(15_000)).single();
   },
 
+  fetchBidRecipient(categoryId: string, bidId: string, supplierId: string) {
+    return supabase.from("bids").select("id, contact_person, email, phone")
+      .eq("id", bidId).eq("demand_category_id", categoryId).eq("subcontractor_id", supplierId)
+      .abortSignal(AbortSignal.timeout(15_000)).single();
+  },
+
   insertBids(payload: BidInsertPayload[]) {
     return supabase.rpc<
       "insert_pipeline_bids",

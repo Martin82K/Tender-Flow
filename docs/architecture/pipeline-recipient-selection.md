@@ -18,8 +18,17 @@ ID karty, VŘ a dodavatele. Zápis používá běžnou Supabase session a stáva
 pro vlastníka projektu nebo sdílení s právem editace. Nemění schéma, granty ani
 RLS. Úspěch vyžaduje vrácený řádek; nulový počet změněných řádků není úspěch.
 
-Po dobu zápisu je výběr a generování blokováno. Lokální karta se změní až po
-potvrzeném zápisu. Chyba zachová původní kontakt a nabídne opakování. Potvrzená
+Po dobu zápisu je výběr a generování blokováno. Zámek pro projekt/VŘ žije mimo
+komponentu až do dokončení požadavku, takže odchod, návrat ani nové připojení
+komponenty nepovolí druhý souběžný zápis. Stejný zámek chrání příjemce během
+načítání šablony a příloh pro koncept. Lokální karta se změní až po
+potvrzeném zápisu. Jednoznačně odmítnutý zápis zachová původní kontakt.
+Po timeoutu či síťové chybě API jednou načte stejný řádek pod stejným RLS
+rozsahem a rozpozná i zápis, jehož odpověď se ztratila. Pokud ověření selže
+nebo vrátí jiný kontakt, označí konkrétní kartu za neověřenou a generování
+ve VŘ zablokuje. Nový úspěšný výběr na jiné kartě blokaci nezruší; musí se
+znovu potvrdit právě neověřená karta. Dostupný výsledek čtení se zobrazí,
+aniž by se vydával za potvrzení požadované změny. Potvrzená
 kontaktní pole se sloučí do aktuálních dat, aby se nepřepsala souběžná cena nebo
 stav. Odpověď po přechodu do jiného projektu nesmí měnit jeho karty. Demo ukládá
 stejná pole lokálně, bez síťového zápisu.

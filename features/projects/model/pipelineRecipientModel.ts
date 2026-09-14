@@ -3,6 +3,12 @@ import { isValidEmailAddress, normalizeEmailAddress } from "./pipelineEmailModel
 
 export type BidRecipient = Pick<Bid, "contactPerson" | "email" | "phone">;
 
+export class RecipientSaveError extends Error {
+  constructor(public readonly uncertain: boolean, public readonly recipient?: BidRecipient) {
+    super("Uložení příjemce se nepodařilo ověřit.");
+  }
+}
+
 export const recipientPatch = (contact: ContactPerson): BidRecipient => {
   if (!isValidEmailAddress(contact.email)) throw new Error("Kontakt nemá platný e-mail.");
   return {

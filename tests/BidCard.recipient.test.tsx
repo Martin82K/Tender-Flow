@@ -47,6 +47,22 @@ describe("recipient on a bid card", () => {
     fireEvent.click(screen.getByRole("combobox", { name: "Příjemce poptávky" }));
     expect(screen.getByRole("option", { name: /Bez mailu.*Doplňte e-mail/ })).toBeDisabled();
   });
+  it("disables recipient selection until template generation finishes", async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>(resolve => { finish = resolve; });
+    render(<BidCard {...props} onSelectRecipient={vi.fn()} onGenerateInquiry={() => pending} />);
+    fireEvent.click(screen.getByRole("button", { name: /Generovat poptávku/ }));
+    expect(screen.getByRole("combobox", { name: "Příjemce poptávky" })).toBeDisabled();
+    await act(async () => { finish(); await pending; });
+    expect(screen.getByRole("combobox", { name: "Příjemce poptávky" })).not.toBeDisabled();
+  });
+  it("blocks an unconfirmed recipient but lets the user retry selection", () => {
+    render(<BidCard {...props} onSelectRecipient={vi.fn()} recipientUnconfirmed />);
+    expect(screen.getByRole("button", { name: /Generovat poptávku/ })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Příjemce poptávky" })).not.toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Příjemce není ověřený");
+  });
+
   it("preserves a manually saved recipient which is absent from the directory", () => {
     render(<BidCard {...props} bid={{ ...bid, contactPerson: "Externí", email: "custom@example.com" }} onSelectRecipient={vi.fn()} />);
     expect(screen.getByRole("combobox", { name: "Příjemce poptávky" })).toHaveTextContent("custom@example.com");

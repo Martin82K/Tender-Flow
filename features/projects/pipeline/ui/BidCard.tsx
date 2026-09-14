@@ -15,13 +15,16 @@ export interface BidCardProps {
   contacts?: ContactPerson[];
   onSelectRecipient?: (bidId: string, contactId: string) => Promise<void>;
   recipientSaving?: boolean;
+  inquiryGenerating?: boolean;
+  recipientUnconfirmed?: boolean;
+  generationBlocked?: boolean;
   onClick?: () => void;
   onDoubleClick?: (bid: Bid) => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
   onEdit: (bid: Bid) => void;
   onDelete?: (bidId: string) => void;
-  onGenerateInquiry?: (bid: Bid) => void;
-  onGenerateMaterialInquiry?: (bid: Bid) => void;
+  onGenerateInquiry?: (bid: Bid) => void | Promise<void>;
+  onGenerateMaterialInquiry?: (bid: Bid) => void | Promise<void>;
   onOpenDocHubFolder?: (bid: Bid) => void;
   highlighted?: boolean;
   contractLinks?: React.ReactNode;
@@ -34,6 +37,9 @@ export const BidCard: React.FC<BidCardProps> = ({
   contacts = [],
   onSelectRecipient,
   recipientSaving = false,
+  inquiryGenerating = false,
+  recipientUnconfirmed = false,
+  generationBlocked = false,
   onClick,
   onDoubleClick,
   onDragStart,
@@ -48,8 +54,18 @@ export const BidCard: React.FC<BidCardProps> = ({
   "data-help-id": dataHelpId,
 }) => {
   const [savingRecipient, setSavingRecipient] = useState(false);
-  const busy = savingRecipient || recipientSaving;
-  const canGenerate = !busy && isValidEmailAddress(bid.email || "");
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState(false);
+  const busy = savingRecipient || recipientSaving || generating || inquiryGenerating;
+  const canGenerate = !busy && !generationBlocked && !recipientUnconfirmed && isValidEmailAddress(bid.email || "");
+  const generate = async (action: (bid: Bid) => void | Promise<void>) => {
+    if (!canGenerate) return;
+    setGenerating(true);
+    setGenerationError(false);
+    try { await action(bid); }
+    catch { setGenerationError(true); }
+    finally { setGenerating(false); }
+  };
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!highlighted) return;
@@ -205,14 +221,17 @@ export const BidCard: React.FC<BidCardProps> = ({
       {/* Generate Inquiry Button */}
       {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={busy}
         onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
-      {busy && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
+      {(savingRecipient || recipientSaving) && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
+      {(generating || inquiryGenerating) && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
+      {recipientUnconfirmed && <span role="alert" className="text-xs text-amber-700 dark:text-amber-400">Příjemce není ověřený. Před generováním zopakujte výběr kontaktu.</span>}
+      {generationError && <span role="alert" className="text-xs text-red-600 dark:text-red-400">Koncept se nepodařilo připravit. Zkuste to znovu.</span>}
       {bid.status === "contacted" && onGenerateInquiry && (
         <div className="mt-3 flex flex-col gap-2">
           <button
             disabled={!canGenerate}
             onClick={(e) => {
               e.stopPropagation();
-              onGenerateInquiry(bid);
+              void generate(onGenerateInquiry);
             }}
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             title="Generovat email s poptávkou"
@@ -226,7 +245,7 @@ export const BidCard: React.FC<BidCardProps> = ({
               disabled={!canGenerate}
               onClick={(e) => {
                 e.stopPropagation();
-                onGenerateMaterialInquiry(bid);
+                void generate(onGenerateMaterialInquiry);
               }}
               className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               title="Generovat email s materiálovou poptávkou"

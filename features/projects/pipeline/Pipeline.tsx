@@ -218,7 +218,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     },
   });
 
-  const { selectRecipient, saving: recipientSaving } = usePipelineRecipientSelection({
+  const { selectRecipient, saving: recipientSaving, generating: inquiryGenerating, unconfirmed: recipientUnconfirmed, unconfirmedBidIds, generateWithRecipientLock } = usePipelineRecipientSelection({
     projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
     userRole: user?.role, updateBidsInternal,
   });
@@ -431,8 +431,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
             }}
             onAddSubcontractor={() => setIsSubcontractorModalOpen(true)}
             onSelectBulkEmail={kind => {
-              if (recipientSaving) {
-                showAlert({ title: "Ukládám příjemce", message: "Počkejte na dokončení výběru kontaktu.", variant: "info" });
+              if (recipientSaving || inquiryGenerating || recipientUnconfirmed) {
+                showAlert({ title: "Příjemce není připraven", message: recipientUnconfirmed ? "Na označené kartě zopakujte výběr příjemce." : "Počkejte na dokončení ukládání nebo přípravy konceptu.", variant: "info" });
                 return;
               }
               openBulkEmailConfirmation(kind);
@@ -460,6 +460,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
           contacts={localContacts}
           onSelectRecipient={selectRecipient}
           recipientSaving={recipientSaving}
+          inquiryGenerating={inquiryGenerating}
+          unconfirmedBidIds={unconfirmedBidIds}
+          generationBlocked={recipientUnconfirmed}
           projectId={projectId}
           highlightedBidId={highlightedBidId}
           onLinkContract={onLinkContract}
@@ -474,8 +477,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onEditBid={setEditingBid}
           onDeleteBidRequest={handleDeleteBidRequest}
           onDeleteBid={handleDeleteBid}
-          onGenerateInquiry={handleGenerateInquiry}
-          onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
+          onGenerateInquiry={bid => generateWithRecipientLock(() => handleGenerateInquiry(bid))}
+          onGenerateMaterialInquiry={bid => generateWithRecipientLock(() => handleGenerateMaterialInquiry(bid))}
           onOpenSupplierDocHub={handleOpenSupplierDocHub}
           onToggleContracted={handleToggleContracted}
           onOpenContract={onOpenContract}
@@ -530,7 +533,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           userEmail={currentUserEmail}
           selection={selectedBulkEmailSelection}
           isSubmitting={isBulkEmailSubmitting}
-          onConfirm={confirmBulkEmail}
+          onConfirm={() => generateWithRecipientLock(confirmBulkEmail)}
           onCancel={() => setBulkEmailKind(null)}
         />
       </div>
