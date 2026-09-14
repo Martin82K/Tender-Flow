@@ -39,6 +39,17 @@ const contract = (overrides: Partial<ContractWithDetails> = {}): ContractWithDet
 });
 
 describe('resolveBidContractLink', () => {
+  it('nepoužije vazbu nabídky z jiného VŘ jako historickou shodu dodavatele', () => {
+    expect(resolveBidContractLink(bid(), [contract({ linkedBidIds: ['other-tender'] })], ['bid-1', 'bid-2']).contract).toBeNull();
+  });
+
+  it('při více smlouvách stejného VŘ označí vazbu jako nejednoznačnou', () => {
+    expect(resolveBidContractLink(bid(), [
+      contract({ id: 'a', linkedBidIds: ['bid-1'] }),
+      contract({ id: 'b', linkedBidIds: ['bid-2'] }),
+    ], ['bid-1', 'bid-2']).ambiguous).toBe(true);
+  });
+
   it('upřednostní jednoznačnou vazbu přes sourceBidId', () => {
     const result = resolveBidContractLink(bid(), [
       contract({ id: 'legacy', sourceBidId: undefined }),

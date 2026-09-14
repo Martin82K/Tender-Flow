@@ -5,6 +5,10 @@ V Přehledu smlouvy lze přidat volné VŘ, přejít na jeho kartu nebo po potvr
 odpojit jednotlivou vazbu. Dokumenty, faktury a ostatní vazby zůstávají zachované;
 cena smlouvy se počtem propojení nenásobí.
 
+Vítězná karta otevře smlouvu i tehdy, když je ve stejném VŘ navázaná na jinou
+nabídku. Obnova organizační zálohy zachovává oprávnění správce také u projektů,
+které vlastní jiný člen organizace; osobní obnova se nemění.
+
 - Příjemce běžné i materiálové poptávky se vybírá přímo na kartě dodavatele.
   Společně se mění jméno, e-mail a telefon. Výběr nemění hlavní kontakt adresáře.
 - Generovaný koncept si uchová příjemce z okamžiku zahájení přípravy.
@@ -23,6 +27,7 @@ cena smlouvy se počtem propojení nenásobí.
   ukázkovými údaji jsou v repozitáři ve složce `output/pdf/novinky-2026-09-14`.
 
 Migrace sdílených smluv byla nasazena 14. 9. 2026 před frontendem.
+Před vydáním byla nasazena také úzká oprava kontroly správce při obnově záloh.
 Vydání nepřidává závislosti. Rozpracované změny pozastávek z PR #457 nejsou
 součástí této verze, protože jejich produkční migrace dosud čeká na schválení.
 

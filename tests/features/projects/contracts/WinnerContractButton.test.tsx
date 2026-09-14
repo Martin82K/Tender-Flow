@@ -39,6 +39,17 @@ const linkedContract: ContractWithDetails = {
 };
 
 describe('WinnerContractButton', () => {
+  it('otevře smlouvu navázanou na jinou nabídku stejného VŘ', () => {
+    const onOpenContract = vi.fn();
+    const onToggleContracted = vi.fn();
+    render(<WinnerContractButton bid={winner} categoryBidIds={['bid-1', 'bid-2']}
+      contracts={[{ ...linkedContract, sourceBidId: 'bid-2', linkedBidIds: ['bid-2'] }]}
+      onOpenContract={onOpenContract} onToggleContracted={onToggleContracted} />);
+    fireEvent.click(screen.getByRole('button', { name: /Otevřít smlouvu SOD/ }));
+    expect(onOpenContract).toHaveBeenCalledWith('contract-1');
+    expect(onToggleContracted).not.toHaveBeenCalled();
+  });
+
   it('otevře navázanou smlouvu a nemění contracted příznak', () => {
     const onOpenContract = vi.fn();
     const onToggleContracted = vi.fn();

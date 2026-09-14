@@ -16,8 +16,11 @@ export interface ContractBidLinkResult {
 export const resolveBidContractLink = (
   bid: Pick<Bid, 'id' | 'subcontractorId'>,
   contracts: ContractWithDetails[],
+  categoryBidIds: readonly string[] = [bid.id],
 ): ContractBidLinkResult => {
-  const directMatches = contracts.filter((contract) => isContractLinkedToBid(contract, bid.id));
+  const directMatches = contracts.filter((contract) =>
+    contractBidIds(contract).some((id) => id === bid.id || categoryBidIds.includes(id)),
+  );
   if (directMatches.length === 1) {
     return { contract: directMatches[0], match: 'sourceBidId', ambiguous: false };
   }

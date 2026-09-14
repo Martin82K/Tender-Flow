@@ -5,6 +5,7 @@ import { resolveBidContractLink } from '../model/contractBidLink';
 interface Props {
   bid: Bid;
   contracts: ContractWithDetails[];
+  categoryBidIds?: readonly string[];
   onOpenContract: (contractId: string) => void;
   onToggleContracted: (bid: Bid) => void;
   loading?: boolean;
@@ -14,14 +15,15 @@ interface Props {
 export const WinnerContractButton: React.FC<Props> = ({
   bid,
   contracts,
+  categoryBidIds,
   onOpenContract,
   onToggleContracted,
   loading = false,
   error = null,
 }) => {
   const link = useMemo(
-    () => resolveBidContractLink(bid, contracts),
-    [bid, contracts],
+    () => resolveBidContractLink(bid, contracts, categoryBidIds),
+    [bid, contracts, categoryBidIds],
   );
 
   if (loading || error) {

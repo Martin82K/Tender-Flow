@@ -207,6 +207,7 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
                 </div>
                 <WinnerContractButton
                   bid={bid}
+                  categoryBidIds={bids.map(item => item.id)}
                   contracts={contracts}
                   onOpenContract={onOpenContract || noopOpenContract}
                   onToggleContracted={onToggleContracted}
