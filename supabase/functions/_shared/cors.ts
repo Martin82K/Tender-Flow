@@ -21,14 +21,12 @@ const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/tender-flow-[a-z0-9-]+\.vercel\.app$/,
 ];
 
-// Lokální dev origins a produkční Vite preview (4173).
+// Lokální dev origins (Vite default 3000 / 5173, sjednoceno se stripeBilling.ts).
 const DEV_ALLOWED_ORIGINS: string[] = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "http://localhost:4173",
-  "http://127.0.0.1:4173",
 ];
 
 const normalizeOrigin = (value: string): string => {

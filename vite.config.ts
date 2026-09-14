@@ -6,6 +6,11 @@ export default defineConfig(() => {
   const isElectronBuild = process.env.ELECTRON_BUILD === 'true';
   return {
     base: isElectronBuild ? './' : '/',
+    preview: {
+      host: '127.0.0.1',
+      port: 5173,
+      strictPort: true,
+    },
     server: {
       port: 3000,
       host: '0.0.0.0',
