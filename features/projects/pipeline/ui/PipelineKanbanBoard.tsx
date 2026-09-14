@@ -16,11 +16,9 @@ import { Column } from "./Column";
 export interface PipelineKanbanBoardProps {
   projectId?: string;
   contacts?: Subcontractor[];
+  recipientStateFor?: (bidId: string) => { saving: boolean; error: boolean } | undefined;
+  isInquiryGenerating?: (bidId: string) => boolean;
   onSelectRecipient?: (bidId: string, contactId: string) => Promise<void>;
-  recipientSaving?: boolean;
-  inquiryGenerating?: boolean;
-  unconfirmedBidIds?: ReadonlySet<string>;
-  generationBlocked?: boolean;
   highlightedBidId?: string;
   onLinkContract?: (contractId: string, bidId: string) => Promise<void>;
   category: DemandCategory;
@@ -99,10 +97,8 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
   projectId,
   contacts = [],
   onSelectRecipient,
-  recipientSaving = false,
-  inquiryGenerating = false,
-  unconfirmedBidIds,
-  generationBlocked = false,
+  recipientStateFor,
+  isInquiryGenerating,
   highlightedBidId,
   onLinkContract,
   category,
@@ -146,10 +142,9 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
               bid={bid}
               contacts={contacts.find(contact => contact.id === bid.subcontractorId)?.contacts || []}
               onSelectRecipient={onSelectRecipient}
-              recipientSaving={recipientSaving}
-              inquiryGenerating={inquiryGenerating}
-              recipientUnconfirmed={unconfirmedBidIds?.has(bid.id)}
-              generationBlocked={generationBlocked}
+              recipientSaving={recipientStateFor?.(bid.id)?.saving}
+              recipientSaveError={recipientStateFor?.(bid.id)?.error}
+              inquiryGenerating={isInquiryGenerating?.(bid.id)}
               highlighted={bid.id === highlightedBidId}
               data-help-id={
                 config.status === "contacted" && index === 0
@@ -222,10 +217,9 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
                   bid={bid}
                   contacts={contacts.find(contact => contact.id === bid.subcontractorId)?.contacts || []}
                   onSelectRecipient={onSelectRecipient}
-                  recipientSaving={recipientSaving}
-                  inquiryGenerating={inquiryGenerating}
-                  recipientUnconfirmed={unconfirmedBidIds?.has(bid.id)}
-                  generationBlocked={generationBlocked}
+              recipientSaving={recipientStateFor?.(bid.id)?.saving}
+              recipientSaveError={recipientStateFor?.(bid.id)?.error}
+              inquiryGenerating={isInquiryGenerating?.(bid.id)}
                   highlighted={bid.id === highlightedBidId}
                   priceDisplayMode="detail"
                   contractLinks={projectId && onOpenContract ? <BidContractLinks
@@ -258,10 +252,9 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
                 bid={bid}
                 contacts={contacts.find(contact => contact.id === bid.subcontractorId)?.contacts || []}
                 onSelectRecipient={onSelectRecipient}
-                recipientSaving={recipientSaving}
-                inquiryGenerating={inquiryGenerating}
-                recipientUnconfirmed={unconfirmedBidIds?.has(bid.id)}
-                generationBlocked={generationBlocked}
+              recipientSaving={recipientStateFor?.(bid.id)?.saving}
+              recipientSaveError={recipientStateFor?.(bid.id)?.error}
+              inquiryGenerating={isInquiryGenerating?.(bid.id)}
                 highlighted={bid.id === highlightedBidId}
                 onDragStart={onDragStart}
                 onDoubleClick={onEditBid}

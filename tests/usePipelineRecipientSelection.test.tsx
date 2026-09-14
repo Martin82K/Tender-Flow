@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bid, Subcontractor } from "@/types";
@@ -13,173 +13,110 @@ import { selectBulkInquiryRecipients } from "@features/projects/model/pipelineEm
 
 const bid: Bid = { id: "bid", subcontractorId: "sub", companyName: "Firma", contactPerson: "Jan", email: "jan@example.com", status: "contacted", price: "100" };
 const supplier: Subcontractor = { id: "sub", company: "Firma", status: "available", specialization: [], contacts: [
+  { id: "jan", name: "Jan", email: "jan@example.com", phone: "" },
   { id: "eva", name: "Eva", email: "eva@example.com", phone: "222" },
 ] };
 const patch = { contactPerson: "Eva", email: "eva@example.com", phone: "222" };
-function setup(userRole = "user", directory: Subcontractor[] = [supplier]) {
-  const client = new QueryClient();
+function setup(userRole = "user", directory: Subcontractor[] = [supplier], client = new QueryClient()) {
   const wrapper = ({ children }: { children: React.ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-  const hook = renderHook(({ projectId, categoryId }) => {
+  const hook = renderHook(({ projectId, categoryId, userId = "user-1", organizationId = "org-1" }: { projectId: string; categoryId: string; userId?: string; organizationId?: string }) => {
     const [bids, setBids] = useState<Record<string, Bid[]>>({ cat: [bid], other: [{ ...bid, id: "other-bid" }] });
-    const selection = usePipelineRecipientSelection({ projectId, categoryId, bids, contacts: directory, userRole, updateBidsInternal: setBids });
+    const selection = usePipelineRecipientSelection({ projectId, categoryId, userId, organizationId, bids, contacts: directory, userRole });
     return { ...selection, bids, setBids };
   }, { wrapper, initialProps: { projectId: "project", categoryId: "cat" } });
   return { ...hook, client };
 }
 
-describe("saving a bid recipient", () => {
+describe("choosing an inquiry recipient independently of persistence", () => {
   beforeEach(() => { vi.resetAllMocks(); mocks.save.mockResolvedValue(patch); });
-  it("persists only the recipient and uses it in the bulk selection without changing other cards", async () => {
+  it("uses the chosen recipient immediately while persistence is pending", async () => {
+    let finish!: (value: typeof patch) => void;
+    mocks.save.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const h = setup();
+    let request!: Promise<void>;
+    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
+    await waitFor(() => expect(h.result.current.inquiryBids.cat[0].email).toBe(patch.email));
+    expect(h.result.current.inquiryBids.other[0].email).toBe(bid.email);
+    const draft = { ...h.result.current.inquiryBids.cat[0] };
+    act(() => h.result.current.setBids(previous => ({ ...previous, cat: [{ ...bid, email: "edit@example.com", price: "200" }] })));
+    expect(draft.email).toBe(patch.email);
+    expect(h.result.current.inquiryBids.cat[0].price).toBe("200");
+    await act(async () => { finish(patch); await request; });
+  });
+  it("preserves a failed choice and its warning across unmount and remount", async () => {
+    mocks.save.mockRejectedValue(new RecipientSaveError(true));
+    const h = setup();
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    h.unmount();
+    const returned = setup("user", [supplier], h.client);
+    expect(returned.result.current.inquiryBids.cat[0].email).toBe(patch.email);
+    expect(returned.result.current.stateFor("bid")?.error).toBe(true);
+    expect(selectBulkInquiryRecipients(returned.result.current.inquiryBids.cat).emails).toEqual([patch.email]);
+  });
+  it("keeps selections scoped to the project and rejects foreign contacts", async () => {
     const h = setup();
     await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
-    expect(mocks.save).toHaveBeenCalledWith("cat", bid, patch);
-    expect(h.result.current.bids.cat[0]).toEqual({ ...bid, ...patch });
-    expect(h.result.current.bids.other[0].email).toBe("jan@example.com");
-    expect(selectBulkInquiryRecipients(h.result.current.bids.cat).emails).toEqual(["eva@example.com"]);
-    expect(supplier.contacts[0]).toEqual({ id: "eva", name: "Eva", email: "eva@example.com", phone: "222" });
+    h.rerender({ projectId: "another", categoryId: "cat" });
+    expect(h.result.current.inquiryBids.cat[0].email).toBe(bid.email);
+    await act(async () => { await expect(h.result.current.selectRecipient("bid", "foreign")).rejects.toThrow(); });
   });
-  it("locks recipient selection and generation until the full card save finishes across navigation", async () => {
+  it("does not expose session choices to a different user or organization", async () => {
+    const h = setup();
+    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
+    h.rerender({ projectId: "project", categoryId: "cat", userId: "other-user" });
+    expect(h.result.current.inquiryBids.cat[0].email).toBe(bid.email);
+    h.rerender({ projectId: "project", categoryId: "cat", organizationId: "other-org" });
+    expect(h.result.current.inquiryBids.cat[0].email).toBe(bid.email);
+  });
+  it("uses an explicit manual edit for the next draft before the form save completes", async () => {
     const h = setup();
     let finish!: () => void;
     let saving!: Promise<void>;
-    act(() => { saving = h.result.current.saveWithRecipientLock(() => new Promise<void>(resolve => { finish = resolve; })); });
-    h.rerender({ projectId: "other-project", categoryId: "other" });
-    h.rerender({ projectId: "project", categoryId: "cat" });
-    expect(h.result.current.saving).toBe(true);
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    const generate = vi.fn();
-    await act(async () => { await h.result.current.generateWithRecipientLock(generate); });
-    expect(generate).not.toHaveBeenCalled();
+    await act(async () => { saving = h.result.current.saveEditedBid({ ...bid, email: "manual@example.com" }, bid,
+      () => new Promise<void>(resolve => { finish = resolve; })); });
+    await waitFor(() => expect(h.result.current.inquiryBids.cat[0].email).toBe("manual@example.com"));
     await act(async () => { finish(); await saving; });
-    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
-    expect(h.result.current.bids.cat[0].email).toBe(patch.email);
   });
-  it("keeps the saved contact on a rejected write", async () => {
-    mocks.save.mockRejectedValue(new Error("denied"));
+  it("does not pin a recipient when only price changes", async () => {
     const h = setup();
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    expect(h.result.current.bids.cat[0]).toEqual(bid);
-    expect(h.result.current.saving).toBe(false);
+    const save = vi.fn().mockResolvedValue(undefined);
+    await act(async () => { await h.result.current.saveEditedBid({ ...bid, price: "200" }, bid, save); });
+    expect(save).toHaveBeenCalledWith(false);
+    act(() => h.result.current.setBids({ cat: [{ ...bid, email: "other-editor@example.com" }] }));
+    expect(h.result.current.inquiryBids.cat[0].email).toBe("other-editor@example.com");
+    expect(h.result.current.stateFor("bid")).toBeUndefined();
   });
-  it("rejects a contact from outside the card's supplier and a bid outside the category", async () => {
+  it("queues remembering a choice after the old form save but generates immediately", async () => {
     const h = setup();
-    await act(async () => {
-      await expect(h.result.current.selectRecipient("bid", "foreign")).rejects.toThrow();
-      await expect(h.result.current.selectRecipient("other-bid", "eva")).rejects.toThrow();
-    });
-    expect(mocks.save).not.toHaveBeenCalled();
-  });
-  it("blocks a second save and preserves concurrent price changes", async () => {
-    let finish!: (value: typeof patch) => void;
-    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
-    const h = setup();
-    let request!: Promise<void>;
-    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
-    expect(h.result.current.saving).toBe(true);
-    expect(h.result.current.bids.cat[0].email).toBe(bid.email);
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [{ ...bid, price: "200", status: "offer" }] })));
-    await act(async () => { finish(patch); await request; });
-    expect(h.result.current.bids.cat[0]).toEqual({ ...bid, ...patch, price: "200", status: "offer" });
-  });
-  it("does not update a new project's state when a previous save finishes", async () => {
-    let finish!: (value: typeof patch) => void;
-    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
-    const h = setup();
-    let request!: Promise<void>;
-    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
-    h.rerender({ projectId: "other-project", categoryId: "cat" });
-    await act(async () => { finish(patch); await request; });
-    expect(h.result.current.bids.cat[0]).toEqual(bid);
-  });
-  it("keeps the original scope locked after navigating away and back", async () => {
-    let finish!: (value: typeof patch) => void;
-    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
-    const h = setup();
-    let request!: Promise<void>;
-    await act(async () => { request = h.result.current.selectRecipient("bid", "eva"); });
-    h.rerender({ projectId: "other-project", categoryId: "other" });
-    h.rerender({ projectId: "project", categoryId: "cat" });
-    expect(h.result.current.saving).toBe(true);
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    expect(mocks.save).toHaveBeenCalledTimes(1);
-    await act(async () => { finish(patch); await request; });
-    expect(h.result.current.bids.cat[0].email).toBe(patch.email);
-  });
-
-  it("locks contact changes until a slow inquiry finishes, even across navigation", async () => {
     let finish!: () => void;
-    const h = setup();
-    let generation!: Promise<void>;
-    act(() => { generation = h.result.current.generateWithRecipientLock(() => new Promise<void>(resolve => { finish = resolve; })); });
-    h.rerender({ projectId: "other-project", categoryId: "other" });
-    h.rerender({ projectId: "project", categoryId: "cat" });
-    expect(h.result.current.generating).toBe(true);
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
+    let saving!: Promise<void>;
+    let choosing!: Promise<void>;
+    await act(async () => { saving = h.result.current.saveEditedBid({ ...bid, email: "form@example.com" }, bid,
+      () => new Promise<void>(resolve => { finish = resolve; })); });
+    await act(async () => { choosing = h.result.current.selectRecipient("bid", "eva"); });
+    await waitFor(() => expect(h.result.current.inquiryBids.cat[0].email).toBe(patch.email));
+    const generate = vi.fn().mockResolvedValue(undefined);
+    await act(async () => { await h.result.current.generateInquiry(h.result.current.inquiryBids.cat[0], generate); });
+    expect(generate).toHaveBeenCalledWith(expect.objectContaining({ email: patch.email }));
     expect(mocks.save).not.toHaveBeenCalled();
-    await act(async () => { finish(); await generation; });
-    expect(h.result.current.generating).toBe(false);
+    await act(async () => { finish(); await saving; await choosing; });
+    expect(mocks.save).toHaveBeenCalledOnce();
   });
-
-  it("keeps generation blocked for an unconfirmed card until that card is saved again", async () => {
+  it("prevents duplicate generation across remount without blocking other cards", async () => {
     const h = setup();
-    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    expect(h.result.current.unconfirmed).toBe(true);
-    const generate = vi.fn();
-    await act(async () => { await h.result.current.generateWithRecipientLock(generate); });
-    expect(generate).not.toHaveBeenCalled();
-    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [...prev.cat, { ...bid, id: "another" }] })));
-    await act(async () => { await h.result.current.selectRecipient("another", "eva"); });
-    expect(h.result.current.unconfirmed).toBe(true);
-    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
-    expect(h.result.current.unconfirmed).toBe(false);
-  });
-
-  it("keeps a pending write locked when the view is unmounted and remounted", async () => {
-    let finish!: (value: typeof patch) => void;
-    mocks.save.mockReturnValue(new Promise<typeof patch>(resolve => { finish = resolve; }));
-    const first = setup();
-    let request!: Promise<void>;
-    await act(async () => { request = first.result.current.selectRecipient("bid", "eva"); });
-    first.unmount();
-    const next = setup();
-    expect(next.result.current.saving).toBe(true);
-    await act(async () => { await expect(next.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    expect(mocks.save).toHaveBeenCalledTimes(1);
-    await act(async () => { finish(patch); await request; });
-    expect(next.result.current.saving).toBe(false);
-  });
-
-  it("does not block remaining cards after an unconfirmed card is removed", async () => {
-    const h = setup();
-    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "eva")).rejects.toThrow(); });
-    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [] })));
-    expect(h.result.current.unconfirmed).toBe(false);
-    // Restore and confirm the card to leave the shared operation store clean.
-    act(() => h.result.current.setBids(prev => ({ ...prev, cat: [bid] })));
-    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
-  });
-
-  it("reconfirms a stored manual recipient after an uncertain write with an empty directory", async () => {
-    const h = setup("user", []);
-    mocks.save.mockRejectedValueOnce(new RecipientSaveError(true));
-    await act(async () => { await expect(h.result.current.selectRecipient("bid", "saved-recipient")).rejects.toThrow(); });
-    expect(h.result.current.unconfirmed).toBe(true);
-    const stored = { contactPerson: bid.contactPerson, email: bid.email, phone: "" };
-    mocks.save.mockResolvedValue(stored);
-    await act(async () => { await h.result.current.selectRecipient("bid", "saved-recipient"); });
-    expect(mocks.save).toHaveBeenLastCalledWith("cat", bid, stored);
-    expect(h.result.current.unconfirmed).toBe(false);
-    expect(h.result.current.bids.cat[0].email).toBe(bid.email);
-  });
-
-  it("persists demo selection for reload without calling the server", async () => {
-    mocks.getDemoData.mockReturnValue({ projectDetails: { project: { bids: { cat: [bid] } } } });
-    const h = setup("demo");
-    await act(async () => { await h.result.current.selectRecipient("bid", "eva"); });
-    expect(mocks.save).not.toHaveBeenCalled();
-    expect(mocks.saveDemoData.mock.calls[0][0].projectDetails.project.bids.cat[0]).toEqual({ ...bid, ...patch });
+    let finish!: () => void;
+    let pending!: Promise<void>;
+    await act(async () => { pending = h.result.current.generateInquiry(bid, () => new Promise<void>(resolve => { finish = resolve; })); });
+    h.unmount();
+    const returned = setup("user", [supplier], h.client);
+    expect(returned.result.current.isGenerating("bid")).toBe(true);
+    const second = vi.fn().mockResolvedValue(undefined);
+    await act(async () => { await returned.result.current.generateInquiry(bid, second); });
+    expect(second).not.toHaveBeenCalled();
+    await act(async () => { await returned.result.current.generateInquiry({ ...bid, id: "another" }, second); });
+    expect(second).toHaveBeenCalledOnce();
+    await act(async () => { finish(); await pending; });
+    await act(async () => { await returned.result.current.generateInquiry(bid, second); });
+    expect(second).toHaveBeenCalledTimes(2);
   });
 });

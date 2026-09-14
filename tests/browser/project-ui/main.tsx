@@ -31,7 +31,7 @@ const queryClient = new QueryClient();
 
 function Fixture() {
   const [currentBids, setCurrentBids] = useState<Record<string, Bid[]>>(() => projectDemoDataApi.getDemoData()?.projectDetails[project.id].bids || { category: bids });
-  const { selectRecipient, saving } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo", updateBidsInternal: setCurrentBids });
+  const { selectRecipient, inquiryBids } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo" });
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
     { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
     { id: 'existing-contract', sourceBidId: 'unbroken', linkedBidIds: ['unbroken'], projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,
@@ -44,11 +44,10 @@ function Fixture() {
   return <div className="tf-app-main">
     <output id="fixture-action">{action}</output>
     <div className="tf-pipeline-view fixture-cards">
-      {Object.values(currentBids).flat().map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
+      {Object.values(inquiryBids).flat().map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
         <BidCard bid={bid}
           contacts={bid.id === "short" ? recipientSupplier.contacts : undefined}
           onSelectRecipient={bid.id === "short" ? selectRecipient : undefined}
-          recipientSaving={saving}
           onGenerateInquiry={selected => setAction(`inquiry:${selected.email}`)}
           onDragStart={() => setAction("drag")}
           onEdit={() => setAction("edit")} onDelete={() => setAction("delete")}

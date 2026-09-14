@@ -237,7 +237,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "pipeline",
     label: "Karta dodavatele",
     description: "Každá karta představuje jednoho subdodavatele a jeho nabídku. Přetahováním mezi sloupci měníte fázi.",
-    detail: "Akce na kartě: Přetažení = změna fáze. Dvojklik nebo tužka = editace (cena, poznámky, kontakt). Příjemce poptávky = výběr osoby daného dodavatele podle jména, role a e-mailu. Volba se ukládá jen pro tuto kartu VŘ a nemění hlavní kontakt firmy. Nová karta předvybere hlavní kontakt s platným e-mailem, případně jediný použitelný kontakt; jinak příjemce vyberte ručně. Kontakt bez platného e-mailu nelze vybrat. V úpravě karty lze adresu zadat ručně. Generovat poptávku připraví e-mailový koncept; zprávu odešlete ve svém poštovním programu. Již otevřený koncept se změnou příjemce na kartě neupraví. Hromadné e-maily respektují uložené příjemce karet a před vytvořením konceptu zobrazí rekapitulaci.",
+    detail: "Akce na kartě: Přetažení = změna fáze. Dvojklik nebo tužka = editace (cena, poznámky, kontakt). Příjemce poptávky = výběr osoby daného dodavatele podle jména, role a e-mailu. Zvolený kontakt se použije ihned pro příští koncept; jeho zapamatování na kartě probíhá nezávisle a nemění hlavní kontakt firmy. Nová karta předvybere hlavní kontakt s platným e-mailem, případně jediný použitelný kontakt; jinak příjemce vyberte ručně. Kontakt bez platného e-mailu nelze vybrat. V úpravě karty lze adresu zadat ručně. Generovat poptávku připraví e-mailový koncept; zprávu odešlete ve svém poštovním programu. Již otevřený koncept se změnou příjemce na kartě neupraví. Hromadná poptávka použije příjemce z otevřené rekapitulace. Pozdější změny kontaktu už tento koncept neovlivní.",
     category: "info",
     tourOrder: 10,
   },

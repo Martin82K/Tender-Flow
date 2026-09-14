@@ -365,7 +365,8 @@ export const usePipelineCommunicationActions = ({
     kind: PipelineInquiryGenerationKind,
   ) => {
     if (!activeCategory) return;
-    if (!isValidEmailAddress(bid.email || "")) {
+    const recipientSnapshot = { ...bid };
+    if (!isValidEmailAddress(recipientSnapshot.email || "")) {
       showAlert({ title: "Chybí příjemce", message: "Vyberte na kartě kontakt s platným e-mailem.", variant: "info" });
       return;
     }
@@ -383,7 +384,7 @@ export const usePipelineCommunicationActions = ({
       const attachments = await loadInquiryAttachments();
 
       if (platformAdapter.isDesktop) {
-        const emlContent = generateEmlContent(bid.email || "", draft.subject, draft.body, {
+        const emlContent = generateEmlContent(recipientSnapshot.email || "", draft.subject, draft.body, {
           attachments,
         });
         const filename =
@@ -393,17 +394,17 @@ export const usePipelineCommunicationActions = ({
         console.log("[Pipeline] Opening EML on desktop:", filename);
         await platformAdapter.shell.openTempFile(emlContent, filename);
       } else {
-        downloadEmlFile(bid.email || "", draft.subject, draft.body);
+        downloadEmlFile(recipientSnapshot.email || "", draft.subject, draft.body);
       }
-      await persistSentStatusForBid(bid.id);
+      await persistSentStatusForBid(recipientSnapshot.id);
       return;
     }
 
-    const mailtoLink = createMailtoLink(bid.email || "", draft.subject, draft.body);
+    const mailtoLink = createMailtoLink(recipientSnapshot.email || "", draft.subject, draft.body);
     console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
     platformAdapter.shell.openExternal(mailtoLink);
 
-    await persistSentStatusForBid(bid.id);
+    await persistSentStatusForBid(recipientSnapshot.id);
   };
 
   const handleGenerateInquiry = async (bid: Bid) => {
@@ -429,6 +430,7 @@ export const usePipelineCommunicationActions = ({
 
   const handleGenerateBulkInquiry = async (
     kind: PipelineInquiryGenerationKind,
+    recipientSnapshot?: Bid[],
   ) => {
     if (!activeCategory) return false;
 
@@ -436,7 +438,7 @@ export const usePipelineCommunicationActions = ({
     if (!userEmail) return false;
 
     const selection = selectBulkInquiryRecipients(
-      bids[activeCategory.id] || [],
+      (recipientSnapshot || bids[activeCategory.id] || []).map(bid => ({ ...bid })),
     );
     if (selection.candidateBids.length === 0) {
       showAlert({

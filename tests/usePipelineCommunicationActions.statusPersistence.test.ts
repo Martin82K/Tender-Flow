@@ -119,6 +119,32 @@ describe("usePipelineCommunicationActions status persistence", () => {
     mockUpdateBidStatusInMemory.mockImplementation((prev) => prev);
   });
 
+  it.each(["inquiry", "materialInquiry"] as const)("freezes the %s recipient before loading the template", async kind => {
+    const category = createCategory();
+    const bid = createBid();
+    let finish!: (value: { subject: string; content: string }) => void;
+    mockGetDefaultTemplate.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const actions = usePipelineCommunicationActions({ activeCategory: category, bids: { [category.id]: [bid] }, projectId: "project-1",
+      projectDetails: createProjectDetails(), updateBidsInternal: vi.fn(), showAlert: vi.fn(), runDocHubFallbackForCategory: vi.fn() });
+    const generating = kind === "inquiry" ? actions.handleGenerateInquiry(bid) : actions.handleGenerateMaterialInquiry(bid);
+    bid.email = "next@example.com";
+    await vi.waitFor(() => expect(finish).toBeDefined());
+    finish({ subject: "Poptávka", content: "Obsah" });
+    await generating;
+    expect(mockCreateMailtoLink).toHaveBeenCalledWith("acme@example.com", expect.any(String), expect.any(String));
+  });
+
+  it("uses the recipients from the bulk recap despite later card changes", async () => {
+    const category = createCategory();
+    const bid = createBid();
+    const snapshot = [{ ...bid }];
+    bid.email = "changed-after-recap@example.com";
+    const actions = usePipelineCommunicationActions({ activeCategory: category, bids: { [category.id]: [bid] }, projectId: "project-1",
+      currentUser: { id: "sender", name: "Odesílatel", email: "sender@example.com", role: "user" }, projectDetails: createProjectDetails(), updateBidsInternal: vi.fn(), showAlert: vi.fn(), runDocHubFallbackForCategory: vi.fn() });
+    await actions.handleGenerateBulkInquiry("inquiry", snapshot);
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith("sender@example.com", expect.any(String), expect.any(String), expect.objectContaining({ bcc: expect.stringContaining("acme@example.com") }));
+  });
+
   it.each(["", "-", "not-an-email", "a@example.com,b@example.com"])("does not generate or change status for invalid recipient %s", async email => {
     const activeCategory = createCategory();
     const bid = { ...createBid(), email };

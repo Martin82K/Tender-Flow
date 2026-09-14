@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "@shared/routing/router";
 import { parseAppRoute } from "@shared/routing/routeUtils";
 import { Header } from "@shared/ui/Header";
@@ -218,9 +218,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
     },
   });
 
-  const { selectRecipient, saving: recipientSaving, generating: inquiryGenerating, unconfirmed: recipientUnconfirmed, unconfirmedBidIds, generateWithRecipientLock, saveWithRecipientLock } = usePipelineRecipientSelection({
+  const { selectRecipient, inquiryBids, saveEditedBid, generateInquiry, stateFor, isGenerating } = usePipelineRecipientSelection({
     projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
-    userRole: user?.role, updateBidsInternal,
+    userRole: user?.role, userId: user?.id, organizationId: user?.organizationId,
   });
 
   // Edit Bid State
@@ -243,7 +243,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     isDocHubEnabled,
     docHubRoot,
     runDocHubFallbackForCategory,
-    onCloseEditBid: () => setEditingBid(null),
   });
 
   const {
@@ -267,6 +266,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [bulkEmailKind, setBulkEmailKind] =
     useState<PipelineBulkEmailKind | null>(null);
   const [isBulkEmailSubmitting, setIsBulkEmailSubmitting] = useState(false);
+  const bulkSubmitting = useRef<symbol | null>(null);
+  const [bulkInquirySnapshot, setBulkInquirySnapshot] = useState<{ projectId: string; categoryId: string; bids: Bid[] } | null>(null);
+  useEffect(() => {
+    bulkSubmitting.current = null;
+    setIsBulkEmailSubmitting(false);
+    setBulkEmailKind(null);
+    setBulkInquirySnapshot(null);
+  }, [projectId, activeCategory?.id]);
   const {
     handleGenerateInquiry,
     handleGenerateMaterialInquiry,
@@ -302,7 +309,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
-    const categoryBids = bids[activeCategory.id] || [];
+    const categoryBids = (kind === "losers" || kind === "informationUpdate" ? bids : inquiryBids)[activeCategory.id] || [];
     const selection =
       kind === "losers"
         ? selectLoserEmailRecipients(categoryBids)
@@ -338,11 +345,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
+    setBulkInquirySnapshot({ projectId, categoryId: activeCategory.id, bids: categoryBids.map(bid => ({ ...bid })) });
     setBulkEmailKind(kind);
   };
 
   const confirmBulkEmail = async () => {
-    if (!bulkEmailKind) return;
+    if (!bulkEmailKind || bulkSubmitting.current || !bulkInquirySnapshot
+      || bulkInquirySnapshot.projectId !== projectId || bulkInquirySnapshot.categoryId !== activeCategory?.id) return;
+    const submission = Symbol();
+    bulkSubmitting.current = submission;
 
     setIsBulkEmailSubmitting(true);
     try {
@@ -351,12 +362,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
           ? await handleEmailLosers()
           : bulkEmailKind === "informationUpdate"
             ? await handleGenerateInformationUpdate()
-          : await handleGenerateBulkInquiry(bulkEmailKind);
-      if (wasCreated) {
+          : await handleGenerateBulkInquiry(bulkEmailKind, bulkInquirySnapshot.bids);
+      if (wasCreated && bulkSubmitting.current === submission) {
         setBulkEmailKind(null);
       }
     } finally {
-      setIsBulkEmailSubmitting(false);
+      if (bulkSubmitting.current === submission) {
+        bulkSubmitting.current = null;
+        setIsBulkEmailSubmitting(false);
+      }
     }
   };
   const { handleOpenSupplierDocHub, handleOpenTenderDocHub } =
@@ -396,17 +410,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   if (activeCategory) {
-    const categoryBids = bids[activeCategory.id] || [];
+    const categoryBids = inquiryBids[activeCategory.id] || [];
     const bulkInquirySelection = selectBulkInquiryRecipients(categoryBids);
     const informationUpdateSelection =
-      selectInformationUpdateRecipients(categoryBids);
-    const loserEmailSelection = selectLoserEmailRecipients(categoryBids);
+      selectInformationUpdateRecipients(bids[activeCategory.id] || []);
+    const loserEmailSelection = selectLoserEmailRecipients(bids[activeCategory.id] || []);
     const selectedBulkEmailSelection =
       bulkEmailKind === "losers"
         ? loserEmailSelection
         : bulkEmailKind === "informationUpdate"
           ? informationUpdateSelection
-          : bulkInquirySelection;
+          : selectBulkInquiryRecipients(bulkInquirySnapshot?.bids || categoryBids);
     const currentUserEmail = normalizeEmailAddress(user?.email || "");
 
     // --- DETAIL VIEW (PIPELINE) ---
@@ -430,13 +444,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
               onCategoryNavigate?.(null);
             }}
             onAddSubcontractor={() => setIsSubcontractorModalOpen(true)}
-            onSelectBulkEmail={kind => {
-              if (recipientSaving || inquiryGenerating || recipientUnconfirmed) {
-                showAlert({ title: "Příjemce není připraven", message: recipientUnconfirmed ? "Na označené kartě zopakujte výběr příjemce." : "Počkejte na dokončení ukládání nebo přípravy konceptu.", variant: "info" });
-                return;
-              }
-              openBulkEmailConfirmation(kind);
-            }}
+            onSelectBulkEmail={openBulkEmailConfirmation}
             onOpenDocHub={handleOpenTenderDocHub}
             onExport={handleExport}
           />
@@ -459,10 +467,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           key={`${projectId}:${activeCategory.id}`}
           contacts={localContacts}
           onSelectRecipient={selectRecipient}
-          recipientSaving={recipientSaving}
-          inquiryGenerating={inquiryGenerating}
-          unconfirmedBidIds={unconfirmedBidIds}
-          generationBlocked={recipientUnconfirmed}
+          recipientStateFor={stateFor}
+          isInquiryGenerating={isGenerating}
           projectId={projectId}
           highlightedBidId={highlightedBidId}
           onLinkContract={onLinkContract}
@@ -477,8 +483,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onEditBid={setEditingBid}
           onDeleteBidRequest={handleDeleteBidRequest}
           onDeleteBid={handleDeleteBid}
-          onGenerateInquiry={bid => generateWithRecipientLock(() => handleGenerateInquiry(bid))}
-          onGenerateMaterialInquiry={bid => generateWithRecipientLock(() => handleGenerateMaterialInquiry(bid))}
+          onGenerateInquiry={bid => generateInquiry(bid, handleGenerateInquiry)}
+          onGenerateMaterialInquiry={bid => generateInquiry(bid, handleGenerateMaterialInquiry)}
           onOpenSupplierDocHub={handleOpenSupplierDocHub}
           onToggleContracted={handleToggleContracted}
           onOpenContract={onOpenContract}
@@ -521,7 +527,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
           <EditBidModal
             bid={editingBid}
             onClose={() => setEditingBid(null)}
-            onSave={bid => saveWithRecipientLock(() => handleSaveBid(bid))}
+            onSave={bid => {
+              const original = editingBid;
+              setEditingBid(null);
+              void saveEditedBid(bid, original, includeRecipient => handleSaveBid(bid, includeRecipient)).catch(() => {
+                showAlert({ title: "Kartu se nepodařilo uložit", message: "Zkontrolujte připojení a zkuste uložení znovu. Vybraný příjemce pro koncept zůstává zachovaný.", variant: "danger" });
+              });
+            }}
           />
         )}
 
@@ -533,7 +545,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           userEmail={currentUserEmail}
           selection={selectedBulkEmailSelection}
           isSubmitting={isBulkEmailSubmitting}
-          onConfirm={() => generateWithRecipientLock(confirmBulkEmail)}
+          onConfirm={confirmBulkEmail}
           onCancel={() => setBulkEmailKind(null)}
         />
       </div>

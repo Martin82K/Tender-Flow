@@ -1,60 +1,30 @@
-# Příjemce poptávky na kartě VŘ
+# Příjemce konkrétní poptávky
 
-Karta dodavatele používá `Bid.contactPerson`, `email` a `phone` jako uložený
-kontakt pro konkrétní VŘ. Výběr v `BidRecipientPicker` nabízí pouze osoby
-subdodavatele této karty. Existující uložená nebo ručně zadaná adresa zůstává
-zachovaná i při změně adresáře. Výběr nemění adresář ani pořadí hlavních kontaktů.
+Na kartě subdodavatele ve VŘ je rozbalovací výběr kontaktu (jméno, role, e-mail). Výběr se okamžitě použije pro příští generování. Nepřidává se potvrzovací dialog. Hlavní nebo jediný použitelný kontakt se předvybírá při vytvoření karty; bez platného e-mailu nelze z dané karty generovat.
 
-Nové karty použijí hlavní osobu (první v adresáři), má-li platný e-mail. Jinak
-se použije jediná osoba s platnou adresou. Při více možnostech nebo bez adresy
-zůstane e-mail prázdný a uživatel musí vybrat příjemce či zadat adresu v editaci.
-Obecná adresa může být běžnou kontaktní položkou; nemá zvláštní prioritu.
+## Oddělení volby a uložené karty
 
-## Ukládání a oprávnění
+`usePipelineRecipientSelection` drží explicitně vybraného příjemce odděleně od načtených údajů karty, v paměti relace (React Query cache), v rozsahu uživatele, organizace, projektu, VŘ, karty a dodavatele. Volba i stav zapamatování přežijí odmontování obrazovky při navigaci. `inquiryBids` skládá aktuální ostatní údaje s touto volbou. Refetch či pomalé uložení celé karty tak nepřepíše adresáta připravované poptávky. Ostatní karty se neblokují.
 
-`usePipelineRecipientSelection` kontroluje příslušnost karty k aktivnímu VŘ a
-osoby k dodavateli. API aktualizuje pouze tři kontaktní sloupce; filtruje podle
-ID karty, VŘ a dodavatele. Zápis používá běžnou Supabase session a stávající RLS
-pro vlastníka projektu nebo sdílení s právem editace. Nemění schéma, granty ani
-RLS. Úspěch vyžaduje vrácený řádek; nulový počet změněných řádků není úspěch.
+Zapamatování kontaktu na kartě zůstává doplňkový zápis na pozadí. Používá stávající RLS rozsah, CAS přes přesnou serverovou hodnotu `updated_at`, časové limity a následné autoritativní načtení. Nezasahuje do globálního adresáře. Selhání zapamatování se zobrazí u menu; zvolený adresát zůstane v aktuální relaci použitelný. Po úplném obnovení stránky se načte skutečně uložená hodnota. Pozdní odpověď starší volby nepřepíše novější lokální výběr. Demo režim zapisuje pouze lokální demo data.
 
-Po dobu zápisu je výběr a generování blokováno. Zámek pro projekt/VŘ žije mimo
-komponentu až do dokončení požadavku, takže odchod, návrat ani nové připojení
-komponenty nepovolí druhý souběžný zápis. Stejný zámek chrání příjemce během
-načítání šablony a příloh pro koncept. Lokální karta se změní až po
-potvrzeném zápisu. Jednoznačně odmítnutý zápis zachová původní kontakt.
-Po úspěšné i nejednoznačné odpovědi zápisu API načte stejný řádek pod stejným RLS
-rozsahem a rozpozná i zápis, jehož odpověď se ztratila, nebo novější volbu jiného editora. Pokud ověření selže
-nebo vrátí jiný kontakt, označí konkrétní kartu za neověřenou a generování
-ve VŘ zablokuje. Nový úspěšný výběr na jiné kartě blokaci nezruší; musí se
-znovu potvrdit právě neověřená karta. Položku „uložený příjemce“ lze znovu
-potvrdit i bez kontaktu v adresáři; používá se uložené jméno, e-mail a telefon
-této karty, nikoli libovolná hodnota z volání UI. Odstraněné karty neblokují zbývající VŘ. Dostupný výsledek čtení se zobrazí,
-aniž by se vydával za potvrzení požadované změny. Potvrzená
-kontaktní pole se sloučí do aktuálních dat, aby se nepřepsala souběžná cena nebo
-stav. Odpověď po přechodu do jiného projektu nesmí měnit jeho karty. Demo ukládá
-stejná pole lokálně, bez síťového zápisu.
+## Pevný adresát konceptu
 
-## Generování a provozní ověření
+Při kliknutí na generování se příjemce kopíruje do konkrétní operace před prvním asynchronním načítáním šablony nebo příloh. Standardní i materiálová poptávka proto používají tehdejší adresu. Pozdější změna kontaktu nebo editace karty může pokračovat a platí až pro další generování. Současně je blokováno pouze opakované generování stejné karty během přípravy, i po odmontování karty nebo záložky.
 
-Standardní i materiálový koncept čte uložený `bid.email` a ověřuje jednu platnou
-adresu. Hromadné koncepty používají stejná pole; rekapitulace obsahuje firmu,
-osobu a e-mail. Zůstává deduplikace a skrytá kopie BCC. Karty bez platné adresy
-se v hromadné rekapitulaci zobrazí jako vynechané, stejně jako dříve.
+Hromadná poptávka používá kopii karet z otevřené rekapitulace. Pozdější aktualizace karet nemění adresáty tohoto konceptu. Rekapitulace uvádí firmy, osoby, e-maily a přeskočené karty bez platného e-mailu. BCC a deduplikace adres zůstávají zachovány. Přechod na jiné VŘ nebo projekt rekapitulaci zavře.
 
-Volba platí pro další koncepty a kola. Již otevřené EML/mailto koncepty aplikace
-neupravuje. Dosavadní přesun do fáze Odesláno při generování je zachován;
-nejde o potvrzení skutečného odeslání poštovním klientem. Nový audit odesílání
-ani historii zpráv tato změna nezavádí.
+Aplikace připravuje EML/mailto; existující změna stavu na `sent` po vytvoření konceptu zůstává zachována. Nejde o potvrzení skutečného odeslání e-mailu. Již otevřený koncept ani odeslaný e-mail se změnou karty neupravují. Nepřidává se nová historie, migrace ani agenda odesílání.
 
-Ruční kontrola: na kartě vybrat jinou osobu, obnovit projekt, zkontrolovat
-rekapitulaci hromadného e-mailu a adresáta konceptu v poštovním klientu.
-Při odebraném právu editace nebo výpadku připojení se musí zobrazit chyba
-uložení; nesmí dojít ke zdánlivému přepnutí kontaktu. Automatické testy pokrývají
-výchozí výběr, chyby uložení, rozsah zápisu, ruční kontakt a návaznost na BCC.
+## Ověření
 
-Uložení celého formuláře karty sdílí zámek s výběrem příjemce a generováním. Zámek trvá až do dokončení zápisu i po zavření dialogu a navigaci, aby opožděný zápis formuláře nepřepsal novou volbu z menu.
+- Pomalé nebo neúspěšné zapamatování kontaktu neblokuje generování ani jiné karty.
+- Výběr kontaktu zůstává dostupný během načítání šablony; běžící koncept používá původní adresu.
+- Hromadný koncept odpovídá příjemcům z rekapitulace i po následné změně karty.
+- Karta bez platného e-mailu neumožní generovat; neplatné kontakty jsou v menu neaktivní.
+- Volby se nepřenášejí mezi projekty, VŘ nebo dodavateli. Ruční příjemce mimo adresář zůstává použitelný.
+- UI testy ověřují desktop, mobil, klávesnici, více témat a demo persistence po obnovení.
 
-Zápis příjemce používá optimistickou kontrolu verze (`updated_at`): nejprve načte kartu pod původním RLS rozsahem, potom UPDATE omezí přesnou načtenou hodnotou (bez převodu přes JavaScript Date). Existující trigger `bids_set_updated_at` změní verzi při každém zápisu. Starší řádky s NULL používají `IS NULL`. Chybějící nebo nedostupná verze zápis zastaví. Při kolizi se zápis automaticky neopakuje. Díky tomu ani dosud běžící požadavek po timeoutu nepřepíše novější potvrzenou volbu; následné načtení nadále ověřuje zvoleného příjemce. Schéma a oprávnění se nemění.
+Ruční kontrola: vybrat kontakt, generovat poptávku, během přípravy vybrat jiný kontakt. První koncept musí obsahovat první adresu, další koncept druhou. Totéž ověřit při otevřené hromadné rekapitulaci. Skutečné odeslání není součástí automatických testů.
 
-Také kolize verze (PGRST116 / nulový výsledek UPDATE) vede k autoritativnímu načtení. Liší-li se kontakt nebo načtení selže, karta zůstane neověřená a generování je blokované.
+Zápisy jedné karty jsou řazeny za sebe podle klíče uživatele, organizace, projektu, VŘ a karty. Fronta nikdy neblokuje místní výběr ani generování; při nedokončeném síťovém zápisu pouze čeká doplňkové zapamatování. Uložení dialogu připne nového příjemce jen při skutečné změně kontaktních polí proti otevřenému formuláři. Při změně ceny nebo poznámky nejsou kontaktní pole součástí UPDATE a v demo/lokálním stavu zůstanou aktuální hodnoty.
