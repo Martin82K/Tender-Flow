@@ -31,6 +31,6 @@ Zápisy jedné karty jsou řazeny za sebe podle klíče uživatele, organizace, 
 
 ## Zobrazení příjemce na kartě
 
-Jméno, e-mail a telefon tvoří společný blok pod názvem dodavatele. Změna příjemce přenáší všechna tři pole; chybějící telefon nepřebírá číslo předchozí osoby. Jediný příjemce nemá rozbalovací menu, více příjemců používá přístupný ThemedSelect s jednotlivými údaji na samostatných řádcích. Typ kontaktu a odkaz na editaci se v tomto bloku nevykreslují. Editace celé karty zůstává dostupná přes tužku nebo dvojklik.
+Jméno, e-mail a telefon tvoří společný blok pod názvem dodavatele. Změna příjemce přenáší všechna tři pole; chybějící telefon nepřebírá číslo předchozí osoby. Jediný příjemce nemá rozbalovací menu, více příjemců používá přístupný ThemedSelect s jednotlivými údaji na samostatných řádcích. Zavřený výběr nemá rámeček ani trvalé podbarvení; šipka, hover a klávesnicový fokus signalizují možnost změny. Otevřené menu zůstává ohraničené. Typ kontaktu a odkaz na editaci se v tomto bloku nevykreslují. Editace celé karty zůstává dostupná přes tužku nebo dvojklik.
 
 Ručně uložený příjemce se zachová jako samostatná možnost, pokud se liší od adresáře včetně telefonu. Pokud starší karta nemá platného příjemce a adresář nabízí jediný platný kontakt, lze jej výslovně použít tlačítkem bez menu. Kontakty bez platného e-mailu jsou nadále nedostupné pro generování; vyhledávání se nabízí až při více než šesti možnostech.

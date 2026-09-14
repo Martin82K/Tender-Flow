@@ -59,7 +59,7 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, r
       <span className="font-medium text-slate-500 dark:text-slate-400">Příjemce poptávky</span>
       {recipients.length > 1 ? (
         <ThemedSelect ariaLabel="Příjemce poptávky" searchable={recipients.length > 6} wrapOptions
-          className="min-w-0 w-full" triggerClassName="!px-3 !py-2.5 [&>span:first-child]:whitespace-normal"
+          className="tf-bid-recipient-select min-w-0 w-full" triggerClassName="!px-0 !py-1 [&>span:first-child]:whitespace-normal"
           disabled={disabled} value={valid ? selected?.id || "saved-recipient" : ""}
           options={valid ? options : [{ value: "", label: "Vyberte příjemce", disabled: true }, ...options]}
           renderOption={option => {
