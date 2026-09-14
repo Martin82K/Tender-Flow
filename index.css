@@ -4924,6 +4924,24 @@ html[data-skin] .tf-themed-select-trigger:focus-visible {
   outline-offset: 1px;
 }
 
+/* Recipient details remain part of the card; only the open menu is framed. */
+.tf-bid-recipient-select .tf-themed-select-trigger,
+html[data-skin] .tf-bid-recipient-select .tf-themed-select-trigger {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.tf-bid-recipient-select .tf-themed-select-trigger:is(:hover, [aria-expanded="true"]),
+html[data-skin] .tf-bid-recipient-select .tf-themed-select-trigger:is(:hover, [aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--tf-skin-text) 5%, transparent) !important;
+}
+
+.tf-bid-recipient-select .tf-themed-select-trigger:focus-visible {
+  outline: 3px solid var(--tf-skin-accent);
+  outline-offset: 2px;
+}
+
 html[data-skin] .tf-themed-select-popover {
   background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
