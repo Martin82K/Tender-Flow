@@ -4,12 +4,17 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { BidRecipientPicker } from "./BidRecipientPicker";
+import { isValidEmailAddress } from "@features/projects/model/pipelineEmailModel";
 
-import type { Bid } from "@/types";
+import type { Bid, ContactPerson } from "@/types";
 
 export interface BidCardProps {
   bid: Bid;
+  contacts?: ContactPerson[];
+  onSelectRecipient?: (bidId: string, contactId: string) => Promise<void>;
+  recipientSaving?: boolean;
   onClick?: () => void;
   onDoubleClick?: (bid: Bid) => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
@@ -26,6 +31,9 @@ export interface BidCardProps {
 
 export const BidCard: React.FC<BidCardProps> = ({
   bid,
+  contacts = [],
+  onSelectRecipient,
+  recipientSaving = false,
   onClick,
   onDoubleClick,
   onDragStart,
@@ -39,6 +47,9 @@ export const BidCard: React.FC<BidCardProps> = ({
   priceDisplayMode = "badge",
   "data-help-id": dataHelpId,
 }) => {
+  const [savingRecipient, setSavingRecipient] = useState(false);
+  const busy = savingRecipient || recipientSaving;
+  const canGenerate = !busy && isValidEmailAddress(bid.email || "");
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!highlighted) return;
@@ -63,10 +74,10 @@ export const BidCard: React.FC<BidCardProps> = ({
       tabIndex={highlighted ? -1 : undefined}
       aria-label={highlighted ? `Karta dodavatele ${bid.companyName}` : undefined}
       data-help-id={dataHelpId}
-      draggable
+      draggable={!busy}
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
-      onDoubleClick={() => onDoubleClick?.(bid)}
+      onDoubleClick={() => { if (!busy) onDoubleClick?.(bid); }}
       className="tf-kanban-bid-card data-[contract-source=true]:ring-2 data-[contract-source=true]:ring-primary bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
@@ -89,6 +100,7 @@ export const BidCard: React.FC<BidCardProps> = ({
             </button>
           )}
           <button
+            disabled={busy}
             onClick={(e) => {
               e.stopPropagation();
               onEdit(bid);
@@ -132,17 +144,17 @@ export const BidCard: React.FC<BidCardProps> = ({
       )}
 
       <div className="flex flex-col gap-1.5 mb-3">
-        <div className="flex items-center gap-2 text-slate-400 text-xs">
+        {!onSelectRecipient && <div className="flex items-center gap-2 text-slate-400 text-xs">
           <span className="material-symbols-outlined text-[14px]">person</span>
           {bid.contactPerson}
-        </div>
+        </div>}
         {bid.phone && (
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <span className="material-symbols-outlined text-[14px]">call</span>
             {bid.phone}
           </div>
         )}
-        {bid.email && (
+        {!onSelectRecipient && bid.email && (
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <span className="material-symbols-outlined text-[14px]">mail</span>
             {bid.email}
@@ -191,14 +203,18 @@ export const BidCard: React.FC<BidCardProps> = ({
       )}
 
       {/* Generate Inquiry Button */}
-      {bid.status === "contacted" && onGenerateInquiry && bid.email && (
+      {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={busy}
+        onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
+      {busy && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
+      {bid.status === "contacted" && onGenerateInquiry && (
         <div className="mt-3 flex flex-col gap-2">
           <button
+            disabled={!canGenerate}
             onClick={(e) => {
               e.stopPropagation();
               onGenerateInquiry(bid);
             }}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             title="Generovat email s poptávkou"
           >
             <span className="material-symbols-outlined text-[16px]">mail</span>
@@ -207,11 +223,12 @@ export const BidCard: React.FC<BidCardProps> = ({
 
           {onGenerateMaterialInquiry && (
             <button
+              disabled={!canGenerate}
               onClick={(e) => {
                 e.stopPropagation();
                 onGenerateMaterialInquiry(bid);
               }}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               title="Generovat email s materiálovou poptávkou"
             >
               <span className="material-symbols-outlined text-[16px]">inventory_2</span>

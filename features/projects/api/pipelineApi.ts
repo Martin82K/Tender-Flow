@@ -2,6 +2,8 @@ import { pipelineRepository, type BidInsertPayload, type PersistedBidRow } from 
 import { notifyProjectBidsPersisted } from "@features/projects/model/projectBidEvents";
 import type { Bid, BidStatus, Subcontractor } from "@/types";
 import { toSubcontractorPersistencePayload } from "@features/contacts/model/contactPersistence";
+import type { BidRecipient } from "@features/projects/model/pipelineRecipientModel";
+import { isValidEmailAddress } from "@features/projects/model/pipelineEmailModel";
 
 const persistBidChange = async <Response extends { error: unknown }>(request: PromiseLike<Response>): Promise<Response> => {
   const response = await request;
@@ -36,6 +38,17 @@ export const updateBidStatus = async (bidId: string, status: BidStatus) => {
 
 export const updateBidContracted = async (bidId: string, contracted: boolean) => {
   return persistBidChange(pipelineRepository.updateBidContracted(bidId, contracted));
+};
+
+export const updateBidRecipient = async (categoryId: string, bid: Bid, recipient: BidRecipient): Promise<BidRecipient> => {
+  const email = recipient.email?.trim() || "";
+  if (!isValidEmailAddress(email)) throw new Error("Kontakt nemá platný e-mail.");
+  const { data, error } = await pipelineRepository.updateBidRecipient(categoryId, bid.id, bid.subcontractorId, {
+    contact_person: recipient.contactPerson, email, phone: recipient.phone || "",
+  });
+  if (error || !data || data.id !== bid.id) throw new Error("Uložení příjemce se nepodařilo ověřit.");
+  notifyProjectBidsPersisted();
+  return { contactPerson: data.contact_person, email: data.email, phone: data.phone };
 };
 
 export interface InsertBidsResult {

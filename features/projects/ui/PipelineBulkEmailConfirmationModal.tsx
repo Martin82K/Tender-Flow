@@ -118,10 +118,10 @@ export const PipelineBulkEmailConfirmationModal: React.FC<
           </p>
           <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-slate-200">
             {selection.recipientBids.map((bid) => (
-              <li key={bid.id} className="flex justify-between gap-3">
-                <span className="truncate">{bid.companyName}</span>
-                <span className="truncate text-slate-500 dark:text-slate-400">
-                  {bid.email}
+              <li key={bid.id} className="flex min-w-0 flex-col gap-0.5 py-1">
+                <span className="[overflow-wrap:anywhere] font-medium">{bid.companyName}</span>
+                <span className="[overflow-wrap:anywhere] text-slate-500 dark:text-slate-400">
+                  {bid.contactPerson} · {bid.email}
                 </span>
               </li>
             ))}

@@ -25,6 +25,7 @@ import { usePipelineDocHubFallback } from "@/features/projects/model/usePipeline
 import { usePipelineCategoryForms } from "@/features/projects/model/usePipelineCategoryForms";
 import { usePipelineContactsController } from "@/features/projects/model/usePipelineContactsController";
 import { usePipelineSubcontractorSelection } from "@/features/projects/model/usePipelineSubcontractorSelection";
+import { usePipelineRecipientSelection } from "@features/projects/model/usePipelineRecipientSelection";
 import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
@@ -215,6 +216,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     onContactSaved: (contact) => {
       setSelectedSubcontractorIds((prev) => new Set(prev).add(contact.id));
     },
+  });
+
+  const { selectRecipient, saving: recipientSaving } = usePipelineRecipientSelection({
+    projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
+    userRole: user?.role, updateBidsInternal,
   });
 
   // Edit Bid State
@@ -424,7 +430,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
               onCategoryNavigate?.(null);
             }}
             onAddSubcontractor={() => setIsSubcontractorModalOpen(true)}
-            onSelectBulkEmail={openBulkEmailConfirmation}
+            onSelectBulkEmail={kind => {
+              if (recipientSaving) {
+                showAlert({ title: "Ukládám příjemce", message: "Počkejte na dokončení výběru kontaktu.", variant: "info" });
+                return;
+              }
+              openBulkEmailConfirmation(kind);
+            }}
             onOpenDocHub={handleOpenTenderDocHub}
             onExport={handleExport}
           />
@@ -444,6 +456,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
         />
 
         <PipelineKanbanBoard
+          key={`${projectId}:${activeCategory.id}`}
+          contacts={localContacts}
+          onSelectRecipient={selectRecipient}
+          recipientSaving={recipientSaving}
           projectId={projectId}
           highlightedBidId={highlightedBidId}
           onLinkContract={onLinkContract}

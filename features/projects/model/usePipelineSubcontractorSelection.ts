@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
 import { mergeConfirmedBids, toPipelineBid } from "./pipelineBidPersistence";
+import { defaultBidRecipient } from "./pipelineRecipientModel";
 import type { Bid, DemandCategory, DocHubStructureV1, ProjectDetails, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
@@ -129,9 +130,7 @@ export const usePipelineSubcontractorSelection = ({
         id: crypto.randomUUID(),
         subcontractorId: contact.id,
         companyName: contact.company,
-        contactPerson: contact.contacts[0]?.name || "-",
-        email: contact.contacts[0]?.email || "-",
-        phone: contact.contacts[0]?.phone || "-",
+        ...defaultBidRecipient(contact.contacts),
         price: "?", status: "contacted", tags: [],
       }));
 
