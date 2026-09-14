@@ -157,12 +157,15 @@ export const BidCard: React.FC<BidCardProps> = ({
         </div>
       )}
 
+      {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={false}
+        rememberError={recipientSaveError} onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} />}
+
       <div className="flex flex-col gap-1.5 mb-3">
         {!onSelectRecipient && <div className="flex items-center gap-2 text-slate-400 text-xs">
           <span className="material-symbols-outlined text-[14px]">person</span>
           {bid.contactPerson}
         </div>}
-        {bid.phone && (
+        {!onSelectRecipient && bid.phone && (
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <span className="material-symbols-outlined text-[14px]">call</span>
             {bid.phone}
@@ -217,8 +220,6 @@ export const BidCard: React.FC<BidCardProps> = ({
       )}
 
       {/* Generate Inquiry Button */}
-      {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={false}
-        rememberError={recipientSaveError} onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
       {(savingRecipient || recipientSaving) && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
       {(generating || inquiryGenerating) && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
       {generationError && <span role="alert" className="text-xs text-red-600 dark:text-red-400">Koncept se nepodařilo připravit. Zkuste to znovu.</span>}

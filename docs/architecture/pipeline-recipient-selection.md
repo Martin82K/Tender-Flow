@@ -1,6 +1,6 @@
 # Příjemce konkrétní poptávky
 
-Na kartě subdodavatele ve VŘ je rozbalovací výběr kontaktu (jméno, role, e-mail). Výběr se okamžitě použije pro příští generování. Nepřidává se potvrzovací dialog. Hlavní nebo jediný použitelný kontakt se předvybírá při vytvoření karty; bez platného e-mailu nelze z dané karty generovat.
+Na kartě subdodavatele ve VŘ je blok kontaktu (jméno, e-mail, telefon), při více příjemcích s rozbalovacím výběrem. Výběr se okamžitě použije pro příští generování. Nepřidává se potvrzovací dialog. Hlavní nebo jediný použitelný kontakt se předvybírá při vytvoření karty; bez platného e-mailu nelze z dané karty generovat.
 
 ## Oddělení volby a uložené karty
 
@@ -28,3 +28,9 @@ Aplikace připravuje EML/mailto; existující změna stavu na `sent` po vytvoře
 Ruční kontrola: vybrat kontakt, generovat poptávku, během přípravy vybrat jiný kontakt. První koncept musí obsahovat první adresu, další koncept druhou. Totéž ověřit při otevřené hromadné rekapitulaci. Skutečné odeslání není součástí automatických testů.
 
 Zápisy jedné karty jsou řazeny za sebe podle klíče uživatele, organizace, projektu, VŘ a karty. Fronta nikdy neblokuje místní výběr ani generování; při nedokončeném síťovém zápisu pouze čeká doplňkové zapamatování. Uložení dialogu připne nového příjemce jen při skutečné změně kontaktních polí proti otevřenému formuláři. Při změně ceny nebo poznámky nejsou kontaktní pole součástí UPDATE a v demo/lokálním stavu zůstanou aktuální hodnoty.
+
+## Zobrazení příjemce na kartě
+
+Jméno, e-mail a telefon tvoří společný blok pod názvem dodavatele. Změna příjemce přenáší všechna tři pole; chybějící telefon nepřebírá číslo předchozí osoby. Jediný příjemce nemá rozbalovací menu, více příjemců používá přístupný ThemedSelect s jednotlivými údaji na samostatných řádcích. Typ kontaktu a odkaz na editaci se v tomto bloku nevykreslují. Editace celé karty zůstává dostupná přes tužku nebo dvojklik.
+
+Ručně uložený příjemce se zachová jako samostatná možnost, pokud se liší od adresáře včetně telefonu. Pokud starší karta nemá platného příjemce a adresář nabízí jediný platný kontakt, lze jej výslovně použít tlačítkem bez menu. Kontakty bez platného e-mailu jsou nadále nedostupné pro generování; vyhledávání se nabízí až při více než šesti možnostech.

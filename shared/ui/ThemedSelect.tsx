@@ -12,6 +12,7 @@ interface ThemedSelectProps<T extends string> {
   value: T;
   options: ReadonlyArray<ThemedSelectOption<T>>;
   onChange: (value: T) => void;
+  renderOption?: (option: ThemedSelectOption<T>) => React.ReactNode;
   disabled?: boolean;
   className?: string;
   triggerClassName?: string;
@@ -38,6 +39,7 @@ export const ThemedSelect = <T extends string>({
   value,
   options,
   onChange,
+  renderOption,
   disabled = false,
   className = "",
   triggerClassName = "",
@@ -259,7 +261,7 @@ export const ThemedSelect = <T extends string>({
             onClick={() => selectIndex(index)}
             className="tf-themed-select-option flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className={`min-w-0 flex-1 ${wrapOptions ? "whitespace-normal [overflow-wrap:anywhere]" : "truncate"}`}>{option.label}</span>
+            <span className={`min-w-0 flex-1 ${wrapOptions ? "whitespace-normal [overflow-wrap:anywhere]" : "truncate"}`}>{renderOption ? renderOption(option) : option.label}</span>
             {isSelected && (
               <span aria-hidden="true" className="material-symbols-outlined text-[16px]">check</span>
             )}
@@ -300,7 +302,7 @@ export const ThemedSelect = <T extends string>({
         style={triggerStyle}
         className={`tf-themed-select-trigger flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-2 text-left text-xs shadow-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${triggerClassName}`}
       >
-        <span className="min-w-0 flex-1 truncate">{selectedOption?.label || "—"}</span>
+        <span className="min-w-0 flex-1 truncate">{selectedOption && renderOption ? renderOption(selectedOption) : selectedOption?.label || "—"}</span>
         <span aria-hidden="true" className={`material-symbols-outlined text-[16px] transition-transform ${isOpen ? "rotate-180" : ""}`}>
           expand_more
         </span>
