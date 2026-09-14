@@ -27,6 +27,7 @@ CREATE FUNCTION public.restore_user_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sq
 CREATE FUNCTION public.restore_tenant_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 `);
 await db.exec(await readFile(new URL('../supabase/migrations/20260914184136_shared_contract_tenders.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20260914185726_index_shared_contract_tender_foreign_keys.sql',import.meta.url),'utf8'));
 let checks=0;
 const check = async (sql,expected) => { assert.deepEqual((await db.query(sql)).rows,expected); checks++; };
 const deny = async (sql,code) => { await assert.rejects(db.exec(sql), e => e.code===code); checks++; };

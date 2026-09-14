@@ -25,3 +25,6 @@ Databázový test `scripts/check-shared-contract-links.mjs` spustí migraci v PG
 Produkční preflight 14. 9. 2026 našel 11 původních vazeb, žádnou chybějící nabídku, mezistavební vazbu ani více smluv v kategorii. Zkušební migrace v transakci zakončené ROLLBACK převedla všech 11 vazeb. Před nasazením musí projít dry-run; po nasazení kontrola katalogu, počtů, advisors a závěrečný dry-run.
 
 Historii rozšíření identifikátorů popisuje [audit dlouhých ID](bid-id-width.md).
+
+
+Nasazení 14. 9. 2026 zachovalo všech 73 smluv se shodným kontrolním součtem i všech 11 původních vazeb. RLS je aktivní, anonymní čtení/RPC a přímý klientský UPDATE vazeb jsou zakázané. Navazující migrace `20260914185726_index_shared_contract_tender_foreign_keys.sql` pokrývá oba sloupce nových složených FK. Advisors nadále obsahují starší nálezy (včetně mutable search_path u přejmenovaných původních exportních funkcí, jejichž přímé volání je nyní odebrané) a nepoužité nové indexy; nové bezpečnostní nálezy na vazební tabulce nevznikly.
