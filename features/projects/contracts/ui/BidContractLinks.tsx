@@ -1,3 +1,4 @@
+import { isContractLinkedToBid } from '../model/contractBidLink';
 import React, { useState } from 'react';
 import type { Bid, ContractWithDetails } from '@/types';
 import { Button } from '@shared/ui/Button';
@@ -5,6 +6,7 @@ import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
 
 interface Props {
   projectId: string;
+  categoryBidIds?: string[];
   bid: Bid;
   contracts: ContractWithDetails[];
   onOpenContract: (contractId: string) => void;
@@ -13,15 +15,15 @@ interface Props {
   error?: string | null;
 }
 
-export const BidContractLinks: React.FC<Props> = ({ projectId, bid, contracts, onOpenContract, onLinkContract, loading, error }) => {
+export const BidContractLinks: React.FC<Props> = ({ projectId, categoryBidIds, bid, contracts, onOpenContract, onLinkContract, loading, error }) => {
   const [choosing, setChoosing] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [existingId, setExistingId] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const scoped = contracts.filter(contract => contract.projectId === projectId);
-  const linked = scoped.filter(contract => contract.sourceBidId === bid.id);
-  const available = scoped.filter(contract => !contract.sourceBidId);
+  const linked = scoped.filter(contract => (categoryBidIds ?? [bid.id]).some(id => isContractLinkedToBid(contract, id)));
+  const available = scoped;
   const existing = available.find(contract => contract.id === existingId);
   const selected = linked.length === 1 ? linked[0] : linked.find(contract => contract.id === selectedId);
 
@@ -60,7 +62,7 @@ export const BidContractLinks: React.FC<Props> = ({ projectId, bid, contracts, o
             <div className="font-medium">{existing.title}</div>
             <div>{existing.vendorName}{existing.contractNumber ? ` · ${existing.contractNumber}` : ''}</div>
           </div>}
-          {available.length === 0 && <span>Žádná nepropojená smlouva není k dispozici.</span>}
+          {available.length === 0 && <span>Žádná smlouva není k dispozici.</span>}
           <div className="flex flex-wrap gap-1">
             <Button type="button" variant="outline" size="sm" className="text-xs" disabled={saving || !available.some(contract => contract.id === existingId)} onClick={() => void confirmLink()}>{saving ? 'Propojuji…' : 'Potvrdit propojení'}</Button>
             <Button type="button" variant="ghost" size="sm" className="text-xs" disabled={saving} onClick={() => { setChoosing(false); setSaveError(null); }}>Zrušit</Button>

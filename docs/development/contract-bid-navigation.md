@@ -1,31 +1,27 @@
-# Propojení nabídky a smlouvy
+# Propojení výběrových řízení a smlouvy
 
-Na kartě vítěze lze otevřít propojený záznam přímo ve Smlouvách. Při více vazbách uživatel nejdříve zvolí smlouvu. Přehled VŘ nabízí stejný přechod; při chybějící nebo vícečetné vazbě otevře příslušnou kartu. Detail smlouvy obsahuje návrat do zdrojového VŘ a zaměří konkrétní kartu. PDF se tím neotevírá. Také tabulka smluv nabízí vedle čísla propojené smlouvy kompaktní tlačítko **VŘ**. Otevře přímo zdrojovou kartu bez přepnutí na detail smlouvy; při chybějící nebo nejednoznačné vazbě se nezobrazuje.
+Jedna smlouva může pokrývat více VŘ ve stejné stavbě. Každé VŘ (kategorie, nikoli pouze jednotlivá nabídka dodavatele) může mít nejvýše jednu smlouvu. Ve VŘ lze vybrat i smlouvu, která je už propojena s jiným VŘ. Výběr se uloží až po potvrzení. Na kartě je přechod do Smluv; při historické nejednoznačnosti zůstává výběr záznamu.
 
-**Propojit existující smlouvu** nabízí nepropojené smlouvy aktuální stavby. Výběr se ukládá až po **Potvrdit propojení**. Po vytvoření vazby se ovládání pro propojení skryje a zůstane přechod do Smluv. Nejde o generování smlouvy ani automatické přiřazení podle názvu nebo ceny. Původní příznak Zasmluvněno se nemění a sám nepotvrzuje existenci vazby. Historický odznak s navigačním odhadem podle ID dodavatele zůstává zachován; nový prvek používá výhradně explicitní vazbu.
+V detailu smlouvy v Přehledu je seznam propojených VŘ. Kliknutí otevře konkrétní kartu dodavatele. Výběr pro přidání dalšího VŘ nabízí pouze volná VŘ této stavby, včetně názvu nabídky dodavatele. Odpojení vyžaduje potvrzení a odstraní jen zvolenou vazbu. Smlouva, dokumenty, faktury a ostatní propojení zůstávají; smlouva může zůstat i bez VŘ.
 
-## Implementace a oprávnění
+## Data a bezpečnost
 
-Vazba používá existující `contracts.source_bid_id`. Migrace `20260912172814_widen_contract_source_bid_id.sql` rozšiřuje původní varchar(36) na text, protože obnovené nabídky používají i delší ID. Existující vazby se nemění; nové balíčky nejsou potřeba. Služba ověřuje dostupnost nabídky a její kategorie v dané stavbě. UPDATE omezuje smlouvu ID a stavbou a vyžaduje dosud prázdnou vazbu. Nulový počet upravených řádků se hlásí jako neúspěch. Souběžně vytvořená vazba se nepřepisuje; dokumenty a původ záznamu zůstávají stejné.
+Migrace `20260914184136_shared_contract_tenders.sql` zavádí `contract_bid_links`. Primární klíč nabídky a unikátní kategorie vynucují jednu smlouvu na VŘ i při souběžném zápisu. Složené cizí klíče na smlouvu, kategorii a nabídku vynucují shodnou stavbu a brání přesunu propojených dat do jiné stavby. Smazání rodiče odstraní pouze příslušné vazby.
 
-Klient používá běžnou přihlášenou relaci. RLS rozhoduje o čtení a úpravě smlouvy; oprávnění se nerozšiřují. Existující pole nemá cizí klíč na nabídku. Kontrola společné stavby probíhá v aplikační službě, nikoli novým databázovým constraintem. Databázové zpřísnění by vyžadovalo samostatný audit starých vazeb a migraci. UI kontrola není bezpečnostní hranice.
+Stávající `contracts.source_bid_id` zůstává zdrojovým údajem pro starší klienty. Migrace převádí všechny staré vazby a při neplatném nebo nejednoznačném vstupu skončí chybou bez částečného převodu. Trigger podporuje stávající vytváření smlouvy z nabídky. Nové propojení přidává řádek a nepřepisuje zdroj ani ostatní vazby. Atomické odpojení vymaže také zdrojové ID, pokud ukazuje právě na odpojovanou nabídku. Načtený seznam vazeb je autoritativní, i když je prázdný.
 
-Návrat používá `buildAppUrl`/`parseAppRoute`, `categoryId` a `bidId`. Zdroj se hledá v načtené aktuální stavbě podle explicitního ID. Při chybějícím nebo nejednoznačném zdroji se zpětný odkaz nezobrazí. Tlačítka a výběry používají společné komponenty a tokeny skinů s malou typografií.
+RLS čtení vyžaduje dostupnou smlouvu. Trigger zápisu provede UPDATE rodičovské smlouvy jako volající, čímž uplatní její skutečné policies pro úpravy, předplatné a moduly. Nepoužívá SECURITY DEFINER. Přidání navíc vyžaduje dostupnou nabídku. Anonymní role nemá přístup; aplikační klient nemá UPDATE nové vazební tabulky. UI není bezpečnostní hranice.
+
+Finanční přehledy stále pracují s jedním řádkem na smlouvu, s vnořeným seznamem vazeb. Cena, fakturace a pozastávky se násobením počtu VŘ nemění. Automatické rozdělování částek mezi VŘ se nepřidává.
+
+Exporty záloh obsahují vazby uvnitř smlouvy. Obnova zachovává dosavadní ověření vlastníka/organizace a obnoví vazby až po smlouvách a nabídkách; cizí nebo konfliktní vazbu nepřepíše. Starší záloha bez seznamu vazeb zůstává podporovaná přes zdrojové ID. Obalové funkce ponechávají původní kontrolu oprávnění a původní implementace nelze samostatně volat aplikační rolí.
 
 ## Ověření
 
-Regresní testy pokrývají jednoznačnou i vícečetnou vazbu, oddělení staveb, potvrzení, chyby a nulový zápis, ochranu před přepsáním a přesnou návratovou navigaci. `npm run test:project-ui` ověřuje skutečné komponenty a produkční CSS ve všech šesti skinech a obou barevných režimech, kontrast, velikost textu a interakce. Data jsou syntetická.
+Regresní testy pokrývají přiřazení už použité smlouvy, přechod z dalšího VŘ, ochranu obsazené kategorie, potvrzení odpojení, chyby, autoritativní prázdný seznam a finanční součet jedné sdílené smlouvy. `npm run test:project-ui` ověřuje sdílené propojení a odpojení ve skutečných komponentách s produkčním CSS a syntetickými daty.
 
-Výběr smlouvy je vyhledávatelný podle názvu, dodavatele i čísla. Rozbalená nabídka má šířku alespoň 480 px, omezenou dostupným viewportem, a celé názvy se zalamují. Před potvrzením je pod výběrem vidět celý vybraný záznam. Ostatní výběry používají původní výchozí rozměry a zkracování.
+Databázový test `scripts/check-shared-contract-links.mjs` spustí migraci v PGlite a ověří constraints, RLS, převod, původní vytváření smlouvy, odpojení, zálohy a cascade. Vyžaduje již nainstalovaný `@electric-sql/pglite`, případně cestu k modulu přes `PGLITE_MODULE`; sám žádné balíčky nestahuje.
 
-## Ověření rozšíření ID (12. 9. 2026)
+Produkční preflight 14. 9. 2026 našel 11 původních vazeb, žádnou chybějící nabídku, mezistavební vazbu ani více smluv v kategorii. Zkušební migrace v transakci zakončené ROLLBACK převedla všech 11 vazeb. Před nasazením musí projít dry-run; po nasazení kontrola katalogu, počtů, advisors a závěrečný dry-run.
 
-Před migrací byl na syntetickém 54znakovém ID reprodukován PostgreSQL kód `22001`. Po migraci stejný vstup prošel při přiřazení do proměnné typu `contracts.source_bid_id%TYPE` bez zkrácení. Počet řádků a kontrolní součet vazeb před/po zůstaly shodné; stejně tak RLS, ACL, definice policies, indexů a constraints. Závěrečný `db push --dry-run` hlásí aktuální databázi. Zákaznické vazby nebyly pro test změněny.
-
-Security a performance advisors byly spuštěny. Hlásí i nálezy na objektech, které migrace nemění; samotný typový přechod nepřidal policy, grant ani index. Pro tabulku contracts zůstává například téma [indexů cizích klíčů](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) a [vyhodnocování RLS funkcí](https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan). Nejde o prohlášení, že celá databáze nemá bezpečnostní nálezy.
-
-### Známý rozdíl výchozího schématu
-
-Audit review zjistil starší drift: propojená databáze má `bids.id` typu text, ale počáteční migrace jej vytváří jako varchar(36); `bid_tags.bid_id` zůstává varchar(36) i v propojené databázi. Tato oprava mění pouze schválené `contracts.source_bid_id` a nezajišťuje obnovu delších ID do nově vytvořené databáze ani jejich použití ve štítcích. Sjednocení autoritativního ID a závislých vazeb vyžaduje samostatnou verzovanou migraci a audit obnovy. Jde o existující omezení mimo propojení smlouvy; nelze tvrdit, že tato migrace opravuje celý import/obnovu.
-
-Navazující migrace `20260912190251_widen_bid_and_tag_ids.sql` je připravena samostatně. [Audit dlouhých ID](bid-id-width.md) popisuje závislé RLS policies, lokální regresní testy, produkční preflight a aktuální stav schválení nasazení.
+Historii rozšíření identifikátorů popisuje [audit dlouhých ID](bid-id-width.md).

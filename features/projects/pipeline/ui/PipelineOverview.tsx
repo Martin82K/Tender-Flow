@@ -1,3 +1,4 @@
+import { isContractLinkedToBid } from '@features/projects/contracts/model/contractBidLink';
 /**
  * PipelineOverview Component
  * Dashboard view showing category cards in grid or table format.
@@ -732,11 +733,11 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                                                     <ThemedButton type="button" variant="ghost" size="sm" className="text-xs"
                                                                         onClick={(event) => {
                                                                             event.stopPropagation();
-                                                                            const linked = contracts.filter(contract => contract.sourceBidId === bid.id);
+                                                                            const linked = contracts.filter(contract => isContractLinkedToBid(contract, bid.id));
                                                                             if (linked.length === 1) onOpenContract(linked[0].id);
                                                                             else onOpenBidContracts(category, bid.id);
                                                                         }}
-                                                                    >{contracts.some(contract => contract.sourceBidId === bid.id) ? 'Ve Smlouvách' : 'Propojit'}</ThemedButton>
+                                                                    >{contracts.some(contract => isContractLinkedToBid(contract, bid.id)) ? 'Ve Smlouvách' : 'Propojit'}</ThemedButton>
                                                                 ) : bid.contracted ? 'Ano' : bid.status === 'sod' ? 'Čeká' : '—'}
                                                             </td>
                                                             <td className="px-3 py-2.5" aria-hidden="true" />

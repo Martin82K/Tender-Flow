@@ -88,11 +88,13 @@ try {
     plugins: [react(), {
       name: 'project-ui-fixture-services', enforce: 'pre',
       resolveId(id) {
+        if (id.endsWith('/api/contractMutationsApi')) return '\0fixture-contract-mutations';
         if (id.endsWith('/services/templateService')) return '\0fixture-templates';
         if (id.endsWith('/model/useDocHubIntegration')) return '\0fixture-dochub';
         if (id.endsWith('/routing/router')) return '\0fixture-router';
       },
       load(id) {
+        if (id === '\0fixture-contract-mutations') return 'export const contractMutationsApi={unlinkContractFromBid:(...args)=>window.fixtureUnlink(...args),linkContractToBid:async()=>{}};';
         if (id === '\0fixture-templates') return 'export const getProjectTemplateSelection=async()=>undefined;export const getTemplateById=async()=>undefined;export const saveProjectTemplateSelection=async()=>{};export const getTemplates=async()=>[];export const getDefaultTemplate=async()=>undefined;export const saveTemplate=async()=>undefined;export const deleteTemplate=async()=>false;';
         if (id === '\0fixture-dochub') return 'export const useDocHubIntegration=()=>({state:{isConnected:false,links:{},structureDraft:{}},actions:{},setters:{}});';
         if (id === '\0fixture-router') return 'export const useLocation=()=>({search:""});export const navigate=()=>{};';
@@ -243,6 +245,7 @@ try {
   check(contractMenu.inside && contractMenu.readable, 'Contract menu fits mobile viewport');
   await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false });
   await evaluate(() => document.querySelector('.tf-themed-select-popover input[type="search"]').focus());
+  await send('Input.insertText', { text: 'JR/01/26026/2026' });
   await key('ArrowDown', 40);
   await key('Enter', 13);
   check(await evaluate(() => document.querySelector('[aria-label="Vybraná smlouva"]').textContent.includes('JR/01/26026/2026')), 'Full selected contract before confirmation');
@@ -251,6 +254,12 @@ try {
   check(await evaluate(() => !document.querySelector('.fixture-column:nth-child(2) .tf-button-ghost') && !document.querySelector('.fixture-column:nth-child(2) [role="combobox"]')), 'Hide linking controls after success');
   await click('.fixture-column:nth-child(2) .tf-button-outline');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'contract:existing-contract', 'Open newly linked contract');
+  check(await evaluate(() => document.querySelector('#fixture-tender-links').textContent.includes('Výběrová řízení (2)')), 'Shared contract retains both tenders');
+  await screenshot('shared-contract-before-unlink');
+  await click('#fixture-tender-links button[aria-label="Odpojit Elektro"]');
+  await evaluate(() => [...document.querySelectorAll('#fixture-tender-links button')].find(button => button.textContent === 'Potvrdit odpojení').click());
+  check(await evaluate(() => document.querySelector('#fixture-tender-links').textContent.includes('Výběrová řízení (1)') && document.querySelector('#fixture-tender-links').textContent.includes('ZTI')), 'Unlink preserves the other tender');
+
   await evaluate(() => { document.documentElement.style.zoom = '1.5'; });
   check(await evaluate(() => [...document.querySelectorAll('.tf-kanban-bid-card')].every(card => card.scrollWidth <= card.clientWidth + 1)), 'Overflow at 150% zoom');
   await evaluate(() => { document.documentElement.style.zoom = '1'; });

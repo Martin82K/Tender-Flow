@@ -271,6 +271,7 @@ export const ContractsListPage: React.FC<Props> = ({
                 contract={selected}
                 onEditContract={openEdit}
                 onRefresh={refresh}
+                tenderLinks={{ contract: selected, contracts, project: projectDetails, onRefresh: refresh, onOpenBid: onOpenSourceBid }}
                 sourceBid={findContractSourceBid(selected, projectDetails)}
                 onOpenSourceBid={onOpenSourceBid}
               />

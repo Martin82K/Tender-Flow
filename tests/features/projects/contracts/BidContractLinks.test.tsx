@@ -55,17 +55,29 @@ describe('BidContractLinks', () => {
     expect(open).toHaveBeenCalledWith('c2');
   });
 
-  it('links only after explicit confirmation, hides already assigned records and reports failure', async () => {
+  it('links an already assigned contract to another bid only after confirmation and reports failure', async () => {
     const link = vi.fn().mockRejectedValue(new Error('Vazba se změnila. Obnovte seznam.'));
     const open = vi.fn();
     render(<BidContractLinks projectId="p1" bid={bid} contracts={[contract('c1'), contract('assigned', 'other')]} onOpenContract={open} onLinkContract={link} />);
     fireEvent.click(screen.getByRole('button', { name: 'Propojit existující smlouvu' }));
-    expect(screen.queryByText('Smlouva assigned')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Existující smlouva' }), { target: { value: 'c1' } });
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Existující smlouva' }), { target: { value: 'assigned' } });
     expect(link).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Potvrdit propojení' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Vazba se změnila'));
-    expect(link).toHaveBeenCalledWith('c1', 'b1');
+    expect(link).toHaveBeenCalledWith('assigned', 'b1');
     expect(open).not.toHaveBeenCalled();
   });
+});
+
+ it('opens a shared contract from its additional bid', () => {
+  const open = vi.fn();
+  render(<BidContractLinks projectId="p1" bid={bid} contracts={[{ ...contract('shared', 'b0'), linkedBidIds: ['b0', 'b1'] }]} onOpenContract={open} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Otevřít ve Smlouvách' }));
+  expect(open).toHaveBeenCalledWith('shared');
+});
+it('prevents a second contract through a different bidder in the same tender', () => {
+  render(<BidContractLinks projectId="p1" bid={bid} categoryBidIds={['b1', 'other']} contracts={[contract('c1', 'other')]} onOpenContract={vi.fn()} onLinkContract={vi.fn()} />);
+  expect(screen.getByRole('button', { name: 'Otevřít ve Smlouvách' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Propojit existující smlouvu' })).not.toBeInTheDocument();
 });
