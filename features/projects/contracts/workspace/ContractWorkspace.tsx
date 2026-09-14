@@ -72,7 +72,7 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
             {tab === 'Přehled' && <><HeaderSection contract={contract} onChanged={onRefresh} /><FinancialSection contract={contract} /><AmendmentsSection contract={contract} onRefresh={onRefresh} /></>}
             {tab === 'Dokumenty' && <><GeneratedDocumentsSection key={contract.id} contract={contract} /><OcrDocumentSection contract={contract} onRefresh={onRefresh} /></>}
             {tab === 'Fakturace' && <><InvoicesSection contract={contract} onRefresh={onRefresh} /><DrawdownsSection contract={contract} /></>}
-            {tab === 'Pozastávky' && <RetentionSection contract={contract} onRefresh={onRefresh} />}
+            {tab === 'Pozastávky' && <RetentionSection key={contract.id} contract={contract} onRefresh={onRefresh} />}
             {tab === 'Předání a záruka' && <HandoverSection key={contract.id} contract={contract} onRefresh={onRefresh} />}
           </div>
         </div>

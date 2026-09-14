@@ -590,7 +590,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Uvolnění</label>
+                  <label className={labelClass}>{form.retentionShortStatus === 'released' ? 'Skutečné uvolnění' : 'Očekávané uvolnění'}</label>
                   <input
                     type="date"
                     className={inputClass}
@@ -647,7 +647,7 @@ export const ContractEditDialog: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Uvolnění</label>
+                  <label className={labelClass}>{form.retentionLongStatus === 'released' ? 'Skutečné uvolnění' : 'Očekávané uvolnění'}</label>
                   <input
                     type="date"
                     className={inputClass}

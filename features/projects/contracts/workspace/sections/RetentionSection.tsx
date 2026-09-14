@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ContractWithDetails } from '@/types';
 import { contractMutationsApi } from '../../api';
 import { computeRetention } from '../../utils/retention';
@@ -8,128 +8,70 @@ interface Props {
   contract: ContractWithDetails;
   onRefresh: () => Promise<void> | void;
 }
-
-const statusPill = (status: 'held' | 'released' | undefined, percent: number) => {
-  if (percent === 0) {
-    return (
-      <span className="inline-block rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 px-2 py-0.5 text-[10.5px] font-semibold">
-        neuplatňuje se
-      </span>
-    );
-  }
-  if (status === 'released') {
-    return (
-      <span className="inline-block rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 px-2 py-0.5 text-[10.5px] font-semibold">
-        uvolněno
-      </span>
-    );
-  }
-  return (
-    <span className="inline-block rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 px-2 py-0.5 text-[10.5px] font-semibold">
-      drží se
-    </span>
-  );
+const today = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
 export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
   const breakdown = computeRetention(contract);
-
-  const release = async (kind: 'short' | 'long') => {
+  const [confirming, setConfirming] = useState<'short' | 'long' | null>(null);
+  const [releaseDate, setReleaseDate] = useState(today);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const release = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!confirming || saving) return;
+    setSaving(true);
+    setError('');
     try {
-      await contractMutationsApi.releaseRetention(contract.id, kind);
-      await onRefresh();
+      await contractMutationsApi.releaseRetention(contract.id, confirming, releaseDate);
+      setConfirming(null);
+      try { await onRefresh(); } catch { setError('Uvolnění je uložené. Obnovte detail pro načtení aktuálních údajů.'); }
     } catch (err) {
-      console.error('Failed to release retention', err);
-    }
+      setError(err instanceof Error ? err.message : 'Uvolnění se nepodařilo uložit. Zkuste to znovu.');
+    } finally { setSaving(false); }
   };
-
+  const rows = [
+    { kind: 'short' as const, title: 'Krátkodobá pozastávka', action: 'krátkodobou', percent: breakdown.shortPercent, amount: breakdown.shortAmount, explicit: contract.retentionShortAmount, status: contract.retentionShortStatus, expected: contract.retentionShortExpectedOn, legacyDate: contract.retentionShortReleaseOn, accent: 'border-l-blue-500' },
+    { kind: 'long' as const, title: 'Dlouhodobá pozastávka', action: 'dlouhodobou', percent: breakdown.longPercent, amount: breakdown.longAmount, explicit: contract.retentionLongAmount, status: contract.retentionLongStatus, expected: contract.retentionLongExpectedOn, legacyDate: contract.retentionLongReleaseOn, accent: 'border-l-purple-500' },
+  ];
   return (
-    <section id="sec-poz" className="py-4 border-b border-dashed border-slate-200 dark:border-slate-800">
-      <h3 className="text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-500 font-bold mb-3 flex items-center gap-2">
-        Pozastávky
-        <span className="text-[10px] normal-case tracking-normal text-slate-600 dark:text-slate-400 rounded-full bg-slate-200 dark:bg-slate-800 px-2 py-0.5">
-          KRÁTKODOBÁ + DLOUHODOBÁ
-        </span>
-      </h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-blue-500 p-4 flex flex-col gap-1.5">
-          <h4 className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 m-0">
-            Krátkodobá pozastávka
-            <span className="rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 px-2 py-0.5 text-[10.5px] font-semibold">
-              do převzetí
-            </span>
-          </h4>
-          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
-            {formatPercent(breakdown.shortPercent)}
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400 tabular-nums">
-            {formatMoney(breakdown.shortAmount, contract.currency)}
-          </div>
-          <div className="flex justify-between items-center mt-1 text-xs text-slate-600 dark:text-slate-400">
-            <span>Očekávané uvolnění</span>
-            <strong className="text-slate-900 dark:text-slate-200">
-              {formatDate(contract.retentionShortReleaseOn) || 'po převzetí díla'}
-            </strong>
-          </div>
-          <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
-            <span>Stav</span>
-            {statusPill(contract.retentionShortStatus, breakdown.shortPercent)}
-          </div>
-          {breakdown.shortPercent > 0 && contract.retentionShortStatus !== 'released' && (
-            <button
-              type="button"
-              onClick={() => release('short')}
-              className="mt-2 w-fit px-3 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-            >
-              Označit jako uvolněnou
-            </button>
-          )}
-        </div>
-
-        <div className="rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-purple-500 p-4 flex flex-col gap-1.5">
-          <h4 className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 m-0">
-            Dlouhodobá pozastávka
-            <span className="rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400 px-2 py-0.5 text-[10.5px] font-semibold">
-              do konce záruky
-            </span>
-          </h4>
-          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
-            {formatPercent(breakdown.longPercent)}
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400 tabular-nums">
-            {formatMoney(breakdown.longAmount, contract.currency)}
-          </div>
-          <div className="flex justify-between items-center mt-1 text-xs text-slate-600 dark:text-slate-400">
-            <span>Uvolnění (záruka)</span>
-            <strong className="text-slate-900 dark:text-slate-200">{formatDate(contract.retentionLongReleaseOn)}</strong>
-          </div>
-          <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
-            <span>Stav</span>
-            {statusPill(contract.retentionLongStatus, breakdown.longPercent)}
-          </div>
-          {breakdown.longPercent > 0 && contract.retentionLongStatus !== 'released' && (
-            <button
-              type="button"
-              onClick={() => release('long')}
-              className="mt-2 w-fit px-3 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-            >
-              Označit jako uvolněnou
-            </button>
-          )}
-        </div>
+    <section id="sec-poz" className="@container py-4 border-b border-dashed border-slate-200 dark:border-slate-800">
+      <h3 className="text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-500 font-bold mb-3">Pozastávky</h3>
+      <div className="grid grid-cols-1 @lg:grid-cols-2 gap-3">
+        {rows.map(row => {
+          const applies = row.amount > 0 || row.percent > 0;
+          const released = row.status === 'released';
+          const expected = row.expected ?? (!released ? row.legacyDate : undefined);
+          return (
+            <div key={row.kind} className={`rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 border-l-[3px] ${row.accent} p-4 flex flex-col gap-1.5`}>
+              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 m-0">{row.title}</h4>
+              <div className="text-xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">{formatMoney(row.amount, contract.currency)}</div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                {row.explicit != null ? 'Samostatně zadaná částka' : `${formatPercent(row.percent)} z ceny smlouvy včetně dodatků (${formatMoney(contract.currentTotal, contract.currency)})`}
+              </p>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{released ? 'Uvolněno' : applies ? 'Drží se' : 'Neuplatňuje se'}</span>
+              {applies || released ? <>
+                <div className="flex justify-between gap-2 text-xs text-slate-600 dark:text-slate-400"><span>Očekávané uvolnění</span><strong className="whitespace-nowrap">{formatDate(expected)}</strong></div>
+                {released && <div className="flex justify-between gap-2 text-xs text-slate-600 dark:text-slate-400"><span>Skutečné uvolnění</span><strong className="whitespace-nowrap">{formatDate(row.legacyDate)}</strong></div>}
+              </> : null}
+              {applies && !released && <button type="button" disabled={saving} onClick={() => { setConfirming(row.kind); setReleaseDate(today()); setError(''); }} className="mt-2 w-fit px-3 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50">Označit {row.action} jako uvolněnou</button>}
+            </div>
+          );
+        })}
       </div>
-
-      <div className="mt-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-700 dark:text-slate-300">
-        <span>Celkem pozastávka</span>
-        <strong className="tabular-nums">
-          {formatPercent(breakdown.totalPercent)} · {formatMoney(breakdown.totalAmount, contract.currency)}
-        </strong>
-      </div>
-      <p className="text-[11.5px] text-slate-600 dark:text-slate-500 mt-2">
-        Hodnoty jsou ukládány <strong>samostatně</strong>, nesčítají se do jednoho políčka. OCR parser
-        hledá dvojici a každé hodnotě přiřadí vlastní confidence.
-      </p>
+      {confirming && <form onSubmit={release} className="mt-3 p-3 rounded-lg border border-slate-300 dark:border-slate-700 space-y-2 text-xs text-slate-700 dark:text-slate-300">
+        <p>Potvrzujete skutečné uvolnění {confirming === 'short' ? 'krátkodobé' : 'dlouhodobé'} pozastávky. Ověřte splnění podmínek smlouvy; tento záznam neprovádí platbu.</p>
+        <label className="flex flex-wrap items-center gap-2">Datum skutečného uvolnění
+          <input type="date" required min="1900-01-01" max={today()} value={releaseDate} disabled={saving} onChange={event => setReleaseDate(event.target.value)} className="rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1" />
+        </label>
+        <div className="flex gap-2"><button type="submit" disabled={saving} className="rounded bg-primary text-white px-3 py-1 disabled:opacity-50">{saving ? 'Ukládám…' : 'Potvrdit uvolnění'}</button><button type="button" disabled={saving} onClick={() => setConfirming(null)} className="px-3 py-1">Zrušit</button></div>
+      </form>}
+      {error && <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      <div className="mt-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 flex justify-between text-xs text-slate-700 dark:text-slate-300"><span>Smluvní pozastávky celkem</span><strong>{formatMoney(breakdown.totalAmount, contract.currency)}</strong></div>
+      <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">Jde o aktuální smluvní výpočet, nikoli evidenci skutečně zadržené částky z faktur. Prázdná pozastávka se neuplatňuje.</p>
+      <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">Fakturace: evidováno {formatMoney(contract.invoicedSum, contract.currency)} · uhrazeno {formatMoney(contract.paidSum, contract.currency)}. Tyto součty nepotvrzují splnění podmínek uvolnění.</p>
     </section>
   );
 };
