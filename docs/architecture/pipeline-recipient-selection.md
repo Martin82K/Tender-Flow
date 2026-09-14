@@ -56,3 +56,5 @@ výchozí výběr, chyby uložení, rozsah zápisu, ruční kontakt a návaznost
 Uložení celého formuláře karty sdílí zámek s výběrem příjemce a generováním. Zámek trvá až do dokončení zápisu i po zavření dialogu a navigaci, aby opožděný zápis formuláře nepřepsal novou volbu z menu.
 
 Zápis příjemce používá optimistickou kontrolu verze (`updated_at`): nejprve načte kartu pod původním RLS rozsahem, potom UPDATE omezí přesnou načtenou hodnotou (bez převodu přes JavaScript Date). Existující trigger `bids_set_updated_at` změní verzi při každém zápisu. Starší řádky s NULL používají `IS NULL`. Chybějící nebo nedostupná verze zápis zastaví. Při kolizi se zápis automaticky neopakuje. Díky tomu ani dosud běžící požadavek po timeoutu nepřepíše novější potvrzenou volbu; následné načtení nadále ověřuje zvoleného příjemce. Schéma a oprávnění se nemění.
+
+Také kolize verze (PGRST116 / nulový výsledek UPDATE) vede k autoritativnímu načtení. Liší-li se kontakt nebo načtení selže, karta zůstane neověřená a generování je blokované.

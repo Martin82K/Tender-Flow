@@ -52,6 +52,13 @@ describe("recipient persistence API", () => {
     mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Jan", email: "jan@example.com", phone: "111" }, error: null });
     await expect(updateBidRecipient("cat", bid, recipient)).rejects.toMatchObject({ recipient: { contactPerson: "Jan", email: "jan@example.com", phone: "111" } });
   });
+  it("reconciles a version collision and blocks generation from the stale recipient", async () => {
+    mocks.update.mockResolvedValue({ data: null, error: { code: "PGRST116" }, status: 406 });
+    mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Petr", email: "petr@example.com", phone: "333" }, error: null });
+    await expect(updateBidRecipient("cat", bid, recipient)).rejects.toMatchObject({ uncertain: true, recipient: { contactPerson: "Petr", email: "petr@example.com", phone: "333" } });
+    expect(mocks.read).toHaveBeenCalledTimes(2);
+    expect(mocks.update).toHaveBeenCalledOnce();
+  });
   it("prevents a timed-out old write from overwriting a confirmed retry", async () => {
     mocks.read.mockReset();
     let row = { id: bid.id, contact_person: "Jan", email: "jan@example.com", phone: "111", updated_at: "version-1" };

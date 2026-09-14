@@ -56,7 +56,7 @@ export const updateBidRecipient = async (categoryId: string, bid: Bid, recipient
       contact_person: recipient.contactPerson, email, phone: recipient.phone || "",
     }, expectedVersion);
     if (error || !data || data.id !== bid.id) {
-      const ambiguous = status === 0 || status === 408 || status === 429 || status >= 500;
+      const ambiguous = error?.code === "PGRST116" || status === 0 || status === 408 || status === 429 || status >= 500;
       throw new RecipientSaveError(ambiguous);
     }
   } catch (cause) {
