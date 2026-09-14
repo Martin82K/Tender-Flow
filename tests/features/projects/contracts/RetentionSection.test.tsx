@@ -16,6 +16,11 @@ describe('retention release evidence', () => {
     expect(screen.getByText('Neuplatňuje se')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Označit dlouhodobou jako uvolněnou' })).toBeInTheDocument();
   });
+  it('does not offer release when explicit zero overrides a positive percentage', () => {
+    render(<RetentionSection contract={{ ...contract, retentionShortPercent: 5, retentionShortAmount: 0, retentionLongPercent: 3, retentionLongAmount: 0 }} onRefresh={vi.fn()} />);
+    expect(screen.getAllByText('Neuplatňuje se')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: /jako uvolněnou/ })).not.toBeInTheDocument();
+  });
   it('keeps planned and actual dates distinct after release', () => {
     render(<RetentionSection contract={{ ...contract, retentionShortPercent: 5, retentionShortStatus: 'released', retentionShortExpectedOn: '2026-08-01', retentionShortReleaseOn: '2026-08-12' }} onRefresh={vi.fn()} />);
     expect(screen.getByText('1. 8. 2026')).toBeInTheDocument();

@@ -39,7 +39,7 @@ export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
       <h3 className="text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-500 font-bold mb-3">Pozastávky</h3>
       <div className="grid grid-cols-1 @lg:grid-cols-2 gap-3">
         {rows.map(row => {
-          const applies = row.amount > 0 || row.percent > 0;
+          const applies = row.explicit != null ? row.amount > 0 : row.percent > 0;
           const released = row.status === 'released';
           const expected = row.expected ?? (!released ? row.legacyDate : undefined);
           return (
