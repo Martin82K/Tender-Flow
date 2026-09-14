@@ -49,3 +49,12 @@ it('discards contract and related rows outside the requested project and contrac
   expect(contracts.map(item => item.id)).toEqual(['c1']);
   expect(contracts[0].invoices.map(item => item.id)).toEqual(['own']);
 });
+it('loads two tender links on one contract without multiplying its finances', async () => {
+  mocks.page.mockImplementation(async (table: string) => ({ data: table === 'contracts'
+    ? [{ ...contract(1), source_bid_id: 'b1', contract_bid_links: [{ bid_id: 'b1' }, { bid_id: 'b2' }] }]
+    : [], error: null }));
+  const contracts = await contractService.getContractsByProject('p1');
+  expect(contracts).toHaveLength(1);
+  expect(contracts[0].linkedBidIds).toEqual(['b1', 'b2']);
+  expect(contracts.reduce((sum, item) => sum + item.currentTotal, 0)).toBe(10);
+});

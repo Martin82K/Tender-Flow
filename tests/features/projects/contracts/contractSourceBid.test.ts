@@ -13,3 +13,6 @@ describe('findContractSourceBid', () => {
     expect(findContractSourceBid({ ...contract, sourceBidId: 'deleted' }, project)).toBeNull();
   });
 });
+it('does not resurrect a removed source link from legacy provenance', () => {
+  expect(findContractSourceBid({ ...contract, linkedBidIds: [] }, project)).toBeNull();
+});

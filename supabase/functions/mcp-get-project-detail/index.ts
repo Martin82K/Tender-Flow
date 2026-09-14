@@ -68,6 +68,7 @@ const mapContract = (
     scopeSummary: row.scope_summary || null,
     source: row.source || null,
     sourceBidId: row.source_bid_id || null,
+    linkedBidIds: (row.contract_bid_links || []).map((link: { bid_id: string }) => link.bid_id),
     documentUrl: row.document_url || null,
     extractionConfidence: numberOrNull(row.extraction_confidence),
     vendorRating: numberOrNull(row.vendor_rating),
@@ -157,7 +158,7 @@ Deno.serve(async (req) => {
 
     const contractsRes = await authed
       .from("contracts")
-      .select("*")
+      .select("*, contract_bid_links(bid_id)")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false });
 

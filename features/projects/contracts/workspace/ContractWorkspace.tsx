@@ -1,3 +1,4 @@
+import { ContractTenderLinks } from './sections/ContractTenderLinks';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@shared/ui/Button";
 import type { ContractWithDetails } from '@/types';
@@ -14,6 +15,7 @@ import { HandoverSection } from '../documents/HandoverSection';
 import { formatMoney } from '../utils/format';
 
 interface Props {
+  tenderLinks?: React.ComponentProps<typeof ContractTenderLinks>;
   sourceBid?: { categoryId: string; bidId: string; title: string } | null;
   onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   contract: ContractWithDetails;
@@ -21,7 +23,7 @@ interface Props {
   onRefresh: () => Promise<void> | void;
 }
 
-export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh, sourceBid, onOpenSourceBid }) => {
+export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, onRefresh, sourceBid, onOpenSourceBid, tenderLinks }) => {
   const tabs = ['Přehled', 'Dokumenty', 'Fakturace', 'Pozastávky', 'Předání a záruka'] as const;
   const [tab, setTab] = useState<string>('Přehled');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
       <div data-help-id="contract-detail-content" className="flex-1 min-h-0 overflow-hidden">
         <div ref={scrollContainerRef} className="h-full min-w-0 overflow-y-auto px-5 py-2">
           <div role="tabpanel" id={`contract-panel-${tabs.indexOf(tab as typeof tabs[number])}`} aria-labelledby={`contract-tab-${tabs.indexOf(tab as typeof tabs[number])}`} tabIndex={0}>
-            {tab === 'Přehled' && <><HeaderSection contract={contract} onChanged={onRefresh} /><FinancialSection contract={contract} /><AmendmentsSection contract={contract} onRefresh={onRefresh} /></>}
+            {tab === 'Přehled' && <>{tenderLinks && <ContractTenderLinks {...tenderLinks} />}<HeaderSection contract={contract} onChanged={onRefresh} /><FinancialSection contract={contract} /><AmendmentsSection contract={contract} onRefresh={onRefresh} /></>}
             {tab === 'Dokumenty' && <><GeneratedDocumentsSection key={contract.id} contract={contract} /><OcrDocumentSection contract={contract} onRefresh={onRefresh} /></>}
             {tab === 'Fakturace' && <><InvoicesSection contract={contract} onRefresh={onRefresh} /><DrawdownsSection contract={contract} /></>}
             {tab === 'Pozastávky' && <RetentionSection contract={contract} onRefresh={onRefresh} />}

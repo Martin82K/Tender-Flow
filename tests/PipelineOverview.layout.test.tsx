@@ -379,3 +379,19 @@ describe("PipelineOverview layout", () => {
     expect(screen.getByRole("button", { name: "Exportovat přehled VŘ do PDF" })).toBeInTheDocument();
   });
 });
+it('opens the category contract even when it is linked to another bidder', () => {
+  const open = vi.fn();
+  renderOverview({
+    categories: [categories[0]],
+    bids: { 'cat-1': [
+      { id: 'winner', companyName: 'Vítěz', status: 'sod', price: '100' } as Bid,
+      { id: 'linked-bid', companyName: 'Druhá nabídka', status: 'offer' } as Bid,
+    ] },
+    contracts: [{ id: 'shared', projectId: 'p1', linkedBidIds: ['linked-bid'] }] as React.ComponentProps<typeof PipelineOverview>['contracts'],
+    onOpenContract: open,
+    onOpenBidContracts: vi.fn(),
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Rozbalit poptané dodavatele VŘ Zemni prace' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Ve Smlouvách' }));
+  expect(open).toHaveBeenCalledWith('shared');
+});

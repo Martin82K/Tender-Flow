@@ -205,7 +205,7 @@ export const PipelineKanbanBoard: React.FC<PipelineKanbanBoardProps> = ({
                   priceDisplayMode="detail"
                   contractLinks={projectId && onOpenContract ? <BidContractLinks
                     key={`${projectId}:${bid.id}`}
-                    projectId={projectId} bid={bid} contracts={contracts}
+                    projectId={projectId} bid={bid} categoryBidIds={bids.map(item => item.id)} contracts={contracts}
                     onOpenContract={onOpenContract} onLinkContract={onLinkContract}
                     loading={contractsLoading} error={contractsError}
                   /> : undefined}
