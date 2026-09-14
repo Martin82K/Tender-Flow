@@ -77,9 +77,9 @@ export const pipelineRepository = {
   updateBid(
     bidId: string,
     payload: {
-      contact_person: string;
-      email: string | null | undefined;
-      phone: string | null | undefined;
+      contact_person?: string;
+      email?: string | null;
+      phone?: string | null;
       price: number | null;
       price_display: string | null | undefined;
       price_history: Record<number, string> | null;

@@ -218,9 +218,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
     },
   });
 
-  const { selectRecipient, inquiryBids, selectEditedRecipient } = usePipelineRecipientSelection({
+  const { selectRecipient, inquiryBids, saveEditedBid, generateInquiry, stateFor, isGenerating } = usePipelineRecipientSelection({
     projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
-    userRole: user?.role, updateBidsInternal,
+    userRole: user?.role, userId: user?.id, organizationId: user?.organizationId,
   });
 
   // Edit Bid State
@@ -243,7 +243,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     isDocHubEnabled,
     docHubRoot,
     runDocHubFallbackForCategory,
-    onCloseEditBid: () => setEditingBid(null),
   });
 
   const {
@@ -468,6 +467,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           key={`${projectId}:${activeCategory.id}`}
           contacts={localContacts}
           onSelectRecipient={selectRecipient}
+          recipientStateFor={stateFor}
+          isInquiryGenerating={isGenerating}
           projectId={projectId}
           highlightedBidId={highlightedBidId}
           onLinkContract={onLinkContract}
@@ -482,8 +483,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onEditBid={setEditingBid}
           onDeleteBidRequest={handleDeleteBidRequest}
           onDeleteBid={handleDeleteBid}
-          onGenerateInquiry={handleGenerateInquiry}
-          onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
+          onGenerateInquiry={bid => generateInquiry(bid, handleGenerateInquiry)}
+          onGenerateMaterialInquiry={bid => generateInquiry(bid, handleGenerateMaterialInquiry)}
           onOpenSupplierDocHub={handleOpenSupplierDocHub}
           onToggleContracted={handleToggleContracted}
           onOpenContract={onOpenContract}
@@ -526,7 +527,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
           <EditBidModal
             bid={editingBid}
             onClose={() => setEditingBid(null)}
-            onSave={bid => { selectEditedRecipient(bid); return handleSaveBid(bid); }}
+            onSave={bid => {
+              const original = editingBid;
+              setEditingBid(null);
+              void saveEditedBid(bid, original, includeRecipient => handleSaveBid(bid, includeRecipient)).catch(() => {
+                showAlert({ title: "Kartu se nepodařilo uložit", message: "Zkontrolujte připojení a zkuste uložení znovu. Vybraný příjemce pro koncept zůstává zachovaný.", variant: "danger" });
+              });
+            }}
           />
         )}
 

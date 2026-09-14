@@ -31,7 +31,7 @@ const queryClient = new QueryClient();
 
 function Fixture() {
   const [currentBids, setCurrentBids] = useState<Record<string, Bid[]>>(() => projectDemoDataApi.getDemoData()?.projectDetails[project.id].bids || { category: bids });
-  const { selectRecipient, inquiryBids } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo", updateBidsInternal: setCurrentBids });
+  const { selectRecipient, inquiryBids } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo" });
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
     { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
     { id: 'existing-contract', sourceBidId: 'unbroken', linkedBidIds: ['unbroken'], projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,

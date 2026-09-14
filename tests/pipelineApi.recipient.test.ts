@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bid } from "@/types";
-const mocks = vi.hoisted(() => ({ update: vi.fn(), read: vi.fn(), notify: vi.fn() }));
-vi.mock("@/infra/projects/pipelineRepository", () => ({ pipelineRepository: { updateBidRecipient: mocks.update, fetchBidRecipient: mocks.read } }));
+const mocks = vi.hoisted(() => ({ update: vi.fn(), read: vi.fn(), notify: vi.fn(), fullUpdate: vi.fn() }));
+vi.mock("@/infra/projects/pipelineRepository", () => ({ pipelineRepository: { updateBidRecipient: mocks.update, fetchBidRecipient: mocks.read, updateBid: mocks.fullUpdate } }));
 vi.mock("@features/projects/model/projectBidEvents", () => ({ notifyProjectBidsPersisted: mocks.notify }));
-import { updateBidRecipient } from "@features/projects/api/pipelineApi";
+import { updateBidRecipient, updateBid } from "@features/projects/api/pipelineApi";
 
 const bid: Bid = { id: "bid", subcontractorId: "sub", companyName: "Firma", contactPerson: "Jan", status: "contacted", price: "100" };
 const recipient = { contactPerson: "Eva", email: "eva@example.com", phone: "222" };
@@ -12,6 +12,15 @@ describe("recipient persistence API", () => {
     vi.resetAllMocks();
     mocks.read.mockResolvedValueOnce({ data: { id: bid.id, updated_at: "version-1" }, error: null });
     mocks.read.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });
+  });
+  it("omits contact fields from a price-only card update", async () => {
+    mocks.fullUpdate.mockResolvedValue({ error: null });
+    await updateBid(bid, 200, false);
+    const payload = mocks.fullUpdate.mock.calls[0][1];
+    expect(payload.price).toBe(200);
+    expect(payload).not.toHaveProperty("contact_person");
+    expect(payload).not.toHaveProperty("email");
+    expect(payload).not.toHaveProperty("phone");
   });
   it("sends only the recipient fields with the category and supplier scope", async () => {
     mocks.update.mockResolvedValue({ data: { id: bid.id, contact_person: "Eva", email: recipient.email, phone: "222" }, error: null });

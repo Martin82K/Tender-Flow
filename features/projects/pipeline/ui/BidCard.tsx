@@ -13,6 +13,9 @@ import type { Bid, ContactPerson } from "@/types";
 export interface BidCardProps {
   bid: Bid;
   contacts?: ContactPerson[];
+  recipientSaving?: boolean;
+  recipientSaveError?: boolean;
+  inquiryGenerating?: boolean;
   onSelectRecipient?: (bidId: string, contactId: string) => Promise<void>;
   onClick?: () => void;
   onDoubleClick?: (bid: Bid) => void;
@@ -31,6 +34,9 @@ export interface BidCardProps {
 export const BidCard: React.FC<BidCardProps> = ({
   bid,
   contacts = [],
+  recipientSaving = false,
+  recipientSaveError = false,
+  inquiryGenerating = false,
   onSelectRecipient,
   onClick,
   onDoubleClick,
@@ -49,7 +55,7 @@ export const BidCard: React.FC<BidCardProps> = ({
   const [generating, setGenerating] = useState(false);
   const generatingRef = useRef(false);
   const [generationError, setGenerationError] = useState(false);
-  const canGenerate = !generating && isValidEmailAddress(bid.email || "");
+  const canGenerate = !generating && !inquiryGenerating && isValidEmailAddress(bid.email || "");
   const generate = async (action: (bid: Bid) => void | Promise<void>) => {
     if (!canGenerate || generatingRef.current) return;
     generatingRef.current = true;
@@ -212,9 +218,9 @@ export const BidCard: React.FC<BidCardProps> = ({
 
       {/* Generate Inquiry Button */}
       {onSelectRecipient && <BidRecipientPicker bid={bid} contacts={contacts} disabled={false}
-        onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
-      {savingRecipient && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
-      {generating && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
+        rememberError={recipientSaveError} onSelect={onSelectRecipient} onSavingChange={setSavingRecipient} onEdit={onEdit} />}
+      {(savingRecipient || recipientSaving) && <span role="status" className="text-xs text-slate-500">Ukládám příjemce…</span>}
+      {(generating || inquiryGenerating) && <span role="status" className="text-xs text-slate-500">Připravuji koncept…</span>}
       {generationError && <span role="alert" className="text-xs text-red-600 dark:text-red-400">Koncept se nepodařilo připravit. Zkuste to znovu.</span>}
       {bid.status === "contacted" && onGenerateInquiry && (
         <div className="mt-3 flex flex-col gap-2">

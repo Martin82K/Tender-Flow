@@ -4,13 +4,13 @@ Na kartě subdodavatele ve VŘ je rozbalovací výběr kontaktu (jméno, role, e
 
 ## Oddělení volby a uložené karty
 
-`usePipelineRecipientSelection` drží explicitně vybraného příjemce odděleně od načtených údajů karty, v rozsahu projektu, VŘ, karty a dodavatele. `inquiryBids` skládá aktuální ostatní údaje s touto volbou. Refetch či pomalé uložení celé karty tak nepřepíše adresáta připravované poptávky. Ostatní karty se neblokují.
+`usePipelineRecipientSelection` drží explicitně vybraného příjemce odděleně od načtených údajů karty, v paměti relace (React Query cache), v rozsahu uživatele, organizace, projektu, VŘ, karty a dodavatele. Volba i stav zapamatování přežijí odmontování obrazovky při navigaci. `inquiryBids` skládá aktuální ostatní údaje s touto volbou. Refetch či pomalé uložení celé karty tak nepřepíše adresáta připravované poptávky. Ostatní karty se neblokují.
 
 Zapamatování kontaktu na kartě zůstává doplňkový zápis na pozadí. Používá stávající RLS rozsah, CAS přes přesnou serverovou hodnotu `updated_at`, časové limity a následné autoritativní načtení. Nezasahuje do globálního adresáře. Selhání zapamatování se zobrazí u menu; zvolený adresát zůstane v aktuální relaci použitelný. Po úplném obnovení stránky se načte skutečně uložená hodnota. Pozdní odpověď starší volby nepřepíše novější lokální výběr. Demo režim zapisuje pouze lokální demo data.
 
 ## Pevný adresát konceptu
 
-Při kliknutí na generování se příjemce kopíruje do konkrétní operace před prvním asynchronním načítáním šablony nebo příloh. Standardní i materiálová poptávka proto používají tehdejší adresu. Pozdější změna kontaktu nebo editace karty může pokračovat a platí až pro další generování. Současně je blokováno pouze opakované generování stejné karty během přípravy.
+Při kliknutí na generování se příjemce kopíruje do konkrétní operace před prvním asynchronním načítáním šablony nebo příloh. Standardní i materiálová poptávka proto používají tehdejší adresu. Pozdější změna kontaktu nebo editace karty může pokračovat a platí až pro další generování. Současně je blokováno pouze opakované generování stejné karty během přípravy, i po odmontování karty nebo záložky.
 
 Hromadná poptávka používá kopii karet z otevřené rekapitulace. Pozdější aktualizace karet nemění adresáty tohoto konceptu. Rekapitulace uvádí firmy, osoby, e-maily a přeskočené karty bez platného e-mailu. BCC a deduplikace adres zůstávají zachovány. Přechod na jiné VŘ nebo projekt rekapitulaci zavře.
 
@@ -26,3 +26,5 @@ Aplikace připravuje EML/mailto; existující změna stavu na `sent` po vytvoře
 - UI testy ověřují desktop, mobil, klávesnici, více témat a demo persistence po obnovení.
 
 Ruční kontrola: vybrat kontakt, generovat poptávku, během přípravy vybrat jiný kontakt. První koncept musí obsahovat první adresu, další koncept druhou. Totéž ověřit při otevřené hromadné rekapitulaci. Skutečné odeslání není součástí automatických testů.
+
+Zápisy jedné karty jsou řazeny za sebe podle klíče uživatele, organizace, projektu, VŘ a karty. Fronta nikdy neblokuje místní výběr ani generování; při nedokončeném síťovém zápisu pouze čeká doplňkové zapamatování. Uložení dialogu připne nového příjemce jen při skutečné změně kontaktních polí proti otevřenému formuláři. Při změně ceny nebo poznámky nejsou kontaktní pole součástí UPDATE a v demo/lokálním stavu zůstanou aktuální hodnoty.

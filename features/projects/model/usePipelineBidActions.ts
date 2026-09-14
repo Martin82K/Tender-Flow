@@ -168,14 +168,17 @@ export const usePipelineBidActions = ({
     }
   };
 
-  const handleSaveBid = async (updatedBid: Bid) => {
+  const handleSaveBid = async (updatedBid: Bid, includeRecipient = true) => {
     if (!activeCategory) return;
 
+    const mergeEdited = (current: Bid): Bid => includeRecipient ? updatedBid : {
+      ...updatedBid, contactPerson: current.contactPerson, email: current.email, phone: current.phone,
+    };
     updateBidsInternal((prev) => {
       const categoryBids = [...(prev[activeCategory.id] || [])];
       const index = categoryBids.findIndex((item) => item.id === updatedBid.id);
       if (index > -1) {
-        categoryBids[index] = updatedBid;
+        categoryBids[index] = mergeEdited(categoryBids[index]);
         return { ...prev, [activeCategory.id]: categoryBids };
       }
       return prev;
@@ -186,31 +189,27 @@ export const usePipelineBidActions = ({
       ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ""))
       : null;
 
-    try {
-      if (userRole === "demo") {
-        const demoData = projectDemoDataApi.getDemoData();
-        if (demoData && demoData.projectDetails[projectDataId]) {
-          const projectBids = demoData.projectDetails[projectDataId].bids || {};
-          const categoryBids = projectBids[activeCategory.id] || [];
-          const index = categoryBids.findIndex(
-            (item: Bid) => item.id === updatedBid.id,
-          );
-          if (index > -1) {
-            categoryBids[index] = updatedBid;
-            projectBids[activeCategory.id] = categoryBids;
-            demoData.projectDetails[projectDataId].bids = projectBids;
-            projectDemoDataApi.saveDemoData(demoData);
-          }
+    if (userRole === "demo") {
+      const demoData = projectDemoDataApi.getDemoData();
+      if (demoData && demoData.projectDetails[projectDataId]) {
+        const projectBids = demoData.projectDetails[projectDataId].bids || {};
+        const categoryBids = projectBids[activeCategory.id] || [];
+        const index = categoryBids.findIndex(
+          (item: Bid) => item.id === updatedBid.id,
+        );
+        if (index > -1) {
+          categoryBids[index] = mergeEdited(categoryBids[index]);
+          projectBids[activeCategory.id] = categoryBids;
+          demoData.projectDetails[projectDataId].bids = projectBids;
+          projectDemoDataApi.saveDemoData(demoData);
         }
-        return;
       }
+      return;
+    }
 
-      const { error } = await updateBid(updatedBid, numericPrice);
-      if (error) {
-        console.error("Error updating bid:", error);
-      }
-    } catch (error) {
-      console.error("Unexpected error updating bid:", error);
+    const { error } = await updateBid(updatedBid, numericPrice, includeRecipient);
+    if (error) {
+      throw error;
     }
   };
 

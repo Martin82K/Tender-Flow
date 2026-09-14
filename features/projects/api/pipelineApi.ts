@@ -160,11 +160,10 @@ export const insertBids = async (payload: BidInsertPayload[]): Promise<InsertBid
 export const updateBid = async (
   bid: Bid,
   numericPrice: number | null,
+  includeRecipient = true,
 ) => {
   return persistBidChange(pipelineRepository.updateBid(bid.id, {
-    contact_person: bid.contactPerson,
-    email: bid.email,
-    phone: bid.phone,
+    ...(includeRecipient ? { contact_person: bid.contactPerson, email: bid.email, phone: bid.phone } : {}),
     price: numericPrice && numericPrice > 0 ? numericPrice : null,
     price_display: bid.price,
     price_history: bid.priceHistory || null,

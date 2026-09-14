@@ -7,12 +7,13 @@ interface Props {
   bid: Bid;
   contacts: ContactPerson[];
   disabled: boolean;
+  rememberError?: boolean;
   onSelect: (bidId: string, contactId: string) => Promise<void>;
   onSavingChange: (saving: boolean) => void;
   onEdit: (bid: Bid) => void;
 }
 
-export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, onSelect, onSavingChange, onEdit }) => {
+export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, rememberError = false, onSelect, onSavingChange, onEdit }) => {
   const [error, setError] = useState(false);
   const latest = useRef(0);
   const valid = isValidEmailAddress(bid.email || "");
@@ -48,7 +49,7 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, o
       </ThemedNativeSelect>
       {!valid && <span className="text-amber-700 dark:text-amber-400">Před generováním vyberte kontakt s platným e-mailem.</span>}
       <button type="button" disabled={disabled} onClick={() => onEdit(bid)} className="self-start text-slate-500 underline hover:text-primary disabled:opacity-50">Upravit kontakt na kartě</button>
-      {error && <span role="alert" className="text-red-600 dark:text-red-400">Volbu se nepodařilo zapamatovat na kartě. Pro tuto poptávku platí zobrazený příjemce.</span>}
+      {(error || rememberError) && <span role="alert" className="text-red-600 dark:text-red-400">Volbu se nepodařilo zapamatovat na kartě. Pro tuto poptávku platí zobrazený příjemce.</span>}
     </div>
   );
 };
