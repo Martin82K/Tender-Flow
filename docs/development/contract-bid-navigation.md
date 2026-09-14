@@ -28,3 +28,6 @@ Historii rozšíření identifikátorů popisuje [audit dlouhých ID](bid-id-wid
 
 
 Nasazení 14. 9. 2026 zachovalo všech 73 smluv se shodným kontrolním součtem i všech 11 původních vazeb. RLS je aktivní, anonymní čtení/RPC a přímý klientský UPDATE vazeb jsou zakázané. Navazující migrace `20260914185726_index_shared_contract_tender_foreign_keys.sql` pokrývá oba sloupce nových složených FK. Advisors nadále obsahují starší nálezy (včetně mutable search_path u přejmenovaných původních exportních funkcí, jejichž přímé volání je nyní odebrané) a nepoužité nové indexy; nové bezpečnostní nálezy na vazební tabulce nevznikly.
+
+
+Opravy review doplňuje `20260914190809_harden_shared_contract_tender_review.sql`: každý DELETE vazby synchronizuje zdrojové ID, obnova kontroluje aktuální právo upravovat projekt a smlouvy, velikost a počty historie zálohy se zapisují z rozšířeného manifestu. MCP dostává pouze čtecí přístup k vazbám dostupných smluv; veřejné výstupy obsahují `linkedBidIds`. Edge Function `mcp-get-project-detail` zachovává ověření JWT. Původní migrace v tomto PR používá detekci `category_id` / `demand_category_id`, takže ji lze aplikovat i na starší schéma; opravy již nasazených funkcí provádí navazující verzovaná migrace.

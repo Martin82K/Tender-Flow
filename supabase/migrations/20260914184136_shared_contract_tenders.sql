@@ -3,28 +3,37 @@
 BEGIN;
 ALTER TABLE public.contracts ADD CONSTRAINT contracts_id_project_key UNIQUE (id, project_id);
 ALTER TABLE public.demand_categories ADD CONSTRAINT demand_categories_id_project_key UNIQUE (id, project_id);
-ALTER TABLE public.bids ADD CONSTRAINT bids_id_category_key UNIQUE (id, demand_category_id);
+-- Compatibility for clean/older repositories (category_id) and the linked database.
+DO $$ DECLARE category_column text;
+BEGIN
+  SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='bids' AND column_name='demand_category_id') THEN 'demand_category_id' ELSE 'category_id' END INTO category_column;
+  EXECUTE format('ALTER TABLE public.bids ADD CONSTRAINT bids_id_category_key UNIQUE (id, %I)',category_column);
+END $$;
 CREATE TABLE public.contract_bid_links (
   bid_id text PRIMARY KEY,
   contract_id uuid NOT NULL,
   project_id varchar(36) NOT NULL,
   category_id varchar(36) NOT NULL UNIQUE,
   FOREIGN KEY (contract_id, project_id) REFERENCES public.contracts(id, project_id) ON DELETE CASCADE,
-  FOREIGN KEY (category_id, project_id) REFERENCES public.demand_categories(id, project_id) ON DELETE CASCADE,
-  FOREIGN KEY (bid_id, category_id) REFERENCES public.bids(id, demand_category_id) ON DELETE CASCADE
+  FOREIGN KEY (category_id, project_id) REFERENCES public.demand_categories(id, project_id) ON DELETE CASCADE
 );
+DO $$ DECLARE category_column text;
+BEGIN
+  SELECT CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='bids' AND column_name='demand_category_id') THEN 'demand_category_id' ELSE 'category_id' END INTO category_column;
+  EXECUTE format('ALTER TABLE public.contract_bid_links ADD CONSTRAINT contract_bid_links_bid_id_category_id_fkey FOREIGN KEY(bid_id,category_id) REFERENCES public.bids(id,%I) ON DELETE CASCADE',category_column);
+END $$;
 CREATE INDEX contract_bid_links_contract_idx ON public.contract_bid_links(contract_id, project_id);
 CREATE INDEX contract_bid_links_project_idx ON public.contract_bid_links(project_id);
 -- Fail the migration on ambiguous, orphaned or cross-project historical links; never discard them.
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM public.contracts c LEFT JOIN public.bids b ON b.id=c.source_bid_id
-    LEFT JOIN public.demand_categories dc ON dc.id=b.demand_category_id
+    LEFT JOIN public.demand_categories dc ON dc.id=COALESCE(to_jsonb(b)->>'demand_category_id',to_jsonb(b)->>'category_id')
     WHERE c.source_bid_id IS NOT NULL AND (b.id IS NULL OR dc.project_id IS DISTINCT FROM c.project_id)) THEN
     RAISE EXCEPTION 'Invalid historical contract link; resolve before migration';
   END IF;
 END $$;
 INSERT INTO public.contract_bid_links(bid_id, contract_id, project_id, category_id)
-SELECT c.source_bid_id, c.id, c.project_id, b.demand_category_id
+SELECT c.source_bid_id, c.id, c.project_id, COALESCE(to_jsonb(b)->>'demand_category_id',to_jsonb(b)->>'category_id')
 FROM public.contracts c JOIN public.bids b ON b.id=c.source_bid_id;
 ALTER TABLE public.contract_bid_links ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.contract_bid_links FROM PUBLIC, anon, authenticated;
@@ -66,7 +75,7 @@ BEGIN
   END IF;
   IF NEW.source_bid_id IS NOT NULL THEN
     INSERT INTO public.contract_bid_links(bid_id, contract_id, project_id, category_id)
-    SELECT b.id, NEW.id, NEW.project_id, b.demand_category_id FROM public.bids b WHERE b.id=NEW.source_bid_id
+    SELECT b.id, NEW.id, NEW.project_id, COALESCE(to_jsonb(b)->>'demand_category_id',to_jsonb(b)->>'category_id') FROM public.bids b WHERE b.id=NEW.source_bid_id
     ON CONFLICT (bid_id) DO NOTHING;
     IF NOT EXISTS (SELECT 1 FROM public.contract_bid_links WHERE bid_id=NEW.source_bid_id AND contract_id=NEW.id) THEN
       RAISE EXCEPTION 'Tender is already linked or inaccessible' USING ERRCODE='23505';
@@ -131,7 +140,7 @@ BEGIN
             UPDATE public.contracts SET source_bid_id=source_bid_id WHERE id=c.id;
           END IF;
           FOR link IN SELECT jsonb_array_elements(COALESCE(item->'contract_bid_links','[]'::jsonb)) LOOP
-            SELECT b.demand_category_id INTO category FROM public.bids b JOIN public.demand_categories dc ON dc.id=b.demand_category_id
+            SELECT COALESCE(to_jsonb(b)->>'demand_category_id',to_jsonb(b)->>'category_id') INTO category FROM public.bids b JOIN public.demand_categories dc ON dc.id=COALESCE(to_jsonb(b)->>'demand_category_id',to_jsonb(b)->>'category_id')
               WHERE b.id=link->>'bid_id' AND dc.project_id=c.project_id;
             IF category IS NULL THEN RAISE EXCEPTION 'Invalid restored tender link' USING ERRCODE='23503'; END IF;
             INSERT INTO public.contract_bid_links(bid_id,contract_id,project_id,category_id)

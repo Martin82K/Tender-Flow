@@ -1,14 +1,22 @@
 // Run with PGLITE_MODULE pointing to an already installed @electric-sql/pglite module.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+const bidCategoryColumn = process.env.TEST_LEGACY_BID_COLUMN === '1' ? 'category_id' : 'demand_category_id';
 const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
 const db = new PGlite();
 const c1 = '00000000-0000-0000-0000-000000000001';
 const c2 = '00000000-0000-0000-0000-000000000002';
 await db.exec(`
-CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE service_role;
+CREATE ROLE tenderflow_mcp_client; CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE service_role;
 CREATE SCHEMA auth;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT '00000000-0000-0000-0000-000000000010'::uuid $$;
+CREATE FUNCTION public.has_active_subscription() RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+CREATE FUNCTION public.user_has_feature(text) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+CREATE FUNCTION public.can_project_module_action(text,text,boolean) RETURNS boolean LANGUAGE sql AS $$ SELECT $1='p1' AND current_setting('test.can_edit',true)='yes' $$;
+CREATE TABLE public.projects(id text PRIMARY KEY,owner_id uuid);
+CREATE TABLE public.project_shares(project_id text,user_id uuid,permission text);
+INSERT INTO projects VALUES('p1',auth.uid()),('p2',null);
+CREATE TABLE public.backup_history(id uuid DEFAULT gen_random_uuid(),user_id uuid,organization_id uuid,backup_type text,record_counts jsonb,backup_size_bytes bigint);
 CREATE TABLE public.contracts(id uuid PRIMARY KEY,project_id varchar(36) NOT NULL,source_bid_id text, updated_at timestamptz,organization_id uuid,owner_id uuid, base_price numeric DEFAULT 100);
 CREATE TABLE public.demand_categories(id varchar(36) PRIMARY KEY,project_id varchar(36) NOT NULL);
 CREATE TABLE public.bids(id text PRIMARY KEY,demand_category_id varchar(36) NOT NULL);
@@ -19,15 +27,32 @@ ALTER TABLE contracts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY read_contracts ON contracts FOR SELECT TO authenticated USING(project_id='p1');
 CREATE POLICY edit_contracts ON contracts FOR UPDATE TO authenticated USING(current_setting('test.can_edit',true)='yes') WITH CHECK(project_id='p1');
 GRANT SELECT,UPDATE ON contracts TO authenticated;
+GRANT SELECT ON contracts TO tenderflow_mcp_client;
+CREATE POLICY read_mcp ON contracts FOR SELECT TO tenderflow_mcp_client USING(project_id='p1');
 GRANT SELECT ON bids,demand_categories TO authenticated;
 GRANT USAGE ON SCHEMA auth TO authenticated;
-CREATE FUNCTION public.export_user_backup(uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM public.contracts c)) $$;
-CREATE FUNCTION public.export_tenant_backup(uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT public.export_user_backup($1) $$;
+CREATE FUNCTION public.export_user_backup(target_org_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $body$
+DECLARE result jsonb; rec_counts jsonb;
+BEGIN
+  result := jsonb_build_object('contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM public.contracts c));
+  rec_counts := jsonb_build_object('contracts', jsonb_array_length(result->'contracts'));
+  INSERT INTO public.backup_history(user_id,organization_id,backup_type,record_counts,backup_size_bytes) VALUES(auth.uid(),target_org_id,'user',rec_counts,octet_length(result::text));
+  RETURN result;
+END $body$;
+CREATE FUNCTION public.export_tenant_backup(target_org_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $body$
+DECLARE result jsonb; rec_counts jsonb;
+BEGIN
+  result := jsonb_build_object('contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM public.contracts c));
+  rec_counts := jsonb_build_object('contracts', jsonb_array_length(result->'contracts'));
+  INSERT INTO public.backup_history(user_id,organization_id,backup_type,record_counts,backup_size_bytes) VALUES(auth.uid(),target_org_id,'tenant',rec_counts,octet_length(result::text));
+  RETURN result;
+END $body$;
 CREATE FUNCTION public.restore_user_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE FUNCTION public.restore_tenant_backup(jsonb,uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
-`);
-await db.exec(await readFile(new URL('../supabase/migrations/20260914184136_shared_contract_tenders.sql',import.meta.url),'utf8'));
-await db.exec(await readFile(new URL('../supabase/migrations/20260914185726_index_shared_contract_tender_foreign_keys.sql',import.meta.url),'utf8'));
+`.replaceAll('demand_category_id',bidCategoryColumn));
+for (const name of ['20260914184136_shared_contract_tenders','20260914185726_index_shared_contract_tender_foreign_keys','20260914190809_harden_shared_contract_tender_review']) {
+  await db.exec(await readFile(new URL(`../supabase/migrations/${name}.sql`,import.meta.url),'utf8'));
+}
 let checks=0;
 const check = async (sql,expected) => { assert.deepEqual((await db.query(sql)).rows,expected); checks++; };
 const deny = async (sql,code) => { await assert.rejects(db.exec(sql), e => e.code===code); checks++; };
@@ -53,7 +78,7 @@ await db.exec('RESET ROLE');
 await db.exec(`INSERT INTO contracts(id,project_id,source_bid_id) VALUES('00000000-0000-0000-0000-000000000003','p1','b1')`);
 await check('SELECT count(*)::int AS n FROM contract_bid_links',[{n:2}]);
 await deny("UPDATE demand_categories SET project_id='p2' WHERE id='cat1'",'23503');
-await deny("UPDATE bids SET demand_category_id='cat3' WHERE id='b1'",'23503');
+await deny(`UPDATE bids SET ${bidCategoryColumn}='cat3' WHERE id='b1'`,'23503');
 await check(`SELECT jsonb_array_length(export_user_backup(NULL)->'contracts'->0->'contract_bid_links') AS n`,[{n:1}]);
 const org = '00000000-0000-0000-0000-000000000020';
 await db.exec(`UPDATE contracts SET organization_id='${org}',owner_id=auth.uid()`);
@@ -62,10 +87,22 @@ await db.exec(`SELECT unlink_contract_bid('p1','${c1}','b2')`);
 await db.query('SELECT restore_user_backup($1::jsonb,$2::uuid)',[JSON.stringify(backup),org]);
 await check(`SELECT bid_id FROM contract_bid_links WHERE contract_id='${c1}'`,[{bid_id:'b2'}]);
 await db.exec("DELETE FROM contract_bid_links WHERE bid_id='b1'");
+await check("SELECT source_bid_id FROM contracts WHERE id='00000000-0000-0000-0000-000000000003'",[{source_bid_id:null}]);
+await db.exec("UPDATE contracts SET source_bid_id='b1' WHERE id='00000000-0000-0000-0000-000000000003'");
 await db.query('SELECT restore_user_backup($1::jsonb,$2::uuid)',[JSON.stringify({contracts:[{id:'00000000-0000-0000-0000-000000000003'}]}),org]);
 await check("SELECT bid_id FROM contract_bid_links WHERE bid_id='b1'",[{bid_id:'b1'}]);
+await check(`SELECT backup_size_bytes=octet_length('${JSON.stringify(backup)}'::jsonb::text) AS exact FROM backup_history ORDER BY ctid DESC LIMIT 1`,[{exact:true}]);
+await db.exec("SET test.can_edit='no'");
+await assert.rejects(db.query('SELECT restore_user_backup($1::jsonb,$2::uuid)',[JSON.stringify(backup),org]),e=>e.code==='42501'); checks++;
+await db.exec("SET test.can_edit='yes'");
 const malicious = { contracts: [{ id:c1,contract_bid_links:[{bid_id:'b3'}] }] };
 await assert.rejects(db.query('SELECT restore_user_backup($1::jsonb,$2::uuid)',[JSON.stringify(malicious),org]), e=>e.code==='23503'); checks++;
+await db.exec("INSERT INTO contracts(id,project_id,source_bid_id) VALUES('00000000-0000-0000-0000-000000000004','p2','b3')");
+await db.exec('SET ROLE tenderflow_mcp_client');
+await check('SELECT count(*)::int AS n FROM contract_bid_links',[{n:2}]);
+await deny("DELETE FROM contract_bid_links WHERE bid_id='b2'",'42501');
+await db.exec('RESET ROLE');
+await db.exec("DELETE FROM contracts WHERE project_id='p2'");
 await db.exec('SET ROLE authenticated');
 await deny('SELECT export_user_backup_before_shared_tenders(NULL)','42501');
 await deny("SELECT restore_user_backup_before_shared_tenders('{}',NULL)",'42501');
