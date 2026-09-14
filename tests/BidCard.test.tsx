@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { BidCard } from "@features/projects/pipeline";
 import type { Bid } from "../types";
@@ -39,7 +39,7 @@ describe("BidCard", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it("renders inquiry and material inquiry buttons and triggers callbacks", () => {
+  it("renders inquiry and material inquiry buttons and triggers callbacks", async () => {
     const onGenerateInquiry = vi.fn();
     const onGenerateMaterialInquiry = vi.fn();
 
@@ -53,10 +53,8 @@ describe("BidCard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Generovat poptávku/i }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Materiálová poptávka/i }),
-    );
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Generovat poptávku/i })); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Materiálová poptávka/i })); });
 
     expect(onGenerateInquiry).toHaveBeenCalledWith(baseBid);
     expect(onGenerateMaterialInquiry).toHaveBeenCalledWith(baseBid);

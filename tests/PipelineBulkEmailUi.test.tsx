@@ -18,6 +18,14 @@ const createBid = (overrides: Partial<Bid>): Bid =>
     ...overrides,
   }) as Bid;
 
+it("shows the selected person and full address for each company in the bulk recap", () => {
+  const bid = createBid({ contactPerson: "Eva Rozpočtářová", email: "eva@example.com" });
+  render(<PipelineBulkEmailConfirmationModal isOpen kind="inquiry" userEmail="sender@example.com"
+    selection={{ candidateBids: [bid], recipientBids: [bid], missingEmailBids: [], invalidEmailBids: [], emails: [bid.email!] }}
+    isSubmitting={false} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+  expect(screen.getByText("Eva Rozpočtářová · eva@example.com")).toBeInTheDocument();
+});
+
 describe("PipelineBulkEmailMenu", () => {
   it("nabízí všechny čtyři akce, počty příjemců a tooltipy", () => {
     const onSelect = vi.fn();

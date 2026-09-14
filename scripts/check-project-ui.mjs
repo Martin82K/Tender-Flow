@@ -159,6 +159,7 @@ try {
         return { name: name.textContent, cardWidth: card.clientWidth, scrollWidth: card.scrollWidth, headerInside: inside(header), nameInside: inside(name), badgeInside: inside(badge) };
       });
     }, width);
+    check(cards.length === 3, `All three fixture cards render at ${width}px`);
     measurements.push({ width, cards });
     cards.forEach(card => check(card.headerInside && card.nameInside && card.badgeInside && card.scrollWidth <= card.cardWidth + 1, `Overflow at ${width}px: ${card.name}`));
   }
@@ -206,6 +207,27 @@ try {
     await hover('.tf-kanban-bid-card'); await click(`.tf-kanban-bid-card ${selector}`);
     check(await evaluate(() => document.querySelector('#fixture-action').textContent) === expected, `Card action: ${expected}`);
   }
+  const recipientTrigger = '.fixture-column:first-child [aria-label="Příjemce poptávky"]';
+  await click(recipientTrigger);
+  check(await evaluate(() => [...document.querySelectorAll('[role="option"]')].some(option => option.textContent.includes('Rozpočtářka a příprava staveb') && option.textContent.includes('eva.rozpocty@example.com'))), 'Contact menu includes role and address');
+  check(await evaluate(() => [...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('Kontakt bez e-mailu'))?.disabled), 'Contact without email cannot be selected');
+  await screenshot('recipient-picker-desktop');
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+  await sleep(100);
+  check(await evaluate(() => { const r = document.querySelector('.tf-themed-select-popover').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }), 'Recipient picker fits mobile');
+  await screenshot('recipient-picker-mobile');
+  await evaluate(() => document.querySelector('.tf-themed-select-popover input[type="search"]').focus());
+  await key('ArrowDown', 40); await key('Enter', 13);
+  await sleep(100);
+  check(await evaluate(selector => document.querySelector(selector).textContent.includes('eva.rozpocty@example.com'), recipientTrigger), 'Contact choice updates the card');
+  await click('.fixture-column:first-child [title="Generovat email s poptávkou"]');
+  check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'inquiry:eva.rozpocty@example.com', 'Generation receives selected email');
+  await send('Page.reload');
+  for (let i = 0; i < 100; i++) { if (await evaluate(selector => Boolean(document.querySelector(selector)), recipientTrigger)) break; await sleep(100); }
+  check(await evaluate(selector => document.querySelector(selector).textContent.includes('eva.rozpocty@example.com'), recipientTrigger), 'Recipient survives reload through demo persistence');
+  await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 1100, deviceScaleFactor: 1, mobile: false });
+  check(await evaluate(selector => { const label = document.querySelector(selector + ' > span'); const style = getComputedStyle(label); return style.whiteSpace === 'normal' && style.textOverflow !== 'ellipsis' && label.scrollWidth <= label.clientWidth + 1; }, recipientTrigger), 'Full selected contact remains readable on the card');
+  await screenshot('recipient-saved');
   await click('.fixture-column:nth-child(2) .tf-button-ghost');
   await click('.fixture-column:nth-child(2) [role="combobox"]');
   const inspectContractMenu = () => {

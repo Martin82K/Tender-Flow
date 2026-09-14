@@ -119,6 +119,23 @@ describe("usePipelineCommunicationActions status persistence", () => {
     mockUpdateBidStatusInMemory.mockImplementation((prev) => prev);
   });
 
+  it.each(["", "-", "not-an-email", "a@example.com,b@example.com"])("does not generate or change status for invalid recipient %s", async email => {
+    const activeCategory = createCategory();
+    const bid = { ...createBid(), email };
+    const showAlert = vi.fn();
+    const actions = usePipelineCommunicationActions({
+      activeCategory, bids: { [activeCategory.id]: [bid] }, projectId: "project-1",
+      projectDetails: createProjectDetails(), updateBidsInternal: vi.fn(), showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+    });
+    await actions.handleGenerateInquiry(bid);
+    await actions.handleGenerateMaterialInquiry(bid);
+    expect(mockCreateMailtoLink).not.toHaveBeenCalled();
+    expect(mockGenerateEmlContent).not.toHaveBeenCalled();
+    expect(mockPersistBidStatusChange).not.toHaveBeenCalled();
+    expect(showAlert).toHaveBeenCalledWith(expect.objectContaining({ title: "Chybí příjemce" }));
+  });
+
   it("persistuje status sent po standardní poptávce přes mailto", async () => {
     const activeCategory = createCategory();
     const bid = createBid();

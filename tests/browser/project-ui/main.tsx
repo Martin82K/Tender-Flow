@@ -1,4 +1,8 @@
 import React, { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { usePipelineRecipientSelection } from "@features/projects/model/usePipelineRecipientSelection";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
+import type { Subcontractor } from "@/types";
 import { createRoot } from "react-dom/client";
 import { BidCard } from "@features/projects/pipeline/ui/BidCard";
 import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
@@ -10,13 +14,24 @@ import "@/index.css";
 import "./fixture.css";
 
 const bids: Bid[] = [
-  { id: "short", subcontractorId: "short", companyName: "Schindler", price: "2 011 000,00 Kč", status: "offer", contactPerson: "Testovací kontakt" },
+  { id: "short", subcontractorId: "short", companyName: "Schindler", price: "2 011 000,00 Kč", status: "contacted", contactPerson: "Jan Novák", email: "jan@example.com" },
   { id: "long", subcontractorId: "long", companyName: "VÝTAHY SCHMITT+SOHN sro", price: "1 670 000,00 Kč", status: "offer", contactPerson: "Testovací kontakt" },
   { id: "unbroken", subcontractorId: "unbroken", companyName: "DodavatelskaSpolecnostBezMezerABCDEFGHIJKLMNOPQRSTUVWXYZ", price: "123\u00a0456\u00a0789\u00a0000,00\u00a0Kč", status: "offer", contactPerson: "Testovací kontakt" },
 ];
 const project = { id: "ui-fixture", name: "UI fixture", demandCategories: [], documentLinks: [], categories: [{ id: "category", title: "Montážní práce" }, { id: "second", title: "Elektro" }, { id: "third", title: "ZTI" }], bids: { category: [bids[0]], second: [bids[1]], third: [bids[2]] } } as unknown as ProjectDetails;
 
+const recipientSupplier: Subcontractor = { id: "short", company: "Schindler", specialization: [], status: "available", contacts: [
+  { id: "jan", name: "Jan Novák", email: "jan@example.com", phone: "111", position: "Jednatel" },
+  { id: "eva", name: "Eva Rozpočtářová", email: "eva.rozpocty@example.com", phone: "222", position: "Rozpočtářka a příprava staveb" },
+  { id: "no-email", name: "Kontakt bez e-mailu", email: "-", phone: "333" },
+] };
+const stored = projectDemoDataApi.getDemoData();
+if (!stored?.projectDetails[project.id]) projectDemoDataApi.saveDemoData({ projects: [], projectDetails: { [project.id]: project }, contacts: [recipientSupplier], statuses: [] });
+const queryClient = new QueryClient();
+
 function Fixture() {
+  const [currentBids, setCurrentBids] = useState<Record<string, Bid[]>>(() => projectDemoDataApi.getDemoData()?.projectDetails[project.id].bids || { category: bids });
+  const { selectRecipient, saving } = usePipelineRecipientSelection({ projectId: project.id, categoryId: "category", bids: currentBids, contacts: [recipientSupplier], userRole: "demo", updateBidsInternal: setCurrentBids });
   const [contracts, setContracts] = useState<ContractWithDetails[]>([
     { id: 'linked-contract', projectId: 'ui-fixture', title: 'Propojená smlouva', vendorName: 'Testovací dodavatel', sourceBidId: 'short' } as ContractWithDetails,
     { id: 'existing-contract', sourceBidId: 'unbroken', linkedBidIds: ['unbroken'], projectId: 'ui-fixture', title: 'Objednávka na opravu mostního objektu a navazující stavební práce včetně povrchových úprav a dokončení', vendorName: 'Testovací dodavatel stavebních prací', contractNumber: 'JR/01/26026/2026' } as ContractWithDetails,
@@ -29,8 +44,13 @@ function Fixture() {
   return <div className="tf-app-main">
     <output id="fixture-action">{action}</output>
     <div className="tf-pipeline-view fixture-cards">
-      {bids.map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
-        <BidCard bid={bid} onDragStart={() => setAction("drag")}
+      {Object.values(currentBids).flat().map(bid => <div key={bid.id} className="tf-kanban-column fixture-column">
+        <BidCard bid={bid}
+          contacts={bid.id === "short" ? recipientSupplier.contacts : undefined}
+          onSelectRecipient={bid.id === "short" ? selectRecipient : undefined}
+          recipientSaving={saving}
+          onGenerateInquiry={selected => setAction(`inquiry:${selected.email}`)}
+          onDragStart={() => setAction("drag")}
           onEdit={() => setAction("edit")} onDelete={() => setAction("delete")}
           onOpenDocHubFolder={() => setAction("folder")}
           contractLinks={<BidContractLinks projectId="ui-fixture" bid={bid} contracts={contracts}
@@ -56,4 +76,4 @@ function Fixture() {
   </div>;
 }
 
-createRoot(document.getElementById("root")!).render(<Fixture />);
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={queryClient}><Fixture /></QueryClientProvider>);

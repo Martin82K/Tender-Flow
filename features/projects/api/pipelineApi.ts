@@ -2,6 +2,8 @@ import { pipelineRepository, type BidInsertPayload, type PersistedBidRow } from 
 import { notifyProjectBidsPersisted } from "@features/projects/model/projectBidEvents";
 import type { Bid, BidStatus, Subcontractor } from "@/types";
 import { toSubcontractorPersistencePayload } from "@features/contacts/model/contactPersistence";
+import { RecipientSaveError, type BidRecipient } from "@features/projects/model/pipelineRecipientModel";
+import { isValidEmailAddress } from "@features/projects/model/pipelineEmailModel";
 
 const persistBidChange = async <Response extends { error: unknown }>(request: PromiseLike<Response>): Promise<Response> => {
   const response = await request;
@@ -36,6 +38,48 @@ export const updateBidStatus = async (bidId: string, status: BidStatus) => {
 
 export const updateBidContracted = async (bidId: string, contracted: boolean) => {
   return persistBidChange(pipelineRepository.updateBidContracted(bidId, contracted));
+};
+
+export const updateBidRecipient = async (categoryId: string, bid: Bid, recipient: BidRecipient): Promise<BidRecipient> => {
+  const email = recipient.email?.trim() || "";
+  if (!isValidEmailAddress(email)) throw new Error("Kontakt nemá platný e-mail.");
+  const before = await pipelineRepository.fetchBidRecipient(categoryId, bid.id, bid.subcontractorId);
+  if (before.error || before.data?.id !== bid.id
+    || !(before.data.updated_at === null || (typeof before.data.updated_at === "string" && before.data.updated_at.length > 0))) {
+    throw new RecipientSaveError(false);
+  }
+  // Keep the exact server timestamp (including microseconds). A timed-out
+  // request may still commit; CAS prevents it from overwriting a later save.
+  const expectedVersion = before.data.updated_at;
+  try {
+    const { data, error, status } = await pipelineRepository.updateBidRecipient(categoryId, bid.id, bid.subcontractorId, {
+      contact_person: recipient.contactPerson, email, phone: recipient.phone || "",
+    }, expectedVersion);
+    if (error || !data || data.id !== bid.id) {
+      const ambiguous = error?.code === "PGRST116" || status === 0 || status === 408 || status === 429 || status >= 500;
+      throw new RecipientSaveError(ambiguous);
+    }
+  } catch (cause) {
+    const ambiguous = cause instanceof RecipientSaveError ? cause.uncertain
+      : cause instanceof TypeError || (cause instanceof DOMException && ["AbortError", "TimeoutError"].includes(cause.name));
+    if (!ambiguous) throw cause;
+  }
+  // Always read after the write response: another editor may have committed
+  // a newer contact while our response was in flight. A lost response also
+  // does not imply a rollback. Never reissue a write during reconciliation.
+  let response;
+  try {
+    response = await pipelineRepository.fetchBidRecipient(categoryId, bid.id, bid.subcontractorId);
+  } catch {
+    throw new RecipientSaveError(true);
+  }
+  if (!response?.data || response.error || response.data.id !== bid.id) throw new RecipientSaveError(true);
+  const current = { contactPerson: response.data.contact_person, email: response.data.email, phone: response.data.phone };
+  if (current.contactPerson !== recipient.contactPerson || current.email !== email || current.phone !== (recipient.phone || "")) {
+    throw new RecipientSaveError(true, current);
+  }
+  notifyProjectBidsPersisted();
+  return current;
 };
 
 export interface InsertBidsResult {

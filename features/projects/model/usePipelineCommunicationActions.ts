@@ -365,6 +365,10 @@ export const usePipelineCommunicationActions = ({
     kind: PipelineInquiryGenerationKind,
   ) => {
     if (!activeCategory) return;
+    if (!isValidEmailAddress(bid.email || "")) {
+      showAlert({ title: "Chybí příjemce", message: "Vyberte na kartě kontakt s platným e-mailem.", variant: "info" });
+      return;
+    }
 
     const userPreferredMode = emailClientMode || "mailto";
     const mode = platformAdapter.isDesktop ? "eml" : userPreferredMode;

@@ -42,6 +42,21 @@ export const pipelineRepository = {
     return supabase.from("bids").update({ contracted }).eq("id", bidId);
   },
 
+  updateBidRecipient(categoryId: string, bidId: string, supplierId: string,
+    payload: { contact_person: string; email: string; phone: string }, expectedVersion: string | null) {
+    const query = supabase.from("bids").update(payload)
+      .eq("id", bidId).eq("demand_category_id", categoryId).eq("subcontractor_id", supplierId);
+    return (expectedVersion === null ? query.is("updated_at", null) : query.eq("updated_at", expectedVersion))
+      .select("id, contact_person, email, phone")
+      .abortSignal(AbortSignal.timeout(15_000)).single();
+  },
+
+  fetchBidRecipient(categoryId: string, bidId: string, supplierId: string) {
+    return supabase.from("bids").select("id, contact_person, email, phone, updated_at")
+      .eq("id", bidId).eq("demand_category_id", categoryId).eq("subcontractor_id", supplierId)
+      .abortSignal(AbortSignal.timeout(15_000)).single();
+  },
+
   insertBids(payload: BidInsertPayload[]) {
     return supabase.rpc<
       "insert_pipeline_bids",

@@ -25,6 +25,7 @@ import { usePipelineDocHubFallback } from "@/features/projects/model/usePipeline
 import { usePipelineCategoryForms } from "@/features/projects/model/usePipelineCategoryForms";
 import { usePipelineContactsController } from "@/features/projects/model/usePipelineContactsController";
 import { usePipelineSubcontractorSelection } from "@/features/projects/model/usePipelineSubcontractorSelection";
+import { usePipelineRecipientSelection } from "@features/projects/model/usePipelineRecipientSelection";
 import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
 import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
 import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
@@ -215,6 +216,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     onContactSaved: (contact) => {
       setSelectedSubcontractorIds((prev) => new Set(prev).add(contact.id));
     },
+  });
+
+  const { selectRecipient, saving: recipientSaving, generating: inquiryGenerating, unconfirmed: recipientUnconfirmed, unconfirmedBidIds, generateWithRecipientLock, saveWithRecipientLock } = usePipelineRecipientSelection({
+    projectId, categoryId: activeCategory?.id, bids, contacts: localContacts,
+    userRole: user?.role, updateBidsInternal,
   });
 
   // Edit Bid State
@@ -424,7 +430,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
               onCategoryNavigate?.(null);
             }}
             onAddSubcontractor={() => setIsSubcontractorModalOpen(true)}
-            onSelectBulkEmail={openBulkEmailConfirmation}
+            onSelectBulkEmail={kind => {
+              if (recipientSaving || inquiryGenerating || recipientUnconfirmed) {
+                showAlert({ title: "Příjemce není připraven", message: recipientUnconfirmed ? "Na označené kartě zopakujte výběr příjemce." : "Počkejte na dokončení ukládání nebo přípravy konceptu.", variant: "info" });
+                return;
+              }
+              openBulkEmailConfirmation(kind);
+            }}
             onOpenDocHub={handleOpenTenderDocHub}
             onExport={handleExport}
           />
@@ -444,6 +456,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
         />
 
         <PipelineKanbanBoard
+          key={`${projectId}:${activeCategory.id}`}
+          contacts={localContacts}
+          onSelectRecipient={selectRecipient}
+          recipientSaving={recipientSaving}
+          inquiryGenerating={inquiryGenerating}
+          unconfirmedBidIds={unconfirmedBidIds}
+          generationBlocked={recipientUnconfirmed}
           projectId={projectId}
           highlightedBidId={highlightedBidId}
           onLinkContract={onLinkContract}
@@ -458,8 +477,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onEditBid={setEditingBid}
           onDeleteBidRequest={handleDeleteBidRequest}
           onDeleteBid={handleDeleteBid}
-          onGenerateInquiry={handleGenerateInquiry}
-          onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
+          onGenerateInquiry={bid => generateWithRecipientLock(() => handleGenerateInquiry(bid))}
+          onGenerateMaterialInquiry={bid => generateWithRecipientLock(() => handleGenerateMaterialInquiry(bid))}
           onOpenSupplierDocHub={handleOpenSupplierDocHub}
           onToggleContracted={handleToggleContracted}
           onOpenContract={onOpenContract}
@@ -502,7 +521,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           <EditBidModal
             bid={editingBid}
             onClose={() => setEditingBid(null)}
-            onSave={handleSaveBid}
+            onSave={bid => saveWithRecipientLock(() => handleSaveBid(bid))}
           />
         )}
 
@@ -514,7 +533,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           userEmail={currentUserEmail}
           selection={selectedBulkEmailSelection}
           isSubmitting={isBulkEmailSubmitting}
-          onConfirm={confirmBulkEmail}
+          onConfirm={() => generateWithRecipientLock(confirmBulkEmail)}
           onCancel={() => setBulkEmailKind(null)}
         />
       </div>
