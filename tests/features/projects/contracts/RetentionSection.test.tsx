@@ -1,12 +1,13 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ContractWithDetails } from '@/types';
 const { releaseRetention } = vi.hoisted(() => ({ releaseRetention: vi.fn() }));
 vi.mock('@features/projects/contracts/api', () => ({ contractMutationsApi: { releaseRetention } }));
 import { RetentionSection } from '@features/projects/contracts/workspace/sections/RetentionSection';
 const contract = { id: 'c1', currency: 'CZK', basePrice: 1000, currentTotal: 1200, invoicedSum: 400, paidSum: 200, approvedSum: 300 } as ContractWithDetails;
 describe('retention release evidence', () => {
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
   beforeEach(() => { vi.clearAllMocks(); releaseRetention.mockResolvedValue(undefined); });
   it('treats empty terms as no retention and supports fixed amounts without percent', () => {
     const { rerender } = render(<RetentionSection contract={contract} onRefresh={vi.fn()} />);
@@ -30,6 +31,15 @@ describe('retention release evidence', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Potvrdit uvolnění' }));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Chybí oprávnění.'));
     expect(refresh).not.toHaveBeenCalled();
+  });
+  it('uses the same UTC day as the server when the local calendar is already tomorrow', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-14T22:30:00Z'));
+    vi.spyOn(Date.prototype, 'getDate').mockReturnValue(15);
+    render(<RetentionSection contract={{ ...contract, retentionShortPercent: 5 }} onRefresh={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Označit krátkodobou jako uvolněnou' }));
+    expect(screen.getByLabelText('Datum skutečného uvolnění')).toHaveValue('2026-09-14');
+    expect(screen.getByLabelText('Datum skutečného uvolnění')).toHaveAttribute('max', '2026-09-14');
   });
   it('labels calculated sums and invoicing as separate evidence', () => {
     render(<RetentionSection contract={{ ...contract, retentionShortPercent: 5 }} onRefresh={vi.fn()} />);

@@ -13,13 +13,13 @@ V detailu smlouvy → Pozastávky jsou zvlášť očekávané a skutečné datum
 - Backfill kopíruje pouze plány dosud neuvolněných pozastávek. U historicky uvolněných je plán neznámý, pokud byl přepsán; nedohaduje se z předání či záruky. Původní obchodní údaje migrace nepřepisuje. Stávající update trigger může aktualizovat `updated_at`.
 - Při legacy opravě statusu zpět na `held` se původní pole opět považuje za plán; uživatel je musí odpovídajícím způsobem upravit. Předchozí změna zůstává v historii. Legacy formulář rozlišuje popisek data podle stavu.
 - `contract_retention_events` obsahují změny stavu/dat, původní stav, zachovaný plán, skutečné datum, čas zápisu a autora z `auth.uid()`. Historické autory nevymýšlíme. Mazání celé smlouvy maže její historii kaskádou; smazání uživatele nastaví autora na NULL.
-- RPC `release_contract_retention` je SECURITY INVOKER, respektuje RLS a navíc ověřuje aktivní předplatné a zápis na projektu. Řádkový zámek a kontrola stavu odmítnou opakované potvrzení. Datum musí být mezi 1900-01-01 a dneškem.
+- RPC `release_contract_retention` je SECURITY INVOKER, respektuje RLS a navíc ověřuje aktivní předplatné a zápis na projektu. Řádkový zámek a kontrola stavu odmítnou opakované potvrzení. Datum musí být mezi 1900-01-01 a dneškem v UTC; výchozí datum klienta i časové pásmo RPC/triggerů jsou shodně UTC.
 - Audit zapisují pouze neveřejné triggery v `private` s prázdným search_path. Klienti mohou historii pouze číst podle přístupu ke smlouvě. Starší přímé zápisy také procházejí triggerem.
 - Změna nevytváří nové povinnosti, automatické uvolnění, oznámení ani nové role. Stavby a organizace zůstávají oddělené existujícími pravidly; oprávnění ani indexy tabulky contracts se nemění.
 
 ## Ověření a nasazení
 
-Cílené testy: `tests/features/projects/contracts/RetentionSection.test.tsx`, `tests/contractService.retention.test.ts`, `tests/contractRetentionMigration.test.ts` a existující `retentionSplit.test.ts`. První regresní běh: 6 očekávaných selhání. Pravidlo prázdných hodnot bylo následně upřesněno uživatelem a test upraven.
+Cílené testy: `tests/features/projects/contracts/RetentionSection.test.tsx`, `tests/contractService.retention.test.ts`, `tests/contractRetentionMigration.test.ts` a existující `retentionSplit.test.ts`. První regresní běh: 6 očekávaných selhání. Review navíc odhalilo rozdíl dne kolem UTC půlnoci; nový regresní test nejprve selhal a po sjednocení data prošel. SQL fixture vybírá vlastníka až po ověření aktivního předplatného a práva zápisu, bez změny těchto oprávnění. Pravidlo prázdných hodnot bylo následně upřesněno uživatelem a test upraven.
 
 Před nasazením spustit `supabase db push --dry-run` a ověřit, že plán obsahuje pouze schválené migrace. Migrace: `supabase/migrations/20260914184053_retention_release_evidence.sql`. Nasadit ji před vydáním nového klienta. Bez migrace potvrzení nahlásí požadavek na aktualizaci databáze; neprovádí nebezpečný fallback na původní zápis.
 

@@ -8,10 +8,8 @@ interface Props {
   contract: ContractWithDetails;
   onRefresh: () => Promise<void> | void;
 }
-const today = () => {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
+// Match contractService.todayIso and the UTC validation in the RPC.
+const today = () => new Date().toISOString().slice(0, 10);
 
 export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
   const breakdown = computeRetention(contract);

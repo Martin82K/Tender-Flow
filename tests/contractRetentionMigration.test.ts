@@ -6,6 +6,7 @@ describe('retention evidence security boundary', () => {
     const rpc = sql.split('CREATE FUNCTION public.release_contract_retention')[1];
     expect(rpc).toContain('SECURITY INVOKER');
     expect(rpc).toContain('FOR UPDATE');
+    expect(rpc).toContain("SET timezone = 'UTC'");
     expect(rpc).toContain('auth.uid() IS NULL');
     expect(rpc).toContain("public.can_project_module_action(c.project_id::text,'module_contracts',true)");
     expect(rpc).toContain('IF NOT FOUND');
@@ -23,4 +24,10 @@ describe('retention evidence security boundary', () => {
     expect(sql).toContain("CASE WHEN retention_short_status IS DISTINCT FROM 'released' THEN retention_short_release_on END");
     expect(sql).toContain("CASE WHEN retention_long_status IS DISTINCT FROM 'released' THEN retention_long_release_on END");
   });
+});
+
+it('selects a fixture with active subscription and write permission before running authenticated SQL tests', () => {
+  const fixture = readFileSync('supabase/tests/retention_release_evidence.sql', 'utf8');
+  expect(fixture).toContain("IF public.has_active_subscription() AND public.can_project_module_action(candidate.project_id::text,'module_contracts',true)");
+  expect(fixture).not.toContain('LIMIT 1');
 });

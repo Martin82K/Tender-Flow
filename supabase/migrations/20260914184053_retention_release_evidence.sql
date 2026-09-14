@@ -31,7 +31,7 @@ USING (public.has_active_subscription() AND EXISTS (SELECT 1 FROM public.contrac
 
 -- Private trigger: attribution cannot be forged by the client and audit rows cannot be edited.
 CREATE FUNCTION private.record_contract_retention() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' SET timezone = 'UTC' AS $$
 DECLARE kind text; old_row jsonb; new_row jsonb; prefix text; old_status text; new_status text; planned date; actual date;
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -77,7 +77,7 @@ CREATE TRIGGER record_contract_retention BEFORE INSERT OR UPDATE ON public.contr
 FOR EACH ROW EXECUTE FUNCTION private.record_contract_retention();
 
 CREATE FUNCTION private.record_initial_contract_retention() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' SET timezone = 'UTC' AS $$
 BEGIN
   IF NEW.retention_short_status = 'released' THEN
     INSERT INTO public.contract_retention_events(contract_id,kind,status,release_on,created_by)
@@ -95,7 +95,7 @@ REVOKE ALL ON FUNCTION private.record_contract_retention(), private.record_initi
 
 -- Invoker preserves existing contracts RLS. Row lock rejects double confirmation.
 CREATE FUNCTION public.release_contract_retention(contract_id_input uuid,kind_input text,date_input date)
-RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' AS $$
+RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path = '' SET timezone = 'UTC' AS $$
 DECLARE c public.contracts;
 BEGIN
   IF auth.uid() IS NULL OR kind_input IS NULL OR kind_input NOT IN ('short','long')
