@@ -14,7 +14,7 @@ import "@/index.css";
 import "./fixture.css";
 
 const bids: Bid[] = [
-  { id: "short", subcontractorId: "short", companyName: "Schindler", price: "2 011 000,00 Kč", status: "contacted", contactPerson: "Jan Novák", email: "jan@example.com" },
+  { id: "short", subcontractorId: "short", companyName: "Schindler", price: "2 011 000,00 Kč", status: "contacted", contactPerson: "Jan Novák", email: "jan@example.com", phone: "111" },
   { id: "long", subcontractorId: "long", companyName: "VÝTAHY SCHMITT+SOHN sro", price: "1 670 000,00 Kč", status: "offer", contactPerson: "Testovací kontakt" },
   { id: "unbroken", subcontractorId: "unbroken", companyName: "DodavatelskaSpolecnostBezMezerABCDEFGHIJKLMNOPQRSTUVWXYZ", price: "123\u00a0456\u00a0789\u00a0000,00\u00a0Kč", status: "offer", contactPerson: "Testovací kontakt" },
 ];

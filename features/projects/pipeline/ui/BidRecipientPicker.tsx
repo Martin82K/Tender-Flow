@@ -53,22 +53,28 @@ export const BidRecipientPicker: React.FC<Props> = ({ bid, contacts, disabled, r
     </span>
   );
   const onlyAvailable = !valid && recipients.length === 1 && isValidEmailAddress(recipients[0].email) ? recipients[0] : undefined;
+  const stopCardGestures = {
+    onClick: (event: React.MouseEvent) => event.stopPropagation(),
+    onDoubleClick: (event: React.MouseEvent) => event.stopPropagation(),
+    onDragStart: (event: React.DragEvent) => { event.preventDefault(); event.stopPropagation(); },
+  };
   return (
-    <div className="mb-3 flex min-w-0 flex-col gap-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-700/50" onClick={event => event.stopPropagation()}
-      onDoubleClick={event => event.stopPropagation()} onDragStart={event => { event.preventDefault(); event.stopPropagation(); }}>
+    <div className="mb-3 flex min-w-0 flex-col gap-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-700/50">
       <span className="font-medium text-slate-500 dark:text-slate-400">Příjemce poptávky</span>
       {recipients.length > 1 ? (
-        <ThemedSelect ariaLabel="Příjemce poptávky" searchable={recipients.length > 6} wrapOptions
-          className="tf-bid-recipient-select min-w-0 w-full" triggerClassName="!px-0 !py-1 [&>span:first-child]:whitespace-normal"
-          disabled={disabled} value={valid ? selected?.id || "saved-recipient" : ""}
-          options={valid ? options : [{ value: "", label: "Vyberte příjemce", disabled: true }, ...options]}
-          renderOption={option => {
-            const contact = recipients.find(recipient => recipient.id === option.value);
-            return contact ? renderDetails(contact) : option.label;
-          }}
-          onChange={contactId => void select(contactId)} />
+        <div {...stopCardGestures}>
+          <ThemedSelect ariaLabel="Příjemce poptávky" searchable={recipients.length > 6} wrapOptions
+            className="tf-bid-recipient-select min-w-0 w-full" triggerClassName="!px-0 !py-1 [&>span:first-child]:whitespace-normal [&>span:first-child]:text-clip"
+            disabled={disabled} value={valid ? selected?.id || "saved-recipient" : ""}
+            options={valid ? options : [{ value: "", label: "Vyberte příjemce", disabled: true }, ...options]}
+            renderOption={option => {
+              const contact = recipients.find(recipient => recipient.id === option.value);
+              return contact ? renderDetails(contact) : option.label;
+            }}
+            onChange={contactId => void select(contactId)} />
+        </div>
       ) : <div className="text-slate-900 dark:text-slate-100">{renderDetails(onlyAvailable || saved)}</div>}
-      {onlyAvailable && <button type="button" disabled={disabled} onClick={() => void select(onlyAvailable.id)}
+      {onlyAvailable && <button {...stopCardGestures} type="button" disabled={disabled} onClick={event => { event.stopPropagation(); void select(onlyAvailable.id); }}
         className="self-start rounded-md px-2 py-1.5 font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50">Použít tohoto příjemce</button>}
       {!valid && <span className="text-amber-700 dark:text-amber-400">Před generováním vyberte kontakt s platným e-mailem.</span>}
       {(error || rememberError) && <span role="alert" className="text-red-600 dark:text-red-400">Volbu se nepodařilo zapamatovat na kartě. Pro tuto poptávku platí zobrazený příjemce.</span>}

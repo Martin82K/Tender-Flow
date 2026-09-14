@@ -33,6 +33,15 @@ describe("recipient on a bid card", () => {
     expect(screen.getByText("jan@example.com")).toBeVisible();
     expect(screen.getByText("111")).toBeVisible();
   });
+  it("lets a static recipient open and drag its card", () => {
+    const onDoubleClick = vi.fn();
+    const onDragStart = vi.fn();
+    render(<BidCard {...props} contacts={[contacts[0]]} onSelectRecipient={vi.fn()} onDoubleClick={onDoubleClick} onDragStart={onDragStart} />);
+    fireEvent.doubleClick(screen.getByText("jan@example.com"));
+    expect(onDoubleClick).toHaveBeenCalledWith(bid);
+    fireEvent.dragStart(screen.getByText("111"));
+    expect(onDragStart).toHaveBeenCalledWith(expect.anything(), bid.id);
+  });
   it("updates all recipient details together and clears a missing phone", async () => {
     const select = vi.fn().mockResolvedValue(undefined);
     const { rerender } = render(<BidCard {...props} onSelectRecipient={select} />);

@@ -208,18 +208,20 @@ try {
     check(await evaluate(() => document.querySelector('#fixture-action').textContent) === expected, `Card action: ${expected}`);
   }
   const recipientTrigger = '.fixture-column:first-child [aria-label="Příjemce poptávky"]';
+  check(await evaluate(selector => { const style = getComputedStyle(document.querySelector(selector)); return style.borderColor === 'rgba(0, 0, 0, 0)' && style.boxShadow === 'none'; }, recipientTrigger), 'Recipient trigger has no frame or shadow');
   await click(recipientTrigger);
-  check(await evaluate(() => [...document.querySelectorAll('[role="option"]')].some(option => option.textContent.includes('Rozpočtářka a příprava staveb') && option.textContent.includes('eva.rozpocty@example.com'))), 'Contact menu includes role and address');
+  check(await evaluate(() => [...document.querySelectorAll('[role="option"]')].some(option => option.textContent.includes('Eva Rozpočtářová') && option.textContent.includes('eva.rozpocty@example.com') && option.textContent.includes('222'))), 'Contact menu includes name, address and phone');
   check(await evaluate(() => [...document.querySelectorAll('[role="option"]')].find(option => option.textContent.includes('Kontakt bez e-mailu'))?.disabled), 'Contact without email cannot be selected');
+  check(await evaluate(() => !document.querySelector('.tf-themed-select-popover').textContent.includes('Rozpočtářka a příprava staveb') && !document.querySelector('.tf-themed-select-popover input[type="search"]')), 'Short recipient menu has no roles or unnecessary search');
   await screenshot('recipient-picker-desktop');
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
   await sleep(100);
   check(await evaluate(() => { const r = document.querySelector('.tf-themed-select-popover').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }), 'Recipient picker fits mobile');
   await screenshot('recipient-picker-mobile');
-  await evaluate(() => document.querySelector('.tf-themed-select-popover input[type="search"]').focus());
+  await evaluate(selector => document.querySelector(selector).focus(), recipientTrigger);
   await key('ArrowDown', 40); await key('Enter', 13);
   await sleep(100);
-  check(await evaluate(selector => document.querySelector(selector).textContent.includes('eva.rozpocty@example.com'), recipientTrigger), 'Contact choice updates the card');
+  check(await evaluate(selector => document.querySelector(selector).textContent.includes('eva.rozpocty@example.com') && document.querySelector(selector).textContent.includes('222') && !document.querySelector(selector).textContent.includes('111'), recipientTrigger), 'Contact choice updates the card including phone');
   await click('.fixture-column:first-child [title="Generovat email s poptávkou"]');
   check(await evaluate(() => document.querySelector('#fixture-action').textContent) === 'inquiry:eva.rozpocty@example.com', 'Generation receives selected email');
   await send('Page.reload');
