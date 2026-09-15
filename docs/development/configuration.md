@@ -185,7 +185,7 @@ Potom spusťte `npm run release:prepare` a ověřovací buildy.
 ## Vyřazený URL zkracovač
 
 Aplikace již neobsahuje tvorbu ani správu krátkých odkazů, automatické zkracování
-dokumentových URL ani obsluhu veřejné cesty `/s/:code`. Staré odkazy
+dokumentových URL ani přesměrování veřejné cesty `/s/:code` (ta zobrazuje oznámení o ukončení služby bez přihlášení). Staré odkazy
 `/app/url-shortener` přejdou na výchozí stránku aplikace. Dokumentové odkazy se
 ukládají beze změny; dříve uložené krátké odkazy se automaticky nerozbalují.
 
@@ -209,3 +209,9 @@ Advisory kontrola nadále hlásí historické [mutable search_path rutin](https:
 a [neindexované cizí klíče](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys).
 Vyřazené rutiny ani tabulka již nejsou dostupné klientským rolím; úklid ostatních
 nálezů databáze není součástí vyřazení zkracovače.
+
+Doplňující migrace `20260915220733_retire_url_shortener_overrides.sql` ruší také
+individuální oprávnění a v obou generacích seznamů funkcí i pomocných kontrolách
+vylučuje vyřazený klíč včetně administrátorů. Regrese ověřuje simulovaný historický
+katalog a override v transakci s rollbackem; samostatná sada předplatného rovněž
+prošla. Závěrečný dry-run znovu potvrdil aktuální databázi.

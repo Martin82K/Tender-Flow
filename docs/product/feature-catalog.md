@@ -147,7 +147,7 @@ modál změn verze.
 ### Veřejné stránky
 
 Landing/SEO prvky, cookies banner, podmínky, ochrana soukromí, DPA a imprint.
-Krátké odkazy používají veřejnou route `/s/:code` s bezpečným resolverem.
+Historické krátké odkazy `/s/:code` zobrazují veřejné oznámení o ukončení služby; již nepřesměrovávají na původní URL.
 
 ## Tarifní model
 

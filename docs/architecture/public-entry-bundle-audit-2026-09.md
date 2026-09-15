@@ -3,7 +3,7 @@
 ## Změna
 
 Veřejný vstup v `components/providers/AppProviders.tsx` vykresluje přihlášení,
-právní stránky a krátké odkazy bez načtení interního `AppContent`. Až po ověření
+právní stránky a oznámení o vyřazení krátkých odkazů bez načtení interního `AppContent`. Až po ověření
 přihlášení načte `app/AuthenticatedApp.tsx`, původní interní ochrany a nápovědu.
 Parametr `next` včetně parametrů cílové stránky zůstává zachován. Veřejná větev
 používá vlastní životní cyklus motivu; po přihlášení jej převezme interní aplikace.
@@ -60,7 +60,7 @@ vizuální ověření všech motivů; tento krok jejich pravidla zachovává.
 Regrese pokrývají odložené importy, zachování názvu exportní šablony a obsahu
 harmonogramu, čekání, opakovaný klik, chybu a opakování exportu. Testy vstupu
 pokrývají veřejnou stránku, čekání na relaci, desktopové směrování, právní stránky,
-krátké odkazy a přihlášení/odhlášení. Stávající test právního souhlasu zůstává
+oznámení o vyřazení krátkých odkazů a přihlášení/odhlášení. Stávající test právního souhlasu zůstává
 součástí interní aplikace.
 
 Prohlížeč ověřil veřejnou stránku, přechod na přihlášení, předání

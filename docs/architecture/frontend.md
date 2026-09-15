@@ -48,10 +48,10 @@ Mimo hlavní app views existují zejména:
 - přihlášení, registrace, zapomenuté heslo, reset hesla a MFA,
 - OAuth consent pro MCP,
 - právní stránky,
-- krátké odkazy `/s/:code`,
+- veřejné oznámení o ukončení služby na historických cestách `/s/:code`,
 - veřejný/landing obsah.
 
-`AuthGate` rozhoduje, kterou autentizační obrazovku zobrazit. Parametr `next`
+`AuthGate` rozhoduje, kterou autentizační obrazovku zobrazit; historické krátké odkazy zobrazí bez přihlášení jako nedostupné. Parametr `next`
 se zachovává při přesměrování uživatele k přihlášení.
 
 ## Feature registry a lazy loading

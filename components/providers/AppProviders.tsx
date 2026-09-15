@@ -53,6 +53,10 @@ export const AppEntry: React.FC = () => {
   const { isDesktop } = useDesktop();
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
 
+  if (pathname === "/s" || pathname.startsWith("/s/")) {
+    return <PublicEntry><AuthGate pathname={pathname} search={search} isDesktop={isDesktop} /></PublicEntry>;
+  }
+
   if (isLoading && (isAppPath || isAuthenticated)) {
     return <PublicEntry><AppLoadingView authLoading isDataLoading={false} /></PublicEntry>;
   }

@@ -48,7 +48,9 @@ beforeEach(() => {
 });
 
 describe("AppEntry", () => {
-  it("handles retired short links as ordinary public routes", () => {
+  it.each([false, true])("keeps retired links public during auth loading (authenticated=%s)", (authenticated) => {
+    state.auth.isAuthenticated = authenticated;
+    state.auth.isLoading = true;
     state.location = { pathname: "/s/abc", search: "" };
     render(<AppEntry />);
     expect(screen.getByText("public:/s/abc:false")).toBeInTheDocument();

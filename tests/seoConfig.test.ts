@@ -37,6 +37,9 @@ describe("resolveSeo", () => {
     expect(resolveSeo("/s/short-alias").noindex).toBe(true);
   });
 
+  it.each(['/s', '/s/retired-link'])('describes retired link %s without promising a redirect', (path) => {
+    expect(resolveSeo(path)).toMatchObject({ title: 'Odkaz již není dostupný | Tender Flow', noindex: true });
+  });
   it("neznámé routy fallbackují na default SEO", () => {
     const seo = resolveSeo("/random-nonexistent-route");
     expect(seo).toEqual(ROUTE_SEO["/"]);
