@@ -103,7 +103,6 @@
     "services/supabase.ts",
     "services/templateService.ts",
     "services/toolsAdapter.ts",
-    "services/urlShortenerService.ts",
     "services/userManagementService.ts",
     "services/userProfileService.ts",
     "services/userSubscriptionService.ts",

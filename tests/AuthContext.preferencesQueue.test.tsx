@@ -95,7 +95,7 @@ const QueueHarness: React.FC = () => {
     <div>
       <button
         onClick={() => {
-          void updatePreferences({ autoShortenProjectDocs: true });
+          void updatePreferences({ uiScale: 1.2 });
           void updatePreferences({ theme: "dark" });
         }}
       >
@@ -103,8 +103,8 @@ const QueueHarness: React.FC = () => {
       </button>
       <div data-testid="loading">{String(isLoading)}</div>
       <div data-testid="theme">{user?.preferences?.theme ?? "none"}</div>
-      <div data-testid="shorten">
-        {String(user?.preferences?.autoShortenProjectDocs ?? false)}
+      <div data-testid="scale">
+        {String(user?.preferences?.uiScale ?? 1)}
       </div>
     </div>
   );
@@ -124,7 +124,7 @@ describe("AuthContext preferences queue", () => {
         theme: "system",
         primaryColor: "#607AFB",
         backgroundColor: "#f5f6f8",
-        autoShortenProjectDocs: false,
+        uiScale: 1,
       },
     });
     mockState.getUserFromSession.mockResolvedValue(null);
@@ -148,7 +148,7 @@ describe("AuthContext preferences queue", () => {
           theme: "dark",
           primaryColor: "#607AFB",
           backgroundColor: "#f5f6f8",
-          autoShortenProjectDocs: true,
+          uiScale: 1.2,
         },
       });
 
@@ -169,7 +169,7 @@ describe("AuthContext preferences queue", () => {
     });
 
     expect(mockState.updateUserPreferences).toHaveBeenNthCalledWith(1, {
-      autoShortenProjectDocs: true,
+      uiScale: 1.2,
     });
 
     await act(async () => {
@@ -183,7 +183,7 @@ describe("AuthContext preferences queue", () => {
           theme: "system",
           primaryColor: "#607AFB",
           backgroundColor: "#f5f6f8",
-          autoShortenProjectDocs: true,
+          uiScale: 1.2,
         },
       });
       await Promise.resolve();
@@ -198,7 +198,7 @@ describe("AuthContext preferences queue", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("theme").textContent).toBe("dark");
-      expect(screen.getByTestId("shorten").textContent).toBe("true");
+      expect(screen.getByTestId("scale").textContent).toBe("1.2");
     });
   });
 
@@ -219,7 +219,7 @@ describe("AuthContext preferences queue", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("theme").textContent).toBe("dark");
-      expect(screen.getByTestId("shorten").textContent).toBe("true");
+      expect(screen.getByTestId("scale").textContent).toBe("1.2");
     });
     expect(mockState.updateUserPreferences).not.toHaveBeenCalled();
   });

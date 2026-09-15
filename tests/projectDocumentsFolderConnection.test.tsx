@@ -99,7 +99,7 @@ describe("desktop folder connection in project documents", () => {
     const onUpdate = vi.fn();
     await act(async () => {
       render(<ProjectDocuments project={disconnectedProject} onUpdate={onUpdate}
-        currentUserId="owner-1" canDocHub canTemplates={false} autoShortenProjectDocs={false} />);
+        currentUserId="owner-1" canDocHub canTemplates={false} />);
     });
     const selectFolder = screen.getByRole("button", { name: /Vybrat složku na tomto zařízení/ });
     fireEvent.click(selectFolder);
@@ -125,7 +125,7 @@ describe("desktop folder connection in project documents", () => {
           setProject(previous => ({ ...previous, ...updates }));
           return new Promise<void>(resolve => { finishUpdate = resolve; });
         }}
-        currentUserId="owner-1" canDocHub canTemplates={false} autoShortenProjectDocs={false} />;
+        currentUserId="owner-1" canDocHub canTemplates={false} />;
     }
     await act(async () => { render(<Fixture />); });
     fireEvent.click(screen.getByRole("button", { name: /Vybrat složku na tomto zařízení/ }));

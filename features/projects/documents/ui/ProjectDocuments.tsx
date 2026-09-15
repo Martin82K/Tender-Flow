@@ -74,7 +74,6 @@ export interface ProjectDocumentsProps {
   currentUserId?: string;
   canDocHub: boolean;
   canTemplates: boolean;
-  autoShortenProjectDocs: boolean;
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
@@ -83,7 +82,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   currentUserId,
   canDocHub,
   canTemplates,
-  autoShortenProjectDocs,
 }) => {
   type DocumentsSubTab = "pd" | "templates" | "dochub" | "ceniky";
   const [isEditingDocs, setIsEditingDocs] = useState(false);
@@ -461,7 +459,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
           >
             {documentsSubTab === "pd" && (
               <DocsLinkSection
-                autoShortenProjectDocs={autoShortenProjectDocs}
                 project={project}
                 hasDocsLink={hasDocsLink}
                 isEditing={isEditingDocs}

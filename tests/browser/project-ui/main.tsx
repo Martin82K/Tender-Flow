@@ -62,7 +62,7 @@ function Fixture() {
     </div>
     <div id="fixture-tender-links"><ContractTenderLinks contract={contracts[1]} contracts={contracts} project={project} onRefresh={() => {}} onOpenBid={(categoryId, bidId) => setAction(`source:${categoryId}:${bidId}`)} /></div>
     <ProjectDocuments project={project} onUpdate={() => {}}
-      canDocHub={true} canTemplates={true} autoShortenProjectDocs={false} />
+      canDocHub={true} canTemplates={true} />
     <div className="tf-contracts-module" id="fixture-contracts-table">
       <ContractsTable contracts={contracts.map(contract => ({
         ...contract, contractNumber: contract.contractNumber || 'SOD-2026-001',

@@ -18,7 +18,6 @@ import { UserSecuritySettings } from "@/features/settings/UserSecuritySettings";
 import { ContactsImportWizard } from "@/shared/ui/ContactsImportWizard";
 import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSettings";
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
-import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
 import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
 import type { OrgSubTab } from "@/features/organization/model/types";
@@ -84,10 +83,9 @@ export const Settings: React.FC<SettingsProps> = ({
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
-    | "urlShortener"
     | "excelIndexer";
   const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
-  const TOOLS_SUBTABS: ToolsSubTab[] = ["mcp", "contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["mcp", "contacts", "excelUnlocker", "excelMerger", "excelIndexer"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
   const isUserSubTab = (v: string | null): v is UserSubTab =>
@@ -140,7 +138,6 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
-        subTabParam === "urlShortener" ||
         subTabParam === "indexMatcher" ||
         subTabParam === "excelIndexer"
           ? subTabParam
@@ -196,7 +193,6 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "contacts" ||
         settingsRoute.subTab === "excelUnlocker" ||
         settingsRoute.subTab === "excelMerger" ||
-        settingsRoute.subTab === "urlShortener" ||
         settingsRoute.subTab === "excelIndexer")
     ) {
       return settingsRoute.subTab;
@@ -253,7 +249,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const canContactsImport = hasFeature(FEATURES.CONTACTS_IMPORT);
   const canExcelUnlocker = hasFeature(FEATURES.EXCEL_UNLOCKER);
   const canExcelMerger = hasFeature(FEATURES.EXCEL_MERGER);
-  const canUrlShortener = hasFeature(FEATURES.URL_SHORTENER);
   const canExcelIndexer = hasFeature(FEATURES.EXCEL_INDEXER);
   const canBackup = hasFeature(FEATURES.DATA_BACKUP);
 
@@ -271,7 +266,6 @@ export const Settings: React.FC<SettingsProps> = ({
         (activeToolsSubTab === "contacts" && !canContactsImport) ||
         (activeToolsSubTab === "excelUnlocker" && !canExcelUnlocker) ||
         (activeToolsSubTab === "excelMerger" && !canExcelMerger) ||
-        (activeToolsSubTab === "urlShortener" && !canUrlShortener) ||
         (activeToolsSubTab === "excelIndexer" && !canExcelIndexer);
       if (!isGated) return;
       // Fall back to any accessible tools sub-tab, else redirect to user/profile
@@ -280,7 +274,6 @@ export const Settings: React.FC<SettingsProps> = ({
         (canExcelMerger && "excelMerger") ||
         (canExcelIndexer && "excelIndexer") ||
         (canContactsImport && "contacts") ||
-        (canUrlShortener && "urlShortener") ||
         "mcp";
       if (firstAvailable) {
         setActiveToolsSubTab(firstAvailable as ToolsSubTab);
@@ -298,7 +291,6 @@ export const Settings: React.FC<SettingsProps> = ({
     canContactsImport,
     canExcelMerger,
     canExcelUnlocker,
-    canUrlShortener,
     canExcelIndexer,
     canBackup,
     isFeaturesLoading,
@@ -817,21 +809,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </button>
                 )}
-                {canUrlShortener && (
-                  <button
-                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "urlShortener" })}
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeToolsSubTab === "urlShortener"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[20px]">link</span>
-                      URL Zkracovač
-                    </div>
-                  </button>
-                )}
               </nav>
             </aside>
 
@@ -889,7 +866,6 @@ export const Settings: React.FC<SettingsProps> = ({
 
               {activeToolsSubTab === "excelUnlocker" && canExcelUnlocker && <ExcelUnlockerProSettings />}
               {activeToolsSubTab === "excelMerger" && canExcelMerger && <ExcelMergerProSettings />}
-              {activeToolsSubTab === "urlShortener" && canUrlShortener && <UrlShortener />}
               {activeToolsSubTab === "excelIndexer" && canExcelIndexer && <ExcelIndexerSettings />}
             </main>
           </div>

@@ -4,18 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DocsLinkSection } from '@features/projects/documents/ui/DocsLinkSection';
 import type { ProjectDetails } from '../types';
 
-const mockShortenUrl = vi.fn();
 const platformMocks = vi.hoisted(() => ({
     isDesktop: false,
     openExternal: vi.fn(),
 }));
 const mockOpenInExplorer = vi.hoisted(() => vi.fn());
-
-vi.mock('@features/tools', () => ({
-    ToolsApi: {
-        shortenUrl: (...args: any[]) => mockShortenUrl(...args),
-    },
-}));
 
 vi.mock('@infra/platform/platformAdapter', () => ({
     get isDesktop() {
@@ -37,13 +30,8 @@ const mockProject = {
 
 describe('DocsLinkSection', () => {
     beforeEach(() => {
+        vi.restoreAllMocks();
         vi.clearAllMocks();
-        mockShortenUrl.mockResolvedValue({
-            success: true,
-            shortUrl: 'https://tinyurl.com/test',
-            originalUrl: 'https://example.com/very-long-url',
-            provider: 'tinyurl',
-        });
         platformMocks.isDesktop = false;
         platformMocks.openExternal.mockResolvedValue(undefined);
         mockOpenInExplorer.mockResolvedValue({ success: true });
@@ -240,20 +228,15 @@ describe('DocsLinkSection', () => {
         });
     });
 
-    it('auto-shortens when preference is enabled and URL is public', async () => {
-        mockShortenUrl.mockResolvedValueOnce({
-            success: true,
-            shortUrl: 'https://tinyurl.com/public',
-            originalUrl: 'https://example.com/very-long-url',
-            provider: 'tinyurl',
-        });
+    it('preserves the original public URL even with a saved legacy preference', async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
         Object.defineProperty(global, 'crypto', {
             value: { randomUUID: () => 'link-public' },
             writable: true,
         });
 
-        render(<DocsLinkSection {...defaultProps} autoShortenProjectDocs />);
+        render(<DocsLinkSection {...defaultProps} {...{ autoShortenProjectDocs: true }} />);
 
         fireEvent.click(screen.getByText('Přidat odkaz'));
         fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
@@ -265,26 +248,28 @@ describe('DocsLinkSection', () => {
         fireEvent.click(screen.getByText('Přidat'));
 
         await waitFor(() => {
-            expect(mockShortenUrl).toHaveBeenCalledWith('https://example.com/very-long-url');
+            expect(defaultProps.onUpdate).toHaveBeenCalled();
+            expect(fetchSpy).not.toHaveBeenCalled();
         });
         expect(defaultProps.onUpdate).toHaveBeenCalledWith({
             documentLinks: [
                 expect.objectContaining({
                     id: 'link-public',
                     label: 'Veřejný odkaz',
-                    url: 'https://tinyurl.com/public',
+                    url: 'https://example.com/very-long-url',
                 }),
             ],
         });
     });
 
-    it('does not auto-shorten local/internal URL even when preference is enabled', async () => {
+    it('preserves local URLs without sending them to an external service', async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
         Object.defineProperty(global, 'crypto', {
             value: { randomUUID: () => 'link-local' },
             writable: true,
         });
 
-        render(<DocsLinkSection {...defaultProps} autoShortenProjectDocs />);
+        render(<DocsLinkSection {...defaultProps} {...{ autoShortenProjectDocs: true }} />);
 
         fireEvent.click(screen.getByText('Přidat odkaz'));
         fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
@@ -298,7 +283,7 @@ describe('DocsLinkSection', () => {
         await waitFor(() => {
             expect(defaultProps.onUpdate).toHaveBeenCalled();
         });
-        expect(mockShortenUrl).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
         expect(defaultProps.onUpdate).toHaveBeenCalledWith({
             documentLinks: [
                 expect.objectContaining({

@@ -52,6 +52,12 @@ describe("AuthGate navigation", () => {
     vi.clearAllMocks();
   });
 
+  it.each(['/s/abc', '/s', '/s/nested/code'])('shows a public retirement notice for %s without login', (pathname) => {
+    render(<AuthGate pathname={pathname} search="" isDesktop={false} />);
+    expect(screen.getByRole('heading', { name: 'Odkaz již není dostupný' })).toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
   it("desktop + / renderuje LoginPage bez redirectu", () => {
     render(
       <AuthGate pathname="/" search="" isDesktop={true} />,

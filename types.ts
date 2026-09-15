@@ -7,8 +7,7 @@ export type View =
   | "todo"
   | "project-management"
   | "project-overview"
-  | "contract-overview"
-  | "url-shortener";
+  | "contract-overview";
 
 export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map" | "settings";
 
@@ -300,8 +299,6 @@ export interface UserPreferences {
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
-  urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
-  autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   uiScale?: number; // Global UI scale, sanitized before applying to CSS
   signature?: string; // HTML compatible signature
 }

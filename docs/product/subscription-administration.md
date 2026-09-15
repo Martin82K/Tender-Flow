@@ -12,7 +12,7 @@ Původní `SubscriptionFeaturesManagement` se připojí až po otevření pokro�
 
 Free není nabízený účet ani tarif. Interní hodnota `free` zůstává kvůli starším klientům a databázovým vazbám a znamená **bez přístupu**. Administrátor může tento stav rozpoznat jako „Bez předplatného“; otevření existujícího záznamu nepřiřadí automaticky placený tarif.
 
-`AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Bez platného předplatného zůstává obrazovka obnovy, kontakt na podporu a odhlášení. Právní dokumenty a veřejné krátké odkazy si zachovávají vlastní přístupová pravidla. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
+`AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Bez platného předplatného zůstává obrazovka obnovy, kontakt na podporu a odhlášení. Právní dokumenty zůstávají veřejné. Historické krátké odkazy zobrazí veřejné oznámení o ukončení služby. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
 
 Nové osobní i firemní organizace se vytvářejí bez aktivního tarifu. Automatické založení organizace nepředstavuje úhradu ani časově neomezený nárok. Existující placená a ručně spravovaná předplatná se tím nepřepisují.
 
@@ -66,7 +66,7 @@ Hlavní migrace před přidáním restriktivní politiky kontroluje existenci vo
 
 Migrace `20260907065230_close_release_subscription_boundaries.sql` obnovuje veřejný provisioning pouze pro vlastní přihlášenou identitu. Argumenty mohou zůstat prázdné jako v původním wrapperu; explicitní ID a e-mail se porovnávají s ověřeným účtem. Anonymní volání nemá oprávnění ani k veřejné, ani k interní funkci. Interní bootstrap zůstává dostupný servisní roli a registračnímu triggeru a vytváří organizace bez automatického předplatného.
 
-REST výjimka zahrnuje přesně `get_short_url_target`, aby existující veřejný odkaz fungoval i přihlášenému uživateli bez předplatného. Ochrana MCP, přímý přístup k tabulce a ostatní RPC zůstávají zachované. Test `supabase/tests/release-subscription-boundaries.sql` kontroluje oprávnění, identitu, vlastní provisioning a přesný rozsah výjimky; končí rollbackem.
+Historická REST výjimka zahrnuje přesně `get_short_url_target`, ale vyřazovací migrace zkracovače klientům odebrala oprávnění tento resolver spouštět. Krátké odkazy již nefungují; veřejná stránka pouze oznámí ukončení služby. Ochrana MCP, přímý přístup k tabulce a ostatní RPC zůstávají zachované. Test `supabase/tests/release-subscription-boundaries.sql` kontroluje oprávnění, identitu, vlastní provisioning a přesný rozsah výjimky; končí rollbackem.
 
 `stripe-sync-org-subscription` sdílí výpočet období s webhookem. Synchronizuje oba sloupce konce přístupu a u `past_due` zachovává pouze již uložený konec; `incomplete` neuděluje nové období. Stejnou hodnotu vrací klientovi. Regrese handleru používají mockované Stripe odpovědi a neprovádějí skutečné platby.
 

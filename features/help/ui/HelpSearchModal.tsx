@@ -19,7 +19,6 @@ const viewLabels: Record<string, string> = {
   settings: "Nastavení",
   "project-management": "Správa staveb",
   "project-overview": "Přehledy",
-  "url-shortener": "URL Zkracovač",
 };
 
 interface HelpSearchModalProps {

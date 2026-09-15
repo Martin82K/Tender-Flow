@@ -48,10 +48,10 @@ Mimo hlavní app views existují zejména:
 - přihlášení, registrace, zapomenuté heslo, reset hesla a MFA,
 - OAuth consent pro MCP,
 - právní stránky,
-- krátké odkazy `/s/:code`,
+- veřejné oznámení o ukončení služby na historických cestách `/s/:code`,
 - veřejný/landing obsah.
 
-`AuthGate` rozhoduje, kterou autentizační obrazovku zobrazit. Parametr `next`
+`AuthGate` rozhoduje, kterou autentizační obrazovku zobrazit; historické krátké odkazy zobrazí bez přihlášení jako nedostupné. Parametr `next`
 se zachovává při přesměrování uživatele k přihlášení.
 
 ## Feature registry a lazy loading
@@ -142,7 +142,7 @@ nezávislých větví UI.
   pipeline feature public API.
 - Projektové dokumenty, šablony a Složkomat vlastní modul
   `features/projects/documents/`. `ProjectLayout` mu explicitně předává identitu,
-  dostupné capabilities a preferenci zkracování odkazů; modul proto nečte
+  dostupné capabilities; modul proto nečte
   legacy auth ani feature context. UI je v `ui/`, stavová a provider orchestrace
   Složkomatu v `model/useDocHubIntegration.ts`. Původní komponenty v
   `components/projectLayoutComponents/documents/`, legacy hook i shared re-export

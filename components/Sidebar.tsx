@@ -136,7 +136,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subTabParam === "excelUnlocker" ||
       subTabParam === "excelMerger" ||
       subTabParam === "excelIndexer" ||
-      subTabParam === "urlShortener" ||
       subTabParam === "registration" ||
       subTabParam === "users" ||
       subTabParam === "organizations" ||

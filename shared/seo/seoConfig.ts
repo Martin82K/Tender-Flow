@@ -94,11 +94,11 @@ export const resolveSeo = (pathname: string): SeoMeta => {
     };
   }
 
-  // /s/* — zkrácené odkazy, neindexovat
-  if (pathname.startsWith("/s/")) {
+  // /s/* — veřejné oznámení o vyřazení odkazů, neindexovat
+  if (pathname === "/s" || pathname.startsWith("/s/")) {
     return {
-      title: "Přesměrování | Tender Flow",
-      description: "Přesměrování na cílový odkaz.",
+      title: "Odkaz již není dostupný | Tender Flow",
+      description: "Služba krátkých odkazů byla ukončena. Požádejte odesílatele o původní odkaz.",
       noindex: true,
     };
   }

@@ -26,7 +26,6 @@ vi.mock("@/context/FeatureContext", () => ({ useFeatures: () => state.features }
 vi.mock("@/hooks/useDesktop", () => ({ useDesktop: () => ({ isDesktop: state.isDesktop }) }));
 vi.mock("@/hooks/useTheme", () => ({ useTheme: () => state.publicTheme() }));
 vi.mock("@shared/routing/router", () => ({ useLocation: () => state.location }));
-vi.mock("@shared/routing/ShortUrlRedirect", () => ({ ShortUrlRedirect: ({ code }: { code: string }) => <div>short:{code}</div> }));
 vi.mock("@app/views/AuthGate", () => ({ AuthGate: ({ pathname, search, isDesktop }: { pathname: string; search: string; isDesktop: boolean }) => <div>public:{pathname}{search}:{String(isDesktop)}</div> }));
 vi.mock("@app/views/AppLoadingView", () => ({ AppLoadingView: () => <div>loading</div> }));
 vi.mock("@app/views/LazyViewErrorBoundary", () => ({ LazyViewErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
@@ -49,6 +48,14 @@ beforeEach(() => {
 });
 
 describe("AppEntry", () => {
+  it.each([false, true])("keeps retired links public during auth loading (authenticated=%s)", (authenticated) => {
+    state.auth.isAuthenticated = authenticated;
+    state.auth.isLoading = true;
+    state.location = { pathname: "/s/abc", search: "" };
+    render(<AppEntry />);
+    expect(screen.getByText("public:/s/abc:false")).toBeInTheDocument();
+    expect(state.readSettings).not.toHaveBeenCalled();
+  });
   it("renders public routes without loading the internal application", () => {
     render(<AppEntry />);
     expect(screen.getByText("public:/:false")).toBeInTheDocument();
@@ -72,14 +79,11 @@ describe("AppEntry", () => {
     render(<AppEntry />);
     expect(screen.getByText("public:/login?next=%2Fapp%2Ftodo%3FtaskId%3Dtask-1:true")).toBeInTheDocument();
   });
-  it("keeps legal documents and short links outside the internal application", () => {
+  it("keeps legal documents outside the internal application", () => {
     state.auth.isAuthenticated = true;
     state.location = { pathname: "/terms", search: "" };
     const view = render(<AppEntry />);
     expect(screen.getByText("terms")).toBeInTheDocument();
-    state.location = { pathname: "/s/abc", search: "" };
-    view.rerender(<AppEntry />);
-    expect(screen.getByText("short:abc")).toBeInTheDocument();
     expect(state.loadedInternal).not.toHaveBeenCalled();
     expect(state.readSettings).not.toHaveBeenCalled();
   });

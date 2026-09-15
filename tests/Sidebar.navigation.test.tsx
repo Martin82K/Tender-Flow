@@ -22,7 +22,6 @@ const enabledFeatures: FeatureKey[] = [
   FEATURES.EXCEL_UNLOCKER,
   FEATURES.EXCEL_MERGER,
   FEATURES.EXCEL_INDEXER,
-  FEATURES.URL_SHORTENER,
 ];
 
 vi.mock('@/context/AuthContext', () => ({

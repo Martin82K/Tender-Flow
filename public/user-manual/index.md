@@ -95,7 +95,6 @@ Organizace ovlivňuje zejména:
 | Funkce | Free | PRO | Enterprise |
 |--------|:----:|:---:|:----------:|
 | Dashboard, Stavby, Kontakty | ✅ | ✅ | ✅ |
-| URL Zkracovač | ✅ | ✅ | ✅ |
 | Výběrová řízení (Pipeline) | – | ✅ | ✅ |
 | AI přehledy | – | ✅ | ✅ |
 | Harmonogram | – | ✅ | ✅ |
@@ -475,26 +474,6 @@ Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle ind
 > 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ.
 
 **Umístění:** Nastavení → Index Matcher (PRO+)
-
-### 🔗 URL Zkracovač
-
-Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené odkazy mají formát `tenderflow.cz/s/váš-alias`.
-
-**Jak vytvořit zkrácený odkaz:**
-1. Otevřete **Nastavení → URL Zkracovač**
-2. Do pole "URL adresa" vložte dlouhý odkaz
-3. Do pole "Vlastní alias" zadejte požadovanou zkratku (např. `projekt-abc`)
-4. Klikněte **Zkrátit**
-5. Zkrácený odkaz se objeví v seznamu a můžete jej zkopírovat
-
-**Příklad:**
-- **Původní URL**: `https://drive.google.com/drive/folders/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT`
-- **Alias**: `projekt-abc`
-- **Zkrácený odkaz**: `tenderflow.cz/s/projekt-abc`
-
-**Správa odkazů:** v seznamu vidíte alias, cílovou URL, počet kliknutí a datum vytvoření. Odkazy lze kopírovat do schránky a mazat.
-
-**Umístění:** Nastavení → URL Zkracovač (Free+)
 
 ### 🔄 Import a synchronizace kontaktů
 
@@ -876,7 +855,7 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 
 ### v0.9.6
 
-- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, URL Zkracovač, Desktop aplikace, Mailto IPC Bridge.
+- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, Desktop aplikace, Mailto IPC Bridge.
 
 ### v0.9.5
 

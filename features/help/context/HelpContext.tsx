@@ -35,7 +35,6 @@ function parseViewFromPath(pathname: string): { view: View | null; tab: ProjectT
     settings: "settings",
     "project-management": "project-management",
     "project-overview": "project-overview",
-    "url-shortener": "url-shortener",
   };
 
   const view = viewMap[segment] || null;

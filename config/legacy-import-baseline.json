@@ -442,11 +442,6 @@
       "target": "context/FeatureContext"
     },
     {
-      "file": "features/tools/api/index.ts",
-      "specifier": "@/services/urlShortenerService",
-      "target": "services/urlShortenerService"
-    },
-    {
       "file": "infra/auth/authSessionStore.ts",
       "specifier": "@/services/supabase",
       "target": "services/supabase"
@@ -590,11 +585,6 @@
       "file": "shared/routing/RequireFeature.tsx",
       "specifier": "../../context/FeatureContext",
       "target": "context/FeatureContext"
-    },
-    {
-      "file": "shared/routing/ShortUrlRedirect.tsx",
-      "specifier": "../../services/urlShortenerService",
-      "target": "services/urlShortenerService"
     },
     {
       "file": "shared/ui/ContactsImportWizard.tsx",

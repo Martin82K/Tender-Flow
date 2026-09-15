@@ -727,38 +727,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         <BiometricSettings className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1" />
 
         {/* Other Settings */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-            <span className="material-symbols-outlined text-violet-500 text-xl">tune</span>
-            Další nastavení
-          </h2>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-900 dark:text-white">
-                  Automatické zkracování odkazů
-                </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Při vložení dlouhého odkazu jej automaticky zkrátit.
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={user?.preferences?.autoShortenProjectDocs ?? false}
-                  onChange={(e) => {
-                    updatePreferences({
-                      autoShortenProjectDocs: e.target.checked,
-                    });
-                  }}
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-              </label>
-            </div>
-          </div>
-        </section>
 
         {/* App Update Section */}
         <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
