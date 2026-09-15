@@ -622,10 +622,10 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
                 <div className="tf-portfolio-toolbar mb-5 flex flex-wrap items-center gap-3 rounded-xl p-3">
                     <input type="search" aria-label="Hledat stavbu" placeholder="Hledat podle názvu nebo čísla…"
-                        value={portfolio.query} onChange={event => setPortfolio({ ...portfolio, query: event.target.value })}
+                        value={portfolio.query} onChange={event => setPortfolio({ ...currentPortfolio.current, query: event.target.value })}
                         className="w-full min-w-0 sm:w-80 sm:max-w-sm sm:flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm" />
                     <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm"><input type="checkbox" checked={portfolio.ownOnly}
-                        onChange={event => setPortfolio({ ...portfolio, ownOnly: event.target.checked })} />Moje stavby</label>
+                        onChange={event => setPortfolio({ ...currentPortfolio.current, ownOnly: event.target.checked })} />Moje stavby</label>
                     <button type="button" aria-expanded={showCreate} aria-controls="portfolio-create"
                         onClick={() => setShowCreate(!showCreate)} className="shrink-0 whitespace-nowrap rounded-lg border border-primary px-4 py-2 text-sm text-primary">+ Nová stavba</button>
                 </div>

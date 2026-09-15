@@ -183,6 +183,27 @@ describe("ProjectManager clone to realization", () => {
   });
 });
 
+it.each(['search', 'owner'])('restores the latest scroll after changing the %s filter', (filter) => {
+  sessionStorage.clear();
+  act(() => navigate('/app/projects'));
+  const projects: Project[] = [
+    { id: 'a', name: 'Alfa', location: 'Praha', status: 'tender', ownerId: 'user-1' },
+  ];
+  const view = renderProjectManager(projects);
+  const scroller = view.container.querySelector('.tf-project-manager-view') as HTMLDivElement;
+  fireEvent.scroll(scroller, { target: { scrollTop: 240 } });
+  if (filter === 'search') {
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'Alfa' } });
+  } else {
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Moje stavby' }));
+  }
+  view.unmount();
+  const restored = renderProjectManager(projects);
+  try {
+    expect(restored.container.querySelector('.tf-project-manager-view')?.scrollTop).toBe(240);
+  } finally { restored.unmount(); act(() => navigate('/')); sessionStorage.clear(); }
+});
+
 it('filtruje portfolio a otevře stavbu přes její název', () => {
   renderProjectManager([
     { id: 'a', name: 'Alfa', location: 'Praha', status: 'tender', ownerId: 'user-1' },

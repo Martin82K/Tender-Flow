@@ -9,7 +9,7 @@ Portfolio a projektová navigace, kompaktní analytický souhrn, pozastávky z P
 Pracovní grafické výstupy, obchodní podklady v `output/` a dočasné `tmp/`
 nejsou součástí zdrojového commitu tohoto vydání.
 
-- Vitest: 531 souborů, 2 883 testů, bez skip/todo a bez neošetřených chyb.
+- Vitest před review: 531 souborů, 2 883 testů, bez skip/todo a bez neošetřených chyb.
 - Python Excel merge: 8 testů.
 - Typecheck, web build, kontrola dist, desktop compile, docs, boundaries a
   legacy structure prošly. Lockfile mění pouze verzi aplikace.
@@ -27,6 +27,19 @@ nejsou součástí zdrojového commitu tohoto vydání.
 Původní běhy zachytily zastaralé očekávání počtu modulů, staré selektory vzhledu
 a chybějící release notes. Testy byly sladěny se změnou UI; kontroly oprávnění
 zůstaly zachované. Testy lokálních serverů vyžadovaly běh mimo síťový sandbox.
+
+## Doplnění po review
+
+Review #462 odhalilo přepsání uloženého scrollu při změně hledání nebo filtru
+vlastních staveb. Dva regresní testy nejprve obnovily 0 místo 240 px; po opravě
+oba prošly. Změna filtrů nyní přebírá aktuální scroll z refu. Původní CI
+potvrdilo 2 883 testů; po doplnění regresí má sada 2 885 testů.
+
+CI root audit eviduje 5 moderate + 2 low (navíc závislé MCP SDK a Hono server),
+bez high/critical; desktop audit je čistý. Ověřilo 860 root a 116 desktop podpisů.
+Lokální macOS balíček prošel deep/strict kontrolou ad-hoc podpisu a skutečně se
+spustil z app.asar do přihlášení s verzí 1.9.34. Balení používá stejná lokální
+nastavení jako 1.9.33: `mac.identity=-`, `toolsets.nsis=1.2.1`.
 
 ## Databáze
 
