@@ -6229,6 +6229,7 @@ html[data-skin="space"] .tf-space-sidebar-reveal > button {
   background: var(--tf-skin-surface-muted, #f1f5f9) !important;
 }
 html .tf-project-manager-view .tf-portfolio-list {
+  container-type: inline-size;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -6251,7 +6252,7 @@ html .tf-project-manager-view .tf-portfolio-status {
     gap: 10px;
   }
 }
-@media (max-width: 767px) {
+@container (max-width: 760px) {
   .tf-project-manager-view .tf-portfolio-head { display: none; }
   .tf-project-manager-view .tf-portfolio-row {
     grid-template-columns: minmax(0, 1fr) auto;
