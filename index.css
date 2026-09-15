@@ -6177,3 +6177,100 @@ html[data-skin="space"] .tf-space-sidebar-reveal > button {
     print-color-adjust: exact !important;
   }
 }
+
+/* Project workspace navigation: full-width hit areas, shared across skins. */
+.tf-sidebar .tf-project-switcher {
+  background: var(--tf-skin-card, color-mix(in srgb, currentColor 6%, transparent));
+  color: var(--tf-skin-text, inherit);
+  border-radius: 0 !important;
+}
+.tf-sidebar .tf-project-nav-row {
+  border-radius: 0 !important;
+  background: transparent;
+  color: var(--tf-skin-text-2, inherit);
+}
+.tf-sidebar .tf-project-nav-row:hover {
+  background: var(--tf-skin-surface-muted, color-mix(in srgb, currentColor 8%, transparent));
+}
+.tf-sidebar .tf-project-nav-row[data-active="true"] {
+  border-left-color: var(--tf-skin-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--tf-skin-accent, var(--color-primary)) 12%, transparent);
+  font-weight: 600;
+}
+.tf-sidebar .tf-sidebar-section[aria-pressed="true"] {
+  border-color: var(--tf-skin-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--tf-skin-accent, var(--color-primary)) 12%, transparent);
+}
+
+/* C1 portfolio: working table and summaries, aligned with the approved Figma screen. */
+.tf-project-manager-view .tf-portfolio-toolbar,
+.tf-project-manager-view .tf-portfolio-chart,
+.tf-project-manager-view .tf-portfolio-row {
+  background: var(--tf-skin-surface, var(--color-white));
+}
+.tf-project-manager-view .tf-portfolio-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 110px 100px minmax(180px, 240px) 72px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+}
+.tf-project-manager-view .tf-portfolio-head {
+  color: var(--tf-skin-muted, #64748b);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.tf-project-manager-view .tf-portfolio-row {
+  min-height: 72px;
+  border-bottom: 1px solid var(--tf-skin-line, #e2e8f0);
+  border-radius: 0 !important;
+}
+.tf-project-manager-view .tf-portfolio-row:hover {
+  background: var(--tf-skin-surface-muted, #f1f5f9) !important;
+}
+html .tf-project-manager-view .tf-portfolio-list {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible;
+}
+html .tf-project-manager-view .tf-portfolio-status {
+  color: inherit !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.tf-portfolio-bar-realization { background: var(--tf-skin-accent, #eaa079); }
+.tf-portfolio-bar-tender { background: #829dab; }
+.tf-portfolio-bar-track { background: var(--tf-skin-line, #e2e8f0); }
+.tf-portfolio-actions[open] { z-index: 30; }
+.tf-portfolio-actions summary::-webkit-details-marker { display: none; }
+@media (max-width: 1199px) {
+  .tf-project-manager-view .tf-portfolio-grid {
+    grid-template-columns: minmax(140px, 1fr) 90px 76px minmax(130px, 180px) 64px;
+    gap: 10px;
+  }
+}
+@media (max-width: 767px) {
+  .tf-project-manager-view .tf-portfolio-head { display: none; }
+  .tf-project-manager-view .tf-portfolio-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 16px;
+  }
+  .tf-portfolio-row > :first-child { grid-column: 1 / -1; }
+  .tf-portfolio-row > :nth-child(3)::before { content: 'VŘ: '; }
+  .tf-portfolio-row > :nth-child(4) { grid-column: 1; }
+}
+html[data-skin] .tf-project-manager-view .tf-portfolio-list[data-help-id="pm-project-list"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+html[data-skin] .tf-project-manager-view .tf-portfolio-list [data-help-id="pm-project-row"] {
+  border-radius: 0 !important;
+}
+.tf-project-manager-view .tf-portfolio-toolbar,
+.tf-project-manager-view .tf-portfolio-chart {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted, #f1f5f9) 60%, transparent);
+}

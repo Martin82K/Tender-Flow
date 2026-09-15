@@ -152,7 +152,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             <Sidebar
                 currentView={currentView}
                 onViewChange={handleViewChange}
-                projects={projects.filter((p) => p.status !== "archived")}
+                projects={projects}
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={onProjectSelect}
                 isOpen={isSidebarOpen}

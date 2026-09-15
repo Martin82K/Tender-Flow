@@ -21,6 +21,7 @@ vi.mock("@/context/AuthContext", () => ({
 vi.mock("@/context/FeatureContext", () => ({
   useFeatures: () => ({
     currentPlan: "pro",
+    hasFeature: () => false,
     isLoading: false,
   }),
 }));
@@ -77,6 +78,7 @@ describe("ProjectManager clone to realization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     mocks.onCloneMock.mockResolvedValue({ projectId: "realization-1" });
   });
 
@@ -132,15 +134,11 @@ describe("ProjectManager clone to realization", () => {
 
     expect(tenderBadge).toHaveAttribute("data-help-id", "pm-project-status-badge");
     expect(tenderBadge).toHaveAttribute("data-status", "tender");
-    expect(tenderBadge).toHaveTextContent("S");
-    expect(tenderBadge).toHaveClass("bg-blue-500/20");
-    expect(tenderBadge).toHaveClass("text-blue-400");
+    expect(tenderBadge).toHaveTextContent("V soutěži");
 
     expect(realizationBadge).toHaveAttribute("data-help-id", "pm-project-status-badge");
     expect(realizationBadge).toHaveAttribute("data-status", "realization");
-    expect(realizationBadge).toHaveTextContent("R");
-    expect(realizationBadge).toHaveClass("bg-amber-500/20");
-    expect(realizationBadge).toHaveClass("text-amber-400");
+    expect(realizationBadge).toHaveTextContent("V realizaci");
   });
 
   it("po potvrzení zavolá klonovací akci", async () => {
@@ -186,4 +184,14 @@ describe("ProjectManager clone to realization", () => {
       "Sdíleno s: cerny@baustav.cz, lida@baustav.cz, smcrka@baustav.cz",
     );
   });
+});
+
+it('filtruje portfolio a otevře stavbu přes její název', () => {
+  renderProjectManager([
+    { id: 'a', name: 'Alfa', location: 'Praha', status: 'tender', ownerId: 'user-1' },
+    { id: 'b', name: 'Beta', location: 'Brno', status: 'realization', ownerId: 'user-1' },
+  ]);
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'Beta' } });
+  expect(screen.queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('href', '/app/project/b?tab=overview');
 });

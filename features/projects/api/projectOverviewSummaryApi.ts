@@ -56,6 +56,25 @@ interface BidRow {
 interface FinancialRow { project_id: string; sod_price: number | null }
 interface AmendmentRow { id: string; project_id: string; label: string | null; price: number | null }
 
+export interface ProjectPortfolioSummary {
+  openCount: number;
+  deadlines: { date: string; title: string }[];
+}
+
+/** Small portfolio payload. Both project discovery and dependent reads retain normal RLS. */
+export const fetchProjectPortfolioSummary = async (visibleIds: string[]): Promise<Record<string, ProjectPortfolioSummary>> => {
+  const projects = await readRows<{ id: string }>('projects', 'id', 'id', visibleIds);
+  const categories = await readRows<CategoryRow>('demand_categories', 'id,project_id,title,status,deadline', 'project_id', projects.map(project => project.id));
+  const bids = await readRows<{ id: string; demand_category_id: string; status: string; contracted: boolean }>(
+    'bids', 'id,demand_category_id,status,contracted', 'demand_category_id', categories.map(category => category.id));
+  const signed = new Set(bids.filter(bid => bid.status === 'sod' && bid.contracted).map(bid => bid.demand_category_id));
+  return Object.fromEntries(projects.map(project => {
+    const open = categories.filter(category => category.project_id === project.id && category.status === 'open' && !signed.has(category.id));
+    return [project.id, { openCount: open.length, deadlines: open.flatMap(category => category.deadline
+      ? [{ date: category.deadline, title: category.title }] : []) }];
+  }));
+};
+
 /** Personal projects are outside the tenant RPC. Read only analytical columns under normal RLS. */
 export const fetchPersonalProjectOverview = async (visiblePersonalIds: string[]): Promise<OverviewTenantData> => {
   const projectRows = (await readRows<ProjectRow>("projects",

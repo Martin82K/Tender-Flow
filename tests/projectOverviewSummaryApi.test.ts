@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ from: vi.fn(), calls: [] as { table: string; columns: string; ids: string[]; start: number }[], rows: {} as Record<string, Record<string, unknown>[]>, fail: "" }));
 vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: { from: mocks.from } }));
-import { fetchPersonalProjectOverview } from "@features/projects/api/projectOverviewSummaryApi";
+import { fetchPersonalProjectOverview, fetchProjectPortfolioSummary } from "@features/projects/api/projectOverviewSummaryApi";
 beforeEach(() => {
   mocks.calls = [];
   mocks.fail = "";
@@ -46,4 +46,20 @@ it("does not load dependent data for denied or newly organization-owned projects
   const summary = await fetchPersonalProjectOverview(["p1", "hidden"]);
   expect(summary).toEqual({ projects: [], projectDetails: {} });
   expect(mocks.calls).toHaveLength(1);
+});
+
+it("loads portfolio columns only for accessible projects and excludes signed tenders", async () => {
+  mocks.rows.demand_categories = [
+    { id: 'open', project_id: 'p1', title: 'Okna', status: 'open', deadline: '2026-09-20' },
+    { id: 'signed', project_id: 'p1', title: 'Střecha', status: 'open', deadline: '2026-09-18' },
+    { id: 'closed', project_id: 'p1', title: 'Dveře', status: 'closed' },
+  ];
+  mocks.rows.bids = [{ id: 'b1', demand_category_id: 'signed', status: 'sod', contracted: true }];
+  const summary = await fetchProjectPortfolioSummary(['p1', 'denied']);
+  expect(summary.p1).toEqual({ openCount: 1, deadlines: [{ date: '2026-09-20', title: 'Okna' }] });
+  expect(summary.denied).toBeUndefined();
+  expect(mocks.calls.map(call => call.table)).toEqual(['projects', 'demand_categories', 'bids']);
+  expect(mocks.calls.every(call => !call.columns.includes('price') && !call.columns.includes('documents'))).toBe(true);
+  mocks.fail = 'demand_categories';
+  await expect(fetchProjectPortfolioSummary(['p1'])).rejects.toThrow('failed page');
 });

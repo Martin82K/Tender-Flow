@@ -35,21 +35,14 @@ describe("industrial sidebar project hover", () => {
     expect(css).toContain("var(--tf-skin-orange) 10%, var(--tf-skin-surface) 90%");
   });
 
-  it("uses a readable dark hover state for project rows", () => {
-    expect(sidebarSource).toContain('data-help-id="sidebar-project-item"');
-    expect(sidebarSource).toContain('data-help-id="sidebar-project-expand"');
-
-    const hoverBlock = cssBlockFor(
-      'html.dark[data-skin="industrial"] .tf-sidebar [data-help-id="sidebar-project-item"][data-active="false"]:hover',
-    );
-    const expandBlock = cssBlockFor(
-      'html.dark[data-skin="industrial"] .tf-sidebar [data-help-id="sidebar-project-item"][data-active="false"]:hover [data-help-id="sidebar-project-expand"]',
-    );
-
-    expect(hoverBlock).toContain("var(--tf-skin-surface-muted) 88%");
-    expect(hoverBlock).toContain("inset 2px 0 0 var(--tf-skin-orange)");
-    expect(hoverBlock).toContain("color: var(--tf-skin-text) !important");
-    expect(expandBlock).toContain("background: transparent !important");
-    expect(expandBlock).toContain("color: var(--tf-skin-orange) !important");
+  it("uses full-width readable hover targets for workspace sections", () => {
+    const workspaceSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSidebar.tsx"), "utf8");
+    expect(workspaceSource).toContain('tf-project-nav-row');
+    expect(workspaceSource).toContain('w-full');
+    const hoverBlock = cssBlockFor('.tf-sidebar .tf-project-nav-row:hover');
+    expect(hoverBlock).toContain('var(--tf-skin-surface-muted');
+    const rowBlock = cssBlockFor('.tf-sidebar .tf-project-nav-row');
+    expect(rowBlock).toContain('border-radius: 0 !important');
+    expect(rowBlock).toContain('var(--tf-skin-text-2');
   });
 });

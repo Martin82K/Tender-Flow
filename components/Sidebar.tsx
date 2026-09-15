@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { View, Project, ProjectTab } from "../types";
+import type { View, Project } from "../types";
 import logo from "../assets/logo.svg";
 import { SIDEBAR_NAVIGATION, type NavItemConfig } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
@@ -9,36 +9,9 @@ import { useLocation } from "@/shared/routing/router";
 import { SidebarUpdateStatus } from "@features/desktop-updater/ui/SidebarUpdateStatus";
 import type { ThemeSkin } from "@/shared/types/theme";
 
-import { APP_VERSION } from "../config/version";
-const PROJECT_TABS: {
-  id: ProjectTab;
-  label: string;
-  icon: string;
-  feature?: FeatureKey;
-}[] = [
-  { id: "overview", label: "Přehled", icon: "dashboard" },
-  { id: "tender-plan", label: "Plán VŘ", icon: "assignment" },
-  {
-    id: "pipeline",
-    label: "Výběrová řízení",
-    icon: "view_kanban",
-    feature: FEATURES.MODULE_PIPELINE,
-  },
-  {
-    id: "schedule",
-    label: "Harmonogram",
-    icon: "calendar_month",
-    feature: FEATURES.PROJECT_SCHEDULE,
-  },
-  { id: "documents", label: "Dokumenty", icon: "folder" },
-  {
-    id: "contracts",
-    label: "Smlouvy",
-    icon: "description",
-    feature: FEATURES.MODULE_CONTRACTS,
-  },
-];
+import { ProjectSidebar } from "@features/projects/ui/ProjectSidebar";
 
+import { APP_VERSION } from "../config/version";
 interface SidebarProps {
   currentView: View;
   onViewChange: (
@@ -81,10 +54,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const [expandedProjects, setExpandedProjects] = useState<
-    Record<string, boolean>
-  >({});
-
   type Tier = "free" | "starter" | "pro" | "enterprise" | "admin";
   const subscriptionTier = (user?.subscriptionTier || "free") as Tier;
   const isIndustrialSkin = skin === "industrial";
@@ -110,15 +79,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const sidebarClass = isIndustrialSkin
     ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl"
     : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl";
-  const selectedProjectOverlayClass = isIndustrialSkin
-    ? "absolute inset-y-1 left-0 w-0.5 bg-[#ff8a33]"
-    : "absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary";
-  const toggleProjectExpand = (e: React.MouseEvent, projectId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedProjects((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
-  };
-
   const settingsRoute = (() => {
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
@@ -157,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   })();
 
   const isNavItemEnabled = useCallback(
-    (item: any) => {
+    (item: NavItemConfig) => {
       if (item.feature && !hasFeature(item.feature)) return false;
       return true;
     },
@@ -165,12 +125,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const isNavItemActive = useCallback(
-    (item: any): boolean => {
+    (item: NavItemConfig): boolean => {
       if (item.type === "group") {
         return (
           Array.isArray(item.children) &&
           item.children.some(
-            (child: any) => isNavItemEnabled(child) && isNavItemActive(child),
+            (child: NavItemConfig) => isNavItemEnabled(child) && isNavItemActive(child),
           )
         );
       }
@@ -224,216 +184,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [resize, stopResizing]);
 
-  // Drag & Drop State for Projects (Read-only here)
-  const [projectOrder, setProjectOrder] = useState<string[]>([]);
-
-  // Load order from localStorage on mount
-  useEffect(() => {
-    const savedOrder = localStorage.getItem("projectOrder");
-    if (savedOrder) {
-      try {
-        setProjectOrder(JSON.parse(savedOrder));
-      } catch {
-        setProjectOrder([]);
-      }
-    }
-  }, []);
-
-  // Get ordered projects (only non-archived)
-  const activeProjects = projects.filter((p) => p.status !== "archived");
-  const orderedProjects = [...activeProjects].sort((a, b) => {
-    const aIndex = projectOrder.indexOf(a.id);
-    const bIndex = projectOrder.indexOf(b.id);
-    if (aIndex === -1 && bIndex === -1) return 0;
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  type MenuSection = 'projects' | 'reports' | 'tools';
+  const routeSection: MenuSection = currentView === 'project-overview' || currentView === 'contract-overview'
+    ? 'reports' : currentView === 'settings' && settingsRoute.tab === 'tools' ? 'tools' : 'projects';
+  const [menuSection, setMenuSection] = useState<MenuSection>(routeSection);
+  useEffect(() => { setMenuSection(routeSection); }, [routeSection, currentView, selectedProjectId]);
+  const navItem = (id: string) => SIDEBAR_NAVIGATION.find(item => item.id === id);
+  const renderItem = (id: string) => { const item = navItem(id); return item ? renderNavItem(item) : null; };
+  const reportItems = SIDEBAR_NAVIGATION.filter(item => ['project-overview', 'contract-overview'].includes(item.id) && isNavItemEnabled(item));
+  const tools = navItem('tools')?.children?.filter(isNavItemEnabled) ?? [];
 
   // Helper to render nav items
-  const renderNavItem = (item: any, parentId?: string) => {
+  const renderNavItem = (item: NavItemConfig, parentId?: string) => {
     if (!isNavItemEnabled(item)) {
       return null;
     }
 
     const isItemActive = isNavItemActive(item);
-
-    // Special case for projects group which acts as accordion
-    if (item.id === "projects") {
-      return (
-        <details key={item.id} className="group" open>
-          <summary
-            data-help-id="sidebar-nav-group-summary"
-            data-active={currentView === "project" ? "true" : "false"}
-            className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
-              currentView === "project"
-                ? activeNavClass
-                : inactiveNavClass
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span
-                className={`material-symbols-outlined shrink-0 ${
-                  currentView === "project" ? activeIconClass : ""
-                }`}
-              >
-                {item.icon}
-              </span>
-              <p className="text-[13px] leading-normal break-words">{item.label}</p>
-            </div>
-            <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">
-              expand_more
-            </span>
-          </summary>
-
-          <div className="flex flex-col mt-1 ml-2 gap-1">
-            {/* Tlačítko Nová stavba */}
-            <button
-              data-help-id="sidebar-new-project"
-              onClick={() => {
-                onViewChange("project-management");
-                closeMobileMenu();
-              }}
-              className={isIndustrialSkin
-                ? "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-all text-[#b03a05] hover:bg-[#ff8a33]/10 border border-dashed border-[#ff8a33]/40 hover:border-[#ff8a33]/70"
-                : "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all text-primary hover:bg-primary/10 border border-dashed border-primary/30 hover:border-primary/50"}
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>Nová stavba</span>
-            </button>
-
-            {orderedProjects.length === 0 && (
-              <div className="px-4 py-2 text-xs text-slate-500 italic">
-                Žádné aktivní stavby
-              </div>
-            )}
-            {orderedProjects.map((project) => {
-              const isExpanded = expandedProjects[project.id];
-              const isSelected =
-                currentView === "project" && selectedProjectId === project.id;
-
-              return (
-                <div key={project.id} className="flex flex-col">
-                  {/* Project Header Item */}
-                  <div
-                    data-help-id="sidebar-project-item"
-                    data-active={isSelected ? "true" : "false"}
-                    onClick={() => {
-                      onProjectSelect(project.id, "overview");
-                      closeMobileMenu();
-                    }}
-                    className={`flex items-center gap-2.5 text-left text-[13px] px-2.5 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${
-                      isSelected
-                        ? isIndustrialSkin
-                          ? "text-[#14110a] font-semibold bg-[#faf6ee]/55 rounded-md"
-                          : "text-slate-900 dark:text-white font-semibold"
-                        : isIndustrialSkin
-                          ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10"
-                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
-                    }`}
-                    title={project.name}
-                  >
-                    {/* Gradient highlight for selected project */}
-                    {isSelected && (
-                      <div className={selectedProjectOverlayClass} />
-                    )}
-
-                    {/* Status Letter */}
-                    <span
-                      className={`relative z-10 flex items-center justify-center size-5 text-sm font-extrabold shrink-0 ${
-                        project.status === "realization"
-                          ? isIndustrialSkin ? "text-[#ff8a33]" : "text-amber-500"
-                          : isIndustrialSkin ? "text-[#5da6ff]" : "text-blue-500"
-                      }`}
-                    >
-                      {project.status === "realization" ? "R" : "S"}
-                    </span>
-
-                    {/* Project Name */}
-                    <span className="relative z-10 flex-1 break-words whitespace-normal leading-snug">
-                      {project.name}
-                    </span>
-
-                    {/* Expand Button */}
-                    <button
-                      data-help-id="sidebar-project-expand"
-                      onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 inline-flex size-7 items-center justify-center rounded-md transition-all ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#b03a05]" : "text-slate-400 hover:bg-primary/15 hover:text-primary"} ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[15px] leading-none">
-                        expand_more
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Submenu */}
-                  {isExpanded && (
-                    <div className={`flex flex-col ml-3 pl-3 border-l mt-1 mb-1 gap-0.5 animate-in slide-in-from-top-2 duration-200 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.14)]" : "border-slate-200 dark:border-slate-700/50"}`}>
-                      {PROJECT_TABS.filter(
-                        (tab) => !tab.feature || hasFeature(tab.feature),
-                      ).map((tab) => {
-                        // Logic to determine if sub-tab is active could be tricky since we don't have tab info in SidebarProps except strictly via currentView/route check which I'd have to implement.
-                        // But for sidebar highlight, we can rely on `selectedProjectId` + `activeProjectTab` if Sidebar received it.
-                        // Sidebar doesn't receive `activeProjectTab`. MainLayout has it. I should have passed it!
-                        // But wait, `isNavItemActive` uses `settingsRoute` which parses URL.
-                        // I can parse URL here too or pass the prop.
-                        // I'll stick to simple rendering for now, maybe simple highlight if possible.
-                        const isTabActive =
-                          isSelected &&
-                          window.location.search.includes(`tab=${tab.id}`); // Rough check or rely on passed prop if I add it.
-                        // Actually, I modified MainLayout to support `activeProjectTab`.
-                        // I DID NOT add `activeProjectTab` to SidebarProps yet.
-                        // I should probably have done that.
-                        // For now, I will skip the "active" highlight for sub-tabs or implement a basic check.
-                        // Actually, `useLocation` hook is used in Sidebar (line 62).
-                        // `const { search } = useLocation();`
-                        // I can check search params.
-
-                        const searchParams = new URLSearchParams(search);
-                        const isTabActiveReal =
-                          isSelected &&
-                          (searchParams.get("tab") || "overview") === tab.id;
-
-                        return (
-                          <button
-                            key={tab.id}
-                            data-help-id="project-sidebar-tab"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onProjectSelect(project.id, tab.id);
-                              closeMobileMenu();
-                            }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
-                              isTabActiveReal
-                                ? isIndustrialSkin
-                                  ? "text-[#b03a05] border-l-2 border-[#ff8a33] bg-transparent rounded-none font-semibold"
-                                  : "text-primary bg-primary/10 font-medium"
-                                : isIndustrialSkin
-                                  ? "text-[#6e6757] rounded-none hover:text-[#14110a] hover:bg-[#ff8a33]/10"
-                                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
-                            }`}
-                          >
-                            <span
-                              data-help-id="project-sidebar-tab-icon"
-                              className={`material-symbols-outlined shrink-0 leading-none ${isIndustrialSkin ? "text-[13px] w-3.5" : "text-[16px]"}`}
-                            >
-                              {tab.icon}
-                            </span>
-                            <span>{tab.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </details>
-      );
-    }
 
     if (item.type === "group") {
       const isOpen = item.id in openGroups ? openGroups[item.id] : isItemActive;
@@ -478,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             className={`flex flex-col mt-1 ml-2 gap-1 ${childrenMaxHeightClass} overflow-y-auto pr-1`}
           >
-            {(item.children || []).map((child: any) =>
+            {(item.children || []).map((child: NavItemConfig) =>
               renderNavItem(child, item.id),
             )}
           </div>
@@ -623,12 +390,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
 
               {/* Navigation */}
-              <nav className="tf-sidebar-nav flex flex-col gap-1 mt-2 flex-1 overflow-y-auto">
-                {SIDEBAR_NAVIGATION.map((item) => renderNavItem(item))}
-              </nav>
+              <div className="tf-sidebar-nav flex flex-col gap-3 mt-2 flex-1 min-h-0">
+                {renderItem('contacts')}
+                <nav aria-label="Oblasti aplikace" className="grid grid-cols-3 gap-1.5 shrink-0">
+                  {([
+                    { id: 'projects', label: 'Stavby', icon: 'apartment', enabled: hasFeature(FEATURES.MODULE_PROJECTS) },
+                    { id: 'reports', label: 'Přehledy', icon: 'monitoring', enabled: reportItems.length > 0 },
+                    { id: 'tools', label: 'Nástroje', icon: 'build', enabled: tools.length > 0 },
+                  ] as const).filter(item => item.enabled).map(item => <button key={item.id} type="button"
+                    aria-label={item.label} aria-pressed={menuSection === item.id} data-active={menuSection === item.id}
+                    className="tf-sidebar-section flex min-w-0 flex-col items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 px-1 py-2.5 text-[11px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    onClick={() => {
+                      setMenuSection(item.id);
+                      if (item.id === 'projects') { onViewChange('project-management', undefined); closeMobileMenu(); }
+                    }}>
+                    <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span>{item.label}
+                  </button>)}
+                </nav>
+                <div className="-mx-3 flex-1 min-h-0 overflow-y-auto">
+                  {menuSection === 'projects' && hasFeature(FEATURES.MODULE_PROJECTS) && <>
+                    <div className="px-3 mb-2">{renderItem('project-management')}</div>
+                    {currentView === 'project' && <ProjectSidebar hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
+                      activeTab={new URLSearchParams(search).get('tab') || 'overview'}
+                      onSelect={(id, tab) => { onProjectSelect(id, tab); closeMobileMenu(); }} />}
+                  </>}
+                  {menuSection === 'reports' && <nav aria-label="Přehledy" className="px-3">{reportItems.map(item => renderNavItem(item))}</nav>}
+                  {menuSection === 'tools' && <nav aria-label="Nástroje" className="px-3">{tools.map(item => renderNavItem(item))}</nav>}
+                  {menuSection !== 'projects' && currentView === 'project' && <button type="button"
+                    className="mx-3 mt-6 p-2 text-left text-xs border border-slate-300 dark:border-slate-700 rounded-md"
+                    onClick={() => setMenuSection('projects')}>Zpět k otevřené stavbě: {projects.find(project => project.id === selectedProjectId)?.name}</button>}
+                </div>
+              </div>
             </div>
 
             <div className={`mt-auto border-t p-3 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-200 dark:border-slate-700/50"}`}>
+              <div className="mb-3 tf-sidebar-nav">{renderItem('todo')}</div>
               <div className="flex items-center justify-between gap-3">
                 <SidebarUpdateStatus
                   currentVersion={APP_VERSION}

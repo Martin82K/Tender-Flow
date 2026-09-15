@@ -30,6 +30,7 @@ import type { ThemeSkin } from "@/shared/types/theme";
 import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings";
 import { projectService } from "@/services/projectService";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
+import { PROJECT_NAVIGATION } from "@features/projects/model/projectNavigation";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -118,43 +119,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     });
   }, [project, onUpdateDetails]);
 
-  const allTabs = useMemo(
-    () =>
-      [
-        { id: "overview", label: "Přehled", icon: "dashboard" },
-        { id: "tender-plan", label: "Plán VŘ", icon: "calendar_today" },
-        {
-          id: "pipeline",
-          label: "Výběrová řízení",
-          icon: "account_tree",
-          feature: FEATURES.MODULE_PIPELINE,
-        },
-        {
-          id: "schedule",
-          label: "Harmonogram",
-          icon: "event_note",
-          feature: FEATURES.PROJECT_SCHEDULE,
-        },
-        {
-          id: "map",
-          label: "Mapa",
-          icon: "map",
-          feature: FEATURES.MODULE_MAPS,
-        },
-        { id: "documents", label: "Dokumenty", icon: "folder_open" },
-        {
-          id: "contracts",
-          label: "Smlouvy",
-          icon: "description",
-          feature: FEATURES.MODULE_CONTRACTS,
-        },
-        { id: "settings", label: "Nastavení", icon: "settings" },
-      ] as const,
-    [],
-  );
+  const allTabs = PROJECT_NAVIGATION;
 
   const visibleTabs = useMemo(
-    () => allTabs.filter((tab) => !("feature" in tab) || hasFeature(tab.feature)),
+    () => allTabs.filter((tab) => !tab.feature || hasFeature(tab.feature)),
     [allTabs, hasFeature],
   );
 
@@ -189,47 +157,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   const mobileTabsClass = isIndustrialSkin
     ? "w-full rounded-md px-4 py-2 text-xs font-bold uppercase tracking-wider"
     : "w-full rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider";
-  const desktopTabsClass = isIndustrialSkin
-    ? "hidden min-w-max md:flex items-center gap-1.5 bg-transparent p-0 rounded-none border-0"
-    : "hidden min-w-max md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800";
-
   const renderClassicTabs = () => (
-    <div className="flex w-full items-center">
-      <div className="relative w-full md:hidden">
-        <ThemedNativeSelect
-          aria-label="Navigace projektu"
-          value={activeTab}
-          onChange={(e) => onTabChange(e.target.value as ProjectTab)}
-          className={mobileTabsClass}
-        >
-          {visibleTabs.map((tab) => (
-            <option key={tab.id} value={tab.id}>
-              {tab.label}
-            </option>
-          ))}
-        </ThemedNativeSelect>
-      </div>
-
-      <div data-help-id="project-tabs" className={desktopTabsClass}>
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id as ProjectTab)}
-            data-active={activeTab === tab.id ? "true" : "false"}
-            className={`flex items-center gap-2 px-3 lg:px-4 py-1.5 text-[11px] uppercase tracking-wider transition-all duration-200 ${isIndustrialSkin
-              ? activeTab === tab.id
-                ? "rounded-none border-b-2 border-[#ff8a33] text-[#b03a05] font-bold bg-transparent shadow-none ring-0"
-                : "rounded-none border-b-2 border-transparent text-[#6e6757] font-bold hover:text-[#14110a] bg-transparent"
-              : activeTab === tab.id
-                ? "rounded-xl bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 font-black"
-                : "rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white font-black"
-              }`}
-          >
-            <span className={`material-symbols-outlined opacity-70 ${isIndustrialSkin ? "text-[15px]" : "text-[18px]"}`}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="w-full border-b border-slate-200 p-3 dark:border-slate-800 md:hidden">
+      <ThemedNativeSelect aria-label="Navigace projektu" value={activeTab}
+        onChange={event => onTabChange(event.target.value as ProjectTab)} className={mobileTabsClass}>
+        {visibleTabs.map(tab => <option key={tab.id} value={tab.id}>{tab.label}</option>)}
+      </ThemedNativeSelect>
     </div>
   );
 
@@ -237,9 +170,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     <div className="tf-project-shell flex flex-col h-full bg-slate-50 dark:bg-slate-950">
       <Header
         title={project.title}
-        subtitle={currentStatus}
+        subtitle={`${currentStatus} · ${visibleTabs.find(tab => tab.id === activeTab)?.label ?? "Přehled"}`}
         skin={skin}
-        childrenBelow
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
         helpSlot={
@@ -254,9 +186,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           </div>
         }
         notificationSlot={<NotificationBell />}
-      >
-        {renderClassicTabs()}
-      </Header>
+      />
+      {renderClassicTabs()}
 
       {isArchived && <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm font-medium text-amber-800">Archivovaná stavba je pouze ke čtení. Nevznikají zde nové úkoly, schválení ani oznámení; obnovit ji může systémový vlastník stavby.</div>}
       {!isArchived && isReadOnly && <div className="border-b border-blue-200 bg-blue-50 px-6 py-3 text-sm font-medium text-blue-800">K této stavbě máte přístup pouze pro čtení.</div>}
