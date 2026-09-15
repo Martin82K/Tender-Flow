@@ -13,6 +13,7 @@
   zakázek. Ovládání a rozložení se přizpůsobují šířce dostupného panelu.
 - Přepínač staveb zobrazuje lokaci a fázi i u shodných názvů. Nově založená
   stavba se otevře přímo, i když předchozí filtr patřil archivu.
+- Souhrny bez oprávnění k pipeline zůstávají nedostupné; nezobrazují falešnou nulu.
 
 ## Pozastávky
 
@@ -23,7 +24,8 @@
 - Explicitní částka včetně nuly má přednost před výpočtem z procenta.
   Evidence neprovádí platbu ani automatické uvolnění peněz.
 - Uživatelská i organizační záloha zahrnuje plán, skutečné uvolnění a historii
-  pozastávek. Obnova zachová existující historii; konfliktní identifikátory odmítne.
+  pozastávek. Existující evidence se obnovou nepřepisuje. Historická potvrzení
+  chybějící smlouvy vyžadují databázově podepsaný export, aby nešlo podvrhnout autora.
 
 ## Další změny
 

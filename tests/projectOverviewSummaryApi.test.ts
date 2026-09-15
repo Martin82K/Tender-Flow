@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ from: vi.fn(), calls: [] as { table: string; columns: string; ids: string[]; start: number }[], rows: {} as Record<string, Record<string, unknown>[]>, fail: "" }));
-vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: { from: mocks.from } }));
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), calls: [] as { table: string; columns: string; ids: string[]; start: number }[], rows: {} as Record<string, Record<string, unknown>[]>, fail: "" }));
+vi.mock("@infra/db/dbAdapter", () => ({ dbAdapter: { from: mocks.from, rpc: mocks.rpc } }));
 import { fetchPersonalProjectOverview, fetchProjectPortfolioSummary } from "@features/projects/api/projectOverviewSummaryApi";
 beforeEach(() => {
   mocks.calls = [];
   mocks.fail = "";
+  mocks.rpc.mockReset().mockResolvedValue({ data: [{ project_id: 'p1' }], error: null });
   mocks.rows = {
     projects: [{ id: "p1", name: "Osobní stavba", location: "Praha", status: "tender", finish_date: "2026-09-30", organization_id: null }],
     demand_categories: [{ id: "c1", project_id: "p1", title: "Okna", sod_budget: 500, plan_budget: 400, deadline: "2026-08-30" }],
@@ -62,4 +63,19 @@ it("loads portfolio columns only for accessible projects and excludes signed ten
   expect(mocks.calls.every(call => !call.columns.includes('price') && !call.columns.includes('documents'))).toBe(true);
   mocks.fail = 'demand_categories';
   await expect(fetchProjectPortfolioSummary(['p1'])).rejects.toThrow('failed page');
+});
+
+it('keeps pipeline-denied projects unavailable while allowing genuine empty summaries', async () => {
+  mocks.rows.projects.push({ id: 'denied', name: 'Visible without pipeline' });
+  mocks.rows.demand_categories = [];
+  mocks.rows.bids = [];
+  const summary = await fetchProjectPortfolioSummary(['p1', 'denied']);
+  expect(summary.p1).toEqual({ openCount: 0, deadlines: [] });
+  expect(summary.denied).toBeUndefined();
+  expect(mocks.calls.filter(call => call.table === 'demand_categories').flatMap(call => call.ids)).toEqual(['p1']);
+});
+
+it('does not replace an access-check failure with zero counts', async () => {
+  mocks.rpc.mockResolvedValue({ data: null, error: new Error('access unavailable') });
+  await expect(fetchProjectPortfolioSummary(['p1'])).rejects.toThrow('access unavailable');
 });

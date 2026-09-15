@@ -2,7 +2,20 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const migration = readFileSync('supabase/migrations/20260915231450_restore_retention_backup_evidence.sql', 'utf8');
+const authentication = readFileSync('supabase/migrations/20260915233324_authenticate_retention_backup_history.sql', 'utf8');
 describe('retention backup authorization and compatibility', () => {
+  it('requires a server-only signature before importing historical evidence', () => {
+    expect(authentication).toContain('extensions.hmac');
+    expect(authentication).toContain('extensions.gen_random_bytes(32)');
+    expect(authentication).toContain('REVOKE ALL ON private.retention_backup_signing_key FROM PUBLIC,anon,authenticated,service_role');
+    expect(authentication).toContain("IS DISTINCT FROM private.retention_backup_signature(item)");
+    expect(authentication).toContain("Historical retention evidence requires a signed database export");
+  });
+  it('keeps existing evidence authoritative and runs its update through normal auditing', () => {
+    expect(authentication).toContain('jsonb_each(to_jsonb(existing))');
+    expect(authentication).toContain("TG_OP=''INSERT'' OR NOT (payload ? ''_existing'')");
+    expect(authentication).toContain("contract_id=cid AND payload ? '_existing'");
+  });
   it('uses a private transaction capability rather than a client-controlled setting', () => {
     expect(migration).toContain('PRIMARY KEY(transaction_id, contract_id)');
     expect(migration).toContain('REVOKE ALL ON private.contract_retention_restore_context FROM PUBLIC,anon,authenticated,service_role');

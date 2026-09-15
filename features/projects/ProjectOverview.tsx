@@ -34,6 +34,7 @@ import { MonthlyVolumeTrends } from "@/shared/ui/overview/MonthlyVolumeTrends";
 import { OverviewSection } from "@/features/projects/ui/OverviewSection";
 import {
   formatOfferDate,
+  projectChoiceLabel,
 } from "@/features/projects/model/projectOverviewModel";
 import { useProjectOverviewController } from "@/features/projects/model/useProjectOverviewController";
 import type { ThemeSkin } from "@/shared/types/theme";
@@ -248,7 +249,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               <option value="all">Všechny stavby</option>
               {selectableProjects.map((project) => (
                 <option key={project.id} value={project.id}>
-                  {project.name} · {project.status === "archived" ? "Archiv" : project.status === "realization" ? "Realizace" : "Soutěž"}
+                  {projectChoiceLabel(project, selectableProjects)}
                 </option>
               ))}
             </ThemedNativeSelect>

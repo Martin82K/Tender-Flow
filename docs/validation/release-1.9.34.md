@@ -68,10 +68,8 @@ Migrace `20260915231450_restore_retention_backup_evidence.sql` následně doplni
 export i obnovu pozastávek do obou druhů záloh. Obnova používá soukromé oprávnění
 vázané na transakci a smlouvu, nikoli klientem nastavitelné GUC; žádný trigger
 nevypíná. Kontroluje organizaci, stavbu a vlastníka nebo správce. Historii
-nesmaže ani nepřepíše a konfliktní identifikátory odmítne. Údaje a autoři
-importované historie pocházejí ze zálohy; jde o důvěryhodnost vstupního souboru,
-nikoli kryptografický důkaz původního jednání. Samotná obnova se zapisuje do
-`backup_history` s identitou obnovujícího uživatele.
+nesmaže ani nepřepíše a konfliktní identifikátory odmítne. Samotná obnova se
+zapisuje do `backup_history` s identitou obnovujícího uživatele.
 
 SQL roundtrip před opravou selhal na chybějící historii. Po migraci prošla
 uživatelská i organizační obnova do nových UUID, opakování bez duplicit,
@@ -81,6 +79,33 @@ Původní test s DELETE zamítla automatická kontrola; bezpečnější varianta
 nemaže. Původních 73 smluv má po ověření stejný kontrolní součet, audit i
 tabulka dočasných oprávnění jsou prázdné. Původní SQL test potvrzení uvolnění,
 RLS a neměnnosti auditu také znovu prošel.
+
+Následné bezpečnostní review odhalilo možnost podvrhnout historii v nepodepsaném
+manifestu. Regresní SQL test reprodukoval změnu existující pozastávky bez auditu.
+Oprava `20260915233324_authenticate_retention_backup_history.sql` zachovává
+existující evidenci jako autoritativní a její UPDATE vede běžným auditním triggerem.
+Historie chybějící smlouvy vyžaduje HMAC-SHA256 podpis exportu, vázaný na smlouvu,
+stavbu, organizaci, vlastníka, retenční pole i události. Klíč i podpisová funkce
+jsou soukromé a nepřístupné API rolím. Číselný zápis se normalizuje pro JSON
+roundtrip přes JavaScript. Staré nepodepsané plány lze obnovit, nepodepsaná
+historická potvrzení chybějících smluv jsou odmítnuta. Pro obnovu do jiného
+databázového prostředí je nutné bezpečně obnovit také soukromý podpisový klíč;
+klíč se nikdy nepřikládá ke klientským JSON zálohám.
+
+Migrace `20260915233656_portfolio_pipeline_read_access.sql` přidává hromadnou
+kontrolu pipeline oprávnění jako SECURITY INVOKER pod běžným RLS. Klient při
+zamítnutí nebo chybě nesestavuje nulové souhrny. Analytický výběr staveb rozlišuje
+lokaci a při úplné shodě také ID. Oba nálezy mají cílené RED/GREEN regrese.
+
+Finální ověření po bezpečnostním review: 533 souborů / 2 897 testů bez skip/todo
+a neošetřených chyb; typecheck, web build, docs, boundaries, legacy i browser
+fixture prošly. Obě poslední migrace jsou nasazené. SQL testy ověřily ochranu
+existujícího auditu, obnovu podepsané historie obou typů záloh, odmítnutí změny
+autora/času/identity a nepodepsané historie, číselnou normalizaci JSON a staré
+nepodepsané plány. Hromadná kontrola oprávnění odpovídá RLS; anon ji nespustí.
+Po rollback testech: 73 smluv se stejným checksumem, 0 eventů a 0 dočasných
+oprávnění; podpisový klíč není čitelný rolí authenticated. Závěrečný dry-run
+hlásí aktuální databázi a advisors nemají nový nález pro přidané objekty.
 
 Security advisor nemá nález pro nové objekty pozastávek. Performance advisor
 u nového indexu autora hlásí pouze dosud nepoužitý index; zachován kvůli FK.

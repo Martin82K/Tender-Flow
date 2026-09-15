@@ -63,7 +63,16 @@ export interface ProjectPortfolioSummary {
 
 /** Small portfolio payload. Both project discovery and dependent reads retain normal RLS. */
 export const fetchProjectPortfolioSummary = async (visibleIds: string[]): Promise<Record<string, ProjectPortfolioSummary>> => {
-  const projects = await readRows<{ id: string }>('projects', 'id', 'id', visibleIds);
+  const visibleProjects = await readRows<{ id: string }>('projects', 'id', 'id', visibleIds);
+  const readableIds = new Set<string>();
+  for (let start = 0; start < visibleProjects.length; start += BATCH_SIZE) {
+    const { data, error } = await dbAdapter.rpc('get_portfolio_pipeline_read_access', {
+      project_ids_input: visibleProjects.slice(start, start + BATCH_SIZE).map(project => project.id),
+    });
+    if (error) throw error;
+    for (const row of (data ?? []) as { project_id: string }[]) readableIds.add(row.project_id);
+  }
+  const projects = visibleProjects.filter(project => readableIds.has(project.id));
   const categories = await readRows<CategoryRow>('demand_categories', 'id,project_id,title,status,deadline', 'project_id', projects.map(project => project.id));
   const bids = await readRows<{ id: string; demand_category_id: string; status: string; contracted: boolean }>(
     'bids', 'id,demand_category_id,status,contracted', 'demand_category_id', categories.map(category => category.id));
