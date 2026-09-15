@@ -452,12 +452,16 @@ export interface Contract {
 
   retentionShortPercent?: number;
   retentionShortAmount?: number;
+  /** Legacy date: planned while held, actual while released. */
   retentionShortReleaseOn?: string;
+  retentionShortExpectedOn?: string;
   retentionShortStatus?: ContractRetentionStatus;
 
   retentionLongPercent?: number;
   retentionLongAmount?: number;
+  /** Legacy date: planned while held, actual while released. */
   retentionLongReleaseOn?: string;
+  retentionLongExpectedOn?: string;
   retentionLongStatus?: ContractRetentionStatus;
 
   siteSetupPercent?: number;

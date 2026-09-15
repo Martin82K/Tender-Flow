@@ -33,22 +33,24 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   basePrice: parseFloat(row.base_price as string) || 0,
   retentionPercent: row.retention_percent ? parseFloat(row.retention_percent as string) : undefined,
   retentionAmount: row.retention_amount ? parseFloat(row.retention_amount as string) : undefined,
-  retentionShortPercent: row.retention_short_percent
+  retentionShortPercent: row.retention_short_percent != null
     ? parseFloat(row.retention_short_percent as string)
     : undefined,
-  retentionShortAmount: row.retention_short_amount
+  retentionShortAmount: row.retention_short_amount != null
     ? parseFloat(row.retention_short_amount as string)
     : undefined,
   retentionShortReleaseOn: (row.retention_short_release_on as string | null | undefined) ?? undefined,
+  retentionShortExpectedOn: (row.retention_short_expected_on as string | null | undefined) ?? undefined,
   retentionShortStatus:
     (row.retention_short_status as ContractRetentionStatus | null | undefined) ?? undefined,
-  retentionLongPercent: row.retention_long_percent
+  retentionLongPercent: row.retention_long_percent != null
     ? parseFloat(row.retention_long_percent as string)
     : undefined,
-  retentionLongAmount: row.retention_long_amount
+  retentionLongAmount: row.retention_long_amount != null
     ? parseFloat(row.retention_long_amount as string)
     : undefined,
   retentionLongReleaseOn: (row.retention_long_release_on as string | null | undefined) ?? undefined,
+  retentionLongExpectedOn: (row.retention_long_expected_on as string | null | undefined) ?? undefined,
   retentionLongStatus:
     (row.retention_long_status as ContractRetentionStatus | null | undefined) ?? undefined,
   siteSetupPercent: row.site_setup_percent ? parseFloat(row.site_setup_percent as string) : undefined,
@@ -977,16 +979,15 @@ export const contractService = {
     kind: 'short' | 'long',
     releaseOn?: string,
   ): Promise<void> => {
-    const column = kind === 'short' ? 'retention_short_status' : 'retention_long_status';
-    const dateColumn = kind === 'short' ? 'retention_short_release_on' : 'retention_long_release_on';
-    const { error } = await supabase
-      .from('contracts')
-      .update({
-        [column]: 'released',
-        [dateColumn]: releaseOn || todayIso(),
-      })
-      .eq('id', contractId);
-    if (error) throw error;
+    const { error } = await supabase.rpc('release_contract_retention', {
+      contract_id_input: contractId,
+      kind_input: kind,
+      date_input: releaseOn || todayIso(),
+    });
+    if (error) {
+      if (error.code === 'PGRST202') throw new Error('Potvrzení uvolnění vyžaduje aktualizaci databáze.');
+      throw new Error(error.message || 'Uvolnění se nepodařilo uložit.');
+    }
   },
 
 };

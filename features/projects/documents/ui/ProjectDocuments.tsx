@@ -76,10 +76,7 @@ export interface ProjectDocumentsProps {
   currentUserId?: string;
   canDocHub: boolean;
   canTemplates: boolean;
-<<<<<<< HEAD
   section?: "legacy" | "documents" | "settings";
-=======
->>>>>>> origin/main
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
@@ -88,10 +85,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   currentUserId,
   canDocHub,
   canTemplates,
-<<<<<<< HEAD
   section = "legacy",
-=======
->>>>>>> origin/main
 }) => {
   type DocumentsSubTab = "pd" | "templates" | "dochub" | "ceniky";
   const [isEditingDocs, setIsEditingDocs] = useState(false);
