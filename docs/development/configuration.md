@@ -189,8 +189,23 @@ dokumentových URL ani obsluhu veřejné cesty `/s/:code`. Staré odkazy
 `/app/url-shortener` přejdou na výchozí stránku aplikace. Dokumentové odkazy se
 ukládají beze změny; dříve uložené krátké odkazy se automaticky nerozbalují.
 
-Historické migrace a data `short_urls` zůstávají zachované. Odebrání zdrojového
+Historické migrace a data `short_urls` zůstávají zachované. Vyřazovací migrace
+`20260915215432_retire_url_shortener.sql` odstraní přiřazení k tarifům a katalogový
+záznam (pokud není potřeba pro historické usage events). Odebere klientským rolím
+přístup k tabulce a všem variantám RPC resolveru a počítadla kliknutí; přístup
+`service_role` pro administraci zůstává zachovaný. Odebrání zdrojového
 kódu Edge Function `url-shorten` automaticky neodstraní její případné cloudové
 nasazení. Při provozním vyřazení ověřte nasazené funkce, odstraňte tuto funkci
 a po ověření ostatních odběratelů odstraňte nepoužívaný `TINYURL_API_KEY`.
-Tato změna neprovádí migraci ani mazání produkčních dat.
+Migraci ověřte pomocí `supabase/tests/retire-url-shortener.sql`; při nasazení
+porovnejte počet a kontrolní součet historických odkazů před a po změně.
+
+Provozní ověření 2026-09-15: migrace nasazena, Edge Function `url-shorten`
+odstraněna, 0 katalogových záznamů a 0 přiřazení k tarifům. Všech 20 historických
+odkazů zachovalo kontrolní součet. SQL regrese i opakovaný rollback test prošly;
+závěrečný CLI dry-run oznámil aktuální databázi.
+
+Advisory kontrola nadále hlásí historické [mutable search_path rutin](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable)
+a [neindexované cizí klíče](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys).
+Vyřazené rutiny ani tabulka již nejsou dostupné klientským rolím; úklid ostatních
+nálezů databáze není součástí vyřazení zkracovače.

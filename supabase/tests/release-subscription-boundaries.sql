@@ -43,12 +43,17 @@ BEGIN
     RAISE EXCEPTION 'Own provisioning must preserve default and explicit arguments';
   END IF;
 
-  -- An authenticated identity with no entitlement can resolve a public code,
-  -- but cannot enumerate the table, create links or call neighboring RPCs.
+  -- The historical pre-request exception remains exact, but the retired
+  -- resolver is no longer executable by an authenticated client.
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub',gen_random_uuid(),'role','authenticated')::text,true);
   PERFORM set_config('request.path','/rpc/get_short_url_target',true);
   PERFORM public.enforce_subscription_boundary();
-  PERFORM public.get_short_url_target('!invalid-code');
+  denied := false;
+  BEGIN
+    PERFORM public.get_short_url_target('!invalid-code');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Retired resolver must not be executable'; END IF;
   FOREACH email IN ARRAY ARRAY['/short_urls','/rpc/increment_short_url_clicks','/rpc/get_short_url_target_other','/projects'] LOOP
     PERFORM set_config('request.path',email,true);
     denied := false;
