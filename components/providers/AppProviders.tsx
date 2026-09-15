@@ -7,7 +7,6 @@ import { queryClient } from '../../services/queryClient';
 import { useDesktop } from "@/hooks/useDesktop";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation } from "@shared/routing/router";
-import { ShortUrlRedirect } from "@shared/routing/ShortUrlRedirect";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import { LazyViewErrorBoundary } from "@app/views/LazyViewErrorBoundary";
@@ -56,10 +55,6 @@ export const AppEntry: React.FC = () => {
 
   if (isLoading && (isAppPath || isAuthenticated)) {
     return <PublicEntry><AppLoadingView authLoading isDataLoading={false} /></PublicEntry>;
-  }
-
-  if (pathname.startsWith("/s/")) {
-    return <PublicEntry><ShortUrlRedirect code={pathname.split("/s/")[1]} /></PublicEntry>;
   }
 
   const legalPage = getLegalPage(pathname);

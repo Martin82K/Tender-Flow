@@ -30,7 +30,7 @@ describe("document tab selection", () => {
   it("moves the selected state and panel label together when switching sections", async () => {
     await act(async () => {
       render(<ProjectDocuments project={project} onUpdate={vi.fn()}
-        canDocHub={false} canTemplates={false} autoShortenProjectDocs={false} />);
+        canDocHub={false} canTemplates={false} />);
     });
 
     const documents = screen.getByRole("tab", { name: "Projektová dokumentace" });

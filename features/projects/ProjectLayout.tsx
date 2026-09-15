@@ -352,7 +352,6 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               hasFeature(FEATURES.DEMAND_GENERATION) ||
               hasFeature(FEATURES.LOSER_EMAIL)
             }
-            autoShortenProjectDocs={currentUser?.preferences?.autoShortenProjectDocs ?? false}
           />
         )}
         {activeTab === "contracts" && (

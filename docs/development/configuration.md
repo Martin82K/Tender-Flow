@@ -60,7 +60,6 @@ Podle nasazených funkcí mohou být potřeba:
 - `STRIPE_SECRET_KEY`, webhook secrets a API verze,
 - Google/Microsoft OAuth client ID, client secret, redirect URI a tenant,
 - `RESEND_API_KEY`, `DEFAULT_EMAIL_FROM`,
-- `TINYURL_API_KEY`,
 - kontraktové šifrovací klíče a aktivní key/version identifikátory,
 - `SITE_URL` a allowlist checkout originů,
 - AI/provider konfigurace podle funkce.
@@ -182,3 +181,16 @@ Potom spusťte `npm run release:prepare` a ověřovací buildy.
   spojení s produkčním Supabase.
 - Chybějící volitelná feature konfigurace má skončit jasným disabled/fallback
   stavem, ne tichým částečným chováním.
+
+## Vyřazený URL zkracovač
+
+Aplikace již neobsahuje tvorbu ani správu krátkých odkazů, automatické zkracování
+dokumentových URL ani obsluhu veřejné cesty `/s/:code`. Staré odkazy
+`/app/url-shortener` přejdou na výchozí stránku aplikace. Dokumentové odkazy se
+ukládají beze změny; dříve uložené krátké odkazy se automaticky nerozbalují.
+
+Historické migrace a data `short_urls` zůstávají zachované. Odebrání zdrojového
+kódu Edge Function `url-shorten` automaticky neodstraní její případné cloudové
+nasazení. Při provozním vyřazení ověřte nasazené funkce, odstraňte tuto funkci
+a po ověření ostatních odběratelů odstraňte nepoužívaný `TINYURL_API_KEY`.
+Tato změna neprovádí migraci ani mazání produkčních dat.

@@ -143,11 +143,6 @@
     {
       "type": "feature-private-import",
       "file": "features/settings/Settings.tsx",
-      "specifier": "@/features/tools/UrlShortener"
-    },
-    {
-      "type": "feature-private-import",
-      "file": "features/settings/Settings.tsx",
       "specifier": "@features/notifications/ui/NotificationBell"
     },
     {

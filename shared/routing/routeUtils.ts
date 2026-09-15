@@ -26,7 +26,7 @@ export const buildAppUrl = (
         bidId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
+        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
     }
 ): string => {
     switch (view) {
@@ -51,8 +51,6 @@ export const buildAppUrl = (
             return `${APP_BASE}/project-overview`;
         case "contract-overview":
             return `${APP_BASE}/contract-overview`;
-        case "url-shortener":
-            return `${APP_BASE}/url-shortener`;
         case "project": {
             if (!opts?.projectId) return DEFAULT_APP_URL;
             const params = new URLSearchParams();
@@ -76,7 +74,7 @@ export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
     | { isApp: true; view: "todo"; taskId?: string }
-    | { isApp: true; view: "contacts" | "settings" | "project-management" | "project-overview" | "contract-overview" | "url-shortener" }
+    | { isApp: true; view: "contacts" | "settings" | "project-management" | "project-overview" | "contract-overview" }
     | {
         isApp: true;
         view: "project";
@@ -109,7 +107,6 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
     if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
     if (sub === "contract-overview") return { isApp: true as const, view: "contract-overview" as const };
-    if (sub === "url-shortener") return { isApp: true as const, view: "url-shortener" as const };
 
     if (sub === "project") {
         const projectId = parts[2] ? decodeURIComponent(parts[2]) : "";

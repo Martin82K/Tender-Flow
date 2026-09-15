@@ -79,15 +79,4 @@ export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
     mount: () => import("@/features/contracts-overview").then((m) => ({ default: m.ContractOverview })),
     unmountSafeChecks: emptyChecks,
   }),
-  ...viewToManifest("url-shortener", {
-    id: "tools.url-shortener",
-    routes: [{ path: "/app/url-shortener", view: "url-shortener" }],
-    navItems: [{ id: "url-shortener", label: "URL zkracovač" }],
-    requiredCapabilities: [FEATURES.URL_SHORTENER],
-    mount: () =>
-      import("@/features/tools/UrlShortener").then((m) => ({
-        default: m.UrlShortener,
-      })),
-    unmountSafeChecks: emptyChecks,
-  }),
 };

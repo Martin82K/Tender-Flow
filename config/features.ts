@@ -26,7 +26,6 @@ export const FEATURES = {
   EXPORT_PDF: 'export_pdf',
   EXPORT_EXCEL: 'export_excel',
   DOC_HUB: 'doc_hub',
-  URL_SHORTENER: 'url_shortener',
   EXCEL_INDEXER: 'excel_indexer',
   DYNAMIC_TEMPLATES: 'dynamic_templates',
   DEMAND_GENERATION: 'demand_generation',
@@ -50,7 +49,6 @@ export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
 export const DEMO_FEATURES = [
   FEATURES.MODULE_PROJECTS,
   FEATURES.MODULE_CONTACTS,
-  FEATURES.URL_SHORTENER,
   FEATURES.MODULE_MAPS,
   FEATURES.MODULE_TASKS,
 ] as const;
@@ -71,7 +69,6 @@ export const PLANS = {
       FEATURES.EXCEL_UNLOCKER,
       FEATURES.EXPORT_PDF,
       FEATURES.EXPORT_EXCEL,
-      FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
       FEATURES.MODULE_TASKS,
     ]
@@ -91,7 +88,6 @@ export const PLANS = {
       FEATURES.PROJECT_SCHEDULE,
       FEATURES.EXPORT_PDF,
       FEATURES.EXPORT_EXCEL,
-      FEATURES.URL_SHORTENER,
       FEATURES.EXCEL_INDEXER,
       FEATURES.DATA_BACKUP,
       FEATURES.MODULE_MAPS,

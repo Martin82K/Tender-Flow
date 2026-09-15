@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import type { DocumentLink, ProjectDetails } from "@/types";
-import { ToolsApi } from "@features/tools";
 import { openInExplorer } from "@infra/files/fileSystemService";
 import { isDesktop, shellAdapter } from "@infra/platform/platformAdapter";
-import { isProbablyUrl, isSafePublicHttpUrlForExternalShortener } from "@shared/dochub/docHub";
+import { isProbablyUrl } from "@shared/dochub/docHub";
 
 interface DocsLinkSectionProps {
-  autoShortenProjectDocs: boolean;
   project: ProjectDetails;
   hasDocsLink: boolean;
   isEditing: boolean;
@@ -24,7 +22,6 @@ interface DocsLinkSectionProps {
 }
 
 export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
-  autoShortenProjectDocs,
   project,
   hasDocsLink,
   isEditing,
@@ -42,11 +39,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     dateAdded: string;
   }>({ label: "", url: "", dateAdded: "" });
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [isShortening, setIsShortening] = useState(false);
 
   const documentLinks = project.documentLinks || [];
 
-  const handleAddLink = async () => {
+  const handleAddLink = () => {
     if (!newLink.label.trim() || !newLink.url.trim()) {
       showModal({
         title: "Chyba",
@@ -56,29 +52,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
       return;
     }
 
-    let finalUrl = newLink.url.trim();
-
-    // Auto-shorten if enabled in settings
-    if (
-      autoShortenProjectDocs &&
-      isSafePublicHttpUrlForExternalShortener(finalUrl)
-    ) {
-      setIsShortening(true);
-      try {
-        const result = await ToolsApi.shortenUrl(finalUrl);
-        if (result.success && result.shortUrl) {
-          finalUrl = result.shortUrl;
-        } else {
-          console.warn("Auto-shortening failed:", result.error);
-          // Optional: Notify user that shortening failed, but we proceed with original URL?
-          // For now, we just proceed with the original URL silently or log it.
-        }
-      } catch (error) {
-        console.error("Auto-shortening error:", error);
-      } finally {
-        setIsShortening(false);
-      }
-    }
+    const finalUrl = newLink.url.trim();
 
     const link: DocumentLink = {
       id: crypto.randomUUID(),
@@ -336,16 +310,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 </button>
                 <button
                   onClick={handleAddLink}
-                  disabled={isShortening}
                   data-help-id="documents-save-link"
                   className="flex min-h-10 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-wait disabled:opacity-50"
                 >
-                  {isShortening && (
-                    <span className="material-symbols-outlined animate-spin text-[16px]">
-                      progress_activity
-                    </span>
-                  )}
-                  {isShortening ? "Zkracuji..." : "Přidat"}
+                  Přidat
                 </button>
               </div>
             </div>

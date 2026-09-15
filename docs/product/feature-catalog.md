@@ -13,7 +13,6 @@ platformě a backendové konfiguraci.
 | Projekt | `/app/project/:id` | detail projektu a jeho pracovní moduly | `module_projects` |
 | Kontakty | `/app/contacts` | dodavatelé, osoby, import, rating a mapová data | `module_contacts` |
 | Přehled projektů | `/app/project-overview` | agregované reporty napříč projekty | `feature_advanced_reporting` |
-| URL zkracovač | `/app/url-shortener` | vytváření a správa krátkých odkazů | `url_shortener` |
 | Nastavení | `/app/settings` | uživatel, nástroje, organizace a administrace | role/feature podle podsekce |
 
 Výchozí přihlášená route je `/app/todo`.
@@ -131,7 +130,7 @@ flag a používají serverový proxy přístup.
 
 ### Nástroje
 
-URL zkracovač, Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
+Excel – odemčení, Excel Spojení listů, Excel Indexace VŘ,
 DocHub a šablony. Nativní nebo lokální nástroje mohou být pouze desktopové;
 web používá HTTP/Edge variantu, pokud je nakonfigurovaná.
 
