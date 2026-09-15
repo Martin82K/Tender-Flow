@@ -63,11 +63,12 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
         <input autoFocus type="search" aria-label="Hledat stavbu" placeholder="Hledat stavbu…" value={query}
           onChange={event => setQuery(event.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent p-2 text-sm" />
         <div className="mt-2 max-h-60 overflow-y-auto">
-          {choices.map(item => <button key={item.id} type="button" aria-label={item.name}
+          {choices.map(item => <button key={item.id} type="button" aria-label={`${item.name} · ${item.location || 'Bez lokace'} · ${item.status === 'realization' ? 'V realizaci' : item.status === 'archived' ? 'Archiv' : 'V soutěži'}`}
             aria-current={item.id === project.id ? 'true' : undefined}
             className="block w-full rounded-md px-2 py-2 text-left text-sm hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
             onClick={() => { setOpen(false); if (selectedTab === 'project-settings') onSelect(item.id, selectedTab, selectedSettingsTab); else onSelect(item.id, selectedTab); }}>
             {item.name}{item.id === project.id && <span aria-hidden="true"> ✓</span>}
+            <span className="block text-xs text-slate-500">{item.location || 'Bez lokace'} · {item.status === 'realization' ? 'V realizaci' : item.status === 'archived' ? 'Archiv' : 'V soutěži'}</span>
           </button>)}
           {!choices.length && <p className="p-2 text-sm">Žádná odpovídající stavba.</p>}
         </div>

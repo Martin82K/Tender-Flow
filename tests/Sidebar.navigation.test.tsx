@@ -151,7 +151,7 @@ it('otevře menu jediné stavby přímo a přepne projekt přes hledání', () =
   expect(screen.getByRole('button', { name: 'Realizační tým' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'Beta' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Stavba Beta' }));
+  fireEvent.click(screen.getByRole('button', { name: /Stavba Beta · Brno/ }));
   expect(onProjectSelect).toHaveBeenCalledWith('b', 'overview');
   expect(screen.queryByRole('searchbox', { name: 'Hledat stavbu' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Rozpočet' })).not.toBeInTheDocument();

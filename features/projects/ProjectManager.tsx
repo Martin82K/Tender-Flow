@@ -460,6 +460,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setNewProjectName('');
             setNewProjectLocation('');
             setInitialTeam({});
+            navigate(buildAppUrl('project', { projectId: newProject.id, tab: 'overview' }));
         } catch (error) {
             console.error('Error creating project:', error);
             setAlertModal({

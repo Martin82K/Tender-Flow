@@ -11,6 +11,7 @@ import type { Project } from "@/types";
 const mocks = vi.hoisted(() => ({
   updateProjectMock: vi.fn(),
   onCloneMock: vi.fn(),
+  onAddMock: vi.fn(),
 }));
 
 vi.mock("@/context/AuthContext", () => ({
@@ -64,7 +65,7 @@ const renderProjectManager = (projects: Project[]) => {
       <HelpProvider>
         <ProjectManager
           projects={projects}
-          onAddProject={vi.fn()}
+          onAddProject={mocks.onAddMock}
           onDeleteProject={vi.fn()}
           onCloneTenderToRealization={mocks.onCloneMock}
           onArchiveProject={vi.fn()}
@@ -81,6 +82,22 @@ describe("ProjectManager clone to realization", () => {
     localStorage.clear();
     sessionStorage.clear();
     mocks.onCloneMock.mockResolvedValue({ projectId: "realization-1" });
+    mocks.onAddMock.mockResolvedValue(undefined);
+  });
+
+  it('opens the newly created project even from a filtered archive', async () => {
+    act(() => navigate('/app/projects?status=archived'));
+    const view = renderProjectManager([]);
+    try {
+      fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'jiná stavba' } });
+      fireEvent.click(screen.getByRole('button', { name: '+ Nová stavba' }));
+      fireEvent.change(screen.getByPlaceholderText('Např. Rezidence Park'), { target: { value: 'Nová škola' } });
+      fireEvent.change(screen.getByPlaceholderText('Např. Plzeň'), { target: { value: 'Brno' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Vytvořit projekt' }));
+      await waitFor(() => expect(mocks.onAddMock).toHaveBeenCalledTimes(1));
+      const created = mocks.onAddMock.mock.calls[0][0];
+      await waitFor(() => expect(window.location.pathname).toContain(created.id));
+    } finally { view.unmount(); act(() => navigate('/')); }
   });
 
   it("zobrazí tlačítko jen pro aktivní soutěž", () => {

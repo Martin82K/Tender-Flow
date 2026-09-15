@@ -11,6 +11,8 @@
   Realizační tým a Nastavení stavby. Původní odkazy na smlouvy zůstávají funkční.
 - Přehled portfolia má kompaktní souhrn poptávek, dodavatelů, nabídek a objemu
   zakázek. Ovládání a rozložení se přizpůsobují šířce dostupného panelu.
+- Přepínač staveb zobrazuje lokaci a fázi i u shodných názvů. Nově založená
+  stavba se otevře přímo, i když předchozí filtr patřil archivu.
 
 ## Pozastávky
 
@@ -20,6 +22,8 @@
   opakované potvrzení ani datum v budoucnosti nejsou přijaty.
 - Explicitní částka včetně nuly má přednost před výpočtem z procenta.
   Evidence neprovádí platbu ani automatické uvolnění peněz.
+- Uživatelská i organizační záloha zahrnuje plán, skutečné uvolnění a historii
+  pozastávek. Obnova zachová existující historii; konfliktní identifikátory odmítne.
 
 ## Další změny
 

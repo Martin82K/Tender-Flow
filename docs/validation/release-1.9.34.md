@@ -35,6 +35,11 @@ vlastních staveb. Dva regresní testy nejprve obnovily 0 místo 240 px; po opra
 oba prošly. Změna filtrů nyní přebírá aktuální scroll z refu. Původní CI
 potvrdilo 2 883 testů; po doplnění regresí má sada 2 885 testů.
 
+Další review doplnilo rozlišení shodných názvů staveb lokací a fází a otevření
+nově založené stavby přímo z filtrovaného archivu. Oba scénáře mají RED/GREEN
+regrese. Finální lokální sada: 532 souborů, 2 891 testů, bez skip/todo a chyb.
+Typecheck, web build, docs, boundaries, legacy structure i browser fixture prošly.
+
 CI root audit eviduje 5 moderate + 2 low (navíc závislé MCP SDK a Hono server),
 bez high/critical; desktop audit je čistý. Ověřilo 860 root a 116 desktop podpisů.
 Lokální macOS balíček prošel deep/strict kontrolou ad-hoc podpisu a skutečně se
@@ -58,6 +63,24 @@ odmítnutí opakování, budoucího data, cizího uživatele, anonymního přís
 editace historie. Po rollbacku zůstalo 0 testovacích eventů. Historie má RLS,
 authenticated má pouze SELECT a anon nemůže spustit potvrzovací RPC.
 Závěrečný dry-run: `Remote database is up to date.`
+
+Migrace `20260915231450_restore_retention_backup_evidence.sql` následně doplnila
+export i obnovu pozastávek do obou druhů záloh. Obnova používá soukromé oprávnění
+vázané na transakci a smlouvu, nikoli klientem nastavitelné GUC; žádný trigger
+nevypíná. Kontroluje organizaci, stavbu a vlastníka nebo správce. Historii
+nesmaže ani nepřepíše a konfliktní identifikátory odmítne. Údaje a autoři
+importované historie pocházejí ze zálohy; jde o důvěryhodnost vstupního souboru,
+nikoli kryptografický důkaz původního jednání. Samotná obnova se zapisuje do
+`backup_history` s identitou obnovujícího uživatele.
+
+SQL roundtrip před opravou selhal na chybějící historii. Po migraci prošla
+uživatelská i organizační obnova do nových UUID, opakování bez duplicit,
+odmítnutí cizí stavby/eventu a kolize ID i zachování údajů u starší zálohy.
+Test pracoval pouze s novými fixture smlouvami a všechny zápisy vrátil.
+Původní test s DELETE zamítla automatická kontrola; bezpečnější varianta nic
+nemaže. Původních 73 smluv má po ověření stejný kontrolní součet, audit i
+tabulka dočasných oprávnění jsou prázdné. Původní SQL test potvrzení uvolnění,
+RLS a neměnnosti auditu také znovu prošel.
 
 Security advisor nemá nález pro nové objekty pozastávek. Performance advisor
 u nového indexu autora hlásí pouze dosud nepoužitý index; zachován kvůli FK.

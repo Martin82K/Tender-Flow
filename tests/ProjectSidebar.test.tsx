@@ -16,6 +16,17 @@ function setup(activeTab = 'contracts', selectedProjectId = 'a') {
   return onSelect;
 }
 describe('Project workspace sidebar', () => {
+  it('distinguishes equally named projects by location when switching sections', () => {
+    const onSelect = vi.fn();
+    render(<ProjectSidebar hasFeature={() => true} projects={[
+      { id: 'a', name: 'Škola', location: 'Praha', status: 'tender' },
+      { id: 'b', name: 'Škola', location: 'Brno', status: 'realization' },
+    ]} selectedProjectId="a" activeTab="contracts" onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
+    expect(screen.getByRole('button', { name: /Škola.*Praha/ })).toHaveTextContent('Praha');
+    fireEvent.click(screen.getByRole('button', { name: /Škola.*Brno/ }));
+    expect(onSelect).toHaveBeenCalledWith('b', 'contracts');
+  });
   it('opens settings children and selects their route', () => {
     const onSelect = setup('project-settings');
     expect(screen.getByRole('button', { name: 'Nastavení stavby', exact: true })).toHaveAttribute('aria-expanded', 'true');
@@ -50,14 +61,14 @@ describe('Project workspace sidebar', () => {
     const onSelect = setup();
     fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
     expect(screen.queryByRole('button', { name: 'Archiv' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Beta' }));
+    fireEvent.click(screen.getByRole('button', { name: /Beta · Brno/ }));
     expect(onSelect).toHaveBeenCalledWith('b', 'contracts');
   });
   it('falls back to overview when the requested feature is unavailable', () => {
     const onSelect = setup('map');
     expect(screen.queryByRole('button', { name: 'Mapa' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Beta' }));
+    fireEvent.click(screen.getByRole('button', { name: /Beta · Brno/ }));
     expect(onSelect).toHaveBeenCalledWith('b', 'overview');
   });
   it('closes the picker with Escape and restores keyboard focus', () => {
