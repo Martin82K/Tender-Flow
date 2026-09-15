@@ -3,7 +3,6 @@ import { CategoryPlanNotices } from "@features/projects/ui/CategoryPlanNotices";
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
-import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
 import { DEFAULT_APP_VIEW, buildAppUrl, parseAppRoute } from "@/shared/routing/routeUtils";
 import { FEATURES } from "@/config/features";
@@ -45,7 +44,6 @@ import {
   ProjectOverview,
   Settings,
   TasksPage,
-  UrlShortener,
 } from "@app/views/LazyViews";
 import { getLegalPage } from "@app/views/LegalPageRouter";
 import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
@@ -236,11 +234,6 @@ export const AppContent: React.FC = () => {
         appLoadProgress={state.appLoadProgress}
       />
     );
-  }
-
-  if (pathname.startsWith("/s/")) {
-    const code = pathname.split("/s/")[1];
-    return <ShortUrlRedirect code={code} />;
   }
 
   if (state.loadingError) {
@@ -538,12 +531,6 @@ export const AppContent: React.FC = () => {
         );
       case "contract-overview":
         return <ContractOverview />;
-      case "url-shortener":
-        return (
-          <RequireFeature feature={FEATURES.URL_SHORTENER}>
-            <UrlShortener />
-          </RequireFeature>
-        );
       default:
         return (
           <RequireFeature feature={FEATURES.MODULE_TASKS}>

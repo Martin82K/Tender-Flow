@@ -503,7 +503,7 @@ export const InvestorBillingPage: React.FC<Props> = ({ projectDetails, onUpdateD
         {saveError ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300">{saveError}</div> : null}
 
         {invoices.length === 0 ? (
-          <div data-help-id="contracts-investor-empty" className="mt-4 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-800 dark:text-slate-500">Zatím není zadaná žádná faktura na investora.</div>
+          <div data-help-id="contracts-investor-empty" className="mt-4 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-800 dark:text-slate-500">Zatím není zadaná žádná faktura objednateli.</div>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[1500px] text-xs">

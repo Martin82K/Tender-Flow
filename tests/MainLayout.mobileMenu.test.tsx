@@ -101,12 +101,11 @@ describe('MainLayout mobile menu', () => {
 
     const rail = screen.getByTestId('sidebar-reveal-rail');
     const button = screen.getByRole('button', { name: 'Rozbalit hlavní menu' });
-    const label = screen.getByText('Rozbalit menu');
+    expect(screen.queryByText('Rozbalit menu')).not.toBeInTheDocument();
 
     expect(button).toBe(rail);
-    expect(rail).toHaveClass('hidden', 'h-full', 'w-12', 'flex-none', 'justify-center', 'md:flex', skinClass);
+    expect(rail).toHaveClass('hidden', 'h-full', 'w-12', 'flex-none', 'justify-start', 'pt-6', 'md:flex', skinClass);
     expect(rail).not.toHaveClass('rounded-lg');
-    expect(label).toHaveClass('[writing-mode:vertical-rl]', 'rotate-180');
     expect(button).toHaveAttribute('aria-controls', 'app-sidebar');
     expect(button).toHaveAttribute('aria-expanded', 'false');
 

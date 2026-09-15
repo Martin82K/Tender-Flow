@@ -5,7 +5,9 @@ import logo from "../assets/logo.svg";
 import { SIDEBAR_NAVIGATION, type NavItemConfig } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
-import { useLocation } from "@/shared/routing/router";
+import { useLocation, navigate } from "@/shared/routing/router";
+import { buildAppUrl } from "@/shared/routing/routeUtils";
+import { PORTFOLIO_VIEWS, parsePortfolioStatus, portfolioStorageKey, readPortfolioState } from "@features/projects/model/portfolioState";
 import { SidebarUpdateStatus } from "@features/desktop-updater/ui/SidebarUpdateStatus";
 import type { ThemeSkin } from "@/shared/types/theme";
 
@@ -42,6 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
   const { search } = useLocation();
+  const portfolioStatus = parsePortfolioStatus(new URLSearchParams(search).get('status'))
+    ?? readPortfolioState(portfolioStorageKey(user?.id, user?.organizationId)).status;
   const [width, setWidth] = useState(280);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -96,7 +100,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subTabParam === "excelUnlocker" ||
       subTabParam === "excelMerger" ||
       subTabParam === "excelIndexer" ||
-      subTabParam === "urlShortener" ||
       subTabParam === "registration" ||
       subTabParam === "users" ||
       subTabParam === "organizations" ||
@@ -184,8 +187,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [resize, stopResizing]);
 
-  type MenuSection = 'projects' | 'reports' | 'tools';
-  const routeSection: MenuSection = currentView === 'project-overview' || currentView === 'contract-overview'
+  type MenuSection = 'projects' | 'contacts' | 'reports' | 'tools';
+  const routeSection: MenuSection = currentView === 'contacts' ? 'contacts' : currentView === 'project-overview' || currentView === 'contract-overview'
     ? 'reports' : currentView === 'settings' && settingsRoute.tab === 'tools' ? 'tools' : 'projects';
   const [menuSection, setMenuSection] = useState<MenuSection>(routeSection);
   useEffect(() => { setMenuSection(routeSection); }, [routeSection, currentView, selectedProjectId]);
@@ -377,6 +380,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     })()}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={onToggle}
+                  aria-controls="app-sidebar"
+                  aria-expanded={isOpen}
+                  className={`hidden md:inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
+                  title="Sbalit menu"
+                  aria-label="Sbalit menu"
+                >
+                  <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
+                    keyboard_double_arrow_left
+                  </span>
+                </button>
                 {/* Close Toggle for Mobile */}
                 <button
                   onClick={onToggle}
@@ -391,28 +407,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Navigation */}
               <div className="tf-sidebar-nav flex flex-col gap-3 mt-2 flex-1 min-h-0">
-                {renderItem('contacts')}
-                <nav aria-label="Oblasti aplikace" className="grid grid-cols-3 gap-1.5 shrink-0">
+                <nav aria-label="Oblasti aplikace" className="tf-sidebar-sections -mx-3 grid grid-flow-col auto-cols-auto shrink-0">
                   {([
                     { id: 'projects', label: 'Stavby', icon: 'apartment', enabled: hasFeature(FEATURES.MODULE_PROJECTS) },
+                    { id: 'contacts', label: 'Dodavatelé', icon: 'handshake', enabled: hasFeature(FEATURES.MODULE_CONTACTS) },
                     { id: 'reports', label: 'Přehledy', icon: 'monitoring', enabled: reportItems.length > 0 },
                     { id: 'tools', label: 'Nástroje', icon: 'build', enabled: tools.length > 0 },
                   ] as const).filter(item => item.enabled).map(item => <button key={item.id} type="button"
                     aria-label={item.label} aria-pressed={menuSection === item.id} data-active={menuSection === item.id}
-                    className="tf-sidebar-section flex min-w-0 flex-col items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 px-1 py-2.5 text-[11px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    className="tf-sidebar-section flex min-w-0 flex-col items-center gap-1 whitespace-nowrap px-1 py-3 text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                     onClick={() => {
                       setMenuSection(item.id);
                       if (item.id === 'projects') { onViewChange('project-management', undefined); closeMobileMenu(); }
+                      if (item.id === 'contacts') { onViewChange('contacts', undefined); closeMobileMenu(); }
                     }}>
                     <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span>{item.label}
                   </button>)}
                 </nav>
                 <div className="-mx-3 flex-1 min-h-0 overflow-y-auto">
                   {menuSection === 'projects' && hasFeature(FEATURES.MODULE_PROJECTS) && <>
-                    <div className="px-3 mb-2">{renderItem('project-management')}</div>
+                    {currentView !== 'project' && <nav aria-label="Pohledy staveb">
+                      {PORTFOLIO_VIEWS.map(view => <button key={view.id} type="button"
+                        aria-label={view.label} aria-current={currentView === 'project-management' && portfolioStatus === view.id ? 'page' : undefined}
+                        data-active={currentView === 'project-management' && portfolioStatus === view.id}
+                        className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                        onClick={() => { navigate(`${buildAppUrl('project-management')}?status=${view.id}`); closeMobileMenu(); }}>
+                        <span aria-hidden="true" className="material-symbols-outlined text-lg">{view.icon}</span>{view.label}
+                      </button>)}
+                    </nav>}
                     {currentView === 'project' && <ProjectSidebar hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
                       activeTab={new URLSearchParams(search).get('tab') || 'overview'}
-                      onSelect={(id, tab) => { onProjectSelect(id, tab); closeMobileMenu(); }} />}
+                      activeSettingsTab={new URLSearchParams(search).get('documentsSubTab') || 'pd'}
+                      onSelect={(id, tab, settingsTab) => {
+                        if (settingsTab) navigate(buildAppUrl('project', { projectId: id, tab: 'project-settings', documentsSubTab: settingsTab }));
+                        else onProjectSelect(id, tab);
+                        closeMobileMenu();
+                      }} />}
                   </>}
                   {menuSection === 'reports' && <nav aria-label="Přehledy" className="px-3">{reportItems.map(item => renderNavItem(item))}</nav>}
                   {menuSection === 'tools' && <nav aria-label="Nástroje" className="px-3">{tools.map(item => renderNavItem(item))}</nav>}
@@ -430,16 +460,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   currentVersion={APP_VERSION}
                   isIndustrialSkin={isIndustrialSkin}
                 />
-                <button
-                  onClick={onToggle}
-                  className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
-                  title="Skrýt panel"
-                  aria-label="Skrýt panel"
-                >
-                  <span className="material-symbols-outlined text-[22px]">
-                    keyboard_double_arrow_left
-                  </span>
-                </button>
+
               </div>
             </div>
           </div>

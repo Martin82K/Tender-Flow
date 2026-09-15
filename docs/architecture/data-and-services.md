@@ -53,7 +53,6 @@ Funkce pokrývají zejména:
 - mapový proxy přístup,
 - MCP read/write nástroje,
 - Stripe checkout, synchronizaci a webhooky,
-- URL zkracování,
 - bezpečné kontraktové markdown operace.
 
 Funkce s `verify_jwt = false` jsou veřejné vstupní body nebo OAuth callbacky a

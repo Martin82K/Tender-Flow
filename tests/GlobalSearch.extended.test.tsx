@@ -11,6 +11,17 @@ const sources: SearchInputSources = { projects: [{ id: 'p1', name: 'Stavba', sta
   tasks: Array.from({ length: 12 }, (_, i) => ({ id: `t${i}`, title: `Výkres ${i}` })),
 };
 const view = (data = sources) => <GlobalSearchProvider sources={data}><GlobalSearch variant="modal" isOpen onOpenChange={vi.fn()} /></GlobalSearchProvider>;
+it('clears the header search and returns keyboard focus to the input', () => {
+  const onOpenChange = vi.fn();
+  render(<GlobalSearchProvider sources={sources}><GlobalSearch variant="dropdown" isOpen onOpenChange={onOpenChange} /></GlobalSearchProvider>);
+  const input = screen.getByRole('combobox');
+  fireEvent.change(input, { target: { value: 'Stavba' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Vymazat hledání' }));
+  expect(input).toHaveValue('');
+  expect(input).toHaveFocus();
+  expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  expect(screen.queryByRole('button', { name: 'Vymazat hledání' })).not.toBeInTheDocument();
+});
 it('opens the selected contract detail directly', async () => {
   render(view());
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'okna' } });

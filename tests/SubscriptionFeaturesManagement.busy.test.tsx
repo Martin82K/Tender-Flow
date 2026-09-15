@@ -5,7 +5,7 @@ import { SubscriptionFeaturesManagement } from '@/features/settings/Subscription
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), update: vi.fn(), remove: vi.fn() }));
 vi.mock('@features/subscription/api', () => ({
-  listSubscriptionFeatures: async () => [{ key: 'ai_ocr', name: 'Povolit OCR', category: 'AI moduly' }, { key: 'export_pdf', name: 'Export PDF', category: 'Export' }],
+  listSubscriptionFeatures: async () => [{ key: 'url_shortener', name: 'URL Zkracovač', category: 'tools' }, { key: 'ai_ocr', name: 'Povolit OCR', category: 'AI moduly' }, { key: 'export_pdf', name: 'Export PDF', category: 'Export' }],
   listSubscriptionTierFlags: async () => [],
   setSubscriptionTierFlag: mocks.save,
   createSubscriptionFeature: vi.fn(),
@@ -16,6 +16,11 @@ vi.mock('@/context/UIContext', () => ({ useUI: () => ({ showAlert: vi.fn(), show
 
 describe('ukládání společných pravidel tarifu', () => {
   beforeEach(() => { vi.clearAllMocks(); });
+  it('nezobrazuje vyřazený zkracovač ani při historickém záznamu v databázi', async () => {
+    render(<SubscriptionFeaturesManagement />);
+    await screen.findByText('Export PDF', { exact: true });
+    expect(screen.queryByText('URL Zkracovač', { exact: true })).not.toBeInTheDocument();
+  });
   it('blokuje další přepínače a hlásí zaneprázdnění do dokončení zápisu', async () => {
     let finish!: () => void;
     mocks.save.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));

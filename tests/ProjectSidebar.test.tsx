@@ -16,6 +16,36 @@ function setup(activeTab = 'contracts', selectedProjectId = 'a') {
   return onSelect;
 }
 describe('Project workspace sidebar', () => {
+  it('opens settings children and selects their route', () => {
+    const onSelect = setup('project-settings');
+    expect(screen.getByRole('button', { name: 'Nastavení stavby', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Odkazy PD', exact: true })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(screen.getByRole('button', { name: 'Šablony', exact: true }));
+    expect(onSelect).toHaveBeenCalledWith('a', 'project-settings', 'templates');
+  });
+  it('hides unavailable settings features', () => {
+    render(<ProjectSidebar hasFeature={() => false} projects={projects} selectedProjectId="a" activeTab="project-settings" onSelect={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Odkazy PD', exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Šablony', exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Složkomat', exact: true })).not.toBeInTheDocument();
+  });
+  it('hides both contract parties when the contracts module is unavailable', () => {
+    render(<ProjectSidebar hasFeature={feature => feature !== FEATURES.MODULE_CONTRACTS} projects={projects} selectedProjectId="a" activeTab="contracts-client" onSelect={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Smlouvy', exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Objednatel', exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Subdodavatel', exact: true })).not.toBeInTheDocument();
+  });
+  it('expands contracts into client and supplier and selects the client route', () => {
+    const onSelect = setup('contracts-client');
+    expect(screen.getByRole('button', { name: 'Smlouvy', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Objednatel', exact: true })).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(screen.getByRole('button', { name: 'Subdodavatel', exact: true }));
+    expect(onSelect).toHaveBeenCalledWith('a', 'contracts');
+    fireEvent.click(screen.getByRole('button', { name: 'Objednatel', exact: true }));
+    expect(onSelect).toHaveBeenLastCalledWith('a', 'contracts-client');
+    fireEvent.click(screen.getByRole('button', { name: 'Smlouvy', exact: true }));
+    expect(screen.queryByRole('button', { name: 'Objednatel', exact: true })).not.toBeInTheDocument();
+  });
   it('keeps the available section when switching project and omits archived choices', () => {
     const onSelect = setup();
     fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));

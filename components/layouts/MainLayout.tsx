@@ -164,7 +164,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     type="button"
                     data-testid="sidebar-reveal-rail"
                     onClick={() => setIsSidebarOpen(true)}
-                    className={`tf-sidebar-reveal-rail hidden h-full w-12 flex-none flex-col items-center justify-center gap-2 border-r transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60 md:flex ${sidebarRevealRailClass}`}
+                    className={`tf-sidebar-reveal-rail hidden h-full w-12 flex-none flex-col items-center justify-start pt-6 gap-2 border-r transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60 md:flex ${sidebarRevealRailClass}`}
                     title="Rozbalit hlavní menu"
                     aria-label="Rozbalit hlavní menu"
                     aria-controls="app-sidebar"
@@ -173,9 +173,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                     <span className="material-symbols-outlined text-[21px]" aria-hidden="true">
                         keyboard_double_arrow_right
                     </span>
-                    <span className="rotate-180 text-[10px] font-bold uppercase leading-none tracking-[0.14em] [writing-mode:vertical-rl]" aria-hidden="true">
-                        Rozbalit menu
-                    </span>
+
                 </button>
             )}
             <AccountMenuProvider accountMenu={accountMenu}>

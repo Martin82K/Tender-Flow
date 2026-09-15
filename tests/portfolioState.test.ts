@@ -14,4 +14,9 @@ describe('Portfolio state', () => {
     sessionStorage.setItem('test', JSON.stringify({ query: 123, status: 'other', ownOnly: 'yes', scrollTop: -10 }));
     expect(readPortfolioState('test')).toEqual(EMPTY_PORTFOLIO);
   });
+  it('restores the archive view with the same search and owner filter', () => {
+    const state = { query: 'škola', status: 'archived' as const, ownOnly: true, scrollTop: 80 };
+    writePortfolioState('org:user', state);
+    expect(readPortfolioState('org:user')).toEqual(state);
+  });
 });

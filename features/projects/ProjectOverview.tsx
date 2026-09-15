@@ -25,14 +25,7 @@ import {
   Search,
   RotateCcw,
 } from "lucide-react";
-import {
-  ClipboardList,
-  FileCheck,
-  ReportMoney,
-  UsersGroup,
-} from "@appica/icons-react";
-import { KPICard } from "@/shared/ui/overview/KPICard";
-import { StatusCard } from "@/shared/ui/overview/StatusCard";
+import { PortfolioAnalyticsSummary } from './ui/PortfolioAnalyticsSummary';
 import { SupplierBarChart } from "@/shared/ui/overview/SupplierBarChart";
 import { SupplierTable } from "@/shared/ui/overview/SupplierTable";
 import { StatusDistributionChart } from "@/shared/ui/overview/StatusDistributionChart";
@@ -82,7 +75,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     retryTenantData,
     tenantProjects,
     tenantProjectDetails,
-    availableProjects,
+    selectableProjects,
     showDebugBanner,
     selectedProjectId,
     setSelectedProjectId,
@@ -241,18 +234,21 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               </button>
             ))}
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-80 max-w-full">
             <ThemedNativeSelect
+              aria-label="Vybrat stavbu"
+              wrapOptions
+              menuMinWidth={480}
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
               disabled={scope === "tenant"}
               style={{ backgroundImage: "none" }}
-              className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">Všechny stavby</option>
-              {availableProjects.map((project) => (
+              {selectableProjects.map((project) => (
                 <option key={project.id} value={project.id}>
-                  {project.name}
+                  {project.name} · {project.status === "archived" ? "Archiv" : project.status === "realization" ? "Realizace" : "Soutěž"}
                 </option>
               ))}
             </ThemedNativeSelect>
@@ -280,62 +276,12 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div data-help-id="overview-kpi" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard
-            title="Objem zakázek"
-            value={formatMoney(analytics.totals.awardedValue)}
-            subtitle="Celkový objem oceněných zakázek"
-            icon={<ReportMoney size={21} strokeWidth={1.65} aria-hidden="true" />}
-            color="emerald"
-          />
-          <KPICard
-            title="Celkem poptávek"
-            value={analytics.categoryProfit.length}
-            subtitle="Počet poptávek v systému"
-            icon={<ClipboardList size={21} strokeWidth={1.65} aria-hidden="true" />}
-            color="blue"
-          />
-          <KPICard
-            title="Poptaní subdodavatelé"
-            value={analytics.suppliers.length}
-            subtitle="Celkem oslovených dodavatelů"
-            icon={<UsersGroup size={21} strokeWidth={1.65} aria-hidden="true" />}
-            color="violet"
-          />
-          <KPICard
-            title="Celkem nabídek"
-            value={analytics.totals.offerCount}
-            subtitle="Všechny přijaté nabídky"
-            icon={<FileCheck size={21} strokeWidth={1.65} aria-hidden="true" />}
-            color="amber"
-          />
-        </div>
-
-        {/* Status Cards */}
-        <div data-help-id="overview-status-cards" className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <StatusCard
-            type="tender"
-            awardedValue={analytics.totalsByStatus.tender.awardedValue}
-            sodCount={analytics.totalsByStatus.tender.sodCount}
-            offerCount={analytics.totalsByStatus.tender.offerCount}
-            formatMoney={formatMoney}
-          />
-          <StatusCard
-            type="realization"
-            awardedValue={analytics.totalsByStatus.realization.awardedValue}
-            sodCount={analytics.totalsByStatus.realization.sodCount}
-            offerCount={analytics.totalsByStatus.realization.offerCount}
-            formatMoney={formatMoney}
-          />
-          <StatusCard
-            type="archived"
-            awardedValue={analytics.totalsByStatus.archived.awardedValue}
-            sodCount={analytics.totalsByStatus.archived.sodCount}
-            offerCount={analytics.totalsByStatus.archived.offerCount}
-            formatMoney={formatMoney}
-          />
-        </div>
+        <PortfolioAnalyticsSummary
+          awardedValue={analytics.totals.awardedValue}
+          demandCount={analytics.categoryProfit.length}
+          supplierCount={analytics.suppliers.length}
+          offerCount={analytics.totals.offerCount}
+        />
 
         {/* Suppliers Section */}
         <OverviewSection

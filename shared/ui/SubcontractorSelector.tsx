@@ -307,9 +307,9 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
                     />
                   </div>
                   <div
-                    className={`${cellBase} font-bold text-slate-900 dark:text-white whitespace-nowrap`}
+                    className={`${cellBase} min-w-0 font-bold text-slate-900 dark:text-white whitespace-normal [overflow-wrap:anywhere]`}
                   >
-                    <div className="text-[15px]">{contact.company}</div>
+                    <div className="text-[15px] leading-snug">{contact.company}</div>
                   </div>
                   {isColumnVisible("specializace") && (
                     <div className={cellBase}>

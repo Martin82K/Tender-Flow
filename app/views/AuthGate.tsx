@@ -24,16 +24,17 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   isDesktop,
 }) => {
   const { pendingMfa } = useAuth();
+  const isRetiredShortLink = pathname === "/s" || pathname.startsWith("/s/");
   const shouldRenderDesktopLogin = pathname === "/" && isDesktop;
   const redirectTo = useMemo(() => {
-    if (shouldRenderDesktopLogin) return null;
+    if (isRetiredShortLink || shouldRenderDesktopLogin) return null;
     if (!AUTH_ROUTES.includes(pathname)) {
       const nextUrl = encodeURIComponent(pathname + search);
       if (pendingMfa) return `/mfa?next=${nextUrl}`;
       return `/login?next=${nextUrl}`;
     }
     return null;
-  }, [pathname, search, pendingMfa, shouldRenderDesktopLogin]);
+  }, [pathname, search, pendingMfa, shouldRenderDesktopLogin, isRetiredShortLink]);
 
   useEffect(() => {
     logRuntimeEvent("auth-gate", "route_decision", {
@@ -63,6 +64,16 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     }
   }, [redirectTo]);
 
+  if (isRetiredShortLink) {
+    return (
+      <AuthLayout>
+        <main className="px-6 py-12 text-center">
+          <h1 className="text-2xl font-bold">Odkaz již není dostupný</h1>
+          <p className="mt-4 text-sm">Služba krátkých odkazů byla ukončena. Požádejte odesílatele o původní odkaz.</p>
+        </main>
+      </AuthLayout>
+    );
+  }
   if (redirectTo) {
     return (
       <AuthLayout>

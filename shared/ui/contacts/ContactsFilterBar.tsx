@@ -81,7 +81,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
     : "Nejblíže ke stavbě";
 
   return (
-    <div className="tf-contacts-filterbar bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
+    <div className="tf-contacts-filterbar relative z-20 bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 md:max-w-md flex items-center rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 h-12 min-w-0">
           <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">

@@ -2,12 +2,15 @@
 
 První etapa návrhů C1/C2 používá vzhled připravený pro C3. C3 ve Figmě zůstává budoucí referencí; rozpočet, změnové listy ani samostatná fakturace nejsou nové položky produkčního menu.
 
-- **Stavby** otevřou `/app/projects`, tedy seznam a Správu staveb. Název stavby otevře její přehled. Nová stavba rozbalí existující formulář; archivace, sdílení, předání vlastníka, editace a vytvoření realizační kopie zůstávají dostupné podle dosavadních oprávnění.
-- **Správa staveb** zůstává explicitní vstup pod přepínači. Hledání, stav, filtr vlastních staveb a pozice seznamu se uchovávají pro aktuální relaci prohlížeče, odděleně podle uživatele a organizace. Při nedostupném úložišti funguje navigace dál.
+- **Nastavení stavby** (`tab=project-settings`) se rozbaluje přímo v sidebaru na Odkazy PD, Šablony a Složkomat. Vybraná položka používá parametr `documentsSubTab`; obsah již nemá duplicitní horní záložky. Dostupnost šablon a Složkomatu zachovává dosavadní oprávnění. **Dokumenty** (`tab=documents`) obsahují Ceníky. Staré odkazy s `documentsSubTab=pd|templates|dochub` se přesměrují do Nastavení stavby. **Realizační tým** zůstává samostatně na původní adrese `tab=settings`.
+
+- **Stavby** otevřou `/app/projects` s posledním pohledem. V sidebaru portfolia jsou **Všechny** (nearchivované), **V soutěži**, **V realizaci** a **Archiv**. Nahrazují duplicitní Správu staveb, select stavu a spodní rozbalovací archiv. Řádek aktivní stavby otevře její přehled. Nová stavba rozbalí existující formulář; správní akce zůstávají dostupné podle dosavadních oprávnění.
+- Pohled lze přímo otevřít parametrem `status=all|tender|realization|archived`. Hledání, stav, filtr vlastních staveb a pozice seznamu se uchovávají pro aktuální relaci prohlížeče, odděleně podle uživatele a organizace. Archiv respektuje stejné filtry; obnovení zůstává pouze oprávněným uživatelům. Při nedostupném úložišti funguje navigace dál. V detailu sidebar zobrazuje jen sekce stavby, návrat do portfolia je přes horní Stavby.
 - V detailu je přepínač stavby s hledáním podle názvu a lokace. U dostupné sekce zachová při změně stavby její typ; nedostupná sekce spadne na Přehled. Identifikátory konkrétní smlouvy nebo poptávky se nepřenášejí do jiné stavby.
-- Projektové menu obsahuje osm dnešních sekcí; dostupnost vychází ze stejné konfigurace jako obsah. Archivovaná stavba otevřená přímým odkazem si zachová navigaci a dosavadní režim pouze pro čtení.
+- Projektové menu seskupuje smlouvy do rozbalovací položky **Smlouvy → Objednatel / Subdodavatel**. Objednatel (`tab=contracts-client`) otevře smlouvu a fakturaci objednateli; Subdodavatel (`tab=contracts`) zachovává seznam, detaily a dashboard subdodavatelských smluv. Původní odkazy s `contractId` zůstávají funkční. Mobilní výběr obsahuje obě smluvní strany samostatně. Dostupnost obou vychází ze stejného oprávnění pro modul smluv. Archivovaná stavba otevřená přímým odkazem si zachová navigaci a dosavadní režim pouze pro čtení.
 - **Přehledy** a **Nástroje** přepínají nabídku sidebaru. Otevřený obsah se změní až výběrem položky; u otevřené stavby zůstává návrat k jejímu menu.
-- Subdodavatelé zůstávají nahoře, osobní TODO dole. Uživatelské menu, notifikace a horní lišta se nemění. Desktop nemá duplicitní řadu projektových záložek; mobil zachovává kompaktní výběr sekce.
+- Dodavatelé jsou součástí horizontálního panelu Stavby / Dodavatelé / Přehledy / Nástroje, osobní TODO zůstává dole. V sekci Dodavatelé se nezobrazují pohledy staveb. Uživatelské menu, notifikace a horní lišta se nemění. Desktop nemá duplicitní řadu projektových záložek; mobil zachovává kompaktní výběr sekce.
+- **Realizační tým** spravuje členství ve stavbě a používá komponentu `ProjectTeamSettings`. Historický klíč URL `tab=settings` zůstává zachován kvůli kompatibilitě odkazů; neoznačuje obecné nastavení stavby. Název a ikona pro sidebar i hlavičku vycházejí z `PROJECT_NAVIGATION`.
 
 ## Ověření
 

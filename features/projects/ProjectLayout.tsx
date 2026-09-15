@@ -272,8 +272,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdateDetails={onUpdateDetails}
           />
         )}
-        {activeTab === "documents" && (
+        {(activeTab === "documents" || activeTab === "project-settings") && (
           <ProjectDocuments
+            key={activeTab}
+            section={activeTab === "project-settings" ? "settings" : "documents"}
             project={project}
             onUpdate={onUpdateDetails}
             currentUserId={currentUserId}
@@ -283,11 +285,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               hasFeature(FEATURES.DEMAND_GENERATION) ||
               hasFeature(FEATURES.LOSER_EMAIL)
             }
-            autoShortenProjectDocs={currentUser?.preferences?.autoShortenProjectDocs ?? false}
           />
         )}
-        {activeTab === "contracts" && (
+        {(activeTab === "contracts" || activeTab === "contracts-client") && (
           <ContractsModule
+            key={activeTab}
+            party={activeTab === "contracts-client" ? "client" : "supplier"}
             projectId={projectId}
             projectDetails={project}
             onUpdateDetails={onUpdateDetails}

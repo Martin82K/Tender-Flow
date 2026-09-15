@@ -60,7 +60,6 @@ Podle nasazených funkcí mohou být potřeba:
 - `STRIPE_SECRET_KEY`, webhook secrets a API verze,
 - Google/Microsoft OAuth client ID, client secret, redirect URI a tenant,
 - `RESEND_API_KEY`, `DEFAULT_EMAIL_FROM`,
-- `TINYURL_API_KEY`,
 - kontraktové šifrovací klíče a aktivní key/version identifikátory,
 - `SITE_URL` a allowlist checkout originů,
 - AI/provider konfigurace podle funkce.
@@ -182,3 +181,37 @@ Potom spusťte `npm run release:prepare` a ověřovací buildy.
   spojení s produkčním Supabase.
 - Chybějící volitelná feature konfigurace má skončit jasným disabled/fallback
   stavem, ne tichým částečným chováním.
+
+## Vyřazený URL zkracovač
+
+Aplikace již neobsahuje tvorbu ani správu krátkých odkazů, automatické zkracování
+dokumentových URL ani přesměrování veřejné cesty `/s/:code` (ta zobrazuje oznámení o ukončení služby bez přihlášení). Staré odkazy
+`/app/url-shortener` přejdou na výchozí stránku aplikace. Dokumentové odkazy se
+ukládají beze změny; dříve uložené krátké odkazy se automaticky nerozbalují.
+
+Historické migrace a data `short_urls` zůstávají zachované. Vyřazovací migrace
+`20260915215432_retire_url_shortener.sql` odstraní přiřazení k tarifům a katalogový
+záznam (pokud není potřeba pro historické usage events). Odebere klientským rolím
+přístup k tabulce a všem variantám RPC resolveru a počítadla kliknutí; přístup
+`service_role` pro administraci zůstává zachovaný. Odebrání zdrojového
+kódu Edge Function `url-shorten` automaticky neodstraní její případné cloudové
+nasazení. Při provozním vyřazení ověřte nasazené funkce, odstraňte tuto funkci
+a po ověření ostatních odběratelů odstraňte nepoužívaný `TINYURL_API_KEY`.
+Migraci ověřte pomocí `supabase/tests/retire-url-shortener.sql`; při nasazení
+porovnejte počet a kontrolní součet historických odkazů před a po změně.
+
+Provozní ověření 2026-09-15: migrace nasazena, Edge Function `url-shorten`
+odstraněna, 0 katalogových záznamů a 0 přiřazení k tarifům. Všech 20 historických
+odkazů zachovalo kontrolní součet. SQL regrese i opakovaný rollback test prošly;
+závěrečný CLI dry-run oznámil aktuální databázi.
+
+Advisory kontrola nadále hlásí historické [mutable search_path rutin](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable)
+a [neindexované cizí klíče](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys).
+Vyřazené rutiny ani tabulka již nejsou dostupné klientským rolím; úklid ostatních
+nálezů databáze není součástí vyřazení zkracovače.
+
+Doplňující migrace `20260915220733_retire_url_shortener_overrides.sql` ruší také
+individuální oprávnění a v obou generacích seznamů funkcí i pomocných kontrolách
+vylučuje vyřazený klíč včetně administrátorů. Regrese ověřuje simulovaný historický
+katalog a override v transakci s rollbackem; samostatná sada předplatného rovněž
+prošla. Závěrečný dry-run znovu potvrdil aktuální databázi.

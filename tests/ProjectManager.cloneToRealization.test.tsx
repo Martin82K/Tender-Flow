@@ -1,5 +1,6 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { navigate } from '@/shared/routing/router';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectManager } from "@/features/projects/ProjectManager";
@@ -108,6 +109,9 @@ describe("ProjectManager clone to realization", () => {
     ]);
 
     expect(screen.getByTitle("Přepnout do realizace")).toBeInTheDocument();
+    expect(screen.getByTitle("Přepnout do realizace")).toHaveTextContent("Přepnout do realizace");
+    expect(screen.getAllByTitle("Upravit projekt")[0]).toHaveTextContent("Upravit stavbu");
+    expect(screen.getAllByTitle("Odstranit")[0]).toHaveTextContent("Odstranit stavbu");
     expect(screen.queryAllByTitle("Přepnout do realizace")).toHaveLength(1);
   });
 
@@ -153,7 +157,7 @@ describe("ProjectManager clone to realization", () => {
     ]);
 
     fireEvent.click(screen.getByTitle("Přepnout do realizace"));
-    expect(screen.getByText("Přepnout do realizace")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Přepnout do realizace" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Vytvořit realizaci" }));
 
@@ -162,7 +166,7 @@ describe("ProjectManager clone to realization", () => {
     });
   });
 
-  it("zobrazí čitelný badge sdílení s plným tooltipem", () => {
+  it("nezobrazuje seznam členů týmu v nabídce stavby", () => {
     renderProjectManager([
       {
         id: "shared-1",
@@ -174,15 +178,8 @@ describe("ProjectManager clone to realization", () => {
       },
     ]);
 
-    const badge = screen.getByRole("button", {
-      name: "Sdíleno s: cerny@baustav.cz, lida@baustav.cz +1",
-    });
-
-    expect(badge).toHaveAttribute("data-help-id", "pm-shared-with-badge");
-    expect(badge).toHaveAttribute(
-      "title",
-      "Sdíleno s: cerny@baustav.cz, lida@baustav.cz, smcrka@baustav.cz",
-    );
+    expect(screen.queryByText(/^Sdíleno s:/)).not.toBeInTheDocument();
+    expect(screen.getByTitle("Sdílet projekt")).toHaveTextContent("Sdílet stavbu");
   });
 });
 
@@ -194,4 +191,27 @@ it('filtruje portfolio a otevře stavbu přes její název', () => {
   fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'Beta' } });
   expect(screen.queryByRole('link', { name: 'Alfa' })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute('href', '/app/project/b?tab=overview');
+});
+
+it('switches portfolio views through the URL and keeps archive search separate from active projects', () => {
+  sessionStorage.clear();
+  act(() => navigate('/app/projects?status=archived'));
+  const view = renderProjectManager([
+    { id: 'a', name: 'Aktivní škola', location: 'Praha', status: 'tender', ownerId: 'user-1' },
+    { id: 'b', name: 'Archivní škola', location: 'Brno', status: 'archived', ownerId: 'user-1' },
+    { id: 'c', name: 'Archivní most', location: 'Praha', status: 'archived', ownerId: 'user-2' },
+  ]);
+  try {
+    expect(screen.queryByRole('link', { name: 'Aktivní škola' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Archivní škola' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Stav staveb' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'škola' } });
+    expect(screen.queryByRole('link', { name: 'Archivní most' })).not.toBeInTheDocument();
+    act(() => navigate('/app/projects?status=tender'));
+    expect(screen.getByRole('link', { name: 'Aktivní škola' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Archivní škola' })).not.toBeInTheDocument();
+    act(() => navigate('/app/projects'));
+    expect(screen.getByRole('link', { name: 'Aktivní škola' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Hledat stavbu' })).toHaveValue('škola');
+  } finally { view.unmount(); act(() => navigate('/')); sessionStorage.clear(); }
 });

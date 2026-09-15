@@ -48,7 +48,7 @@ describe("authService.updateUserPreferences", () => {
             theme: "system",
             primaryColor: "#607AFB",
             backgroundColor: "#f5f6f8",
-            autoShortenProjectDocs: true,
+            uiScale: 1.2,
           },
         },
       })
@@ -94,7 +94,7 @@ describe("authService.updateUserPreferences", () => {
                     theme: "light",
                     primaryColor: "#607AFB",
                     backgroundColor: "#f5f6f8",
-                    autoShortenProjectDocs: false,
+                    uiScale: 1,
                   },
                 },
                 error: null,
@@ -146,22 +146,22 @@ describe("authService.updateUserPreferences", () => {
     });
   });
 
-  it("keeps DB value for autoShortenProjectDocs when only theme changes", async () => {
+  it("keeps DB value for uiScale when only theme changes", async () => {
     const updatedUser = await authService.updateUserPreferences({ theme: "dark" });
 
     expect(lastUpsertPayload.preferences).toMatchObject({
       theme: "dark",
-      autoShortenProjectDocs: false,
+      uiScale: 1,
     });
     expect(updatedUser.preferences).toMatchObject({
       theme: "dark",
-      autoShortenProjectDocs: false,
+      uiScale: 1,
     });
 
     const cached = JSON.parse(localStorage.getItem("crm-user-cache") || "{}");
     expect(cached.user.preferences).toMatchObject({
       theme: "dark",
-      autoShortenProjectDocs: false,
+      uiScale: 1,
     });
   });
 

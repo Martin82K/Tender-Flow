@@ -114,7 +114,7 @@ describe("ProfileSettings layout", () => {
           email: "martin@example.com",
           role: "admin",
           preferences: {
-            autoShortenProjectDocs: false,
+            uiScale: 1,
           },
         }}
       />
@@ -129,6 +129,7 @@ describe("ProfileSettings layout", () => {
     );
     expect(screen.getByText("Biometrické přihlášení")).toBeInTheDocument();
     expect(screen.getByText("Microsoft účet")).toBeInTheDocument();
+    expect(screen.queryByText("Automatické zkracování odkazů")).not.toBeInTheDocument();
     expect(screen.queryByText("Barva pozadí")).not.toBeInTheDocument();
   });
 
@@ -149,7 +150,7 @@ describe("ProfileSettings layout", () => {
           id: "user-1",
           email: "martin@example.com",
           role: "admin",
-          preferences: { autoShortenProjectDocs: false },
+          preferences: { uiScale: 1 },
         }}
       />
     );

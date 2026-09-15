@@ -148,7 +148,6 @@ vi.mock("@/config/features", () => ({
     MODULE_TASKS: "tasks",
     MODULE_CONTRACTS: "contracts",
     FEATURE_ADVANCED_REPORTING: "reporting",
-    URL_SHORTENER: "shortener",
   },
 }));
 
@@ -156,9 +155,6 @@ vi.mock("@/shared/routing/RequireFeature", () => ({
   RequireFeature: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@/shared/routing/ShortUrlRedirect", () => ({
-  ShortUrlRedirect: () => <div>short</div>,
-}));
 
 vi.mock("@/components/layouts/MainLayout", () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -194,7 +190,6 @@ vi.mock("@app/views/LazyViews", () => ({
   ProjectOverview: () => <div>project-overview</div>,
   Settings: () => <div>settings</div>,
   TasksPage: ({ initialTaskId, onCloseInitialTask }: { initialTaskId?: string; onCloseInitialTask?: () => void }) => <div>todo<span data-testid="linked-task">{initialTaskId}</span><button onClick={onCloseInitialTask}>close linked task</button></div>,
-  UrlShortener: () => <div>shortener</div>,
 }));
 
 vi.mock("@app/views/LegalPageRouter", () => ({

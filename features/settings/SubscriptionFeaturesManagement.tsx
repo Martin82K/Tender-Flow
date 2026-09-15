@@ -37,7 +37,7 @@ type FeatureGroup = {
 
 const DISPLAY_TIERS = getDisplayTiers();
 const ALL_TIERS = getAllTiers();
-const REMOVED_FEATURE_KEYS = new Set(["ai_insights", "ai_viki", "feature_voice_assistant"]);
+const REMOVED_FEATURE_KEYS = new Set(["ai_insights", "ai_viki", "feature_voice_assistant", "url_shortener"]);
 const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr"]);
 const SYSTEM_AI_MODULES: FeatureSeed[] = [
   {

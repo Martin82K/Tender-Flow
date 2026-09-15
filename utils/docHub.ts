@@ -14,7 +14,6 @@ export {
   getDocHubTenderLinksDesktop,
   getTendersFolderName,
   isProbablyUrl,
-  isSafePublicHttpUrlForExternalShortener,
   joinDocHubPath,
   resolveDocHubStructureV1,
   slugifyDocHubSegment,

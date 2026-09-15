@@ -241,7 +241,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
   // dropdown variant — panel floats below input
   return (
-    <div className="relative flex-1">
+    <div className="flex min-w-0 flex-1 items-center gap-1">
       <input
         ref={inputRef}
         type="text"
@@ -262,10 +262,21 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
         aria-controls={LISTBOX_ID}
         aria-activedescendant={activeDescendant}
         autoComplete="off"
-        className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70"
+        className="tf-global-search-input min-w-0 w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70"
       />
+      {query && (
+        <button type="button" aria-label="Vymazat hledání" title="Vymazat hledání"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 focus-visible:outline-2 focus-visible:outline-primary"
+          onClick={() => {
+            setQuery("");
+            inputRef.current?.focus();
+            onOpenChange(false);
+          }}>
+          <span aria-hidden="true" className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      )}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-[28rem] max-h-[28rem] overflow-y-auto z-50 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl">
+        <div className="absolute top-full right-0 mt-2 w-[28rem] max-w-[calc(100vw-2rem)] max-h-[28rem] whitespace-normal overflow-y-auto z-50 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl">
           {panel}
         </div>
       )}
