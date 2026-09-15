@@ -1,11 +1,20 @@
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '30s';
+-- Keep the administrative backfill atomic, including archived contracts.
+LOCK TABLE public.contracts IN ACCESS EXCLUSIVE MODE;
 -- Legacy release_on remains planned while held and actual while released.
 -- New clients use expected_on for the plan. Preserve old clients and never infer a lost historical plan.
 ALTER TABLE public.contracts
   ADD COLUMN retention_short_expected_on date,
   ADD COLUMN retention_long_expected_on date;
+ALTER TABLE public.contracts DISABLE TRIGGER trg_archived_guard_contracts;
+ALTER TABLE public.contracts DISABLE TRIGGER tr_contracts_updated_at;
 UPDATE public.contracts SET
   retention_short_expected_on = CASE WHEN retention_short_status IS DISTINCT FROM 'released' THEN retention_short_release_on END,
   retention_long_expected_on = CASE WHEN retention_long_status IS DISTINCT FROM 'released' THEN retention_long_release_on END;
+ALTER TABLE public.contracts ENABLE TRIGGER tr_contracts_updated_at;
+ALTER TABLE public.contracts ENABLE TRIGGER trg_archived_guard_contracts;
 COMMENT ON COLUMN public.contracts.retention_short_expected_on IS 'Planned release date preserved across release; NULL means unknown, including historical released records.';
 COMMENT ON COLUMN public.contracts.retention_long_expected_on IS 'Planned release date preserved across release; NULL means unknown, including historical released records.';
 
@@ -118,3 +127,4 @@ BEGIN
 END; $$;
 REVOKE ALL ON FUNCTION public.release_contract_retention(uuid,text,date) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.release_contract_retention(uuid,text,date) TO authenticated;
+COMMIT;

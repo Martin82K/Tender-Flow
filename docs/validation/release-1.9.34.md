@@ -1,0 +1,65 @@
+# Validace vydání 1.9.34
+
+Ověřeno 16. 9. 2026 lokálně na macOS Apple Silicon.
+
+## Rozsah a regresní kontroly
+
+Portfolio a projektová navigace, kompaktní analytický souhrn, pozastávky z PR
+#457, dokumentace z PR #449 a vyřazení zkracovače URL z již sloučeného PR #461.
+Pracovní grafické výstupy, obchodní podklady v `output/` a dočasné `tmp/`
+nejsou součástí zdrojového commitu tohoto vydání.
+
+- Vitest: 531 souborů, 2 883 testů, bez skip/todo a bez neošetřených chyb.
+- Python Excel merge: 8 testů.
+- Typecheck, web build, kontrola dist, desktop compile, docs, boundaries a
+  legacy structure prošly. Lockfile mění pouze verzi aplikace.
+- Root audit: 0 high/critical, 3 moderate a 2 low (Vitest/mocker, Hono, Joi/wait-on).
+  Desktop audit: 0 zranitelností. Ověřeno 854 root a 116 desktop podpisů;
+  143 root a 5 desktop attestací. Žádná aktualizace závislostí.
+- Updater runtime: loopback test výběru zdroje, fallbacku a odmítnutí špatného
+  kontrolního součtu prošel; není náhradou skutečné instalace na Windows.
+- Browser fixture: 3 šířky, 12 kombinací skin/režim, hover, fokus, klávesnice,
+  výběr příjemce, smluvní odkazy, zoom a mobil prošly bez neočekávané chyby.
+- Produkční preview: login guard ve fresh profilu; v existující přihlášené
+  relaci portfolio načetlo souhrny, hledání omezilo tabulku i grafy a odkaz
+  otevřel stavbu. Sidebar rozbalil Objednatele a Subdodavatele.
+
+Původní běhy zachytily zastaralé očekávání počtu modulů, staré selektory vzhledu
+a chybějící release notes. Testy byly sladěny se změnou UI; kontroly oprávnění
+zůstaly zachované. Testy lokálních serverů vyžadovaly běh mimo síťový sandbox.
+
+## Databáze
+
+Dry-run obsahoval pouze `20260914184053_retention_release_evidence.sql`.
+První pokus odmítl trigger archivované stavby; transakce byla celá vrácena.
+Regresní RED/GREEN test pokrývá atomický backfill s exkluzivním zámkem a
+obnovením archivního i timestamp triggeru. Nevypínají se jiné triggery ani RLS.
+
+Opravená migrace byla nasazena. Před i po: 73 smluv, 12 krátkodobých a
+10 dlouhodobých plánů, 0 uvolněných smluv. Porovnání kontrolního součtu původních
+sloupců potvrdilo, že se nezměnily, včetně `updated_at`. Neshody backfillu: 0.
+Všechny čtyři relevantní triggery jsou zapnuté.
+
+SQL regression v rollback transakci ověřil plán/skutečnost, autora historie,
+odmítnutí opakování, budoucího data, cizího uživatele, anonymního přístupu a
+editace historie. Po rollbacku zůstalo 0 testovacích eventů. Historie má RLS,
+authenticated má pouze SELECT a anon nemůže spustit potvrzovací RPC.
+Závěrečný dry-run: `Remote database is up to date.`
+
+Security advisor nemá nález pro nové objekty pozastávek. Performance advisor
+u nového indexu autora hlásí pouze dosud nepoužitý index; zachován kvůli FK.
+Globální advisors nejsou čisté: obsahují dřívější objekty se změnitelným
+search_path, SECURITY DEFINER RPC, RLS bez politik, neindexované FK a další
+výkonnostní doporučení. Nálezy nebyly v rámci release plošně opravovány.
+Viz [Supabase database linter](https://supabase.com/docs/guides/database/database-linter).
+
+## Zbývající omezení
+
+- GitHub Code Scanning nemá analýzu (404), Dependabot alerts jsou vypnuté (403).
+- Build hlásí velké chunky a neúčinný dynamický import incidentLogger.
+- Při vstupu do již přihlášeného osobního TODO se objevila chyba fetch
+  `microsoft-todo-sync`. Portfolio a jeho navigace fungovaly; synchronizace
+  Microsoft účtu nebyla tímto vydáním ověřena.
+- Windows Authenticode podpis ani macOS notarizace nejsou nakonfigurované;
+  macOS používá ad-hoc podpis. Úplná instalace/updater na Windows vyžaduje
+  samostatnou kontrolu na Windows.

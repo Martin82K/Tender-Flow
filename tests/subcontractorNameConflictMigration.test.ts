@@ -94,7 +94,13 @@ describe("subcontractor name conflict migration", () => {
     );
     expect(postGuardMigrations).toMatch(/company_name[\s\S]*obnoveno/i);
     expect(postGuardMigrations).toContain("REVOKE ALL ON FUNCTION private.prepare_subcontractor_restore_payload");
-    expect(postGuardMigrations).not.toMatch(/DISABLE\s+TRIGGER/i);
+    // The atomic retention backfill preserves archived contracts and timestamps.
+    // Its two narrowly scoped triggers are covered by contractRetentionMigration.
+    const migrationsWithoutRetentionBackfill = postGuardMigrations.replace(
+      /ALTER TABLE public\.contracts DISABLE TRIGGER (?:trg_archived_guard_contracts|tr_contracts_updated_at);/g,
+      "",
+    );
+    expect(migrationsWithoutRetentionBackfill).not.toMatch(/DISABLE\s+TRIGGER/i);
   });
 
   it("ověří oprávnění a velikost zálohy před privilegovanou předúpravou", () => {

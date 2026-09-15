@@ -401,7 +401,7 @@ describe("industrial skin tokens", () => {
     expect(projectManagerSource).toContain('data-help-id="pm-project-status-badge"');
     expect(projectManagerSource).toContain("data-status={project.status}");
     expect(projectManagerSource).toContain('data-help-id="pm-project-actions"');
-    expect(projectManagerSource).toContain('data-help-id="pm-shared-with-badge"');
+    expect(projectManagerSource).toContain('className="tf-portfolio-actions relative"');
     expect(projectManagerSource).toContain('data-help-id="pm-archive-section"');
     expect(projectManagerSource).toContain('data-help-id="pm-edit-modal"');
     expect(projectManagerSource).toContain('data-help-id="pm-share-modal"');
@@ -411,8 +411,8 @@ describe("industrial skin tokens", () => {
     expect(tenantOverviewSource).toContain("tf-project-overview-view");
     expect(tenantOverviewSource).toContain("skin={skin}");
     expect(tenantOverviewSource).toContain('data-help-id="overview-scope-toggle"');
-    expect(tenantOverviewSource).toContain('data-help-id="overview-kpi"');
-    expect(tenantOverviewSource).toContain('data-help-id="overview-status-cards"');
+    expect(tenantOverviewSource).toContain('<PortfolioAnalyticsSummary');
+    expect(css).toContain('.tf-analytics-summary {');
     expect(tenantOverviewSource).toContain('data-help-id="overview-supplier-analysis"');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-overview-view');

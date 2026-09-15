@@ -125,20 +125,18 @@ describe("TF Space theme contract", () => {
     expect(projectOverview).toContain("<Combobox");
     expect(projectOverview).toContain('from "@appica/ui-react/sparkline"');
     expect(projectOverview).toContain("<SparklineChart");
-    expect(projectOverview).toContain('data-help-id="overview-status-cards" className="grid grid-cols-1 gap-4 xl:grid-cols-3"');
+    expect(projectOverview).toContain('<PortfolioAnalyticsSummary');
+    expect(css).toContain('.tf-analytics-summary {');
   });
 
-  it("sjednocuje filtry analýzy a KPI ikony pomocí Appica komponent", () => {
+  it("zachovává Appica filtry analýzy a používá společný souhrn portfolia", () => {
     expect(projectOverview.match(/<Combobox\r?\n/g)).toHaveLength(2);
     const projectOverviewWithWindowsLineEndings = projectOverview.replace(/\r?\n/g, "\r\n");
     expect(projectOverviewWithWindowsLineEndings.match(/<Combobox\r?\n/g)).toHaveLength(2);
     expect(projectOverview).toContain('aria-label="Vyhledat dodavatele"');
     expect(projectOverview).toContain('aria-label="Vyhledat zaměření"');
-    expect(projectOverview).toContain('from "@appica/icons-react"');
-    expect(projectOverview).toContain("<ReportMoney");
-    expect(projectOverview).toContain("<ClipboardList");
-    expect(projectOverview).toContain("<UsersGroup");
-    expect(projectOverview).toContain("<FileCheck");
+    expect(projectOverview).toContain("<PortfolioAnalyticsSummary");
+    expect(css).toContain('.tf-analytics-metrics {');
     expect(css).toContain('[data-slot="combobox-input-field"]');
   });
 
