@@ -12,7 +12,7 @@ export function PortfolioDeadline({ summary, loading }: { summary?: ProjectPortf
     if (date.getFullYear() !== Number(match[1]) || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) return [];
     return [{ ...item, date }];
   }).sort((a, b) => a.date.getTime() - b.date.getTime());
-  const next = dates.find(item => item.date >= today) ?? dates[0];
+  const next = dates.find(item => item.date >= today) ?? dates.at(-1);
   if (!summary) return <span className="text-xs text-slate-500">{loading ? 'Načítání…' : 'Souhrn není dostupný'}</span>;
   if (!next) return <div><span>—</span><p className="mt-1 text-xs text-slate-500">Bez termínu nabídky</p></div>;
   // UTC day numbers avoid daylight-saving transitions when computing calendar-day differences.

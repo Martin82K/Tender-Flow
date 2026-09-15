@@ -107,6 +107,12 @@ Po rollback testech: 73 smluv se stejným checksumem, 0 eventů a 0 dočasných
 oprávnění; podpisový klíč není čitelný rolí authenticated. Závěrečný dry-run
 hlásí aktuální databázi a advisors nemají nový nález pro přidané objekty.
 
+Poslední review opravilo výběr nejbližšího minulého termínu: pokud není budoucí
+datum, vybírá se nejnovější prošlé datum. Regrese s lednovým, květnovým a
+včerejším termínem nejprve selhala a po jednořádkové opravě prošla.
+Finální sada po této opravě: 533 souborů / 2 898 testů bez skip/todo a chyb;
+typecheck, web build, browser fixture, docs, boundaries a legacy structure prošly.
+
 Security advisor nemá nález pro nové objekty pozastávek. Performance advisor
 u nového indexu autora hlásí pouze dosud nepoužitý index; zachován kvůli FK.
 Globální advisors nejsou čisté: obsahují dřívější objekty se změnitelným
