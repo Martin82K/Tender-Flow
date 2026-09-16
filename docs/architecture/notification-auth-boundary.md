@@ -56,6 +56,21 @@ Stav je označený ID identity, pro kterou vznikl. Při přepnutí A → B:
 Desktopová notifikace vznikne jen pro novou, neduplikovanou událost aktivní
 identity a pouze pro typ `warning`, `success` nebo `error`.
 
+## Autor změny a příjemce
+
+Uživatelské změny nabídek, podpisu smlouvy, kategorií, uzavření soutěže,
+klonování/archivace projektu a nahrání dokumentu předávají emitteru povinné
+`actorUserId`. Pokud se rovná ID příjemce, emitter vrátí `null` před RPC zápisem.
+Autor tedy z nové vlastní události nedostane položku zvonku ani navazující
+desktopové upozornění. Pět aktivních míst volání v projektových mutacích a
+pipeline předává identitu autora; helper pro dokumenty zůstává připravený pro
+budoucí použití.
+
+Systémová oznámení, připomínky termínů a výsledky AI úloh autora nevyžadují a
+zůstávají zachované. Historické notifikace se nemažou. Odlišný příjemce pokračuje
+do existujícího RPC a podléhá jeho autorizaci; toto pravidlo samo nezavádí
+rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
+
 ## Výpadky realtime spojení
 
 Realtime „subscription“ označuje odběr databázových událostí, nikoli placené

@@ -98,6 +98,7 @@ export const usePipelineBidActions = ({
           const bid = (bids[activeCategory.id] || []).find((b) => b.id === bidId);
           void emitBidStatusNotification({
             userId,
+            actorUserId: userId,
             bidId,
             companyName: bid?.companyName ?? "",
             newStatus: targetStatus,
@@ -154,6 +155,7 @@ export const usePipelineBidActions = ({
       } else if (userId) {
         void emitBidContractedNotification({
           userId,
+          actorUserId: userId,
           bidId: bid.id,
           companyName: bid.companyName,
           contracted: newContracted,

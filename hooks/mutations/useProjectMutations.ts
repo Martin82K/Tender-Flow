@@ -300,6 +300,7 @@ export const useCloneTenderToRealizationMutation = () => {
                 const sourceProject = projects?.find(p => p.id === projectId);
                 void emitProjectClonedNotification({
                     userId: user.id,
+                    actorUserId: user.id,
                     sourceProjectId: projectId,
                     sourceProjectName: sourceProject?.name ?? "",
                     targetProjectId: data.projectId,
@@ -358,6 +359,7 @@ export const useArchiveProjectMutation = () => {
                 const project = projects?.find(p => p.id === id);
                 void emitProjectArchivedNotification({
                     userId: user.id,
+                    actorUserId: user.id,
                     projectId: id,
                     projectName: project?.name ?? "",
                 });
@@ -754,6 +756,7 @@ export const useEditCategoryMutation = () => {
                 if (oldCategory && oldCategory.status !== category.status) {
                     void emitCategoryStatusNotification({
                         userId: user.id,
+                        actorUserId: user.id,
                         categoryId: category.id,
                         categoryTitle: category.title,
                         newStatus: category.status,
