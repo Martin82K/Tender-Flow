@@ -70,7 +70,9 @@ BEGIN
   SELECT id INTO v_org_id
   FROM public.organizations
   WHERE v_domain = ANY (domain_whitelist)
-  LIMIT 1;
+  ORDER BY id
+  LIMIT 1
+  FOR UPDATE;
 
   IF v_org_id IS NOT NULL THEN
     IF public._org_billable_seats_available(v_org_id) THEN
@@ -80,14 +82,18 @@ BEGIN
 
       -- Signup still seeds a personal Pro trial on user_profiles. Joining an
       -- existing organization inherits that org's entitlement, including the wall.
-      UPDATE public.user_profiles
-      SET
-        subscription_status = 'expired',
-        trial_ends_at = LEAST(COALESCE(trial_ends_at, now()), now() - interval '1 second'),
-        updated_at = now()
-      WHERE user_id = p_user_id
-        AND subscription_status = 'trial'
-        AND subscription_tier_override IS NULL;
+      -- Authenticated recovery cannot write protected profile columns; the
+      -- resolver already ignores personal trials for org members.
+      IF auth.role() IS DISTINCT FROM 'authenticated' OR auth.uid() IS NULL THEN
+        UPDATE public.user_profiles
+        SET
+          subscription_status = 'expired',
+          trial_ends_at = LEAST(COALESCE(trial_ends_at, now()), now() - interval '1 second'),
+          updated_at = now()
+        WHERE user_id = p_user_id
+          AND subscription_status = 'trial'
+          AND subscription_tier_override IS NULL;
+      END IF;
 
       RETURN v_org_id;
     END IF;

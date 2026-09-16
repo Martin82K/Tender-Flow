@@ -8,7 +8,7 @@ export const DESKTOP_RELEASES_LATEST_URL =
   `https://github.com/${DESKTOP_RELEASES_OWNER}/${DESKTOP_RELEASES_REPO}/releases/latest`;
 
 const assetUrl = (filename: string): string =>
-  `https://github.com/${DESKTOP_RELEASES_OWNER}/${DESKTOP_RELEASES_REPO}/releases/latest/download/${filename}`;
+  `https://github.com/${DESKTOP_RELEASES_OWNER}/${DESKTOP_RELEASES_REPO}/releases/download/v${DESKTOP_DISTRIBUTION_VERSION}/${filename}`;
 
 export const DESKTOP_DOWNLOADS = [
   {
