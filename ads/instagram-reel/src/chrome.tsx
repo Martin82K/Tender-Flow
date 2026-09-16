@@ -1,10 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
-import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { brand, fontFamily } from "./brand";
-import { CTA, PERSONA_KICKER, PRODUCT_NAME } from "./copy";
+import { DEMO_PROJECT, PERSONA_KICKER, PRODUCT_NAME } from "./copy";
 import { SCENE_FRAMES } from "./storyboard";
 
-export const enter = (frame: number, fps: number, delay = 0, distance = 28): number => {
+export const TF_APP_ICON = staticFile("tf-app-icon.png");
+
+export const enter = (frame: number, fps: number, delay = 0): number => {
   return spring({
     frame: frame - delay,
     fps,
@@ -20,8 +22,79 @@ export const fadeUp = (
   const progress = enter(frame, fps, delay);
   return {
     opacity: progress,
-    transform: `translateY(${interpolate(progress, [0, 1], [22, 0])}px)`,
+    transform: `translateY(${interpolate(progress, [0, 1], [18, 0])}px)`,
   };
+};
+
+export const LogoMark: React.FC<{ size?: number }> = ({ size = 64 }) => (
+  <div
+    style={{
+      width: size,
+      height: size,
+      position: "relative",
+      flexShrink: 0,
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        inset: "11%",
+        borderRadius: "22%",
+        background: "#090807",
+        boxShadow: `0 0 ${Math.round(size * 0.22)}px rgba(242, 107, 26, 0.45)`,
+      }}
+    />
+    <Img
+      src={TF_APP_ICON}
+      alt="Tender Flow"
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+        objectFit: "contain",
+        display: "block",
+        mixBlendMode: "screen",
+      }}
+    />
+  </div>
+);
+
+const NavGlyph: React.FC<{ kind: "building" | "handshake" | "contract" | "settings"; active?: boolean }> = ({
+  kind,
+  active,
+}) => {
+  const color = active ? brand.accentHi : brand.muted;
+  const common = { fill: "none", stroke: color, strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (kind === "building") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24">
+        <path {...common} d="M4 20V9l8-5 8 5v11" />
+        <path {...common} d="M9 20v-6h6v6" />
+      </svg>
+    );
+  }
+  if (kind === "handshake") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24">
+        <path {...common} d="M8 12l3 3 8-8" />
+        <path {...common} d="M3 12l5 5 2-2" />
+      </svg>
+    );
+  }
+  if (kind === "contract") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24">
+        <path {...common} d="M7 3h8l4 4v14H7z" />
+        <path {...common} d="M15 3v4h4M9 12h6M9 16h4" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24">
+      <circle {...common} cx="12" cy="12" r="3" />
+      <path {...common} d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4" />
+    </svg>
+  );
 };
 
 export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> = ({
@@ -29,7 +102,7 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
   sceneIndex,
 }) => {
   const frame = useCurrentFrame();
-  const glow = interpolate(frame, [0, 80, 240, 449], [0.16, 0.22, 0.18, 0.28], {
+  const glow = interpolate(frame, [0, 80, 240, 449], [0.12, 0.2, 0.14, 0.24], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -50,17 +123,7 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
         style={{
           position: "absolute",
           inset: 0,
-          background: `radial-gradient(ellipse 90% 55% at 50% -10%, rgba(234, 160, 121, ${glow}), transparent 62%)`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E\")",
-          opacity: 0.45,
-          pointerEvents: "none",
+          background: `radial-gradient(ellipse 80% 38% at 50% -10%, rgba(255, 142, 51, ${glow}), transparent 62%)`,
         }}
       />
       <div
@@ -70,37 +133,30 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          padding: "72px 64px 168px",
+          padding: "48px 32px 132px",
         }}
       >
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <header style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <LogoMark size={64} />
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.05 }}>
+              {PRODUCT_NAME}
+            </div>
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 18,
-                background: `linear-gradient(135deg, ${brand.accentSoft}, ${brand.accent})`,
-                color: brand.inkOnAccent,
-                fontWeight: 800,
-                fontSize: 22,
-                letterSpacing: "-0.04em",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                fontSize: 14,
+                color: brand.muted,
+                marginTop: 4,
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
               }}
             >
-              TF
-            </div>
-            <div>
-              <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.04em" }}>
-                {PRODUCT_NAME}
-              </div>
-              <div style={{ fontSize: 22, color: brand.muted, marginTop: 4 }}>{PERSONA_KICKER}</div>
+              {PERSONA_KICKER}
             </div>
           </div>
         </header>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>{children}</div>
         <ProgressRail activeIndex={sceneIndex} />
       </div>
     </div>
@@ -109,13 +165,13 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
 
 const ProgressRail: React.FC<{ activeIndex: number }> = ({ activeIndex }) => {
   return (
-    <div style={{ display: "flex", gap: 10, paddingTop: 28 }}>
+    <div style={{ display: "flex", gap: 8, paddingTop: 18 }}>
       {SCENE_FRAMES.map((scene, index) => (
         <div
           key={scene.id}
           style={{
             flex: 1,
-            height: 8,
+            height: 6,
             borderRadius: 99,
             background: index <= activeIndex ? brand.accent : brand.line,
           }}
@@ -134,30 +190,152 @@ export const SceneHeading: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
-    <div style={{ paddingTop: 54, paddingBottom: 36 }}>
-      <div style={{ ...fadeUp(frame, fps, delay), color: brand.accent, fontSize: 24, fontWeight: 650, letterSpacing: "0.16em", textTransform: "uppercase" }}>
+    <div style={{ paddingTop: 18, paddingBottom: 12, flexShrink: 0 }}>
+      <div
+        style={{
+          ...fadeUp(frame, fps, delay),
+          color: brand.accentHi,
+          fontSize: 16,
+          fontWeight: 700,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+        }}
+      >
         {kicker}
       </div>
-      <h1 style={{ ...fadeUp(frame, fps, delay + 3), margin: "14px 0 0", fontSize: 72, lineHeight: 1.05, letterSpacing: "-0.045em", fontWeight: 760 }}>
+      <h1
+        style={{
+          ...fadeUp(frame, fps, delay + 3),
+          margin: "6px 0 0",
+          fontSize: 44,
+          lineHeight: 1.05,
+          letterSpacing: "-0.045em",
+          fontWeight: 800,
+        }}
+      >
         {title}
       </h1>
-      <p style={{ ...fadeUp(frame, fps, delay + 6), margin: "18px 0 0", fontSize: 32, color: brand.text2, fontWeight: 450, lineHeight: 1.3 }}>
+      <p
+        style={{
+          ...fadeUp(frame, fps, delay + 6),
+          margin: "8px 0 0",
+          fontSize: 22,
+          color: brand.text2,
+          fontWeight: 450,
+          lineHeight: 1.25,
+        }}
+      >
         {subtitle}
       </p>
     </div>
   );
 };
 
-export const Panel: React.FC<{ children: ReactNode; style?: CSSProperties }> = ({ children, style }) => (
-  <div
-    style={{
-      background: brand.card,
-      border: `1px solid ${brand.line}`,
-      borderRadius: 32,
-      padding: 36,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+export const AppFrame: React.FC<{
+  children: ReactNode;
+  activeTab: "pipeline" | "rounds" | "award" | "contract";
+  toolbar?: ReactNode;
+  style?: CSSProperties;
+}> = ({ children, activeTab, toolbar, style }) => {
+  const tabs = [
+    { id: "overview", label: "Přehled" },
+    { id: "pipeline", label: "Výběrová řízení" },
+    { id: "contract", label: "Subdodavatel" },
+  ] as const;
+  const activeId = activeTab === "contract" ? "contract" : "pipeline";
+  const nav = [
+    { kind: "building" as const, active: activeTab !== "contract" },
+    { kind: "handshake" as const, active: false },
+    { kind: "contract" as const, active: activeTab === "contract" },
+    { kind: "settings" as const, active: false },
+  ];
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        background: brand.surface,
+        border: `1px solid ${brand.line}`,
+        borderRadius: 18,
+        overflow: "hidden",
+        display: "flex",
+        ...style,
+      }}
+    >
+      <aside
+        style={{
+          width: 64,
+          flexShrink: 0,
+          background: brand.deep,
+          borderRight: `1px solid ${brand.line}`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "14px 0 12px",
+          gap: 10,
+        }}
+      >
+        <LogoMark size={36} />
+        <div style={{ width: 28, height: 1, background: brand.line, margin: "4px 0 2px" }} />
+        {nav.map((item) => (
+          <div
+            key={item.kind}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: item.active ? "rgba(255, 138, 51, 0.16)" : "transparent",
+              border: item.active ? `1px solid rgba(255, 158, 61, 0.4)` : "1px solid transparent",
+            }}
+          >
+            <NavGlyph kind={item.kind} active={item.active} />
+          </div>
+        ))}
+      </aside>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 14px 8px" }}>
+          <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>{DEMO_PROJECT.name}</div>
+          <div style={{ color: brand.muted, fontSize: 13, marginTop: 3 }}>
+            {DEMO_PROJECT.code} · {DEMO_PROJECT.status}
+          </div>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            padding: "0 12px 10px",
+            borderBottom: `1px solid ${brand.line}`,
+          }}
+        >
+          {tabs.map((tab) => {
+            const on = tab.id === activeId;
+            return (
+              <div
+                key={tab.id}
+                style={{
+                  padding: "7px 12px",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  background: on ? "rgba(255, 138, 51, 0.16)" : "transparent",
+                  color: on ? brand.accentHi : brand.muted,
+                  border: on ? `1px solid rgba(255, 158, 61, 0.45)` : "1px solid transparent",
+                }}
+              >
+                {tab.label}
+              </div>
+            );
+          })}
+        </div>
+        {toolbar}
+        <div style={{ flex: 1, minHeight: 0, padding: 12, background: brand.deep, display: "flex", flexDirection: "column" }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CTA, FORBIDDEN_COPY_FRAGMENTS, SCENES, TAGLINE } from "../ads/instagram-reel/src/copy";
+import { CTA, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS, FORBIDDEN_COPY_FRAGMENTS, SCENES, TAGLINE } from "../ads/instagram-reel/src/copy";
 import {
   COMPOSITION_ID,
   REEL_DURATION_FRAMES,
@@ -15,7 +15,7 @@ import {
 const reelRoot = join(process.cwd(), "ads/instagram-reel");
 
 const collectCopy = (): string => {
-  return JSON.stringify({ CTA, TAGLINE, SCENES }).toLocaleLowerCase("cs-CZ");
+  return JSON.stringify({ CTA, TAGLINE, SCENES, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS }).toLocaleLowerCase("cs-CZ");
 };
 
 describe("TenderFlowReel15 storyboard", () => {
@@ -60,9 +60,12 @@ describe("TenderFlowReel15 storyboard", () => {
 
   it("registers the composition and documents render commands", () => {
     const rootSource = readFileSync(join(reelRoot, "src/Root.tsx"), "utf8");
+    const chrome = readFileSync(join(reelRoot, "src/chrome.tsx"), "utf8");
     const readme = readFileSync(join(reelRoot, "README.md"), "utf8");
     expect(rootSource).toContain("id={COMPOSITION_ID}");
     expect(rootSource).toContain("component={TenderFlowReel15}");
+    expect(chrome).toContain('staticFile("tf-app-icon.png")');
+    expect(chrome).not.toMatch(/>\s*TF\s*</);
     expect(readme).toContain("npx remotion studio src/index.ts");
     expect(readme).toContain("npx remotion render src/index.ts TenderFlowReel15");
     expect(readme).toContain("1080x1920");
