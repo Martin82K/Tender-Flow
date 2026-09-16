@@ -22,6 +22,8 @@ Průvodce je ověřený proti aplikaci **1.9.36 k 16. 9. 2026**. Názvy tlačít
 
 Všechny firmy, osoby, údaje o zakázce a částky v příkladech jsou fiktivní. Adresy na doméně **example.com** slouží pouze pro dokumentaci. Ukázkové zprávy neodesílejte. Vlastní nácvik provádějte v prostředí, které vám určil správce.
 
+Pro nácvik nástrojů si stáhněte [syntetické kontakty v CSV](./assets/javor-kontakty.csv) a [ukázkový rozpočet se dvěma listy v XLSX](./assets/javor-rozpocet.xlsx). Rozpočet obsahuje tři položky, řádky označující oddíly a ochranu listů pro ukázku odemčení. Neobsahuje makra ani skutečné firemní údaje. Ukázkové kontakty importujte pouze do určeného testovacího prostředí.
+
 ### První průchod aplikací
 
 1. Přihlaste se a otevřete **Správu staveb**. Založte stavbu **Bytový dům Javor**.
@@ -46,6 +48,13 @@ Všechny firmy, osoby, údaje o zakázce a částky v příkladech jsou fiktivn�
 **Příklad:** Anna potřebuje pracovat na Javoru. Nestačí, že má účet; potřebuje také přístup ke stavbě a povolené funkce. Při problému s přístupem nezkoušejte jiný účet kolegy, obraťte se na správce.
 
 **Častá chyba:** zaměnit zavření okna desktop aplikace za odhlášení. Rozhodující je použití odhlašovací akce a její potvrzení.
+
+### Přihlášení a obnova přístupu
+
+![Přihlašovací formulář: e-mail a heslo, Microsoft a odkaz na obnovu hesla.](./assets/prihlaseni.png)
+
+Pro nový účet použijte **Vytvořit účet** a dokončete registraci podle zobrazených polí. Zapomenuté heslo řešte odkazem na obnovu na přihlašovací stránce; pokračujte z doručené zprávy. Pokud účet používá dvoufázové ověření, zadejte aktuální kód svého autentizátoru. Osobní zabezpečení a připojená zařízení jsou vysvětlená v [Nastavení aplikace](#nastaveni-aplikace). Přihlášení přes Microsoft a propojení Microsoft služeb si ověřte v nastavení účtu.
+
 
 ## Organizace a předplatné
 
@@ -107,9 +116,22 @@ Příručka neuvádí pevnou tabulku tarifů: skutečný přístup určuje aktu�
 
 ### Sdílení a oprávnění
 
-Sdílení stavby nastavujte podle role spolupracovníka. Před předáním práce ověřte, že kolega vidí potřebné sekce a smí provádět požadované změny. Realizační tým a přístupová oprávnění mají odlišný účel; samotný zápis jména do seznamu osob nepovažujte za důkaz přístupu.
+Sdílení stavby nastavujte podle role spolupracovníka. Před předáním práce ověřte, že kolega vidí potřebné sekce a smí provádět požadované změny. Členství v Realizačním týmu řídí přístup ke stavbě. Samotné vyplnění jména stavbyvedoucího v obecných informacích přístup neuděluje.
 
 **Výsledek:** Anna pracuje na správné stavbě a Petr má ověřený přístup k úkolům, které skutečně potřebuje. Archivovanou stavbu nezaměňujte se smazanou.
+
+### Portfolio, hledání a životní cyklus stavby
+
+![Správa staveb se syntetickými projekty Javor a Lípa: filtry a ovládání portfolia.](./assets/stavby.png)
+
+Vyhledejte název stavby a zkontrolujte filtr fáze. Novou stavbu založte přes tlačítko pro přidání, vyplňte název, lokalitu a fázi. Úpravy názvu a lokality provádějte u konkrétní stavby. Při převodu soutěže do realizace čtěte potvrzení klonování a následně otevřete vzniklou realizační stavbu. Archivaci používejte pro ukončenou práci; v archivu je stavba pouze ke čtení a oprávněný uživatel ji může obnovit. Před smazáním vždy ověřte název v potvrzení.
+
+### Realizační tým
+
+![Realizační tým Javoru: systémový vlastník Anna a člen Petr.](./assets/tym.png)
+
+Vlastník stavby otevře **Realizační tým**, vybere člena organizace a přidá jej. Potom ověří jeho přítomnost v seznamu. Odebrání člena provádí tlačítkem u dané osoby. Toto členství řídí přístup ke stavbě; profesní role a schvalovací oprávnění se nastavují samostatně. Pouhé vyplnění jména stavbyvedoucího v přehledu přístup neuděluje.
+
 
 ## Dashboard
 
@@ -122,6 +144,25 @@ Sdílení stavby nastavujte podle role spolupracovníka. Před předáním prác
 **Příklad:** rozpočet Elektroinstalace je 1 500 000 Kč a vybraná nabídka 1 380 000 Kč. Rozdíl činí **120 000 Kč**, tedy **8 %** rozpočtu. Tato aritmetika neznamená automaticky konečnou úsporu stavby: zkontrolujte shodný rozsah, DPH a pozdější dodatky.
 
 **Častá chyba:** porovnávat cenu včetně DPH s rozpočtem bez DPH nebo zaměnit celkovou smluvní cenu za uhrazenou částku.
+
+### Přehled jedné stavby
+
+![Přehled Javoru: investorská cena, interní náklad, parametry smlouvy a tabulka poptávek.](./assets/prehled.png)
+
+Ikonou tužky upravte příslušný blok, například informace o stavbě nebo interní rozpočet. Nezaměňujte investorskou cenu **2 600 000 Kč včetně dodatku** s interním nákladovým cílem **2 100 000 Kč**. V tabulce poptávek použijte filtr a výběr sloupců; otevřením poptávky pokračujte k jejím nabídkám. Exportujte až po nastavení požadovaného rozsahu.
+
+### Souhrnné přehledy
+
+![Přehledy napříč stavbami: výběr rozsahu, finanční metriky a dodavatelské statistiky.](./assets/portfolio.png)
+
+Otevřete **Přehledy**, zvolte rozsah a případnou konkrétní stavbu. Zapněte potřebné části přehledu, například dodavatele nebo rozpočtové odchylky. Pro hledání dodavatele použijte jeho název nebo specializaci. Po změně filtru znovu ověřte, ze kterých staveb součty vycházejí.
+
+### Smluvní přehled
+
+![Smluvní přehled: výběr staveb, vyhledávání a porovnání parametrů smluv.](./assets/prehled-smluv.png)
+
+Vyberte stavby, případně stav smlouvy a hledaný název. Rozbalte smlouvu pro zobrazení dodatků. Nabídka sloupců určuje viditelné parametry; širokou tabulku posouvejte vodorovným ovladačem. Přehled slouží ke čtení a exportu; změnu smlouvy proveďte v její zdrojové stavbě.
+
 
 ## Subdodavatelé (Kontakty)
 
@@ -137,6 +178,17 @@ Sdílení stavby nastavujte podle role spolupracovníka. Před předáním prác
 **Výsledek:** v adresáři zůstává firma s kontakty; na kartě nabídky vyberete konkrétní osobu podle účelu zprávy. Podrobný postup a snímek jsou v kapitole [Příjemce poptávky](#prijemce-poptavky).
 
 **Častá chyba:** zakládat stejnou firmu znovu kvůli další osobě. Nejprve zkontrolujte existující záznam a jeho seznam kontaktů.
+
+### Hledání, výběr a úprava firmy
+
+![Karty kontaktů: specializace, kraj, kontaktní osoby, hodnocení a výběr firmy.](./assets/kontakty.png)
+
+Zúžte adresář hledáním, specializací, stavem nebo krajem. Na kartě firmy přepínejte osoby jejich záložkami; zaškrtnutím označíte firmu pro navazující hromadnou akci. Hodnocení firmy je samostatný údaj, nenahrazuje stav nabídky ve VŘ.
+
+![Formulář firmy Javor Elektro: název, specializace, lokalita a kraje působnosti.](./assets/kontakt-formular.png)
+
+Ve formuláři doplňte alespoň název a specializaci. Níže pokračujte seznamem kontaktních osob, jejich rolí, e-mailů a telefonů. Ověření podle IČO používejte se skutečným platným IČO vlastní firmy; ukázková firma v příručce nemá identitu v rejstříku. Před uložením zkontrolujte nalezené údaje, regiony, poznámku a stav dostupnosti.
+
 
 ## Plán VŘ
 
@@ -198,6 +250,25 @@ Doplňte ceny do nabídky a pracujte s historií kol podle dostupných polí. Ka
 
 Pro souhrn přepněte na tabulkové zobrazení. Rozbalení VŘ ukáže jeho dodavatele. Před exportem **XLSX** nebo **PDF** zkontrolujte aktuální filtry; export slouží jako výstup pro daný okamžik a nenahrazuje živá data.
 
+### Zadání a termíny poptávky
+
+![Formulář Elektroinstalace: smluvní a plánovaný rozpočet, zadání, termíny a přílohy.](./assets/vr-formular.png)
+
+Přidejte poptávku nebo otevřete její úpravu. Zadejte název, investorský rozpočet a interní plán samostatně. Doplňte popis, jednotlivé práce, termín nabídky a termíny realizace. Přílohy rozpočtu vyberte podle možností Složkomatu a platformy. Po uložení ověřte termín a rozpočet na kartě VŘ.
+
+### Nabídka a cenová kola
+
+![Úprava nabídky Javor Elektro: cena pro zvolené kolo a údaje dodavatele.](./assets/nabidka-uprava.png)
+
+Otevřete úpravu nabídky, nejprve vyberte cenové kolo a potom zadejte cenu. V příkladu je první kolo **1 450 000 Kč**, druhé **1 380 000 Kč**. Po uložení zkontrolujte zvolené kolo na nabídce. Přesun karty do dalšího stavu vyjadřuje postup jednání; podepsanou smlouvu evidujte a propojte samostatně. Odmítnuté nabídky odlište od těch, které se stále posuzují.
+
+### Tabulkový pohled a export
+
+![Tabulka VŘ: rozpočty, stavy, nabídky a propojená smlouva.](./assets/vr-tabulka.png)
+
+Přepněte přehled VŘ do tabulky. Rozbalte řádek pro nabídky, přizpůsobte šířku a viditelnost sloupců a použijte filtr stavu. Odkaz na smlouvu otevře propojený dokumentový vztah. Export do XLSX nebo PDF vytvářejte nad zkontrolovaným výběrem a ověřte stažený soubor.
+
+
 ## Hromadný e-mail subdodavatelům
 
 **K čemu slouží:** připravit oslovení více dodavatelů se stejným zadáním.
@@ -210,6 +281,13 @@ Pro souhrn přepněte na tabulkové zobrazení. Rozbalení VŘ ukáže jeho doda
 **Příklad:** pro Javor oslovujete tři firmy kvůli Elektroinstalaci. Rekapitulace musí obsahovat správnou osobu za každou firmu. Pozdější změna kontaktu na kartě nemění již zahájenou přípravu konceptu.
 
 **Častá chyba:** předpokládat, že otevřením konceptu už byla poptávka odeslána. Odeslání ověřte ve své poště. Syntetické příklady z této příručky neodesílejte.
+
+### Kontrola adresátů před konceptem
+
+![Potvrzení hromadné poptávky: vlastní adresa v Komu a dodavatelé ve skryté kopii BCC.](./assets/hromadny-email.png)
+
+Vyberte druh zprávy: standardní poptávku, materiálovou poptávku, doplnění informací nebo poděkování nevybraným. Každá akce používá odpovídající skupinu nabídek. V potvrzení zkontrolujte počet unikátních adres a seznam příjemců; chybějící či neplatné adresy nejprve opravte na nabídce. Dvě nabídky se stejnou adresou nemají znamenat dva stejné adresáty. **Vytvořit koncept** připraví zprávu, nikoli potvrzení jejího odeslání.
+
 
 ## Smlouvy
 
@@ -241,6 +319,43 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 
 **Častá chyba:** sečíst plnou cenu jedné smlouvy za každé propojené VŘ. Ukázková smlouva zůstává jedním závazkem 1 620 000 Kč, nikoli dvěma závazky po této částce.
 
+### Smlouva objednatele
+
+![Objednatel Javor: základ smlouvy, dodatek a samostatná evidence fakturace.](./assets/objednatel.png)
+
+V části **Objednatel** vyplňte zákazníka, číslo smlouvy, základní cenu a další smluvní údaje. Dodatky přidávejte samostatně. V našem příkladu **2 500 000 + 100 000 = 2 600 000 Kč**. Ve fakturaci evidujte číslo, období, vystavení, splatnost, částku, stav a případné pozastávky. Úhradu zaznamenejte až podle skutečného stavu.
+
+### Založení a úprava subdodavatelské smlouvy
+
+![Úprava subdodavatelské smlouvy: identifikace partnera, cena a smluvní podmínky.](./assets/smlouva-formular.png)
+
+Vyplňte partnera, číslo a název smlouvy, měnu, základní cenu, platnost, splatnost a záruku. Uložení souboru, načtení údajů pomocí OCR a potvrzení údajů jsou odlišné kroky. Výsledek OCR porovnejte se smlouvou, zejména cenu, data a procenta; automaticky načtený údaj nemusí být správný.
+
+![Dokumentová sekce smlouvy: samostatné soubory smlouvy a dodatků, OCR a dostupná historie přepisu.](./assets/smlouva-dokument.png)
+
+Nahrajte příslušný dokument k odpovídající smlouvě nebo dodatku. Otevřete uložený dokument a ověřte správnou verzi. Pokud pracujete s Markdown přepisem, zkontrolujte text před uložením nebo exportem a rozlišujte přepis od původního souboru. Snímek ukazuje ovládání; syntetické dokumenty nebyly odesílány k OCR.
+
+### Dodatky, čerpání a faktury
+
+![Dodatek č. 1 zvyšuje cenu smlouvy o 80 000 Kč.](./assets/smlouva-dodatky.png)
+
+Přidejte dodatek s datem, změnou ceny, případnou změnou termínu a důvodem. V příkladu se cena změní z **1 620 000 na 1 700 000 Kč**. Dodatek upravujte přes jeho vlastní řádek; nemažte původní základní cenu jen kvůli nové celkové částce.
+
+![Finanční údaje a čerpání: celková cena smlouvy a odsouhlasený soupis prací.](./assets/smlouva-finance.png)
+
+Porovnejte nárokované a schválené čerpání za stejné období. Příklad rozlišuje požadavek **300 000 Kč** a schválení **280 000 Kč**. Schválené čerpání, vystavená faktura a zaplacená částka nejsou zaměnitelné.
+
+![Faktury: 400 000 Kč evidováno, z toho 280 000 Kč zaplaceno.](./assets/smlouva-faktury.png)
+
+Přidejte fakturu, vyplňte její číslo, částku, měnu a data. Při úpravě otevřete správný řádek. Zaplacení označte až po ověření úhrady; zkontrolujte součet zaplacených faktur a zbytek k fakturaci. Smazání vyžaduje kontrolu konkrétního záznamu.
+
+### Pozastávky a záruka
+
+![Krátkodobá a dlouhodobá pozastávka po 85 000 Kč; záruka čeká na potvrzení začátku.](./assets/smlouva-pozastavky.png)
+
+Při sazbě **5 % + 5 %** z ceny včetně dodatků **1 700 000 Kč** vychází každá pozastávka na **85 000 Kč**. Jde o smluvní výpočet, nikoli doklad skutečně zadržené částky. Uvolnění potvrďte až po splnění podmínek smlouvy a vyplňte skutečné datum. Tato akce neprovádí platbu. Počátek záruky potvrzujte samostatně; datum dokončení samo nepotvrzuje předání ani spuštění záruky.
+
+
 ## Harmonogram
 
 **K čemu slouží:** zobrazit termíny v časových souvislostech a odhalit návaznosti, které při pohledu na seznam uniknou.
@@ -250,9 +365,22 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 3. Zkontrolujte termíny proti Plánu VŘ a skutečně dohodnutému nástupu dodavatele.
 4. Chybějící nebo neaktuální údaje opravte v příslušné zdrojové agendě.
 
-**Příklad:** vyhodnocení Elektroinstalace plánujete do 23. 10., montáž od 9. 11. 2026. Před montáží musí být prostor pro dojednání smlouvy a předání podkladů.
+**Příklad:** vyhodnocení Elektroinstalace plánujete do 23. 10., montáž od 2. 11. 2026. Před montáží musí být prostor pro dojednání smlouvy a předání podkladů.
 
 **Výsledek:** termíny odpovídají reálnému postupu. Barevný pruh sám nepotvrzuje připravenost dodavatele.
+
+### Čtení a úprava časového plánu
+
+![Harmonogram: termíny VŘ a realizace na časové ose.](./assets/harmonogram.png)
+
+Přepněte měsíční nebo týdenní měřítko a určete, zda pracujete s VŘ nebo realizací. Přes **Editace** otevřete příslušný řádek a upravte jeho data. Před uložením zkontrolujte začátek i konec. Export nabízí PDF a varianty Excelu; u exportu s časovou osou ověřte celé období a čitelnost. Ukázková montáž Elektroinstalace začíná **2. 11. 2026**.
+
+
+## Mapa stavby a dodavatelů
+
+![Mapa Javoru a dvou syntetických firem na veřejném mapovém podkladu OpenStreetMap.](./assets/mapa.png)
+
+Otevřete **Mapa** ve vybrané stavbě. Ověřte polohu stavby, nastavte poloměr a filtr specializace, kraje nebo názvu firmy. Vyberte značku nebo firmu v seznamu pro detail kontaktu. Podle dostupných funkcí můžete zobrazit trasu nebo přidat firmu do VŘ; před přidáním ověřte vybranou poptávku. Vzdálenost vzdušnou čarou není dojezdová vzdálenost. Polohy firem na snímku jsou smyšlené, pro ukázku nebyla volána geokódovací ani směrovací služba.
 
 ## Dokumenty a šablony
 
@@ -266,6 +394,27 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 **Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ.
 
 **Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.
+
+### Odkazy PD a ceníky
+
+![Odkazy na dokumentaci s názvem a datem přidání.](./assets/dokumenty.png)
+
+Přidejte srozumitelný název, odkaz či podporovanou cestu a datum dokumentace. Pro aktualizaci použijte úpravu příslušného řádku. Před odstraněním rozlište odkaz v aplikaci a skutečný soubor v úložišti. Web u místní cesty nabízí kopírování; desktop může otevřít dostupné umístění.
+
+![Ceníky: odkaz na ukázkové cenové podklady.](./assets/ceniky.png)
+
+V dokumentech nastavte odkaz na aktuální ceníky nebo využijte příslušnou složku připojeného Složkomatu. Otevřením ověřte, že jde o správnou verzi podkladů.
+
+### Volba a tvorba e-mailové šablony
+
+![Tři samostatné šablony: standardní poptávka, materiálová poptávka a poděkování.](./assets/sablony.png)
+
+U odpovídajícího druhu zprávy vyberte nebo změňte šablonu. Tato volba je osobní pro danou stavbu; nezaměňujte ji s nastavením všech kolegů.
+
+![Správce šablon s ukázkovým předmětem a textem poptávky.](./assets/sablona-editor.png)
+
+Ve správci založte šablonu nebo upravte existující. Zkontrolujte název, předmět, obsah a nabízené proměnné. Před použitím zobrazte náhled, ověřte doplněné údaje stavby a vyberte šablonu pro požadovaný druh zprávy.
+
 
 ## Složkomat
 
@@ -282,6 +431,13 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 
 **Když složka nefunguje:** ověřte vybranou stavbu, připojený účet, dostupnost disku a oprávnění k cílovému umístění. Po změně projektu nepracujte s odkazem patřícím předchozí stavbě.
 
+### Úložiště a struktura
+
+![Složkomat: syntetická místní cesta a hierarchie složek pro stavbu, VŘ a dodavatele.](./assets/slozkomat.png)
+
+Nejprve nastavte poskytovatele a kořenové umístění. U sdílené stavby vybírejte vlastní místní kopii synchronizované složky. Otevřete strukturu, zkontrolujte pořadí a zapnuté části a teprve potom spusťte vytvoření či doplnění složek. Zachovejte potřebné úrovně **VŘ → dodavatel**. Po běhu přečtěte výsledek a historii; ověřte skutečný obsah úložiště. Zapnutí automatického vytváření nenahrazuje první kontrolu cílové cesty.
+
+
 ## Úkoly
 
 **K čemu slouží:** osobní evidence práce, podúkolů a připomínek.
@@ -291,6 +447,17 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 3. Po kontrole úkol dokončete. Změnu cen a stavů nabídky proveďte samostatně v příslušném VŘ.
 
 **Příklad:** dokončený osobní úkol potvrzuje vaši kontrolu, sám o sobě nepodepisuje smlouvu ani neodesílá e-mail. U externích integrací ověřujte stav připojení přímo v aplikaci.
+
+### Seznam, kalendář a projekty úkolů
+
+![TODO Osobní: kalendář, Inbox, priority a přepínání pracovních pohledů.](./assets/ukoly.png)
+
+Nový úkol rychle založte v Inboxu a následně doplňte detail. Pohledy **Dnes**, **Nadcházející** a **Důležité** vybírají úkoly podle termínu a priority. V kalendáři přepínejte měsíc, týden, tři dny nebo den; při přesunu úkolu zkontrolujte nový termín. Osobní projekty úkolů jsou jiná evidence než stavební projekty. Dokončené a ručně archivované úkoly mají samostatné pohledy; rozhraní u Hotovo upozorňuje na automatické mazání po 14 dnech.
+
+![Detail úkolu: termín, připomínka, priorita, vazba na stavbu a podúkol.](./assets/ukol.png)
+
+U úkolu **Porovnat nabídky elektroinstalace** nastavte termín, připomínku a prioritu. Přiřaďte stavbu Javor a přidejte podúkol **Ověřit zahrnutí revizí**. Uložte změny a zkontrolujte detail. Dokončení podúkolu a hlavního úkolu sledujte odděleně. Microsoft To Do připojte v nastavení Microsoft účtu; případnou chybu synchronizace řešte podle zobrazeného stavu.
+
 
 ## Nástroje
 
@@ -303,7 +470,6 @@ Dostupné nástroje vyhledejte v navigaci aplikace. Následující příklady po
 | Excel – odemčení | Připravit oprávněně používaný sešit pro úpravy | Otevření souboru, listy a zachování dat |
 | Excel Spojení listů | Spojit podklady z více listů | Počet listů/řádků, pořadí a součty |
 | Excel Indexace VŘ | Doplnit oddíly a popisy podle indexu | Mapování vstupních sloupců a nepřiřazené kódy |
-| Index Matcher | Doplnit popisy podle kódů | Shodu kódů a očekávaných popisů |
 
 **Příklad:** nejprve vyzkoušejte rozpočet se třemi řádky a kódy E-001, E-002 a E-003. V indexu připravte odpovídající popisy a po zpracování porovnejte všechny tři výsledky. Výstup nepoužívejte bez kontroly součtů a vzorců.
 
@@ -326,6 +492,29 @@ V **Záloze a obnově** vyberte požadovaný rozsah podle své role. Rozlišujte
 
 **Pozor:** obnova může měnit existující data. Vyzkoušení provádějte v určeném testovacím prostředí. Stažený nešifrovaný JSON chraňte jako firemní data; u šifrované desktopové zálohy ověřte dostupnost klíče před změnou počítače nebo systému.
 
+### Obrazový postup pro nástroje
+
+![Excel – odemčení: ukázkový rozpočet po skutečném lokálním zpracování a stažení výsledku.](./assets/excel-odemceni.png)
+
+Vyberte kopii souboru XLSX, spusťte odemčení a otevřete stažený výsledek. Zkontrolujte možnost upravit list a zachování vzorců. Odstranění ochrany listu neznamená prolomení šifrování souboru chráněného heslem pro otevření.
+
+![Excel Spojení listů: načtený ukázkový soubor a výběr listů Elektro a Slaboproud.](./assets/excel-spojeni.png)
+
+Vyberte XLSX, po analýze označte potřebné listy a spusťte spojení. Výsledný soubor ověřte počtem řádků, pořadím a součty. Příklad tvoří dva listy se dvěma a jedním položkovým řádkem; ve výstupu hledejte všechny tři položky. Způsob zacházení s hlavičkami ověřte podle konkrétního sešitu.
+
+![Excel Indexace VŘ: dvě fáze zpracování, mapování sloupců a seznam indexů.](./assets/excel-indexace.png)
+
+V první fázi určete sloupec značky oddílu a jeho názvu. Po vložení sloupce se původní pozice posunou; ve druhé fázi znovu ověřte sloupec kódu a cílového popisu. Výchozí nastavení je **F/G před vložením** a **G/C po vložení**. Připravte indexy, zpracujte vzorek a zkontrolujte nepřiřazené položky. Doplnění popisů podle kódů je součást tohoto nástroje.
+
+![Import kontaktů: mapování polí po načtení syntetického CSV, před náhledem a potvrzením importu.](./assets/import-kontaktu.png)
+
+Vyberte podporovaný soubor nebo povolený zdroj URL. V dalším kroku přiřaďte sloupce k polím Tender Flow, zobrazte náhled a opravte chyby názvů, specializací a kontaktů. Import potvrďte až po kontrole náhledu. Ve výsledku odlište importované řádky, varování a neimportované řádky; opravte příčinu před opakováním.
+
+![Záloha a obnova ve webu: export uživatelských dat, kontaktů a výběr souboru pro obnovu.](./assets/zalohy.png)
+
+Běžný uživatel vybírá vlastní dostupný rozsah exportu. Soubor zálohy bezpečně uložte. Pro obnovu nejprve načtěte soubor a porovnejte náhled i počty záznamů. Organizační zálohy a správa ostatních uživatelů jsou součást odložené administrátorské příručky.
+
+
 ## Tender Flow Desktop
 
 **K čemu slouží:** rozšířit práci o nativní možnosti operačního systému, především lokální soubory a desktopové integrace.
@@ -346,6 +535,13 @@ Lokální cesty jsou vázané na daný počítač a jeho oprávnění. Sdílený
 
 **Častá chyba:** předpokládat, že lokální soubor je automaticky dostupný všem kolegům nebo že cloudová data zůstanou plně dostupná bez internetu.
 
+### Biometrika na podporovaném zařízení
+
+![Produkční komponenta biometriky se simulovanou dostupností Touch ID; nejde o systémový ověřovací dialog.](./assets/biometrie.png)
+
+V profilu otevřete biometrické přihlášení. Při zapnutí dokončete skutečnou výzvu operačního systému a otestujte následující přihlášení. Snímek ukazuje pouze nastavení aplikace se syntetickým stavem; čtečka, systémový dialog a uložení přihlašovacích údajů se v dokumentačním náhledu nespouštějí. Aktualizace najdete v [Profilu a vzhledu](#profil-a-vzhled); místní složky vysvětluje [Složkomat](#slozkomat).
+
+
 ## Nastavení aplikace
 
 **K čemu slouží:** osobní preference a nastavení účtu. Nezaměňujte je s **Nastavením stavby**.
@@ -357,15 +553,40 @@ Lokální cesty jsou vázané na daný počítač a jeho oprávnění. Sdílený
 
 **Příklad:** barva statusu „Preferovaný“ je pomůcka pro orientaci. Neznamená automaticky vítěze VŘ ani podepsanou smlouvu.
 
+### Profil a vzhled
+
+![Profil: osobní údaje, podpis do zpráv, vzhled, aktualizace a statusy kontaktů.](./assets/profil.png)
+
+Upravte zobrazované jméno a pracovní podpis a uložte změny. V podpisu ověřte vlastní adresu a telefon. Vyberte vzhled aplikace, světlý či tmavý režim a nabízenou akcentní barvu. V seznamu statusů kontaktů přidávejte jednoznačné názvy a barvy; před odstraněním ověřte dopad na používané kontakty. V sekci aktualizací spusťte kontrolu a řiďte se jejím skutečným výsledkem; stav na syntetickém snímku není potvrzením aktuálnosti vaší instalace.
+
+### Notifikace
+
+![Nastavení notifikací: kategorie upozornění, oprávnění zařízení a klidové hodiny.](./assets/upozorneni.png)
+
+Zapněte potřebné kategorie, například změny nabídek a připomínky termínů. Pro systémová oznámení musí být povolené i oprávnění prohlížeče nebo zařízení. Klidové hodiny nastavte podle svého pracovního režimu. Zvonkem v záhlaví otevřete doručená oznámení, přejděte k souvisejícímu záznamu a označte přečtené položky.
+
+### Zabezpečení a zařízení
+
+![Osobní zabezpečení: dvoufázové ověření a seznam aktivních zařízení se syntetickou IP adresou.](./assets/zabezpeceni.png)
+
+Při zapnutí dvoufázového ověření dokončete párování autentizátoru a ověřte kód. QR kód, tajný klíč ani obnovovací údaje nesdílejte. V seznamu zařízení porovnejte název a poslední aktivitu; neznámou relaci odvolejte. Odvolání aktuální relace může vyžadovat nové přihlášení. Obrázek nezobrazuje žádný skutečný klíč ani relaci.
+
+### Microsoft účet
+
+![Propojený ukázkový Microsoft účet pro přihlášení a navazující služby.](./assets/microsoft.png)
+
+Spusťte propojení, v přihlašovacím okně ověřte správný pracovní účet a požadovaný přístup. Po návratu zkontrolujte stav připojení a synchronizace. Při odpojení počítejte s ukončením příslušné integrace; již evidované úkoly posuzujte podle aktuálního stavu aplikace.
+
+### AI a MCP přístupy
+
+![Osobní oprávnění ukázkového AI klienta: zápis, kontakty a práce s nabídkami.](./assets/ai-pristupy.png)
+
+Vyberte připojeného klienta a zkontrolujte povolené druhy operací. Přístup ke kontaktům a dalším citlivým akcím zapínejte jen pro zamýšlený účel. Po změně může být nutné v AI obnovit seznam nástrojů. Odpojení potvrďte u správného klienta. Povolení MCP nerozšiřuje vaše vlastní oprávnění ke stavbám.
+
+
 ## Administrace systému
 
-Tato část je určená uživatelům s příslušným administrátorským oprávněním. Běžný uživatel nemusí tyto obrazovky vidět.
-
-**Postup:** před změnou vyberte správného uživatele nebo organizaci, ověřte účel změny a její rozsah. U správy rolí, dostupných funkcí a registračních pravidel postupujte podle pravidel své organizace. Po změně ověřte požadovaný přístup na konkrétní funkci.
-
-**Příklad:** Petr potřebuje přístup k Javoru. Nejprve řešte oprávnění ke stavbě; zbytečně mu nepřidělujte systémovou administraci.
-
-**Výsledek:** uživatel má oprávnění odpovídající práci. Hesla, přístupové tokeny a neveřejná data neposílejte do podpory ani je nevkládejte do screenshotů.
+Administrace systému a správa organizace nejsou součástí tohoto obrazového rozšíření. Podrobná administrátorská příručka bude doplněna samostatně. Běžné uživatelské nastavení účtu a přístup vlastníka k jeho stavbě zůstávají vysvětlené výše.
 
 ## Časté otázky
 

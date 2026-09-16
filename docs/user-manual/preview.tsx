@@ -20,7 +20,7 @@ const initialBids: Bid[] = [
 ];
 const project: Project = { id: 'manual-javor', name: 'Bytový dům Javor', location: 'Ukázková lokalita, Brno', status: 'realization', isDemo: true };
 // Partial domain records are sufficient for these read-only components.
-const details = { id: project.id, title: project.name, categories: [{ id: 'elektro', title: 'Elektroinstalace' }, { id: 'slaboproud', title: 'Slaboproud' }, { id: 'osvetleni', title: 'Osvětlení' }], bids: { elektro: initialBids, slaboproud: [{ ...initialBids[0], id: 'slabo-a', price: '240 000 Kč' }], osvetleni: [{ ...initialBids[0], id: 'svetlo-a' }] } } as ProjectDetails;
+const details = { id: project.id, title: project.name, categories: [{ id: 'elektro', title: 'Elektroinstalace' }, { id: 'slaboproud', title: 'Slaboproud' }, { id: 'osvetleni', title: 'Osvětlení' }], bids: { elektro: initialBids, slaboproud: [{ ...initialBids[0], id: 'slabo-a', price: '240 000 Kč' }], osvetleni: [{ ...initialBids[0], id: 'svetlo-a' }] } } as unknown as ProjectDetails;
 const contract = { id: 'manual-contract', projectId: project.id, title: 'Elektroinstalace a slaboproud', contractNumber: 'JAV-2026-001', linkedBidIds: ['elektro-a', 'slabo-a'], basePrice: 1620000 } as ContractWithDetails;
 function Preview() {
   const [bids, setBids] = useState(initialBids);

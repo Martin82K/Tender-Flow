@@ -28,23 +28,24 @@ revize. Neuvádějte neověřenou tabulku tarifů nebo sliby o offline funkčnos
 
 ## Snímky skutečných komponent
 
-`preview.tsx` vykresluje produkční komponenty s výhradně syntetickými údaji.
+`preview.tsx` a `catalog.tsx` vykreslují produkční komponenty s výhradně syntetickými údaji.
 Nadpisy a vysvětlující rámce slouží jen dokumentaci; nejde o screenshot celého
 přihlášeného klienta. Firmy a osoby jsou smyšlené, e-maily používají example.com,
 telefony jsou záměrně neplatné. Náhled nečte `.env` a služby zapisující smlouvy
 nebo plán jsou nahrazeny odmítajícími funkcemi. Žádný skutečný e-mail se neodesílá.
 
 1. Spusťte `node docs/user-manual/preview.mjs` (lokálně na portu 4176).
+   Ukázkové vstupní soubory obnovíte příkazem `node docs/user-manual/buildSamples.mjs`.
 2. Použijte již nainstalovaný Playwright; nové závislosti nejsou nutné.
 3. Nastavte `PLAYWRIGHT_MODULE` na absolutní cestu k jeho `index.mjs` a spusťte
-   `node docs/user-manual/capture.mjs`. `CHROME_BIN` případně určuje cestu k Chrome.
-4. Prohlédněte všech šest PNG v `public/user-manual/assets/`. Zkontrolujte
+   `node docs/user-manual/capture.mjs` a následně `node docs/user-manual/captureCatalog.mjs`. `CHROME_BIN` případně určuje cestu k Chrome.
+4. Prohlédněte všechny PNG uvedené v `screenshots.json` v `public/user-manual/assets/`. Zkontrolujte
    čitelnost, nezakryté prvky a shodu se scénářem.
 5. Spusťte `npm run build:user-manual`. Generátor načte rozměry PNG a rezervuje
    prostor pro líně načítané obrázky.
 
 Záznam původu snímků je v `screenshots.json`. Capture povoluje pouze lokální
-náhled a Google Fonts, ostatní požadavky blokuje a považuje za chybu.
+náhled a Google Fonts. Katalog navíc u mapy povoluje veřejné OSM dlaždice se syntetickými polohami a zachovává jejich atribuci. Ostatní požadavky blokuje a považuje za chybu.
 Náhled není součástí veřejného buildu aplikace.
 
 ## Kompatibilita a bezpečnost
@@ -59,7 +60,7 @@ Tisk zahrnuje i kapitoly skryté filtrem. Příručka nepotřebuje přihlášen�
 
 ## Kontroly
 
-- `npm run test:run -- tests/userManualPage.test.ts tests/userManualInteractions.test.ts tests/userManualKbBuilder.test.ts`
+- `npm run test:run -- tests/userManualPage.test.ts tests/userManualInteractions.test.ts tests/userManualKbBuilder.test.ts tests/userManualCoverage.test.ts`
 - `npm run typecheck`, `npm run build`, `npm run check:docs`
 - `npm run check:boundaries`, `npm run check:legacy-structure`
 - Celá sada: `npm run test:run`
@@ -74,3 +75,11 @@ Při této práci nebyly instalovány balíčky ani upravovány migrace, oprávn
 nebo produkční data. Před implementací nebyla otevřená PR a posledních šest
 CI běhů bylo úspěšných. Code scanning vracel „no analysis found“, Dependabot
 alerts byly vypnuté; nejde tedy o potvrzení absence bezpečnostních nálezů.
+
+## Rozsah obrazového rozšíření
+
+Všechny položky hlavní a projektové navigace jsou mapované v `coverage.json`. Test porovnává tento seznam s produkční navigací a ověřuje dostupnost snímků i jejich původ. To kontroluje pokrytí dokumentace, nikoli správnost všech produkčních operací. Osobní nastavení a nástroje jsou zahrnuté; systémová a organizační administrace je odložená podle zadání.
+
+Katalog se typově kontroluje příkazem `node node_modules/typescript/bin/tsc -p docs/user-manual/tsconfig.json`. Služby v `catalogStubs.mjs` vracejí syntetická čtení a odmítají vzdálené změny. Biometrika simuluje pouze dostupnost hardwaru; nejde o test nativního ověření. OCR, e-maily a synchronizace se ve skutečných službách nespouštějí.
+
+K pořízení jednoho opraveného snímku lze předat jeho identifikátor: `node docs/user-manual/captureCatalog.mjs slozkomat`. Po změně fixture nejprve restartujte `preview.mjs`, který sestavuje izolovaný náhled. Mapový snímek záměrně nezmrazuje hodiny, protože Leaflet používá čas pro průhlednost dlaždic; capture čeká na jejich načtení.

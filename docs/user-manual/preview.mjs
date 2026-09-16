@@ -4,12 +4,14 @@ import path from 'node:path';
 import os from 'node:os';
 import { mkdtemp } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { catalogStubs } from './catalogStubs.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'tf-manual-fixtures-'));
 const config = {
   configFile: false, envDir: false, root: here, publicDir: false,
-  plugins: [react(), {
+  define: { 'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://example.invalid'), 'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify('manual-synthetic-placeholder') },
+  plugins: [react(), catalogStubs(root), {
     name: 'manual-no-backend', enforce: 'pre',
     resolveId(id) {
       if (id.endsWith('/api/contractMutationsApi')) return '\0manual-mutations';
@@ -28,9 +30,9 @@ const config = {
         ];`;
     },
   }],
-  resolve: { alias: Object.fromEntries([['@', ''], ['@shared', 'shared'], ['@features', 'features']].map(([name, dir]) => [name, path.join(root, dir)])) },
+  resolve: { alias: Object.fromEntries([['@', ''], ['@shared', 'shared'], ['@features', 'features'], ['@infra','infra'], ['@app','app']].map(([name, dir]) => [name, path.join(root, dir)])) },
   css: { postcss: root },
-  build: { outDir: temporary, emptyOutDir: true },
+  build: { outDir: temporary, emptyOutDir: true, rollupOptions: { input: [path.join(here, 'index.html'), path.join(here, 'catalog.html')] } },
   preview: { host: '127.0.0.1', port: 4176, strictPort: true },
 };
 await build(config);
