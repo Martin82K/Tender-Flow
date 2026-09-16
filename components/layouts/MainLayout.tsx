@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '@shared/ui/ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
@@ -9,6 +9,15 @@ import { SpaceBackdrop } from '@/shared/ui/SpaceShellDecor';
 import { Project, View, User } from '../../types';
 import { normalizeUiScale } from '@/hooks/useTheme';
 import type { ThemeMode, ThemeSkin } from '@/shared/types/theme';
+
+const MOBILE_NAVIGATION_QUERY = '(max-width: 767px)';
+const subscribeMobileNavigation = (onChange: () => void) => {
+    const media = window.matchMedia?.(MOBILE_NAVIGATION_QUERY);
+    media?.addEventListener('change', onChange);
+    return () => media?.removeEventListener('change', onChange);
+};
+const getMobileNavigation = () => window.matchMedia?.(MOBILE_NAVIGATION_QUERY).matches ?? false;
+const getServerMobileNavigation = () => false;
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -117,17 +126,31 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         height: `${inverseUiScale}dvh`,
         zoom: normalizedUiScale,
     };
-    const sidebarRevealRailClass = skin === 'industrial'
-        ? 'border-[var(--tf-skin-line)] bg-[var(--tf-skin-surface-deep)] text-[var(--tf-skin-text)] hover:bg-[var(--tf-skin-surface-muted)] hover:text-[var(--tf-skin-orange-deep)]'
-        : skin === 'space'
-            ? 'border-white/10 bg-[#080b14]/95 text-white hover:bg-white/10'
-            : 'border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-100 hover:text-primary dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-primary';
+    const isMobile = useSyncExternalStore(subscribeMobileNavigation, getMobileNavigation, getServerMobileNavigation);
+    const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(280);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    useEffect(() => { setMobileMenuOpen(false); }, [isMobile]);
+    const mobileMenuVisible = isMobile && mobileMenuOpen;
+    const sidebar = <Sidebar
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        projects={projects}
+        selectedProjectId={selectedProjectId}
+        onProjectSelect={onProjectSelect}
+        isOpen={isMobile ? mobileMenuOpen : isSidebarOpen}
+        onToggle={() => isMobile ? setMobileMenuOpen(open => !open) : setIsSidebarOpen(!isSidebarOpen)}
+        isMobile={isMobile}
+        desktopWidth={desktopSidebarWidth}
+        onDesktopWidthChange={setDesktopSidebarWidth}
+        skin={skin}
+    />;
 
     return (
         <div className="tf-app-viewport fixed inset-0 overflow-hidden bg-background-light dark:bg-background-dark">
         <div
             className="tf-app-shell relative flex flex-row overflow-hidden bg-background-light dark:bg-background-dark"
             style={appShellStyle}
+            inert={mobileMenuVisible}
         >
             <ConfirmationModal
                 isOpen={uiModal.isOpen}
@@ -140,46 +163,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onConfirm={uiModal.onConfirm ?? closeUiModal}
                 onCancel={uiModal.onCancel}
             />
-            {isSidebarOpen && (
-                <button
-                    type="button"
-                    className="fixed inset-y-0 right-0 left-[min(20rem,calc(100vw-3rem))] z-40 hidden bg-slate-950/35 backdrop-blur-[1px] max-md:block"
-                    onClick={() => setIsSidebarOpen(false)}
-                    aria-label="Zavřít navigační panel kliknutím mimo něj"
-                    title="Zavřít navigační panel"
-                />
-            )}
-            <Sidebar
-                currentView={currentView}
-                onViewChange={handleViewChange}
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                onProjectSelect={onProjectSelect}
-                isOpen={isSidebarOpen}
-                onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                skin={skin}
-            />
-            {!isSidebarOpen && (
-                <button
-                    type="button"
-                    data-testid="sidebar-reveal-rail"
-                    onClick={() => setIsSidebarOpen(true)}
-                    className={`tf-sidebar-reveal-rail hidden h-full w-12 flex-none flex-col items-center justify-start pt-6 gap-2 border-r transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60 md:flex ${sidebarRevealRailClass}`}
-                    title="Rozbalit hlavní menu"
-                    aria-label="Rozbalit hlavní menu"
-                    aria-controls="app-sidebar"
-                    aria-expanded="false"
-                >
-                    <span className="material-symbols-outlined text-[21px]" aria-hidden="true">
-                        keyboard_double_arrow_right
-                    </span>
-
-                </button>
-            )}
+            {!isMobile && sidebar}
             <AccountMenuProvider accountMenu={accountMenu}>
                 <main
                     id="main-scroll-container" // Replaces mainScrollRef usage with ID or pass ref? Pass ref is better but ID is easier for decoupled components
-                    className="tf-app-main flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
+                    className={`tf-app-main flex-1 flex flex-col h-full min-w-0 min-h-0 overflow-x-hidden relative ${mobileMenuVisible ? 'overflow-y-hidden' : 'overflow-y-auto'}`}
                 >
                     {skin === 'space' && <SpaceBackdrop />}
                     {/* Toggle Button for Mobile/Hidden Sidebar */}
@@ -220,15 +208,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                         </div>
                     )}
 
-                    {!isSidebarOpen && (
+                    {isMobile && (
                         <button
                             type="button"
-                            onClick={() => setIsSidebarOpen(true)}
-                            className="fixed left-2 top-2 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800/95 dark:text-slate-200 dark:hover:bg-slate-700 md:hidden"
+                            onClick={() => setMobileMenuOpen(true)}
+                            className="fixed left-2 top-2 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-800/95 dark:text-slate-200 dark:hover:bg-slate-700"
                             title="Zobrazit sidebar"
                             aria-label="Zobrazit sidebar"
                             aria-controls="app-sidebar"
-                            aria-expanded="false"
+                            aria-expanded={mobileMenuVisible}
                         >
                             <span
                                 className="material-symbols-outlined text-[22px]"
@@ -249,6 +237,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 </main>
             </AccountMenuProvider>
         </div>
+        {isMobile && sidebar}
         </div>
     );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext";
 import type { View, Project } from "../types";
 import logo from "../assets/logo.svg";
@@ -29,6 +30,9 @@ interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   skin?: ThemeSkin;
+  isMobile?: boolean;
+  desktopWidth?: number;
+  onDesktopWidthChange?: (width: number) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -40,20 +44,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onToggle,
   skin = "classic",
+  isMobile = false,
+  desktopWidth,
+  onDesktopWidthChange,
 }) => {
   const { user } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
   const { search } = useLocation();
   const portfolioStatus = parsePortfolioStatus(new URLSearchParams(search).get('status'))
     ?? readPortfolioState(portfolioStorageKey(user?.id, user?.organizationId)).status;
-  const [width, setWidth] = useState(280);
+  const [localWidth, setLocalWidth] = useState(280);
+  const width = desktopWidth ?? localWidth;
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const compact = !isMobile && !isOpen;
+  const [tooltip, setTooltip] = useState<{ label: string; left: number; top: number } | null>(null);
+  const showTooltip = (target: EventTarget) => {
+    if (!compact || !(target instanceof Element)) return;
+    const button = target.closest<HTMLElement>('[aria-label]');
+    if (!button || button === sidebarRef.current || !sidebarRef.current?.contains(button)) return;
+    const rect = button.getBoundingClientRect();
+    setTooltip({ label: button.getAttribute('aria-label')!, left: sidebarRef.current.getBoundingClientRect().right + 8,
+      top: Math.max(8, Math.min(rect.top, window.innerHeight - 48)) });
+  };
+  useEffect(() => { setTooltip(null); }, [compact, currentView, selectedProjectId]);
+
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    // Global search, quick paste and help portals live outside the inert shell.
+    const blockGlobalModalHotkeys = (event: KeyboardEvent) => {
+      if (event.key === 'F1' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !event.altKey)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener('keydown', blockGlobalModalHotkeys, true);
+    return () => {
+      window.removeEventListener('keydown', blockGlobalModalHotkeys, true);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+    };
+  }, [isMobile, isOpen]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape') {
+      setTooltip(null);
+      if (isMobile && isOpen && !event.defaultPrevented) {
+        event.preventDefault();
+        onToggle();
+      }
+    }
+    if (!isMobile || !isOpen || event.key !== 'Tab') return;
+    const controls = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), summary, [tabindex="0"]',
+    ) ?? []).filter(node => !node.closest('[hidden], [inert]'));
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  };
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   // Helper to close sidebar on mobile after navigation
   const closeMobileMenu = () => {
-    if (typeof window !== "undefined" && window.innerWidth < 768 && isOpen) {
+    if (isMobile && isOpen) {
       onToggle();
     }
   };
@@ -81,8 +140,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? "text-[#9c9684] group-hover:text-[#14110a]"
     : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100";
   const sidebarClass = isIndustrialSkin
-    ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl"
-    : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:right-auto max-md:z-50 max-md:!w-[min(20rem,calc(100vw-3rem))] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:shadow-2xl";
+    ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none"
+    : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none";
   const settingsRoute = (() => {
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
@@ -168,24 +227,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const resize = useCallback(
     (mouseMoveEvent: MouseEvent) => {
       if (isResizing) {
-        const newWidth = mouseMoveEvent.clientX;
+        const rect = sidebarRef.current?.getBoundingClientRect();
+        const scale = rect ? rect.width / width : 1;
+        const newWidth = (mouseMoveEvent.clientX - (rect?.left ?? 0)) / scale;
         // Min width 200px, Max width 480px
         if (newWidth >= 200 && newWidth <= 480) {
-          setWidth(newWidth);
+          setLocalWidth(newWidth);
+          onDesktopWidthChange?.(newWidth);
         }
       }
     },
-    [isResizing],
+    [isResizing, width, onDesktopWidthChange],
   );
 
   useEffect(() => {
+    if (!isResizing) return;
     window.addEventListener("mousemove", resize);
     window.addEventListener("mouseup", stopResizing);
     return () => {
       window.removeEventListener("mousemove", resize);
       window.removeEventListener("mouseup", stopResizing);
     };
-  }, [resize, stopResizing]);
+  }, [isResizing, resize, stopResizing]);
 
   type MenuSection = 'projects' | 'contacts' | 'reports' | 'tools';
   const routeSection: MenuSection = currentView === 'contacts' ? 'contacts' : currentView === 'project-overview' || currentView === 'contract-overview'
@@ -220,6 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
+            aria-label={item.label}
             data-help-id="sidebar-nav-group-summary"
             data-active={isItemActive ? "true" : "false"}
             className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
@@ -236,11 +300,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {item.icon}
               </span>
-              <p className="text-[13px] font-medium leading-normal break-words">
+              <p className="tf-sidebar-label text-[13px] font-medium leading-normal break-words">
                 {item.label}
               </p>
             </div>
-            <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">
+            <span className="tf-sidebar-label material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">
               expand_more
             </span>
           </summary>
@@ -260,6 +324,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <a
           key={item.id}
+          aria-label={item.label}
           data-help-id="sidebar-nav-item"
           data-active="false"
           href={item.href}
@@ -271,7 +336,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="material-symbols-outlined shrink-0">
             {item.icon}
           </span>
-          <span className="text-[13px] font-medium break-words">{item.label}</span>
+          <span className="tf-sidebar-label text-[13px] font-medium break-words">{item.label}</span>
           <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">
             open_in_new
           </span>
@@ -282,7 +347,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
       <button
         key={item.id}
-        data-help-id="sidebar-nav-item"
+        aria-label={item.label}
+          data-help-id="sidebar-nav-item"
         data-active={isItemActive ? "true" : "false"}
         aria-current={isItemActive ? "page" : undefined}
         onClick={() => {
@@ -308,6 +374,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <span
+          aria-hidden="true"
           data-help-id="sidebar-nav-icon"
           className={`material-symbols-outlined shrink-0 text-[20px] ${
             isItemActive
@@ -317,35 +384,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           {item.icon}
         </span>
-        <p className="text-[13px] leading-none">{item.label}</p>
+        <p className="tf-sidebar-label text-[13px] leading-none">{item.label}</p>
       </button>
     );
   };
 
   return (
+    <>
     <aside
         id="app-sidebar"
         ref={sidebarRef}
-        style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`${sidebarClass} ${
-          !isOpen
-            ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
-            : "max-md:opacity-100"
-        }`}
+        aria-label="Hlavní navigace"
+        role={isMobile ? 'dialog' : undefined}
+        aria-modal={isMobile && isOpen ? true : undefined}
+        aria-hidden={isMobile && !isOpen ? true : undefined}
+        inert={isMobile && !isOpen}
+        data-compact={compact}
+        data-mobile={isMobile}
+        data-open={isOpen}
+        data-resizing={isResizing}
+        style={{ width: compact ? '72px' : `${width}px` }}
+        className={sidebarClass}
+        onKeyDown={handleKeyDown}
+        onMouseOver={event => showTooltip(event.target)}
+        onFocus={event => showTooltip(event.target)}
+        onMouseLeave={() => setTooltip(null)}
+        onBlur={() => setTooltip(null)}
+        onScrollCapture={() => setTooltip(null)}
       >
-        {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
-        <div
-          className={`flex flex-col h-full w-full min-w-[200px] ${
-            !isOpen ? "opacity-0 invisible" : "opacity-100 visible"
-          } transition-opacity duration-200`}
-        >
-          {/* Resizer Handle - only on desktop */}
-          <div
-            className={`hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors z-50 translate-x-[50%] ${isIndustrialSkin ? "hover:bg-[#ff8a33] active:bg-[#ff8a33]" : "hover:bg-primary active:bg-primary"}`}
+        <div className="flex flex-col h-full w-full min-w-0 overflow-hidden">
+          {!isMobile && isOpen && <div
+            className={`absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors z-50 ${isIndustrialSkin ? "hover:bg-[#ff8a33] active:bg-[#ff8a33]" : "hover:bg-primary active:bg-primary"}`}
             onMouseDown={startResizing}
-          />
+          />}
+          <div className="tf-sidebar-content flex h-full min-h-0 flex-col p-3">
 
-          <div className="flex h-full flex-col p-3 overflow-y-auto">
             <div className="flex flex-col gap-3 flex-1 min-h-0">
               {/* Logo */}
               <div className={`tf-sidebar-brand flex items-center gap-2.5 p-2 py-3 border-b min-w-0 shrink-0 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-100 dark:border-slate-800/50"}`}>
@@ -357,7 +430,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className="relative size-10 min-w-10 object-contain drop-shadow-xl shrink-0 transition-transform group-hover/logo:scale-110"
                   />
                 </div>
-                <div className="flex flex-1 flex-col min-w-0">
+                <div className="tf-sidebar-label flex flex-1 flex-col min-w-0">
                   <h1 className="tf-brand-title text-slate-900 dark:text-white text-base font-black tracking-tight leading-tight whitespace-nowrap truncate">
                     Tender Flow
                   </h1>
@@ -380,34 +453,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     })()}
                   </p>
                 </div>
-                <button
+                {!isMobile && <button
                   type="button"
                   onClick={onToggle}
                   aria-controls="app-sidebar"
                   aria-expanded={isOpen}
-                  className={`hidden md:inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
-                  title="Sbalit menu"
-                  aria-label="Sbalit menu"
+                  className={`tf-sidebar-toggle inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
+                  title={compact ? "Rozbalit hlavní menu" : "Sbalit menu"}
+                  aria-label={compact ? "Rozbalit hlavní menu" : "Sbalit menu"}
                 >
                   <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
-                    keyboard_double_arrow_left
+                    {compact ? "keyboard_double_arrow_right" : "keyboard_double_arrow_left"}
                   </span>
-                </button>
+                </button>}
                 {/* Close Toggle for Mobile */}
-                <button
+                {isMobile && <button
+                  type="button"
+                  ref={closeRef}
                   onClick={onToggle}
-                  className={`ml-auto p-1.5 rounded-lg transition-colors md:hidden flex items-center justify-center ${isIndustrialSkin ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"}`}
+                  className={`ml-auto p-1.5 rounded-lg transition-colors flex items-center justify-center ${isIndustrialSkin ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"}`}
                   title="Zavřít"
                   aria-label="Zavřít sidebar"
                   aria-controls="app-sidebar"
                 >
                   <span className="material-symbols-outlined" aria-hidden="true">close</span>
-                </button>
+                </button>}
               </div>
 
               {/* Navigation */}
-              <div className="tf-sidebar-nav flex flex-col gap-3 mt-2 flex-1 min-h-0">
-                <nav aria-label="Oblasti aplikace" className="tf-sidebar-sections -mx-3 grid grid-flow-col auto-cols-auto shrink-0">
+              <div className="tf-sidebar-nav flex flex-col gap-3 mt-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+                <nav aria-label="Oblasti aplikace" className="tf-sidebar-sections flex flex-col gap-2 shrink-0">
                   {([
                     { id: 'projects', label: 'Stavby', icon: 'apartment', enabled: hasFeature(FEATURES.MODULE_PROJECTS) },
                     { id: 'contacts', label: 'Dodavatelé', icon: 'handshake', enabled: hasFeature(FEATURES.MODULE_CONTACTS) },
@@ -415,16 +490,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'tools', label: 'Nástroje', icon: 'build', enabled: tools.length > 0 },
                   ] as const).filter(item => item.enabled).map(item => <button key={item.id} type="button"
                     aria-label={item.label} aria-pressed={menuSection === item.id} data-active={menuSection === item.id}
-                    className="tf-sidebar-section flex min-w-0 flex-col items-center gap-1 whitespace-nowrap px-1 py-3 text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    className="tf-sidebar-section flex min-w-0 items-center gap-3 px-3 py-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                     onClick={() => {
                       setMenuSection(item.id);
                       if (item.id === 'projects') { onViewChange('project-management', undefined); closeMobileMenu(); }
                       if (item.id === 'contacts') { onViewChange('contacts', undefined); closeMobileMenu(); }
                     }}>
-                    <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span>{item.label}
+                    <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span><span className="tf-sidebar-label">{item.label}</span>
                   </button>)}
                 </nav>
-                <div className="-mx-3 flex-1 min-h-0 overflow-y-auto">
+                <div className="tf-sidebar-context shrink-0">
                   {menuSection === 'projects' && hasFeature(FEATURES.MODULE_PROJECTS) && <>
                     {currentView !== 'project' && <nav aria-label="Pohledy staveb">
                       {PORTFOLIO_VIEWS.map(view => <button key={view.id} type="button"
@@ -432,10 +507,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         data-active={currentView === 'project-management' && portfolioStatus === view.id}
                         className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                         onClick={() => { navigate(`${buildAppUrl('project-management')}?status=${view.id}`); closeMobileMenu(); }}>
-                        <span aria-hidden="true" className="material-symbols-outlined text-lg">{view.icon}</span>{view.label}
+                        <span aria-hidden="true" className="material-symbols-outlined text-lg">{view.icon}</span><span className="tf-sidebar-label">{view.label}</span>
                       </button>)}
                     </nav>}
-                    {currentView === 'project' && <ProjectSidebar hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
+                    {currentView === 'project' && <ProjectSidebar compact={compact} onExpand={onToggle} hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
                       activeTab={new URLSearchParams(search).get('tab') || 'overview'}
                       activeSettingsTab={new URLSearchParams(search).get('documentsSubTab') || 'pd'}
                       onSelect={(id, tab, settingsTab) => {
@@ -447,18 +522,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {menuSection === 'reports' && <nav aria-label="Přehledy" className="tf-sidebar-menu">{reportItems.map(item => renderNavItem(item))}</nav>}
                   {menuSection === 'tools' && <nav aria-label="Nástroje" className="tf-sidebar-menu">{tools.map(item => renderNavItem(item))}</nav>}
                   {menuSection !== 'projects' && currentView === 'project' && <button type="button"
-                    className="mx-3 mt-6 p-2 text-left text-xs border border-slate-300 dark:border-slate-700 rounded-md"
-                    onClick={() => setMenuSection('projects')}>Zpět k otevřené stavbě: {projects.find(project => project.id === selectedProjectId)?.name}</button>}
+                    aria-label="Zpět k otevřené stavbě"
+                    className="tf-sidebar-back mt-6 p-2 text-left text-xs border border-slate-300 dark:border-slate-700 rounded-md"
+                    onClick={() => setMenuSection('projects')}><span aria-hidden="true" className="material-symbols-outlined">arrow_back</span><span className="tf-sidebar-label">Zpět k otevřené stavbě: {projects.find(project => project.id === selectedProjectId)?.name}</span></button>}
                 </div>
               </div>
             </div>
 
-            <div className={`mt-auto border-t p-3 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-200 dark:border-slate-700/50"}`}>
+            <div className={`tf-sidebar-footer shrink-0 mt-auto border-t pt-3 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-200 dark:border-slate-700/50"}`}>
               <div className="mb-3 tf-sidebar-nav">{renderItem('todo')}</div>
               <div className="flex items-center justify-between gap-3">
                 <SidebarUpdateStatus
                   currentVersion={APP_VERSION}
                   isIndustrialSkin={isIndustrialSkin}
+                  compact={compact}
                 />
 
               </div>
@@ -466,5 +543,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </aside>
+      {compact && tooltip && createPortal(
+        <div role="tooltip" className="tf-sidebar-tooltip" style={{ left: tooltip.left, top: tooltip.top }}>
+          {tooltip.label}
+        </div>, document.body,
+      )}
+    </>
   );
 };

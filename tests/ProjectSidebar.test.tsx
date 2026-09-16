@@ -16,6 +16,24 @@ function setup(activeTab = 'contracts', selectedProjectId = 'a') {
   return onSelect;
 }
 describe('Project workspace sidebar', () => {
+  it('closes the picker on collapse and reopens search with one compact click', () => {
+    const props = { hasFeature: () => true, projects, selectedProjectId: 'a', activeTab: 'overview', onSelect: vi.fn(), onExpand: vi.fn() };
+    const { rerender } = render(<ProjectSidebar {...props} compact={false} />);
+    const trigger = screen.getByRole('button', { name: /Změnit stavbu/ });
+    fireEvent.click(trigger);
+    const search = screen.getByRole('searchbox', { name: 'Hledat stavbu' });
+    fireEvent.change(search, { target: { value: 'Beta' } });
+    search.focus();
+    rerender(<ProjectSidebar {...props} compact />);
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    fireEvent.click(trigger);
+    expect(props.onExpand).toHaveBeenCalledOnce();
+    rerender(<ProjectSidebar {...props} compact={false} />);
+    expect(screen.getByRole('searchbox', { name: 'Hledat stavbu' })).toHaveValue('');
+    expect(screen.getByRole('searchbox', { name: 'Hledat stavbu' })).toHaveFocus();
+  });
+
   it('distinguishes equally named projects by location when switching sections', () => {
     const onSelect = vi.fn();
     render(<ProjectSidebar hasFeature={() => true} projects={[
