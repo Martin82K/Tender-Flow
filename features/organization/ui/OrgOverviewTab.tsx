@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { getOrgSubscription, getOrgSeatUsage } from '../api/orgBillingService';
 import { getTierLabel, getTierBadgeClass } from '@/config/subscriptionTiers';
+import { formatTrialRemainingCopy, getCalendarDaysRemaining } from '@features/subscription';
 import { organizationService } from '@features/organization/api';
 import type { OrgSubscriptionInfo, OrgSeatUsage, OrgSubTab } from '../model/types';
 import type { OrganizationUnlockerTimeSavings } from '@features/organization/api';
@@ -77,6 +78,8 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
 
   const effectiveTier = subscription.overrideTier || subscription.tier;
   const isOverridden = !!subscription.overrideTier;
+  const isTrial = subscription.status === 'trial';
+  const trialDays = isTrial ? getCalendarDaysRemaining(subscription.billingPeriodEnd || subscription.expiresAt) : null;
   const seatPercent = seatUsage ? Math.round((seatUsage.billableSeats / seatUsage.maxSeats) * 100) : 0;
   const licenseChangeHref = `mailto:martin@tenderflow.cz?subject=${encodeURIComponent(`Změna počtu licencí - ${orgName}`)}&body=${encodeURIComponent(
     `Dobrý den,\n\nrádi bychom upravili počet Enterprise licencí pro organizaci ${orgName}.\n\nAktuální využití: ${seatUsage?.billableSeats ?? 0}/${seatUsage?.maxSeats ?? 0} licencí.\n\nProsím kontaktujte nás s dalším postupem.\n`,
@@ -100,11 +103,13 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
               </span>
             )}
             <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded border ${getTierBadgeClass(effectiveTier as any)}`}>
-              {subscription.status === 'active' ? 'Aktivní' : subscription.status === 'trial' ? 'Trial' : subscription.status}
+              {subscription.status === 'active' ? 'Aktivní' : isTrial ? 'Zkušební období' : subscription.status}
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Smluvní Enterprise účet
+            {isTrial && trialDays !== null
+              ? formatTrialRemainingCopy(trialDays)
+              : 'Smluvní Enterprise účet'}
             {(subscription.billingPeriodEnd || subscription.expiresAt) && (
               <> · Aktivní do <strong className="text-primary">{new Date(subscription.billingPeriodEnd || subscription.expiresAt || '').toLocaleDateString('cs-CZ')}</strong></>
             )}

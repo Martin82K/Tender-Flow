@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { getOrgSubscription, getOrgBillingHistory, getOrgSeatUsage } from '../api/orgBillingService';
 import { formatOrgPrice } from '../api/orgBillingActions';
 import { getTierLabel } from '@/config/subscriptionTiers';
+import { formatTrialRemainingCopy, getCalendarDaysRemaining } from '@features/subscription';
 import type { OrgSubscriptionInfo, OrgBillingHistoryEntry, OrgSeatUsage } from '../model/types';
 
 interface OrgBillingTabProps {
@@ -17,7 +18,7 @@ interface OrgBillingTabProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  trial: 'Trial',
+  trial: 'Zkušební období',
   active: 'Aktivní',
   past_due: 'Po splatnosti',
   paused: 'Pozastaveno',
@@ -88,6 +89,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
   const status = subscription?.status || 'active';
   const periodStart = subscription?.billingPeriodStart || null;
   const periodEnd = subscription?.billingPeriodEnd || subscription?.expiresAt || null;
+  const trialDays = status === 'trial' ? getCalendarDaysRemaining(periodEnd) : null;
   const billingContact = subscription?.billingContact || 'Nenastaveno';
   const orgName = subscription?.orgName || 'organizace';
   const licenseChangeHref = `mailto:martin@tenderflow.cz?subject=${encodeURIComponent(`Změna počtu licencí - ${orgName}`)}&body=${encodeURIComponent(
@@ -102,8 +104,9 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
             Enterprise smlouva & licence
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Fakturace je řízená smluvně. V aplikaci vidíte aktivní stav organizace,
-            období smlouvy a využití licencí.
+            {status === 'trial' && trialDays !== null
+              ? formatTrialRemainingCopy(trialDays)
+              : 'Fakturace je řízená smluvně. V aplikaci vidíte aktivní stav organizace, období smlouvy a využití licencí.'}
           </p>
         </div>
         <button

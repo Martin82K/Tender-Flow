@@ -9,6 +9,11 @@ import { TENDER_STORY_STEPS } from "../model/landingContent";
 import { LandingPricing } from "./LandingPricing";
 import { LandingIntegrations } from "./LandingIntegrations";
 import { LandingFaq } from "./LandingFaq";
+import {
+  LandingDesktopSection,
+  LandingFooterDownloads,
+  LandingHeroDownloads,
+} from "./LandingDesktopDownloads";
 import "./landing-apex.css";
 
 export const LandingPage: React.FC = () => {
@@ -59,6 +64,7 @@ export const LandingPage: React.FC = () => {
           </a>
           <nav className="nav-center" aria-label="Hlavní navigace">
             <a href="#funkce">Funkce</a>
+            <a href="#desktop">Desktop</a>
             <a href="#ai-data">AI a data</a>
             <a href="#mcp">MCP</a>
             <a href="#ceny">Cen&iacute;k</a>
@@ -87,6 +93,7 @@ export const LandingPage: React.FC = () => {
               TenderFlow propojí poptávky, nabídky, dodavatele, termíny i
               smlouvy do jednoho řízeného procesu.
             </p>
+            <LandingHeroDownloads />
             <div className="social-strip">
               <div className="social-text">
                 Jeden proces. Jedna historie. Jasné rozhodnutí.
@@ -437,6 +444,8 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      <LandingDesktopSection />
+
       <LandingIntegrations />
       <LandingPricing />
       <LandingFaq />
@@ -516,10 +525,12 @@ export const LandingPage: React.FC = () => {
             <div className="footer-col">
               <h4>Produkt</h4>
               <a href="#funkce">Funkce</a>
+              <a href="#desktop">Desktop</a>
               <a href="#ceny">Cen&iacute;k</a>
               <a href="#ai-data">Mistral AI a data</a>
               <a href="#mcp">MCP server</a>
               <a href="/user-manual/">Uživatelská dokumentace</a>
+              <LandingFooterDownloads />
               <a href={DEMO_REQUEST_URL}>Demo na vyž&aacute;d&aacute;n&iacute;</a>
             </div>
             <div className="footer-col">

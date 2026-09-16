@@ -1,0 +1,21 @@
+import fs from "fs";
+import path from "path";
+import { describe, expect, it } from "vitest";
+
+const ROOT = process.cwd();
+
+describe("org signup enterprise trial migration", () => {
+  it("creates a 14-day Enterprise trial from created_at and keeps the existing expiry wall", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260916223000_org_signup_enterprise_trial.sql"),
+      "utf8",
+    );
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_or_create_user_organization_internal");
+    expect(migration).toContain("'enterprise', 'trial'");
+    expect(migration).toContain("public._org_signup_trial_deadline(v_created_at)");
+    expect(migration).toContain("interval '14 days'");
+    expect(migration).toContain("'status', result_status");
+    expect(migration).toContain("o.subscription_status = 'expired'");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_or_create_user_organization_internal(uuid, text, text) FROM PUBLIC, anon, authenticated");
+  });
+});

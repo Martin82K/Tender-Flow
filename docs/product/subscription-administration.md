@@ -12,9 +12,9 @@ Původní `SubscriptionFeaturesManagement` se připojí až po otevření pokro�
 
 Free není nabízený účet ani tarif. Interní hodnota `free` zůstává kvůli starším klientům a databázovým vazbám a znamená **bez přístupu**. Administrátor může tento stav rozpoznat jako „Bez předplatného“; otevření existujícího záznamu nepřiřadí automaticky placený tarif.
 
-`AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Bez platného předplatného zůstává obrazovka obnovy, kontakt na podporu a odhlášení. Právní dokumenty zůstávají veřejné. Historické krátké odkazy zobrazí veřejné oznámení o ukončení služby. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
+`AppEntry` ověřuje předplatné před připojením pracovní aplikace, datových dotazů a realtime odběrů. Nová organizace dostane 14denní plně funkční Enterprise trial počítaný od `organizations.created_at`. V aplikaci je vidět zbývající počet dní. Po vypršení platí dosavadní zeď bez licence (obrazovka obnovy, kontakt na podporu, odhlášení). Správce platformy převede trial na smluvní Enterprise ve Správě organizací; samoobslužná platba se nezavádí. Právní dokumenty zůstávají veřejné. Historické krátké odkazy zobrazí veřejné oznámení o ukončení služby. Lokální demo používá vzorová data a není předplatným ani oprávněním k backendu.
 
-Nové osobní i firemní organizace se vytvářejí bez aktivního tarifu. Automatické založení organizace nepředstavuje úhradu ani časově neomezený nárok. Existující placená a ručně spravovaná předplatná se tím nepřepisují.
+Nové osobní i firemní organizace se zakládají s trialem Enterprise na 14 dní od data vzniku. Připojení do už existující organizace dědí její stav (trial, Enterprise i zeď po expiraci). Placená, ručně spravovaná a Stripe předplatná se založením nového účtu nepřepisují.
 
 Obě generace databázových RPC používají stejný resolver. Platí aktivní firemní členství a nevypršené firemní nebo osobní předplatné. Platné zkušební období a ruční přidělení jsou zachované. Zrušené předplatné funguje do konce již uhrazeného období, musí však mít datum konce. Individuální příznak funkce sám přístup neobnoví. Správci platformy se ověřují přes `platform_admins`.
 
@@ -32,9 +32,9 @@ Administrace stále vyžaduje existující roli a MFA. Pokročilá matice uklád
 
 Před změnou proveďte `supabase db push --dry-run`. Tato úprava obsahuje hlavní migraci výše a následnou `20260906185438_use_invoker_for_subscription_guard.sql`, která pomocnou kontrolu provozuje s oprávněními volajícího. Migrace `20260906185734_read_subscription_subject_from_verified_claims.sql` čte podepsané `sub` z `request.jwt.claims`, aby také MCP fungovalo bez přístupu do schématu `auth`; nikdy nečte uživatelsky měnitelná metadata. Tento zdroj identity používá i [autorizace Supabase Realtime](https://supabase.com/docs/guides/realtime/authorization). Kontrola vrací jen stav aktuálního uživatele a deleguje na existující resolver; sama nepotřebuje `SECURITY DEFINER`. Nejdříve nasaďte migraci, poté změněné Edge Functions přes API a web. Ověřte katalog RLS, granty, počty a security/performance advisors a opakujte dry-run do stavu „Remote database is up to date“.
 
-`supabase/tests/subscription-provisioning.sql` kontroluje založení osobní i firemní organizace bez automatického předplatného. `supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
+`supabase/tests/subscription-provisioning.sql` a `supabase/tests/org-signup-trial.sql` kontrolují založení osobní i firemní organizace s 14denním Enterprise trialem od `created_at`, zeď po expiraci a převod na aktivní Enterprise. `supabase/tests/subscription-required.sql` ověřuje oba resolvery, vypršení, aktivitu členství, placené období po zrušení, individuální výjimky, REST 402, Storage/projektové RLS a obnovení přístupu. Používá krátkou transakci nad dočasně změněnými záznamy a končí rollbackem; nespouštějte jednotlivé UPDATE samostatně. Nevyžaduje ani nevypisuje identifikátory zákazníků.
 
-Po nasazení ověřte přihlášení bez předplatného, pokus o otevření projektu přímou URL, odhlášení a obnovení platného předplatného. Testovací prodloužení ani rušení skutečných předplatných neprovádějte mimo rollbackovou transakci.
+Po nasazení ověřte registraci nového účtu (plný přístup a zbývající dny trialu), expiraci trialu (dosavadní zeď bez licence) a ruční převod na Enterprise ve Správě organizací. Testovací prodloužení ani rušení skutečných předplatných neprovádějte mimo rollbackovou transakci.
 
 ## Návrh dalšího rozdělení katalogu
 
@@ -64,7 +64,7 @@ Hlavní migrace před přidáním restriktivní politiky kontroluje existenci vo
 
 ### Opravy hranic vydání 1.9.26
 
-Migrace `20260907065230_close_release_subscription_boundaries.sql` obnovuje veřejný provisioning pouze pro vlastní přihlášenou identitu. Argumenty mohou zůstat prázdné jako v původním wrapperu; explicitní ID a e-mail se porovnávají s ověřeným účtem. Anonymní volání nemá oprávnění ani k veřejné, ani k interní funkci. Interní bootstrap zůstává dostupný servisní roli a registračnímu triggeru a vytváří organizace bez automatického předplatného.
+Migrace `20260907065230_close_release_subscription_boundaries.sql` obnovuje veřejný provisioning pouze pro vlastní přihlášenou identitu. Argumenty mohou zůstat prázdné jako v původním wrapperu; explicitní ID a e-mail se porovnávají s ověřeným účtem. Anonymní volání nemá oprávnění ani k veřejné, ani k interní funkci. Interní bootstrap zůstává dostupný servisní roli a registračnímu triggeru. Nové osobní i firemní organizace dostanou 14denní Enterprise trial od `created_at`; po expiraci platí dosavadní zeď bez licence.
 
 Historická REST výjimka zahrnuje přesně `get_short_url_target`, ale vyřazovací migrace zkracovače klientům odebrala oprávnění tento resolver spouštět. Krátké odkazy již nefungují; veřejná stránka pouze oznámí ukončení služby. Ochrana MCP, přímý přístup k tabulce a ostatní RPC zůstávají zachované. Test `supabase/tests/release-subscription-boundaries.sql` kontroluje oprávnění, identitu, vlastní provisioning a přesný rozsah výjimky; končí rollbackem.
 
