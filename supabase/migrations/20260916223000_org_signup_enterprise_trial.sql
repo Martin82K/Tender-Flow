@@ -13,6 +13,41 @@ $$;
 REVOKE ALL ON FUNCTION public._org_signup_trial_deadline(timestamptz) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public._org_signup_trial_deadline(timestamptz) TO authenticated, service_role;
 
+-- Shared seat reservation lock for domain-join, invite, approve and activate.
+CREATE OR REPLACE FUNCTION public._org_billable_seats_available(target_org_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_available boolean;
+BEGIN
+  IF target_org_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  PERFORM 1
+  FROM public.organizations
+  WHERE id = target_org_id
+  FOR UPDATE;
+
+  SELECT o.max_seats IS NULL OR COUNT(om.user_id) < o.max_seats
+  INTO v_available
+  FROM public.organizations o
+  LEFT JOIN public.organization_members om
+    ON om.organization_id = o.id
+   AND om.is_active = true
+   AND om.is_billable = true
+  WHERE o.id = target_org_id
+  GROUP BY o.max_seats;
+
+  RETURN COALESCE(v_available, false);
+END;
+$$;
+REVOKE ALL ON FUNCTION public._org_billable_seats_available(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public._org_billable_seats_available(uuid) TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.get_or_create_user_organization_internal(
   p_user_id uuid,
   p_email text,
@@ -153,7 +188,17 @@ WHERE o.subscription_tier = 'free'
   AND o.subscription_status = 'expired'
   AND o.override_tier IS NULL
   AND (o.billing_customer_id IS NULL OR o.billing_customer_id = '')
-  AND public._org_signup_trial_deadline(o.created_at) > now();
+  AND public._org_signup_trial_deadline(o.created_at) > now()
+  AND (
+    o.max_seats IS NULL
+    OR (
+      SELECT COUNT(*)
+      FROM public.organization_members om
+      WHERE om.organization_id = o.id
+        AND om.is_active = true
+        AND om.is_billable = true
+    ) <= o.max_seats
+  );
 
 CREATE OR REPLACE FUNCTION public.get_effective_user_tier(target_user_id uuid)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$

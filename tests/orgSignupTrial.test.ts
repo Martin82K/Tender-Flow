@@ -43,6 +43,7 @@ describe("trial remaining copy", () => {
   });
 
   it("formats Czech remaining-day copy", () => {
+    expect(formatTrialRemainingCopy(-3)).toBe("Zkušební období skončilo");
     expect(formatTrialRemainingCopy(0)).toBe("Zkušební období končí dnes");
     expect(formatTrialRemainingCopy(1)).toBe("Zkušební období: zbývá 1 den");
     expect(formatTrialRemainingCopy(3)).toBe("Zkušební období: zbývají 3 dny");

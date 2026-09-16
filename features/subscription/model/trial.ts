@@ -17,7 +17,8 @@ const czechDayWord = (days: number): "den" | "dny" | "dní" => {
 };
 
 export const formatTrialRemainingCopy = (days: number): string => {
-  if (days <= 0) return "Zkušební období končí dnes";
+  if (days < 0) return "Zkušební období skončilo";
+  if (days === 0) return "Zkušební období končí dnes";
   const word = czechDayWord(days);
   const verb = word === "dny" ? "zbývají" : "zbývá";
   return `Zkušební období: ${verb} ${days} ${word}`;

@@ -17,8 +17,11 @@ describe("org signup enterprise trial migration", () => {
     expect(migration).toContain("'status', result_status");
     expect(migration).toContain("o.subscription_status = 'expired'");
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_or_create_user_organization_internal(uuid, text, text) FROM PUBLIC, anon, authenticated");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public._org_billable_seats_available");
     expect(migration).toContain("public._org_billable_seats_available(v_org_id)");
     expect(migration).toContain("FOR UPDATE");
+    expect(migration).toContain("AND om.is_billable = true");
+    expect(migration).toContain(") <= o.max_seats");
     expect(migration).toContain("auth.role() IS DISTINCT FROM 'authenticated'");
     expect(migration).toContain("AND om.is_active = true");
     expect(migration).toContain("AND NOT EXISTS (");
