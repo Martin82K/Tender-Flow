@@ -5,7 +5,7 @@ import type { AppNotification } from "@features/notifications/types";
 type ApiSubscriptionOptions = {
   userId: string;
   onNewNotification: (notification: AppNotification) => void;
-  onSubscriptionError?: () => void;
+  onSubscriptionError?: (status: "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED") => void;
 };
 
 const state = vi.hoisted(() => ({
@@ -92,5 +92,21 @@ describe("useNotificationSubscription", () => {
     expect(state.subscribe).not.toHaveBeenCalled();
     rerender({ userId: "user-a", enabled: false });
     expect(state.subscribe).not.toHaveBeenCalled();
+  });
+
+  it("explains connection failures without logging transport details", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { unmount } = renderHook(() => useNotificationSubscription({
+      userId: "user-a", enabled: true, onNewNotification: vi.fn(),
+    }));
+    try {
+      state.subscriptions[0].onSubscriptionError?.("TIMED_OUT");
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        "[notifications] Spojení pro okamžité notifikace není dostupné (TIMED_OUT); pravidelné načítání pokračuje každých 30 sekund.",
+      );
+    } finally {
+      unmount();
+      warn.mockRestore();
+    }
   });
 });
