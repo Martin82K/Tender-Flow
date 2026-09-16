@@ -372,7 +372,7 @@ describe("industrial skin tokens", () => {
     const projectSidebarSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSidebar.tsx"), "utf8");
     expect(projectSidebarSource).toContain('data-help-id="project-sidebar-tab"');
     expect(projectSidebarSource).toContain('data-help-id="project-sidebar-tab-icon"');
-    expect(css).toContain('html[data-skin="industrial"] .tf-sidebar [data-help-id="project-sidebar-tab-icon"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row > .material-symbols-outlined');
     expect(css).toContain('.tf-sidebar .tf-project-nav-row');
     expect(css).toContain('border-radius: 0 !important');
   });

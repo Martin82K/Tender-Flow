@@ -7,11 +7,28 @@ const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx")
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = css.match(new RegExp(`${escaped}\\s*\\{(?<body>[^}]*)\\}`, "s"));
+  const match = css.match(new RegExp(`^${escaped}\\s*\\{(?<body>[^}]*)\\}`, "ms"));
   return match?.groups?.body ?? "";
 };
 
 describe("industrial sidebar project hover", () => {
+  it("blends the selected project into the industrial sidebar instead of using the white card surface", () => {
+    const block = cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-project-switcher');
+    expect(block).toContain('background: transparent');
+    expect(block).not.toContain('--tf-skin-card');
+  });
+
+  it("sizes all industrial project rows and their icons consistently", () => {
+    expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row')).toContain('min-height: 1.625rem');
+    expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row > .material-symbols-outlined')).toContain('font-size: 0.9375rem');
+  });
+
+  it("keeps report and tool hover backgrounds flush with the sidebar edges", () => {
+    expect(sidebarSource).not.toContain('aria-label="Přehledy" className="px-3"');
+    expect(sidebarSource).not.toContain('aria-label="Nástroje" className="px-3"');
+    expect(sidebarSource).not.toContain('mt-1 ml-2 gap-1');
+  });
+
   it("uses darker mobile industrial sidebar surfaces", () => {
     expect(css).toContain("@media (max-width: 767px)");
     expect(sidebarSource).not.toContain("bg-black/50 z-[-1] md:hidden");
