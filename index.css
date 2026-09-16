@@ -6304,7 +6304,7 @@ html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row {
 .tf-sidebar[data-compact="true"] .tf-project-nav-row { border-left-width: 0; border-radius: 8px !important; }
 .tf-sidebar[data-compact="true"] .tf-project-switcher { display: flex; align-items: center; }
 html[data-skin] .tf-sidebar[data-compact="true"] .material-symbols-outlined { font-size: 24px !important; }
-html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .tf-project-nav-row > .material-symbols-outlined {
+html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .material-symbols-outlined:not(.tf-sidebar-label) {
   width: 24px !important;
   min-width: 24px !important;
   max-width: 24px !important;

@@ -38,6 +38,12 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
   const selectedTab: ProjectTab = tabs.find(tab => tab.id === activeTab)?.id ?? 'overview';
   useEffect(() => { setOpen(false); setQuery(''); }, [selectedProjectId]);
   useEffect(() => {
+    if (!compact) return;
+    if (container.current?.contains(document.activeElement) && document.activeElement !== trigger.current) trigger.current?.focus();
+    setOpen(false);
+    setQuery('');
+  }, [compact]);
+  useEffect(() => {
     if (!open) return;
     const dismiss = (event: PointerEvent) => {
       if (!container.current?.contains(event.target as Node)) setOpen(false);
@@ -54,7 +60,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
     }}>
       <button ref={trigger} type="button" className="tf-project-switcher w-full px-6 py-4 text-left"
         aria-label={`Změnit stavbu: ${project.name}`} aria-expanded={open} aria-controls="sidebar-project-picker"
-        onClick={() => { if (compact) onExpand?.(); setOpen(!open); setQuery(''); }}>
+        onClick={() => { if (compact) { onExpand?.(); setOpen(true); } else setOpen(!open); setQuery(''); }}>
         {compact && <span aria-hidden="true" className="material-symbols-outlined">domain</span>}
         <span className="tf-sidebar-label flex items-center justify-between gap-2 font-semibold text-sm">
           <span className="min-w-0 break-words">{project.name}</span>

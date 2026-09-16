@@ -25,7 +25,7 @@ describe("industrial sidebar project hover", () => {
 
   it("keeps compact project icon containers at least as wide as their glyphs", () => {
     const glyphBlock = cssBlockFor('html[data-skin] .tf-sidebar[data-compact="true"] .material-symbols-outlined');
-    const iconBlock = cssBlockFor('html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .tf-project-nav-row > .material-symbols-outlined');
+    const iconBlock = cssBlockFor('html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .material-symbols-outlined:not(.tf-sidebar-label)');
     const fontSize = Number(glyphBlock.match(/font-size:\s*(\d+)px/)?.[1]);
     expect(fontSize).toBeGreaterThan(0);
     for (const property of ['width', 'min-width', 'max-width']) {
