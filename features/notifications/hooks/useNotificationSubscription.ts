@@ -31,8 +31,9 @@ export const useNotificationSubscription = ({
       onNewNotification: (notification) => {
         callbackRef.current(notification, userId);
       },
-      onSubscriptionError: () => {
-        console.warn("[notifications] Realtime subscription error, falling back to polling");
+      onSubscriptionError: (status) => {
+        // Log only the status, never transport errors that may contain credentials.
+        console.warn(`[notifications] Spojení pro okamžité notifikace není dostupné (${status}); pravidelné načítání pokračuje každých 30 sekund.`);
       },
     });
   }, [userId, enabled]);

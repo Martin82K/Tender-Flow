@@ -19,6 +19,48 @@ import { notificationApi } from "../features/notifications/api/notificationApi";
 import type { AppNotification } from "../features/notifications/types";
 
 describe("notificationApi realtime subscriptions", () => {
+  const setupSubscription = () => {
+    const on = vi.fn().mockReturnThis();
+    const subscribe = vi.fn().mockReturnThis();
+    const channel = { on, subscribe };
+    const removeChannel = vi.fn();
+    notificationServiceMock.getSupabaseClient.mockReturnValue({
+      channel: vi.fn().mockReturnValue(channel),
+      removeChannel,
+    });
+    const onSubscriptionError = vi.fn();
+    const onNewNotification = vi.fn();
+    const cleanup = notificationApi.subscribeToUserNotifications({
+      userId: "user-1", onSubscriptionError, onNewNotification,
+    });
+    const status = subscribe.mock.calls[0][0] as (value: string) => void;
+    const payload = on.mock.calls[0][2] as (value: { new: unknown }) => void;
+    return { status, payload, cleanup, removeChannel, onSubscriptionError, onNewNotification };
+  };
+
+  it.each(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"])("reports %s once per outage and resets after recovery", (failure) => {
+    const subscription = setupSubscription();
+    subscription.status(failure);
+    subscription.status("CHANNEL_ERROR");
+    subscription.status("TIMED_OUT");
+    expect(subscription.onSubscriptionError).toHaveBeenCalledExactlyOnceWith(failure);
+    subscription.status("SUBSCRIBED");
+    subscription.status(failure);
+    expect(subscription.onSubscriptionError).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores callbacks during and after cleanup and removes the channel only once", () => {
+    const subscription = setupSubscription();
+    subscription.removeChannel.mockImplementation(() => subscription.status("CLOSED"));
+    subscription.cleanup();
+    subscription.cleanup();
+    subscription.status("CHANNEL_ERROR");
+    subscription.payload({ new: { id: "stale" } });
+    expect(subscription.onSubscriptionError).not.toHaveBeenCalled();
+    expect(subscription.onNewNotification).not.toHaveBeenCalled();
+    expect(subscription.removeChannel).toHaveBeenCalledOnce();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
