@@ -48,7 +48,12 @@ export const LandingDesktopSection: React.FC = () => (
             <span className="integration-eyebrow">{item.platform}</span>
             <h3>{item.label}</h3>
             <p>{item.filename}</p>
-            <a className="enterprise-pricing-cta" href={item.href} {...externalLinkProps}>
+            <a
+              className="enterprise-pricing-cta"
+              href={item.href}
+              aria-label={item.label}
+              {...externalLinkProps}
+            >
               Stáhnout
             </a>
           </article>

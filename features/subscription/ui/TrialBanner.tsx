@@ -27,7 +27,7 @@ export const TrialBanner: React.FC<TrialBannerProps> = ({
     >
       <strong className="font-semibold">{formatTrialRemainingCopy(days)}</strong>
       <span className="mt-1 block text-amber-900/80 dark:text-amber-100/80">
-        Po skončení se přístup pozastaví, dokud nepřiřadíme Enterprise licenci.
+        Po skončení zůstanou jen funkce podle vaší aktuální licence.
       </span>
     </div>
   );

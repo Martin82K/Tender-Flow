@@ -76,9 +76,14 @@ describe("LandingPage nové moduly", () => {
     );
 
     const desktop = screen.getByRole("region", { name: "Aplikace pro Windows i macOS" });
-    const downloadLinks = within(desktop).getAllByRole("link", { name: "Stáhnout" });
-    expect(downloadLinks[0]).toHaveAttribute("href", DESKTOP_DOWNLOADS[0].href);
-    expect(downloadLinks[1]).toHaveAttribute("href", DESKTOP_DOWNLOADS[1].href);
+    expect(within(desktop).getByRole("link", { name: "Stáhnout pro Windows" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[0].href,
+    );
+    expect(within(desktop).getByRole("link", { name: "Stáhnout pro macOS (Apple Silicon)" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[1].href,
+    );
     expect(screen.getByRole("contentinfo").textContent).toMatch(/Windows/);
     expect(within(screen.getByRole("contentinfo")).getByRole("link", { name: "Všechny verze" })).toHaveAttribute(
       "href",

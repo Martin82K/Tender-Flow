@@ -14,7 +14,8 @@ describe("TrialBanner", () => {
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent(/Zkušební období: zbývají 3 dny/);
-    expect(screen.getByRole("status")).toHaveTextContent(/Enterprise licenci/);
+    expect(screen.getByRole("status")).toHaveTextContent(/funkce podle vaší aktuální licence/);
+    expect(screen.getByRole("status")).not.toHaveTextContent(/přístup pozastaví/);
   });
 
   it("hides after expiry or when the account is not on trial", () => {

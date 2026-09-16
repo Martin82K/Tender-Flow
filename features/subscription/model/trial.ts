@@ -23,3 +23,41 @@ export const formatTrialRemainingCopy = (days: number): string => {
   const verb = word === "dny" ? "zbývají" : "zbývá";
   return `Zkušební období: ${verb} ${days} ${word}`;
 };
+
+export const isLiveOverride = (
+  overrideTier: string | null | undefined,
+  overrideExpiresAt: string | null | undefined,
+): boolean => {
+  if (!overrideTier) return false;
+  if (!overrideExpiresAt) return true;
+  const end = Date.parse(overrideExpiresAt);
+  return Number.isFinite(end) && end > Date.now();
+};
+
+export interface OrgPlanPresentation {
+  effectiveTier: string | null | undefined;
+  isOverridden: boolean;
+  isTrial: boolean;
+  status: string;
+  activeUntil: string | null;
+}
+
+export const getOrgPlanPresentation = (input: {
+  status: string;
+  tier: string | null | undefined;
+  overrideTier: string | null | undefined;
+  overrideExpiresAt: string | null | undefined;
+  billingPeriodEnd: string | null | undefined;
+  expiresAt: string | null | undefined;
+}): OrgPlanPresentation => {
+  const liveOverride = isLiveOverride(input.overrideTier, input.overrideExpiresAt);
+  return {
+    effectiveTier: liveOverride ? input.overrideTier : input.tier,
+    isOverridden: liveOverride,
+    isTrial: input.status === "trial" && !liveOverride,
+    status: liveOverride ? "active" : input.status,
+    activeUntil: liveOverride
+      ? input.overrideExpiresAt ?? null
+      : input.billingPeriodEnd || input.expiresAt || null,
+  };
+};

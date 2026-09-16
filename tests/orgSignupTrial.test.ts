@@ -7,6 +7,8 @@ import {
 import {
   formatTrialRemainingCopy,
   getCalendarDaysRemaining,
+  getOrgPlanPresentation,
+  isLiveOverride,
   TRIAL_DURATION_DAYS,
 } from "@features/subscription/model/trial";
 
@@ -48,5 +50,54 @@ describe("trial remaining copy", () => {
     expect(formatTrialRemainingCopy(1)).toBe("Zkušební období: zbývá 1 den");
     expect(formatTrialRemainingCopy(3)).toBe("Zkušební období: zbývají 3 dny");
     expect(formatTrialRemainingCopy(14)).toBe("Zkušební období: zbývá 14 dní");
+  });
+});
+
+describe("live override plan presentation", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("treats an unexpired or unlimited override as live", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T10:00:00.000Z"));
+    expect(isLiveOverride("enterprise", "2026-12-31T00:00:00.000Z")).toBe(true);
+    expect(isLiveOverride("enterprise", null)).toBe(true);
+    expect(isLiveOverride("enterprise", "2026-09-01T00:00:00.000Z")).toBe(false);
+    expect(isLiveOverride(null, "2026-12-31T00:00:00.000Z")).toBe(false);
+  });
+
+  it("does not present a trial when a live override remains", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T10:00:00.000Z"));
+    const plan = getOrgPlanPresentation({
+      status: "trial",
+      tier: "enterprise",
+      overrideTier: "enterprise",
+      overrideExpiresAt: "2026-12-31T00:00:00.000Z",
+      billingPeriodEnd: "2026-09-20T00:00:00.000Z",
+      expiresAt: "2026-09-20T00:00:00.000Z",
+    });
+    expect(plan.isTrial).toBe(false);
+    expect(plan.isOverridden).toBe(true);
+    expect(plan.status).toBe("active");
+    expect(plan.activeUntil).toBe("2026-12-31T00:00:00.000Z");
+  });
+
+  it("keeps trial presentation when the override has already expired", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T10:00:00.000Z"));
+    const plan = getOrgPlanPresentation({
+      status: "trial",
+      tier: "enterprise",
+      overrideTier: "enterprise",
+      overrideExpiresAt: "2026-09-01T00:00:00.000Z",
+      billingPeriodEnd: "2026-09-25T00:00:00.000Z",
+      expiresAt: "2026-09-25T00:00:00.000Z",
+    });
+    expect(plan.isTrial).toBe(true);
+    expect(plan.isOverridden).toBe(false);
+    expect(plan.status).toBe("trial");
+    expect(plan.activeUntil).toBe("2026-09-25T00:00:00.000Z");
   });
 });
