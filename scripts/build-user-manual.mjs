@@ -8,7 +8,10 @@ import { Slugger, extractManualKbEntries } from './user-manual-kb.mjs';
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-export function buildManualHtml(markdown, { version, aliases = {}, imageSizes = {} }) {
+export function buildManualHtml(markdown, { version, reviewedAt, aliases = {}, imageSizes = {} }) {
+  const reviewDate = reviewedAt
+    ? new Intl.DateTimeFormat('cs-CZ', { timeZone: 'UTC', day: 'numeric', month: 'numeric', year: 'numeric' }).format(new Date(`${reviewedAt}T00:00:00Z`))
+    : 'Datum neuvedeno';
   const headings = [];
   const slugger = new Slugger();
   const parser = new Marked({ gfm: true });
@@ -64,7 +67,7 @@ export function buildManualHtml(markdown, { version, aliases = {}, imageSizes = 
 <body><a class="skip-link" href="#manual-content">Přejít k obsahu</a>
 <header class="topbar"><a class="brand" href="/"><img src="./assets/logo.svg" alt="" width="34" height="34">Tender Flow <span>Příručka</span></a><div><a href="/">Zpět na web ↗</a><button type="button" id="print-manual">Tisk / PDF</button></div></header>
 <div class="layout"><aside class="sidebar"><p class="eyebrow">PRŮVODCE APLIKACÍ</p><label class="search-label" for="manual-search">Co potřebujete udělat?</label><input id="manual-search" type="search" aria-label="Hledat v příručce" placeholder="Např. příjemce poptávky" autocomplete="off"><p id="search-status" role="status" aria-live="polite"></p><button type="button" id="toggle-contents" aria-expanded="false" aria-controls="manual-nav">Obsah příručky ↓</button><nav id="manual-nav" aria-label="Obsah příručky">${nav}</nav><p class="sidebar-note">Ověřeno pro v${escape(version)}<br>Syntetická ukázková data</p></aside>
-<main id="manual-content" tabindex="-1"><div class="hero"><p class="eyebrow">OD PRVNÍ STAVBY K PODPISU SMLOUVY</p><h1>Jasný postup.<br><span>V každém kroku.</span></h1><p>Seznamte se s Tender Flow na jedné ukázkové stavbě. Konkrétní úkoly, srozumitelné návody a obrazovky, podle kterých se zorientujete.</p><div class="hero-actions"><a class="button-primary" href="#rychly-start">Začít s ukázkovou stavbou ↗</a><a href="#vyberova-rizeni">Přejít k výběrovým řízením →</a></div><div class="hero-meta"><span>Verze ${escape(version)}</span><span>Aktualizováno 16. 9. 2026</span><span>Web i desktop</span></div></div>
+<main id="manual-content" tabindex="-1"><div class="hero"><p class="eyebrow">OD PRVNÍ STAVBY K PODPISU SMLOUVY</p><h1>Jasný postup.<br><span>V každém kroku.</span></h1><p>Seznamte se s Tender Flow na jedné ukázkové stavbě. Konkrétní úkoly, srozumitelné návody a obrazovky, podle kterých se zorientujete.</p><div class="hero-actions"><a class="button-primary" href="#rychly-start">Začít s ukázkovou stavbou ↗</a><a href="#vyberova-rizeni">Přejít k výběrovým řízením →</a></div><div class="hero-meta"><span>Verze ${escape(version)}</span><span>Aktualizováno ${escape(reviewDate)}</span><span>Web i desktop</span></div></div>
 <div class="journey" aria-label="Postup práce"><a href="#sprava-staveb"><span>01</span> Založit stavbu</a><a href="#plan-vr"><span>02</span> Naplánovat VŘ</a><a href="#vyberova-rizeni"><span>03</span> Porovnat nabídky</a><a href="#smlouvy"><span>04</span> Uzavřít smlouvu</a></div>
 <div id="search-empty" hidden><h2>Nic jsme nenašli.</h2><p>Zkuste kratší výraz, například „smlouva“ nebo „příjemce“.</p><button type="button" id="clear-search">Zobrazit celou příručku</button></div>
 <article id="manual-article">${wrapper.innerHTML}</article><footer>Příručka Tender Flow · Ukázkové firmy, osoby i částky jsou fiktivní. <a href="#manual-content">Zpět nahoru ↑</a></footer></main></div>
@@ -85,7 +88,7 @@ async function main() {
     if (buffer.toString('hex', 0, 8) !== '89504e470d0a1a0a') throw new Error(`Invalid PNG: ${match[1]}`);
     imageSizes[match[1]] = { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
   }
-  await fs.writeFile('public/user-manual/index.html', buildManualHtml(markdown, { version: review.appVersion, aliases, imageSizes }));
+  await fs.writeFile('public/user-manual/index.html', buildManualHtml(markdown, { version: review.appVersion, reviewedAt: review.reviewedAt, aliases, imageSizes }));
   await fs.writeFile('public/user-manual/index.kb.json', JSON.stringify({ generatedAt: new Date().toISOString(), source: '/public/user-manual/index.md', entries: extractManualKbEntries(markdown) }, null, 2) + '\n');
   console.log('Generated manual HTML and knowledge base.');
 }

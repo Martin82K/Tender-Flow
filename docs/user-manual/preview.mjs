@@ -1,9 +1,12 @@
 import { build, preview } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import os from 'node:os';
+import { mkdtemp } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
+const temporary = await mkdtemp(path.join(os.tmpdir(), 'tf-manual-fixtures-'));
 const config = {
   configFile: false, envDir: false, root: here, publicDir: false,
   plugins: [react(), {
@@ -27,7 +30,7 @@ const config = {
   }],
   resolve: { alias: Object.fromEntries([['@', ''], ['@shared', 'shared'], ['@features', 'features']].map(([name, dir]) => [name, path.join(root, dir)])) },
   css: { postcss: root },
-  build: { outDir: '/private/tmp/tf-manual-fixtures', emptyOutDir: true },
+  build: { outDir: temporary, emptyOutDir: true },
   preview: { host: '127.0.0.1', port: 4176, strictPort: true },
 };
 await build(config);

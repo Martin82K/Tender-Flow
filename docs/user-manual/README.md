@@ -21,7 +21,7 @@ Hlavní zdroje pravdy:
 - [Vazby smluv](../development/contract-bid-navigation.md).
 - `features/projects/documents/ui/ProjectDocuments.tsx` — nastavení stavby a Složkomat.
 - `features/tasks/ui/TasksPage.tsx` — osobní úkoly.
-- `features/public/ui/landing-apex.css` — Manrope, pozadí #0c1210, akcent #86b79b.
+- `features/public/ui/landing-apex.css` — Manrope a výsledná světlá paleta: slonovinová #f5f2ec, text #20252c, pálená oranžová #af4821. Použijte poslední přepsání tokenů ve stylu, nikoli původní tmavý blok.
 
 Právní část byla ponechána obsahově beze změny. Není předmětem nové právní
 revize. Neuvádějte neověřenou tabulku tarifů nebo sliby o offline funkčnosti.

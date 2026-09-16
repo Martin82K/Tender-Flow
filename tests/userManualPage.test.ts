@@ -3,6 +3,21 @@ import { existsSync, readFileSync } from 'node:fs';
 import { buildManualHtml } from '../scripts/build-user-manual.mjs';
 
 describe('uživatelská příručka', () => {
+  it('zobrazuje datum ověření z metadat místo pevného data', () => {
+    const html = buildManualHtml('## Úvod\nText', { version: '2.0.0', reviewedAt: '2026-10-20' });
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(document.querySelector('.hero-meta')?.textContent).toContain('20. 10. 2026');
+    expect(document.querySelector('.hero-meta')?.textContent).not.toContain('16. 9. 2026');
+  });
+  it('používá aktuální výslednou paletu landing page včetně pozdějšího přepsání tokenů', () => {
+    const landing = readFileSync('features/public/ui/landing-apex.css', 'utf8');
+    const manual = readFileSync('public/user-manual/manual.css', 'utf8').split('}')[0];
+    const value = (css: string, token: string) => [...css.matchAll(new RegExp(`${token}\\s*:\\s*([^;]+);`, 'g'))].at(-1)?.[1].trim();
+    for (const [manualToken, landingToken] of Object.entries({ '--bg': '--bg', '--panel': '--bg-elevated', '--card': '--bg-card', '--text': '--white', '--muted': '--gray-1', '--accent': '--cta', '--line': '--border' })) {
+      expect(value(manual, manualToken), manualToken).toBe(value(landing, landingToken));
+    }
+    expect(manual).toContain('color-scheme:light');
+  });
   it('vytvoří samostatně dostupné kapitoly, navigaci a vyhledávání', () => {
     const html = buildManualHtml('# Příručka\n\n## Poptávky\nText\n\n### Příjemce\nPostup', { version: '1.9.36', aliases: {} });
     const document = new DOMParser().parseFromString(html, 'text/html');
