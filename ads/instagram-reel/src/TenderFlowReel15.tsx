@@ -236,7 +236,7 @@ const ContractCtaScene: React.FC = () => {
     <ReelChrome sceneIndex={4}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
       <AppFrame activeTab="contract">
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {DEMO_CONTRACTS.map((contract, index) => (
             <ContractRow
               key={contract.number}
@@ -247,12 +247,43 @@ const ContractCtaScene: React.FC = () => {
               amount={contract.amount}
               billed={contract.active ? billed : contract.billed}
               active={contract.active}
-              style={{
-                flex: index === 0 ? 1.15 : 1,
-                ...fadeUp(frame, fps, 4 + index * 5),
-              }}
+              style={fadeUp(frame, fps, 4 + index * 5)}
             />
           ))}
+        </div>
+        <div
+          style={{
+            marginTop: 10,
+            flex: 1,
+            minHeight: 0,
+            borderRadius: 12,
+            border: `1px solid ${brand.line}`,
+            background: brand.card,
+            padding: 14,
+            opacity: enter(frame, fps, 16),
+          }}
+        >
+          <div style={{ fontSize: 12, color: brand.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Detail smlouvy
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 8 }}>{DEMO_CONTRACTS[0].title}</div>
+          <div style={{ color: brand.muted, fontSize: 14, marginTop: 4 }}>
+            {DEMO_CONTRACTS[0].vendor} · {DEMO_CONTRACTS[0].number}
+          </div>
+          <div style={{ display: "flex", gap: 18, marginTop: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, color: brand.muted }}>Smluvní cena</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2 }}>{DEMO_CONTRACTS[0].amount}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: brand.muted }}>Vyfakturováno</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2, color: brand.green }}>{billed} %</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: brand.muted }}>Stav</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2, color: brand.green }}>Aktivní</div>
+            </div>
+          </div>
         </div>
       </AppFrame>
       <div style={{ paddingTop: 16, textAlign: "center", flexShrink: 0 }}>

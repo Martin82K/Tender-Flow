@@ -31,29 +31,22 @@ export const LogoMark: React.FC<{ size?: number }> = ({ size = 64 }) => (
     style={{
       width: size,
       height: size,
-      position: "relative",
       flexShrink: 0,
+      borderRadius: Math.round(size * 0.22),
+      overflow: "hidden",
+      background: "#090807",
+      boxShadow: `0 0 ${Math.round(size * 0.28)}px rgba(242, 107, 26, 0.42)`,
     }}
   >
-    <div
-      style={{
-        position: "absolute",
-        inset: "11%",
-        borderRadius: "22%",
-        background: "#090807",
-        boxShadow: `0 0 ${Math.round(size * 0.22)}px rgba(242, 107, 26, 0.45)`,
-      }}
-    />
     <Img
       src={TF_APP_ICON}
       alt="Tender Flow"
       style={{
-        position: "relative",
-        width: size,
-        height: size,
-        objectFit: "contain",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        transform: "scale(1.08)",
         display: "block",
-        mixBlendMode: "screen",
       }}
     />
   </div>
@@ -76,23 +69,23 @@ const NavGlyph: React.FC<{ kind: "building" | "handshake" | "contract" | "settin
   if (kind === "handshake") {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24">
-        <path {...common} d="M8 12l3 3 8-8" />
-        <path {...common} d="M3 12l5 5 2-2" />
+        <path {...common} d="M4 12l4-2 3 3 6-4 3 2" />
+        <path {...common} d="M8 10V7M16 9v3" />
       </svg>
     );
   }
   if (kind === "contract") {
     return (
       <svg width="22" height="22" viewBox="0 0 24 24">
-        <path {...common} d="M7 3h8l4 4v14H7z" />
-        <path {...common} d="M15 3v4h4M9 12h6M9 16h4" />
+        <path {...common} d="M6 3h9l5 5v13H6z" />
+        <path {...common} d="M15 3v5h5M9 13h6M9 17h4" />
       </svg>
     );
   }
   return (
     <svg width="22" height="22" viewBox="0 0 24 24">
-      <circle {...common} cx="12" cy="12" r="3" />
-      <path {...common} d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4" />
+      <circle {...common} cx="12" cy="12" r="3.2" />
+      <path {...common} d="M12 4v2.2M12 17.8V20M4 12h2.2M17.8 12H20M6.4 6.4l1.6 1.6M16 16l1.6 1.6M17.6 6.4 16 8M8 16l-1.6 1.6" />
     </svg>
   );
 };

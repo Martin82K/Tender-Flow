@@ -114,16 +114,19 @@ export const CategoryCard: React.FC<{
       display: "flex",
       flexDirection: "column",
       minHeight: 0,
+      justifyContent: "space-between",
       ...style,
     }}
   >
-    <Pill label={status} tone={tone} />
-    <div style={{ fontSize: 22, fontWeight: 800, marginTop: 8, letterSpacing: "-0.03em" }}>{title}</div>
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: brand.accent, fontSize: 13 }}>
-      <Glyph d="M7 4h10v16H7zM7 8h10" size={13} color={brand.accent} />
-      <span>Termín nabídky: {deadline}</span>
+    <div>
+      <Pill label={status} tone={tone} />
+      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 8, letterSpacing: "-0.03em" }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: brand.accent, fontSize: 13 }}>
+        <Glyph d="M7 4h10v16H7zM7 8h10" size={13} color={brand.accent} />
+        <span>Termín nabídky: {deadline}</span>
+      </div>
+      <div style={{ marginTop: 6, color: brand.muted, fontSize: 14, lineHeight: 1.35 }}>{description}</div>
     </div>
-    <div style={{ marginTop: 6, color: brand.muted, fontSize: 14, lineHeight: 1.3, flex: 1 }}>{description}</div>
     <div
       style={{
         display: "flex",
