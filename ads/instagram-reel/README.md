@@ -12,10 +12,11 @@ Samostatná Remotion kompozice `TenderFlowReel15` pro svislý Instagram Reel
 | 2,5–5,0 s | Oslovení | *Uchazeči* / **Oslovení uchazečů** / Koho oslovit. Přehledně. |
 | 5,0–8,5 s | Kola | *Nabídky* / **Kola nabídek** / Další kolo bez ztráty kontextu. |
 | 8,5–11,5 s | Výběr | *Rozhodnutí* / **Výběr nabídky** / Rozhodnutí zůstane u zakázky. |
-| 11,5–15,0 s | Smlouva + CTA | *Uzavření* / **Smlouva** / Jedna cesta v jednom nástroji. / **Zjistit víc** / tenderflow.cz |
+| 11,5–15,0 s | Smlouva + CTA | *Uzavření* / **Smlouva** / Jedna cesta v jednom nástroji. / **Domluvit ukázku** / tenderflow.cz |
 
-CTA (`Zjistit víc` + `tenderflow.cz`) je záměrně v `src/copy.ts`, aby šlo
-vyměnit bez zásahu do scény. Spot neslibuje výkaz výměrů, soupisy, položkovou
+CTA je v `src/copy.ts`: na plátně **Domluvit ukázku** a podtext `tenderflow.cz`,
+cílová adresa pro popisek/end card je `https://www.tenderflow.cz` (ne `app.`
+ani `tenderflow.de`). Spot neslibuje výkaz výměrů, soupisy, položkovou
 kalkulaci ani náhradu Helios / First RSV.
 
 ## Náhled a render

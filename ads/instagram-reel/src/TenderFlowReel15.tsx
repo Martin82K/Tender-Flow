@@ -215,7 +215,7 @@ const ContractCtaScene: React.FC = () => {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            minWidth: 420,
+            minWidth: 520,
             padding: "28px 42px",
             borderRadius: 22,
             background: brand.accent,

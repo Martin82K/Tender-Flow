@@ -32,7 +32,7 @@ describe("TenderFlowReel15 storyboard", () => {
     expect(SCENE_FRAMES.reduce((sum, scene) => sum + scene.durationInFrames, 0)).toBe(450);
   });
 
-  it("keeps the brief story spine and Czech CTA placeholders", () => {
+  it("keeps the brief story spine and marketing Czech CTA", () => {
     expect(SCENES.map((scene) => [scene.startSeconds, scene.endSeconds, scene.title])).toEqual([
       [0, 2.5, "Příprava a VŘ"],
       [2.5, 5, "Oslovení uchazečů"],
@@ -44,8 +44,11 @@ describe("TenderFlowReel15 storyboard", () => {
     expect(SCENES[0]?.subtitle).toContain("Nabídky");
     expect(SCENES[0]?.subtitle).toContain("Smlouva");
     expect(TAGLINE).toBe("Jedna cesta v jednom nástroji.");
-    expect(CTA.primary).toBe("Zjistit víc");
+    expect(CTA.primary).toBe("Domluvit ukázku");
     expect(CTA.url).toBe("tenderflow.cz");
+    expect(CTA.href).toBe("https://www.tenderflow.cz");
+    expect(CTA.href).not.toContain("tenderflow.de");
+    expect(CTA.href).not.toContain("app.");
   });
 
   it("does not promise soupisy, kalkulaci or competitor replacement", () => {

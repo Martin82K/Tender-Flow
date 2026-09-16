@@ -1,10 +1,11 @@
 /**
  * On-screen Czech copy for the 15s Instagram Reel.
- * CTA strings are placeholders until marketing confirms the final wording.
+ * CTA is the marketing-confirmed landing wording: Czech www host only.
  */
 export const CTA = {
-  primary: "Zjistit víc",
+  primary: "Domluvit ukázku",
   url: "tenderflow.cz",
+  href: "https://www.tenderflow.cz",
 } as const;
 
 export const TAGLINE = "Jedna cesta v jednom nástroji.";
@@ -87,4 +88,6 @@ export const FORBIDDEN_COPY_FRAGMENTS = [
   "helios",
   "first rsv",
   "erp",
+  "tenderflow.de",
+  "app.tenderflow",
 ] as const;
