@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { Sidebar } from '@/components/Sidebar';
 import { FEATURES, type FeatureKey } from '@/config/features';
@@ -36,6 +36,7 @@ vi.mock('@/context/FeatureContext', () => ({
 
 vi.mock('@/shared/routing/router', () => ({
   useLocation: () => ({ search: '' }),
+  navigate: vi.fn(),
 }));
 
 const renderSidebar = (
@@ -72,16 +73,28 @@ describe('Sidebar navigation', () => {
     ).toHaveAttribute('aria-controls', 'app-sidebar');
   });
 
-  it('zobrazuje TODO Osobní jako první hlavní položku sidebaru', () => {
+  it('zobrazuje Dodavatele nahoře a TODO Osobní dole', () => {
     const { container } = renderSidebar();
 
     expect(screen.getByRole('button', { name: /TODO Osobní/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Command Center/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Správa staveb/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Správa staveb/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Pohledy staveb' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Přehledy/i })).toBeInTheDocument();
 
     const mainNavItems = Array.from(container.querySelectorAll('[data-help-id="sidebar-nav-item"]'));
-    expect(mainNavItems[0]).toHaveTextContent(/TODO Osobní/i);
+    expect(within(screen.getByRole('navigation', { name: 'Oblasti aplikace' })).getByRole('button', { name: 'Dodavatelé' })).toBeInTheDocument();
+    expect(mainNavItems.at(-1)).toHaveTextContent(/TODO Osobní/i);
+  });
+
+  it('opens contacts from the horizontal panel and hides unrelated portfolio views', () => {
+    const { onViewChange } = renderSidebar(vi.fn(), 'contacts');
+    const contacts = within(screen.getByRole('navigation', { name: 'Oblasti aplikace' })).getByRole('button', { name: 'Dodavatelé' });
+    expect(contacts).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('navigation', { name: 'Pohledy staveb' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Dodavatelé' })).toHaveLength(1);
+    fireEvent.click(contacts);
+    expect(onViewChange).toHaveBeenCalledWith('contacts', undefined);
   });
 
   it('naviguje ze sidebaru na TODO Osobní, správu staveb a přehledy', () => {
@@ -89,8 +102,9 @@ describe('Sidebar navigation', () => {
     renderSidebar(onViewChange);
 
     fireEvent.click(screen.getByRole('button', { name: /TODO Osobní/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Správa staveb/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Přehledy/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stavby', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Přehledy', exact: true }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Přehledy' })).getByRole('button', { name: /Přehledy/i }));
 
     expect(onViewChange).toHaveBeenNthCalledWith(1, 'todo', undefined);
     expect(onViewChange).toHaveBeenNthCalledWith(2, 'project-management', undefined);
@@ -119,10 +133,44 @@ describe('Sidebar navigation', () => {
   it('označí aktivní položku pro nový industrial skin', () => {
     renderSidebar(vi.fn(), 'project-overview');
 
-    const overviewButton = screen.getByRole('button', { name: /Přehledy/i });
+    const overviewButton = within(screen.getByRole('navigation', { name: 'Přehledy' })).getByRole('button', { name: /Přehledy/i });
 
     expect(overviewButton).toHaveAttribute('data-help-id', 'sidebar-nav-item');
     expect(overviewButton).toHaveAttribute('data-active', 'true');
     expect(overviewButton).toHaveAttribute('aria-current', 'page');
   });
+});
+
+it('otevře menu jediné stavby přímo a přepne projekt přes hledání', () => {
+  const onProjectSelect = vi.fn();
+  render(<Sidebar currentView="project" selectedProjectId="a" projects={[
+    { id: 'a', name: 'Stavba Alfa', location: 'Praha', status: 'tender' },
+    { id: 'b', name: 'Stavba Beta', location: 'Brno', status: 'realization' },
+  ]} onViewChange={vi.fn()} onProjectSelect={onProjectSelect} isOpen onToggle={vi.fn()} />);
+  expect(screen.getByRole('button', { name: 'Přehled' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('button', { name: 'Realizační tým' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Hledat stavbu' }), { target: { value: 'Beta' } });
+  fireEvent.click(screen.getByRole('button', { name: /Stavba Beta · Brno/ }));
+  expect(onProjectSelect).toHaveBeenCalledWith('b', 'overview');
+  expect(screen.queryByRole('searchbox', { name: 'Hledat stavbu' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Rozpočet' })).not.toBeInTheDocument();
+});
+
+it('otevře portfolio přes vodorovný přepínač Stavby', () => {
+  const { onViewChange } = renderSidebar();
+  fireEvent.click(screen.getByRole('button', { name: 'Stavby', exact: true }));
+  expect(onViewChange).toHaveBeenCalledWith('project-management', undefined);
+});
+
+it('umístí sbalení vedle značky a ponechá mobilní zavření', () => {
+  const onToggle = vi.fn();
+  render(<Sidebar currentView="project-management" selectedProjectId="" projects={[]}
+    onViewChange={vi.fn()} onProjectSelect={vi.fn()} isOpen onToggle={onToggle} />);
+  const collapse = screen.getByRole('button', { name: 'Sbalit menu' });
+  expect(collapse.closest('.tf-sidebar-brand')).not.toBeNull();
+  expect(collapse).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.click(collapse);
+  expect(onToggle).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'Zavřít sidebar' })).toHaveClass('md:hidden');
 });

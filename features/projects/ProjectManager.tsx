@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/shared/queryKeys/projectKeys';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { TaskCreateButton } from '@features/tasks';
 import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
 import { organizationService } from '@features/organization/api';
@@ -14,9 +15,12 @@ import { AlertModal } from '@/shared/ui/AlertModal';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { useFeatures } from '@/context/FeatureContext';
 import type { ThemeSkin } from '@/shared/types/theme';
-import { navigate } from '@/shared/routing/router';
+import { readPortfolioState, writePortfolioState, portfolioStorageKey, parsePortfolioStatus, PORTFOLIO_VIEWS } from '@features/projects/model/portfolioState';
+import { Link, navigate, useLocation } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { PROJECT_TEAM_ROLE_LABELS } from '@/shared/authorization/projectRoles';
+import { useProjectPortfolioSummary } from '@features/projects/hooks/useProjectPortfolioSummary';
+import { ProjectPortfolioCharts, PortfolioDeadline } from '@features/projects/ui/ProjectPortfolioCharts';
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 interface ProjectManagerProps {
@@ -28,39 +32,18 @@ interface ProjectManagerProps {
     skin?: ThemeSkin;
 }
 
-// Collapsible Archive Section Component
+// Archived projects remain read-only; only authorized restoration is offered.
 const ArchiveSection: React.FC<{
     projects: Project[];
-    user: { id: string } | null;
     onRestoreProject: (id: string) => void;
-    openDeleteModal: (id: string, name: string) => void;
-    openShareModal: (id: string) => void;
     canAdminister: (id: string) => boolean;
-}> = ({ projects, user, onRestoreProject, openDeleteModal, canAdminister }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+}> = ({ projects, onRestoreProject, canAdminister }) => {
 
     return (
         <section data-help-id="pm-archive-section" className="bg-white dark:bg-gradient-to-br dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-xl overflow-hidden">
-            {/* Collapsible Header */}
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
-            >
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-slate-500">inventory_2</span>
-                    <h2 className="text-base font-bold text-slate-500 dark:text-slate-400">Archiv</h2>
-                    <span className="bg-slate-100 dark:bg-slate-700/50 text-slate-500 text-xs px-2 py-0.5 rounded-lg">
-                        {projects.length} {projects.length === 1 ? 'projekt' : projects.length < 5 ? 'projekty' : 'projektů'}
-                    </span>
-                </div>
-                <span className={`material-symbols-outlined text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                    expand_more
-                </span>
-            </button>
-
-            {/* Collapsible Content */}
-            {isExpanded && (
+            <h2 className="p-4 text-base font-bold">Archiv · {projects.length}</h2>
                 <div className="p-4 pt-0 space-y-2">
+                    {!projects.length && <p className="py-4 text-sm text-slate-500">Žádné archivované stavby neodpovídají výběru.</p>}
                     {projects.map(project => (
                         <div key={project.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/40 opacity-70 hover:opacity-100 transition-opacity">
                             <div className="flex items-center gap-3">
@@ -68,7 +51,7 @@ const ArchiveSection: React.FC<{
                                     A
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-slate-600 dark:text-slate-300 text-sm">{project.name}</h4>
+                                    <Link to={buildAppUrl('project', { projectId: project.id, tab: 'overview' })} className="font-medium text-slate-600 dark:text-slate-300 text-sm hover:underline">{project.name}</Link>
                                     <p className="text-[10px] text-slate-600">{project.location}</p>
                                 </div>
                             </div>
@@ -88,15 +71,8 @@ const ArchiveSection: React.FC<{
                         </div>
                     ))}
                 </div>
-            )}
         </section>
     );
-};
-
-const formatSharedWithLabel = (sharedWith: string[]): string => {
-    if (sharedWith.length <= 2) return sharedWith.join(', ');
-
-    return `${sharedWith.slice(0, 2).join(', ')} +${sharedWith.length - 2}`;
 };
 
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
@@ -109,6 +85,37 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 }) => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const { search } = useLocation();
+    const routeStatus = parsePortfolioStatus(new URLSearchParams(search).get('status'));
+    const portfolioKey = portfolioStorageKey(user?.id, user?.organizationId);
+    const [portfolio, setPortfolio] = useState(() => readPortfolioState(portfolioKey));
+    const portfolioStatus = routeStatus ?? portfolio.status;
+    useEffect(() => {
+        if (routeStatus && routeStatus !== portfolio.status) {
+            setPortfolio(previous => ({ ...previous, status: routeStatus, scrollTop: 0 }));
+            if (scrollContainer.current) scrollContainer.current.scrollTop = 0;
+        }
+    }, [routeStatus, portfolio.status]);
+    const [showCreate, setShowCreate] = useState(false);
+    const summaries = useProjectPortfolioSummary(projects, user?.id, user?.organizationId);
+    const scrollContainer = useRef<HTMLDivElement>(null);
+    const currentPortfolio = useRef(portfolio);
+    const storedPortfolioKey = useRef(portfolioKey);
+    useEffect(() => {
+        if (storedPortfolioKey.current !== portfolioKey) {
+            const saved = readPortfolioState(portfolioKey);
+            storedPortfolioKey.current = portfolioKey;
+            currentPortfolio.current = saved;
+            setPortfolio(saved);
+            if (scrollContainer.current) scrollContainer.current.scrollTop = saved.scrollTop;
+            return;
+        }
+        currentPortfolio.current = portfolio;
+        writePortfolioState(portfolioKey, portfolio);
+    }, [portfolio, portfolioKey]);
+    useEffect(() => {
+        if (scrollContainer.current) scrollContainer.current.scrollTop = currentPortfolio.current.scrollTop;
+    }, []);
     const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
     const ownedActiveProjectsCount = projects.filter((project) => {
         if (project.status === 'archived') return false;
@@ -370,6 +377,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         return aIndex - bIndex;
     });
 
+    const displayedProjects = orderedActiveProjects.filter(project =>
+        (portfolioStatus === 'all' || project.status === portfolioStatus)
+        && (!portfolio.ownOnly || project.ownerId === user?.id)
+        && `${project.name} ${project.location}`.toLocaleLowerCase('cs').includes(portfolio.query.toLocaleLowerCase('cs'))
+    );
+
     // Drag handlers
     const handleDragStart = (e: React.DragEvent, projectId: string) => {
         setDraggedId(projectId);
@@ -447,6 +460,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setNewProjectName('');
             setNewProjectLocation('');
             setInitialTeam({});
+            navigate(buildAppUrl('project', { projectId: newProject.id, tab: 'overview' }));
         } catch (error) {
             console.error('Error creating project:', error);
             setAlertModal({
@@ -598,13 +612,26 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     };
 
     return (
-        <div className="tf-project-manager-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
-            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} skin={skin} />
+        <div ref={scrollContainer} onScroll={event => {
+            const next = { ...currentPortfolio.current, scrollTop: event.currentTarget.scrollTop };
+            currentPortfolio.current = next;
+            writePortfolioState(portfolioKey, next);
+        }} className="tf-project-manager-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+            <Header title="Stavby" subtitle={portfolioStatus === 'all' ? 'Portfolio staveb' : PORTFOLIO_VIEWS.find(view => view.id === portfolioStatus)?.label} helpSlot={<div className="flex items-center gap-1"><TaskCreateButton /><HelpButton /></div>} notificationSlot={<NotificationBell />} skin={skin} />
 
-            <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
+            <div className="p-4 md:p-6 w-full pb-20">
 
+                <div className="tf-portfolio-toolbar mb-5 flex flex-wrap items-center gap-3 rounded-xl p-3">
+                    <input type="search" aria-label="Hledat stavbu" placeholder="Hledat podle názvu nebo čísla…"
+                        value={portfolio.query} onChange={event => setPortfolio({ ...currentPortfolio.current, query: event.target.value })}
+                        className="w-full min-w-0 sm:w-80 sm:max-w-sm sm:flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm" />
+                    <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm"><input type="checkbox" checked={portfolio.ownOnly}
+                        onChange={event => setPortfolio({ ...currentPortfolio.current, ownOnly: event.target.checked })} />Moje stavby</label>
+                    <button type="button" aria-expanded={showCreate} aria-controls="portfolio-create"
+                        onClick={() => setShowCreate(!showCreate)} className="shrink-0 whitespace-nowrap rounded-lg border border-primary px-4 py-2 text-sm text-primary">+ Nová stavba</button>
+                </div>
                 {/* 1. Create New Project */}
-                <section data-help-id="pm-create-section" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <section id="portfolio-create" hidden={!showCreate} data-help-id="pm-create-section" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">add_business</span>
                         Nová stavba
@@ -685,56 +712,45 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 </section>
 
                 {/* 2. Active Project List */}
-                <section data-help-id="pm-project-list" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-blue-400">list_alt</span>
-                        Seznam vašich a sdílených staveb
+                {portfolioStatus !== 'archived' && <section data-help-id="pm-project-list" className="tf-portfolio-list mb-5">
+                    <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Stavby · {displayedProjects.length}
                     </h2>
 
-                    <div className="space-y-3">
-                        {orderedActiveProjects.map(project => (
+                    {summaries.isError && <p role="alert" className="mb-3 text-sm">Souhrny VŘ se nepodařilo načíst. <button type="button" className="underline" onClick={() => void summaries.refetch()}>Zkusit znovu</button></p>}
+                    <div className="tf-portfolio-table" role="table" aria-label="Stavby v portfoliu">
+                        <div className="tf-portfolio-grid tf-portfolio-head" role="row">
+                            <span role="columnheader">Stavba</span><span role="columnheader">Stav</span><span role="columnheader">Otevřená VŘ</span><span role="columnheader">Nejbližší termín</span><span role="columnheader" className="sr-only">Akce</span>
+                        </div>
+                        {displayedProjects.map(project => (
                             <div
                                 key={project.id}
                                 data-help-id="pm-project-row"
+                                role="row"
                                 draggable
                                 onDragStart={(e) => handleDragStart(e, project.id)}
                                 onDragOver={handleDragOver}
                                 onDrop={(e) => handleDrop(e, project.id)}
                                 onDragEnd={handleDragEnd}
-                                className={`flex items-center justify-between p-4 rounded-xl border bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 cursor-move transition-all ${draggedId === project.id ? 'opacity-50 scale-[0.98]' : ''}`}
+                                className={`tf-portfolio-grid tf-portfolio-row ${draggedId === project.id ? 'opacity-50' : ''}`}
                             >
-                                <div className="flex items-center gap-4">
-                                    {/* Drag Handle */}
-                                    <span className="material-symbols-outlined text-slate-600 text-[20px] cursor-grab active:cursor-grabbing">
-                                        drag_indicator
-                                    </span>
-                                    <div
-                                        data-help-id="pm-project-status-badge"
-                                        data-status={project.status}
-                                        aria-label={
-                                            project.status === 'realization'
-                                                ? 'Realizace'
-                                                : project.status === 'tender'
-                                                    ? 'Soutěž'
-                                                    : 'Archivováno'
-                                        }
-                                        title={
-                                            project.status === 'realization'
-                                                ? 'Realizace'
-                                                : project.status === 'tender'
-                                                    ? 'Soutěž'
-                                                    : 'Archivováno'
-                                        }
-                                        className={`size-10 rounded-full flex items-center justify-center text-lg font-bold ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
-                                            project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
-                                                'bg-slate-700/50 text-slate-500'
-                                            }`}
-                                    >
-                                        {project.status === 'realization' ? 'R' : project.status === 'tender' ? 'S' : 'A'}
-                                    </div>
-                                    <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">{project.name}</h4>
+                                <div role="cell" className="min-w-0">
+                                    <Link to={buildAppUrl('project', { projectId: project.id, tab: 'overview' })} className="tf-portfolio-name block py-2 text-sm font-medium hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{project.name}</Link>
+                                </div>
+                                <span role="cell" data-help-id="pm-project-status-badge" data-status={project.status}
+                                    aria-label={project.status === 'realization' ? 'Realizace' : 'Soutěž'} className="tf-portfolio-status text-xs">
+                                    {project.status === 'realization' ? 'V realizaci' : 'V soutěži'}
+                                </span>
+                                <span role="cell" className="text-sm" aria-label={`Otevřená VŘ: ${project.name}`}>
+                                    {summaries.data?.[project.id]?.openCount ?? (summaries.isFetching ? 'Načítání…' : '—')}
+                                </span>
+                                <div role="cell"><PortfolioDeadline summary={summaries.data?.[project.id]} loading={summaries.isFetching} /></div>
+                                <div role="cell" className="flex items-center justify-end gap-1">
+                                    <details className="tf-portfolio-actions relative">
+                                        <summary aria-label={`Spravovat stavbu ${project.name}`} className="cursor-pointer list-none p-2"><span aria-hidden="true" className="material-symbols-outlined text-lg">more_horiz</span></summary>
+                                        <div className="tf-portfolio-action-panel absolute right-0 top-full z-20 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                                            <p className="mb-2 break-words text-xs">{project.location}</p>
+                                            <div className="mb-2 flex flex-wrap gap-1">
                                             {/* Ownership Badges */}
                                             {project.ownerId && project.ownerId !== user?.id && (
                                                 <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-lg border border-blue-500/30">
@@ -746,27 +762,10 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                                     Veřejné
                                                 </span>
                                             )}
-                                            {/* Shared WITH Badge (For Owners) */}
-                                            {project.ownerId === user?.id && project.sharedWith && project.sharedWith.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    data-help-id="pm-shared-with-badge"
-                                                    className="max-w-full sm:max-w-[32rem] truncate rounded-lg border border-blue-300 bg-blue-50 px-2 py-0.5 text-left text-[10px] font-semibold text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-100 dark:hover:bg-blue-500/25"
-                                                    onClick={(e) => { e.stopPropagation(); openShareModal(project.id); }}
-                                                    title={`Sdíleno s: ${project.sharedWith.join(', ')}`}
-                                                >
-                                                    Sdíleno s: {formatSharedWithLabel(project.sharedWith)}
-                                                </button>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-slate-500">{project.location} • {
-                                            project.status === 'realization' ? 'Realizace' :
-                                                project.status === 'tender' ? 'Soutěž' : 'Archivováno'
-                                        }</p>
-                                    </div>
-                                </div>
 
-                                <div data-help-id="pm-project-actions" className="flex items-center gap-2">
+                                            </div>
+                                            <p className="mb-2 text-xs text-slate-500">Pořadí změníte přetažením řádku.</p>
+                                            <div data-help-id="pm-project-actions" className="tf-portfolio-action-list flex flex-col gap-1">
                                     {/* Edit Button - Only Owner */}
                                     {canAdministerProject(project.id) && (
                                         <button
@@ -774,7 +773,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
                                             title="Upravit projekt"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">edit</span><span>Upravit stavbu</span>
                                         </button>
                                     )}
 
@@ -785,7 +784,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors flex items-center gap-1"
                                             title="Sdílet projekt"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">share</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">share</span><span>Sdílet stavbu</span>
                                         </button>
                                     )}
 
@@ -796,9 +795,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Přepnout do realizace"
                                         >
-                                            <span className={`material-symbols-outlined text-[20px] ${cloningProjectId === project.id ? 'animate-spin' : ''}`}>
+                                            <span aria-hidden="true" className={`material-symbols-outlined text-[20px] ${cloningProjectId === project.id ? 'animate-spin' : ''}`}>
                                                 {cloningProjectId === project.id ? 'sync' : 'published_with_changes'}
-                                            </span>
+                                            </span><span>{cloningProjectId === project.id ? 'Přepínání do realizace…' : 'Přepnout do realizace'}</span>
                                         </button>
                                     )}
 
@@ -809,7 +808,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             className="p-2 text-slate-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-colors"
                                             title="Předat vlastnictví"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">swap_horiz</span><span>Předat vlastnictví</span>
                                         </button>
                                     )}
 
@@ -818,7 +817,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
                                         title="Archivovat"
                                     >
-                                        <span className="material-symbols-outlined text-[20px]">archive</span>
+                                        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">archive</span><span>Archivovat stavbu</span>
                                     </button>}
 
                                     {/* Delete Button - Only Owner */}
@@ -826,28 +825,31 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         <button
                                             onClick={() => openDeleteModal(project.id, project.name)}
                                             className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            data-destructive="true"
                                             title="Odstranit"
                                         >
-                                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">delete</span><span>Odstranit stavbu</span>
                                         </button>
                                     )}
+                                            </div>
+                                        </div>
+                                    </details>
                                 </div>
                             </div>
                         ))}
-                        {orderedActiveProjects.length === 0 && (
-                            <p className="text-center text-slate-500 italic py-4">Žádné aktivní projekty.</p>
+                        {displayedProjects.length === 0 && (
+                            <p className="text-center text-slate-500 italic py-4">Žádné stavby neodpovídají výběru.</p>
                         )}
                     </div>
-                </section>
+                </section>}
+
+                {portfolioStatus !== 'archived' && <ProjectPortfolioCharts projects={displayedProjects} summaries={summaries.data} loading={summaries.isFetching} />}
 
                 {/* 3. Archive Section */}
-                {projects.filter(p => p.status === 'archived').length > 0 && (
+                {portfolioStatus === 'archived' && (
                     <ArchiveSection
-                        projects={projects.filter(p => p.status === 'archived')}
-                        user={user}
+                        projects={projects.filter(p => p.status === 'archived' && (!portfolio.ownOnly || p.ownerId === user?.id) && `${p.name} ${p.location}`.toLocaleLowerCase('cs').includes(portfolio.query.toLocaleLowerCase('cs')))}
                         onRestoreProject={onArchiveProject}
-                        openDeleteModal={openDeleteModal}
-                        openShareModal={openShareModal}
                         canAdminister={canAdministerProject}
                     />
                 )}

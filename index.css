@@ -4120,7 +4120,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-s
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-topbar {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   background-color: color-mix(in srgb, var(--tf-skin-card) var(--tf-skin-data-opacity, 94%), transparent) !important;
   color: var(--tf-skin-text) !important;
   backdrop-filter: blur(var(--tf-skin-surface-blur, 10px));
@@ -6176,4 +6176,201 @@ html[data-skin="space"] .tf-space-sidebar-reveal > button {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
+
+/* Project workspace navigation: full-width hit areas, shared across skins. */
+.tf-sidebar .tf-project-switcher {
+  background: var(--tf-skin-card, color-mix(in srgb, currentColor 6%, transparent));
+  color: var(--tf-skin-text, inherit);
+  border-radius: 0 !important;
+}
+.tf-sidebar .tf-project-nav-row {
+  border-radius: 0 !important;
+  background: transparent;
+  color: var(--tf-skin-text-2, inherit);
+}
+.tf-sidebar .tf-project-nav-row:hover {
+  background: var(--tf-skin-surface-muted, color-mix(in srgb, currentColor 8%, transparent));
+}
+.tf-sidebar .tf-project-nav-row[data-active="true"] {
+  border-left-color: var(--tf-skin-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--tf-skin-accent, var(--color-primary)) 12%, transparent);
+  font-weight: 600;
+}
+.tf-sidebar .tf-sidebar-sections {
+  gap: 0;
+  border-block: 1px solid var(--tf-skin-line, var(--color-slate-300));
+}
+.tf-sidebar .tf-sidebar-section {
+  border: 0;
+  border-radius: 0 !important;
+  box-shadow: none;
+  position: relative;
+}
+.tf-sidebar .tf-sidebar-section + .tf-sidebar-section {
+  border-left: 1px solid var(--tf-skin-line, var(--color-slate-300));
+}
+.tf-sidebar .tf-sidebar-section:focus-visible {
+  outline-offset: -3px;
+}
+.tf-sidebar .tf-sidebar-section[aria-pressed="true"] {
+  color: var(--tf-skin-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--tf-skin-accent, var(--color-primary)) 12%, transparent);
+  box-shadow: inset 0 -3px var(--tf-skin-accent, var(--color-primary));
+}
+
+/* C1 portfolio: working table and summaries, aligned with the approved Figma screen. */
+.tf-project-manager-view .tf-portfolio-toolbar,
+.tf-project-manager-view .tf-portfolio-chart,
+.tf-project-manager-view .tf-portfolio-row {
+  position: relative;
+  background: var(--tf-skin-surface, var(--color-white));
+}
+.tf-project-manager-view .tf-portfolio-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 2.6fr) minmax(110px, .85fr) minmax(100px, .9fr) minmax(180px, 1.4fr) 40px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+}
+.tf-project-manager-view .tf-portfolio-head {
+  color: var(--tf-skin-muted, #64748b);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+.tf-project-manager-view .tf-portfolio-row {
+  min-height: 72px;
+  border-bottom: 1px solid var(--tf-skin-line, #e2e8f0);
+  border-radius: 0 !important;
+}
+.tf-project-manager-view .tf-portfolio-row:hover {
+  background: var(--tf-skin-surface-muted, #f1f5f9) !important;
+}
+/* Extend the native link over the row, preserving keyboard and new-tab behavior. */
+.tf-portfolio-name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+.tf-portfolio-name:focus-visible::after {
+  outline: 2px solid var(--tf-skin-accent, var(--color-primary));
+  outline-offset: -2px;
+}
+.tf-portfolio-row > [role="cell"]:last-child {
+  position: relative;
+  z-index: 1;
+}
+.tf-portfolio-row > [role="cell"]:last-child:has(details[open]) {
+  z-index: 30;
+}
+html .tf-project-manager-view .tf-portfolio-list {
+  container-type: inline-size;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible;
+}
+html .tf-project-manager-view .tf-portfolio-status {
+  color: inherit !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.tf-portfolio-bar-realization { background: var(--tf-skin-accent, #eaa079); }
+.tf-portfolio-bar-tender { background: #829dab; }
+.tf-portfolio-bar-track { background: var(--tf-skin-line, #e2e8f0); }
+.tf-portfolio-actions[open] { z-index: 30; }
+.tf-portfolio-actions summary::-webkit-details-marker { display: none; }
+.tf-portfolio-action-list > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  min-height: 40px;
+}
+.tf-portfolio-action-list > button[data-destructive="true"] {
+  margin-top: 6px;
+  border-top: 1px solid var(--tf-skin-line, #e2e8f0);
+  border-radius: 0;
+  color: var(--color-red-600);
+}
+@media (max-width: 1199px) {
+  .tf-project-manager-view .tf-portfolio-grid {
+    grid-template-columns: minmax(140px, 2.6fr) minmax(90px, .85fr) minmax(76px, .9fr) minmax(130px, 1.4fr) 40px;
+    gap: 10px;
+  }
+}
+@container (max-width: 760px) {
+  .tf-project-manager-view .tf-portfolio-head { display: none; }
+  .tf-project-manager-view .tf-portfolio-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 16px;
+  }
+  .tf-portfolio-row > :first-child { grid-column: 1 / -1; }
+  .tf-portfolio-row > :nth-child(3)::before { content: 'VŘ: '; }
+  .tf-portfolio-row > :nth-child(4) { grid-column: 1; }
+}
+html[data-skin] .tf-project-manager-view .tf-portfolio-list[data-help-id="pm-project-list"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+html[data-skin] .tf-project-manager-view .tf-portfolio-list [data-help-id="pm-project-row"] {
+  border-radius: 0 !important;
+}
+.tf-project-manager-view .tf-portfolio-toolbar,
+.tf-project-manager-view .tf-portfolio-chart {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted, #f1f5f9) 60%, transparent);
+}
+
+/* The header search owns its focus ring; the input must not form a second box. */
+.tf-topbar .tf-header-search .tf-global-search-input,
+.tf-topbar .tf-header-search .tf-global-search-input:focus {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+}
+
+/* Portfolio analytics: a neutral summary of the selected portfolio. */
+.tf-analytics-summary {
+  color: var(--tf-skin-text, var(--color-slate-900));
+  border: 1px solid var(--tf-skin-line, var(--color-slate-300));
+  border-radius: 12px;
+  background: var(--tf-skin-surface, var(--color-white));
+  overflow: hidden;
+}
+.tf-analytics-metrics {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(140px, 1fr));
+  padding: 24px 8px;
+}
+.tf-analytics-metrics > div { padding: 0 24px; min-width: 0; }
+.tf-analytics-metrics > div + div { border-left: 1px solid var(--tf-skin-line, #e2e8f0); }
+.tf-analytics-metrics dt, .tf-analytics-detail {
+  color: var(--tf-skin-muted, #64748b);
+  font-size: 12px;
+}
+.tf-analytics-value { font-size: clamp(18px, 1.65vw, 26px); font-weight: 600; margin: 8px 0 6px; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
+@media (max-width: 1100px) {
+  .tf-analytics-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 0; }
+  .tf-analytics-metrics > div:nth-child(3) { border-left: 0; }
+  .tf-analytics-value { font-size: 21px; }
+}
+@media (max-width: 540px) {
+  .tf-analytics-metrics { grid-template-columns: 1fr; padding: 20px 0; gap: 18px; }
+  .tf-analytics-metrics > div + div { border-left: 0; }
+}
+
+/* Basic uses opaque analytics surfaces; nested backdrop layers can flicker with UI zoom. */
+html[data-skin="basic"] .tf-project-overview-view,
+html[data-skin="basic"] .tf-project-overview-view * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }

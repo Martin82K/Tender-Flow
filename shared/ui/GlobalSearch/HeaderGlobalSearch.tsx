@@ -22,8 +22,8 @@ export const HeaderGlobalSearch: React.FC = () => {
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="hidden md:block">
-      <div className="flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+    <div ref={containerRef} className="tf-header-search hidden md:block">
+      <div className="relative flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-colors">
         <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px] mr-2">
           search
         </span>

@@ -8,9 +8,10 @@ import { InvestorBillingPage } from './investor/InvestorBillingPage';
 import type { ContractsViewMode } from './list/ContractsListPage';
 import { useDismissContractDeepLink } from './hooks/useDismissContractDeepLink';
 
-type SubView = 'dashboard' | 'smlouvy' | 'investor';
+type SubView = 'dashboard' | 'smlouvy';
 
 interface Props {
+  party?: 'client' | 'supplier';
   onOpenSourceBid?: (categoryId: string, bidId?: string) => void;
   projectId: string;
   initialContractId?: string;
@@ -21,6 +22,7 @@ interface Props {
 
 export const ContractsModule: React.FC<Props> = ({
   onOpenSourceBid,
+  party = 'supplier',
   projectId,
   initialContractId,
   contractsState,
@@ -42,8 +44,14 @@ export const ContractsModule: React.FC<Props> = ({
     setSubView(view);
     if (view === 'smlouvy') setContractsViewMode('table');
   };
-  const ownContractsState = useContractsWithDetails(projectId, !contractsState);
+  const ownContractsState = useContractsWithDetails(projectId, party === 'supplier' && !contractsState);
   const { contracts, loading, error, refresh } = contractsState || ownContractsState;
+
+  if (party === 'client') {
+    return <div className="tf-contracts-module flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950/40">
+      <InvestorBillingPage projectDetails={projectDetails} onUpdateDetails={onUpdateDetails} />
+    </div>;
+  }
 
   if (loading) {
     return (
@@ -100,28 +108,11 @@ export const ContractsModule: React.FC<Props> = ({
           <span className="material-symbols-outlined text-[16px]">description</span>
           Smlouvy
         </button>
-        <button
-          type="button"
-          onClick={() => selectSubView('investor')}
-          data-active={subView === 'investor' ? 'true' : 'false'}
-          className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
-            subView === 'investor'
-              ? 'bg-primary/15 border border-primary text-primary'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
-            }`}
-        >
-          <span className="material-symbols-outlined text-[16px]">account_balance</span>
-          Investor
-        </button>
+
       </div>
 
       {subView === 'dashboard' ? (
         <ContractsDashboard contracts={contracts} projectDetails={projectDetails} />
-      ) : subView === 'investor' ? (
-        <InvestorBillingPage
-          projectDetails={projectDetails}
-          onUpdateDetails={onUpdateDetails}
-        />
       ) : (
         <ContractsListPage
           projectId={projectId}

@@ -1,4 +1,4 @@
-import type { Subcontractor } from "@/types";
+import type { Project, Subcontractor } from "@/types";
 import type { OverviewAnalytics } from "@/shared/overview/overviewAnalytics";
 
 export type OverviewSupplier = OverviewAnalytics["suppliers"][number];
@@ -211,3 +211,11 @@ export const formatOfferDate = (value?: string) => {
   if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toLocaleDateString("cs-CZ");
 };
+
+export function projectChoiceLabel(project: Project, projects: Project[]): string {
+  const phase = project.status === 'archived' ? 'Archiv' : project.status === 'realization' ? 'Realizace' : 'Soutěž';
+  const label = `${project.name} · ${project.location || 'Bez lokace'} · ${phase}`;
+  const duplicate = projects.some(other => other.id !== project.id && other.name === project.name
+    && other.location === project.location && other.status === project.status);
+  return duplicate ? `${label} · ${project.id}` : label;
+}

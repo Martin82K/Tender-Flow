@@ -58,3 +58,10 @@ it('loads two tender links on one contract without multiplying its finances', as
   expect(contracts[0].linkedBidIds).toEqual(['b1', 'b2']);
   expect(contracts.reduce((sum, item) => sum + item.currentTotal, 0)).toBe(10);
 });
+it('preserves an explicit zero retention amount and the planned date when mapping a released contract', async () => {
+  mocks.page.mockImplementation(async (table: string) => ({ data: table === 'contracts' ? [{ ...contract(1), retention_short_percent: 5, retention_short_amount: 0, retention_short_status: 'released', retention_short_release_on: '2026-08-12', retention_short_expected_on: '2026-08-01' }] : [], error: null }));
+  const [result] = await contractService.getContractsByProject('p1');
+  expect(result.retentionShortAmount).toBe(0);
+  expect(result.retentionShortExpectedOn).toBe('2026-08-01');
+  expect(result.retentionShortReleaseOn).toBe('2026-08-12');
+});

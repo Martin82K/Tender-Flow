@@ -70,7 +70,7 @@ describe("ProjectLayout mobile select", () => {
     expect(select.querySelectorAll(".material-symbols-outlined")).toHaveLength(1);
   });
 
-  it("zachova horni projektove menu i pri vychozim industrial skinu", () => {
+  it("ponechá mobilní výběr a odstraní duplicitní desktopové záložky", () => {
     render(
       <ProjectLayout
         projectId="p-1"
@@ -87,7 +87,7 @@ describe("ProjectLayout mobile select", () => {
 
     expect(screen.getByRole("heading", { name: "Projekt A" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Navigace projektu" })).toHaveClass("tf-themed-select-trigger");
-    expect(screen.getByRole("button", { name: /Harmonogram/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Harmonogram/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Přepnout na klasický skin")).not.toBeInTheDocument();
   });
 });

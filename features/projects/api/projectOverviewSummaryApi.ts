@@ -56,6 +56,34 @@ interface BidRow {
 interface FinancialRow { project_id: string; sod_price: number | null }
 interface AmendmentRow { id: string; project_id: string; label: string | null; price: number | null }
 
+export interface ProjectPortfolioSummary {
+  openCount: number;
+  deadlines: { date: string; title: string }[];
+}
+
+/** Small portfolio payload. Both project discovery and dependent reads retain normal RLS. */
+export const fetchProjectPortfolioSummary = async (visibleIds: string[]): Promise<Record<string, ProjectPortfolioSummary>> => {
+  const visibleProjects = await readRows<{ id: string }>('projects', 'id', 'id', visibleIds);
+  const readableIds = new Set<string>();
+  for (let start = 0; start < visibleProjects.length; start += BATCH_SIZE) {
+    const { data, error } = await dbAdapter.rpc('get_portfolio_pipeline_read_access', {
+      project_ids_input: visibleProjects.slice(start, start + BATCH_SIZE).map(project => project.id),
+    });
+    if (error) throw error;
+    for (const row of (data ?? []) as { project_id: string }[]) readableIds.add(row.project_id);
+  }
+  const projects = visibleProjects.filter(project => readableIds.has(project.id));
+  const categories = await readRows<CategoryRow>('demand_categories', 'id,project_id,title,status,deadline', 'project_id', projects.map(project => project.id));
+  const bids = await readRows<{ id: string; demand_category_id: string; status: string; contracted: boolean }>(
+    'bids', 'id,demand_category_id,status,contracted', 'demand_category_id', categories.map(category => category.id));
+  const signed = new Set(bids.filter(bid => bid.status === 'sod' && bid.contracted).map(bid => bid.demand_category_id));
+  return Object.fromEntries(projects.map(project => {
+    const open = categories.filter(category => category.project_id === project.id && category.status === 'open' && !signed.has(category.id));
+    return [project.id, { openCount: open.length, deadlines: open.flatMap(category => category.deadline
+      ? [{ date: category.deadline, title: category.title }] : []) }];
+  }));
+};
+
 /** Personal projects are outside the tenant RPC. Read only analytical columns under normal RLS. */
 export const fetchPersonalProjectOverview = async (visiblePersonalIds: string[]): Promise<OverviewTenantData> => {
   const projectRows = (await readRows<ProjectRow>("projects",

@@ -4,7 +4,7 @@
   "workspaces": [
     "mcp-service"
   ],
-  "version": "1.9.33",
+  "version": "1.9.34",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {

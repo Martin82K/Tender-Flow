@@ -25,8 +25,10 @@ import { DocsLinkSection } from "./DocsLinkSection";
 import { TemplatesSection } from "./TemplatesSection";
 import { PriceListsSection } from "./PriceListsSection";
 import { TemplateManager } from "./TemplateManager";
-import { useLocation } from "@shared/routing/router";
+import { navigate, useLocation } from "@shared/routing/router";
 import { isProbablyUrl } from "@shared/dochub/docHub";
+
+import { buildAppUrl } from "@shared/routing/routeUtils";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -74,6 +76,7 @@ export interface ProjectDocumentsProps {
   currentUserId?: string;
   canDocHub: boolean;
   canTemplates: boolean;
+  section?: "legacy" | "documents" | "settings";
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
@@ -82,21 +85,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   currentUserId,
   canDocHub,
   canTemplates,
+  section = "legacy",
 }) => {
   type DocumentsSubTab = "pd" | "templates" | "dochub" | "ceniky";
   const [isEditingDocs, setIsEditingDocs] = useState(false);
   const [isEditingLetter, setIsEditingLetter] = useState(false);
-  const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
+  const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>(section === "documents" ? "ceniky" : "pd");
   const { search } = useLocation();
   const availableSubTabs = useMemo(
     () =>
-      [
+      (section === "documents" ? ["ceniky"] : [
         "pd",
         ...(canTemplates ? ["templates"] : []),
         ...(canDocHub ? ["dochub"] : []),
-        "ceniky",
-      ] as DocumentsSubTab[],
-    [canDocHub, canTemplates],
+        ...(section === "legacy" ? ["ceniky"] : []),
+      ]) as DocumentsSubTab[],
+    [canDocHub, canTemplates, section],
   );
   const [docsLinkValue, setDocsLinkValue] = useState("");
   const [priceListLinkValue, setPriceListLinkValue] = useState("");
@@ -173,6 +177,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
       ? value
       : null;
   })();
+  useEffect(() => {
+    if (section !== "documents" || !routeDocumentsSubTab || routeDocumentsSubTab === "ceniky") return;
+    navigate(buildAppUrl("project", {
+      projectId: project.id,
+      tab: "project-settings",
+      documentsSubTab: routeDocumentsSubTab,
+    }), { replace: true });
+  }, [section, routeDocumentsSubTab, project.id]);
+
   const shouldHighlightDocHubSetup =
     routeDocumentsSubTab === "dochub" &&
     !project.docHubRootLink?.trim();
@@ -199,15 +212,19 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [isEditingPriceList, setIsEditingPriceList] = useState(false);
   useEffect(() => {
     if (!availableSubTabs.includes(documentsSubTab)) {
-      setDocumentsSubTab("pd");
+      setDocumentsSubTab(availableSubTabs[0]);
     }
   }, [availableSubTabs, documentsSubTab]);
 
   useEffect(() => {
+    if (section === "settings") {
+      setDocumentsSubTab(routeDocumentsSubTab && availableSubTabs.includes(routeDocumentsSubTab) ? routeDocumentsSubTab : "pd");
+      return;
+    }
     if (!routeDocumentsSubTab) return;
     if (!availableSubTabs.includes(routeDocumentsSubTab)) return;
     setDocumentsSubTab(routeDocumentsSubTab);
-  }, [availableSubTabs, routeDocumentsSubTab]);
+  }, [availableSubTabs, routeDocumentsSubTab, section]);
 
   useEffect(() => {
     setPriceListLinkValue(project.priceListLink || "");
@@ -368,7 +385,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
     icon: string;
     visible: boolean;
   }> = [
-    { id: "pd", label: "Projektová dokumentace", icon: "description", visible: true },
+    { id: "pd", label: section === "settings" ? "Odkazy projektové dokumentace" : "Projektová dokumentace", icon: "description", visible: true },
     { id: "templates", label: "Šablony", icon: "history_edu", visible: canTemplates },
     { id: "dochub", label: "Složkomat", icon: "cloud_sync", visible: canDocHub },
     { id: "ceniky", label: "Ceníky", icon: "price_change", visible: true },
@@ -402,22 +419,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              Dokumenty
+              {section === "settings" ? documentTabs.find(tab => tab.id === documentsSubTab)?.label : "Dokumenty"}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Správa dokumentace, šablon a napojení na Složkomat
+              {section === "settings" ? "Nastavení stavby" : section === "documents" ? "Ceníky stavby" : "Správa dokumentace, šablon a napojení na Složkomat"}
             </p>
           </div>
         </div>
 
         <div className="animate-fadeIn">
-          <aside data-help-id="documents-sidebar" className="w-full">
+          {section !== "settings" && <aside data-help-id="documents-sidebar" className="w-full">
             <nav
               role="tablist"
               aria-label="Sekce dokumentů"
               className="flex min-w-0 gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900/70"
             >
-              {documentTabs.filter((tab) => tab.visible).map((tab) => (
+              {documentTabs.filter((tab) => tab.visible && availableSubTabs.includes(tab.id)).map((tab) => (
                 <button
                   key={tab.id}
                   id={`documents-tab-${tab.id}`}
@@ -449,12 +466,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 Udržujte dokumentaci aktuální a dobře organizovanou pro snadný přístup celého týmu.
               </p>
             </div>
-          </aside>
+          </aside>}
 
           <main
             id="documents-tabpanel"
-            role="tabpanel"
-            aria-labelledby={`documents-tab-${documentsSubTab}`}
+            role={section === "settings" ? "region" : "tabpanel"}
+            aria-label={section === "settings" ? documentTabs.find(tab => tab.id === documentsSubTab)?.label : undefined}
+            aria-labelledby={section === "settings" ? undefined : `documents-tab-${documentsSubTab}`}
             className="mt-4 min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/60 md:p-5"
           >
             {documentsSubTab === "pd" && (

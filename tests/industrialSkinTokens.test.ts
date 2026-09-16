@@ -368,24 +368,13 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('border-left: 3px solid var(--tf-skin-orange) !important');
   });
 
-  it("zmenšuje industrial submenu ikony ve stavbách", () => {
-    expect(sidebarSource).toContain("inline-flex size-7");
-    expect(sidebarSource).toContain('data-help-id="sidebar-nav-item"');
-    expect(sidebarSource).toContain('data-help-id="sidebar-nav-group-summary"');
-    expect(sidebarSource).toContain('data-help-id="sidebar-nav-icon"');
-    expect(sidebarSource).toContain('data-help-id="sidebar-new-project"');
-    expect(css).toContain('html[data-skin="industrial"] .tf-sidebar [data-help-id="sidebar-nav-item"]');
-    expect(css).toContain('[data-active="true"]');
-    expect(css).toContain('border-left-color: var(--tf-skin-orange) !important');
-    expect(sidebarSource).toContain('data-help-id="project-sidebar-tab"');
-    expect(sidebarSource).toContain('data-help-id="project-sidebar-tab-icon"');
-    expect(sidebarSource).toContain('text-[13px] w-3.5');
-    expect(sidebarSource).toContain("gap-1.5 px-2 py-1");
+  it("zachovává skinové ikony v plné šířce projektového menu", () => {
+    const projectSidebarSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectSidebar.tsx"), "utf8");
+    expect(projectSidebarSource).toContain('data-help-id="project-sidebar-tab"');
+    expect(projectSidebarSource).toContain('data-help-id="project-sidebar-tab-icon"');
     expect(css).toContain('html[data-skin="industrial"] .tf-sidebar [data-help-id="project-sidebar-tab-icon"]');
-    expect(css).toContain("font-size: 0.9375rem !important");
-    expect(css).toContain("width: 0.9375rem !important");
-    expect(sidebarSource).not.toContain('text-[14px] w-4');
-    expect(sidebarSource).not.toContain('text-[20px] w-4');
+    expect(css).toContain('.tf-sidebar .tf-project-nav-row');
+    expect(css).toContain('border-radius: 0 !important');
   });
 
   it("industrial TODO menu drží vybraný stav i mimo hover", () => {
@@ -412,7 +401,7 @@ describe("industrial skin tokens", () => {
     expect(projectManagerSource).toContain('data-help-id="pm-project-status-badge"');
     expect(projectManagerSource).toContain("data-status={project.status}");
     expect(projectManagerSource).toContain('data-help-id="pm-project-actions"');
-    expect(projectManagerSource).toContain('data-help-id="pm-shared-with-badge"');
+    expect(projectManagerSource).toContain('className="tf-portfolio-actions relative"');
     expect(projectManagerSource).toContain('data-help-id="pm-archive-section"');
     expect(projectManagerSource).toContain('data-help-id="pm-edit-modal"');
     expect(projectManagerSource).toContain('data-help-id="pm-share-modal"');
@@ -422,8 +411,8 @@ describe("industrial skin tokens", () => {
     expect(tenantOverviewSource).toContain("tf-project-overview-view");
     expect(tenantOverviewSource).toContain("skin={skin}");
     expect(tenantOverviewSource).toContain('data-help-id="overview-scope-toggle"');
-    expect(tenantOverviewSource).toContain('data-help-id="overview-kpi"');
-    expect(tenantOverviewSource).toContain('data-help-id="overview-status-cards"');
+    expect(tenantOverviewSource).toContain('<PortfolioAnalyticsSummary');
+    expect(css).toContain('.tf-analytics-summary {');
     expect(tenantOverviewSource).toContain('data-help-id="overview-supplier-analysis"');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-overview-view');

@@ -68,6 +68,11 @@ export const useProjectOverviewController = ({
     : projectDetails, [isDemoSession, projects, projectDetails]);
   const availableProjectDetails = usesTenantSummary || tenantData ? tenantProjectDetails : demoDetails;
 
+  const selectableProjects = useMemo(
+    () => statusFilter === "all" ? availableProjects : availableProjects.filter(project => project.status === statusFilter),
+    [availableProjects, statusFilter],
+  );
+
   const isAdmin = isUserAdmin(user?.email);
   const showDebugBanner = useMemo(() => {
     if (!isAdmin) return false;
@@ -79,14 +84,14 @@ export const useProjectOverviewController = ({
   useEffect(() => {
     if (scope !== "project") return;
     if (selectedProjectId === "all") return;
-    if (availableProjects.length === 0) return;
-    const exists = availableProjects.some(
+    if (tenantLoading) return;
+    const exists = selectableProjects.some(
       (project) => project.id === selectedProjectId,
     );
     if (!exists) {
       setSelectedProjectId("all");
     }
-  }, [availableProjects, scope, selectedProjectId]);
+  }, [selectableProjects, scope, selectedProjectId, tenantLoading]);
 
   const filteredProjectDetails = useMemo(() => {
     if (scope === "tenant") return availableProjectDetails;
@@ -186,6 +191,7 @@ export const useProjectOverviewController = ({
     tenantProjects,
     tenantProjectDetails,
     availableProjects,
+    selectableProjects,
     showDebugBanner,
     selectedProjectId,
     setSelectedProjectId,

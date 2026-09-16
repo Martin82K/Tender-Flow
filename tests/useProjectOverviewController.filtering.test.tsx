@@ -89,6 +89,25 @@ describe("useProjectOverviewController supplier filtering", () => {
     expect(mocks.buildAverageBudgetDeviation).toHaveBeenLastCalledWith([alphaSupplier]);
   });
 
+  it("filters project choices by phase and clears an incompatible selection", () => {
+    const projects = [
+      { id: "active", name: "Stejná stavba", location: "", status: "realization" as const },
+      { id: "old", name: "Stejná stavba", location: "", status: "archived" as const },
+    ];
+    const { result } = renderHook(() => useProjectOverviewController({ projects, projectDetails: {}, user: null }));
+    act(() => { result.current.setScope("project"); result.current.setSelectedProjectId("old"); });
+    act(() => result.current.setStatusFilter("realization"));
+    expect(result.current.selectableProjects).toEqual([projects[0]]);
+    expect(result.current.selectedProjectId).toBe("all");
+    act(() => result.current.setSelectedProjectId("active"));
+    act(() => result.current.setStatusFilter("all"));
+    expect(result.current.selectableProjects).toEqual(projects);
+    expect(result.current.selectedProjectId).toBe("active");
+    act(() => result.current.setStatusFilter("tender"));
+    expect(result.current.selectableProjects).toEqual([]);
+    expect(result.current.selectedProjectId).toBe("all");
+  });
+
   it("promítá stavový filtr také do měsíčních trendů", () => {
     const projects = [
       { id: "tender", name: "Soutěž", location: "Praha", status: "tender" as const },
