@@ -1,4 +1,7 @@
 (() => {
+  // Bundled Electron opens this page with loadFile; '/' would resolve to file:///.
+  const home = document.querySelector('[data-web-home]');
+  if (home) home.hidden = !['http:', 'https:'].includes(location.protocol);
   const search = document.getElementById('manual-search');
   const chapters = [...document.querySelectorAll('.chapter')];
   const links = [...document.querySelectorAll('#manual-nav a')];

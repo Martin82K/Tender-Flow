@@ -55,5 +55,12 @@
     "docs/user-manual/catalog.tsx"
   ],
   "mapAttribution": "Map screenshot uses OpenStreetMap public tiles; project and supplier positions are synthetic.",
-  "desktopSimulation": "Biometric settings use production UI and synthetic availability, without invoking native verification."
+  "desktopSimulation": "Biometric settings use production UI and synthetic availability, without invoking native verification.",
+  "captures": {
+    "assets/biometrie.png": {
+      "version": "1.9.36",
+      "capturedAt": "2026-09-16"
+    }
+  },
+  "lastCaptureAt": "2026-09-16"
 }

@@ -1,6 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { buildManualHtml } from '../scripts/build-user-manual.mjs';
+import { JSDOM } from 'jsdom';
+
+describe('návrat z webové a zabalené desktopové příručky', () => {
+  it.each(['file:///app/dist/user-manual/index.html', 'https://example.com/user-manual/'])('používá bezpečné odkazy při načtení z %s', url => {
+    const dom = new JSDOM(buildManualHtml('## Úvod\nText', { version: '1' }), { url, runScripts: 'outside-only' });
+    try {
+      dom.window.eval(readFileSync('public/user-manual/manual.js', 'utf8'));
+      const brand = dom.window.document.querySelector('.brand');
+      expect(brand?.getAttribute('href')).toBe('#manual-content');
+      const home = dom.window.document.querySelector<HTMLAnchorElement>('[data-web-home]');
+      expect(home).not.toBeNull();
+      expect(home?.hidden).toBe(url.startsWith('file:'));
+      expect(dom.window.document.querySelectorAll('.topbar a:not([hidden])[href="/"]').length).toBe(url.startsWith('file:') ? 0 : 1);
+    } finally { dom.window.close(); }
+  });
+});
 
 // Execute the delivered script against its generated DOM, not a separate implementation.
 describe('hledání v doručené příručce', () => {

@@ -1,13 +1,18 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile, writeFile } from 'node:fs/promises';
+import { getBrowserLaunchOptions, getCaptureMetadata } from './captureSupport.mjs';
 
 if (!process.env.PLAYWRIGHT_MODULE) throw new Error('Set PLAYWRIGHT_MODULE to an installed Playwright entry file.');
 const { chromium } = await import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT_MODULE)).href);
 const allNames = JSON.parse(await readFile('docs/user-manual/catalog-screenshots.json', 'utf8'));
 const names = process.argv.length > 2 ? process.argv.slice(2) : allNames;
 if (names.some(name => !allNames.includes(name))) throw new Error('Unknown catalog screen.');
-const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
+const metadata = getCaptureMetadata(JSON.parse(await readFile('docs/user-manual/review.json', 'utf8')));
+const manifestPath = 'docs/user-manual/screenshots.json';
+const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+if (manifest.version !== metadata.version) throw new Error('Recapture the base screenshots with capture.mjs before capturing a new manual version.');
+const browser = await chromium.launch(getBrowserLaunchOptions());
 const captured = [];
 try {
   for (const name of names) {
@@ -70,10 +75,10 @@ try {
     console.log(`Captured ${name}; no unexpected requests or browser errors.`);
     await page.close();
   }
-  const manifestPath = 'docs/user-manual/screenshots.json';
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   manifest.sources = ['docs/user-manual/preview.tsx', 'docs/user-manual/catalog.tsx'];
   manifest.screenshots = [...new Set([...manifest.screenshots, ...captured])];
+  manifest.captures = { ...manifest.captures, ...Object.fromEntries(captured.map(name => [name, metadata])) };
+  manifest.lastCaptureAt = metadata.capturedAt;
   manifest.mapAttribution = 'Map screenshot uses OpenStreetMap public tiles; project and supplier positions are synthetic.';
   manifest.desktopSimulation = 'Biometric settings use production UI and synthetic availability, without invoking native verification.';
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');

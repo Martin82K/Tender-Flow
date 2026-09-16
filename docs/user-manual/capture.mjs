@@ -1,11 +1,13 @@
 // Use an existing Playwright installation. This script never installs dependencies.
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { getBrowserLaunchOptions, getCaptureMetadata } from './captureSupport.mjs';
 const moduleName = process.env.PLAYWRIGHT_MODULE;
 if (!moduleName) throw new Error('Set PLAYWRIGHT_MODULE to an installed playwright entry file.');
 const { chromium } = await import(pathToFileURL(path.resolve(moduleName)).href);
-const browser = await chromium.launch({ executablePath: process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
+const metadata = getCaptureMetadata(JSON.parse(await readFile('docs/user-manual/review.json', 'utf8')));
+const browser = await chromium.launch(getBrowserLaunchOptions());
 try {
   const page = await browser.newPage({ viewport: { width: 1140, height: 1100 }, deviceScaleFactor: 1.5 });
   const errors = [];
@@ -30,6 +32,7 @@ try {
   await capture('#contract-shot', 'odpojeni');
   await capture('#plan-shot', 'plan-vr');
   if (errors.length) throw new Error(errors.join('\n'));
-  await writeFile('docs/user-manual/screenshots.json', JSON.stringify({ version: '1.9.36', capturedAt: '2026-09-16', source: 'docs/user-manual/preview.tsx', data: 'synthetic-only', screenshots: ['navigace', 'nabidky', 'prijemce', 'smlouva', 'odpojeni', 'plan-vr'].map(name => `assets/${name}.png`) }, null, 2) + '\n');
+  const screenshots = ['navigace', 'nabidky', 'prijemce', 'smlouva', 'odpojeni', 'plan-vr'].map(name => `assets/${name}.png`);
+  await writeFile('docs/user-manual/screenshots.json', JSON.stringify({ ...metadata, source: 'docs/user-manual/preview.tsx', data: 'synthetic-only', screenshots, captures: Object.fromEntries(screenshots.map(name => [name, metadata])) }, null, 2) + '\n');
   console.log('Captured 6 production-component screenshots; no backend requests.');
 } finally { await browser.close(); }

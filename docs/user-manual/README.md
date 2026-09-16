@@ -38,13 +38,13 @@ nebo plán jsou nahrazeny odmítajícími funkcemi. Žádný skutečný e-mail s
    Ukázkové vstupní soubory obnovíte příkazem `node docs/user-manual/buildSamples.mjs`.
 2. Použijte již nainstalovaný Playwright; nové závislosti nejsou nutné.
 3. Nastavte `PLAYWRIGHT_MODULE` na absolutní cestu k jeho `index.mjs` a spusťte
-   `node docs/user-manual/capture.mjs` a následně `node docs/user-manual/captureCatalog.mjs`. `CHROME_BIN` případně určuje cestu k Chrome.
+   `node docs/user-manual/capture.mjs` a následně `node docs/user-manual/captureCatalog.mjs`. Bez `CHROME_BIN` se používá prohlížeč spravovaný Playwrightem; proměnná umožňuje zadat vlastní cestu k Chrome.
 4. Prohlédněte všechny PNG uvedené v `screenshots.json` v `public/user-manual/assets/`. Zkontrolujte
    čitelnost, nezakryté prvky a shodu se scénářem.
 5. Spusťte `npm run build:user-manual`. Generátor načte rozměry PNG a rezervuje
    prostor pro líně načítané obrázky.
 
-Záznam původu snímků je v `screenshots.json`. Capture povoluje pouze lokální
+Záznam původu snímků je v `screenshots.json`. Verze se přebírá z `review.json`, datum z okamžiku pořízení. Dílčí pořízení zapisuje metadata konkrétních snímků do `captures`; při změně ověřené verze nejprve obnovte základní sadu a pak celý katalog. Capture povoluje pouze lokální
 náhled a Google Fonts. Katalog navíc u mapy povoluje veřejné OSM dlaždice se syntetickými polohami a zachovává jejich atribuci. Ostatní požadavky blokuje a považuje za chybu.
 Náhled není součástí veřejného buildu aplikace.
 
@@ -56,11 +56,12 @@ Znalostní báze zachovává původní formát. Markdown prochází DOMPurify; o
 musí odkazovat do místní složky assets. Vyhledávání používá textContent a
 neinterpretuje dotaz jako HTML. Skript je samostatný soubor, bez inline JS.
 Zvětšení funguje přes nativní dialog, bez JS zůstává přímý odkaz na PNG.
+Logo odkazuje na obsah příručky. Odkaz zpět na web se zobrazuje pouze přes HTTP(S), nikoli při desktopovém otevření přes `file://`.
 Tisk zahrnuje i kapitoly skryté filtrem. Příručka nepotřebuje přihlášení.
 
 ## Kontroly
 
-- `npm run test:run -- tests/userManualPage.test.ts tests/userManualInteractions.test.ts tests/userManualKbBuilder.test.ts tests/userManualCoverage.test.ts`
+- `npm run test:run -- tests/userManualPage.test.ts tests/userManualInteractions.test.ts tests/userManualKbBuilder.test.ts tests/userManualCoverage.test.ts tests/userManualCapture.test.ts`
 - `npm run typecheck`, `npm run build`, `npm run check:docs`
 - `npm run check:boundaries`, `npm run check:legacy-structure`
 - Celá sada: `npm run test:run`
