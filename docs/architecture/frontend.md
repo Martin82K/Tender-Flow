@@ -36,7 +36,7 @@ Router je lehká vlastní implementace v `shared/routing/router.tsx`.
 - Interní odkazy používají `Link` nebo `navigate()`.
 - `_blank` odkazy automaticky dostávají `noopener noreferrer`.
 - URL se sestavují přes `buildAppUrl` a parsují přes `parseAppRoute`.
-- Neznámá app route přesměruje na `/app/todo`.
+- Neznámá app route přesměruje na `/app/projects?status=all` (Stavby → Všechny), stejně jako běžný start a přihlášení bez cílového odkazu.
 
 Route synchronizaci s vybraným projektem, tabem a kategorií řídí
 `app/hooks/useRouteStateSync.ts`.
