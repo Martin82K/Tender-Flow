@@ -8,8 +8,9 @@ import type { ThemeSkin } from '@/shared/types/theme';
 let mobile = false;
 const mediaListeners = new Set<() => void>();
 vi.mock('@/components/Sidebar', () => ({
-  Sidebar: ({ isOpen, isMobile, onToggle }: { isOpen: boolean; isMobile: boolean; onToggle: () => void }) =>
-    <aside data-testid="sidebar" data-open={isOpen} data-mobile={isMobile}>
+  Sidebar: ({ isOpen, isMobile, onToggle, desktopWidth, onDesktopWidthChange }: { isOpen: boolean; isMobile: boolean; onToggle: () => void; desktopWidth?: number; onDesktopWidthChange?: (width: number) => void }) =>
+    <aside data-testid="sidebar" data-open={isOpen} data-mobile={isMobile} data-width={desktopWidth}>
+      <button onClick={() => onDesktopWidthChange?.(360)}>Změnit šířku</button>
       {isOpen && isMobile && <button onClick={onToggle}>Zavřít menu</button>}
     </aside>,
 }));
@@ -142,6 +143,14 @@ describe('MainLayout mobile menu', () => {
     resize(true);
     expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'false');
     expect(setIsSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  it('preserves a resized desktop width across mobile breakpoints', () => {
+    renderMainLayout(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Změnit šířku' }));
+    act(() => { mobile = true; mediaListeners.forEach(listener => listener()); });
+    act(() => { mobile = false; mediaListeners.forEach(listener => listener()); });
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-width', '360');
   });
 
   it('při zmenšení UI použije ostré layoutové škálování bez transformace celého plátna', () => {

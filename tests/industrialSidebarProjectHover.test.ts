@@ -23,6 +23,17 @@ describe("industrial sidebar project hover", () => {
     expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row > .material-symbols-outlined')).toContain('font-size: 0.9375rem');
   });
 
+  it("keeps compact project icon containers at least as wide as their glyphs", () => {
+    const glyphBlock = cssBlockFor('html[data-skin] .tf-sidebar[data-compact="true"] .material-symbols-outlined');
+    const iconBlock = cssBlockFor('html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .tf-project-nav-row > .material-symbols-outlined');
+    const fontSize = Number(glyphBlock.match(/font-size:\s*(\d+)px/)?.[1]);
+    expect(fontSize).toBeGreaterThan(0);
+    for (const property of ['width', 'min-width', 'max-width']) {
+      const width = Number(iconBlock.match(new RegExp(`(?:^|\\s)${property}:\\s*(\\d+)px`))?.[1]);
+      expect(width).toBeGreaterThanOrEqual(fontSize);
+    }
+  });
+
   it("keeps report and tool hover backgrounds flush with the sidebar edges", () => {
     expect(sidebarSource).not.toContain('aria-label="Přehledy" className="px-3"');
     expect(sidebarSource).not.toContain('aria-label="Nástroje" className="px-3"');

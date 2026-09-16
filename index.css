@@ -6304,6 +6304,11 @@ html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row {
 .tf-sidebar[data-compact="true"] .tf-project-nav-row { border-left-width: 0; border-radius: 8px !important; }
 .tf-sidebar[data-compact="true"] .tf-project-switcher { display: flex; align-items: center; }
 html[data-skin] .tf-sidebar[data-compact="true"] .material-symbols-outlined { font-size: 24px !important; }
+html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .tf-project-nav-row > .material-symbols-outlined {
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+}
 html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .tf-project-nav-row,
 html[data-skin="industrial"] .tf-sidebar[data-compact="true"] [role="group"] .tf-project-nav-row {
   padding-inline: 0 !important;

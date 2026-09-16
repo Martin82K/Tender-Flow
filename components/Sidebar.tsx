@@ -31,6 +31,8 @@ interface SidebarProps {
   onToggle: () => void;
   skin?: ThemeSkin;
   isMobile?: boolean;
+  desktopWidth?: number;
+  onDesktopWidthChange?: (width: number) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -43,13 +45,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggle,
   skin = "classic",
   isMobile = false,
+  desktopWidth,
+  onDesktopWidthChange,
 }) => {
   const { user } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
   const { search } = useLocation();
   const portfolioStatus = parsePortfolioStatus(new URLSearchParams(search).get('status'))
     ?? readPortfolioState(portfolioStorageKey(user?.id, user?.organizationId)).status;
-  const [width, setWidth] = useState(280);
+  const [localWidth, setLocalWidth] = useState(280);
+  const width = desktopWidth ?? localWidth;
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -71,7 +76,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
+    // The global search portal lives outside the inert application shell.
+    const blockGlobalSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !event.altKey && !event.shiftKey) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener('keydown', blockGlobalSearch, true);
     return () => {
+      window.removeEventListener('keydown', blockGlobalSearch, true);
       document.body.style.overflow = previousOverflow;
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
     };
@@ -218,11 +232,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         const newWidth = (mouseMoveEvent.clientX - (rect?.left ?? 0)) / scale;
         // Min width 200px, Max width 480px
         if (newWidth >= 200 && newWidth <= 480) {
-          setWidth(newWidth);
+          setLocalWidth(newWidth);
+          onDesktopWidthChange?.(newWidth);
         }
       }
     },
-    [isResizing, width],
+    [isResizing, width, onDesktopWidthChange],
   );
 
   useEffect(() => {

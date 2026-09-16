@@ -127,6 +127,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         zoom: normalizedUiScale,
     };
     const isMobile = useSyncExternalStore(subscribeMobileNavigation, getMobileNavigation, getServerMobileNavigation);
+    const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(280);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     useEffect(() => { setMobileMenuOpen(false); }, [isMobile]);
     const mobileMenuVisible = isMobile && mobileMenuOpen;
@@ -139,6 +140,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         isOpen={isMobile ? mobileMenuOpen : isSidebarOpen}
         onToggle={() => isMobile ? setMobileMenuOpen(open => !open) : setIsSidebarOpen(!isSidebarOpen)}
         isMobile={isMobile}
+        desktopWidth={desktopSidebarWidth}
+        onDesktopWidthChange={setDesktopSidebarWidth}
         skin={skin}
     />;
 
