@@ -9,6 +9,7 @@ import { notificationApi } from "./notificationApi";
 
 interface EmitNotificationInput {
   userId: string;
+  actorUserId?: string;
   type: NotificationType;
   category: NotificationCategory;
   tier: NotificationTier;
@@ -28,6 +29,9 @@ interface EmitNotificationInput {
  * Inserts into DB via RPC. Returns the notification ID if inserted, null if skipped.
  */
 export async function emitNotification(input: EmitNotificationInput): Promise<string | null> {
+  // Suppress author echoes before persistence and all downstream delivery channels.
+  if (input.actorUserId && input.actorUserId === input.userId) return null;
+
   try {
     const id = await notificationApi.insert({
       targetUserId: input.userId,
@@ -79,6 +83,7 @@ const BID_STATUS_TIER: Record<BidStatus, NotificationTier> = {
 
 export async function emitBidStatusNotification(params: {
   userId: string;
+  actorUserId: string;
   bidId: string;
   companyName: string;
   newStatus: BidStatus;
@@ -97,6 +102,7 @@ export async function emitBidStatusNotification(params: {
 
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: BID_STATUS_TYPE[params.newStatus],
     category: "bid",
     tier: BID_STATUS_TIER[params.newStatus],
@@ -114,6 +120,7 @@ export async function emitBidStatusNotification(params: {
 
 export async function emitBidContractedNotification(params: {
   userId: string;
+  actorUserId: string;
   bidId: string;
   companyName: string;
   contracted: boolean;
@@ -131,6 +138,7 @@ export async function emitBidContractedNotification(params: {
 
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: "success",
     category: "bid",
     tier: "important",
@@ -155,6 +163,7 @@ const CATEGORY_STATUS_LABELS: Record<string, string> = {
 
 export async function emitCategoryStatusNotification(params: {
   userId: string;
+  actorUserId: string;
   categoryId: string;
   categoryTitle: string;
   newStatus: string;
@@ -172,6 +181,7 @@ export async function emitCategoryStatusNotification(params: {
 
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: isSod ? "success" : "info",
     category: "project",
     tier: isSod ? "critical" : "important",
@@ -189,6 +199,7 @@ export async function emitCategoryStatusNotification(params: {
 
 export async function emitTenderClosedNotification(params: {
   userId: string;
+  actorUserId: string;
   categoryId: string;
   categoryTitle: string;
   projectId: string;
@@ -196,6 +207,7 @@ export async function emitTenderClosedNotification(params: {
 }): Promise<string | null> {
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: "success",
     category: "bid",
     tier: "critical",
@@ -213,12 +225,14 @@ export async function emitTenderClosedNotification(params: {
 
 export async function emitProjectClonedNotification(params: {
   userId: string;
+  actorUserId: string;
   sourceProjectId: string;
   sourceProjectName: string;
   targetProjectId: string;
 }): Promise<string | null> {
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: "success",
     category: "project",
     tier: "critical",
@@ -231,11 +245,13 @@ export async function emitProjectClonedNotification(params: {
 
 export async function emitProjectArchivedNotification(params: {
   userId: string;
+  actorUserId: string;
   projectId: string;
   projectName: string;
 }): Promise<string | null> {
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: "info",
     category: "project",
     tier: "informational",
@@ -294,6 +310,7 @@ export async function emitDeadlineNotification(params: {
 
 export async function emitDocumentUploadedNotification(params: {
   userId: string;
+  actorUserId: string;
   documentName: string;
   categoryId: string;
   categoryTitle: string;
@@ -302,6 +319,7 @@ export async function emitDocumentUploadedNotification(params: {
 }): Promise<string | null> {
   return emitNotification({
     userId: params.userId,
+    actorUserId: params.actorUserId,
     type: "info",
     category: "document",
     tier: "informational",

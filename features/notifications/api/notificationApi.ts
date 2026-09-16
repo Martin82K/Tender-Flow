@@ -2,10 +2,12 @@ import { notificationService } from "@/services/notificationService";
 import { desktopNotificationAdapter } from "@infra/platform/platformAdapter";
 import type { AppNotification, NotificationCategory, NotificationPreferences } from "../types";
 
+type NotificationConnectionFailure = "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
+
 interface NotificationSubscriptionOptions {
   userId: string;
   onNewNotification: (notification: AppNotification) => void;
-  onSubscriptionError?: () => void;
+  onSubscriptionError?: (status: NotificationConnectionFailure) => void;
 }
 
 export const notificationApi = {
@@ -68,6 +70,8 @@ export const notificationApi = {
     onSubscriptionError,
   }: NotificationSubscriptionOptions): () => void {
     const supabase = notificationService.getSupabaseClient();
+    let disposed = false;
+    let outageReported = false;
     const channel = supabase
       .channel(`notifications:${userId}`)
       .on(
@@ -79,17 +83,27 @@ export const notificationApi = {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
+          if (disposed) return;
           onNewNotification(payload.new as AppNotification);
         },
       )
       .subscribe((status) => {
-        if (status === "CHANNEL_ERROR") {
-          onSubscriptionError?.();
+        if (disposed) return;
+        if (status === "SUBSCRIBED") {
+          outageReported = false;
+          return;
+        }
+        // The SDK retries channel errors/timeouts; polling continues independently.
+        if (!outageReported && (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")) {
+          outageReported = true;
+          onSubscriptionError?.(status);
         }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (disposed) return;
+      disposed = true;
+      void supabase.removeChannel(channel);
     };
   },
 };

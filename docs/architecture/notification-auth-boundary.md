@@ -56,6 +56,40 @@ Stav je označený ID identity, pro kterou vznikl. Při přepnutí A → B:
 Desktopová notifikace vznikne jen pro novou, neduplikovanou událost aktivní
 identity a pouze pro typ `warning`, `success` nebo `error`.
 
+## Autor změny a příjemce
+
+Uživatelské změny nabídek, podpisu smlouvy, kategorií, uzavření soutěže,
+klonování/archivace projektu a nahrání dokumentu předávají emitteru povinné
+`actorUserId`. Pokud se rovná ID příjemce, emitter vrátí `null` před RPC zápisem.
+Autor tedy z nové vlastní události nedostane položku zvonku ani navazující
+desktopové upozornění. Pět aktivních míst volání v projektových mutacích a
+pipeline předává identitu autora; helper pro dokumenty zůstává připravený pro
+budoucí použití.
+
+Systémová oznámení, připomínky termínů a výsledky AI úloh autora nevyžadují a
+zůstávají zachované. Historické notifikace se nemažou. Odlišný příjemce pokračuje
+do existujícího RPC a podléhá jeho autorizaci; toto pravidlo samo nezavádí
+rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
+
+## Výpadky realtime spojení
+
+Realtime „subscription“ označuje odběr databázových událostí, nikoli placené
+předplatné. Polling běží každých 30 sekund nezávisle na stavu realtime spojení.
+Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
+za souvislý výpadek; `SUBSCRIBED` umožní hlásit případný další výpadek. Opakování
+připojení po chybě nebo timeoutu zajišťuje Supabase SDK. Uzavřený kanál zůstává
+pokryt pollingem do vytvoření dalšího odběru.
+
+Před odstraněním kanálu se zakážou jeho callbacky, aby pozdní události ani
+očekávané uzavření při odhlášení neměnily stav nebo nehlásily výpadek. Loguje se
+pouze stav spojení, nikoli tokeny, URL socketu nebo obsah notifikací.
+
+Při přetrvávajícím výpadku ověřte WebSocket spojení v postižené instalaci,
+serverové Realtime logy, platnost session a zařazení tabulky `notifications`
+do publikace `supabase_realtime`. Samotná obecná hláška neurčuje příčinu.
+Polling obnovuje seznam; desktopová upozornění nadále vznikají pouze z realtime
+událostí, takže při jeho výpadku nemusí vyskočit.
+
 ## Serverová autorizace
 
 Klientský guard je defense-in-depth a UX hranice, nikoli primární autorizace.
