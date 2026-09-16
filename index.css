@@ -6197,6 +6197,14 @@ html[data-skin="space"] .tf-space-sidebar-reveal > button {
 .tf-sidebar .tf-sidebar-menu :is([data-help-id="sidebar-nav-item"], [data-help-id="sidebar-nav-group-summary"]) {
   border-radius: 0 !important;
 }
+.tf-sidebar .tf-sidebar-menu > :is(button, a),
+.tf-sidebar .tf-sidebar-menu > details > summary {
+  padding-inline: 1.5rem;
+}
+html[data-skin="industrial"] .tf-sidebar .tf-sidebar-menu > :is(button, a),
+html[data-skin="industrial"] .tf-sidebar .tf-sidebar-menu > details > summary {
+  padding-inline: 0.5rem !important;
+}
 .tf-sidebar .tf-sidebar-submenu > :is(button, a),
 .tf-sidebar .tf-sidebar-submenu > details > summary {
   padding-left: 1.75rem !important;

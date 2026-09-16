@@ -29,6 +29,11 @@ describe("industrial sidebar project hover", () => {
     expect(sidebarSource).not.toContain('mt-1 ml-2 gap-1');
   });
 
+  it("aligns full-width report and tool content with project rows in each skin", () => {
+    expect(cssBlockFor('.tf-sidebar .tf-sidebar-menu > details > summary')).toContain('padding-inline: 1.5rem');
+    expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-sidebar-menu > details > summary')).toContain('padding-inline: 0.5rem !important');
+  });
+
   it("uses darker mobile industrial sidebar surfaces", () => {
     expect(css).toContain("@media (max-width: 767px)");
     expect(sidebarSource).not.toContain("bg-black/50 z-[-1] md:hidden");
