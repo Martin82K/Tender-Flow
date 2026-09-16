@@ -246,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </summary>
 
           <div
-            className={`flex flex-col mt-1 ml-2 gap-1 ${childrenMaxHeightClass} overflow-y-auto pr-1`}
+            className={`tf-sidebar-submenu flex flex-col mt-1 gap-1 ${childrenMaxHeightClass} overflow-y-auto`}
           >
             {(item.children || []).map((child: NavItemConfig) =>
               renderNavItem(child, item.id),
@@ -444,8 +444,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         closeMobileMenu();
                       }} />}
                   </>}
-                  {menuSection === 'reports' && <nav aria-label="Přehledy" className="px-3">{reportItems.map(item => renderNavItem(item))}</nav>}
-                  {menuSection === 'tools' && <nav aria-label="Nástroje" className="px-3">{tools.map(item => renderNavItem(item))}</nav>}
+                  {menuSection === 'reports' && <nav aria-label="Přehledy" className="tf-sidebar-menu">{reportItems.map(item => renderNavItem(item))}</nav>}
+                  {menuSection === 'tools' && <nav aria-label="Nástroje" className="tf-sidebar-menu">{tools.map(item => renderNavItem(item))}</nav>}
                   {menuSection !== 'projects' && currentView === 'project' && <button type="button"
                     className="mx-3 mt-6 p-2 text-left text-xs border border-slate-300 dark:border-slate-700 rounded-md"
                     onClick={() => setMenuSection('projects')}>Zpět k otevřené stavbě: {projects.find(project => project.id === selectedProjectId)?.name}</button>}

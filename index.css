@@ -377,12 +377,22 @@ html[data-skin="industrial"] .tf-sidebar .border-primary\/50 {
   border-color: color-mix(in srgb, var(--tf-skin-orange) 45%, transparent) !important;
 }
 
-html[data-skin="industrial"] .tf-sidebar [data-help-id="project-sidebar-tab"] {
+html[data-skin="industrial"] .tf-sidebar .tf-project-switcher {
+  background: transparent;
+}
+
+html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row {
   min-height: 1.625rem !important;
   gap: 0.55rem !important;
-  padding: 0.1875rem 0.5rem !important;
+  padding-block: 0.1875rem !important;
+  padding-right: 0.5rem !important;
+  padding-left: 0.5rem !important;
   font-size: 0.765625rem !important;
   line-height: 1.15 !important;
+}
+
+html[data-skin="industrial"] .tf-sidebar [role="group"] .tf-project-nav-row {
+  padding-left: 1.75rem !important;
 }
 
 @media (max-width: 767px) {
@@ -442,7 +452,7 @@ html.dark[data-skin="industrial"] .tf-sidebar [data-help-id="sidebar-project-ite
   color: var(--tf-skin-orange) !important;
 }
 
-html[data-skin="industrial"] .tf-sidebar [data-help-id="project-sidebar-tab-icon"] {
+html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row > .material-symbols-outlined {
   width: 0.9375rem !important;
   min-width: 0.9375rem !important;
   max-width: 0.9375rem !important;
@@ -6183,6 +6193,21 @@ html[data-skin="space"] .tf-space-sidebar-reveal > button {
   background: var(--tf-skin-card, color-mix(in srgb, currentColor 6%, transparent));
   color: var(--tf-skin-text, inherit);
   border-radius: 0 !important;
+}
+.tf-sidebar .tf-sidebar-menu :is([data-help-id="sidebar-nav-item"], [data-help-id="sidebar-nav-group-summary"]) {
+  border-radius: 0 !important;
+}
+.tf-sidebar .tf-sidebar-menu > :is(button, a),
+.tf-sidebar .tf-sidebar-menu > details > summary {
+  padding-inline: 1.5rem;
+}
+html[data-skin="industrial"] .tf-sidebar .tf-sidebar-menu > :is(button, a),
+html[data-skin="industrial"] .tf-sidebar .tf-sidebar-menu > details > summary {
+  padding-inline: 0.5rem !important;
+}
+.tf-sidebar .tf-sidebar-submenu > :is(button, a),
+.tf-sidebar .tf-sidebar-submenu > details > summary {
+  padding-left: 1.75rem !important;
 }
 .tf-sidebar .tf-project-nav-row {
   border-radius: 0 !important;
