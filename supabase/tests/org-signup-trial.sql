@@ -215,6 +215,24 @@ BEGIN
     RAISE EXCEPTION 'Personal organization trial must not unlock an expired company tenant';
   END IF;
 
+  UPDATE public.organizations
+  SET subscription_tier = 'enterprise',
+      subscription_status = 'active',
+      billing_period_end = now() + interval '30 days',
+      expires_at = now() + interval '30 days',
+      override_tier = NULL
+  WHERE id = personal_org_id;
+
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'enterprise' THEN
+    RAISE EXCEPTION 'Paid personal organization must remain available after joining a company';
+  END IF;
+
+  UPDATE public.organizations
+  SET subscription_status = 'trial',
+      billing_period_end = now() + interval '14 days',
+      expires_at = now() + interval '14 days'
+  WHERE id = personal_org_id;
+
   DELETE FROM public.organization_members
   WHERE user_id = u AND organization_id = org_id;
 

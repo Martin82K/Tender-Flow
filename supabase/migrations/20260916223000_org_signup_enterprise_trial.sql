@@ -232,7 +232,12 @@ BEGIN
     JOIN public.organization_members om ON om.organization_id = o.id
     WHERE om.user_id = target_user_id AND om.is_active = true
       AND (
-        o.type = 'business'
+        o.type IS DISTINCT FROM 'personal'
+        OR o.subscription_status IS DISTINCT FROM 'trial'
+        OR (
+          o.override_tier IS NOT NULL
+          AND (o.override_expires_at IS NULL OR o.override_expires_at > now())
+        )
         OR NOT EXISTS (
           SELECT 1
           FROM public.organization_members bm
