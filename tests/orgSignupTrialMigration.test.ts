@@ -25,5 +25,9 @@ describe("org signup enterprise trial migration", () => {
     expect(migration).toContain("auth.role() IS DISTINCT FROM 'authenticated'");
     expect(migration).toContain("AND om.is_active = true");
     expect(migration).toContain("AND NOT EXISTS (");
+    expect(migration).toContain("public.is_public_email_domain(v_domain)");
+    expect(migration).toContain("public.normalize_email_domain(p_email)");
+    expect(migration).toContain("AND o.type = 'business'");
+    expect(migration).toContain("AND bo.type = 'business'");
   });
 });

@@ -69,7 +69,7 @@ BEGIN
     RAISE EXCEPTION 'user_id and email are required';
   END IF;
 
-  v_domain := lower(split_part(p_email, '@', 2));
+  v_domain := public.normalize_email_domain(p_email);
 
   SELECT organization_id INTO v_org_id
   FROM public.organization_members
@@ -83,7 +83,7 @@ BEGIN
   v_created_at := now();
   v_trial_end := public._org_signup_trial_deadline(v_created_at);
 
-  IF public.is_free_email_provider(p_email) THEN
+  IF v_domain IS NULL OR public.is_public_email_domain(v_domain) THEN
     v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(p_email, '@', 1));
 
     INSERT INTO public.organizations (
@@ -232,6 +232,17 @@ BEGIN
     JOIN public.organization_members om ON om.organization_id = o.id
     WHERE om.user_id = target_user_id AND om.is_active = true
       AND (
+        o.type = 'business'
+        OR NOT EXISTS (
+          SELECT 1
+          FROM public.organization_members bm
+          JOIN public.organizations bo ON bo.id = bm.organization_id
+          WHERE bm.user_id = target_user_id
+            AND bm.is_active = true
+            AND bo.type = 'business'
+        )
+      )
+      AND (
         (o.override_tier IS NOT NULL AND (o.override_expires_at IS NULL OR o.override_expires_at > now()))
         OR (o.subscription_status = 'active' AND (o.access_end IS NULL OR o.access_end > now()))
         OR (o.subscription_status IN ('trial', 'cancelled', 'canceled', 'pending', 'past_due') AND o.access_end > now())
@@ -261,8 +272,10 @@ BEGIN
         AND NOT EXISTS (
           SELECT 1
           FROM public.organization_members om
+          JOIN public.organizations o ON o.id = om.organization_id
           WHERE om.user_id = target_user_id
             AND om.is_active = true
+            AND o.type = 'business'
         )
       )
       OR (up.subscription_status IN ('cancelled', 'canceled') AND up.subscription_expires_at > now())

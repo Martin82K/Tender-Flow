@@ -181,6 +181,60 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'User over the seat limit must receive a personal trial organization';
   END IF;
+
+  UPDATE public.organizations
+  SET subscription_status = 'expired',
+      billing_period_end = now() - interval '1 day',
+      expires_at = now() - interval '1 day',
+      max_seats = 5
+  WHERE id = org_id;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role, is_billable, is_active)
+  VALUES (org_id, u, 'member', true, true)
+  ON CONFLICT (organization_id, user_id) DO UPDATE
+    SET is_billable = true, is_active = true;
+
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free'
+     OR public.get_effective_user_tier(u)->>'tier' IS DISTINCT FROM 'free' THEN
+    RAISE EXCEPTION 'Personal organization trial must not unlock an expired company tenant';
+  END IF;
+
+  DELETE FROM public.organization_members
+  WHERE user_id = u AND organization_id = org_id;
+
+  UPDATE public.organizations
+  SET subscription_status = 'expired',
+      billing_period_end = now() - interval '1 day',
+      expires_at = now() - interval '1 day'
+  WHERE id = personal_org_id;
+
+  UPDATE public.user_profiles
+  SET subscription_tier_override = NULL,
+      stripe_subscription_tier = 'pro',
+      subscription_status = 'trial',
+      trial_ends_at = now() + interval '7 days',
+      subscription_expires_at = NULL
+  WHERE user_id = u;
+
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'pro' THEN
+    RAISE EXCEPTION 'Manual personal trial must remain available without a business membership';
+  END IF;
+
+  DELETE FROM public.organization_members WHERE user_id = u;
+  personal_org_id := public.get_or_create_user_organization_internal(
+    u,
+    'signup@seznam.sk',
+    'Public domain fixture'
+  );
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organizations
+    WHERE id = personal_org_id
+      AND type = 'personal'
+      AND (domain_whitelist IS NULL OR NOT ('seznam.sk' = ANY (domain_whitelist)))
+  ) THEN
+    RAISE EXCEPTION 'Public email domains must create a personal organization without a company whitelist';
+  END IF;
 END;
 $$;
 ROLLBACK;
