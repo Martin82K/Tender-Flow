@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CTA, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS, FORBIDDEN_COPY_FRAGMENTS, SCENES, TAGLINE } from "../ads/instagram-reel/src/copy";
+import { CTA, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS, DEMO_OVERVIEW, DEMO_TABLE, FORBIDDEN_COPY_FRAGMENTS, SCENES, TAGLINE } from "../ads/instagram-reel/src/copy";
 import {
   COMPOSITION_ID,
   REEL_DURATION_FRAMES,
@@ -15,7 +15,7 @@ import {
 const reelRoot = join(process.cwd(), "ads/instagram-reel");
 
 const collectCopy = (): string => {
-  return JSON.stringify({ CTA, TAGLINE, SCENES, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS }).toLocaleLowerCase("cs-CZ");
+  return JSON.stringify({ CTA, TAGLINE, SCENES, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS, DEMO_OVERVIEW, DEMO_TABLE }).toLocaleLowerCase("cs-CZ");
 };
 
 describe("TenderFlowReel15 storyboard", () => {

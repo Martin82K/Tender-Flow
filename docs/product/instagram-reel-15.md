@@ -8,6 +8,6 @@ Zdroj, storyboard, náhled (`remotion studio`) a render do MP4 jsou v
 
 CTA na finálním taktu je marketingové znění **Domluvit ukázku** s podtextem
 `tenderflow.cz`. Cílová adresa pro popisek je `https://www.tenderflow.cz`.
-Vizuál kopíruje tmavý skin TF basic a reálný TF app icon; scény ukazují
-syntetická data v kanbanu, kolech nabídek a smlouvách. Spot nemění
+Vizuál kopíruje klasický dark skin produktu (`html.dark`, `#0f172a`) a
+veřejné screenshoty VŘ / kanbanu / přehledu poptávek. Spot nemění
 produktovou strategii a neuvádí konverzní metriky.

@@ -2,17 +2,44 @@ import { AbsoluteFill, Sequence, interpolate, useCurrentFrame, useVideoConfig } 
 import {
   BidCardUi,
   CategoryCard,
-  ContractRow,
+  CreateSectionCard,
+  DemandTable,
   DetailToolbar,
   FilterBar,
   KanbanColumn,
+  OverviewKpis,
   RoundChips,
 } from "./appUi";
 import { brand } from "./brand";
 import { AppFrame, LogoMark, ReelChrome, SceneHeading, enter, fadeUp } from "./chrome";
-import { CTA, DEMO_BIDS, DEMO_CATEGORIES, DEMO_CONTRACTS, DEMO_PROJECT, SCENES, TAGLINE } from "./copy";
+import {
+  CTA,
+  DEMO_BIDS,
+  DEMO_CATEGORIES,
+  DEMO_OVERVIEW,
+  DEMO_PROJECT,
+  DEMO_TABLE,
+  SCENES,
+  TAGLINE,
+} from "./copy";
 import { SCENE_FRAMES } from "./storyboard";
 import { useInterFont } from "./useInterFont";
+
+const NewDemandButton = () => (
+  <div
+    style={{
+      background: brand.accentMid,
+      color: brand.inkOnAccent,
+      borderRadius: 8,
+      padding: "6px 10px",
+      fontSize: 11,
+      fontWeight: 800,
+      whiteSpace: "nowrap",
+    }}
+  >
+    Nová Poptávka
+  </div>
+);
 
 const CategoriesScene: React.FC = () => {
   const frame = useCurrentFrame();
@@ -22,16 +49,16 @@ const CategoriesScene: React.FC = () => {
   return (
     <ReelChrome sceneIndex={0}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
-      <AppFrame activeTab="pipeline">
-        <FilterBar active="all" />
+      <AppFrame activeTab="pipeline" sidebar>
+        <FilterBar active="all" extra={<NewDemandButton />} />
         <div
           style={{
             flex: 1,
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gridTemplateRows: "1fr 1fr",
-            gap: 10,
+            gridTemplateRows: "1fr 1fr 1fr",
+            gap: 8,
           }}
         >
           {DEMO_CATEGORIES.map((category, index) => (
@@ -39,11 +66,12 @@ const CategoriesScene: React.FC = () => {
               key={category.title}
               {...category}
               style={{
-                opacity: enter(frame, fps, 4 + index * 4),
-                transform: `translateY(${interpolate(enter(frame, fps, 4 + index * 4), [0, 1], [14, 0])}px)`,
+                opacity: enter(frame, fps, 3 + index * 3),
+                transform: `translateY(${interpolate(enter(frame, fps, 3 + index * 3), [0, 1], [12, 0])}px)`,
               }}
             />
           ))}
+          <CreateSectionCard />
         </div>
       </AppFrame>
     </ReelChrome>
@@ -59,13 +87,14 @@ const OutreachScene: React.FC = () => {
   return (
     <ReelChrome sceneIndex={1}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
-      <AppFrame activeTab="pipeline" toolbar={<DetailToolbar category={DEMO_PROJECT.category} />}>
-        <div style={{ display: "flex", gap: 10, height: "100%", overflow: "hidden" }}>
+      <AppFrame activeTab="pipeline" toolbar={<DetailToolbar />} categoryTitle={DEMO_PROJECT.category}>
+        <div style={{ display: "flex", gap: 8, height: "100%", overflow: "hidden" }}>
           <KanbanColumn title="Oslovení" count={contacted ? 2 : 3} tone="slate">
             <BidCardUi
               company={DEMO_BIDS[0].company}
               person={DEMO_BIDS[0].person}
               email={DEMO_BIDS[0].email}
+              phone={DEMO_BIDS[0].phone}
               compact
               inquiry
               style={{ opacity: enter(frame, fps, 6) }}
@@ -74,6 +103,7 @@ const OutreachScene: React.FC = () => {
               company={DEMO_BIDS[1].company}
               person={DEMO_BIDS[1].person}
               email={DEMO_BIDS[1].email}
+              phone={DEMO_BIDS[1].phone}
               compact
               inquiry
               style={{ opacity: enter(frame, fps, 10) }}
@@ -83,6 +113,7 @@ const OutreachScene: React.FC = () => {
                 company={DEMO_BIDS[3].company}
                 person={DEMO_BIDS[3].person}
                 email={DEMO_BIDS[3].email}
+                phone={DEMO_BIDS[3].phone}
                 compact
                 inquiry
               />
@@ -94,20 +125,22 @@ const OutreachScene: React.FC = () => {
                 company={DEMO_BIDS[3].company}
                 person={DEMO_BIDS[3].person}
                 email={DEMO_BIDS[3].email}
+                phone={DEMO_BIDS[3].phone}
                 compact
                 style={{ opacity: enter(frame, fps, 16) }}
               />
             ) : (
-              <div style={{ color: brand.muted, fontSize: 13, fontStyle: "italic", padding: 10 }}>
+              <div style={{ color: brand.muted, fontSize: 12, fontStyle: "italic", padding: 10 }}>
                 Žádní dodavatelé v této fázi
               </div>
             )}
           </KanbanColumn>
-          <KanbanColumn title="Cenová nabídka" count={1} tone="amber" style={{ minWidth: 220 }}>
+          <KanbanColumn title="Cenová nabídka" count={1} tone="amber">
             <BidCardUi
               company={DEMO_BIDS[4].company}
               person={DEMO_BIDS[4].person}
               email={DEMO_BIDS[4].email}
+              phone={DEMO_BIDS[4].phone}
               price={DEMO_BIDS[4].rounds[0].price}
               compact
               style={{ opacity: enter(frame, fps, 12) }}
@@ -129,35 +162,40 @@ const RoundsScene: React.FC = () => {
   return (
     <ReelChrome sceneIndex={2}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
-      <AppFrame activeTab="rounds" toolbar={<DetailToolbar category={DEMO_PROJECT.category} />}>
+      <AppFrame activeTab="pipeline" toolbar={<DetailToolbar />} categoryTitle={DEMO_PROJECT.category}>
         <RoundChips active={activeRound} />
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-          <BidCardUi
-            company={winner.company}
-            person={winner.person}
-            email={winner.email}
-            phone={winner.phone}
-            rounds={winner.rounds}
-            selectedRound={activeRound}
-            style={{ ...fadeUp(frame, fps, 6) }}
-          />
-          <BidCardUi
-            company={DEMO_BIDS[0].company}
-            person={DEMO_BIDS[0].person}
-            email={DEMO_BIDS[0].email}
-            rounds={DEMO_BIDS[0].rounds}
-            selectedRound={DEMO_BIDS[0].selectedRound}
-            style={{ opacity: enter(frame, fps, 12) }}
-          />
-          <BidCardUi
-            company={DEMO_BIDS[2].company}
-            person={DEMO_BIDS[2].person}
-            email={DEMO_BIDS[2].email}
-            rounds={DEMO_BIDS[2].rounds}
-            selectedRound={DEMO_BIDS[2].selectedRound}
-            compact
-            style={{ opacity: enter(frame, fps, 16) }}
-          />
+        <div style={{ display: "flex", gap: 8, flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <KanbanColumn title="Cenová nabídka" count={1} tone="amber">
+            <BidCardUi
+              company={DEMO_BIDS[4].company}
+              person={DEMO_BIDS[4].person}
+              email={DEMO_BIDS[4].email}
+              phone={DEMO_BIDS[4].phone}
+              price={DEMO_BIDS[4].rounds[0].price}
+              compact
+              style={{ opacity: enter(frame, fps, 6) }}
+            />
+          </KanbanColumn>
+          <KanbanColumn title="Užší výběr" count={2} tone="blue">
+            <BidCardUi
+              company={winner.company}
+              person={winner.person}
+              email={winner.email}
+              phone={winner.phone}
+              rounds={winner.rounds}
+              selectedRound={activeRound}
+              style={{ ...fadeUp(frame, fps, 8) }}
+            />
+            <BidCardUi
+              company={DEMO_BIDS[0].company}
+              person={DEMO_BIDS[0].person}
+              email={DEMO_BIDS[0].email}
+              rounds={DEMO_BIDS[0].rounds}
+              selectedRound={DEMO_BIDS[0].selectedRound}
+              compact
+              style={{ opacity: enter(frame, fps, 14) }}
+            />
+          </KanbanColumn>
         </div>
       </AppFrame>
     </ReelChrome>
@@ -173,13 +211,14 @@ const AwardScene: React.FC = () => {
   return (
     <ReelChrome sceneIndex={3}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
-      <AppFrame activeTab="award" toolbar={<DetailToolbar category={DEMO_PROJECT.category} />}>
-        <div style={{ display: "flex", gap: 10, height: "100%", overflow: "hidden" }}>
+      <AppFrame activeTab="pipeline" toolbar={<DetailToolbar />} categoryTitle={DEMO_PROJECT.category}>
+        <div style={{ display: "flex", gap: 8, height: "100%", overflow: "hidden" }}>
           <KanbanColumn title="Užší výběr" count={1} tone="blue">
             <BidCardUi
               company={DEMO_BIDS[2].company}
               person={DEMO_BIDS[2].person}
               email={DEMO_BIDS[2].email}
+              phone={DEMO_BIDS[2].phone}
               price={DEMO_BIDS[2].rounds[1].price}
               compact
               style={{ opacity: enter(frame, fps, 6) }}
@@ -190,30 +229,19 @@ const AwardScene: React.FC = () => {
               company={winner.company}
               person={winner.person}
               email={winner.email}
+              phone={winner.phone}
               price={winner.rounds[2].price}
               winner
               compact
               style={{ opacity: enter(frame, fps, 12) }}
             />
-            <div
-              style={{
-                marginTop: 2,
-                padding: "8px 10px",
-                borderRadius: 10,
-                background: "rgba(144, 204, 165, 0.12)",
-                border: "1px solid rgba(144, 204, 165, 0.28)",
-                opacity: enter(frame, fps, 18),
-              }}
-            >
-              <div style={{ fontSize: 12, color: brand.muted, fontWeight: 600 }}>Vítězná částka</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: brand.green, marginTop: 2 }}>{winner.rounds[2].price}</div>
-            </div>
           </KanbanColumn>
-          <KanbanColumn title="Zamítnuto" count={1} tone="red" style={{ minWidth: 210 }}>
+          <KanbanColumn title="Zamítnuto" count={1} tone="red">
             <BidCardUi
               company={DEMO_BIDS[4].company}
               person={DEMO_BIDS[4].person}
               email={DEMO_BIDS[4].email}
+              phone={DEMO_BIDS[4].phone}
               price={DEMO_BIDS[4].rounds[0].price}
               compact
               style={{ opacity: enter(frame, fps, 10) }}
@@ -230,85 +258,37 @@ const ContractCtaScene: React.FC = () => {
   const { fps } = useVideoConfig();
   const scene = SCENES[4];
   const pulse = interpolate(Math.sin(frame / 8), [-1, 1], [0.97, 1]);
-  const billed = Math.round(interpolate(enter(frame, fps, 8), [0, 1], [8, DEMO_CONTRACTS[0].billed]));
 
   return (
     <ReelChrome sceneIndex={4}>
       <SceneHeading kicker={scene.kicker} title={scene.title} subtitle={scene.subtitle} />
-      <AppFrame activeTab="contract">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {DEMO_CONTRACTS.map((contract, index) => (
-            <ContractRow
-              key={contract.number}
-              title={contract.title}
-              vendor={contract.vendor}
-              number={contract.number}
-              status={contract.status}
-              amount={contract.amount}
-              billed={contract.active ? billed : contract.billed}
-              active={contract.active}
-              style={fadeUp(frame, fps, 4 + index * 5)}
-            />
-          ))}
-        </div>
-        <div
-          style={{
-            marginTop: 10,
-            flex: 1,
-            minHeight: 0,
-            borderRadius: 12,
-            border: `1px solid ${brand.line}`,
-            background: brand.card,
-            padding: 14,
-            opacity: enter(frame, fps, 16),
-          }}
-        >
-          <div style={{ fontSize: 12, color: brand.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            Detail smlouvy
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 8 }}>{DEMO_CONTRACTS[0].title}</div>
-          <div style={{ color: brand.muted, fontSize: 14, marginTop: 4 }}>
-            {DEMO_CONTRACTS[0].vendor} · {DEMO_CONTRACTS[0].number}
-          </div>
-          <div style={{ display: "flex", gap: 18, marginTop: 14 }}>
-            <div>
-              <div style={{ fontSize: 12, color: brand.muted }}>Smluvní cena</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2 }}>{DEMO_CONTRACTS[0].amount}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: brand.muted }}>Vyfakturováno</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2, color: brand.green }}>{billed} %</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 12, color: brand.muted }}>Stav</div>
-              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2, color: brand.green }}>Aktivní</div>
-            </div>
-          </div>
-        </div>
+      <AppFrame activeTab="overview">
+        <OverviewKpis {...DEMO_OVERVIEW} />
+        <DemandTable rows={DEMO_TABLE} />
       </AppFrame>
-      <div style={{ paddingTop: 16, textAlign: "center", flexShrink: 0 }}>
+      <div style={{ paddingTop: 14, textAlign: "center", flexShrink: 0 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-          <LogoMark size={72} />
+          <LogoMark size={68} />
         </div>
-        <div style={{ fontSize: 18, color: brand.text2, marginBottom: 12 }}>{TAGLINE}</div>
+        <div style={{ fontSize: 17, color: brand.text2, marginBottom: 10 }}>{TAGLINE}</div>
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            minWidth: 480,
-            padding: "18px 36px",
+            minWidth: 460,
+            padding: "16px 34px",
             borderRadius: 14,
             background: `linear-gradient(135deg, ${brand.accentHi}, ${brand.accentMid})`,
             color: brand.inkOnAccent,
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: 800,
             transform: `scale(${pulse})`,
           }}
         >
           {CTA.primary}
         </div>
-        <div style={{ marginTop: 10, fontSize: 24, color: brand.apricotSoft }}>{CTA.url}</div>
+        <div style={{ marginTop: 8, fontSize: 22, color: brand.apricotSoft }}>{CTA.url}</div>
       </div>
     </ReelChrome>
   );

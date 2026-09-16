@@ -51,12 +51,11 @@ H.264, 1080x1920 (9:16). Ověřený render z tohoto PR je v
 
 ## Vizuál
 
-Tmavé plochy skinu **TF basic** (`#1c1b19`, `#26231f`, `#161513`) a oranžový
-akcent z reálného TF loga (`#FF9E3D` → `#F26B1A` → `#B03A05`, `#ff8a33`).
-V headeru i na end card je skutečný app icon (`public/tf-app-icon.png`),
-ne fiktivní dlaždice „TF“. Scény vyplňují 9:16 syntetickými, ale věrohodnými
-obrazovkami produktu: mřížka kategorií, kanban Oslovení/Odesláno/Cenová
-nabídka, kola nabídek na BidCard a seznam smluv Subdodavatel.
+Tmavé plochy klasického dark skinu (`html.dark`: `#0f172a`, `#111827`, `#020617`)
+podle veřejných screenshotů produktu, indigo primary (`#6580fb`) a oranžový
+akcent TF loga pro header/CTA. V headeru i na end card je skutečný app icon
+(`public/tf-app-icon.png`). Scény kopírují jazyk UI: mřížka VŘ, kanban
+Oslovení/Odesláno/Cenová nabídka/Užší výběr/Jednání o SOD, přehled poptávek.
 
 Remotion má vlastní licenci; před produkčním nasazením reklamy ověřte, zda
 stačí volná licence, nebo je potřeba firemní.

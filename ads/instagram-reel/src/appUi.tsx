@@ -2,14 +2,14 @@ import type { CSSProperties, ReactNode } from "react";
 import { brand } from "./brand";
 
 const toneStyles: Record<string, { bg: string; color: string; border: string; header: string }> = {
-  open: { bg: "rgba(167, 198, 240, 0.16)", color: brand.blue, border: "rgba(167, 198, 240, 0.35)", header: "rgba(167, 198, 240, 0.10)" },
-  negotiating: { bg: "rgba(231, 190, 121, 0.16)", color: brand.amber, border: "rgba(231, 190, 121, 0.35)", header: "rgba(231, 190, 121, 0.10)" },
-  closed: { bg: "rgba(144, 204, 165, 0.16)", color: brand.green, border: "rgba(144, 204, 165, 0.35)", header: "rgba(144, 204, 165, 0.10)" },
-  slate: { bg: "rgba(22, 21, 19, 0.55)", color: brand.text2, border: "rgba(72, 65, 57, 0.85)", header: "rgba(46, 43, 39, 0.85)" },
-  blue: { bg: "rgba(167, 198, 240, 0.08)", color: brand.blue, border: "rgba(167, 198, 240, 0.28)", header: "rgba(167, 198, 240, 0.12)" },
-  amber: { bg: "rgba(231, 190, 121, 0.08)", color: brand.amber, border: "rgba(231, 190, 121, 0.28)", header: "rgba(231, 190, 121, 0.12)" },
-  green: { bg: "rgba(144, 204, 165, 0.08)", color: brand.green, border: "rgba(144, 204, 165, 0.28)", header: "rgba(144, 204, 165, 0.12)" },
-  red: { bg: "rgba(255, 154, 171, 0.08)", color: brand.rose, border: "rgba(255, 154, 171, 0.28)", header: "rgba(255, 154, 171, 0.12)" },
+  open: { bg: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", header: "rgba(59, 130, 246, 0.12)" },
+  negotiating: { bg: "rgba(245, 158, 11, 0.2)", color: "#fbbf24", border: "rgba(245, 158, 11, 0.3)", header: "rgba(245, 158, 11, 0.12)" },
+  closed: { bg: "rgba(16, 185, 129, 0.2)", color: "#34d399", border: "rgba(16, 185, 129, 0.3)", header: "rgba(16, 185, 129, 0.12)" },
+  slate: { bg: "rgba(2, 6, 23, 0.72)", color: brand.text2, border: "rgba(51, 65, 85, 0.4)", header: "rgba(30, 41, 59, 0.7)" },
+  blue: { bg: "rgba(37, 99, 235, 0.16)", color: brand.blue, border: "rgba(37, 99, 235, 0.32)", header: "rgba(30, 58, 138, 0.55)" },
+  amber: { bg: "rgba(217, 119, 6, 0.16)", color: brand.amber, border: "rgba(217, 119, 6, 0.32)", header: "rgba(120, 53, 15, 0.55)" },
+  green: { bg: "rgba(16, 185, 129, 0.14)", color: brand.green, border: "rgba(16, 185, 129, 0.32)", header: "rgba(6, 78, 59, 0.6)" },
+  red: { bg: "rgba(244, 63, 94, 0.16)", color: brand.rose, border: "rgba(244, 63, 94, 0.32)", header: "rgba(127, 29, 29, 0.55)" },
 };
 
 const Glyph: React.FC<{ d: string; size?: number; color?: string }> = ({ d, size = 14, color = brand.muted }) => (
@@ -29,11 +29,11 @@ export const Pill: React.FC<{ label: string; tone?: string; style?: CSSPropertie
       style={{
         display: "inline-flex",
         alignItems: "center",
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 800,
         letterSpacing: "0.06em",
         textTransform: "uppercase",
-        padding: "4px 9px",
+        padding: "4px 8px",
         borderRadius: 8,
         background: colors.bg,
         color: colors.color,
@@ -46,48 +46,45 @@ export const Pill: React.FC<{ label: string; tone?: string; style?: CSSPropertie
   );
 };
 
-export const FilterBar: React.FC<{ active: string }> = ({ active }) => {
+export const FilterBar: React.FC<{ active: string; extra?: ReactNode }> = ({ active, extra }) => {
   const filters = [
-    { id: "all", label: "Všechny (4)" },
-    { id: "open", label: "Poptávané (2)" },
-    { id: "closed", label: "Ukončené (1)" },
+    { id: "all", label: "Všechny (5)" },
+    { id: "open", label: "Poptávané (4)" },
+    { id: "closed", label: "Ukončené (0)" },
     { id: "sod", label: "Zasmluvněné (1)" },
   ];
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 4,
-        padding: 4,
-        border: `1px solid ${brand.line}`,
-        borderRadius: 8,
-        background: "rgba(46, 43, 39, 0.76)",
-        marginBottom: 10,
-        flexShrink: 0,
-      }}
-    >
-      {filters.map((filter) => {
-        const on = filter.id === active;
-        return (
-          <div
-            key={filter.id}
-            style={{
-              padding: "8px 10px",
-              borderRadius: 6,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              color: on ? brand.apricotSoft : brand.muted,
-              background: on ? "rgba(234, 160, 121, 0.13)" : "transparent",
-              border: on ? `1px solid rgba(234, 160, 121, 0.45)` : "1px solid transparent",
-              boxShadow: on ? `inset 0 -2px 0 ${brand.apricot}` : "none",
-            }}
-          >
-            {filter.label}
-          </div>
-        );
-      })}
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexShrink: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 2,
+          padding: 3,
+          borderRadius: 12,
+          background: "rgba(15, 23, 42, 0.9)",
+          border: `1px solid ${brand.line2}`,
+        }}
+      >
+        {filters.map((filter) => {
+          const on = filter.id === active;
+          return (
+            <div
+              key={filter.id}
+              style={{
+                padding: "6px 9px",
+                borderRadius: 8,
+                fontSize: 11,
+                fontWeight: 700,
+                color: on ? brand.inkOnPrimary : brand.muted,
+                background: on ? brand.primary : "transparent",
+              }}
+            >
+              {filter.label}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginLeft: "auto" }}>{extra}</div>
     </div>
   );
 };
@@ -100,17 +97,18 @@ export const CategoryCard: React.FC<{
   offers: string;
   description: string;
   deadline: string;
+  realization?: string;
   priceLabel: string;
   price: string;
   contracts?: string;
   style?: CSSProperties;
-}> = ({ title, status, tone, asked, offers, description, deadline, priceLabel, price, contracts, style }) => (
+}> = ({ title, status, tone, asked, offers, description, deadline, realization, priceLabel, price, contracts, style }) => (
   <div
     style={{
-      background: brand.card,
-      border: `1px solid ${brand.line}`,
+      background: "rgba(17, 24, 39, 0.88)",
+      border: "1px solid rgba(51, 65, 85, 0.4)",
       borderRadius: 16,
-      padding: "14px 14px 12px",
+      padding: "12px 12px 10px",
       display: "flex",
       flexDirection: "column",
       minHeight: 0,
@@ -120,41 +118,66 @@ export const CategoryCard: React.FC<{
   >
     <div>
       <Pill label={status} tone={tone} />
-      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 8, letterSpacing: "-0.03em" }}>{title}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: brand.accent, fontSize: 13 }}>
-        <Glyph d="M7 4h10v16H7zM7 8h10" size={13} color={brand.accent} />
+      <div style={{ fontSize: 16, fontWeight: 800, marginTop: 8, letterSpacing: "-0.03em", lineHeight: 1.2 }}>{title}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, color: brand.apricot, fontSize: 11 }}>
+        <Glyph d="M7 4h10v16H7zM7 8h10" size={12} color={brand.apricot} />
         <span>Termín nabídky: {deadline}</span>
       </div>
-      <div style={{ marginTop: 6, color: brand.muted, fontSize: 14, lineHeight: 1.35 }}>{description}</div>
+      {realization ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, color: brand.violet, fontSize: 11 }}>
+          <Glyph d="M4 20V9l8-5 8 5v11M9 20v-6h6v6" size={12} color={brand.violet} />
+          <span>Realizace: {realization}</span>
+        </div>
+      ) : null}
+      <div style={{ marginTop: 6, color: brand.muted, fontSize: 12, lineHeight: 1.3 }}>{description}</div>
     </div>
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
         marginTop: 10,
-        paddingTop: 10,
-        borderTop: `1px solid ${brand.line}`,
+        paddingTop: 8,
+        borderTop: "1px solid rgba(51, 65, 85, 0.5)",
       }}
     >
       <div>
-        <div style={{ fontSize: 11, color: brand.muted }}>{priceLabel}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{price}</div>
+        <div style={{ fontSize: 10, color: brand.muted }}>{priceLabel}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{price}</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 11, color: brand.muted }}>Poptáno</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{asked}</div>
+        <div style={{ fontSize: 10, color: brand.muted }}>Poptáno</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{asked}</div>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 11, color: brand.muted }}>CN</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{offers}</div>
+        <div style={{ fontSize: 10, color: brand.muted }}>CN</div>
+        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{offers}</div>
       </div>
       {contracts ? (
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 11, color: brand.muted }}>Smlouvy</div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, color: brand.green }}>{contracts}</div>
+          <div style={{ fontSize: 10, color: brand.muted }}>Smlouvy</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2, color: brand.green }}>{contracts}</div>
         </div>
       ) : null}
     </div>
+  </div>
+);
+
+export const CreateSectionCard: React.FC = () => (
+  <div
+    style={{
+      border: "1px dashed rgba(100, 116, 139, 0.55)",
+      borderRadius: 16,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      color: brand.muted,
+      gap: 6,
+      minHeight: 0,
+    }}
+  >
+    <div style={{ fontSize: 22, fontWeight: 300 }}>+</div>
+    <div style={{ fontSize: 13, fontWeight: 700 }}>Vytvořit novou sekci</div>
   </div>
 );
 
@@ -170,7 +193,7 @@ export const KanbanColumn: React.FC<{
     <div
       style={{
         flex: "1 0 0",
-        minWidth: 250,
+        minWidth: 220,
         height: "100%",
         borderRadius: 16,
         border: `1px solid ${colors.border}`,
@@ -192,19 +215,19 @@ export const KanbanColumn: React.FC<{
           flexShrink: 0,
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>{title}</div>
+        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>{title}</div>
         <div
           style={{
-            minWidth: 24,
+            minWidth: 22,
             height: 22,
-            padding: "0 7px",
+            padding: "0 6px",
             borderRadius: 99,
-            background: "rgba(0,0,0,0.28)",
-            border: `1px solid ${brand.line}`,
+            background: "rgba(15, 23, 42, 0.65)",
+            border: "1px solid rgba(51, 65, 85, 0.5)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 800,
             color: brand.text2,
           }}
@@ -232,11 +255,11 @@ export const BidCardUi: React.FC<{
 }> = ({ company, person, email, phone, price, rounds, selectedRound, winner, compact, inquiry, style }) => (
   <div
     style={{
-      background: brand.card,
-      border: winner ? `1px solid ${brand.accent}` : `1px solid ${brand.line}`,
-      boxShadow: winner ? `0 0 0 1px ${brand.accent}` : "0 8px 18px rgba(0,0,0,0.18)",
+      background: "rgba(17, 24, 39, 0.92)",
+      border: winner ? "1px solid rgba(52, 211, 153, 0.45)" : "1px solid rgba(51, 65, 85, 0.4)",
+      boxShadow: winner ? "0 0 0 1px rgba(250, 204, 21, 0.35)" : "0 8px 18px rgba(0,0,0,0.22)",
       borderRadius: 12,
-      padding: compact ? "10px 12px" : "12px 14px",
+      padding: compact ? "10px 11px" : "12px 13px",
       position: "relative",
       ...style,
     }}
@@ -247,15 +270,15 @@ export const BidCardUi: React.FC<{
           position: "absolute",
           top: -10,
           right: -8,
-          width: 26,
-          height: 26,
+          width: 24,
+          height: 24,
           borderRadius: 99,
           background: "#facc15",
           color: "#422006",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 900,
         }}
       >
@@ -263,16 +286,16 @@ export const BidCardUi: React.FC<{
       </div>
     ) : null}
     <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-      <div style={{ fontSize: compact ? 16 : 18, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.2 }}>{company}</div>
+      <div style={{ fontSize: compact ? 14 : 16, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.2 }}>{company}</div>
       {price ? (
         <div
           style={{
-            background: "rgba(144, 204, 165, 0.18)",
+            background: "rgba(16, 185, 129, 0.2)",
             color: brand.green,
-            border: "1px solid rgba(144, 204, 165, 0.32)",
+            border: "1px solid rgba(16, 185, 129, 0.3)",
             borderRadius: 8,
             padding: "3px 7px",
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 800,
             whiteSpace: "nowrap",
           }}
@@ -281,22 +304,22 @@ export const BidCardUi: React.FC<{
         </div>
       ) : null}
     </div>
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: brand.muted, fontSize: 13 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: brand.muted, fontSize: 12 }}>
       <Glyph d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 19c.8-3 3.4-5 7-5s6.2 2 7 5" />
       {person}
     </div>
-    {phone && !compact ? (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, color: brand.muted, fontSize: 12, marginTop: 3 }}>
+    {phone ? (
+      <div style={{ display: "flex", alignItems: "center", gap: 6, color: brand.muted, fontSize: 11, marginTop: 3 }}>
         <Glyph d="M6 4h4l1 4-2 1a12 12 0 0 0 6 6l1-2 4 1v4c-8 1-16-7-14-14z" />
         {phone}
       </div>
     ) : null}
-    <div style={{ display: "flex", alignItems: "center", gap: 6, color: brand.muted, fontSize: 12, marginTop: 3 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: brand.muted, fontSize: 11, marginTop: 3 }}>
       <Glyph d="M4 6h16v12H4zM4 6l8 7 8-7" />
       {email}
     </div>
     {rounds ? (
-      <div style={{ marginTop: 8, borderTop: `1px solid ${brand.line}`, paddingTop: 6 }}>
+      <div style={{ marginTop: 8, borderTop: "1px solid rgba(51, 65, 85, 0.5)", paddingTop: 6 }}>
         {rounds.map((round, index) => {
           const selected = index === selectedRound;
           return (
@@ -305,7 +328,7 @@ export const BidCardUi: React.FC<{
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: 13,
+                fontSize: 12,
                 padding: "2px 0",
                 color: selected ? brand.green : brand.muted,
                 fontWeight: selected ? 700 : 450,
@@ -330,7 +353,7 @@ export const BidCardUi: React.FC<{
           color: "#ecfdf5",
           borderRadius: 8,
           padding: "7px 8px",
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 800,
         }}
       >
@@ -350,13 +373,13 @@ export const RoundChips: React.FC<{ active: number }> = ({ active }) => {
           <div
             key={chip}
             style={{
-              padding: "7px 12px",
+              padding: "6px 11px",
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: 700,
-              background: on ? "rgba(255, 138, 51, 0.14)" : brand.card,
-              color: on ? brand.accentHi : brand.muted,
-              border: on ? `1px solid ${brand.accent}` : `1px solid ${brand.line}`,
+              background: on ? brand.primarySoft : brand.card,
+              color: on ? brand.primary : brand.muted,
+              border: on ? `1px solid ${brand.primary}` : `1px solid ${brand.line2}`,
             }}
           >
             {chip}
@@ -367,78 +390,139 @@ export const RoundChips: React.FC<{ active: number }> = ({ active }) => {
   );
 };
 
-export const DetailToolbar: React.FC<{ category: string; addLabel?: string }> = ({
-  category,
-  addLabel = "Přidat dodavatele",
-}) => (
+export const DetailToolbar: React.FC = () => (
   <div
     style={{
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      padding: "8px 12px",
-      borderBottom: `1px solid ${brand.line}`,
-      background: brand.surface,
+      gap: 6,
+      padding: "8px 12px 4px",
       flexShrink: 0,
+      overflow: "hidden",
     }}
   >
-    <div style={{ color: brand.muted, fontSize: 13, fontWeight: 600, marginRight: "auto" }}>← Zpět na přehled</div>
-    <div style={{ color: brand.text2, fontSize: 13, fontWeight: 700 }}>{category}</div>
+    <div style={{ color: brand.muted, fontSize: 12, fontWeight: 600, marginRight: "auto" }}>← Zpět na přehled</div>
     <div
       style={{
-        background: brand.accentMid,
-        color: brand.inkOnAccent,
+        background: brand.primary,
+        color: brand.inkOnPrimary,
         borderRadius: 8,
         padding: "6px 10px",
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 800,
       }}
     >
-      + {addLabel}
+      + Přidat dodavatele
+    </div>
+    <div
+      style={{
+        background: brand.violetSoft,
+        color: brand.violet,
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 11,
+        fontWeight: 700,
+      }}
+    >
+      Otevřít složku
+    </div>
+    <div
+      style={{
+        background: "rgba(30, 41, 59, 0.9)",
+        color: brand.text2,
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 11,
+        fontWeight: 700,
+        border: `1px solid ${brand.line2}`,
+      }}
+    >
+      Export
+    </div>
+    <div
+      style={{
+        background: "rgba(234, 88, 12, 0.16)",
+        color: brand.apricotSoft,
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 11,
+        fontWeight: 700,
+        border: "1px solid rgba(251, 146, 60, 0.35)",
+      }}
+    >
+      Email nevybraným
     </div>
   </div>
 );
 
-export const ContractRow: React.FC<{
-  title: string;
-  vendor?: string;
-  number: string;
-  status: string;
-  amount?: string;
-  billed: number;
-  active?: boolean;
-  style?: CSSProperties;
-}> = ({ title, vendor, number, status, amount, billed, active, style }) => (
+export const OverviewKpis: React.FC<{
+  budget: string;
+  planned: string;
+  contracted: string;
+  progress: string;
+}> = ({ budget, planned, contracted, progress }) => {
+  const items = [
+    { label: "Rozpočet (investor)", value: budget, color: brand.text },
+    { label: "Plánovaný náklad", value: planned, color: brand.text },
+    { label: "Zasmluvněno", value: contracted, color: brand.green },
+    { label: "Postup zadávání", value: progress, color: brand.amber },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flexShrink: 0 }}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={{
+            background: "rgba(17, 24, 39, 0.88)",
+            border: "1px solid rgba(51, 65, 85, 0.4)",
+            borderRadius: 14,
+            padding: "10px 12px",
+          }}
+        >
+          <div style={{ fontSize: 10, color: brand.muted, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            {item.label}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4, color: item.color }}>{item.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const DemandTable: React.FC<{
+  rows: ReadonlyArray<{ status: string; tone: string; title: string; sod: string; bids: string; winner?: string }>;
+}> = ({ rows }) => (
   <div
     style={{
-      background: active ? "rgba(255, 138, 51, 0.10)" : brand.card,
-      border: `1px solid ${brand.line}`,
-      borderLeft: `3px solid ${active ? brand.accent : brand.line}`,
-      borderRadius: 12,
-      padding: 14,
-      ...style,
+      flex: 1,
+      minHeight: 0,
+      marginTop: 10,
+      background: "rgba(17, 24, 39, 0.88)",
+      border: "1px solid rgba(51, 65, 85, 0.4)",
+      borderRadius: 16,
+      padding: 12,
+      overflow: "hidden",
     }}
   >
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>{title}</div>
-        <div style={{ fontSize: 13, color: brand.muted, marginTop: 3 }}>{number}</div>
-      </div>
-      <Pill label={status} tone={status === "Aktivní" ? "closed" : "open"} />
-    </div>
-    <div style={{ marginTop: 6, color: brand.text2, fontSize: 14 }}>{vendor}</div>
-    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 14 }}>
-      <span style={{ fontWeight: 800 }}>{amount}</span>
-      <span style={{ color: brand.muted }}>Vyfakturováno {billed} %</span>
-    </div>
-    <div style={{ marginTop: 8, height: 4, borderRadius: 99, background: brand.line, overflow: "hidden" }}>
+    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>Přehled poptávek</div>
+    {rows.map((row) => (
       <div
+        key={row.title}
         style={{
-          width: `${billed}%`,
-          height: "100%",
-          background: `linear-gradient(90deg, ${brand.amber}, ${brand.green})`,
+          display: "grid",
+          gridTemplateColumns: "110px 1fr 120px 70px",
+          gap: 8,
+          alignItems: "center",
+          padding: "8px 0",
+          borderTop: "1px solid rgba(51, 65, 85, 0.45)",
+          fontSize: 12,
         }}
-      />
-    </div>
+      >
+        <Pill label={row.status} tone={row.tone} />
+        <div style={{ fontWeight: 700 }}>{row.title}</div>
+        <div style={{ textAlign: "right", fontWeight: 700 }}>{row.sod}</div>
+        <div style={{ textAlign: "right", color: brand.muted }}>{row.bids}</div>
+      </div>
+    ))}
   </div>
 );

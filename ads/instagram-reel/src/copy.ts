@@ -1,6 +1,7 @@
 /**
  * On-screen Czech copy for the 15s Instagram Reel.
  * CTA is the marketing-confirmed landing wording: Czech www host only.
+ * Demo rows are synthetic and only echo the public app screenshots' layout.
  */
 export const CTA = {
   primary: "Domluvit ukázku",
@@ -11,6 +12,7 @@ export const CTA = {
 export const TAGLINE = "Jedna cesta v jednom nástroji.";
 
 export const PRODUCT_NAME = "Tender Flow";
+export const PRODUCT_SUBLINE = "Tender Management System";
 export const PERSONA_KICKER = "Pro přípraváře a VŘ";
 
 export const SCENES = [
@@ -77,56 +79,72 @@ export const SCENES = [
 
 export const DEMO_PROJECT = {
   name: "Rekonstrukce ZŠ Javor",
-  status: "V soutěži",
-  category: "ZTI",
-  code: "STV-2026-041",
+  status: "Detail stavby",
+  category: "ZTI a vytápění",
+  crumb: "Průběh výběrového řízení",
 } as const;
 
 export const DEMO_CATEGORIES = [
   {
-    title: "ZTI",
+    title: "Elektroinstalace",
+    status: "Poptávání",
+    tone: "open",
+    asked: "4",
+    offers: "0",
+    description: "Silnoproud, slaboproud a osvětlení učeben.",
+    deadline: "12. 5. 2026",
+    realization: "1. 8. 2026 – 30. 9. 2026",
+    priceLabel: "Cena SOD (Investor)",
+    price: "1 400 000 Kč",
+  },
+  {
+    title: "Hrubá stavba",
+    status: "Vyjednávání",
+    tone: "negotiating",
+    asked: "4",
+    offers: "2",
+    description: "Zdivo, stropy a svislé konstrukce pavilonu.",
+    deadline: "4. 5. 2026",
+    realization: "15. 7. 2026 – 20. 9. 2026",
+    priceLabel: "Cena SOD (Investor)",
+    price: "4 800 000 Kč",
+  },
+  {
+    title: "Střecha a klempíř",
+    status: "Poptávání",
+    tone: "open",
+    asked: "3",
+    offers: "0",
+    description: "Krytina, oplechování a svody na pavilonu A.",
+    deadline: "20. 5. 2026",
+    realization: "10. 8. 2026 – 15. 9. 2026",
+    priceLabel: "Cena SOD (Investor)",
+    price: "2 100 000 Kč",
+  },
+  {
+    title: "Zemní práce",
+    status: "V Realizaci",
+    tone: "closed",
+    asked: "4",
+    offers: "2",
+    description: "Výkopy, základové desky a hydroizolace.",
+    deadline: "18. 3. 2026",
+    realization: "1. 4. 2026 – 15. 5. 2026",
+    priceLabel: "Vítězná cena",
+    price: "2 450 000 Kč",
+    contracts: "1/1",
+  },
+  {
+    title: "ZTI a vytápění",
     status: "Poptávání",
     tone: "open",
     asked: "6",
     offers: "3",
-    description: "Rozvody vody, kanalizace a topení v objektu školy.",
+    description: "Vodovod, kanalizace a topení v objektu školy.",
     deadline: "24. 4. 2026",
+    realization: "8. 8. 2026 – 12. 10. 2026",
     priceLabel: "Cena SOD (Investor)",
-    price: "1 250 000 Kč",
-  },
-  {
-    title: "Elektroinstalace",
-    status: "Vyjednávání",
-    tone: "negotiating",
-    asked: "5",
-    offers: "4",
-    description: "Silnoproud a osvětlení učeben, chodeb a jídelny.",
-    deadline: "18. 4. 2026",
-    priceLabel: "Cena SOD (Investor)",
-    price: "860 000 Kč",
-  },
-  {
-    title: "Omítky",
-    status: "Uzavřeno",
-    tone: "closed",
-    asked: "4",
-    offers: "4",
-    description: "Vnitřní omítky po bouracích pracích v pavilonu A.",
-    deadline: "2. 3. 2026",
-    priceLabel: "Vítězná cena",
-    price: "540 000 Kč",
-  },
-  {
-    title: "VZT",
-    status: "V Realizaci",
-    tone: "closed",
-    asked: "3",
-    offers: "3",
-    description: "Výměna vzduchotechniky v jídelně a tělocvičně.",
-    deadline: "10. 2. 2026",
-    priceLabel: "Vítězná cena",
-    price: "720 000 Kč",
-    contracts: "1/1",
+    price: "1 190 000 Kč",
   },
 ] as const;
 
@@ -189,13 +207,26 @@ export const DEMO_BIDS = [
   },
 ] as const;
 
+export const DEMO_OVERVIEW = {
+  budget: "18 950 000 Kč",
+  planned: "15 000 000 Kč",
+  contracted: "2 450 000 Kč",
+  progress: "1/5",
+} as const;
+
+export const DEMO_TABLE = [
+  { status: "Probíhá", tone: "open", title: "Elektroinstalace", sod: "1 400 000 Kč", bids: "0 / 0" },
+  { status: "Jednání", tone: "negotiating", title: "Hrubá stavba", sod: "4 800 000 Kč", bids: "2 / 2" },
+  { status: "Zasmluvněno", tone: "closed", title: "Zemní práce", sod: "2 800 000 Kč", bids: "2 / 2", winner: "Instal Pro" },
+] as const;
+
 export const DEMO_CONTRACTS = [
   {
-    title: "SOD ZTI — Instal Pro s.r.o.",
+    title: "SOD Zemní práce — Instal Pro s.r.o.",
     vendor: "Instal Pro s.r.o.",
     number: "SOD-2026-014",
     status: "Aktivní",
-    amount: "1 190 000 Kč",
+    amount: "2 450 000 Kč",
     billed: 18,
     active: true,
   },
@@ -203,17 +234,8 @@ export const DEMO_CONTRACTS = [
     title: "SOD Elektro — Elmont Brno s.r.o.",
     vendor: "Elmont Brno s.r.o.",
     number: "SOD-2026-009",
-    status: "Aktivní",
-    amount: "860 000 Kč",
-    billed: 42,
-    active: false,
-  },
-  {
-    title: "SOD Omítky — Fasády Haná s.r.o.",
-    vendor: "Fasády Haná s.r.o.",
-    number: "SOD-2026-011",
     status: "Rozpracováno",
-    amount: "540 000 Kč",
+    amount: "1 400 000 Kč",
     billed: 0,
     active: false,
   },

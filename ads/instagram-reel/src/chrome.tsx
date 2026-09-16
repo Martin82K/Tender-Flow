@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { brand, fontFamily } from "./brand";
-import { DEMO_PROJECT, PERSONA_KICKER, PRODUCT_NAME } from "./copy";
+import { DEMO_PROJECT, PERSONA_KICKER, PRODUCT_NAME, PRODUCT_SUBLINE } from "./copy";
 import { SCENE_FRAMES } from "./storyboard";
 
 export const TF_APP_ICON = staticFile("tf-app-icon.png");
@@ -34,7 +34,7 @@ export const LogoMark: React.FC<{ size?: number }> = ({ size = 64 }) => (
       flexShrink: 0,
       borderRadius: Math.round(size * 0.22),
       overflow: "hidden",
-      background: "#090807",
+      background: "#020617",
       boxShadow: `0 0 ${Math.round(size * 0.28)}px rgba(242, 107, 26, 0.42)`,
     }}
   >
@@ -52,50 +52,12 @@ export const LogoMark: React.FC<{ size?: number }> = ({ size = 64 }) => (
   </div>
 );
 
-const NavGlyph: React.FC<{ kind: "building" | "handshake" | "contract" | "settings"; active?: boolean }> = ({
-  kind,
-  active,
-}) => {
-  const color = active ? brand.accentHi : brand.muted;
-  const common = { fill: "none", stroke: color, strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (kind === "building") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24">
-        <path {...common} d="M4 20V9l8-5 8 5v11" />
-        <path {...common} d="M9 20v-6h6v6" />
-      </svg>
-    );
-  }
-  if (kind === "handshake") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24">
-        <path {...common} d="M4 12l4-2 3 3 6-4 3 2" />
-        <path {...common} d="M8 10V7M16 9v3" />
-      </svg>
-    );
-  }
-  if (kind === "contract") {
-    return (
-      <svg width="22" height="22" viewBox="0 0 24 24">
-        <path {...common} d="M6 3h9l5 5v13H6z" />
-        <path {...common} d="M15 3v5h5M9 13h6M9 17h4" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24">
-      <circle {...common} cx="12" cy="12" r="3.2" />
-      <path {...common} d="M12 4v2.2M12 17.8V20M4 12h2.2M17.8 12H20M6.4 6.4l1.6 1.6M16 16l1.6 1.6M17.6 6.4 16 8M8 16l-1.6 1.6" />
-    </svg>
-  );
-};
-
 export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> = ({
   children,
   sceneIndex,
 }) => {
   const frame = useCurrentFrame();
-  const glow = interpolate(frame, [0, 80, 240, 449], [0.12, 0.2, 0.14, 0.24], {
+  const glow = interpolate(frame, [0, 80, 240, 449], [0.1, 0.16, 0.12, 0.2], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -116,7 +78,7 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
         style={{
           position: "absolute",
           inset: 0,
-          background: `radial-gradient(ellipse 80% 38% at 50% -10%, rgba(255, 142, 51, ${glow}), transparent 62%)`,
+          background: `radial-gradient(ellipse 80% 34% at 50% -12%, rgba(255, 142, 51, ${glow}), transparent 60%)`,
         }}
       />
       <div
@@ -126,22 +88,22 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          padding: "48px 32px 132px",
+          padding: "44px 28px 128px",
         }}
       >
-        <header style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <LogoMark size={64} />
+        <header style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <LogoMark size={58} />
           <div>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.05 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.05 }}>
               {PRODUCT_NAME}
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: 13,
                 color: brand.muted,
-                marginTop: 4,
+                marginTop: 3,
                 fontWeight: 700,
-                letterSpacing: "0.14em",
+                letterSpacing: "0.12em",
                 textTransform: "uppercase",
               }}
             >
@@ -158,7 +120,7 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
 
 const ProgressRail: React.FC<{ activeIndex: number }> = ({ activeIndex }) => {
   return (
-    <div style={{ display: "flex", gap: 8, paddingTop: 18 }}>
+    <div style={{ display: "flex", gap: 8, paddingTop: 16 }}>
       {SCENE_FRAMES.map((scene, index) => (
         <div
           key={scene.id}
@@ -166,7 +128,7 @@ const ProgressRail: React.FC<{ activeIndex: number }> = ({ activeIndex }) => {
             flex: 1,
             height: 6,
             borderRadius: 99,
-            background: index <= activeIndex ? brand.accent : brand.line,
+            background: index <= activeIndex ? brand.accent : brand.line2,
           }}
         />
       ))}
@@ -183,12 +145,12 @@ export const SceneHeading: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
-    <div style={{ paddingTop: 18, paddingBottom: 12, flexShrink: 0 }}>
+    <div style={{ paddingTop: 14, paddingBottom: 10, flexShrink: 0 }}>
       <div
         style={{
           ...fadeUp(frame, fps, delay),
           color: brand.accentHi,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: 700,
           letterSpacing: "0.16em",
           textTransform: "uppercase",
@@ -199,8 +161,8 @@ export const SceneHeading: React.FC<{
       <h1
         style={{
           ...fadeUp(frame, fps, delay + 3),
-          margin: "6px 0 0",
-          fontSize: 44,
+          margin: "5px 0 0",
+          fontSize: 40,
           lineHeight: 1.05,
           letterSpacing: "-0.045em",
           fontWeight: 800,
@@ -211,8 +173,8 @@ export const SceneHeading: React.FC<{
       <p
         style={{
           ...fadeUp(frame, fps, delay + 6),
-          margin: "8px 0 0",
-          fontSize: 22,
+          margin: "6px 0 0",
+          fontSize: 20,
           color: brand.text2,
           fontWeight: 450,
           lineHeight: 1.25,
@@ -224,111 +186,152 @@ export const SceneHeading: React.FC<{
   );
 };
 
+const PROJECT_TABS = ["Přehled", "Plán VŘ", "Výběrová řízení", "Harmonogram", "Dokumenty"] as const;
+
 export const AppFrame: React.FC<{
   children: ReactNode;
-  activeTab: "pipeline" | "rounds" | "award" | "contract";
+  activeTab: "overview" | "pipeline" | "documents";
+  sidebar?: boolean;
   toolbar?: ReactNode;
+  categoryTitle?: string;
   style?: CSSProperties;
-}> = ({ children, activeTab, toolbar, style }) => {
-  const tabs = [
-    { id: "overview", label: "Přehled" },
-    { id: "pipeline", label: "Výběrová řízení" },
-    { id: "contract", label: "Subdodavatel" },
-  ] as const;
-  const activeId = activeTab === "contract" ? "contract" : "pipeline";
-  const nav = [
-    { kind: "building" as const, active: activeTab !== "contract" },
-    { kind: "handshake" as const, active: false },
-    { kind: "contract" as const, active: activeTab === "contract" },
-    { kind: "settings" as const, active: false },
-  ];
+}> = ({ children, activeTab, sidebar = false, toolbar, categoryTitle, style }) => {
+  const tabLabel =
+    activeTab === "overview" ? "Přehled" : activeTab === "documents" ? "Dokumenty" : "Výběrová řízení";
 
   return (
     <div
       style={{
         flex: 1,
         minHeight: 0,
-        background: brand.surface,
-        border: `1px solid ${brand.line}`,
+        background: brand.bg,
+        border: `1px solid ${brand.line2}`,
         borderRadius: 18,
         overflow: "hidden",
         display: "flex",
         ...style,
       }}
     >
-      <aside
-        style={{
-          width: 64,
-          flexShrink: 0,
-          background: brand.deep,
-          borderRight: `1px solid ${brand.line}`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "14px 0 12px",
-          gap: 10,
-        }}
-      >
-        <LogoMark size={36} />
-        <div style={{ width: 28, height: 1, background: brand.line, margin: "4px 0 2px" }} />
-        {nav.map((item) => (
+      {sidebar ? <AppSidebar active={activeTab} /> : null}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", background: brand.bg }}>
+        <div style={{ padding: "12px 14px 0", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: "-0.03em" }}>{DEMO_PROJECT.name}</div>
+              <div style={{ color: brand.muted, fontSize: 13, marginTop: 2 }}>{DEMO_PROJECT.status}</div>
+            </div>
+          </div>
           <div
-            key={item.kind}
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
+              marginTop: 10,
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: item.active ? "rgba(255, 138, 51, 0.16)" : "transparent",
-              border: item.active ? `1px solid rgba(255, 158, 61, 0.4)` : "1px solid transparent",
+              gap: 4,
+              padding: 4,
+              borderRadius: 12,
+              background: "rgba(15, 23, 42, 0.7)",
+              border: `1px solid ${brand.line2}`,
+              overflow: "hidden",
             }}
           >
-            <NavGlyph kind={item.kind} active={item.active} />
+            {PROJECT_TABS.map((tab) => {
+              const on = tab === tabLabel;
+              return (
+                <div
+                  key={tab}
+                  style={{
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    background: on ? brand.primary : "transparent",
+                    color: on ? brand.inkOnPrimary : brand.muted,
+                  }}
+                >
+                  {tab}
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </aside>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "12px 14px 8px" }}>
-          <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>{DEMO_PROJECT.name}</div>
-          <div style={{ color: brand.muted, fontSize: 13, marginTop: 3 }}>
-            {DEMO_PROJECT.code} · {DEMO_PROJECT.status}
-          </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            padding: "0 12px 10px",
-            borderBottom: `1px solid ${brand.line}`,
-          }}
-        >
-          {tabs.map((tab) => {
-            const on = tab.id === activeId;
-            return (
-              <div
-                key={tab.id}
-                style={{
-                  padding: "7px 12px",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  background: on ? "rgba(255, 138, 51, 0.16)" : "transparent",
-                  color: on ? brand.accentHi : brand.muted,
-                  border: on ? `1px solid rgba(255, 158, 61, 0.45)` : "1px solid transparent",
-                }}
-              >
-                {tab.label}
+          {categoryTitle ? (
+            <div style={{ padding: "12px 0 4px" }}>
+              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em" }}>{categoryTitle}</div>
+              <div style={{ fontSize: 12, color: brand.muted, marginTop: 3 }}>
+                {DEMO_PROJECT.name} · {DEMO_PROJECT.crumb}
               </div>
-            );
-          })}
+            </div>
+          ) : null}
         </div>
         {toolbar}
-        <div style={{ flex: 1, minHeight: 0, padding: 12, background: brand.deep, display: "flex", flexDirection: "column" }}>
-          {children}
-        </div>
+        <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column" }}>{children}</div>
       </div>
     </div>
+  );
+};
+
+const AppSidebar: React.FC<{ active: "overview" | "pipeline" | "documents" }> = ({ active }) => {
+  const items = [
+    { id: "overview", label: "Přehled" },
+    { id: "pipeline", label: "Výběrová řízení" },
+    { id: "schedule", label: "Harmonogram" },
+    { id: "documents", label: "Dokumenty" },
+    { id: "subs", label: "Subdodavatelé" },
+  ] as const;
+
+  return (
+    <aside
+      style={{
+        width: 196,
+        flexShrink: 0,
+        background: brand.deep,
+        borderRight: `1px solid ${brand.line2}`,
+        padding: "14px 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 6px 8px" }}>
+        <LogoMark size={32} />
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.03em" }}>{PRODUCT_NAME}</div>
+          <div style={{ fontSize: 9, color: brand.muted2, letterSpacing: "0.02em" }}>{PRODUCT_SUBLINE}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: brand.muted, padding: "6px 8px" }}>Dashboard</div>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          padding: "7px 8px",
+          borderRadius: 8,
+          background: brand.primarySoft,
+          color: brand.primary,
+        }}
+      >
+        Stavby
+      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, padding: "4px 8px 2px", color: brand.text2 }}>{DEMO_PROJECT.name}</div>
+      {items.map((item) => {
+        const on = item.id === active;
+        return (
+          <div
+            key={item.id}
+            style={{
+              fontSize: 12,
+              fontWeight: on ? 700 : 500,
+              padding: "6px 10px",
+              borderRadius: 8,
+              marginLeft: 8,
+              background: on ? brand.primarySoft : "transparent",
+              color: on ? brand.primary : brand.muted,
+              border: on ? `1px solid ${brand.primary}` : "1px solid transparent",
+            }}
+          >
+            {item.label}
+          </div>
+        );
+      })}
+    </aside>
   );
 };
