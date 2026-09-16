@@ -29,5 +29,7 @@ describe("org signup enterprise trial migration", () => {
     expect(migration).toContain("public.normalize_email_domain(p_email)");
     expect(migration).toContain("AND o.type = 'business'");
     expect(migration).toContain("AND bo.type = 'business'");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.handle_new_user_trial");
+    expect(migration).toContain("Trial organizations cannot change the seat limit");
   });
 });

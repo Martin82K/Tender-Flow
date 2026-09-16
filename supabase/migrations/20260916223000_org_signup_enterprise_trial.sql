@@ -287,4 +287,90 @@ BEGIN
 END;
 $$;
 
+-- Profile insert runs after org bootstrap. Do not seed a parallel Pro trial
+-- when the user already joined a business organization.
+CREATE OR REPLACE FUNCTION public.handle_new_user_trial()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NEW.subscription_tier_override IS NULL THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      JOIN public.organizations o ON o.id = om.organization_id
+      WHERE om.user_id = NEW.user_id
+        AND om.is_active = true
+        AND o.type = 'business'
+    ) THEN
+      NEW.subscription_status := 'expired';
+      NEW.subscription_tier_override := NULL;
+      NEW.trial_ends_at := now() - interval '1 second';
+    ELSE
+      NEW.subscription_status := 'trial';
+      NEW.subscription_tier_override := NULL;
+      NEW.stripe_subscription_tier := 'pro';
+      NEW.trial_ends_at := now() + interval '14 days';
+      NEW.subscription_started_at := now();
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.org_owner_update_seats(
+  target_org_id uuid,
+  new_max_seats integer
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_role text;
+  v_status text;
+  v_billable integer;
+BEGIN
+  SELECT om.role, o.subscription_status
+  INTO v_role, v_status
+  FROM public.organization_members om
+  JOIN public.organizations o ON o.id = om.organization_id
+  WHERE om.organization_id = target_org_id
+    AND om.user_id = auth.uid()
+    AND om.is_active = true;
+
+  IF v_role IS NULL OR v_role <> 'owner' THEN
+    RAISE EXCEPTION 'Only the organization owner can update seats';
+  END IF;
+
+  IF v_status = 'trial' THEN
+    RAISE EXCEPTION 'Trial organizations cannot change the seat limit';
+  END IF;
+
+  IF new_max_seats < 1 THEN
+    RAISE EXCEPTION 'Minimum seat count is 1';
+  END IF;
+
+  SELECT COUNT(*) INTO v_billable
+  FROM public.organization_members
+  WHERE organization_id = target_org_id
+    AND is_billable = true
+    AND is_active = true;
+
+  IF new_max_seats < v_billable THEN
+    RAISE EXCEPTION 'Cannot reduce seats below current billable members (%)', v_billable;
+  END IF;
+
+  UPDATE public.organizations
+  SET max_seats = new_max_seats
+  WHERE id = target_org_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.org_owner_update_seats(uuid, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.org_owner_update_seats(uuid, integer) TO authenticated, service_role;
+
 NOTIFY pgrst, 'reload schema';

@@ -12,6 +12,7 @@ DECLARE
   created timestamptz;
   effective jsonb;
   member_count integer;
+  seat_denied boolean := false;
 BEGIN
   SELECT user_id INTO STRICT u
   FROM public.user_profiles
@@ -181,6 +182,21 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'User over the seat limit must receive a personal trial organization';
   END IF;
+
+  PERFORM set_config(
+    'request.jwt.claims',
+    jsonb_build_object('sub', u2, 'role', 'authenticated')::text,
+    true
+  );
+  BEGIN
+    PERFORM public.org_owner_update_seats(org_id, 9);
+  EXCEPTION WHEN OTHERS THEN
+    seat_denied := SQLERRM LIKE 'Trial organizations cannot change the seat limit%';
+  END;
+  IF NOT seat_denied THEN
+    RAISE EXCEPTION 'Trial owners must not raise the seat limit';
+  END IF;
+  PERFORM set_config('request.jwt.claims', '{}', true);
 
   UPDATE public.organizations
   SET subscription_status = 'expired',
