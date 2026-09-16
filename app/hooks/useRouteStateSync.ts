@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { navigate } from "@/shared/routing/router";
-import { parseAppRoute } from "@/shared/routing/routeUtils";
+import { DEFAULT_APP_URL, parseAppRoute } from "@/shared/routing/routeUtils";
 import { View } from "@/types";
 
 interface UseRouteStateSyncParams {
@@ -42,6 +42,11 @@ export const useRouteStateSync = ({
       return;
     }
     lastNavigationRef.current = { pathname, search };
+
+    if (pathname === "/") {
+      navigate(DEFAULT_APP_URL, { replace: true });
+      return;
+    }
 
     const route = parseAppRoute(pathname, search);
     if (!route.isApp) return;

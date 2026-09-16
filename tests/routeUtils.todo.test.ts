@@ -22,10 +22,10 @@ describe("TODO routing", () => {
     expect(parseAppRoute("/app/todo", "?taskId=")).toEqual({ isApp: true, view: "todo" });
   });
 
-  it("přesměruje výchozí /app na TODO modul", () => {
+  it("přesměruje výchozí /app na všechny stavby", () => {
     expect(parseAppRoute("/app", "")).toEqual({
       isApp: true,
-      redirectTo: "/app/todo",
+      redirectTo: "/app/projects?status=all",
     });
   });
 
@@ -36,10 +36,10 @@ describe("TODO routing", () => {
     });
   });
 
-  it("přesměruje historickou Command Center routu na TODO modul", () => {
+  it("přesměruje historickou Command Center routu na všechny stavby", () => {
     expect(parseAppRoute("/app/command-center", "")).toEqual({
       isApp: true,
-      redirectTo: "/app/todo",
+      redirectTo: "/app/projects?status=all",
     });
   });
 });

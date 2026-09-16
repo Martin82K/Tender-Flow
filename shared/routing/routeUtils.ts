@@ -9,8 +9,8 @@ import { APP_BASE, isProjectTab } from "./routes";
 // Re-export for convenience
 export { APP_BASE, isProjectTab };
 
-export const DEFAULT_APP_VIEW: View = "todo";
-export const DEFAULT_APP_URL = `${APP_BASE}/todo`;
+export const DEFAULT_APP_VIEW: View = "project-management";
+export const DEFAULT_APP_URL = `${APP_BASE}/projects?status=all`;
 
 /**
  * Build a URL for navigating within the app

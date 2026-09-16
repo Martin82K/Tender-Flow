@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "@features/auth/ui/LoginPage";
 
 const mocks = vi.hoisted(() => ({
+  search: "?next=%2Fapp%2Fprojects",
   login: vi.fn(),
   microsoftAvailable: vi.fn(),
   microsoftLogin: vi.fn(),
@@ -23,7 +24,7 @@ vi.mock("@/context/AuthContext", () => ({
 vi.mock("@/shared/routing/router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
   navigate: mocks.navigate,
-  useLocation: () => ({ search: "?next=%2Fapp%2Fprojects" }),
+  useLocation: () => ({ search: mocks.search }),
 }));
 
 vi.mock("@features/auth/api", () => ({
@@ -41,8 +42,16 @@ vi.mock("@/infra/auth/microsoftAccountService", () => ({
 describe("LoginPage Microsoft", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.search = "?next=%2Fapp%2Fprojects";
     mocks.microsoftAvailable.mockResolvedValue(true);
     mocks.microsoftLogin.mockResolvedValue(undefined);
+  });
+
+  it("opens all projects after login without an explicit destination", async () => {
+    mocks.search = "";
+    render(<LoginPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Přihlásit přes Microsoft" }));
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith("/app/projects?status=all", { replace: true }));
   });
 
   it("nabídne Microsoft přihlášení jen po bezpečné aktivaci poskytovatele", async () => {

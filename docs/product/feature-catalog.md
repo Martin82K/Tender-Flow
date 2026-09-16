@@ -15,7 +15,7 @@ platformě a backendové konfiguraci.
 | Přehled projektů | `/app/project-overview` | agregované reporty napříč projekty | `feature_advanced_reporting` |
 | Nastavení | `/app/settings` | uživatel, nástroje, organizace a administrace | role/feature podle podsekce |
 
-Výchozí přihlášená route je `/app/todo`.
+Výchozí přihlášená route je `/app/projects?status=all` (Stavby → Všechny). Přímé odkazy na jiné sekce zůstávají zachované.
 
 TODO Osobní podporuje volitelné obousměrné propojení s Microsoft To Do. Jedno
 propojení Microsoft účtu současně zpřístupní přihlášení, online dokumenty a
