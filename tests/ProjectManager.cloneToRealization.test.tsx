@@ -1,5 +1,6 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { DEFAULT_APP_URL } from '@/shared/routing/routeUtils';
 import { navigate } from '@/shared/routing/router';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -251,5 +252,21 @@ it('switches portfolio views through the URL and keeps archive search separate f
     act(() => navigate('/app/projects'));
     expect(screen.getByRole('link', { name: 'Aktivní škola' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'Hledat stavbu' })).toHaveValue('škola');
+  } finally { view.unmount(); act(() => navigate('/')); sessionStorage.clear(); }
+});
+
+
+it('opens all active projects at startup despite a saved archive filter', () => {
+  sessionStorage.setItem('tf:portfolio::user-1', JSON.stringify({ query: '', status: 'archived', ownOnly: false, scrollTop: 0 }));
+  act(() => navigate(DEFAULT_APP_URL));
+  const view = renderProjectManager([
+    { id: 'a', name: 'Soutěž', location: 'Praha', status: 'tender', ownerId: 'user-1' },
+    { id: 'b', name: 'Realizace', location: 'Brno', status: 'realization', ownerId: 'user-2' },
+    { id: 'c', name: 'Archiv', location: 'Praha', status: 'archived', ownerId: 'user-1' },
+  ]);
+  try {
+    expect(screen.getByRole('link', { name: 'Soutěž', exact: true })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Realizace', exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Archiv', exact: true })).not.toBeInTheDocument();
   } finally { view.unmount(); act(() => navigate('/')); sessionStorage.clear(); }
 });

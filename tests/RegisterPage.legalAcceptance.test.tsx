@@ -114,6 +114,6 @@ describe("RegisterPage legal acceptance", () => {
         },
       );
     });
-    expect(mockState.navigate).toHaveBeenCalledWith("/app/todo", { replace: true });
+    expect(mockState.navigate).toHaveBeenCalledWith("/app/projects?status=all", { replace: true });
   });
 });

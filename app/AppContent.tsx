@@ -4,7 +4,7 @@ import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { useLocation, navigate } from "@/shared/routing/router";
-import { DEFAULT_APP_VIEW, buildAppUrl, parseAppRoute } from "@/shared/routing/routeUtils";
+import { DEFAULT_APP_URL, DEFAULT_APP_VIEW, buildAppUrl, parseAppRoute } from "@/shared/routing/routeUtils";
 import { FEATURES } from "@/config/features";
 import { useAuth } from "@/context/AuthContext";
 import { useFeatures } from "@/context/FeatureContext";
@@ -201,8 +201,8 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated || pathname !== "/mfa") return;
-    const nextPath = new URLSearchParams(search).get("next") || buildAppUrl(DEFAULT_APP_VIEW);
-    navigate(nextPath.startsWith("/") ? nextPath : buildAppUrl(DEFAULT_APP_VIEW), { replace: true });
+    const nextPath = new URLSearchParams(search).get("next") || DEFAULT_APP_URL;
+    navigate(nextPath.startsWith("/") ? nextPath : DEFAULT_APP_URL, { replace: true });
   }, [isAuthenticated, pathname, search]);
 
   // Only resume the local OAuth consent route; never follow an external `next` URL.
