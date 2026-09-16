@@ -1,0 +1,16 @@
+{
+  "scope": "Běžné uživatelské funkce; systémová a organizační administrace odložena.",
+  "projectNavigation": {
+    "overview": "prehled", "documents": "dokumenty", "tender-plan": "plan-vr", "pipeline": "vr-tabulka",
+    "contracts-client": "objednatel", "contracts": "smlouva-formular", "schedule": "harmonogram", "map": "mapa",
+    "settings": "tym", "project-settings": "slozkomat"
+  },
+  "sidebarNavigation": {
+    "todo": "ukoly", "contacts": "kontakty", "projects": "navigace", "project-management": "stavby",
+    "project-overview": "portfolio", "contract-overview": "prehled-smluv",
+    "settings-contacts-import": "import-kontaktu", "settings-excelunlocker-pro": "excel-odemceni",
+    "settings-excelmerger-pro": "excel-spojeni", "settings-excel-indexer": "excel-indexace"
+  },
+  "personalSettings": ["profil", "upozorneni", "zabezpeceni", "microsoft", "ai-pristupy", "zalohy", "biometrie"],
+  "limits": ["Snímky zobrazují produkční komponenty se syntetickými daty, nikoli celý přihlášený klient.", "Nativní biometrické ověření, odesílání e-mailů, platby a vzdálené zápisy se v náhledu neprovádějí."]
+}

@@ -1,1473 +1,579 @@
 <!doctype html>
-<html lang="cs">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tender Flow – Uživatelská příručka</title>
-    <meta
-      name="description"
-      content="Uživatelská příručka pro aplikaci Tender Flow – stavby, výběrová řízení, subdodavatelé, dokumenty a nastavení."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --bg: #090e17;
-        --sidebar-bg: rgba(13, 18, 28, 0.7);
-        --panel: rgba(255, 255, 255, 0.04);
-        --panel-hover: rgba(255, 255, 255, 0.08);
-        --text: rgba(255, 255, 255, 0.95);
-        --muted: rgba(255, 255, 255, 0.65);
-        --border: rgba(255, 255, 255, 0.08);
-        --accent: #2dd4bf;
-        --accent-warm: #f59e0b;
-        --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
-        --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
-        --radius: 20px;
-        --radius-sm: 12px;
-        --max: 1120px;
-        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Helvetica, Arial;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-      html, body {
-        height: 100%;
-        scroll-behavior: smooth;
-      }
-      body {
-        margin: 0;
-        font-family: var(--sans);
-        color: var(--text);
-        background-color: var(--bg);
-        background-image: 
-          radial-gradient(1200px 800px at 15% 5%, rgba(45, 212, 191, 0.15), transparent 50%),
-          radial-gradient(1000px 700px at 85% 95%, rgba(96, 165, 250, 0.12), transparent 50%),
-          radial-gradient(800px 600px at 50% 50%, rgba(245, 158, 11, 0.05), transparent 60%);
-        background-attachment: fixed;
-        overflow-x: hidden;
-      }
-
-      ::selection {
-        background: rgba(45, 212, 191, 0.3);
-        color: #fff;
-      }
-
-      a {
-        color: var(--accent);
-        text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      a:hover {
-        color: #5eead4;
-        text-shadow: 0 0 12px rgba(94, 234, 212, 0.4);
-      }
-
-      .app {
-        display: grid;
-        grid-template-columns: 340px 1fr;
-        min-height: 100%;
-      }
-
-      .sidebar {
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        padding: 24px;
-        border-right: 1px solid var(--border);
-        background: var(--sidebar-bg);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        overflow-y: auto;
-        overflow-x: hidden;
-        z-index: 10;
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
-        scrollbar-width: thin;
-      }
-      .sidebar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .sidebar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-      }
-
-      .brand {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        padding: 18px 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: var(--radius);
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), var(--shadow-sm);
-        margin-bottom: 24px;
-        position: relative;
-        overflow: hidden;
-      }
-      .brand::before {
-        content: "";
-        position: absolute;
-        top: 0; left: -100%;
-        width: 50%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-        transform: skewX(-20deg);
-        animation: shine 6s infinite;
-      }
-      @keyframes shine {
-        0% { left: -100%; }
-        20% { left: 200%; }
-        100% { left: 200%; }
-      }
-
-      .brand .logo-img {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        object-fit: contain;
-        padding: 8px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-      }
-      .brand h1 {
-        font-size: 18px;
-        margin: 0;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        background: linear-gradient(to right, #fff, #a5b4fc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      .brand p {
-        margin: 4px 0 0 0;
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 500;
-      }
-
-      .nav {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .section {
-        border: 1px solid transparent;
-        border-radius: 16px;
-        background: transparent;
-        padding: 4px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .section:hover {
-        border-color: rgba(45, 212, 191, 0.2);
-        background: rgba(45, 212, 191, 0.03);
-        box-shadow: inset 0 0 20px rgba(45, 212, 191, 0.05);
-      }
-      .sectionTitle {
-        display: block;
-        padding: 12px 14px;
-        border-radius: var(--radius-sm);
-        font-weight: 700;
-        font-size: 14px;
-        color: var(--text);
-        background: var(--panel);
-        border: 1px solid var(--border);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
-      .sectionTitle::after {
-        content: '';
-        position: absolute;
-        left: 0; bottom: 0;
-        width: 0; height: 2px;
-        background: var(--accent);
-        transition: width 0.3s ease;
-      }
-      .section:hover .sectionTitle {
-        background: rgba(45, 212, 191, 0.1);
-        border-color: rgba(45, 212, 191, 0.3);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-      .section:hover .sectionTitle::after {
-        width: 100%;
-      }
-      
-      .sub {
-        margin-top: 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 4px 8px 4px 16px;
-        border-left: 2px solid rgba(255, 255, 255, 0.05);
-        margin-left: 12px;
-        max-height: 220px;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-      }
-      .sub::-webkit-scrollbar {
-        width: 4px;
-      }
-      .sub::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .sub::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 4px;
-      }
-      .sub::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.25);
-      }
-      .sub a {
-        display: block;
-        padding: 8px 12px;
-        border-radius: 10px;
-        color: var(--muted);
-        font-size: 13px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        position: relative;
-      }
-      .sub a::before {
-        content: '';
-        position: absolute;
-        left: -18px; top: 50%;
-        width: 12px; height: 2px;
-        background: rgba(255, 255, 255, 0.1);
-        transition: all 0.2s ease;
-      }
-      .sub a:hover {
-        color: var(--text);
-        background: var(--panel-hover);
-        transform: translateX(4px);
-      }
-      .sub a:hover::before {
-        background: var(--accent);
-        width: 16px;
-      }
-
-      .content {
-        padding: 40px 60px;
-        display: flex;
-        justify-content: center;
-      }
-      .wrap {
-        width: 100%;
-        max-width: var(--max);
-        animation: fadeUp 0.6s ease-out forwards;
-      }
-      @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      article {
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(13, 18, 28, 0.6);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05), var(--shadow-lg);
-        padding: 48px;
-        position: relative;
-        overflow: hidden;
-      }
-      article::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.5), transparent);
-        opacity: 0.5;
-      }
-
-      h1 {
-        font-size: 46px;
-        margin: 0 0 16px 0;
-        font-weight: 800;
-        letter-spacing: -1px;
-        background: linear-gradient(135deg, #ffffff 0%, #2dd4bf 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1.1;
-      }
-      h2 {
-        font-size: 28px;
-        margin: 48px 0 20px 0;
-        font-weight: 800;
-        color: #fff;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        position: relative;
-      }
-      h2::after {
-        content: '';
-        position: absolute;
-        bottom: -1px; left: 0;
-        width: 60px; height: 2px;
-        background: var(--accent);
-        box-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
-      }
-      h3 {
-        font-size: 20px;
-        margin: 32px 0 12px 0;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.95);
-      }
-      h4 {
-        font-size: 16px;
-        margin: 24px 0 8px 0;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.85);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      p, li {
-        line-height: 1.8;
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 16px;
-      }
-      li {
-        margin-bottom: 10px;
-      }
-      ul, ol {
-        padding-left: 24px;
-      }
-      li::marker {
-        color: var(--accent);
-      }
-      code {
-        font-family: var(--mono);
-        font-size: 0.85em;
-        padding: 0.25em 0.5em;
-        border-radius: 6px;
-        background: rgba(45, 212, 191, 0.1);
-        border: 1px solid rgba(45, 212, 191, 0.2);
-        color: #5eead4;
-        white-space: nowrap;
-      }
-      pre {
-        background: #05080f;
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 24px;
-        overflow-x: auto;
-        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
-        margin: 24px 0;
-      }
-      pre code {
-        display: block;
-        padding: 0;
-        background: none;
-        border: none;
-        color: rgba(255, 255, 255, 0.85);
-        white-space: pre;
-        font-size: 14px;
-        line-height: 1.6;
-      }
-      img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.2);
-        margin: 24px 0;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-      }
-      img:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      }
-
-      .manualLogoWrap {
-        margin: 32px 0 28px 0;
-        display: flex;
-        justify-content: center;
-      }
-      .manualLogo {
-        width: min(320px, 70vw);
-        height: auto;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-        padding: 24px;
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 20px 50px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(8px);
-      }
-      hr {
-        border: none;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-        margin: 48px 0;
-      }
-
-      .generated {
-        margin-top: 32px;
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 13px;
-        text-align: center;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin: 24px 0;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-      }
-      th, td {
-        padding: 16px 20px;
-        text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      th {
-        background: rgba(45, 212, 191, 0.08);
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.95);
-        text-transform: uppercase;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-      }
-      tr:last-child td {
-        border-bottom: none;
-      }
-      tr:nth-child(even) td {
-        background: rgba(255, 255, 255, 0.02);
-      }
-      tr:hover td {
-        background: rgba(255, 255, 255, 0.06);
-      }
-
-      .version-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        background: linear-gradient(to right, rgba(45, 212, 191, 0.15), rgba(45, 212, 191, 0.05));
-        border: 1px solid rgba(45, 212, 191, 0.4);
-        padding: 6px 16px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #5eead4;
-        margin-right: 12px;
-        box-shadow: 0 4px 12px rgba(45, 212, 191, 0.1);
-      }
-
-      .tip-box {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        border-left: 4px solid var(--accent-warm);
-        border-radius: 16px;
-        padding: 24px;
-        margin: 32px 0;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        position: relative;
-        overflow: hidden;
-      }
-      .tip-box::after {
-        content: '💡';
-        position: absolute;
-        top: -10px; right: -10px;
-        font-size: 100px;
-        opacity: 0.04;
-      }
-      .tip-box strong {
-        color: #fbbf24;
-        font-weight: 700;
-        font-size: 1.1em;
-        display: block;
-        margin-bottom: 8px;
-        letter-spacing: 0.3px;
-      }
-      .tip-box p {
-        margin: 0;
-        color: rgba(255, 255, 255, 0.9);
-      }
-
-      @media (max-width: 1024px) {
-        .app {
-          grid-template-columns: 280px 1fr;
-        }
-        .content {
-          padding: 32px 24px;
-        }
-        article {
-          padding: 32px;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .app {
-          grid-template-columns: 1fr;
-        }
-        .sidebar {
-          position: relative;
-          height: auto;
-          backdrop-filter: none;
-          -webkit-backdrop-filter: none;
-          box-shadow: none;
-          border-right: none;
-          border-bottom: 1px solid var(--border);
-        }
-        h1 {
-          font-size: 36px;
-        }
-        h2 {
-          font-size: 24px;
-        }
-        article {
-          padding: 24px;
-          border-radius: 16px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-      <aside class="sidebar">
-        <div class="brand">
-          <img
-            class="logo-img"
-            src="./assets/logo.svg"
-            alt="Tender Flow Logo"
-            loading="eager"
-            decoding="async"
-          />
-          <div>
-            <h1>Tender Flow</h1>
-            <p>Uživatelská příručka</p>
-          </div>
-        </div>
-        <nav class="nav" aria-label="Obsah příručky"><div class="section"><a class="sectionTitle" href="#obsah">📋 Obsah</a></div>
-<div class="section"><a class="sectionTitle" href="#rychly-start">🚀 Rychlý start</a></div>
-<div class="section"><a class="sectionTitle" href="#ucel-a-role">🎯 Účel a role</a></div>
-<div class="section"><a class="sectionTitle" href="#prihlaseni-a-ucet">🔐 Přihlášení a účet</a></div>
-<div class="section"><a class="sectionTitle" href="#organizace-a-predplatne">🏢 Organizace a předplatné</a><div class="sub"><a href="#tarify-a-dostupnost-funkci">Tarify a dostupnost funkcí</a><a href="#clenstvi-a-role-v-organizaci">Členství a role v organizaci</a></div></div>
-<div class="section"><a class="sectionTitle" href="#navigace-v-aplikaci">🧭 Navigace v aplikaci</a></div>
-<div class="section"><a class="sectionTitle" href="#dashboard">📊 Dashboard</a><div class="sub"><a href="#co-dashboard-zobrazuje">Co dashboard zobrazuje</a></div></div>
-<div class="section"><a class="sectionTitle" href="#detail-stavby">🏗️ Detail stavby</a><div class="sub"><a href="#prehled">📊 Přehled</a><a href="#plan-vr">📅 Plán VŘ</a><a href="#vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</a><a href="#hromadny-e-mail-subdodavatelum">✉️ Hromadný e-mail subdodavatelům</a><a href="#smlouvy">📜 Smlouvy</a><a href="#harmonogram">📆 Harmonogram</a><a href="#dokumenty-a-sablony">📁 Dokumenty a šablony</a></div></div>
-<div class="section"><a class="sectionTitle" href="#subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</a></div>
-<div class="section"><a class="sectionTitle" href="#sprava-staveb">🏠 Správa staveb</a><div class="sub"><a href="#sdileni-a-opravneni">Sdílení a oprávnění</a></div></div>
-<div class="section"><a class="sectionTitle" href="#prehled-staveb-analytika">📈 Přehled staveb (analytika)</a></div>
-<div class="section"><a class="sectionTitle" href="#nastroje">🔧 Nástroje</a><div class="sub"><a href="#excel-nastroje">📊 Excel nástroje</a><a href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a><a href="#zaloha-a-obnova-dat">💾 Záloha a obnova dat</a></div></div>
-<div class="section"><a class="sectionTitle" href="#tender-flow-desktop">💻 Tender Flow Desktop</a><div class="sub"><a href="#vyhody-desktop-verze">Výhody desktop verze</a><a href="#instalace">Instalace</a><a href="#spusteni">Spuštění</a><a href="#auto-update">Auto-update</a><a href="#biometricke-prihlaseni">Biometrické přihlášení</a><a href="#nativni-souborove-operace">Nativní souborové operace</a><a href="#excel-nastroje-v-desktop-verzi">Excel nástroje v desktop verzi</a><a href="#ukonceni-aplikace">Ukončení aplikace</a></div></div>
-<div class="section"><a class="sectionTitle" href="#nastaveni-aplikace">⚙️ Nastavení aplikace</a><div class="sub"><a href="#profil">Profil</a><a href="#vzhled">Vzhled</a><a href="#statusy-kontaktu">Statusy kontaktů</a><a href="#organizace">Organizace</a></div></div>
-<div class="section"><a class="sectionTitle" href="#administrace-systemu">🛡️ Administrace systému</a><div class="sub"><a href="#pristup-a-predplatne">Přístup a předplatné</a><a href="#balicky-a-funkce">Balíčky a funkce</a><a href="#registrace-a-whitelist">Registrace a whitelist</a><a href="#seznam-povolenych-emailu-whitelist">Seznam povolených emailů (Whitelist)</a><a href="#sprava-uzivatelu-a-roli">Správa uživatelů a rolí</a><a href="#incident-logy-admin">Incident logy (Admin)</a></div></div>
-<div class="section"><a class="sectionTitle" href="#caste-otazky">❓ Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-spojeni-listu-pise-funkce-neni-dostupna">Excel Spojení listů píše „Funkce není dostupná&quot;</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a><a href="#proc-se-mi-na-macos-neinstaluje-update-automaticky">Proč se mi na macOS neinstaluje update automaticky?</a><a href="#jak-sdilet-stavbu-s-kolegou">Jak sdílet stavbu s kolegou?</a><a href="#jak-generovat-smluvni-protokol">Jak generovat smluvní protokol?</a><a href="#dochub-synchronizace-nefunguje">DocHub synchronizace nefunguje</a><a href="#jak-obnovit-data-ze-zalohy">Jak obnovit data ze zálohy?</a><a href="#jak-funguje-automaticka-zaloha-v-desktop-verzi">Jak funguje automatická záloha v desktop verzi?</a><a href="#jak-zalohovat-pouze-kontakty">Jak zálohovat pouze kontakty?</a><a href="#jsou-zalohy-sifrovany">Jsou zálohy šifrovány?</a></div></div>
-<div class="section"><a class="sectionTitle" href="#novinky-changelog">🎉 Novinky (changelog)</a><div class="sub"><a href="#v1-5-3">v1.5.3</a><a href="#v1-5-2">v1.5.2</a><a href="#v1-5-1">v1.5.1</a><a href="#v1-4-3">v1.4.3</a><a href="#v1-4-2">v1.4.2</a><a href="#v1-4-1">v1.4.1</a><a href="#v1-4-0">v1.4.0</a><a href="#v1-3-2">v1.3.2</a><a href="#v1-3-1">v1.3.1</a><a href="#v1-2-3">v1.2.3</a><a href="#v1-2-1">v1.2.1</a><a href="#v0-9-6">v0.9.6</a><a href="#v0-9-5">v0.9.5</a><a href="#v0-9-4">v0.9.4</a><a href="#v0-9-3">v0.9.3</a><a href="#v0-9-2">v0.9.2</a><a href="#v0-9-1">v0.9.1</a><a href="#v0-9-0">v0.9.0</a><a href="#v0-8-0">v0.8.0</a></div></div>
-<div class="section"><a class="sectionTitle" href="#pravni-dokumenty">⚖️ Právní dokumenty</a><div class="sub"><a href="#podminky-uzivani">Podmínky užívání</a><a href="#zasady-ochrany-osobnich-udaju">Zásady ochrany osobních údajů</a><a href="#zasady-pouzivani-cookies">Zásady používání cookies</a><a href="#zpracovatelska-dolozka-dpa">Zpracovatelská doložka (DPA)</a><a href="#provozovatel-a-kontaktni-udaje">Provozovatel a kontaktní údaje</a></div></div>
-<div class="section"><a class="sectionTitle" href="#licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</a></div></nav>
-      </aside>
-      <main class="content">
-        <div class="wrap">
-          <article class="markdown"><h1 id="tender-flow-uzivatelska-prirucka">Tender Flow – Uživatelská příručka</h1>
-<p>Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.</p>
-<p>Verze příručky: <strong>2.2</strong> • Datum: <strong>2026‑04‑07</strong> • Aplikace: <strong>v1.5.3</strong></p>
-<p class="manualLogoWrap">
-  <img class="manualLogo" src="./assets/logo.svg" alt="Tender Flow logo" />
-</p>
-
-<hr>
-<h2 id="obsah">📋 Obsah</h2>
-<ul>
-<li><a href="#rychly-start">🚀 Rychlý start</a></li>
-<li><a href="#ucel-a-role">🎯 Účel a role</a></li>
-<li><a href="#prihlaseni-a-ucet">🔐 Přihlášení a účet</a></li>
-<li><a href="#organizace-a-predplatne">🏢 Organizace a předplatné</a></li>
-<li><a href="#navigace-v-aplikaci">🧭 Navigace v aplikaci</a></li>
-<li><a href="#dashboard">📊 Dashboard</a></li>
-<li><a href="#detail-stavby">🏗️ Detail stavby</a></li>
-<li><a href="#subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</a></li>
-<li><a href="#sprava-staveb">🏠 Správa staveb</a></li>
-<li><a href="#prehled-staveb-analytika">📈 Přehled staveb (analytika)</a></li>
-<li><a href="#nastroje">🔧 Nástroje</a></li>
-<li><a href="#tender-flow-desktop">💻 Tender Flow Desktop</a></li>
-<li><a href="#nastaveni-aplikace">⚙️ Nastavení aplikace</a></li>
-<li><a href="#administrace-systemu">🛡️ Administrace systému</a></li>
-<li><a href="#caste-otazky">❓ Časté otázky</a></li>
-<li><a href="#novinky-changelog">🎉 Novinky (changelog)</a></li>
-<li><a href="#pravni-dokumenty">⚖️ Právní dokumenty</a></li>
-</ul>
-<hr>
-<h2 id="rychly-start">🚀 Rychlý start</h2>
-<p>Tato sekce vás provede základním workflow aplikace Tender Flow – od přihlášení po vyhodnocení nabídek.</p>
-<ol>
-<li><strong>Přihlaste se</strong> emailem a heslem (nebo biometrikou v desktop verzi).</li>
-<li><strong>Zorientujte se</strong> – v levém sidebaru najdete Dashboard, Stavby, Subdodavatele, Nástroje a Nastavení.</li>
-<li><strong>Vytvořte stavbu</strong> – v sekci <strong>Správa staveb</strong> klikněte na tlačítko pro vytvoření nové stavby a vyplňte základní údaje (název, lokalita, investor).</li>
-<li><strong>Přidejte kontakty</strong> – v sekci <strong>Subdodavatelé</strong> založte firmy a kontaktní osoby, které budete oslovovat.</li>
-<li><strong>Naplánujte výběrová řízení</strong> – v detailu stavby otevřete záložku <strong>Plán VŘ</strong> a přidejte položky s termíny.</li>
-<li><strong>Spusťte pipeline</strong> – ze záložky <strong>Výběrová řízení</strong> přidávejte nabídky, přesouvejte karty mezi stavy a vyhodnocujte.</li>
-<li><strong>Vyhodnoťte nabídky</strong> – porovnejte ceny z jednotlivých kol, přesuňte vítěze do stavu SOD.</li>
-<li><strong>Založte smlouvu</strong> – na záložce <strong>Smlouvy</strong> evidujte smluvní podmínky, dodatky a čerpání.</li>
-</ol>
-<hr>
-<h2 id="ucel-a-role">🎯 Účel a role</h2>
-<p>Tender Flow je centrální místo pro evidenci staveb a řízení výběrových řízení: od plánování poptávek, přes oslovení subdodavatelů, až po vyhodnocení nabídek, evidenci vítěze a správu smluv.</p>
-<p><strong>Komu je aplikace určena:</strong></p>
-<ul>
-<li><strong>Přípraváři</strong> – hlavní uživatelé, zadávají poptávky, vyhodnocují nabídky, připravují podklady.</li>
-<li><strong>Stavbyvedoucí</strong> – sledují stav výběrových řízení, harmonogram a smlouvy na svých stavbách.</li>
-<li><strong>Vedení / management</strong> – využívá přehledy, AI analýzy a exporty pro rozhodování.</li>
-</ul>
-<p><strong>Hlavní workflow:</strong></p>
-<p>Plán VŘ → Vytvoření poptávky → Oslovení subdodavatelů → Sběr nabídek → Vyhodnocení → Výběr vítěze → Smlouva → Realizace</p>
-<p>Pozn.: odeslání emailu probíhá přes váš výchozí emailový klient (funkce používá <code>mailto:</code>).</p>
-<hr>
-<h2 id="prihlaseni-a-ucet">🔐 Přihlášení a účet</h2>
-<ol>
-<li>Zadejte email a heslo.</li>
-<li>Klikněte na <strong>Přihlásit</strong>.</li>
-<li>Odhlášení najdete dole v levém panelu (ikonka <code>logout</code>).</li>
-</ol>
-<p><img src="./assets/01-login.svg" alt="Přihlášení do aplikace Tender Flow"></p>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Uložte si přihlášení pro rychlejší přístup příště. V desktop verzi můžete aktivovat biometrické přihlášení (Touch ID / Windows Hello) – viz sekce Tender Flow Desktop.</p>
-</blockquote>
-<hr>
-<h2 id="organizace-a-predplatne">🏢 Organizace a předplatné</h2>
-<p>Tender Flow funguje jako multi-tenant aplikace: každý uživatel patří do <strong>organizace</strong> (tenant) a data jsou mezi organizacemi oddělená.</p>
-<ul>
-<li><strong>Firemní email</strong>: typicky se přidáte do organizace podle domény (nebo se pro doménu vytvoří nová organizace).</li>
-<li><strong>Osobní email (např. Gmail/Seznam)</strong>: vytvoří se osobní organizace pro vaše použití.</li>
-</ul>
-<p>Organizace ovlivňuje zejména:</p>
-<ul>
-<li><strong>Předplatné</strong> (dostupnost vybraných funkcí v menu).</li>
-<li><strong>Statusy kontaktů</strong> (každá organizace má vlastní seznam a barvy).</li>
-</ul>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Pokud některou část aplikace nevidíte (např. Import kontaktů, Přehled staveb, Excel nástroje), je pravděpodobně skrytá kvůli nastavení předplatného / oprávnění.</p>
-</blockquote>
-<h3 id="tarify-a-dostupnost-funkci">Tarify a dostupnost funkcí</h3>
+<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tender Flow — Uživatelská příručka</title><meta name="description" content="Praktické návody Tender Flow: od první stavby k nabídce a smlouvě. Příklady se syntetickými daty a skutečné snímky aplikace.">
+<link rel="icon" href="./assets/logo.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap" rel="stylesheet"><link rel="stylesheet" href="./manual.css"><script src="./manual.js" defer></script></head>
+<body><a class="skip-link" href="#manual-content">Přejít k obsahu</a>
+<header class="topbar"><a class="brand" href="#manual-content"><img src="./assets/logo.svg" alt="" width="34" height="34">Tender Flow <span>Příručka</span></a><div><a data-web-home href="/" hidden>Zpět na web ↗</a><button type="button" id="print-manual">Tisk / PDF</button></div></header>
+<div class="layout"><aside class="sidebar"><p class="eyebrow">PRŮVODCE APLIKACÍ</p><label class="search-label" for="manual-search">Co potřebujete udělat?</label><input id="manual-search" type="search" aria-label="Hledat v příručce" placeholder="Např. příjemce poptávky" autocomplete="off"><p id="search-status" role="status" aria-live="polite"></p><button type="button" id="toggle-contents" aria-expanded="false" aria-controls="manual-nav">Obsah příručky ↓</button><nav id="manual-nav" aria-label="Obsah příručky"><a class="nav-level-2" href="#rychly-start">Rychlý start</a>
+<a class="nav-level-3" href="#nase-ukazkova-stavba">Naše ukázková stavba</a>
+<a class="nav-level-3" href="#prvni-pruchod-aplikaci">První průchod aplikací</a>
+<a class="nav-level-2" href="#prihlaseni-a-ucet">Přihlášení a účet</a>
+<a class="nav-level-3" href="#prihlaseni-a-obnova-pristupu">Přihlášení a obnova přístupu</a>
+<a class="nav-level-2" href="#organizace-a-predplatne">Organizace a předplatné</a>
+<a class="nav-level-3" href="#clenstvi-a-role-v-organizaci">Členství a role v organizaci</a>
+<a class="nav-level-3" href="#dostupnost-funkci">Dostupnost funkcí</a>
+<a class="nav-level-2" href="#navigace-v-aplikaci">Navigace v aplikaci</a>
+<a class="nav-level-2" href="#sprava-staveb">Správa staveb</a>
+<a class="nav-level-3" href="#sdileni-a-opravneni">Sdílení a oprávnění</a>
+<a class="nav-level-3" href="#portfolio-hledani-a-zivotni-cyklus-stavby">Portfolio, hledání a životní cyklus stavby</a>
+<a class="nav-level-3" href="#realizacni-tym">Realizační tým</a>
+<a class="nav-level-2" href="#dashboard">Dashboard</a>
+<a class="nav-level-3" href="#prehled-jedne-stavby">Přehled jedné stavby</a>
+<a class="nav-level-3" href="#souhrnne-prehledy">Souhrnné přehledy</a>
+<a class="nav-level-3" href="#smluvni-prehled">Smluvní přehled</a>
+<a class="nav-level-2" href="#subdodavatele-kontakty">Subdodavatelé (Kontakty)</a>
+<a class="nav-level-3" href="#hledani-vyber-a-uprava-firmy">Hledání, výběr a úprava firmy</a>
+<a class="nav-level-2" href="#plan-vr">Plán VŘ</a>
+<a class="nav-level-2" href="#vyberova-rizeni">Výběrová řízení</a>
+<a class="nav-level-3" href="#pridani-dodavatelu">Přidání dodavatelů</a>
+<a class="nav-level-3" href="#prijemce-poptavky">Příjemce poptávky</a>
+<a class="nav-level-3" href="#ceny-kola-a-vyhodnoceni">Ceny, kola a vyhodnocení</a>
+<a class="nav-level-3" href="#tabulka-a-exporty">Tabulka a exporty</a>
+<a class="nav-level-3" href="#zadani-a-terminy-poptavky">Zadání a termíny poptávky</a>
+<a class="nav-level-3" href="#nabidka-a-cenova-kola">Nabídka a cenová kola</a>
+<a class="nav-level-3" href="#tabulkovy-pohled-a-export">Tabulkový pohled a export</a>
+<a class="nav-level-2" href="#hromadny-e-mail-subdodavatelum">Hromadný e-mail subdodavatelům</a>
+<a class="nav-level-3" href="#kontrola-adresatu-pred-konceptem">Kontrola adresátů před konceptem</a>
+<a class="nav-level-2" href="#smlouvy">Smlouvy</a>
+<a class="nav-level-3" href="#jedna-smlouva-pro-vice-vr">Jedna smlouva pro více VŘ</a>
+<a class="nav-level-3" href="#odpojeni-vr-od-smlouvy">Odpojení VŘ od smlouvy</a>
+<a class="nav-level-3" href="#smlouva-objednatele">Smlouva objednatele</a>
+<a class="nav-level-3" href="#zalozeni-a-uprava-subdodavatelske-smlouvy">Založení a úprava subdodavatelské smlouvy</a>
+<a class="nav-level-3" href="#dodatky-cerpani-a-faktury">Dodatky, čerpání a faktury</a>
+<a class="nav-level-3" href="#pozastavky-a-zaruka">Pozastávky a záruka</a>
+<a class="nav-level-2" href="#harmonogram">Harmonogram</a>
+<a class="nav-level-3" href="#cteni-a-uprava-casoveho-planu">Čtení a úprava časového plánu</a>
+<a class="nav-level-2" href="#mapa-stavby-a-dodavatelu">Mapa stavby a dodavatelů</a>
+<a class="nav-level-2" href="#dokumenty-a-sablony">Dokumenty a šablony</a>
+<a class="nav-level-3" href="#odkazy-pd-a-ceniky">Odkazy PD a ceníky</a>
+<a class="nav-level-3" href="#volba-a-tvorba-e-mailove-sablony">Volba a tvorba e-mailové šablony</a>
+<a class="nav-level-2" href="#slozkomat">Složkomat</a>
+<a class="nav-level-3" href="#uloziste-a-struktura">Úložiště a struktura</a>
+<a class="nav-level-2" href="#ukoly">Úkoly</a>
+<a class="nav-level-3" href="#seznam-kalendar-a-projekty-ukolu">Seznam, kalendář a projekty úkolů</a>
+<a class="nav-level-2" href="#nastroje">Nástroje</a>
+<a class="nav-level-3" href="#excel-nastroje">Excel nástroje</a>
+<a class="nav-level-3" href="#import-a-synchronizace-kontaktu">Import a synchronizace kontaktů</a>
+<a class="nav-level-3" href="#zaloha-a-obnova-dat">Záloha a obnova dat</a>
+<a class="nav-level-3" href="#obrazovy-postup-pro-nastroje">Obrazový postup pro nástroje</a>
+<a class="nav-level-2" href="#tender-flow-desktop">Tender Flow Desktop</a>
+<a class="nav-level-3" href="#instalace-a-aktualizace">Instalace a aktualizace</a>
+<a class="nav-level-3" href="#biometricke-prihlaseni">Biometrické přihlášení</a>
+<a class="nav-level-3" href="#lokalni-soubory-a-zalohy">Lokální soubory a zálohy</a>
+<a class="nav-level-3" href="#biometrika-na-podporovanem-zarizeni">Biometrika na podporovaném zařízení</a>
+<a class="nav-level-2" href="#nastaveni-aplikace">Nastavení aplikace</a>
+<a class="nav-level-3" href="#profil-a-vzhled">Profil a vzhled</a>
+<a class="nav-level-3" href="#notifikace">Notifikace</a>
+<a class="nav-level-3" href="#zabezpeceni-a-zarizeni">Zabezpečení a zařízení</a>
+<a class="nav-level-3" href="#microsoft-ucet">Microsoft účet</a>
+<a class="nav-level-3" href="#ai-a-mcp-pristupy">AI a MCP přístupy</a>
+<a class="nav-level-2" href="#administrace-systemu">Administrace systému</a>
+<a class="nav-level-2" href="#caste-otazky">Časté otázky</a>
+<a class="nav-level-3" href="#nevidim-stavbu-nebo-funkci">Nevidím stavbu nebo funkci</a>
+<a class="nav-level-3" href="#neotevre-se-e-mailovy-klient">Neotevře se e-mailový klient</a>
+<a class="nav-level-3" href="#proc-se-nenabizi-vr-k-propojeni-se-smlouvou">Proč se nenabízí VŘ k propojení se smlouvou?</a>
+<a class="nav-level-3" href="#co-kdyz-potrebuji-vetsi-obrazek">Co když potřebuji větší obrázek?</a>
+<a class="nav-level-3" href="#jak-popsat-chybu-podpore">Jak popsat chybu podpoře?</a>
+<a class="nav-level-2" href="#co-je-v-prirucce-nove">Co je v příručce nové</a>
+<a class="nav-level-2" href="#pravni-dokumenty">⚖️ Právní dokumenty</a>
+<a class="nav-level-3" href="#podminky-uzivani">Podmínky užívání</a>
+<a class="nav-level-3" href="#zasady-ochrany-osobnich-udaju">Zásady ochrany osobních údajů</a>
+<a class="nav-level-3" href="#zasady-pouzivani-cookies">Zásady používání cookies</a>
+<a class="nav-level-3" href="#zpracovatelska-dolozka-dpa">Zpracovatelská doložka (DPA)</a>
+<a class="nav-level-3" href="#provozovatel-a-kontaktni-udaje">Provozovatel a kontaktní údaje</a>
+<a class="nav-level-2" href="#licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</a></nav><p class="sidebar-note">Ověřeno pro v1.9.36<br>Syntetická ukázková data</p></aside>
+<main id="manual-content" tabindex="-1"><div class="hero"><p class="eyebrow">OD PRVNÍ STAVBY K PODPISU SMLOUVY</p><h1>Jasný postup.<br><span>V každém kroku.</span></h1><p>Seznamte se s Tender Flow na jedné ukázkové stavbě. Konkrétní úkoly, srozumitelné návody a obrazovky, podle kterých se zorientujete.</p><div class="hero-actions"><a class="button-primary" href="#rychly-start">Začít s ukázkovou stavbou ↗</a><a href="#vyberova-rizeni">Přejít k výběrovým řízením →</a></div><div class="hero-meta"><span>Verze 1.9.36</span><span>Aktualizováno 16. 9. 2026</span><span>Web i desktop</span></div></div>
+<div class="journey" aria-label="Postup práce"><a href="#sprava-staveb"><span>01</span> Založit stavbu</a><a href="#plan-vr"><span>02</span> Naplánovat VŘ</a><a href="#vyberova-rizeni"><span>03</span> Porovnat nabídky</a><a href="#smlouvy"><span>04</span> Uzavřít smlouvu</a></div>
+<div id="search-empty" hidden><h2>Nic jsme nenašli.</h2><p>Zkuste kratší výraz, například „smlouva“ nebo „příjemce“.</p><button type="button" id="clear-search">Zobrazit celou příručku</button></div>
+<article id="manual-article"><div class="introduction"><h1 id="tender-flow-uzivatelska-prirucka">Tender Flow — Uživatelská příručka</h1>
+<p>Průvodce je ověřený proti aplikaci <strong>1.9.36 k 16. 9. 2026</strong>. Názvy tlačítek a sekcí odpovídají této verzi. Dostupnost funkcí závisí na oprávnění, nastavení organizace a platformě. Obrázky zachycují skutečné komponenty aplikace s připravenými syntetickými daty; jejich okolí je zjednodušené pro výuku.</p>
+</div><section id="rychly-start" class="chapter" aria-labelledby="rychly-start-title"><span id="ucel-a-role" class="legacy-anchor"></span><span id="obsah" class="legacy-anchor"></span><h2 id="rychly-start-title">Rychlý start</h2>
+<p><strong>Cíl:</strong> projít cestu od stavby k vybrané nabídce a smlouvě. Na ukázce sledujeme jeden projekt, aby na sebe názvy, kontakty a částky navazovaly.</p>
+<h3 id="nase-ukazkova-stavba">Naše ukázková stavba</h3>
 <table>
 <thead>
 <tr>
-<th>Funkce</th>
-<th align="center">Free</th>
-<th align="center">PRO</th>
-<th align="center">Enterprise</th>
+<th>Údaj</th>
+<th>Syntetický příklad</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Dashboard, Stavby, Kontakty</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Stavba</td>
+<td>Bytový dům Javor</td>
 </tr>
 <tr>
-<td>Výběrová řízení (Pipeline)</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Lokalita</td>
+<td>Ukázková lokalita, Brno</td>
 </tr>
 <tr>
-<td>AI přehledy</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Investor</td>
+<td>Investor Javor — ukázka</td>
+</tr>
+<tr>
+<td>Poptávka</td>
+<td>Elektroinstalace</td>
+</tr>
+<tr>
+<td>Předpokládaný rozpočet VŘ</td>
+<td>1 500 000 Kč bez DPH</td>
+</tr>
+<tr>
+<td>Dodavatelé</td>
+<td>Javor Elektro — ukázka, Lumen Mont — ukázka, Voltis — ukázka</td>
+</tr>
+<tr>
+<td>Kontaktní osoby</td>
+<td>Anna Ukázková a Petr Vzorový</td>
+</tr>
+<tr>
+<td>E-mail</td>
+<td><a href="mailto:anna@example.com">anna@example.com</a>, <a href="mailto:petr@example.com">petr@example.com</a></td>
+</tr>
+<tr>
+<td>Telefon</td>
+<td>Záměrně neplatné číslo +420 000 000 001</td>
+</tr>
+</tbody></table>
+<p>Všechny firmy, osoby, údaje o zakázce a částky v příkladech jsou fiktivní. Adresy na doméně <strong>example.com</strong> slouží pouze pro dokumentaci. Ukázkové zprávy neodesílejte. Vlastní nácvik provádějte v prostředí, které vám určil správce.</p>
+<p>Pro nácvik nástrojů si stáhněte <a href="./assets/javor-kontakty.csv">syntetické kontakty v CSV</a> a <a href="./assets/javor-rozpocet.xlsx">ukázkový rozpočet se dvěma listy v XLSX</a>. Rozpočet obsahuje tři položky, řádky označující oddíly a ochranu listů pro ukázku odemčení. Neobsahuje makra ani skutečné firemní údaje. Ukázkové kontakty importujte pouze do určeného testovacího prostředí.</p>
+<h3 id="prvni-pruchod-aplikaci">První průchod aplikací</h3>
+<ol>
+<li>Přihlaste se a otevřete <strong>Správu staveb</strong>. Založte stavbu <strong>Bytový dům Javor</strong>.</li>
+<li>Do <strong>Subdodavatelů</strong> přidejte ukázkovou firmu a její kontaktní osoby.</li>
+<li>Vyberte stavbu a v <strong>Plánu VŘ</strong> připravte položku <strong>Elektroinstalace</strong> s termínem.</li>
+<li>Ve <strong>Výběrových řízeních</strong> přidejte dodavatele do dané poptávky.</li>
+<li>Na kartě zvolte příjemce a připravte poptávku. Před odesláním zkontrolujte koncept v e-mailovém klientu.</li>
+<li>Po obdržení nabídek doplňte ceny a porovnejte rozsah, termíny i podmínky.</li>
+<li>Vybranou nabídku propojte se smlouvou. Zkontrolujte cenu, dodatky a příslušná VŘ.</li>
+</ol>
+<p><strong>Výsledek:</strong> víte, ke které stavbě patří poptávka, komu je určená nabídka a ve které smlouvě je výsledek zachycen. Podrobné postupy jsou v navazujících kapitolách.</p>
+</section><section id="prihlaseni-a-ucet" class="chapter" aria-labelledby="prihlaseni-a-ucet-title"><h2 id="prihlaseni-a-ucet-title">Přihlášení a účet</h2>
+<p><strong>K čemu slouží:</strong> přístup k datům, která smíte ve své organizaci používat.</p>
+<ol>
+<li>Na přihlašovací obrazovce vyplňte svůj e-mail a heslo.</li>
+<li>Potvrďte přihlášení. Pokud je vyžadováno další ověření, dokončete zobrazený krok.</li>
+<li>Po vstupu ověřte správnou organizaci a dostupné stavby. Chybějící stavbu řešte s jejím vlastníkem.</li>
+<li>Na sdíleném počítači se po práci odhlaste.</li>
+</ol>
+<p><strong>Příklad:</strong> Anna potřebuje pracovat na Javoru. Nestačí, že má účet; potřebuje také přístup ke stavbě a povolené funkce. Při problému s přístupem nezkoušejte jiný účet kolegy, obraťte se na správce.</p>
+<p><strong>Častá chyba:</strong> zaměnit zavření okna desktop aplikace za odhlášení. Rozhodující je použití odhlašovací akce a její potvrzení.</p>
+<h3 id="prihlaseni-a-obnova-pristupu">Přihlášení a obnova přístupu</h3>
+<p></p><figure><a href="./assets/prihlaseni.png" data-screenshot="" aria-label="Zvětšit: Přihlašovací formulář: e-mail a heslo, Microsoft a odkaz na obnovu hesla."><img src="./assets/prihlaseni.png" alt="Přihlašovací formulář: e-mail a heslo, Microsoft a odkaz na obnovu hesla." width="1980" height="1668" loading="lazy" decoding="async"></a><figcaption>Přihlašovací formulář: e-mail a heslo, Microsoft a odkaz na obnovu hesla. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Pro nový účet použijte <strong>Vytvořit účet</strong> a dokončete registraci podle zobrazených polí. Zapomenuté heslo řešte odkazem na obnovu na přihlašovací stránce; pokračujte z doručené zprávy. Pokud účet používá dvoufázové ověření, zadejte aktuální kód svého autentizátoru. Osobní zabezpečení a připojená zařízení jsou vysvětlená v <a href="#nastaveni-aplikace">Nastavení aplikace</a>. Přihlášení přes Microsoft a propojení Microsoft služeb si ověřte v nastavení účtu.</p>
+</section><section id="organizace-a-predplatne" class="chapter" aria-labelledby="organizace-a-predplatne-title"><span id="tarify-a-dostupnost-funkci" class="legacy-anchor"></span><h2 id="organizace-a-predplatne-title">Organizace a předplatné</h2>
+<p><strong>K čemu slouží:</strong> organizace vymezuje tým a jeho data. Dostupnost modulů navíc ovlivňuje nastavení funkcí a oprávnění uživatele.</p>
+<h3 id="clenstvi-a-role-v-organizaci">Členství a role v organizaci</h3>
+<p>V nastavení organizace zkontrolujte členství. Správa členů, žádostí o vstup a rolí je dostupná podle vaší role. Vlastník organizace řeší přijetí členů a předání vlastnictví.</p>
+<p><strong>Příklad:</strong> Anna a Petr patří do stejné organizace. Pro spolupráci na Javoru musí být nastavený i přístup ke konkrétní stavbě; členství v organizaci samo nevysvětluje všechna projektová oprávnění.</p>
+<h3 id="dostupnost-funkci">Dostupnost funkcí</h3>
+<p>Pokud položku v menu nevidíte nebo je akce nepřístupná, zkontrolujte s administrátorem:</p>
+<ul>
+<li>zda je funkce povolená pro organizaci a účet;</li>
+<li>zda máte přístup k vybrané stavbě a právo ji upravovat;</li>
+<li>zda funkce vyžaduje desktop nebo připojenou integraci.</li>
+</ul>
+<p>Příručka neuvádí pevnou tabulku tarifů: skutečný přístup určuje aktuální konfigurace služby. Pro nabídku předplatného použijte <a href="/#ceny">aktuální web Tender Flow</a>.</p>
+</section><section id="navigace-v-aplikaci" class="chapter" aria-labelledby="navigace-v-aplikaci-title"><span id="dochub-sprava-slozek-projektu" class="legacy-anchor"></span><span id="smluvni-protokoly" class="legacy-anchor"></span><span id="fakturace-investora-a-globalni-pozastavky" class="legacy-anchor"></span><span id="dalsi-funkce-pipeline" class="legacy-anchor"></span><span id="karta-nabidky" class="legacy-anchor"></span><span id="stavy-nabidky-sloupce" class="legacy-anchor"></span><span id="detail-stavby" class="legacy-anchor"></span><h2 id="navigace-v-aplikaci-title">Navigace v aplikaci</h2>
+<p><strong>K čemu slouží:</strong> odlišit celofiremní agendu od práce na jedné stavbě. V aktuálním rozhraní jsou sekce stavby dostupné v boční navigaci.</p>
+<ol>
+<li>Vyberte stavbu. Její název se zobrazí v přepínači v levém panelu.</li>
+<li>Kliknutím na název otevřete výběr dalších staveb. Lze hledat podle názvu nebo lokality.</li>
+<li>Pod vybranou stavbou otevřete příslušnou sekci.</li>
+<li><strong>Smlouvy</strong> rozbalují položky <strong>Objednatel</strong> a <strong>Subdodavatel</strong>. <strong>Nastavení stavby</strong> rozbaluje <strong>Odkazy PD</strong>, <strong>Šablony</strong> a <strong>Složkomat</strong>, pokud jsou dostupné.</li>
+</ol>
+<p></p><figure><a href="./assets/navigace.png" data-screenshot="" aria-label="Zvětšit: 01 — Boční navigace skutečné aplikace: vybraná stavba Javor, rozbalené smlouvy a nastavení stavby."><img src="./assets/navigace.png" alt="01 — Boční navigace skutečné aplikace: vybraná stavba Javor, rozbalené smlouvy a nastavení stavby." width="1560" height="849" loading="lazy" decoding="async"></a><figcaption>01 — Boční navigace skutečné aplikace: vybraná stavba Javor, rozbalené smlouvy a nastavení stavby. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<table>
+<thead>
+<tr>
+<th>Sekce stavby</th>
+<th>Co zde vyřídíte</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Přehled</td>
+<td>Základní údaje, metriky a finance stavby</td>
+</tr>
+<tr>
+<td>Dokumenty</td>
+<td>Dokumentovou agendu a ceníky podle dostupných funkcí</td>
+</tr>
+<tr>
+<td>Plán VŘ</td>
+<td>Přípravu a termíny jednotlivých výběrových řízení</td>
+</tr>
+<tr>
+<td>Výběrová řízení</td>
+<td>Poptávky, dodavatele, nabídky a jejich stavy</td>
+</tr>
+<tr>
+<td>Smlouvy → Objednatel / Subdodavatel</td>
+<td>Smlouvy podle smluvní strany</td>
 </tr>
 <tr>
 <td>Harmonogram</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Časové souvislosti projektu</td>
 </tr>
 <tr>
-<td>Excel nástroje</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Mapa</td>
+<td>Mapové zobrazení podle dostupnosti modulu</td>
 </tr>
 <tr>
-<td>Import kontaktů</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
+<td>Realizační tým</td>
+<td>Tým vybrané stavby</td>
 </tr>
 <tr>
-<td>Export PDF / XLSX</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
-</tr>
-<tr>
-<td>Záloha dat (osobní)</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-<td align="center">✅</td>
-</tr>
-<tr>
-<td>Smlouvy</td>
-<td align="center">–</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-</tr>
-<tr>
-<td>DocHub</td>
-<td align="center">–</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-</tr>
-<tr>
-<td>Dynamické šablony</td>
-<td align="center">–</td>
-<td align="center">–</td>
-<td align="center">✅</td>
-</tr>
-<tr>
-<td>Záloha dat (organizace)</td>
-<td align="center">–</td>
-<td align="center">–</td>
-<td align="center">✅</td>
+<td>Nastavení stavby</td>
+<td>Odkazy na dokumentaci, šablony a Složkomat</td>
 </tr>
 </tbody></table>
-<h3 id="clenstvi-a-role-v-organizaci">Členství a role v organizaci</h3>
-<p>V <strong>Nastavení → Organizace</strong> můžete spravovat členství v organizaci:</p>
-<ul>
-<li><strong>Členové organizace</strong>: přehled členů a jejich rolí (vlastník/admin/člen).</li>
-<li><strong>Žádosti o vstup</strong> (vlastník): schvalování a zamítání čekajících žádostí.</li>
-<li><strong>Ruční přidání uživatele</strong> (vlastník): přidání uživatele podle emailu (musí být registrovaný).</li>
-<li><strong>Změna role člena</strong> (vlastník): přepínání mezi rolí admin a člen.</li>
-<li><strong>Předání vlastnictví organizace</strong> (vlastník): bezpečný převod ownershipu na jiného člena.</li>
-</ul>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Uživatel může požádat o vstup do organizace ze svého profilu; žádost potvrdí vlastník organizace.</p>
-</blockquote>
-<hr>
-<h2 id="navigace-v-aplikaci">🧭 Navigace v aplikaci</h2>
-<p>V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.</p>
-<p>Na mobilním telefonu otevřete navigaci tlačítkem <strong>Menu</strong> vlevo nahoře. Navigace se zobrazí jako boční panel, takže část aktuální obrazovky zůstane viditelná. Panel zavřete křížkem v jeho hlavičce nebo klepnutím do stmavené oblasti mimo panel. Tlačítko Menu má v horní liště vyhrazené místo a nepřekrývá název projektu ani ostatní akce.</p>
-<ul>
-<li><strong>📊 Dashboard</strong> – přehled vybrané stavby a export.</li>
-<li><strong>🏗️ Stavby</strong> – seznam staveb (projekty).</li>
-<li><strong>👥 Subdodavatelé</strong> – databáze kontaktů.</li>
-<li><strong>🔧 Nástroje</strong> – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).</li>
-<li><strong>⚙️ Nastavení</strong> – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).</li>
-</ul>
-<p><img src="./assets/02-navigation.svg" alt="Navigace v aplikaci"></p>
-<hr>
-<h2 id="dashboard">📊 Dashboard</h2>
-<p>Dashboard zobrazuje přehled jedné vybrané stavby. V hlavičce můžete přepnout stavbu a vyexportovat XLSX.</p>
-<p><img src="./assets/03-dashboard.svg" alt="Dashboard aplikace Tender Flow"></p>
-<h3 id="co-dashboard-zobrazuje">Co dashboard zobrazuje</h3>
-<ul>
-<li>Přehled poptávek a jejich stav</li>
-<li>Klíčové metriky stavby</li>
-<li>Rychlý přístup k nejčastějším akcím</li>
-<li>Možnost exportu dat do Excelu</li>
-</ul>
-<p>Po kliknutí na stavbu v sidebaru se otevře detail se záložkami – viz následující sekce.</p>
-<hr>
-<h2 id="detail-stavby">🏗️ Detail stavby</h2>
-<p>Po výběru stavby v sidebaru se otevře detail se šesti záložkami:</p>
-<ul>
-<li><strong>📊 Přehled</strong> – rozpočty, stav, metriky.</li>
-<li><strong>📅 Plán VŘ</strong> – plánování výběrových řízení.</li>
-<li><strong>📋 Výběrová řízení</strong> – pipeline poptávek a nabídek.</li>
-<li><strong>📜 Smlouvy</strong> – evidence smluv, dodatků a čerpání.</li>
-<li><strong>📆 Harmonogram</strong> – Gantt navázaný na termíny výběrových řízení.</li>
-<li><strong>📁 Dokumenty</strong> – odkazy na dokumentaci a šablony poptávek.</li>
-</ul>
-<p><img src="./assets/04-project-tabs.svg" alt="Záložky detailu stavby"></p>
-<h3 id="prehled">📊 Přehled</h3>
-<p>Záložka <strong>Přehled</strong> shrnuje klíčové údaje o stavbě na jednom místě:</p>
-<ul>
-<li><strong>Základní údaje</strong>: název, lokalita, datum dokončení, investor, technický dozor, stavbyvedoucí.</li>
-<li><strong>Finance</strong>: plánované náklady, aktuální stav rozpočtu.</li>
-<li><strong>Odkazy na dokumenty</strong>: rychlý přístup k projektové dokumentaci.</li>
-<li><strong>Přehled poptávek</strong>: tabulka s bilancí výběrů a přehledem stavu kategorií.</li>
-<li><strong>Proklik do pipeline</strong>: z přehledu se můžete dostat přímo do kanbanu dané poptávky.</li>
-</ul>
-<h3 id="plan-vr">📅 Plán VŘ</h3>
-<p>Plán VŘ slouží k naplánování výběrových řízení v čase a (dle potřeby) k jejich převodu do poptávek.</p>
-<ul>
-<li>Vytvořte položku a nastavte termín (od–do).</li>
-<li>Po vytvoření se nabídne tlačítko „Vytvořit&quot; pro převod do pipeline.</li>
-<li>Stav položky reflektuje průběh daného výběrového řízení (čeká na vytvoření / probíhá / ukončeno).</li>
-</ul>
-<p><img src="./assets/11-tender-plan.svg" alt="Plán VŘ"></p>
-<h3 id="vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</h3>
-<p>Výběrová řízení jsou organizovaná po <strong>poptávkách</strong> (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag &amp; drop).</p>
-<p>Dodavatele vyberte v dialogu a potvrďte <strong>Přenést do pipeline</strong>. Během ukládání se zobrazí <strong>Přidávám…</strong> a výběr nelze znovu odeslat ani měnit. Karta se objeví po potvrzení uložení. Pokud uložení nelze ověřit, výběr zůstane otevřený; zkontrolujte připojení a oprávnění a zkuste přidání znovu. Opakování stejného dodavatele ve stejné poptávce nevytvoří druhou nabídku ani nepřepíše původní cenu či stav. Stejného dodavatele lze nadále přidat do jiných poptávek a projektů. Zpráva <strong>Dodavatelé uloženi</strong> při chybě obnovy znamená, že zápis proběhl a stačí obnovit projekt. Zpráva <strong>Uložena část dodavatelů</strong> znamená, že potvrzené nabídky už zůstávají uložené; v dialogu je pro další pokus vybraná pouze zbývající část.</p>
-<p>V přehledu můžete přepnout na <strong>tabulkové zobrazení</strong>. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky <strong>XLSX</strong> a <strong>PDF</strong> vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil.</p>
-<p><img src="./assets/05-pipeline-board.svg" alt="Výběrová řízení – Kanban board"></p>
-<h4 id="stavy-nabidky-sloupce">Stavy nabídky (sloupce)</h4>
-<table>
-<thead>
-<tr>
-<th>Sloupec</th>
-<th>Význam</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Oslovení</strong></td>
-<td>Připraven k oslovení (může se zobrazit „Generovat poptávku&quot;)</td>
-</tr>
-<tr>
-<td><strong>Odesláno</strong></td>
-<td>Poptávka odeslána, čeká se na reakci</td>
-</tr>
-<tr>
-<td><strong>Cenová nabídka</strong></td>
-<td>Dorazila nabídka od subdodavatele</td>
-</tr>
-<tr>
-<td><strong>Užší výběr</strong></td>
-<td>Shortlist kandidátů</td>
-</tr>
-<tr>
-<td><strong>Jednání o SOD</strong></td>
-<td>Finalisté / jednání o smlouvě</td>
-</tr>
-<tr>
-<td><strong>Odmítnuto</strong></td>
-<td>Neúspěšní subdodavatelé</td>
-</tr>
-</tbody></table>
-<h4 id="karta-nabidky">Karta nabídky</h4>
-<p>Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email.</p>
-<ul>
-<li>Karta zaznamenává až <strong>3 kola VŘ</strong> – do aktuální ceny se počítá aktivně vybrané kolo.</li>
-<li>Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz).</li>
-<li>Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena).</li>
-<li>Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv).</li>
-<li>Po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo).</li>
-</ul>
-<p><img src="./assets/06-bid-card.svg" alt="Karta nabídky v Tender Flow"></p>
-<h4 id="dalsi-funkce-pipeline">Další funkce pipeline</h4>
-<ul>
-<li><strong>Filtrování</strong> dle stavu poptávky (otevřené / uzavřené / zasmluvněné).</li>
-<li><strong>Export</strong>: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší.</li>
-<li><strong>Otevřít složku</strong>: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší.</li>
-<li><strong>Generování poptávky</strong>: vytvoří email s údaji o poptávce pro vybraného subdodavatele.</li>
-</ul>
-<p>Nabídky <strong>Hromadný e-mail</strong> a <strong>Export</strong> automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.</p>
-<h3 id="hromadny-e-mail-subdodavatelum">✉️ Hromadný e-mail subdodavatelům</h3>
-<p>Tlačítko <strong>Hromadný e-mail</strong> v hlavičce pipeline připraví jeden koncept pro více příjemců. Z nabídky lze zvolit:</p>
-<ul>
-<li><strong>Standardní poptávka</strong> – použije standardní šablonu a zahrne subdodavatele ve sloupci <strong>Oslovení</strong>.</li>
-<li><strong>Materiálová poptávka</strong> – použije materiálovou šablonu a zahrne subdodavatele ve sloupci <strong>Oslovení</strong>.</li>
-<li><strong>Poděkování nevybraným</strong> – zahrne účastníky s cenovou nabídkou kromě vítězů ve stavu <strong>Jednání o SOD</strong>.</li>
-</ul>
-<p>Před vytvořením konceptu se zobrazí potvrzení se seznamem zahrnutých a vyřazených kontaktů. Kontakty bez platné emailové adresy se neodešlou a duplicitní adresy se použijí pouze jednou.</p>
-<p>Z důvodu ochrany kontaktů je v poli <strong>Komu (To)</strong> uveden email přihlášeného uživatele a všechny adresy subdodavatelů jsou vloženy do <strong>Skryté kopie (BCC)</strong>. Jednotliví subdodavatelé proto nevidí adresy ostatních příjemců.</p>
-<p>Tender Flow zprávu přímo neodesílá. Připraví koncept ve zvoleném nebo výchozím emailovém klientu, kde jej uživatel před odesláním zkontroluje. Po úspěšném otevření hromadné poptávky se zahrnuté karty přesunou do sloupce <strong>Odesláno</strong>.</p>
-<h3 id="smlouvy">📜 Smlouvy</h3>
-<p>Záložka <strong>Smlouvy</strong> slouží pro finanční a smluvní řízení konkrétní stavby.</p>
-<ul>
-<li><strong>📊 Přehled</strong> – souhrn KPI (počty smluv, hodnota, čerpání, retence).</li>
-<li><strong>📄 Smlouvy</strong> – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.</li>
-<li><strong>✏️ Dodatky</strong> – změny smluv (cenové i termínové) navázané na vybranou smlouvu.</li>
-<li><strong>💰 Čerpání</strong> – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.</li>
-<li><strong>🏗️ Investor</strong> – smlouva s objednatelem, dodatky a vystavené faktury včetně pozastávek A a B.</li>
-</ul>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Při zakládání smlouvy lze data ze smluvních dokumentů předvyplnit automaticky (např. z PDF) a před uložením je ručně potvrdit.</p>
-</blockquote>
-<h4 id="fakturace-investora-a-globalni-pozastavky">Fakturace investora a globální pozastávky</h4>
+<p><strong>Na mobilu:</strong> otevřete hlavní menu v horní liště. Po výběru sledujte název stavby, abyste nezadali údaj do jiného projektu.</p>
+<p><strong>Častá chyba:</strong> hledat Složkomat v obecném nastavení účtu. Patří do <strong>Nastavení stavby → Složkomat</strong>.</p>
+</section><section id="sprava-staveb" class="chapter" aria-labelledby="sprava-staveb-title"><h2 id="sprava-staveb-title">Správa staveb</h2>
+<p><strong>K čemu slouží:</strong> založit projekt, přehledně ho označit a určit jeho životní fázi.</p>
 <ol>
-<li>V části <strong>Investor</strong> nastavte procento <strong>Pozastávky A</strong> a <strong>Pozastávky B</strong> jednou pro celou stavbu.</li>
-<li>Přidejte fakturu a zadejte fakturovanou částku. Ve sloupcích pozastávek se automaticky zobrazí vypočtené částky; procenta se na běžné faktuře nevyplňují.</li>
-<li>Změna globálních procent automaticky přepočítá faktury, které nastavení stavby dědí.</li>
-<li>Pokud má konkrétní faktura smluvní odchylku, odemkněte ji a použijte akci <strong>Individuální pozastávky</strong>. Explicitní hodnota <code>0 %</code> je také platná výjimka.</li>
-<li>Akcí <strong>Použít globální pozastávky</strong> výjimku zrušíte a faktura se znovu řídí nastavením stavby.</li>
-<li>Uložená smlouva, dodatky a faktury jsou kvůli lepší čitelnosti zobrazené jako text. Pole otevřete dvojklikem na vybraný záznam; při práci z klávesnice použijte <strong>Enter</strong> nebo mezerník. Akce <strong>Zrušit</strong> a ikona koše se zobrazí až během editace. Smazání dodatku nebo faktury je nutné potvrdit v modálním okně.</li>
+<li>Ve <strong>Správě staveb</strong> otevřete formulář pro novou stavbu.</li>
+<li>Zadejte <strong>Bytový dům Javor</strong>, ukázkovou lokalitu a další požadované údaje.</li>
+<li>Uložte a otevřete detail stavby. Ověřte název v boční navigaci.</li>
+<li>V <strong>Přehledu</strong> průběžně doplňujte údaje a termíny podle formuláře.</li>
 </ol>
-<h4 id="smluvni-protokoly">Smluvní protokoly</h4>
-<p>Z modulu smluv můžete generovat formální protokoly ke stavebnímu řízení. K dispozici jsou dva typy:</p>
-<p><strong>Předání díla SUB</strong> (<code>sub_work_handover</code>)</p>
-<ul>
-<li>Protokol pro předání a převzetí díla subdodavatele.</li>
-<li>Obsahuje pole: stavební akce, předmět díla, termíny přejímky (smluvní/skutečný), soupis vad a nedodělků, smluvní pokuty, záruční doba, podpisy za zhotovitele i subdodavatele.</li>
-<li>Výstup: Excel (<code>.xlsx</code>) a PDF.</li>
-</ul>
-<p><strong>Předání staveniště</strong> (<code>site_handover</code>)</p>
-<ul>
-<li>Protokol pro předání staveniště mezi objednatelem a zhotovitelem.</li>
-<li>Obsahuje pole: název a číslo stavby, místo, smlouva o dílo, termíny zahájení/dokončení, předaná dokumentace, soupis vad, dohoda o vyklizení, záruční doba, podpisy.</li>
-<li>Výstup: Excel (<code>.xlsx</code>).</li>
-</ul>
-<p><strong>Jak generovat protokol:</strong></p>
-<ol>
-<li>Na záložce <strong>Smlouvy</strong> vyberte smlouvu.</li>
-<li>Klikněte na akci generování protokolu.</li>
-<li>Údaje se předvyplní z dat smlouvy a projektu (dodavatel, IČ, cena, termíny).</li>
-<li>Zkontrolujte a doplňte pole označená jako povinná.</li>
-<li>Klikněte na generování – soubor se stáhne.</li>
-</ol>
-<h3 id="harmonogram">📆 Harmonogram</h3>
-<p>Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z dat v projektu.</p>
-<ul>
-<li><strong>Jak se plní</strong>: doplňte termíny v <strong>Plán VŘ</strong> (od–do) nebo termín v detailu <strong>Výběrových řízení</strong> (deadline).</li>
-<li><strong>Zobrazení</strong>: přepínání měřítka <strong>Měsíce / Týdny / Dny</strong>, volitelně přepínač <strong>Realizace</strong>.</li>
-<li><strong>Editace</strong>: tlačítko <strong>Editace</strong> umožní upravit termíny přímo v harmonogramu.</li>
-<li><strong>Export</strong>: menu <strong>Export</strong> nabízí <code>XLSX</code>, <code>PDF</code> a <code>XLSX s grafem</code>.</li>
-</ul>
-<h3 id="dokumenty-a-sablony">📁 Dokumenty a šablony</h3>
-<p>V záložce <strong>Dokumenty</strong> najdete podzáložky:</p>
-<ul>
-<li><strong>📂 PD</strong> – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).</li>
-<li><strong>📝 Šablony</strong> – šablona poptávky a šablona „email nevybraným&quot; (lze použít interní editor šablon, nebo externí odkaz/soubor).</li>
-<li><strong>📦 DocHub</strong> – napojení na strukturu složek projektu (pokud je povoleno).</li>
-<li><strong>💵 Ceníky</strong> – odkaz na projektové ceníky + rychlý odkaz na složku <code>Ceníky</code> v DocHubu (pokud je připojen).</li>
-</ul>
-<p>V praxi zde typicky nastavíte:</p>
-<ul>
-<li>odkaz na dokumentaci stavby (Drive/SharePoint apod.),</li>
-<li>šablony emailů (poptávka / nevybraní),</li>
-<li>ceníky a související složky.</li>
-</ul>
-<p><img src="./assets/10-documents-templates.svg" alt="Dokumenty a šablony"></p>
-<h4 id="dochub-sprava-slozek-projektu">DocHub: správa složek projektu</h4>
-<p>DocHub je modul pro organizaci projektových složek v cloudovém nebo lokálním úložišti. Podporuje Google Drive, OneDrive a lokální/síťový disk (v desktop verzi).</p>
-<p><strong>Standardní struktura složek</strong> (vytvořená automaticky):</p>
-<ul>
-<li>PD (Projektová dokumentace)</li>
-<li>Poptávky / Nabídky</li>
-<li>Smlouvy</li>
-<li>Realizace</li>
-<li>Archiv</li>
-<li>Ceníky</li>
-<li>Složky dodavatelů (strukturované dle subdodavatele)</li>
-</ul>
-<p><strong>Nastavení DocHub:</strong></p>
-<ol>
-<li>Projekt → <strong>Dokumenty</strong> → <strong>DocHub</strong>.</li>
-<li>Vyberte providera (Google Drive / OneDrive / Tender Flow Desktop).</li>
-<li>Zadejte nebo vyberte kořenovou složku.</li>
-<li>Klikněte <strong>Připojit složku</strong> a poté <strong>Synchronizovat</strong>.</li>
-</ol>
-<p><strong>Kombinace online a lokální složky:</strong></p>
-<ul>
-<li>Online připojení a lokální/síťovou složku lze používat současně.</li>
-<li>Nejprve připojte cloudovou složku, potom zvolte <strong>Tender Flow Desktop</strong> a vyberte její lokálně synchronizovanou kopii.</li>
-<li>Tender Flow ukládá lokální cestu pouze pro konkrétního uživatele a zařízení; ostatním uživatelům se cesta z vašeho počítače nesdílí.</li>
-<li>Při otevření složky VŘ, poptávky nebo subdodavatele má přednost dostupná lokální složka. Pokud chybí nebo ji nelze otevřít, aplikace automaticky použije odpovídající online odkaz.</li>
-<li>Jestliže online provider nemůže vrátit přesný odkaz na podsložku, otevře se bezpečný online kořen projektu.</li>
-</ul>
-<p><strong>DocHub v desktop verzi (lokální disk):</strong></p>
-<ul>
-<li>Provider: <strong>Tender Flow Desktop</strong></li>
-<li>Podporuje libovolný disk (C:, D:, E:, …) i síťové/sdílené disky</li>
-<li>Klikněte na <strong>Procházet</strong> pro výběr složky přes nativní dialog, nebo zadejte cestu ručně (např. <code>D:\Projekty\Stavba</code> nebo <code>\\server\share\projekt</code>)</li>
-</ul>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Složka nemusí být na systémovém disku ani ve složce OneDrive — můžete vybrat jakoukoliv dostupnou složku, včetně externích nebo síťových disků.</p>
-</blockquote>
-<hr>
-<h2 id="subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</h2>
-<p>Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).</p>
-<ul>
-<li><strong>Více kontaktů na firmu</strong>: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).</li>
-<li><strong>Více specializací</strong>: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).</li>
-<li><strong>Hodnocení dodavatelů</strong>: možnost přiřadit rating a stav (např. doporučuji / nedoporučuji).</li>
-<li><strong>IČ a automatické doplnění</strong>: po zadání IČ se mohou automaticky doplnit údaje o firmě.</li>
-<li><strong>Hromadná úprava specializací</strong>: vyberte více kontaktů zaškrtnutím a klikněte na tlačítko „Upravit specializace&quot;. Můžete specializace hromadně <strong>přidat</strong> (ke stávajícím), <strong>odebrat</strong> nebo <strong>nahradit</strong> (přepsat). K dispozici je rychlý výběr z existujících specializací i ruční zadání nových.</li>
-</ul>
-<p><img src="./assets/07-contacts.svg" alt="Subdodavatelé a kontakty"></p>
-<hr>
-<h2 id="sprava-staveb">🏠 Správa staveb</h2>
-<p>Slouží pro vytváření staveb, změny statusu, archivaci a sdílení (dle oprávnění).</p>
-<p><img src="./assets/08-project-management.svg" alt="Správa staveb"></p>
-<ul>
-<li><strong>Vytvoření stavby</strong>: název, lokalita, investor, fáze (soutěž / realizace).</li>
-<li><strong>Archivace</strong>: stavba se přesune do archivu, odebere se ze sidebaru. Lze vrátit zpět.</li>
-<li><strong>Klonování</strong>: převod soutěžní stavby na realizační.</li>
-<li><strong>Smazání</strong>: trvalé odstranění stavby (dle oprávnění).</li>
-</ul>
+<p><strong>Příklad:</strong> Javor se nejprve připravuje v soutěži, později se řeší realizace. Fázi stavby nezaměňujte se stavem jedné nabídky dodavatele; jde o jiné úrovně evidence.</p>
 <h3 id="sdileni-a-opravneni">Sdílení a oprávnění</h3>
-<p>Stavbu můžete sdílet s dalšími uživateli. Sdílení podporuje dvě úrovně oprávnění:</p>
+<p>Sdílení stavby nastavujte podle role spolupracovníka. Před předáním práce ověřte, že kolega vidí potřebné sekce a smí provádět požadované změny. Členství v Realizačním týmu řídí přístup ke stavbě. Samotné vyplnění jména stavbyvedoucího v obecných informacích přístup neuděluje.</p>
+<p><strong>Výsledek:</strong> Anna pracuje na správné stavbě a Petr má ověřený přístup k úkolům, které skutečně potřebuje. Archivovanou stavbu nezaměňujte se smazanou.</p>
+<h3 id="portfolio-hledani-a-zivotni-cyklus-stavby">Portfolio, hledání a životní cyklus stavby</h3>
+<p></p><figure><a href="./assets/stavby.png" data-screenshot="" aria-label="Zvětšit: Správa staveb se syntetickými projekty Javor a Lípa: filtry a ovládání portfolia."><img src="./assets/stavby.png" alt="Správa staveb se syntetickými projekty Javor a Lípa: filtry a ovládání portfolia." width="1980" height="1293" loading="lazy" decoding="async"></a><figcaption>Správa staveb se syntetickými projekty Javor a Lípa: filtry a ovládání portfolia. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyhledejte název stavby a zkontrolujte filtr fáze. Novou stavbu založte přes tlačítko pro přidání, vyplňte název, lokalitu a fázi. Úpravy názvu a lokality provádějte u konkrétní stavby. Při převodu soutěže do realizace čtěte potvrzení klonování a následně otevřete vzniklou realizační stavbu. Archivaci používejte pro ukončenou práci; v archivu je stavba pouze ke čtení a oprávněný uživatel ji může obnovit. Před smazáním vždy ověřte název v potvrzení.</p>
+<h3 id="realizacni-tym">Realizační tým</h3>
+<p></p><figure><a href="./assets/tym.png" data-screenshot="" aria-label="Zvětšit: Realizační tým Javoru: systémový vlastník Anna a člen Petr."><img src="./assets/tym.png" alt="Realizační tým Javoru: systémový vlastník Anna a člen Petr." width="1980" height="791" loading="lazy" decoding="async"></a><figcaption>Realizační tým Javoru: systémový vlastník Anna a člen Petr. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vlastník stavby otevře <strong>Realizační tým</strong>, vybere člena organizace a přidá jej. Potom ověří jeho přítomnost v seznamu. Odebrání člena provádí tlačítkem u dané osoby. Toto členství řídí přístup ke stavbě; profesní role a schvalovací oprávnění se nastavují samostatně. Pouhé vyplnění jména stavbyvedoucího v přehledu přístup neuděluje.</p>
+</section><section id="dashboard" class="chapter" aria-labelledby="dashboard-title"><span id="prehled-staveb-analytika" class="legacy-anchor"></span><span id="prehled" class="legacy-anchor"></span><span id="co-dashboard-zobrazuje" class="legacy-anchor"></span><h2 id="dashboard-title">Dashboard</h2>
+<p><strong>K čemu slouží:</strong> rychlá orientace v práci a finančních údajích. Rozlišujte souhrn napříč stavbami a <strong>Přehled</strong> uvnitř jedné stavby.</p>
+<ol>
+<li>Před čtením metrik zkontrolujte vybranou stavbu nebo rozsah filtru.</li>
+<li>Z přehledu přejděte do konkrétního VŘ či smlouvy a ověřte zdrojovou částku.</li>
+<li>Před exportem zkontrolujte filtry a časové období, pokud je obrazovka nabízí.</li>
+</ol>
+<p><strong>Příklad:</strong> rozpočet Elektroinstalace je 1 500 000 Kč a vybraná nabídka 1 380 000 Kč. Rozdíl činí <strong>120 000 Kč</strong>, tedy <strong>8 %</strong> rozpočtu. Tato aritmetika neznamená automaticky konečnou úsporu stavby: zkontrolujte shodný rozsah, DPH a pozdější dodatky.</p>
+<p><strong>Častá chyba:</strong> porovnávat cenu včetně DPH s rozpočtem bez DPH nebo zaměnit celkovou smluvní cenu za uhrazenou částku.</p>
+<h3 id="prehled-jedne-stavby">Přehled jedné stavby</h3>
+<p></p><figure><a href="./assets/prehled.png" data-screenshot="" aria-label="Zvětšit: Přehled Javoru: investorská cena, interní náklad, parametry smlouvy a tabulka poptávek."><img src="./assets/prehled.png" alt="Přehled Javoru: investorská cena, interní náklad, parametry smlouvy a tabulka poptávek." width="1980" height="2387" loading="lazy" decoding="async"></a><figcaption>Přehled Javoru: investorská cena, interní náklad, parametry smlouvy a tabulka poptávek. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Ikonou tužky upravte příslušný blok, například informace o stavbě nebo interní rozpočet. Nezaměňujte investorskou cenu <strong>2 600 000 Kč včetně dodatku</strong> s interním nákladovým cílem <strong>2 100 000 Kč</strong>. V tabulce poptávek použijte filtr a výběr sloupců; otevřením poptávky pokračujte k jejím nabídkám. Exportujte až po nastavení požadovaného rozsahu.</p>
+<h3 id="souhrnne-prehledy">Souhrnné přehledy</h3>
+<p></p><figure><a href="./assets/portfolio.png" data-screenshot="" aria-label="Zvětšit: Přehledy napříč stavbami: výběr rozsahu, finanční metriky a dodavatelské statistiky."><img src="./assets/portfolio.png" alt="Přehledy napříč stavbami: výběr rozsahu, finanční metriky a dodavatelské statistiky." width="1980" height="3134" loading="lazy" decoding="async"></a><figcaption>Přehledy napříč stavbami: výběr rozsahu, finanční metriky a dodavatelské statistiky. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Otevřete <strong>Přehledy</strong>, zvolte rozsah a případnou konkrétní stavbu. Zapněte potřebné části přehledu, například dodavatele nebo rozpočtové odchylky. Pro hledání dodavatele použijte jeho název nebo specializaci. Po změně filtru znovu ověřte, ze kterých staveb součty vycházejí.</p>
+<h3 id="smluvni-prehled">Smluvní přehled</h3>
+<p></p><figure><a href="./assets/prehled-smluv.png" data-screenshot="" aria-label="Zvětšit: Smluvní přehled: výběr staveb, vyhledávání a porovnání parametrů smluv."><img src="./assets/prehled-smluv.png" alt="Smluvní přehled: výběr staveb, vyhledávání a porovnání parametrů smluv." width="1980" height="846" loading="lazy" decoding="async"></a><figcaption>Smluvní přehled: výběr staveb, vyhledávání a porovnání parametrů smluv. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte stavby, případně stav smlouvy a hledaný název. Rozbalte smlouvu pro zobrazení dodatků. Nabídka sloupců určuje viditelné parametry; širokou tabulku posouvejte vodorovným ovladačem. Přehled slouží ke čtení a exportu; změnu smlouvy proveďte v její zdrojové stavbě.</p>
+</section><section id="subdodavatele-kontakty" class="chapter" aria-labelledby="subdodavatele-kontakty-title"><h2 id="subdodavatele-kontakty-title">Subdodavatelé (Kontakty)</h2>
+<p><strong>K čemu slouží:</strong> evidence firem, jejich specializací a konkrétních kontaktních osob.</p>
+<ol>
+<li>V sekci <strong>Subdodavatelé</strong> založte firmu <strong>Javor Elektro — ukázka</strong>.</li>
+<li>Přidejte Annu Ukázkovou a Petra Vzorového jako dvě samostatné kontaktní osoby.</li>
+<li>Vyplňte jejich ukázkové e-maily. Stav dostupnosti firmy a specializace nastavte samostatně.</li>
+<li>Při přidávání firmy do VŘ ověřte, že jde o správného dodavatele.</li>
+</ol>
+<p><strong>Příklad:</strong> Anna vyřizuje cenové nabídky, Petr montáž. Jedna firma tak má více osob a pro každou poptávku můžete potřebovat jiného příjemce.</p>
+<p><strong>Výsledek:</strong> v adresáři zůstává firma s kontakty; na kartě nabídky vyberete konkrétní osobu podle účelu zprávy. Podrobný postup a snímek jsou v kapitole <a href="#prijemce-poptavky">Příjemce poptávky</a>.</p>
+<p><strong>Častá chyba:</strong> zakládat stejnou firmu znovu kvůli další osobě. Nejprve zkontrolujte existující záznam a jeho seznam kontaktů.</p>
+<h3 id="hledani-vyber-a-uprava-firmy">Hledání, výběr a úprava firmy</h3>
+<p></p><figure><a href="./assets/kontakty.png" data-screenshot="" aria-label="Zvětšit: Karty kontaktů: specializace, kraj, kontaktní osoby, hodnocení a výběr firmy."><img src="./assets/kontakty.png" alt="Karty kontaktů: specializace, kraj, kontaktní osoby, hodnocení a výběr firmy." width="1980" height="932" loading="lazy" decoding="async"></a><figcaption>Karty kontaktů: specializace, kraj, kontaktní osoby, hodnocení a výběr firmy. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Zúžte adresář hledáním, specializací, stavem nebo krajem. Na kartě firmy přepínejte osoby jejich záložkami; zaškrtnutím označíte firmu pro navazující hromadnou akci. Hodnocení firmy je samostatný údaj, nenahrazuje stav nabídky ve VŘ.</p>
+<p></p><figure><a href="./assets/kontakt-formular.png" data-screenshot="" aria-label="Zvětšit: Formulář firmy Javor Elektro: název, specializace, lokalita a kraje působnosti."><img src="./assets/kontakt-formular.png" alt="Formulář firmy Javor Elektro: název, specializace, lokalita a kraje působnosti." width="2160" height="1500" loading="lazy" decoding="async"></a><figcaption>Formulář firmy Javor Elektro: název, specializace, lokalita a kraje působnosti. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Ve formuláři doplňte alespoň název a specializaci. Níže pokračujte seznamem kontaktních osob, jejich rolí, e-mailů a telefonů. Ověření podle IČO používejte se skutečným platným IČO vlastní firmy; ukázková firma v příručce nemá identitu v rejstříku. Před uložením zkontrolujte nalezené údaje, regiony, poznámku a stav dostupnosti.</p>
+</section><section id="plan-vr" class="chapter" aria-labelledby="plan-vr-title"><h2 id="plan-vr-title">Plán VŘ</h2>
+<p><strong>K čemu slouží:</strong> připravit, co a kdy budete poptávat. Položka plánu a nabídka dodavatele nejsou totéž.</p>
+<ol>
+<li>Ve stavbě Javor otevřete <strong>Plán VŘ</strong>.</li>
+<li>Přidejte položku <strong>Elektroinstalace</strong> a nastavte požadované termíny.</li>
+<li>Pro další část prací vytvořte samostatnou položku, například <strong>Slaboproud</strong>.</li>
+<li>Použijte akci pro vytvoření navazujícího VŘ, pokud ho položka ještě nemá.</li>
+<li>Otevřete <strong>Výběrová řízení</strong> a ověřte vzniklou poptávku.</li>
+</ol>
+<p><strong>Příklad:</strong> pro Elektroinstalaci plánujeme oslovení na 5. 10. 2026 a vyhodnocení do 23. 10. 2026. Dodavatelům zadáme stejné podklady i termín odpovědi, aby nabídky šly porovnat.</p>
+<p></p><figure><a href="./assets/plan-vr.png" data-screenshot="" aria-label="Zvětšit: 06 — Plán VŘ: Elektroinstalace a Slaboproud už mají navazující řízení, Venkovní osvětlení čeká na vytvoření."><img src="./assets/plan-vr.png" alt="06 — Plán VŘ: Elektroinstalace a Slaboproud už mají navazující řízení, Venkovní osvětlení čeká na vytvoření." width="1560" height="885" loading="lazy" decoding="async"></a><figcaption>06 — Plán VŘ: Elektroinstalace a Slaboproud už mají navazující řízení, Venkovní osvětlení čeká na vytvoření. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p><strong>Výsledek:</strong> termín a předmět plánu navazují na skutečné VŘ. Po vytvoření navazujícího VŘ nepřidávejte stejné řízení ručně podruhé.</p>
+</section><section id="vyberova-rizeni" class="chapter" aria-labelledby="vyberova-rizeni-title"><span id="vyberova-rizeni-pipeline" class="legacy-anchor"></span><h2 id="vyberova-rizeni-title">Výběrová řízení</h2>
+<p><strong>K čemu slouží:</strong> shromáždit nabídky dodavatelů ke konkrétní poptávce a sledovat jejich průběh.</p>
+<h3 id="pridani-dodavatelu">Přidání dodavatelů</h3>
+<ol>
+<li>Otevřete <strong>Výběrová řízení</strong> u Javoru a vyberte <strong>Elektroinstalace</strong>.</li>
+<li>Otevřete výběr dodavatelů, označte ukázkové firmy a potvrďte <strong>Přenést do pipeline</strong>.</li>
+<li>Vyčkejte na dokončení ukládání. Karty musí být vidět v příslušné poptávce.</li>
+<li>Při hlášení částečného uložení opakujte pouze zbývající výběr. Uložené nabídky zachovejte.</li>
+</ol>
+<p></p><figure><a href="./assets/nabidky.png" data-screenshot="" aria-label="Zvětšit: 02 — Tři skutečné karty nabídek se syntetickými dodavateli, cenami a příjemci."><img src="./assets/nabidky.png" alt="02 — Tři skutečné karty nabídek se syntetickými dodavateli, cenami a příjemci." width="1560" height="695" loading="lazy" decoding="async"></a><figcaption>02 — Tři skutečné karty nabídek se syntetickými dodavateli, cenami a příjemci. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p><strong>Výsledek:</strong> každá karta představuje jednu nabídku firmy v této poptávce. Stejná firma může být v jiném VŘ, ale opakovaný pokus o přidání do stejného VŘ nemá přepsat její původní cenu a stav.</p>
+<h3 id="prijemce-poptavky">Příjemce poptávky</h3>
+<ol>
+<li>Na kartě dodavatele najděte <strong>Příjemce poptávky</strong>.</li>
+<li>Pokud má firma více kontaktů, rozbalte výběr a zvolte Annu Ukázkovou.</li>
+<li>Ověřte jméno, e-mail i telefon zobrazený na kartě.</li>
+<li>Teprve poté použijte <strong>Generovat poptávku</strong>.</li>
+</ol>
+<p></p><figure><a href="./assets/prijemce.png" data-screenshot="" aria-label="Zvětšit: 03 — Výběr příjemce na kartě Javor Elektro: Anna a Petr mají oddělené adresy."><img src="./assets/prijemce.png" alt="03 — Výběr příjemce na kartě Javor Elektro: Anna a Petr mají oddělené adresy." width="1560" height="695" loading="lazy" decoding="async"></a><figcaption>03 — Výběr příjemce na kartě Javor Elektro: Anna a Petr mají oddělené adresy. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p><strong>Příklad:</strong> koncept zahájený pro Annu používá adresu <strong><a href="mailto:anna@example.com">anna@example.com</a></strong>. Změna karty na Petra během přípravy konceptu už tento koncept nepřesměruje; projeví se až při dalším generování.</p>
+<p><strong>Časté situace:</strong> kontakt bez platného e-mailu nelze použít pro generování. Jediný kontakt se může zobrazovat bez rozbalovací nabídky. Pokud se volbu nepodaří zapamatovat, aplikace o tom informuje; před další zprávou příjemce znovu ověřte.</p>
+<h3 id="ceny-kola-a-vyhodnoceni">Ceny, kola a vyhodnocení</h3>
+<p>Doplňte ceny do nabídky a pracujte s historií kol podle dostupných polí. Karty přesouvejte mezi stavy podle skutečného průběhu jednání. Samotný přesun karty není důkaz odeslání e-mailu ani podpisu smlouvy.</p>
 <table>
 <thead>
 <tr>
-<th>Oprávnění</th>
-<th>Co umožňuje</th>
+<th>Dodavatel</th>
+<th>Nabídka bez DPH</th>
+<th>Co ověřit před rozhodnutím</th>
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>✏️ Úpravy</strong></td>
-<td>Čtení i zápis – uživatel může měnit data stavby, přidávat nabídky, upravovat smlouvy</td>
+<td>Javor Elektro — ukázka</td>
+<td>1 380 000 Kč</td>
+<td>Zahrnuté rozvody, zkoušky a revize</td>
 </tr>
 <tr>
-<td><strong>👁️ Pouze čtení</strong></td>
-<td>Uživatel vidí data, ale nemůže je měnit</td>
+<td>Lumen Mont — ukázka</td>
+<td>1 420 000 Kč</td>
+<td>Termín montáže a platební podmínky</td>
+</tr>
+<tr>
+<td>Voltis — ukázka</td>
+<td>1 460 000 Kč</td>
+<td>Shodný výkaz výměr a záruka</td>
 </tr>
 </tbody></table>
-<ul>
-<li>Sdílení nastavuje <strong>vlastník stavby</strong> v sekci Správa staveb.</li>
-<li>V seznamu staveb vidíte, komu je stavba sdílena.</li>
-<li>Sdílené osoby lze kdykoliv odebrat.</li>
-<li>Propsání stavby jinému uživateli může trvat několik minut.</li>
-</ul>
-<p><img src="./assets/16-project-sharing-permissions.svg" alt="Sdílení: oprávnění"></p>
-<hr>
-<h2 id="prehled-staveb-analytika">📈 Přehled staveb (analytika)</h2>
-<p>Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza.</p>
-<ul>
-<li>Rozevírací menu pro možnost přepnutí stavby.</li>
-<li><strong>Filtr fáze stavby</strong>: přepínáte mezi <strong>Vše</strong>, <strong>Soutěž</strong>, <strong>Realizace</strong> a <strong>Archiv</strong> — statistiky a grafy se přepočítají podle vybrané fáze.</li>
-<li>AI analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti).</li>
-<li>Export analýzy do PDF (časové razítko a možnost sdílení).</li>
-</ul>
-<p><img src="./assets/12-project-overview-ai.svg" alt="Přehled staveb a AI"></p>
-<hr>
-<h2 id="nastroje">🔧 Nástroje</h2>
-<p>Tender Flow nabízí sadu nástrojů dostupných v sidebaru pod položkou <strong>Nástroje</strong> (případně v <strong>Nastavení</strong>, dle předplatného).</p>
-<h3 id="excel-nastroje">📊 Excel nástroje</h3>
-<h4 id="excel-odemceni">Excel – odemčení</h4>
-<p>Nástroj pro odemknutí ochrany <code>.xlsx</code> souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.</p>
-<p><strong>Použití:</strong></p>
+<p><strong>Výsledek:</strong> nejnižší ukázková cena je 1 380 000 Kč, ale vítěze určete až po porovnání stejného rozsahu a podmínek. Důvod rozhodnutí doplňte do příslušné poznámky.</p>
+<h3 id="tabulka-a-exporty">Tabulka a exporty</h3>
+<p>Pro souhrn přepněte na tabulkové zobrazení. Rozbalení VŘ ukáže jeho dodavatele. Před exportem <strong>XLSX</strong> nebo <strong>PDF</strong> zkontrolujte aktuální filtry; export slouží jako výstup pro daný okamžik a nenahrazuje živá data.</p>
+<h3 id="zadani-a-terminy-poptavky">Zadání a termíny poptávky</h3>
+<p></p><figure><a href="./assets/vr-formular.png" data-screenshot="" aria-label="Zvětšit: Formulář Elektroinstalace: smluvní a plánovaný rozpočet, zadání, termíny a přílohy."><img src="./assets/vr-formular.png" alt="Formulář Elektroinstalace: smluvní a plánovaný rozpočet, zadání, termíny a přílohy." width="2160" height="1500" loading="lazy" decoding="async"></a><figcaption>Formulář Elektroinstalace: smluvní a plánovaný rozpočet, zadání, termíny a přílohy. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přidejte poptávku nebo otevřete její úpravu. Zadejte název, investorský rozpočet a interní plán samostatně. Doplňte popis, jednotlivé práce, termín nabídky a termíny realizace. Přílohy rozpočtu vyberte podle možností Složkomatu a platformy. Po uložení ověřte termín a rozpočet na kartě VŘ.</p>
+<h3 id="nabidka-a-cenova-kola">Nabídka a cenová kola</h3>
+<p></p><figure><a href="./assets/nabidka-uprava.png" data-screenshot="" aria-label="Zvětšit: Úprava nabídky Javor Elektro: cena pro zvolené kolo a údaje dodavatele."><img src="./assets/nabidka-uprava.png" alt="Úprava nabídky Javor Elektro: cena pro zvolené kolo a údaje dodavatele." width="2160" height="1500" loading="lazy" decoding="async"></a><figcaption>Úprava nabídky Javor Elektro: cena pro zvolené kolo a údaje dodavatele. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Otevřete úpravu nabídky, nejprve vyberte cenové kolo a potom zadejte cenu. V příkladu je první kolo <strong>1 450 000 Kč</strong>, druhé <strong>1 380 000 Kč</strong>. Po uložení zkontrolujte zvolené kolo na nabídce. Přesun karty do dalšího stavu vyjadřuje postup jednání; podepsanou smlouvu evidujte a propojte samostatně. Odmítnuté nabídky odlište od těch, které se stále posuzují.</p>
+<h3 id="tabulkovy-pohled-a-export">Tabulkový pohled a export</h3>
+<p></p><figure><a href="./assets/vr-tabulka.png" data-screenshot="" aria-label="Zvětšit: Tabulka VŘ: rozpočty, stavy, nabídky a propojená smlouva."><img src="./assets/vr-tabulka.png" alt="Tabulka VŘ: rozpočty, stavy, nabídky a propojená smlouva." width="1980" height="603" loading="lazy" decoding="async"></a><figcaption>Tabulka VŘ: rozpočty, stavy, nabídky a propojená smlouva. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přepněte přehled VŘ do tabulky. Rozbalte řádek pro nabídky, přizpůsobte šířku a viditelnost sloupců a použijte filtr stavu. Odkaz na smlouvu otevře propojený dokumentový vztah. Export do XLSX nebo PDF vytvářejte nad zkontrolovaným výběrem a ověřte stažený soubor.</p>
+</section><section id="hromadny-e-mail-subdodavatelum" class="chapter" aria-labelledby="hromadny-e-mail-subdodavatelum-title"><h2 id="hromadny-e-mail-subdodavatelum-title">Hromadný e-mail subdodavatelům</h2>
+<p><strong>K čemu slouží:</strong> připravit oslovení více dodavatelů se stejným zadáním.</p>
 <ol>
-<li>Otevřete <strong>Nastavení → Excel – odemčení</strong></li>
-<li>Klikněte &quot;Vybrat soubor&quot; a nahrajte chráněný Excel</li>
-<li>Klikněte &quot;Odemknout&quot;</li>
-<li>Stáhněte odemčený soubor</li>
+<li>Nejprve ověřte příjemce na jednotlivých kartách.</li>
+<li>Spusťte hromadnou akci a přečtěte rekapitulaci adresátů.</li>
+<li>Zkontrolujte předmět, zadání, termín a dokumentaci v připraveném konceptu.</li>
+<li>Samotné odeslání dokončete ve svém e-mailovém klientu.</li>
 </ol>
-<p><strong>Umístění:</strong> Nastavení → Excel – odemčení (PRO+)</p>
-<h4 id="excel-spojeni-listu">Excel Spojení listů</h4>
-<p>Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.</p>
-<ul>
-<li><strong>Desktop verze</strong>: nativní lokální zpracování.</li>
-<li><strong>Web verze</strong>: zpracování přes zabezpečené serverové API.</li>
-<li>Výstup se stáhne jako <code>&lt;původní název&gt;_spojeno.xlsx</code>.</li>
-</ul>
-<p><strong>Umístění:</strong> Nastavení → Excel Spojení listů (PRO+)</p>
-<h4 id="excel-indexace-vr">Excel Indexace VŘ</h4>
-<p>Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve <strong>dvou fázích</strong>.</p>
-<p><strong>Fáze 1: Vložení sloupce Oddíly</strong></p>
+<p><strong>Příklad:</strong> pro Javor oslovujete tři firmy kvůli Elektroinstalaci. Rekapitulace musí obsahovat správnou osobu za každou firmu. Pozdější změna kontaktu na kartě nemění již zahájenou přípravu konceptu.</p>
+<p><strong>Častá chyba:</strong> předpokládat, že otevřením konceptu už byla poptávka odeslána. Odeslání ověřte ve své poště. Syntetické příklady z této příručky neodesílejte.</p>
+<h3 id="kontrola-adresatu-pred-konceptem">Kontrola adresátů před konceptem</h3>
+<p></p><figure><a href="./assets/hromadny-email.png" data-screenshot="" aria-label="Zvětšit: Potvrzení hromadné poptávky: vlastní adresa v Komu a dodavatelé ve skryté kopii BCC."><img src="./assets/hromadny-email.png" alt="Potvrzení hromadné poptávky: vlastní adresa v Komu a dodavatelé ve skryté kopii BCC." width="768" height="804" loading="lazy" decoding="async"></a><figcaption>Potvrzení hromadné poptávky: vlastní adresa v Komu a dodavatelé ve skryté kopii BCC. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte druh zprávy: standardní poptávku, materiálovou poptávku, doplnění informací nebo poděkování nevybraným. Každá akce používá odpovídající skupinu nabídek. V potvrzení zkontrolujte počet unikátních adres a seznam příjemců; chybějící či neplatné adresy nejprve opravte na nabídce. Dvě nabídky se stejnou adresou nemají znamenat dva stejné adresáty. <strong>Vytvořit koncept</strong> připraví zprávu, nikoli potvrzení jejího odeslání.</p>
+</section><section id="smlouvy" class="chapter" aria-labelledby="smlouvy-title"><h2 id="smlouvy-title">Smlouvy</h2>
+<p><strong>K čemu slouží:</strong> sledovat smluvní vztahy, ceny, dodatky, čerpání a návaznost na výběrová řízení.</p>
 <ol>
-<li>Hledá značky &quot;D&quot; ve sloupci F (markerColumn).</li>
-<li>Přečte oddíl ze sloupce G (sectionColumn).</li>
-<li>Vloží nový sloupec B s názvem &quot;Oddíly&quot;.</li>
-<li>Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky.</li>
+<li>V boční navigaci rozbalte <strong>Smlouvy</strong> a vyberte <strong>Objednatel</strong> nebo <strong>Subdodavatel</strong>.</li>
+<li>Otevřete správnou smlouvu nebo založte novou. Ověřte smluvní stranu, číslo, měnu a základní cenu.</li>
+<li>V detailu doplňte údaje a dokumenty podle jednotlivých sekcí.</li>
+<li>Faktury, dodatky a úhrady evidujte do příslušné agendy; každá představuje jiný údaj.</li>
 </ol>
-<p><strong>Fáze 2: Doplnění popisů</strong></p>
+<h3 id="jedna-smlouva-pro-vice-vr">Jedna smlouva pro více VŘ</h3>
+<p><strong>Příklad:</strong> smlouva <strong>JAV-2026-001</strong> pokrývá Elektroinstalaci a Slaboproud na stejné stavbě. Cena celé smlouvy je 1 620 000 Kč bez DPH: 1 380 000 Kč za Elektroinstalaci a 240 000 Kč za Slaboproud. Rozpad je vysvětlením příkladu; aplikace cenu automaticky nerozděluje mezi VŘ.</p>
 <ol>
-<li>Používá výstup z Fáze 1.</li>
-<li>Hledá kódy položek ve sloupci G (po posunu).</li>
-<li>Páruje kódy s indexem položek (nahrán z Excelu).</li>
-<li>Doplňuje popisy do sloupce C.</li>
+<li>V detailu smlouvy najděte seznam <strong>Výběrová řízení</strong>.</li>
+<li>Ve výběru dalšího VŘ zvolte volnou poptávku a nabídku dodavatele.</li>
+<li>Potvrďte <strong>Propojit VŘ</strong>.</li>
+<li>Zkontrolujte obě vazby v seznamu. Kliknutím na položku přejdete na odpovídající nabídku.</li>
 </ol>
-<p><strong>Volitelné:</strong> Vytvoření rekapitulačního listu s přehledy.</p>
-<p><strong>Jak použít:</strong></p>
+<p></p><figure><a href="./assets/smlouva.png" data-screenshot="" aria-label="Zvětšit: 04 — Smlouva JAV-2026-001 propojená se dvěma VŘ. Cena smlouvy se počtem vazeb nenásobí."><img src="./assets/smlouva.png" alt="04 — Smlouva JAV-2026-001 propojená se dvěma VŘ. Cena smlouvy se počtem vazeb nenásobí." width="1560" height="731" loading="lazy" decoding="async"></a><figcaption>04 — Smlouva JAV-2026-001 propojená se dvěma VŘ. Cena smlouvy se počtem vazeb nenásobí. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p><strong>Pravidlo:</strong> jedna smlouva může pokrývat více VŘ stejné stavby. Jedno VŘ může mít nejvýše jednu smlouvu. Obsazené VŘ se nenabízí k dalšímu propojení.</p>
+<h3 id="odpojeni-vr-od-smlouvy">Odpojení VŘ od smlouvy</h3>
+<p>U příslušné vazby použijte <strong>Odpojit</strong> a přečtěte potvrzení. Potvrzení odstraní pouze vybranou vazbu; smlouva, její dokumenty a ostatní propojení zůstávají.</p>
+<p></p><figure><a href="./assets/odpojeni.png" data-screenshot="" aria-label="Zvětšit: 05 — Potvrzení odpojení jednoho VŘ: ostatní vazby a smlouva zůstanou zachované."><img src="./assets/odpojeni.png" alt="05 — Potvrzení odpojení jednoho VŘ: ostatní vazby a smlouva zůstanou zachované." width="1560" height="731" loading="lazy" decoding="async"></a><figcaption>05 — Potvrzení odpojení jednoho VŘ: ostatní vazby a smlouva zůstanou zachované. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p><strong>Častá chyba:</strong> sečíst plnou cenu jedné smlouvy za každé propojené VŘ. Ukázková smlouva zůstává jedním závazkem 1 620 000 Kč, nikoli dvěma závazky po této částce.</p>
+<h3 id="smlouva-objednatele">Smlouva objednatele</h3>
+<p></p><figure><a href="./assets/objednatel.png" data-screenshot="" aria-label="Zvětšit: Objednatel Javor: základ smlouvy, dodatek a samostatná evidence fakturace."><img src="./assets/objednatel.png" alt="Objednatel Javor: základ smlouvy, dodatek a samostatná evidence fakturace." width="1980" height="1089" loading="lazy" decoding="async"></a><figcaption>Objednatel Javor: základ smlouvy, dodatek a samostatná evidence fakturace. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>V části <strong>Objednatel</strong> vyplňte zákazníka, číslo smlouvy, základní cenu a další smluvní údaje. Dodatky přidávejte samostatně. V našem příkladu <strong>2 500 000 + 100 000 = 2 600 000 Kč</strong>. Ve fakturaci evidujte číslo, období, vystavení, splatnost, částku, stav a případné pozastávky. Úhradu zaznamenejte až podle skutečného stavu.</p>
+<h3 id="zalozeni-a-uprava-subdodavatelske-smlouvy">Založení a úprava subdodavatelské smlouvy</h3>
+<p></p><figure><a href="./assets/smlouva-formular.png" data-screenshot="" aria-label="Zvětšit: Úprava subdodavatelské smlouvy: identifikace partnera, cena a smluvní podmínky."><img src="./assets/smlouva-formular.png" alt="Úprava subdodavatelské smlouvy: identifikace partnera, cena a smluvní podmínky." width="2064" height="1347" loading="lazy" decoding="async"></a><figcaption>Úprava subdodavatelské smlouvy: identifikace partnera, cena a smluvní podmínky. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyplňte partnera, číslo a název smlouvy, měnu, základní cenu, platnost, splatnost a záruku. Uložení souboru, načtení údajů pomocí OCR a potvrzení údajů jsou odlišné kroky. Výsledek OCR porovnejte se smlouvou, zejména cenu, data a procenta; automaticky načtený údaj nemusí být správný.</p>
+<p></p><figure><a href="./assets/smlouva-dokument.png" data-screenshot="" aria-label="Zvětšit: Dokumentová sekce smlouvy: samostatné soubory smlouvy a dodatků, OCR a dostupná historie přepisu."><img src="./assets/smlouva-dokument.png" alt="Dokumentová sekce smlouvy: samostatné soubory smlouvy a dodatků, OCR a dostupná historie přepisu." width="1980" height="725" loading="lazy" decoding="async"></a><figcaption>Dokumentová sekce smlouvy: samostatné soubory smlouvy a dodatků, OCR a dostupná historie přepisu. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Nahrajte příslušný dokument k odpovídající smlouvě nebo dodatku. Otevřete uložený dokument a ověřte správnou verzi. Pokud pracujete s Markdown přepisem, zkontrolujte text před uložením nebo exportem a rozlišujte přepis od původního souboru. Snímek ukazuje ovládání; syntetické dokumenty nebyly odesílány k OCR.</p>
+<h3 id="dodatky-cerpani-a-faktury">Dodatky, čerpání a faktury</h3>
+<p></p><figure><a href="./assets/smlouva-dodatky.png" data-screenshot="" aria-label="Zvětšit: Dodatek č. 1 zvyšuje cenu smlouvy o 80 000 Kč."><img src="./assets/smlouva-dodatky.png" alt="Dodatek č. 1 zvyšuje cenu smlouvy o 80 000 Kč." width="1980" height="453" loading="lazy" decoding="async"></a><figcaption>Dodatek č. 1 zvyšuje cenu smlouvy o 80 000 Kč. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přidejte dodatek s datem, změnou ceny, případnou změnou termínu a důvodem. V příkladu se cena změní z <strong>1 620 000 na 1 700 000 Kč</strong>. Dodatek upravujte přes jeho vlastní řádek; nemažte původní základní cenu jen kvůli nové celkové částce.</p>
+<p></p><figure><a href="./assets/smlouva-finance.png" data-screenshot="" aria-label="Zvětšit: Finanční údaje a čerpání: celková cena smlouvy a odsouhlasený soupis prací."><img src="./assets/smlouva-finance.png" alt="Finanční údaje a čerpání: celková cena smlouvy a odsouhlasený soupis prací." width="1980" height="716" loading="lazy" decoding="async"></a><figcaption>Finanční údaje a čerpání: celková cena smlouvy a odsouhlasený soupis prací. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Porovnejte nárokované a schválené čerpání za stejné období. Příklad rozlišuje požadavek <strong>300 000 Kč</strong> a schválení <strong>280 000 Kč</strong>. Schválené čerpání, vystavená faktura a zaplacená částka nejsou zaměnitelné.</p>
+<p></p><figure><a href="./assets/smlouva-faktury.png" data-screenshot="" aria-label="Zvětšit: Faktury: 400 000 Kč evidováno, z toho 280 000 Kč zaplaceno."><img src="./assets/smlouva-faktury.png" alt="Faktury: 400 000 Kč evidováno, z toho 280 000 Kč zaplaceno." width="1980" height="620" loading="lazy" decoding="async"></a><figcaption>Faktury: 400 000 Kč evidováno, z toho 280 000 Kč zaplaceno. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přidejte fakturu, vyplňte její číslo, částku, měnu a data. Při úpravě otevřete správný řádek. Zaplacení označte až po ověření úhrady; zkontrolujte součet zaplacených faktur a zbytek k fakturaci. Smazání vyžaduje kontrolu konkrétního záznamu.</p>
+<h3 id="pozastavky-a-zaruka">Pozastávky a záruka</h3>
+<p></p><figure><a href="./assets/smlouva-pozastavky.png" data-screenshot="" aria-label="Zvětšit: Krátkodobá a dlouhodobá pozastávka po 85 000 Kč; záruka čeká na potvrzení začátku."><img src="./assets/smlouva-pozastavky.png" alt="Krátkodobá a dlouhodobá pozastávka po 85 000 Kč; záruka čeká na potvrzení začátku." width="1980" height="935" loading="lazy" decoding="async"></a><figcaption>Krátkodobá a dlouhodobá pozastávka po 85 000 Kč; záruka čeká na potvrzení začátku. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Při sazbě <strong>5 % + 5 %</strong> z ceny včetně dodatků <strong>1 700 000 Kč</strong> vychází každá pozastávka na <strong>85 000 Kč</strong>. Jde o smluvní výpočet, nikoli doklad skutečně zadržené částky. Uvolnění potvrďte až po splnění podmínek smlouvy a vyplňte skutečné datum. Tato akce neprovádí platbu. Počátek záruky potvrzujte samostatně; datum dokončení samo nepotvrzuje předání ani spuštění záruky.</p>
+</section><section id="harmonogram" class="chapter" aria-labelledby="harmonogram-title"><h2 id="harmonogram-title">Harmonogram</h2>
+<p><strong>K čemu slouží:</strong> zobrazit termíny v časových souvislostech a odhalit návaznosti, které při pohledu na seznam uniknou.</p>
 <ol>
-<li>Připravte Excel soubor s indexem (2 sloupce: Kód, Popis) a nahrajte jej.</li>
-<li>Nahrajte Excel rozpočet.</li>
-<li>Spusťte Fázi 1 (Oddíly) – zkontrolujte nastavení sloupců.</li>
-<li>Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci.</li>
-<li>Stáhněte finální soubor.</li>
+<li>Otevřete <strong>Harmonogram</strong> vybrané stavby.</li>
+<li>Nastavte vhodné měřítko, například měsíc nebo týden.</li>
+<li>Zkontrolujte termíny proti Plánu VŘ a skutečně dohodnutému nástupu dodavatele.</li>
+<li>Chybějící nebo neaktuální údaje opravte v příslušné zdrojové agendě.</li>
 </ol>
-<p><strong>Umístění:</strong> Nastavení → Excel Indexace VŘ (PRO+)</p>
-<h4 id="index-matcher">Index Matcher</h4>
-<p>Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle indexu.</p>
-<ul>
-<li><strong>Import indexu</strong>: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně).</li>
-<li><strong>Automatické párování</strong>: doplnění popisů do sloupce B podle kódů ve sloupci F.</li>
-</ul>
-<p><strong>Jak použít:</strong></p>
+<p><strong>Příklad:</strong> vyhodnocení Elektroinstalace plánujete do 23. 10., montáž od 2. 11. 2026. Před montáží musí být prostor pro dojednání smlouvy a předání podkladů.</p>
+<p><strong>Výsledek:</strong> termíny odpovídají reálnému postupu. Barevný pruh sám nepotvrzuje připravenost dodavatele.</p>
+<h3 id="cteni-a-uprava-casoveho-planu">Čtení a úprava časového plánu</h3>
+<p></p><figure><a href="./assets/harmonogram.png" data-screenshot="" aria-label="Zvětšit: Harmonogram: termíny VŘ a realizace na časové ose."><img src="./assets/harmonogram.png" alt="Harmonogram: termíny VŘ a realizace na časové ose." width="1980" height="1098" loading="lazy" decoding="async"></a><figcaption>Harmonogram: termíny VŘ a realizace na časové ose. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přepněte měsíční nebo týdenní měřítko a určete, zda pracujete s VŘ nebo realizací. Přes <strong>Editace</strong> otevřete příslušný řádek a upravte jeho data. Před uložením zkontrolujte začátek i konec. Export nabízí PDF a varianty Excelu; u exportu s časovou osou ověřte celé období a čitelnost. Ukázková montáž Elektroinstalace začíná <strong>2. 11. 2026</strong>.</p>
+</section><section id="mapa-stavby-a-dodavatelu" class="chapter" aria-labelledby="mapa-stavby-a-dodavatelu-title"><h2 id="mapa-stavby-a-dodavatelu-title">Mapa stavby a dodavatelů</h2>
+<p></p><figure><a href="./assets/mapa.png" data-screenshot="" aria-label="Zvětšit: Mapa Javoru a dvou syntetických firem na veřejném mapovém podkladu OpenStreetMap."><img src="./assets/mapa.png" alt="Mapa Javoru a dvou syntetických firem na veřejném mapovém podkladu OpenStreetMap." width="1980" height="1248" loading="lazy" decoding="async"></a><figcaption>Mapa Javoru a dvou syntetických firem na veřejném mapovém podkladu OpenStreetMap. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Otevřete <strong>Mapa</strong> ve vybrané stavbě. Ověřte polohu stavby, nastavte poloměr a filtr specializace, kraje nebo názvu firmy. Vyberte značku nebo firmu v seznamu pro detail kontaktu. Podle dostupných funkcí můžete zobrazit trasu nebo přidat firmu do VŘ; před přidáním ověřte vybranou poptávku. Vzdálenost vzdušnou čarou není dojezdová vzdálenost. Polohy firem na snímku jsou smyšlené, pro ukázku nebyla volána geokódovací ani směrovací služba.</p>
+</section><section id="dokumenty-a-sablony" class="chapter" aria-labelledby="dokumenty-a-sablony-title"><h2 id="dokumenty-a-sablony-title">Dokumenty a šablony</h2>
+<p><strong>K čemu slouží:</strong> zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek.</p>
 <ol>
-<li>Nahrajte index (jednou) – soubor s 2 sloupci: Kód | Popis.</li>
-<li>Nahrajte rozpočet s kódy ve sloupci F.</li>
-<li>Klikněte &quot;Zpracovat rozpočet&quot; a stáhněte výsledek.</li>
+<li>V <strong>Nastavení stavby → Odkazy PD</strong> uložte odkazy na dokumentaci pro Javor.</li>
+<li>V <strong>Šablonách</strong> připravte texty pro odpovídající druh zprávy.</li>
+<li>Při generování ověřte vyplněné údaje a odkazy v náhledu.</li>
+<li>Před sdílením ověřte přístup příjemce k dokumentům v úložišti.</li>
 </ol>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ.</p>
-</blockquote>
-<p><strong>Umístění:</strong> Nastavení → Index Matcher (PRO+)</p>
-<h3 id="import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</h3>
-<p>Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. export z Google Sheets).</p>
-<p>Očekávaný formát (typicky): <code>Firma, Jméno, Specializace, Telefon, Email, IČO, Region</code></p>
-<p>Poznámky k importu:</p>
-<ul>
-<li>Slučuje se podle názvu firmy (case-insensitive).</li>
-<li>Import doplní specializace (sloučí do seznamu) a kontaktní osoby (bez duplicit podle jména/emailu/telefonu).</li>
-<li>Primární kontakt (první v seznamu) se používá pro kompatibilitu i pro akce, které potřebují email.</li>
-</ul>
-<p><strong>Umístění:</strong> Nastavení → Import kontaktů (PRO+)</p>
-<h3 id="zaloha-a-obnova-dat">💾 Záloha a obnova dat</h3>
-<p>Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu <strong>PRO</strong>.</p>
-<h4 id="sifrovani-zaloh">Šifrování záloh</h4>
-<p>Všechny zálohy vytvořené v desktop aplikaci jsou <strong>automaticky šifrovány</strong> algoritmem AES-256-GCM. Šifrovací klíč je uložen v zabezpečeném úložišti operačního systému (Windows DPAPI / macOS Keychain). Šifrované soubory mají příponu <code>.enc.json</code> a nelze je přečíst bez příslušného klíče. Starší nešifrované zálohy (<code>.json</code>) zůstávají čitelné — systém je při obnově automaticky rozpozná.</p>
-<blockquote>
-<p><strong>Upozornění:</strong> Při reinstalaci aplikace nebo přeinstalaci systému může dojít ke ztrátě šifrovacího klíče. V takovém případě nelze starší šifrované zálohy dešifrovat. Doporučujeme pravidelně ověřovat funkčnost záloh.</p>
-</blockquote>
-<h4 id="zaloha-uzivatelskych-dat">Záloha uživatelských dat</h4>
-<p>Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace.</p>
-<p><strong>Desktop aplikace:</strong></p>
-<ul>
-<li>Zálohy se ukládají lokálně do složky <code>backup</code> vedle instalace aplikace.</li>
-<li>Soubory jsou šifrovány (AES-256-GCM) s příponou <code>.enc.json</code>.</li>
-<li>Možnost zapnout <strong>automatickou denní zálohu</strong> (toggle v nastavení) – záloha proběhne 1× denně.</li>
-<li>Zálohy starší 7 dní se automaticky mažou.</li>
-<li>Tlačítkem <strong>Otevřít složku záloh</strong> zobrazíte složku v průzkumníku.</li>
-</ul>
-<p><strong>Web verze:</strong></p>
-<ul>
-<li>Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče (bez šifrování).</li>
-</ul>
-<p><strong>Postup:</strong></p>
+<p><strong>Příklad zadání:</strong> „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ.</p>
+<p><strong>Častá chyba:</strong> odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.</p>
+<h3 id="odkazy-pd-a-ceniky">Odkazy PD a ceníky</h3>
+<p></p><figure><a href="./assets/dokumenty.png" data-screenshot="" aria-label="Zvětšit: Odkazy na dokumentaci s názvem a datem přidání."><img src="./assets/dokumenty.png" alt="Odkazy na dokumentaci s názvem a datem přidání." width="1980" height="546" loading="lazy" decoding="async"></a><figcaption>Odkazy na dokumentaci s názvem a datem přidání. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Přidejte srozumitelný název, odkaz či podporovanou cestu a datum dokumentace. Pro aktualizaci použijte úpravu příslušného řádku. Před odstraněním rozlište odkaz v aplikaci a skutečný soubor v úložišti. Web u místní cesty nabízí kopírování; desktop může otevřít dostupné umístění.</p>
+<p></p><figure><a href="./assets/ceniky.png" data-screenshot="" aria-label="Zvětšit: Ceníky: odkaz na ukázkové cenové podklady."><img src="./assets/ceniky.png" alt="Ceníky: odkaz na ukázkové cenové podklady." width="1980" height="420" loading="lazy" decoding="async"></a><figcaption>Ceníky: odkaz na ukázkové cenové podklady. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>V dokumentech nastavte odkaz na aktuální ceníky nebo využijte příslušnou složku připojeného Složkomatu. Otevřením ověřte, že jde o správnou verzi podkladů.</p>
+<h3 id="volba-a-tvorba-e-mailove-sablony">Volba a tvorba e-mailové šablony</h3>
+<p></p><figure><a href="./assets/sablony.png" data-screenshot="" aria-label="Zvětšit: Tři samostatné šablony: standardní poptávka, materiálová poptávka a poděkování."><img src="./assets/sablony.png" alt="Tři samostatné šablony: standardní poptávka, materiálová poptávka a poděkování." width="1980" height="635" loading="lazy" decoding="async"></a><figcaption>Tři samostatné šablony: standardní poptávka, materiálová poptávka a poděkování. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>U odpovídajícího druhu zprávy vyberte nebo změňte šablonu. Tato volba je osobní pro danou stavbu; nezaměňujte ji s nastavením všech kolegů.</p>
+<p></p><figure><a href="./assets/sablona-editor.png" data-screenshot="" aria-label="Zvětšit: Správce šablon s ukázkovým předmětem a textem poptávky."><img src="./assets/sablona-editor.png" alt="Správce šablon s ukázkovým předmětem a textem poptávky." width="1980" height="1289" loading="lazy" decoding="async"></a><figcaption>Správce šablon s ukázkovým předmětem a textem poptávky. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Ve správci založte šablonu nebo upravte existující. Zkontrolujte název, předmět, obsah a nabízené proměnné. Před použitím zobrazte náhled, ověřte doplněné údaje stavby a vyberte šablonu pro požadovaný druh zprávy.</p>
+</section><section id="slozkomat" class="chapter" aria-labelledby="slozkomat-title"><span id="dochub" class="legacy-anchor"></span><h2 id="slozkomat-title">Složkomat</h2>
+<p><strong>K čemu slouží:</strong> propojit stavbu s dokumentovým úložištěm a spravovat její složkovou strukturu. Ve starších materiálech a některých technických označeních se objevuje název <strong>DocHub</strong>.</p>
 <ol>
-<li>Otevřete <strong>Nastavení → Záloha a obnova</strong></li>
-<li>Klikněte <strong>Zálohovat moje data</strong></li>
-<li>Desktop: šifrovaný soubor se uloží do instalační složky; Web: soubor se stáhne</li>
+<li>Vyberte Javor a otevřete <strong>Nastavení stavby → Složkomat</strong>.</li>
+<li>Zvolte dostupný způsob připojení. Lokální či síťová cesta vyžaduje odpovídající možnosti desktop aplikace.</li>
+<li>Ověřte hlavní složku projektu a navrženou strukturu, teprve potom potvrďte akci.</li>
+<li>Otevřete cílovou složku a zkontrolujte výsledek.</li>
 </ol>
-<h4 id="zaloha-kontaktu">Záloha kontaktů</h4>
-<p>Kromě kompletní zálohy lze samostatně zálohovat <strong>pouze kontakty</strong> (subdodavatele a jejich statusy). To je užitečné pro rychlý export adresáře bez zbytku dat.</p>
-<ul>
-<li>Klikněte <strong>Zálohovat kontakty</strong> v sekci Záloha a obnova.</li>
-<li>Desktop: soubor se uloží šifrovaně do složky <code>backup</code>.</li>
-<li>Web: soubor se stáhne jako JSON.</li>
-<li>Záloha kontaktů je pouze pro export — obnovu kontaktů proveďte přes kompletní zálohu (uživatelskou nebo organizace).</li>
-</ul>
-<h4 id="zaloha-organizace">Záloha organizace</h4>
-<p>Administrátor organizace s tarifem <strong>Enterprise</strong> může zálohovat data celé organizace (všech členů).</p>
-<ul>
-<li>Klikněte <strong>Zálohovat organizaci</strong> v sekci Záloha a obnova.</li>
-<li>Záloha obsahuje projekty, kontakty a smlouvy všech členů organizace.</li>
-</ul>
-<h4 id="obnova-dat-ze-zalohy">Obnova dat ze zálohy</h4>
-<p>Obnova přepíše <strong>pouze záznamy, kde jste vlastníkem</strong>. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova probíhá v jedné transakci — pokud dojde k chybě, žádná data se nezmění.</p>
-<p><strong>Desktop:</strong></p>
+<p><strong>Příklad:</strong> ukázková struktura oddělí podklady pro Elektroinstalaci a Slaboproud, aby dodavatelé nedostali cizí zadání. U nové realizační stavby ověřte její vlastní realizační složku.</p>
+<p><strong>Oprávnění:</strong> změnu globálního napojení a struktury provádí vlastník projektu. Sdílený uživatel nemusí mít tuto možnost. Online odkaz musí odpovídat podporovanému úložišti; pouhé uložení odkazu není totéž jako aktivní synchronizace.</p>
+<p><strong>Když složka nefunguje:</strong> ověřte vybranou stavbu, připojený účet, dostupnost disku a oprávnění k cílovému umístění. Po změně projektu nepracujte s odkazem patřícím předchozí stavbě.</p>
+<h3 id="uloziste-a-struktura">Úložiště a struktura</h3>
+<p></p><figure><a href="./assets/slozkomat.png" data-screenshot="" aria-label="Zvětšit: Složkomat: syntetická místní cesta a hierarchie složek pro stavbu, VŘ a dodavatele."><img src="./assets/slozkomat.png" alt="Složkomat: syntetická místní cesta a hierarchie složek pro stavbu, VŘ a dodavatele." width="1980" height="1494" loading="lazy" decoding="async"></a><figcaption>Složkomat: syntetická místní cesta a hierarchie složek pro stavbu, VŘ a dodavatele. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Nejprve nastavte poskytovatele a kořenové umístění. U sdílené stavby vybírejte vlastní místní kopii synchronizované složky. Otevřete strukturu, zkontrolujte pořadí a zapnuté části a teprve potom spusťte vytvoření či doplnění složek. Zachovejte potřebné úrovně <strong>VŘ → dodavatel</strong>. Po běhu přečtěte výsledek a historii; ověřte skutečný obsah úložiště. Zapnutí automatického vytváření nenahrazuje první kontrolu cílové cesty.</p>
+</section><section id="ukoly" class="chapter" aria-labelledby="ukoly-title"><h2 id="ukoly-title">Úkoly</h2>
+<p><strong>K čemu slouží:</strong> osobní evidence práce, podúkolů a připomínek.</p>
 <ol>
-<li>V sekci <strong>Lokální zálohy</strong> klikněte <strong>Obnovit</strong> u vybrané zálohy (dostupné pro uživatelské a organizační zálohy).</li>
-<li>Zkontrolujte náhled (počty záznamů).</li>
-<li>Klikněte <strong>Potvrdit obnovu</strong>.</li>
+<li>Otevřete agendu úkolů a vytvořte úkol <strong>Zkontrolovat nabídku Javor Elektro</strong>.</li>
+<li>Nastavte termín podle potřeby a doplňte podúkoly: rozsah, cena, revize a nástup.</li>
+<li>Po kontrole úkol dokončete. Změnu cen a stavů nabídky proveďte samostatně v příslušném VŘ.</li>
 </ol>
-<p><strong>Web:</strong></p>
-<ol>
-<li>Klikněte <strong>Nahrát soubor zálohy (.json)</strong>.</li>
-<li>Vyberte dříve stažený soubor zálohy.</li>
-<li>Zkontrolujte náhled a potvrďte obnovu.</li>
-</ol>
-<p><strong>Umístění:</strong> Nastavení → Záloha a obnova (PRO+)</p>
-<hr>
-<h2 id="tender-flow-desktop">💻 Tender Flow Desktop</h2>
-<p>Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Nabízí rozšířené funkce oproti webové verzi.</p>
-<h3 id="vyhody-desktop-verze">Výhody desktop verze</h3>
+<p><strong>Příklad:</strong> dokončený osobní úkol potvrzuje vaši kontrolu, sám o sobě nepodepisuje smlouvu ani neodesílá e-mail. U externích integrací ověřujte stav připojení přímo v aplikaci.</p>
+<h3 id="seznam-kalendar-a-projekty-ukolu">Seznam, kalendář a projekty úkolů</h3>
+<p></p><figure><a href="./assets/ukoly.png" data-screenshot="" aria-label="Zvětšit: TODO Osobní: kalendář, Inbox, priority a přepínání pracovních pohledů."><img src="./assets/ukoly.png" alt="TODO Osobní: kalendář, Inbox, priority a přepínání pracovních pohledů." width="1980" height="1398" loading="lazy" decoding="async"></a><figcaption>TODO Osobní: kalendář, Inbox, priority a přepínání pracovních pohledů. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Nový úkol rychle založte v Inboxu a následně doplňte detail. Pohledy <strong>Dnes</strong>, <strong>Nadcházející</strong> a <strong>Důležité</strong> vybírají úkoly podle termínu a priority. V kalendáři přepínejte měsíc, týden, tři dny nebo den; při přesunu úkolu zkontrolujte nový termín. Osobní projekty úkolů jsou jiná evidence než stavební projekty. Dokončené a ručně archivované úkoly mají samostatné pohledy; rozhraní u Hotovo upozorňuje na automatické mazání po 14 dnech.</p>
+<p></p><figure><a href="./assets/ukol.png" data-screenshot="" aria-label="Zvětšit: Detail úkolu: termín, připomínka, priorita, vazba na stavbu a podúkol."><img src="./assets/ukol.png" alt="Detail úkolu: termín, připomínka, priorita, vazba na stavbu a podúkol." width="1980" height="1346" loading="lazy" decoding="async"></a><figcaption>Detail úkolu: termín, připomínka, priorita, vazba na stavbu a podúkol. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>U úkolu <strong>Porovnat nabídky elektroinstalace</strong> nastavte termín, připomínku a prioritu. Přiřaďte stavbu Javor a přidejte podúkol <strong>Ověřit zahrnutí revizí</strong>. Uložte změny a zkontrolujte detail. Dokončení podúkolu a hlavního úkolu sledujte odděleně. Microsoft To Do připojte v nastavení Microsoft účtu; případnou chybu synchronizace řešte podle zobrazeného stavu.</p>
+</section><section id="nastroje" class="chapter" aria-labelledby="nastroje-title"><span id="obnova-dat-ze-zalohy" class="legacy-anchor"></span><span id="zaloha-organizace" class="legacy-anchor"></span><span id="zaloha-kontaktu" class="legacy-anchor"></span><span id="zaloha-uzivatelskych-dat" class="legacy-anchor"></span><span id="sifrovani-zaloh" class="legacy-anchor"></span><span id="index-matcher" class="legacy-anchor"></span><span id="excel-indexace-vr" class="legacy-anchor"></span><span id="excel-spojeni-listu" class="legacy-anchor"></span><span id="excel-odemceni" class="legacy-anchor"></span><h2 id="nastroje-title">Nástroje</h2>
+<p>Dostupné nástroje vyhledejte v navigaci aplikace. Následující příklady použijte nejprve na kopii vstupních souborů.</p>
+<h3 id="excel-nastroje">Excel nástroje</h3>
 <table>
 <thead>
 <tr>
-<th>Funkce</th>
-<th>💻 Desktop</th>
-<th>🌐 Web</th>
+<th>Nástroj</th>
+<th>Úkol</th>
+<th>Co zkontrolovat ve výsledku</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Přístup k souborům</td>
-<td>Nativní</td>
-<td>Omezené</td>
+<td>Excel – odemčení</td>
+<td>Připravit oprávněně používaný sešit pro úpravy</td>
+<td>Otevření souboru, listy a zachování dat</td>
 </tr>
 <tr>
-<td>Excel nástroje</td>
-<td>Lokální Python</td>
-<td>HTTP API</td>
+<td>Excel Spojení listů</td>
+<td>Spojit podklady z více listů</td>
+<td>Počet listů/řádků, pořadí a součty</td>
 </tr>
 <tr>
-<td>Úložiště tokenů</td>
-<td>OS Keychain (bezpečnější)</td>
-<td>localStorage</td>
-</tr>
-<tr>
-<td>Auto-update</td>
-<td>Windows: ✅ • macOS arm64: manuálně</td>
-<td>❌</td>
-</tr>
-<tr>
-<td>Folder watcher</td>
-<td>✅</td>
-<td>❌</td>
-</tr>
-<tr>
-<td>Biometrické přihlášení</td>
-<td>✅ (Touch ID/Windows Hello)</td>
-<td>❌</td>
-</tr>
-<tr>
-<td>Mailto odkazy</td>
-<td>IPC Bridge (spolehlivější)</td>
-<td>Prohlížeč</td>
-</tr>
-<tr>
-<td>Záloha (auto, šifrovaná)</td>
-<td>✅ (denní, AES-256-GCM)</td>
-<td>❌</td>
+<td>Excel Indexace VŘ</td>
+<td>Doplnit oddíly a popisy podle indexu</td>
+<td>Mapování vstupních sloupců a nepřiřazené kódy</td>
 </tr>
 </tbody></table>
-<h3 id="instalace">Instalace</h3>
-<h4 id="windows">Windows</h4>
+<p><strong>Příklad:</strong> nejprve vyzkoušejte rozpočet se třemi řádky a kódy E-001, E-002 a E-003. V indexu připravte odpovídající popisy a po zpracování porovnejte všechny tři výsledky. Výstup nepoužívejte bez kontroly součtů a vzorců.</p>
+<p>Webová a desktopová varianta mohou mít odlišné způsoby zpracování. Dostupnost a případné požadavky sledujte v konkrétním nástroji; nepočítejte s tím, že celá aplikace pracuje offline.</p>
+<h3 id="import-a-synchronizace-kontaktu">Import a synchronizace kontaktů</h3>
+<p>Připravte malý vzorek v podporovaném formátu, ověřte mapování polí a výsledek importu. Teprve potom pokračujte celým adresářem. U synchronizace z URL ověřte správný zdroj a oprávnění k jeho použití.</p>
+<p><strong>Příklad:</strong> dva řádky stejné ukázkové firmy mohou představovat dvě osoby. Po importu zkontrolujte firmu, kontakty, specializace a případné duplicity. Nespoléhejte na pořadí sloupců bez ověření v importním rozhraní.</p>
+<h3 id="zaloha-a-obnova-dat">Záloha a obnova dat</h3>
+<p>V <strong>Záloze a obnově</strong> vyberte požadovaný rozsah podle své role. Rozlišujte export kontaktů, uživatelskou zálohu a organizační zálohu. Ve webu se záloha stahuje jako soubor; desktop nabízí i lokální zálohy.</p>
 <ol>
-<li>Stáhněte instalační soubor <code>Tender-Flow-Setup-x.x.x.exe</code></li>
-<li>Spusťte instalátor</li>
-<li>Aplikace se nainstaluje do <code>C:\Program Files\Tender Flow</code></li>
-<li>Desktop ikona se vytvoří automaticky</li>
+<li>Vytvořte aktuální zálohu a ověřte, kde je soubor uložen.</li>
+<li>Před obnovou přečtěte náhled, rozsah a počty záznamů.</li>
+<li>Zkontrolujte organizaci a vlastníka dat. Obnovu potvrďte jen pro zamýšlený rozsah.</li>
+<li>Po dokončení ověřte stavby, kontakty a vazby smluv.</li>
 </ol>
-<h4 id="macos">macOS</h4>
-<ol>
-<li>Stáhněte soubor <code>Tender-Flow-x.x.x.dmg</code></li>
-<li>Otevřete DMG soubor</li>
-<li>Přetáhněte Tender Flow do složky Applications</li>
-<li>Spusťte aplikaci (možná budete muset povolit v System Preferences → Security)</li>
-</ol>
-<h3 id="spusteni">Spuštění</h3>
-<ul>
-<li><strong>Windows</strong>: klikněte na ikonu &quot;Tender Flow Desktop&quot; na ploše.</li>
-<li><strong>macOS</strong>: otevřete Tender Flow z Launchpadu nebo složky Applications.</li>
-</ul>
-<h3 id="auto-update">Auto-update</h3>
-<ul>
-<li><strong>Windows</strong>: automatická kontrola při spuštění a periodicky během běhu, stažení aktualizace v aplikaci a restart pro instalaci.</li>
-<li><strong>macOS (Apple Silicon)</strong>: aktualizace probíhá manuálně stažením nové verze z release artefaktu (<code>.dmg</code>).</li>
-</ul>
+<p><strong>Pozor:</strong> obnova může měnit existující data. Vyzkoušení provádějte v určeném testovacím prostředí. Stažený nešifrovaný JSON chraňte jako firemní data; u šifrované desktopové zálohy ověřte dostupnost klíče před změnou počítače nebo systému.</p>
+<h3 id="obrazovy-postup-pro-nastroje">Obrazový postup pro nástroje</h3>
+<p></p><figure><a href="./assets/excel-odemceni.png" data-screenshot="" aria-label="Zvětšit: Excel – odemčení: ukázkový rozpočet po skutečném lokálním zpracování a stažení výsledku."><img src="./assets/excel-odemceni.png" alt="Excel – odemčení: ukázkový rozpočet po skutečném lokálním zpracování a stažení výsledku." width="1980" height="1115" loading="lazy" decoding="async"></a><figcaption>Excel – odemčení: ukázkový rozpočet po skutečném lokálním zpracování a stažení výsledku. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte kopii souboru XLSX, spusťte odemčení a otevřete stažený výsledek. Zkontrolujte možnost upravit list a zachování vzorců. Odstranění ochrany listu neznamená prolomení šifrování souboru chráněného heslem pro otevření.</p>
+<p></p><figure><a href="./assets/excel-spojeni.png" data-screenshot="" aria-label="Zvětšit: Excel Spojení listů: načtený ukázkový soubor a výběr listů Elektro a Slaboproud."><img src="./assets/excel-spojeni.png" alt="Excel Spojení listů: načtený ukázkový soubor a výběr listů Elektro a Slaboproud." width="1980" height="1122" loading="lazy" decoding="async"></a><figcaption>Excel Spojení listů: načtený ukázkový soubor a výběr listů Elektro a Slaboproud. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte XLSX, po analýze označte potřebné listy a spusťte spojení. Výsledný soubor ověřte počtem řádků, pořadím a součty. Příklad tvoří dva listy se dvěma a jedním položkovým řádkem; ve výstupu hledejte všechny tři položky. Způsob zacházení s hlavičkami ověřte podle konkrétního sešitu.</p>
+<p></p><figure><a href="./assets/excel-indexace.png" data-screenshot="" aria-label="Zvětšit: Excel Indexace VŘ: dvě fáze zpracování, mapování sloupců a seznam indexů."><img src="./assets/excel-indexace.png" alt="Excel Indexace VŘ: dvě fáze zpracování, mapování sloupců a seznam indexů." width="1980" height="1622" loading="lazy" decoding="async"></a><figcaption>Excel Indexace VŘ: dvě fáze zpracování, mapování sloupců a seznam indexů. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>V první fázi určete sloupec značky oddílu a jeho názvu. Po vložení sloupce se původní pozice posunou; ve druhé fázi znovu ověřte sloupec kódu a cílového popisu. Výchozí nastavení je <strong>F/G před vložením</strong> a <strong>G/C po vložení</strong>. Připravte indexy, zpracujte vzorek a zkontrolujte nepřiřazené položky. Doplnění popisů podle kódů je součást tohoto nástroje.</p>
+<p></p><figure><a href="./assets/import-kontaktu.png" data-screenshot="" aria-label="Zvětšit: Import kontaktů: mapování polí po načtení syntetického CSV, před náhledem a potvrzením importu."><img src="./assets/import-kontaktu.png" alt="Import kontaktů: mapování polí po načtení syntetického CSV, před náhledem a potvrzením importu." width="1980" height="1371" loading="lazy" decoding="async"></a><figcaption>Import kontaktů: mapování polí po načtení syntetického CSV, před náhledem a potvrzením importu. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte podporovaný soubor nebo povolený zdroj URL. V dalším kroku přiřaďte sloupce k polím Tender Flow, zobrazte náhled a opravte chyby názvů, specializací a kontaktů. Import potvrďte až po kontrole náhledu. Ve výsledku odlište importované řádky, varování a neimportované řádky; opravte příčinu před opakováním.</p>
+<p></p><figure><a href="./assets/zalohy.png" data-screenshot="" aria-label="Zvětšit: Záloha a obnova ve webu: export uživatelských dat, kontaktů a výběr souboru pro obnovu."><img src="./assets/zalohy.png" alt="Záloha a obnova ve webu: export uživatelských dat, kontaktů a výběr souboru pro obnovu." width="1980" height="866" loading="lazy" decoding="async"></a><figcaption>Záloha a obnova ve webu: export uživatelských dat, kontaktů a výběr souboru pro obnovu. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Běžný uživatel vybírá vlastní dostupný rozsah exportu. Soubor zálohy bezpečně uložte. Pro obnovu nejprve načtěte soubor a porovnejte náhled i počty záznamů. Organizační zálohy a správa ostatních uživatelů jsou součást odložené administrátorské příručky.</p>
+</section><section id="tender-flow-desktop" class="chapter" aria-labelledby="tender-flow-desktop-title"><span id="ukonceni-aplikace" class="legacy-anchor"></span><span id="excel-nastroje-v-desktop-verzi" class="legacy-anchor"></span><span id="nativni-souborove-operace" class="legacy-anchor"></span><span id="auto-update" class="legacy-anchor"></span><span id="spusteni" class="legacy-anchor"></span><span id="macos" class="legacy-anchor"></span><span id="windows" class="legacy-anchor"></span><span id="instalace" class="legacy-anchor"></span><span id="vyhody-desktop-verze" class="legacy-anchor"></span><h2 id="tender-flow-desktop-title">Tender Flow Desktop</h2>
+<p><strong>K čemu slouží:</strong> rozšířit práci o nativní možnosti operačního systému, především lokální soubory a desktopové integrace.</p>
+<h3 id="instalace-a-aktualizace">Instalace a aktualizace</h3>
+<p>Použijte oficiální instalační soubor pro svůj systém. Na macOS přesuňte aplikaci z DMG do Applications; ve Windows projděte instalátorem. Pro aktualizaci sledujte nabídku a stav přímo v aplikaci. Pokud je vyžadované ruční stažení, použijte nabídnutý oficiální postup.</p>
+<p><strong>Příklad:</strong> po aktualizaci porovnejte verzi aplikace s poznámkami vydání. Tato příručka popisuje v1.9.36; u jiné verze se umístění nebo dostupnost funkcí může lišit.</p>
 <h3 id="biometricke-prihlaseni">Biometrické přihlášení</h3>
-<p>Desktop aplikace podporuje biometrické přihlášení:</p>
+<p>Pokud zařízení a aplikace nabízejí biometriku, nejprve se přihlaste běžným způsobem a nastavte ji podle zobrazené nabídky. Biometrie nenahrazuje oprávnění k organizaci ani ke stavbě. Při problému použijte standardní přihlášení.</p>
+<h3 id="lokalni-soubory-a-zalohy">Lokální soubory a zálohy</h3>
+<p>Lokální cesty jsou vázané na daný počítač a jeho oprávnění. Sdílený kolega nemusí mít stejný disk nebo cestu. U Složkomatu i záloh ověřte cílové umístění, čitelnost a skutečně uložený výsledek.</p>
+<p><strong>Častá chyba:</strong> předpokládat, že lokální soubor je automaticky dostupný všem kolegům nebo že cloudová data zůstanou plně dostupná bez internetu.</p>
+<h3 id="biometrika-na-podporovanem-zarizeni">Biometrika na podporovaném zařízení</h3>
+<p></p><figure><a href="./assets/biometrie.png" data-screenshot="" aria-label="Zvětšit: Produkční komponenta biometriky se simulovanou dostupností Touch ID; nejde o systémový ověřovací dialog."><img src="./assets/biometrie.png" alt="Produkční komponenta biometriky se simulovanou dostupností Touch ID; nejde o systémový ověřovací dialog." width="1980" height="417" loading="lazy" decoding="async"></a><figcaption>Produkční komponenta biometriky se simulovanou dostupností Touch ID; nejde o systémový ověřovací dialog. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>V profilu otevřete biometrické přihlášení. Při zapnutí dokončete skutečnou výzvu operačního systému a otestujte následující přihlášení. Snímek ukazuje pouze nastavení aplikace se syntetickým stavem; čtečka, systémový dialog a uložení přihlašovacích údajů se v dokumentačním náhledu nespouštějí. Aktualizace najdete v <a href="#profil-a-vzhled">Profilu a vzhledu</a>; místní složky vysvětluje <a href="#slozkomat">Složkomat</a>.</p>
+</section><section id="nastaveni-aplikace" class="chapter" aria-labelledby="nastaveni-aplikace-title"><span id="organizace" class="legacy-anchor"></span><span id="statusy-kontaktu" class="legacy-anchor"></span><span id="vzhled" class="legacy-anchor"></span><span id="profil" class="legacy-anchor"></span><h2 id="nastaveni-aplikace-title">Nastavení aplikace</h2>
+<p><strong>K čemu slouží:</strong> osobní preference a nastavení účtu. Nezaměňujte je s <strong>Nastavením stavby</strong>.</p>
 <ul>
-<li><strong>macOS</strong>: Touch ID (na zařízeních s Touch Bar nebo Touch ID)</li>
-<li><strong>Windows</strong>: Windows Hello (otisk prstu, obličej)</li>
+<li><strong>Profil:</strong> zkontrolujte osobní údaje a dostupná nastavení přihlášení.</li>
+<li><strong>Vzhled:</strong> vyberte podporovaný motiv. Snímky v příručce používají tmavý vzhled; ovládací prvky mohou mít u vás jiné barvy.</li>
+<li><strong>Statusy kontaktů:</strong> použijte jasně pojmenované stavy odpovídající práci týmu.</li>
+<li><strong>Organizace:</strong> zkontrolujte členství a dostupné možnosti správy.</li>
 </ul>
-<p><strong>Aktivace:</strong></p>
-<ol>
-<li>Přihlaste se poprvé emailem a heslem.</li>
-<li>Aktivujte biometrické přihlášení v <strong>Nastavení → Profil</strong>.</li>
-<li>Při příštím spuštění můžete použít biometriku.</li>
-</ol>
-<h3 id="nativni-souborove-operace">Nativní souborové operace</h3>
-<ul>
-<li><strong>DocHub</strong>: přímý přístup k lokálním složkám.</li>
-<li><strong>Vytváření složek</strong>: okamžité bez externího serveru.</li>
-<li><strong>Otevírání složek</strong>: nativní průzkumník souborů.</li>
-</ul>
-<h3 id="excel-nastroje-v-desktop-verzi">Excel nástroje v desktop verzi</h3>
-<p>Desktop verze používá lokální Python skripty:</p>
-<ul>
-<li><strong>Rychlejší zpracování</strong>: bez HTTP požadavků.</li>
-<li><strong>Větší soubory</strong>: bez omezení velikosti uploadu.</li>
-<li><strong>Offline použití</strong>: funguje bez internetového připojení.</li>
-</ul>
-<p><strong>Prerekvizity:</strong> Python 3.x a knihovna <code>openpyxl</code> (<code>pip install openpyxl</code>).</p>
-<h3 id="ukonceni-aplikace">Ukončení aplikace</h3>
-<p>Při kliknutí na &quot;Odhlásit&quot; v desktop verzi máte dvě možnosti:</p>
-<ol>
-<li><strong>Ukončit aplikaci (Ponechat přihlášení)</strong> – aplikace se zavře, přihlášení zůstane pro biometriku.</li>
-<li><strong>Odhlásit se (Vyžadovat heslo příště)</strong> – kompletní odhlášení.</li>
-</ol>
-<p><strong>Umístění ke stažení:</strong> kontaktujte administrátora pro přístup k desktop verzi.</p>
-<hr>
-<h2 id="nastaveni-aplikace">⚙️ Nastavení aplikace</h2>
-<p>V sekci <strong>Nastavení</strong> najdete konfiguraci profilu, vzhledu a dalších preferencí.</p>
-<h3 id="profil">Profil</h3>
-<ul>
-<li><strong>Zobrazované jméno</strong>: jak vás vidí ostatní v organizaci.</li>
-<li><strong>Biometrické přihlášení</strong>: aktivace Touch ID / Windows Hello (pouze desktop).</li>
-<li><strong>Změna hesla</strong>: možnost změnit přihlašovací heslo.</li>
-</ul>
-<h3 id="vzhled">Vzhled</h3>
-<ul>
-<li><strong>Motiv</strong>: v uživatelském menu nebo v Nastavení → Profil vyberte vzhled aplikace.</li>
-<li><strong>TF basic</strong>: jednoduchý vzhled v barvách landing page. Světlá varianta používá slonovinové plochy a cihlově oranžové akcenty, tmavá teplé antracitové plochy a světlejší oranžovou.</li>
-<li><strong>Režim</strong>: vyberte <strong>Světlý</strong>, <strong>Tmavý</strong> nebo <strong>Auto</strong> podle systému. Skin a režim se ukládají samostatně a zůstanou vybrané i po opětovném otevření aplikace.</li>
-<li>Přihlašovací stránky a obnova hesla používají jednotnou světlou paletu landing page nezávisle na zvoleném skinu aplikace.</li>
-<li><strong>Primární barva</strong>: volba akcentové barvy aplikace.</li>
-<li><strong>Pozadí</strong>: výběr pozadí pracovní plochy.</li>
-</ul>
-<h3 id="statusy-kontaktu">Statusy kontaktů</h3>
-<p>Každá organizace má vlastní seznam stavů pro kontakty (subdodavatele):</p>
-<ul>
-<li>Přidávejte, upravujte a odebírejte vlastní stavy.</li>
-<li>Každému stavu přiřaďte barvu.</li>
-<li>Stavy se používají pro filtrování a vizuální rozlišení v databázi kontaktů.</li>
-</ul>
-<h3 id="organizace">Organizace</h3>
-<p>Správa členství v organizaci – viz sekce <strong>Organizace a předplatné → Členství a role</strong>.</p>
-<p><img src="./assets/09-settings.svg" alt="Nastavení aplikace"></p>
-<hr>
-<h2 id="administrace-systemu">🛡️ Administrace systému</h2>
-<p>Administrace je dostupná jen účtům s rolí <strong>Admin</strong>. Obsahuje správu registrací, uživatelů, rolí, předplatného a diagnostiky.</p>
-<blockquote>
-<p>💡 <strong>Tip:</strong> Pokud v Nastavení nevidíte sekce „Administrace systému&quot;, nemáte potřebná oprávnění.</p>
-</blockquote>
-<h3 id="pristup-a-predplatne">Přístup a předplatné</h3>
-<p>Tender Flow vyžaduje platné předplatné; bezplatný účet není k dispozici. Po vypršení předplatného se pracovní část aplikace uzamkne. Data se tím nemažou. Obnovení domluvte se správcem firmy nebo podporou a poté zvolte <strong>Znovu ověřit předplatné</strong>. Na uzamčené obrazovce se můžete také odhlásit. Při zrušení automatického obnovování zůstává přístup do konce platného uhrazeného období.</p>
-<h3 id="balicky-a-funkce">Balíčky a funkce</h3>
-<p>V <strong>Nastavení → Administrace → Balíčky a funkce</strong> najdete přehled obsahu tarifů pouze pro čtení. U balíčku rozbalte <strong>Zobrazit funkce</strong>. Prohlížení nemění dostupnost funkcí.</p>
-<p>Tlačítko <strong>Spravovat firmy</strong> otevře správu organizací, kde upravíte plán, licence a fakturační údaje vybrané firmy. Individuální výjimky a oprávnění uživatelů mohou ovlivnit jejich skutečný přístup; přehled balíčků ukazuje společná pravidla tarifů.</p>
-<p>Podrobnou matici otevřete tlačítkem <strong>Otevřít pokročilou správu</strong>. Přepínače v ní se ukládají okamžitě a mění společná pravidla celého tarifu. Pro úpravu jediné firmy použijte správu firem. Po zavření pokročilé správy se přehled znovu načte.</p>
-<h3 id="registrace-a-whitelist">Registrace a whitelist</h3>
-<p>V sekci <strong>Nastavení registrací</strong> (Admin) určíte, kdo se může do Tender Flow registrovat:</p>
-<ul>
-<li><strong>Povolit registrace všem</strong> – pokud je zapnuto, registrace nejsou omezené doménami.</li>
-<li><strong>Whitelist domén</strong> – registrace povolené jen pro vybrané domény (např. <code>@firma.cz</code>).</li>
-<li><strong>Vyžadovat whitelist emailů</strong> – registrace pouze pro emaily explicitně uvedené v seznamu.</li>
-</ul>
-<p><img src="./assets/13-registration-settings.svg" alt="Nastavení registrací"></p>
-<h3 id="seznam-povolenych-emailu-whitelist">Seznam povolených emailů (Whitelist)</h3>
-<p>Pokud je zapnuté „Vyžadovat whitelist emailů&quot;, mohou se registrovat pouze emaily uvedené v tomto seznamu.</p>
-<ol>
-<li>Otevřete <strong>Nastavení → Administrace systému</strong>.</li>
-<li>V sekci „Seznam povolených emailů&quot; přidejte email, jméno a poznámku.</li>
-<li>U záznamu lze přepínat aktivní/neaktivní stav.</li>
-</ol>
-<p><img src="./assets/14-email-whitelist.svg" alt="Whitelist emailů"></p>
-<h3 id="sprava-uzivatelu-a-roli">Správa uživatelů a rolí</h3>
-<p>Sekce Správa uživatelů je určená pro <strong>Admina</strong>. Umožňuje:</p>
-<ul>
-<li><strong>Spravovat role uživatelů</strong> (přiřazení role).</li>
-<li><strong>Nastavit typ přihlášení uživatele</strong> (Auto/Email/Google/Microsoft/GitHub/SAML).</li>
-<li><strong>Přepsat úroveň předplatného uživatele</strong> (manuální override nad úrovní organizace).</li>
-<li><strong>Definovat oprávnění rolí</strong> (permissions).</li>
-</ul>
-<p><img src="./assets/15-user-management-roles.svg" alt="Správa uživatelů a rolí"></p>
-<h3 id="incident-logy-admin">Incident logy (Admin)</h3>
-<p>V <strong>Nastavení → Administrace → Incidenty</strong> můžete analyzovat a čistit provozní incidenty.</p>
-<ul>
-<li><strong>Filtrování incidentů</strong> podle Incident ID, User ID a časového intervalu.</li>
-<li><strong>Detail incidentu</strong> s možností kopie JSON detailu do schránky.</li>
-<li><strong>Čištění starých logů</strong> dle zadané retenční doby (v dnech).</li>
-</ul>
-<p>Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou určeny jako náhrada auditního logu obchodních operací.</p>
-<hr>
-<h2 id="caste-otazky">❓ Časté otázky</h2>
-<h3 id="neotevre-se-emailovy-klient">Neotevře se emailový klient</h3>
-<p>Zkontrolujte výchozí emailový klient v systému a nastavení emailového klienta v Tender Flow. Funkce pro jednotlivé i hromadné poptávky připravují koncept zprávy; podle nastavení mohou použít systémový emailový odkaz nebo otevřít soubor konceptu EML.</p>
-<h3 id="nektere-volby-nevidim">Některé volby nevidím</h3>
-<p>Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle předplatného. Podívejte se do tabulky tarifů v sekci <strong>Organizace a předplatné</strong>.</p>
-<h3 id="excel-spojeni-listu-pise-funkce-neni-dostupna">Excel Spojení listů píše „Funkce není dostupná&quot;</h3>
-<p>Excel Spojení listů ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v <strong>Nastavení → Administrace → Registrace</strong>.</p>
-<h3 id="kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</h3>
-<p>Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátora. Desktop aplikace nabízí rozšířené funkce jako Touch ID, nativní přístup k souborům a lokální Excel nástroje.</p>
-<h3 id="proc-se-mi-na-macos-neinstaluje-update-automaticky">Proč se mi na macOS neinstaluje update automaticky?</h3>
-<p>V aktuální verzi je auto-update aktivní pro Windows. Na macOS (Apple Silicon) se aktualizace instalují manuálně přes nový <code>.dmg</code> balíček.</p>
-<h3 id="jak-sdilet-stavbu-s-kolegou">Jak sdílet stavbu s kolegou?</h3>
-<p>V sekci <strong>Správa staveb</strong> otevřete detail stavby a v sekci sdílení přidejte uživatele. Můžete nastavit oprávnění: Úpravy nebo Pouze čtení.</p>
-<h3 id="jak-generovat-smluvni-protokol">Jak generovat smluvní protokol?</h3>
-<p>Na záložce <strong>Smlouvy</strong> v detailu stavby vyberte smlouvu a klikněte na akci generování protokolu. Údaje se předvyplní z dat smlouvy – zkontrolujte, doplňte povinná pole a stáhněte výsledný soubor (Excel nebo PDF).</p>
-<h3 id="dochub-synchronizace-nefunguje">DocHub synchronizace nefunguje</h3>
-<p>Ověřte, že máte vybraného správného providera (Google Drive / OneDrive / Tender Flow Desktop) a že kořenová složka je přístupná. V desktop verzi zkontrolujte, že cesta ke složce existuje. Zkuste odpojit a znovu připojit složku.</p>
-<h3 id="jak-obnovit-data-ze-zalohy">Jak obnovit data ze zálohy?</h3>
-<p>V <strong>Nastavení → Záloha a obnova</strong>: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy. Šifrované zálohy (<code>.enc.json</code>) se při obnově automaticky dešifrují.</p>
-<h3 id="jak-funguje-automaticka-zaloha-v-desktop-verzi">Jak funguje automatická záloha v desktop verzi?</h3>
-<p>V <strong>Nastavení → Záloha a obnova</strong> zapněte toggle „Automatická záloha&quot;. Záloha proběhne automaticky 1× denně a je šifrována (AES-256-GCM). Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh&quot;.</p>
-<h3 id="jak-zalohovat-pouze-kontakty">Jak zálohovat pouze kontakty?</h3>
-<p>V <strong>Nastavení → Záloha a obnova</strong> klikněte tlačítko <strong>Zálohovat kontakty</strong>. Exportují se pouze subdodavatelé a jejich statusy. Na desktopu se soubor uloží šifrovaně do složky <code>backup</code>, na webu se stáhne jako JSON. Obnova kontaktů ze samostatné zálohy není podporována — použijte kompletní zálohu.</p>
-<h3 id="jsou-zalohy-sifrovany">Jsou zálohy šifrovány?</h3>
-<p>V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn operačním systémem (Windows DPAPI / macOS Keychain). Webové zálohy (stažené přes prohlížeč) šifrovány nejsou.</p>
-<hr>
-<h2 id="novinky-changelog">🎉 Novinky (changelog)</h2>
-<p><span class="version-badge">📱 v1.5.3</span> <span class="version-badge">📖 Verze příručky 2.2</span></p>
-<p>Verzi aplikace najdete vlevo dole v sidebaru.</p>
-<h3 id="v1-5-3">v1.5.3</h3>
-<ul>
-<li><strong>Opravy</strong>: opravena uvítací obrazovka, doplněny release podklady pro v1.5.2, čištění projektu.</li>
-</ul>
-<h3 id="v1-5-2">v1.5.2</h3>
-<ul>
-<li><strong>Import wizard kontaktů</strong>: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků.</li>
-<li><strong>Hromadná úprava specializací</strong>: specializace subdodavatelů lze upravovat hromadně přímo v přehledu kontaktů.</li>
-<li><strong>Dodatky a vlastní náklady</strong>: vylepšené formuláře pro dodatky a adresy stavby, včetně podpory vlastních nákladů u dodatků.</li>
-<li><strong>Šifrované zálohy</strong>: zálohy v desktop verzi jsou šifrovány algoritmem AES-256-GCM. Desktop ukládá zálohy automaticky s denní frekvencí. Nové tlačítko pro zálohu kontaktů.</li>
-<li><strong>Systém nápovědy</strong>: interaktivní nápověda s kontextovými bublinami, klávesová zkratka pro vyhledávání, onboarding pro nové uživatele.</li>
-<li><strong>Automatické složky dokumentů</strong>: DocHub v desktop verzi umí vytvořit standardizovanou strukturu složek pro dokumenty stavby jedním kliknutím.</li>
-<li><strong>Přepracovaná příručka</strong>: kompletně přepsaná uživatelská příručka s aktuálním popisem všech modulů.</li>
-<li><strong>Opravy UX tabulek</strong>: opraveno scrollování a překryvy v tabulkách pipeline, harmonogramu a plánu VŘ.</li>
-</ul>
-<h3 id="v1-5-1">v1.5.1</h3>
-<ul>
-<li><strong>Záloha a obnova dat</strong>: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí.</li>
-<li><strong>Šifrování záloh</strong>: zálohy v desktop verzi jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn OS (Windows DPAPI / macOS Keychain). Starší nešifrované zálohy zůstávají čitelné.</li>
-<li><strong>Záloha kontaktů</strong>: nové tlačítko „Zálohovat kontakty&quot; pro samostatný export subdodavatelů a jejich statusů. Funguje na desktopu (šifrovaně) i na webu (stažení JSON).</li>
-</ul>
-<h3 id="v1-4-3">v1.4.3</h3>
-<ul>
-<li><strong>Oprava právních odkazů v desktopu</strong>: odkazy na právní dokumenty nyní fungují správně i v desktop verzi.</li>
-<li><strong>Stabilita desktop releasu</strong>: opraven workflow pro publikaci desktop buildů.</li>
-<li><strong>Windows Hello</strong>: opravy typů pro biometrické přihlášení.</li>
-</ul>
-<h3 id="v1-4-2">v1.4.2</h3>
-<ul>
-<li><strong>GDPR retence dat</strong>: automatická retence provozních logů i CRM dat dle nastavené doby uchovávání.</li>
-<li><strong>Compliance kontroly</strong>: ověření souladu s EU předpisy, provázání ROPA s retenčními politikami.</li>
-<li><strong>Souhlas s podmínkami</strong>: uživatel musí aktivně potvrdit aktuální znění podmínek užívání.</li>
-</ul>
-<h3 id="v1-4-1">v1.4.1</h3>
-<ul>
-<li><strong>OpenAI provider</strong>: v nastavení AI přibyla možnost výběru OpenAI jako poskytovatele.</li>
-<li><strong>Generátor smluvních protokolů</strong>: nový nástroj pro generování protokolů ke smlouvám.</li>
-<li><strong>Tenant logo</strong>: organizace si může nastavit vlastní logo.</li>
-<li><strong>DPA stránka a retence</strong>: přidána veřejná stránka zpracovatelské doložky a nastavení retenčních politik.</li>
-<li><strong>Bezpečnost</strong>: CSP builder pro desktop, rozšíření CSP o Stripe domény, RLS pro interní billing tabulky.</li>
-</ul>
-<h3 id="v1-4-0">v1.4.0</h3>
-<ul>
-<li><strong>Desktop aktualizace přes GitHub Releases</strong>: Windows auto-update, macOS manuální režim.</li>
-<li><strong>Administrace rozšířena o Incident logy</strong>: dohledání chyb podle incident ID, uživatele a času.</li>
-<li><strong>Správa uživatelů rozšířena</strong>: typ přihlášení a přepis předplatného.</li>
-<li><strong>Organizace v Nastavení</strong>: přehled členů, schvalování žádostí, změny rolí a předání vlastnictví.</li>
-<li><strong>Smlouvy</strong>: pole IČ dodavatele a kontextová nabídka nad řádky smluv.</li>
-<li><strong>Email nevybraným</strong>: zlepšené sestavení BCC adres.</li>
-</ul>
-<h3 id="v1-3-2">v1.3.2</h3>
-<ul>
-<li>Rozšířené popisy hlavních modulů v příručce včetně administrace, AI a desktop sekce.</li>
-</ul>
-<h3 id="v1-3-1">v1.3.1</h3>
-<ul>
-<li><strong>Smlouvy</strong>: kompletní modul pro evidenci smluv, dodatků a čerpání.</li>
-<li><strong>Zpracování dokumentů ke smlouvám</strong>: předvyplnění dat ze souboru.</li>
-<li><strong>Desktop UX</strong>: uživatelská příručka se otevírá přímo v aplikaci.</li>
-</ul>
-<h3 id="v1-2-3">v1.2.3</h3>
-<ul>
-<li>Aktualizace emailových šablon a opravy flow obnovy hesla.</li>
-</ul>
-<h3 id="v1-2-1">v1.2.1</h3>
-<ul>
-<li>OCR vylepšení a stabilita desktop buildu.</li>
-</ul>
-<h3 id="v0-9-6">v0.9.6</h3>
-<ul>
-<li>AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, Desktop aplikace, Mailto IPC Bridge.</li>
-</ul>
-<h3 id="v0-9-5">v0.9.5</h3>
-<ul>
-<li>AI prompty, DocHub integrace pro lokální složky, stabilita.</li>
-</ul>
-<h3 id="v0-9-4">v0.9.4</h3>
-<ul>
-<li>Harmonogram (Gantt + exporty), Organizace (tenant), Statusy kontaktů, Dokumenty / Ceníky.</li>
-</ul>
-<h3 id="v0-9-3">v0.9.3</h3>
-<ul>
-<li>Demo pro prezentaci, AI cache, vylepšený přehled poptávek, UX pop-okna.</li>
-</ul>
-<h3 id="v0-9-2">v0.9.2</h3>
-<ul>
-<li>Skrývání sidebaru, nová landing page, samostatné routy přihlášení/registrace.</li>
-</ul>
-<h3 id="v0-9-1">v0.9.1</h3>
-<ul>
-<li>Více specializací na subdodavatele, více kontaktů na firmu, import/synchronizace kontaktů.</li>
-</ul>
-<h3 id="v0-9-0">v0.9.0</h3>
-<ul>
-<li>Whitelist registrací, role (admin, přípravář, stavbyvedoucí, technik), oprávnění dle rolí.</li>
-</ul>
-<h3 id="v0-8-0">v0.8.0</h3>
-<ul>
-<li>Dashboard, stav „nedoporučuji&quot; u subdodavatelů, archivace staveb, Plán VŘ, Výběrová řízení (kanban, kola VŘ, export, email nevybraným), Přehled staveb s AI analýzou.</li>
-</ul>
-<hr>
-<h2 id="pravni-dokumenty">⚖️ Právní dokumenty</h2>
+<p><strong>Příklad:</strong> barva statusu „Preferovaný“ je pomůcka pro orientaci. Neznamená automaticky vítěze VŘ ani podepsanou smlouvu.</p>
+<h3 id="profil-a-vzhled">Profil a vzhled</h3>
+<p></p><figure><a href="./assets/profil.png" data-screenshot="" aria-label="Zvětšit: Profil: osobní údaje, podpis do zpráv, vzhled, aktualizace a statusy kontaktů."><img src="./assets/profil.png" alt="Profil: osobní údaje, podpis do zpráv, vzhled, aktualizace a statusy kontaktů." width="1980" height="2768" loading="lazy" decoding="async"></a><figcaption>Profil: osobní údaje, podpis do zpráv, vzhled, aktualizace a statusy kontaktů. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Upravte zobrazované jméno a pracovní podpis a uložte změny. V podpisu ověřte vlastní adresu a telefon. Vyberte vzhled aplikace, světlý či tmavý režim a nabízenou akcentní barvu. V seznamu statusů kontaktů přidávejte jednoznačné názvy a barvy; před odstraněním ověřte dopad na používané kontakty. V sekci aktualizací spusťte kontrolu a řiďte se jejím skutečným výsledkem; stav na syntetickém snímku není potvrzením aktuálnosti vaší instalace.</p>
+<h3 id="notifikace">Notifikace</h3>
+<p></p><figure><a href="./assets/upozorneni.png" data-screenshot="" aria-label="Zvětšit: Nastavení notifikací: kategorie upozornění, oprávnění zařízení a klidové hodiny."><img src="./assets/upozorneni.png" alt="Nastavení notifikací: kategorie upozornění, oprávnění zařízení a klidové hodiny." width="1980" height="1721" loading="lazy" decoding="async"></a><figcaption>Nastavení notifikací: kategorie upozornění, oprávnění zařízení a klidové hodiny. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Zapněte potřebné kategorie, například změny nabídek a připomínky termínů. Pro systémová oznámení musí být povolené i oprávnění prohlížeče nebo zařízení. Klidové hodiny nastavte podle svého pracovního režimu. Zvonkem v záhlaví otevřete doručená oznámení, přejděte k souvisejícímu záznamu a označte přečtené položky.</p>
+<h3 id="zabezpeceni-a-zarizeni">Zabezpečení a zařízení</h3>
+<p></p><figure><a href="./assets/zabezpeceni.png" data-screenshot="" aria-label="Zvětšit: Osobní zabezpečení: dvoufázové ověření a seznam aktivních zařízení se syntetickou IP adresou."><img src="./assets/zabezpeceni.png" alt="Osobní zabezpečení: dvoufázové ověření a seznam aktivních zařízení se syntetickou IP adresou." width="1980" height="1091" loading="lazy" decoding="async"></a><figcaption>Osobní zabezpečení: dvoufázové ověření a seznam aktivních zařízení se syntetickou IP adresou. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Při zapnutí dvoufázového ověření dokončete párování autentizátoru a ověřte kód. QR kód, tajný klíč ani obnovovací údaje nesdílejte. V seznamu zařízení porovnejte název a poslední aktivitu; neznámou relaci odvolejte. Odvolání aktuální relace může vyžadovat nové přihlášení. Obrázek nezobrazuje žádný skutečný klíč ani relaci.</p>
+<h3 id="microsoft-ucet">Microsoft účet</h3>
+<p></p><figure><a href="./assets/microsoft.png" data-screenshot="" aria-label="Zvětšit: Propojený ukázkový Microsoft účet pro přihlášení a navazující služby."><img src="./assets/microsoft.png" alt="Propojený ukázkový Microsoft účet pro přihlášení a navazující služby." width="1980" height="615" loading="lazy" decoding="async"></a><figcaption>Propojený ukázkový Microsoft účet pro přihlášení a navazující služby. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Spusťte propojení, v přihlašovacím okně ověřte správný pracovní účet a požadovaný přístup. Po návratu zkontrolujte stav připojení a synchronizace. Při odpojení počítejte s ukončením příslušné integrace; již evidované úkoly posuzujte podle aktuálního stavu aplikace.</p>
+<h3 id="ai-a-mcp-pristupy">AI a MCP přístupy</h3>
+<p></p><figure><a href="./assets/ai-pristupy.png" data-screenshot="" aria-label="Zvětšit: Osobní oprávnění ukázkového AI klienta: zápis, kontakty a práce s nabídkami."><img src="./assets/ai-pristupy.png" alt="Osobní oprávnění ukázkového AI klienta: zápis, kontakty a práce s nabídkami." width="1980" height="1122" loading="lazy" decoding="async"></a><figcaption>Osobní oprávnění ukázkového AI klienta: zápis, kontakty a práce s nabídkami. <span>· Kliknutím zvětšíte</span></figcaption></figure><p></p>
+<p>Vyberte připojeného klienta a zkontrolujte povolené druhy operací. Přístup ke kontaktům a dalším citlivým akcím zapínejte jen pro zamýšlený účel. Po změně může být nutné v AI obnovit seznam nástrojů. Odpojení potvrďte u správného klienta. Povolení MCP nerozšiřuje vaše vlastní oprávnění ke stavbám.</p>
+</section><section id="administrace-systemu" class="chapter" aria-labelledby="administrace-systemu-title"><span id="incident-logy-admin" class="legacy-anchor"></span><span id="sprava-uzivatelu-a-roli" class="legacy-anchor"></span><span id="seznam-povolenych-emailu-whitelist" class="legacy-anchor"></span><span id="registrace-a-whitelist" class="legacy-anchor"></span><span id="balicky-a-funkce" class="legacy-anchor"></span><span id="pristup-a-predplatne" class="legacy-anchor"></span><h2 id="administrace-systemu-title">Administrace systému</h2>
+<p>Administrace systému a správa organizace nejsou součástí tohoto obrazového rozšíření. Podrobná administrátorská příručka bude doplněna samostatně. Běžné uživatelské nastavení účtu a přístup vlastníka k jeho stavbě zůstávají vysvětlené výše.</p>
+</section><section id="caste-otazky" class="chapter" aria-labelledby="caste-otazky-title"><span id="jsou-zalohy-sifrovany" class="legacy-anchor"></span><span id="jak-zalohovat-pouze-kontakty" class="legacy-anchor"></span><span id="jak-funguje-automaticka-zaloha-v-desktop-verzi" class="legacy-anchor"></span><span id="jak-obnovit-data-ze-zalohy" class="legacy-anchor"></span><span id="dochub-synchronizace-nefunguje" class="legacy-anchor"></span><span id="jak-generovat-smluvni-protokol" class="legacy-anchor"></span><span id="jak-sdilet-stavbu-s-kolegou" class="legacy-anchor"></span><span id="proc-se-mi-na-macos-neinstaluje-update-automaticky" class="legacy-anchor"></span><span id="kde-si-mohu-stahnout-desktop-aplikaci" class="legacy-anchor"></span><span id="excel-spojeni-listu-pise-funkce-neni-dostupna" class="legacy-anchor"></span><span id="nektere-volby-nevidim" class="legacy-anchor"></span><span id="neotevre-se-emailovy-klient" class="legacy-anchor"></span><h2 id="caste-otazky-title">Časté otázky</h2>
+<h3 id="nevidim-stavbu-nebo-funkci">Nevidím stavbu nebo funkci</h3>
+<p>Ověřte účet, organizaci, sdílení stavby a povolené moduly. Pro lokální souborové operace může být potřebná desktopová aplikace. Požádejte vlastníka nebo správce o kontrolu konkrétního oprávnění.</p>
+<h3 id="neotevre-se-e-mailovy-klient">Neotevře se e-mailový klient</h3>
+<p>Zkontrolujte přiřazenou aplikaci pro e-mailové odkazy v systému a oprávnění prohlížeče otevřít externí aplikaci. Otevření konceptu není odeslání. Neopakujte skutečné odeslání bez kontroly odeslané pošty.</p>
+<h3 id="proc-se-nenabizi-vr-k-propojeni-se-smlouvou">Proč se nenabízí VŘ k propojení se smlouvou?</h3>
+<p>Zkontrolujte, zda patří stejné stavbě a už není propojené s jinou smlouvou. Jedno VŘ může mít nejvýše jednu smlouvu. Potřebné opravy vazeb provádějte až po ověření existující smlouvy.</p>
+<h3 id="co-kdyz-potrebuji-vetsi-obrazek">Co když potřebuji větší obrázek?</h3>
+<p>Klikněte na snímek. Zvětšený náhled zavřete tlačítkem <strong>Zavřít</strong> nebo klávesou <strong>Escape</strong>. Bez JavaScriptu se otevře přímo soubor obrázku. Tlačítkem <strong>Tisk / PDF</strong> můžete vytisknout příručku nebo ji uložit přes tiskový dialog prohlížeče; tisk obsahuje všechny kapitoly i při zapnutém hledání.</p>
+<h3 id="jak-popsat-chybu-podpore">Jak popsat chybu podpoře?</h3>
+<p>Uveďte verzi aplikace, web či desktop, obrazovku, přesný postup a znění chyby. Přiložte pouze snímek očištěný od osobních a firemních dat. Nezasílejte hesla nebo tokeny. U problému s ukládáním nejprve ověřte, zda změna už neproběhla.</p>
+</section><section id="co-je-v-prirucce-nove" class="chapter" aria-labelledby="co-je-v-prirucce-nove-title"><span id="v0-8-0" class="legacy-anchor"></span><span id="v0-9-0" class="legacy-anchor"></span><span id="v0-9-1" class="legacy-anchor"></span><span id="v0-9-2" class="legacy-anchor"></span><span id="v0-9-3" class="legacy-anchor"></span><span id="v0-9-4" class="legacy-anchor"></span><span id="v0-9-5" class="legacy-anchor"></span><span id="v0-9-6" class="legacy-anchor"></span><span id="v1-2-1" class="legacy-anchor"></span><span id="v1-2-3" class="legacy-anchor"></span><span id="v1-3-1" class="legacy-anchor"></span><span id="v1-3-2" class="legacy-anchor"></span><span id="v1-4-0" class="legacy-anchor"></span><span id="v1-4-1" class="legacy-anchor"></span><span id="v1-4-2" class="legacy-anchor"></span><span id="v1-4-3" class="legacy-anchor"></span><span id="v1-5-1" class="legacy-anchor"></span><span id="v1-5-2" class="legacy-anchor"></span><span id="v1-5-3" class="legacy-anchor"></span><span id="novinky-changelog" class="legacy-anchor"></span><h2 id="co-je-v-prirucce-nove-title">Co je v příručce nové</h2>
+<p>Vydání příručky ze <strong>16. 9. 2026</strong>, ověřené proti <strong>v1.9.36</strong>, sjednocuje vzhled s landing page, popisuje aktuální boční navigaci a používá navazující příklad Javor. Obsahuje volbu příjemce poptávky, více VŘ pod jednou smlouvou, Složkomat a rozdíly mezi webem a desktopem.</p>
+<p>Historické odkazy na kapitoly zůstávají zachované. Tato kapitola je přehledem změn příručky; dostupnost funkcí v jiných verzích ověřujte v poznámkách ke konkrétnímu vydání aplikace.</p>
+</section><section id="pravni-dokumenty" class="chapter" aria-labelledby="pravni-dokumenty-title"><h2 id="pravni-dokumenty-title">⚖️ Právní dokumenty</h2>
 <p>Níže je uvedeno plné znění základních právních dokumentů služby Tender Flow. Dokumenty jsou dostupné také samostatně na webu:</p>
 <ul>
 <li><a href="https://www.tenderflow.cz/terms">Podmínky užívání</a></li>
@@ -1507,7 +613,7 @@
 <h4 id="8-dusevni-vlastnictvi">8. Duševní vlastnictví</h4>
 <p>Služba, její obsah a software jsou chráněny právními předpisy o duševním vlastnictví. Uživatel získává nevýhradní licenci k užívání služby v rozsahu nezbytném pro její využití v rámci sjednaného tarifu. Bez předchozího písemného souhlasu provozovatele není dovoleno službu ani její části kopírovat, upravovat, distribuovat, zpřístupňovat třetím osobám ani používat k tvorbě odvozených řešení.</p>
 <h4 id="9-ochrana-osobnich-udaju-a-duvernost">9. Ochrana osobních údajů a důvěrnost</h4>
-<p>Zpracování osobních údajů se řídí samostatným dokumentem „Zásady ochrany osobních údajů&quot;. V rozsahu, ve kterém uživatel do služby ukládá osobní údaje třetích osob, odpovídá za zákonnost takového zpracování a za splnění svých informačních povinností.</p>
+<p>Zpracování osobních údajů se řídí samostatným dokumentem „Zásady ochrany osobních údajů". V rozsahu, ve kterém uživatel do služby ukládá osobní údaje třetích osob, odpovídá za zákonnost takového zpracování a za splnění svých informačních povinností.</p>
 <p>Provozovatel přijímá přiměřená technická a organizační opatření k ochraně dat a zpracovává pouze nezbytné provozní, bezpečnostní a incidentní záznamy potřebné pro provoz, obranu systému a řešení chyb.</p>
 <h4 id="10-odpovednost-a-omezeni-zaruk">10. Odpovědnost a omezení záruk</h4>
 <p>Služba je poskytována v podobě, v jaké je průběžně nabízena. Provozovatel neodpovídá za škodu vzniklou v důsledku nesprávného použití služby, nedostatečného zabezpečení účtu ze strany uživatele, vad vstupních dat, výpadků služeb třetích stran nebo okolností, které nemohl přiměřeně ovlivnit.</p>
@@ -1531,7 +637,7 @@
 <p>Ve vztahu k údajům o zákaznících, uživatelích účtů, fakturaci, komunikaci a provozu služby vystupujeme zpravidla jako správce osobních údajů. V rozsahu, ve kterém uživatel do služby ukládá osobní údaje třetích osob v rámci vlastních procesů, může provozovatel vystupovat také jako zpracovatel pro daného uživatele.</p>
 <p>Postavení stran se vždy posuzuje podle konkrétního účelu zpracování a role, ve které jsou údaje do služby vloženy nebo prostřednictvím služby spravovány.</p>
 <p>Tyto zásady se použijí jak na vztahy s podnikateli a organizacemi, tak na vztahy se spotřebiteli. Rozsah zpracování se může lišit podle typu účtu, objednané služby a role konkrétní osoby v systému.</p>
-<p>Pokud provozovatel při poskytování služby zpracovává osobní údaje pro zákazníka jako jeho zpracovatel, řídí se tento vztah také samostatnou zpracovatelskou doložkou dostupnou v dokumentu „DPA&quot;.</p>
+<p>Pokud provozovatel při poskytování služby zpracovává osobní údaje pro zákazníka jako jeho zpracovatel, řídí se tento vztah také samostatnou zpracovatelskou doložkou dostupnou v dokumentu „DPA".</p>
 <h4 id="3-kategorie-zpracovavanych-udaju">3. Kategorie zpracovávaných údajů</h4>
 <p>Můžeme zpracovávat zejména identifikační a kontaktní údaje, údaje o uživatelském účtu, přihlašování a oprávněních, fakturační a platební údaje, údaje o komunikaci se zákaznickou podporou a technické údaje o používání služby.</p>
 <ul>
@@ -1574,7 +680,7 @@
 <p>Uživatelé mají právo na přístup, opravu, výmaz, omezení zpracování, přenositelnost a vznést námitku. Pokud je zpracování založeno na souhlasu, lze tento souhlas kdykoli odvolat, aniž je tím dotčena zákonnost předchozího zpracování.</p>
 <p>Žádost je možné zaslat na adresu martinkalkus [zavináč] icloud [tečka] com. Subjekt údajů má současně právo podat stížnost u Úřadu pro ochranu osobních údajů.</p>
 <h4 id="11-cookies-logy-a-provozni-analytika">11. Cookies, logy a provozní analytika</h4>
-<p>V rámci provozu webu a aplikace můžeme používat cookies a podobné technologie. Podrobnosti o jejich kategoriích, účelu a správě jsou uvedeny v samostatném dokumentu „Zásady používání cookies&quot;.</p>
+<p>V rámci provozu webu a aplikace můžeme používat cookies a podobné technologie. Podrobnosti o jejich kategoriích, účelu a správě jsou uvedeny v samostatném dokumentu „Zásady používání cookies".</p>
 <p>Za účelem zabezpečení, prevence zneužití, diagnostiky a zajištění stability zpracováváme také nezbytné technické a incidentní logy. Tyto záznamy neslouží k obsahové kontrole uživatelských dat.</p>
 <p>U přihlášených uživatelů dále vedeme agregované denní provozní statistiky: aktivní čas pouze při viditelném a ovládaném okně, souhrnné počty relací a změn, objem přenesených dat a čas poslední aktivity. Neukládáme jednotlivé heartbeat události, obsah práce ani jednotlivé vstupy uživatele. Tyto údaje slouží ke správě a kapacitnímu vyhodnocení poskytované B2B služby a uchovávají se nejvýše 365 dní.</p>
 <h4 id="12-zmeny-techto-zasad">12. Změny těchto zásad</h4>
@@ -1645,7 +751,7 @@
 <p>Odpovědná osoba: Martin Kalkuš</p>
 <p>Oficiální online verze: <a href="https://www.tenderflow.cz/imprint">Provozovatel a kontaktní údaje</a></p>
 <hr>
-<h2 id="licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</h2>
+</section><section id="licence-prava-a-ochrana-dat" class="chapter" aria-labelledby="licence-prava-a-ochrana-dat-title"><h2 id="licence-prava-a-ochrana-dat-title">Licence, práva a ochrana dat</h2>
 <p>Aplikace Tender Flow je chráněna autorským právem a souvisejícími předpisy. Uživatel získává nevýhradní licenci k používání aplikace pouze v rozsahu potřebném pro její řádné užívání v rámci sjednaného tarifu.</p>
 <p>Bez předchozího výslovného písemného souhlasu vlastníka není dovoleno aplikaci ani její části:</p>
 <ul>
@@ -1660,24 +766,5 @@
 <p><strong>Autor a vlastník:</strong> Martin Kalkuš (<a href="mailto:martinkalkus82@gmail.com">martinkalkus82@gmail.com</a>), provozovatel služby <code>tenderflow.cz</code>.</p>
 <p>© 2025 Martin Kalkuš. Všechna práva vyhrazena.</p>
 <hr>
-</article>
-          <div class="generated">
-            Generováno z <code>/public/user-manual/index.md</code>
-          </div>
-        </div>
-      </main>
-    </div>
-    <script>
-      document.addEventListener("click", (e) => {
-        const a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
-        if (!a) return;
-        const id = a.getAttribute("href").slice(1);
-        const el = document.getElementById(id);
-        if (!el) return;
-        e.preventDefault();
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        history.replaceState(null, "", "#" + id);
-      });
-    </script>
-  </body>
-</html>
+</section></article><footer>Příručka Tender Flow · Ukázkové firmy, osoby i částky jsou fiktivní. <a href="#manual-content">Zpět nahoru ↑</a></footer></main></div>
+<dialog id="screenshot-dialog" aria-label="Zvětšený snímek aplikace"><button type="button" id="close-screenshot" autofocus>Zavřít ×</button><img alt=""><p></p></dialog></body></html>
