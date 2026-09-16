@@ -66,7 +66,7 @@ describe("LandingPage nové moduly", () => {
       "href",
       DESKTOP_DOWNLOADS[0].href,
     );
-    expect(within(hero).getByRole("link", { name: "Stáhnout pro macOS" })).toHaveAttribute(
+    expect(within(hero).getByRole("link", { name: "Stáhnout pro macOS (Apple Silicon)" })).toHaveAttribute(
       "href",
       DESKTOP_DOWNLOADS[1].href,
     );

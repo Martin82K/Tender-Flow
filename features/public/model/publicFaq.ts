@@ -21,7 +21,7 @@ export const PUBLIC_FAQ: ReadonlyArray<{ question: string; answer: string }> = [
   },
   {
     "question": "Je Tender Flow dostupný na webu a desktopu? Funguje offline?",
-    "answer": "Tender Flow je dostupný jako webová aplikace a desktopová aplikace pro Windows a macOS. Instalátory stáhnete na úvodní stránce nebo na https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Přihlášení, ověření licence, sdílená data, synchronizace a AI služby vyžadují připojení k internetu. Některé lokální nástroje pracují se soubory v počítači; nejde o plný offline režim celé aplikace."
+    "answer": "Tender Flow je dostupný jako webová aplikace a desktopová aplikace pro Windows a macOS (Apple Silicon). Instalátory stáhnete na úvodní stránce nebo na https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Přihlášení, ověření licence, sdílená data, synchronizace a AI služby vyžadují připojení k internetu. Některé lokální nástroje pracují se soubory v počítači; nejde o plný offline režim celé aplikace."
   },
   {
     "question": "Jaké podklady lze v projektu evidovat a exportovat?",

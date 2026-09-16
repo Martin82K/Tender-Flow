@@ -12,7 +12,7 @@ Aktualizováno: 8. září 2026.
 - Obchodní konzultace a individuální ukázka: martin@tenderflow.cz.
 - Obecný kontakt: info@tenderflow.cz.
 - Jazyk aplikace: čeština. Zaměření: stavební firmy v České republice a na Slovensku.
-- Platformy: web, desktop pro Windows a macOS. Instalátory: https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Dostupnost funkcí závisí na licenci, roli, platformě a konfiguraci.
+- Platformy: web, desktop pro Windows a macOS (Apple Silicon). Instalátory: https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Dostupnost funkcí závisí na licenci, roli, platformě a konfiguraci.
 
 ## Aktuální funkce
 
@@ -64,7 +64,7 @@ TODO Osobní nabízí seznamy, projekty, podúkoly, termíny a připomínky. Vol
 
 ### Je Tender Flow dostupný na webu a desktopu? Funguje offline?
 
-Tender Flow je dostupný jako webová aplikace a desktopová aplikace pro Windows a macOS. Instalátory stáhnete na úvodní stránce nebo na https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Přihlášení, ověření licence, sdílená data, synchronizace a AI služby vyžadují připojení k internetu. Některé lokální nástroje pracují se soubory v počítači; nejde o plný offline režim celé aplikace.
+Tender Flow je dostupný jako webová aplikace a desktopová aplikace pro Windows a macOS (Apple Silicon). Instalátory stáhnete na úvodní stránce nebo na https://github.com/Martin82K/Tender-Flow-Releases/releases/latest. Přihlášení, ověření licence, sdílená data, synchronizace a AI služby vyžadují připojení k internetu. Některé lokální nástroje pracují se soubory v počítači; nejde o plný offline režim celé aplikace.
 
 ### Jaké podklady lze v projektu evidovat a exportovat?
 

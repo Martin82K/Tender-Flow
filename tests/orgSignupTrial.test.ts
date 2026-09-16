@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { APP_VERSION } from "@/config/version";
 import {
+  DESKTOP_DISTRIBUTION_VERSION,
   DESKTOP_DOWNLOADS,
   DESKTOP_RELEASES_LATEST_URL,
 } from "@features/public/model/desktopDownloads";
@@ -11,17 +11,19 @@ import {
 } from "@features/subscription/model/trial";
 
 describe("desktop download URLs", () => {
-  it("points Windows and macOS installers at the current app version and a stable latest page", () => {
+  it("points Windows and Apple Silicon macOS installers at published latest assets", () => {
     expect(DESKTOP_RELEASES_LATEST_URL).toBe(
       "https://github.com/Martin82K/Tender-Flow-Releases/releases/latest",
     );
     expect(DESKTOP_DOWNLOADS.map((item) => item.id)).toEqual(["windows", "macos"]);
     expect(DESKTOP_DOWNLOADS[0].href).toBe(
-      `https://github.com/Martin82K/Tender-Flow-Releases/releases/download/v${APP_VERSION}/Tender-Flow-Setup-${APP_VERSION}.exe`,
+      `https://github.com/Martin82K/Tender-Flow-Releases/releases/latest/download/Tender-Flow-Setup-${DESKTOP_DISTRIBUTION_VERSION}.exe`,
     );
     expect(DESKTOP_DOWNLOADS[1].href).toBe(
-      `https://github.com/Martin82K/Tender-Flow-Releases/releases/download/v${APP_VERSION}/Tender-Flow-${APP_VERSION}-arm64.dmg`,
+      `https://github.com/Martin82K/Tender-Flow-Releases/releases/latest/download/Tender-Flow-${DESKTOP_DISTRIBUTION_VERSION}-arm64.dmg`,
     );
+    expect(DESKTOP_DOWNLOADS[1].label).toBe("Stáhnout pro macOS (Apple Silicon)");
+    expect(DESKTOP_DOWNLOADS[0].href).not.toContain(`/download/v${DESKTOP_DISTRIBUTION_VERSION}/`);
   });
 });
 

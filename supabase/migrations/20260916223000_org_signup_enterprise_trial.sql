@@ -73,8 +73,40 @@ BEGIN
   LIMIT 1;
 
   IF v_org_id IS NOT NULL THEN
+    IF public._org_billable_seats_available(v_org_id) THEN
+      INSERT INTO public.organization_members (organization_id, user_id, role)
+      VALUES (v_org_id, p_user_id, 'member')
+      ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+      -- Signup still seeds a personal Pro trial on user_profiles. Joining an
+      -- existing organization inherits that org's entitlement, including the wall.
+      UPDATE public.user_profiles
+      SET
+        subscription_status = 'expired',
+        trial_ends_at = LEAST(COALESCE(trial_ends_at, now()), now() - interval '1 second'),
+        updated_at = now()
+      WHERE user_id = p_user_id
+        AND subscription_status = 'trial'
+        AND subscription_tier_override IS NULL;
+
+      RETURN v_org_id;
+    END IF;
+
+    -- Seat limit reached: do not exceed licensed seats and do not clone the
+    -- company tenant. The user gets a personal 14-day trial instead.
+    v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(p_email, '@', 1));
+
+    INSERT INTO public.organizations (
+      name, type, owner_user_id, subscription_tier, subscription_status,
+      created_at, billing_period_start, billing_period_end, expires_at
+    ) VALUES (
+      v_org_name, 'personal', p_user_id, 'enterprise', 'trial',
+      v_created_at, v_created_at, v_trial_end, v_trial_end
+    )
+    RETURNING id INTO v_org_id;
+
     INSERT INTO public.organization_members (organization_id, user_id, role)
-    VALUES (v_org_id, p_user_id, 'member')
+    VALUES (v_org_id, p_user_id, 'owner')
     ON CONFLICT (organization_id, user_id) DO NOTHING;
 
     RETURN v_org_id;
@@ -171,7 +203,17 @@ BEGIN
   WHERE up.user_id = target_user_id
     AND (
       (up.subscription_status = 'active' AND (up.subscription_expires_at IS NULL OR up.subscription_expires_at > now()))
-      OR (up.subscription_status = 'trial' AND up.trial_ends_at > now() AND (up.subscription_expires_at IS NULL OR up.subscription_expires_at > now()))
+      OR (
+        up.subscription_status = 'trial'
+        AND up.trial_ends_at > now()
+        AND (up.subscription_expires_at IS NULL OR up.subscription_expires_at > now())
+        AND NOT EXISTS (
+          SELECT 1
+          FROM public.organization_members om
+          WHERE om.user_id = target_user_id
+            AND om.is_active = true
+        )
+      )
       OR (up.subscription_status IN ('cancelled', 'canceled') AND up.subscription_expires_at > now())
     );
   IF result_tier IN ('starter', 'pro', 'enterprise') THEN
