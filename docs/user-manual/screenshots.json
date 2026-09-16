@@ -1,0 +1,14 @@
+{
+  "version": "1.9.36",
+  "capturedAt": "2026-09-16",
+  "source": "docs/user-manual/preview.tsx",
+  "data": "synthetic-only",
+  "screenshots": [
+    "assets/navigace.png",
+    "assets/nabidky.png",
+    "assets/prijemce.png",
+    "assets/smlouva.png",
+    "assets/odpojeni.png",
+    "assets/plan-vr.png"
+  ]
+}

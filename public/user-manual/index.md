@@ -1,891 +1,399 @@
-# Tender Flow – Uživatelská příručka
+# Tender Flow — Uživatelská příručka
 
-Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
+Průvodce je ověřený proti aplikaci **1.9.36 k 16. 9. 2026**. Názvy tlačítek a sekcí odpovídají této verzi. Dostupnost funkcí závisí na oprávnění, nastavení organizace a platformě. Obrázky zachycují skutečné komponenty aplikace s připravenými syntetickými daty; jejich okolí je zjednodušené pro výuku.
 
-Verze příručky: **2.2** • Datum: **2026‑04‑07** • Aplikace: **v1.5.3**
+## Rychlý start
 
-<p class="manualLogoWrap">
-  <img class="manualLogo" src="./assets/logo.svg" alt="Tender Flow logo" />
-</p>
+**Cíl:** projít cestu od stavby k vybrané nabídce a smlouvě. Na ukázce sledujeme jeden projekt, aby na sebe názvy, kontakty a částky navazovaly.
 
----
+### Naše ukázková stavba
 
-## 📋 Obsah
+| Údaj | Syntetický příklad |
+| --- | --- |
+| Stavba | Bytový dům Javor |
+| Lokalita | Ukázková lokalita, Brno |
+| Investor | Investor Javor — ukázka |
+| Poptávka | Elektroinstalace |
+| Předpokládaný rozpočet VŘ | 1 500 000 Kč bez DPH |
+| Dodavatelé | Javor Elektro — ukázka, Lumen Mont — ukázka, Voltis — ukázka |
+| Kontaktní osoby | Anna Ukázková a Petr Vzorový |
+| E-mail | anna@example.com, petr@example.com |
+| Telefon | Záměrně neplatné číslo +420 000 000 001 |
 
-- [🚀 Rychlý start](#rychly-start)
-- [🎯 Účel a role](#ucel-a-role)
-- [🔐 Přihlášení a účet](#prihlaseni-a-ucet)
-- [🏢 Organizace a předplatné](#organizace-a-predplatne)
-- [🧭 Navigace v aplikaci](#navigace-v-aplikaci)
-- [📊 Dashboard](#dashboard)
-- [🏗️ Detail stavby](#detail-stavby)
-- [👥 Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
-- [🏠 Správa staveb](#sprava-staveb)
-- [📈 Přehled staveb (analytika)](#prehled-staveb-analytika)
-- [🔧 Nástroje](#nastroje)
-- [💻 Tender Flow Desktop](#tender-flow-desktop)
-- [⚙️ Nastavení aplikace](#nastaveni-aplikace)
-- [🛡️ Administrace systému](#administrace-systemu)
-- [❓ Časté otázky](#caste-otazky)
-- [🎉 Novinky (changelog)](#novinky-changelog)
-- [⚖️ Právní dokumenty](#pravni-dokumenty)
+Všechny firmy, osoby, údaje o zakázce a částky v příkladech jsou fiktivní. Adresy na doméně **example.com** slouží pouze pro dokumentaci. Ukázkové zprávy neodesílejte. Vlastní nácvik provádějte v prostředí, které vám určil správce.
 
----
+### První průchod aplikací
 
-## 🚀 Rychlý start
+1. Přihlaste se a otevřete **Správu staveb**. Založte stavbu **Bytový dům Javor**.
+2. Do **Subdodavatelů** přidejte ukázkovou firmu a její kontaktní osoby.
+3. Vyberte stavbu a v **Plánu VŘ** připravte položku **Elektroinstalace** s termínem.
+4. Ve **Výběrových řízeních** přidejte dodavatele do dané poptávky.
+5. Na kartě zvolte příjemce a připravte poptávku. Před odesláním zkontrolujte koncept v e-mailovém klientu.
+6. Po obdržení nabídek doplňte ceny a porovnejte rozsah, termíny i podmínky.
+7. Vybranou nabídku propojte se smlouvou. Zkontrolujte cenu, dodatky a příslušná VŘ.
 
-Tato sekce vás provede základním workflow aplikace Tender Flow – od přihlášení po vyhodnocení nabídek.
+**Výsledek:** víte, ke které stavbě patří poptávka, komu je určená nabídka a ve které smlouvě je výsledek zachycen. Podrobné postupy jsou v navazujících kapitolách.
 
-1. **Přihlaste se** emailem a heslem (nebo biometrikou v desktop verzi).
-2. **Zorientujte se** – v levém sidebaru najdete Dashboard, Stavby, Subdodavatele, Nástroje a Nastavení.
-3. **Vytvořte stavbu** – v sekci **Správa staveb** klikněte na tlačítko pro vytvoření nové stavby a vyplňte základní údaje (název, lokalita, investor).
-4. **Přidejte kontakty** – v sekci **Subdodavatelé** založte firmy a kontaktní osoby, které budete oslovovat.
-5. **Naplánujte výběrová řízení** – v detailu stavby otevřete záložku **Plán VŘ** a přidejte položky s termíny.
-6. **Spusťte pipeline** – ze záložky **Výběrová řízení** přidávejte nabídky, přesouvejte karty mezi stavy a vyhodnocujte.
-7. **Vyhodnoťte nabídky** – porovnejte ceny z jednotlivých kol, přesuňte vítěze do stavu SOD.
-8. **Založte smlouvu** – na záložce **Smlouvy** evidujte smluvní podmínky, dodatky a čerpání.
+## Přihlášení a účet
 
----
+**K čemu slouží:** přístup k datům, která smíte ve své organizaci používat.
 
-## 🎯 Účel a role
+1. Na přihlašovací obrazovce vyplňte svůj e-mail a heslo.
+2. Potvrďte přihlášení. Pokud je vyžadováno další ověření, dokončete zobrazený krok.
+3. Po vstupu ověřte správnou organizaci a dostupné stavby. Chybějící stavbu řešte s jejím vlastníkem.
+4. Na sdíleném počítači se po práci odhlaste.
 
-Tender Flow je centrální místo pro evidenci staveb a řízení výběrových řízení: od plánování poptávek, přes oslovení subdodavatelů, až po vyhodnocení nabídek, evidenci vítěze a správu smluv.
+**Příklad:** Anna potřebuje pracovat na Javoru. Nestačí, že má účet; potřebuje také přístup ke stavbě a povolené funkce. Při problému s přístupem nezkoušejte jiný účet kolegy, obraťte se na správce.
 
-**Komu je aplikace určena:**
-- **Přípraváři** – hlavní uživatelé, zadávají poptávky, vyhodnocují nabídky, připravují podklady.
-- **Stavbyvedoucí** – sledují stav výběrových řízení, harmonogram a smlouvy na svých stavbách.
-- **Vedení / management** – využívá přehledy, AI analýzy a exporty pro rozhodování.
+**Častá chyba:** zaměnit zavření okna desktop aplikace za odhlášení. Rozhodující je použití odhlašovací akce a její potvrzení.
 
-**Hlavní workflow:**
+## Organizace a předplatné
 
-Plán VŘ → Vytvoření poptávky → Oslovení subdodavatelů → Sběr nabídek → Vyhodnocení → Výběr vítěze → Smlouva → Realizace
-
-Pozn.: odeslání emailu probíhá přes váš výchozí emailový klient (funkce používá `mailto:`).
-
----
-
-## 🔐 Přihlášení a účet
-
-1. Zadejte email a heslo.
-2. Klikněte na **Přihlásit**.
-3. Odhlášení najdete dole v levém panelu (ikonka `logout`).
-
-![Přihlášení do aplikace Tender Flow](./assets/01-login.svg)
-
-> 💡 **Tip:** Uložte si přihlášení pro rychlejší přístup příště. V desktop verzi můžete aktivovat biometrické přihlášení (Touch ID / Windows Hello) – viz sekce Tender Flow Desktop.
-
----
-
-## 🏢 Organizace a předplatné
-
-Tender Flow funguje jako multi-tenant aplikace: každý uživatel patří do **organizace** (tenant) a data jsou mezi organizacemi oddělená.
-
-- **Firemní email**: typicky se přidáte do organizace podle domény (nebo se pro doménu vytvoří nová organizace).
-- **Osobní email (např. Gmail/Seznam)**: vytvoří se osobní organizace pro vaše použití.
-
-Organizace ovlivňuje zejména:
-
-- **Předplatné** (dostupnost vybraných funkcí v menu).
-- **Statusy kontaktů** (každá organizace má vlastní seznam a barvy).
-
-> 💡 **Tip:** Pokud některou část aplikace nevidíte (např. Import kontaktů, Přehled staveb, Excel nástroje), je pravděpodobně skrytá kvůli nastavení předplatného / oprávnění.
-
-### Tarify a dostupnost funkcí
-
-| Funkce | Free | PRO | Enterprise |
-|--------|:----:|:---:|:----------:|
-| Dashboard, Stavby, Kontakty | ✅ | ✅ | ✅ |
-| Výběrová řízení (Pipeline) | – | ✅ | ✅ |
-| AI přehledy | – | ✅ | ✅ |
-| Harmonogram | – | ✅ | ✅ |
-| Excel nástroje | – | ✅ | ✅ |
-| Import kontaktů | – | ✅ | ✅ |
-| Export PDF / XLSX | – | ✅ | ✅ |
-| Záloha dat (osobní) | – | ✅ | ✅ |
-| Smlouvy | – | – | ✅ |
-| DocHub | – | – | ✅ |
-| Dynamické šablony | – | – | ✅ |
-| Záloha dat (organizace) | – | – | ✅ |
+**K čemu slouží:** organizace vymezuje tým a jeho data. Dostupnost modulů navíc ovlivňuje nastavení funkcí a oprávnění uživatele.
 
 ### Členství a role v organizaci
 
-V **Nastavení → Organizace** můžete spravovat členství v organizaci:
+V nastavení organizace zkontrolujte členství. Správa členů, žádostí o vstup a rolí je dostupná podle vaší role. Vlastník organizace řeší přijetí členů a předání vlastnictví.
 
-- **Členové organizace**: přehled členů a jejich rolí (vlastník/admin/člen).
-- **Žádosti o vstup** (vlastník): schvalování a zamítání čekajících žádostí.
-- **Ruční přidání uživatele** (vlastník): přidání uživatele podle emailu (musí být registrovaný).
-- **Změna role člena** (vlastník): přepínání mezi rolí admin a člen.
-- **Předání vlastnictví organizace** (vlastník): bezpečný převod ownershipu na jiného člena.
+**Příklad:** Anna a Petr patří do stejné organizace. Pro spolupráci na Javoru musí být nastavený i přístup ke konkrétní stavbě; členství v organizaci samo nevysvětluje všechna projektová oprávnění.
 
-> 💡 **Tip:** Uživatel může požádat o vstup do organizace ze svého profilu; žádost potvrdí vlastník organizace.
+### Dostupnost funkcí
 
----
+Pokud položku v menu nevidíte nebo je akce nepřístupná, zkontrolujte s administrátorem:
 
-## 🧭 Navigace v aplikaci
+- zda je funkce povolená pro organizaci a účet;
+- zda máte přístup k vybrané stavbě a právo ji upravovat;
+- zda funkce vyžaduje desktop nebo připojenou integraci.
 
-V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.
+Příručka neuvádí pevnou tabulku tarifů: skutečný přístup určuje aktuální konfigurace služby. Pro nabídku předplatného použijte [aktuální web Tender Flow](/#ceny).
 
-Na mobilním telefonu otevřete navigaci tlačítkem **Menu** vlevo nahoře. Navigace se zobrazí jako boční panel, takže část aktuální obrazovky zůstane viditelná. Panel zavřete křížkem v jeho hlavičce nebo klepnutím do stmavené oblasti mimo panel. Tlačítko Menu má v horní liště vyhrazené místo a nepřekrývá název projektu ani ostatní akce.
+## Navigace v aplikaci
 
-- **📊 Dashboard** – přehled vybrané stavby a export.
-- **🏗️ Stavby** – seznam staveb (projekty).
-- **👥 Subdodavatelé** – databáze kontaktů.
-- **🔧 Nástroje** – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).
-- **⚙️ Nastavení** – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).
+**K čemu slouží:** odlišit celofiremní agendu od práce na jedné stavbě. V aktuálním rozhraní jsou sekce stavby dostupné v boční navigaci.
 
-![Navigace v aplikaci](./assets/02-navigation.svg)
+1. Vyberte stavbu. Její název se zobrazí v přepínači v levém panelu.
+2. Kliknutím na název otevřete výběr dalších staveb. Lze hledat podle názvu nebo lokality.
+3. Pod vybranou stavbou otevřete příslušnou sekci.
+4. **Smlouvy** rozbalují položky **Objednatel** a **Subdodavatel**. **Nastavení stavby** rozbaluje **Odkazy PD**, **Šablony** a **Složkomat**, pokud jsou dostupné.
 
----
+![01 — Boční navigace skutečné aplikace: vybraná stavba Javor, rozbalené smlouvy a nastavení stavby.](./assets/navigace.png)
 
-## 📊 Dashboard
+| Sekce stavby | Co zde vyřídíte |
+| --- | --- |
+| Přehled | Základní údaje, metriky a finance stavby |
+| Dokumenty | Dokumentovou agendu a ceníky podle dostupných funkcí |
+| Plán VŘ | Přípravu a termíny jednotlivých výběrových řízení |
+| Výběrová řízení | Poptávky, dodavatele, nabídky a jejich stavy |
+| Smlouvy → Objednatel / Subdodavatel | Smlouvy podle smluvní strany |
+| Harmonogram | Časové souvislosti projektu |
+| Mapa | Mapové zobrazení podle dostupnosti modulu |
+| Realizační tým | Tým vybrané stavby |
+| Nastavení stavby | Odkazy na dokumentaci, šablony a Složkomat |
 
-Dashboard zobrazuje přehled jedné vybrané stavby. V hlavičce můžete přepnout stavbu a vyexportovat XLSX.
+**Na mobilu:** otevřete hlavní menu v horní liště. Po výběru sledujte název stavby, abyste nezadali údaj do jiného projektu.
 
-![Dashboard aplikace Tender Flow](./assets/03-dashboard.svg)
+**Častá chyba:** hledat Složkomat v obecném nastavení účtu. Patří do **Nastavení stavby → Složkomat**.
 
-### Co dashboard zobrazuje
+## Správa staveb
 
-- Přehled poptávek a jejich stav
-- Klíčové metriky stavby
-- Rychlý přístup k nejčastějším akcím
-- Možnost exportu dat do Excelu
+**K čemu slouží:** založit projekt, přehledně ho označit a určit jeho životní fázi.
 
-Po kliknutí na stavbu v sidebaru se otevře detail se záložkami – viz následující sekce.
+1. Ve **Správě staveb** otevřete formulář pro novou stavbu.
+2. Zadejte **Bytový dům Javor**, ukázkovou lokalitu a další požadované údaje.
+3. Uložte a otevřete detail stavby. Ověřte název v boční navigaci.
+4. V **Přehledu** průběžně doplňujte údaje a termíny podle formuláře.
 
----
-
-## 🏗️ Detail stavby
-
-Po výběru stavby v sidebaru se otevře detail se šesti záložkami:
-
-- **📊 Přehled** – rozpočty, stav, metriky.
-- **📅 Plán VŘ** – plánování výběrových řízení.
-- **📋 Výběrová řízení** – pipeline poptávek a nabídek.
-- **📜 Smlouvy** – evidence smluv, dodatků a čerpání.
-- **📆 Harmonogram** – Gantt navázaný na termíny výběrových řízení.
-- **📁 Dokumenty** – odkazy na dokumentaci a šablony poptávek.
-
-![Záložky detailu stavby](./assets/04-project-tabs.svg)
-
-### 📊 Přehled
-
-Záložka **Přehled** shrnuje klíčové údaje o stavbě na jednom místě:
-
-- **Základní údaje**: název, lokalita, datum dokončení, investor, technický dozor, stavbyvedoucí.
-- **Finance**: plánované náklady, aktuální stav rozpočtu.
-- **Odkazy na dokumenty**: rychlý přístup k projektové dokumentaci.
-- **Přehled poptávek**: tabulka s bilancí výběrů a přehledem stavu kategorií.
-- **Proklik do pipeline**: z přehledu se můžete dostat přímo do kanbanu dané poptávky.
-
-### 📅 Plán VŘ
-
-Plán VŘ slouží k naplánování výběrových řízení v čase a (dle potřeby) k jejich převodu do poptávek.
-
-- Vytvořte položku a nastavte termín (od–do).
-- Po vytvoření se nabídne tlačítko „Vytvořit" pro převod do pipeline.
-- Stav položky reflektuje průběh daného výběrového řízení (čeká na vytvoření / probíhá / ukončeno).
-
-![Plán VŘ](./assets/11-tender-plan.svg)
-
-### 📋 Výběrová řízení (Pipeline)
-
-Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop).
-
-Dodavatele vyberte v dialogu a potvrďte **Přenést do pipeline**. Během ukládání se zobrazí **Přidávám…** a výběr nelze znovu odeslat ani měnit. Karta se objeví po potvrzení uložení. Pokud uložení nelze ověřit, výběr zůstane otevřený; zkontrolujte připojení a oprávnění a zkuste přidání znovu. Opakování stejného dodavatele ve stejné poptávce nevytvoří druhou nabídku ani nepřepíše původní cenu či stav. Stejného dodavatele lze nadále přidat do jiných poptávek a projektů. Zpráva **Dodavatelé uloženi** při chybě obnovy znamená, že zápis proběhl a stačí obnovit projekt. Zpráva **Uložena část dodavatelů** znamená, že potvrzené nabídky už zůstávají uložené; v dialogu je pro další pokus vybraná pouze zbývající část.
-
-V přehledu můžete přepnout na **tabulkové zobrazení**. Tabulka se přizpůsobí dostupné šířce; na menší obrazovce ji lze posouvat vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky poptaných dodavatelů se stavem, cenou, kontaktem a poznámkou. Dodavatelé jsou barevně rozlišeni a automaticky seřazeni podle výsledného stavu; uvnitř stejného stavu abecedně. Tlačítky **XLSX** a **PDF** vyexportujete aktuálně filtrovaná VŘ včetně rozbalovaných dodavatelských údajů ve stejném pořadí. Hlavička exportu obsahuje stavbu, typ Soutěž/Realizace, datum a čas, verzi Tender Flow a jméno uživatele, který export vytvořil.
-
-![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg)
-
-#### Stavy nabídky (sloupce)
-
-| Sloupec | Význam |
-|---------|--------|
-| **Oslovení** | Připraven k oslovení (může se zobrazit „Generovat poptávku") |
-| **Odesláno** | Poptávka odeslána, čeká se na reakci |
-| **Cenová nabídka** | Dorazila nabídka od subdodavatele |
-| **Užší výběr** | Shortlist kandidátů |
-| **Jednání o SOD** | Finalisté / jednání o smlouvě |
-| **Odmítnuto** | Neúspěšní subdodavatelé |
-
-#### Karta nabídky
-
-Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email.
-
-- Karta zaznamenává až **3 kola VŘ** – do aktuální ceny se počítá aktivně vybrané kolo.
-- Přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz).
-- Pro vítěze se zobrazuje ikona smlouvy: šedo-bílá → blikající odškrtnutí (smlouva vyřízena).
-- Stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv).
-- Po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo).
-
-![Karta nabídky v Tender Flow](./assets/06-bid-card.svg)
-
-#### Další funkce pipeline
-
-- **Filtrování** dle stavu poptávky (otevřené / uzavřené / zasmluvněné).
-- **Export**: poslední ikona vpravo otevře nabídku formátů Excel a PDF. Název akce se zobrazí po najetí myší.
-- **Otevřít složku**: předposlední ikona složky otevře dokumentovou složku aktuální poptávky. Název složky se zobrazí po najetí myší.
-- **Generování poptávky**: vytvoří email s údaji o poptávce pro vybraného subdodavatele.
-
-Nabídky **Hromadný e-mail** a **Export** automaticky přebírají zvolený vzhled aplikace (skin) i světlé nebo tmavé téma, včetně barev, ohraničení, zvýraznění a stínů.
-
-### ✉️ Hromadný e-mail subdodavatelům
-
-Tlačítko **Hromadný e-mail** v hlavičce pipeline připraví jeden koncept pro více příjemců. Z nabídky lze zvolit:
-
-- **Standardní poptávka** – použije standardní šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
-- **Materiálová poptávka** – použije materiálovou šablonu a zahrne subdodavatele ve sloupci **Oslovení**.
-- **Poděkování nevybraným** – zahrne účastníky s cenovou nabídkou kromě vítězů ve stavu **Jednání o SOD**.
-
-Před vytvořením konceptu se zobrazí potvrzení se seznamem zahrnutých a vyřazených kontaktů. Kontakty bez platné emailové adresy se neodešlou a duplicitní adresy se použijí pouze jednou.
-
-Z důvodu ochrany kontaktů je v poli **Komu (To)** uveden email přihlášeného uživatele a všechny adresy subdodavatelů jsou vloženy do **Skryté kopie (BCC)**. Jednotliví subdodavatelé proto nevidí adresy ostatních příjemců.
-
-Tender Flow zprávu přímo neodesílá. Připraví koncept ve zvoleném nebo výchozím emailovém klientu, kde jej uživatel před odesláním zkontroluje. Po úspěšném otevření hromadné poptávky se zahrnuté karty přesunou do sloupce **Odesláno**.
-
-### 📜 Smlouvy
-
-Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní stavby.
-
-- **📊 Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence).
-- **📄 Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.
-- **✏️ Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu.
-- **💰 Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.
-- **🏗️ Investor** – smlouva s objednatelem, dodatky a vystavené faktury včetně pozastávek A a B.
-
-> 💡 **Tip:** Při zakládání smlouvy lze data ze smluvních dokumentů předvyplnit automaticky (např. z PDF) a před uložením je ručně potvrdit.
-
-#### Fakturace investora a globální pozastávky
-
-1. V části **Investor** nastavte procento **Pozastávky A** a **Pozastávky B** jednou pro celou stavbu.
-2. Přidejte fakturu a zadejte fakturovanou částku. Ve sloupcích pozastávek se automaticky zobrazí vypočtené částky; procenta se na běžné faktuře nevyplňují.
-3. Změna globálních procent automaticky přepočítá faktury, které nastavení stavby dědí.
-4. Pokud má konkrétní faktura smluvní odchylku, odemkněte ji a použijte akci **Individuální pozastávky**. Explicitní hodnota `0 %` je také platná výjimka.
-5. Akcí **Použít globální pozastávky** výjimku zrušíte a faktura se znovu řídí nastavením stavby.
-6. Uložená smlouva, dodatky a faktury jsou kvůli lepší čitelnosti zobrazené jako text. Pole otevřete dvojklikem na vybraný záznam; při práci z klávesnice použijte **Enter** nebo mezerník. Akce **Zrušit** a ikona koše se zobrazí až během editace. Smazání dodatku nebo faktury je nutné potvrdit v modálním okně.
-
-#### Smluvní protokoly
-
-Z modulu smluv můžete generovat formální protokoly ke stavebnímu řízení. K dispozici jsou dva typy:
-
-**Předání díla SUB** (`sub_work_handover`)
-- Protokol pro předání a převzetí díla subdodavatele.
-- Obsahuje pole: stavební akce, předmět díla, termíny přejímky (smluvní/skutečný), soupis vad a nedodělků, smluvní pokuty, záruční doba, podpisy za zhotovitele i subdodavatele.
-- Výstup: Excel (`.xlsx`) a PDF.
-
-**Předání staveniště** (`site_handover`)
-- Protokol pro předání staveniště mezi objednatelem a zhotovitelem.
-- Obsahuje pole: název a číslo stavby, místo, smlouva o dílo, termíny zahájení/dokončení, předaná dokumentace, soupis vad, dohoda o vyklizení, záruční doba, podpisy.
-- Výstup: Excel (`.xlsx`).
-
-**Jak generovat protokol:**
-1. Na záložce **Smlouvy** vyberte smlouvu.
-2. Klikněte na akci generování protokolu.
-3. Údaje se předvyplní z dat smlouvy a projektu (dodavatel, IČ, cena, termíny).
-4. Zkontrolujte a doplňte pole označená jako povinná.
-5. Klikněte na generování – soubor se stáhne.
-
-### 📆 Harmonogram
-
-Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z dat v projektu.
-
-- **Jak se plní**: doplňte termíny v **Plán VŘ** (od–do) nebo termín v detailu **Výběrových řízení** (deadline).
-- **Zobrazení**: přepínání měřítka **Měsíce / Týdny / Dny**, volitelně přepínač **Realizace**.
-- **Editace**: tlačítko **Editace** umožní upravit termíny přímo v harmonogramu.
-- **Export**: menu **Export** nabízí `XLSX`, `PDF` a `XLSX s grafem`.
-
-### 📁 Dokumenty a šablony
-
-V záložce **Dokumenty** najdete podzáložky:
-
-- **📂 PD** – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).
-- **📝 Šablony** – šablona poptávky a šablona „email nevybraným" (lze použít interní editor šablon, nebo externí odkaz/soubor).
-- **📦 DocHub** – napojení na strukturu složek projektu (pokud je povoleno).
-- **💵 Ceníky** – odkaz na projektové ceníky + rychlý odkaz na složku `Ceníky` v DocHubu (pokud je připojen).
-
-V praxi zde typicky nastavíte:
-
-- odkaz na dokumentaci stavby (Drive/SharePoint apod.),
-- šablony emailů (poptávka / nevybraní),
-- ceníky a související složky.
-
-![Dokumenty a šablony](./assets/10-documents-templates.svg)
-
-#### DocHub: správa složek projektu
-
-DocHub je modul pro organizaci projektových složek v cloudovém nebo lokálním úložišti. Podporuje Google Drive, OneDrive a lokální/síťový disk (v desktop verzi).
-
-**Standardní struktura složek** (vytvořená automaticky):
-- PD (Projektová dokumentace)
-- Poptávky / Nabídky
-- Smlouvy
-- Realizace
-- Archiv
-- Ceníky
-- Složky dodavatelů (strukturované dle subdodavatele)
-
-**Nastavení DocHub:**
-1. Projekt → **Dokumenty** → **DocHub**.
-2. Vyberte providera (Google Drive / OneDrive / Tender Flow Desktop).
-3. Zadejte nebo vyberte kořenovou složku.
-4. Klikněte **Připojit složku** a poté **Synchronizovat**.
-
-**Kombinace online a lokální složky:**
-- Online připojení a lokální/síťovou složku lze používat současně.
-- Nejprve připojte cloudovou složku, potom zvolte **Tender Flow Desktop** a vyberte její lokálně synchronizovanou kopii.
-- Tender Flow ukládá lokální cestu pouze pro konkrétního uživatele a zařízení; ostatním uživatelům se cesta z vašeho počítače nesdílí.
-- Při otevření složky VŘ, poptávky nebo subdodavatele má přednost dostupná lokální složka. Pokud chybí nebo ji nelze otevřít, aplikace automaticky použije odpovídající online odkaz.
-- Jestliže online provider nemůže vrátit přesný odkaz na podsložku, otevře se bezpečný online kořen projektu.
-
-**DocHub v desktop verzi (lokální disk):**
-- Provider: **Tender Flow Desktop**
-- Podporuje libovolný disk (C:\, D:\, E:\, …) i síťové/sdílené disky
-- Klikněte na **Procházet** pro výběr složky přes nativní dialog, nebo zadejte cestu ručně (např. `D:\Projekty\Stavba` nebo `\\server\share\projekt`)
-
-> 💡 **Tip:** Složka nemusí být na systémovém disku ani ve složce OneDrive — můžete vybrat jakoukoliv dostupnou složku, včetně externích nebo síťových disků.
-
----
-
-## 👥 Subdodavatelé (Kontakty)
-
-Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).
-
-- **Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).
-- **Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).
-- **Hodnocení dodavatelů**: možnost přiřadit rating a stav (např. doporučuji / nedoporučuji).
-- **IČ a automatické doplnění**: po zadání IČ se mohou automaticky doplnit údaje o firmě.
-- **Hromadná úprava specializací**: vyberte více kontaktů zaškrtnutím a klikněte na tlačítko „Upravit specializace". Můžete specializace hromadně **přidat** (ke stávajícím), **odebrat** nebo **nahradit** (přepsat). K dispozici je rychlý výběr z existujících specializací i ruční zadání nových.
-
-![Subdodavatelé a kontakty](./assets/07-contacts.svg)
-
----
-
-## 🏠 Správa staveb
-
-Slouží pro vytváření staveb, změny statusu, archivaci a sdílení (dle oprávnění).
-
-![Správa staveb](./assets/08-project-management.svg)
-
-- **Vytvoření stavby**: název, lokalita, investor, fáze (soutěž / realizace).
-- **Archivace**: stavba se přesune do archivu, odebere se ze sidebaru. Lze vrátit zpět.
-- **Klonování**: převod soutěžní stavby na realizační.
-- **Smazání**: trvalé odstranění stavby (dle oprávnění).
+**Příklad:** Javor se nejprve připravuje v soutěži, později se řeší realizace. Fázi stavby nezaměňujte se stavem jedné nabídky dodavatele; jde o jiné úrovně evidence.
 
 ### Sdílení a oprávnění
 
-Stavbu můžete sdílet s dalšími uživateli. Sdílení podporuje dvě úrovně oprávnění:
+Sdílení stavby nastavujte podle role spolupracovníka. Před předáním práce ověřte, že kolega vidí potřebné sekce a smí provádět požadované změny. Realizační tým a přístupová oprávnění mají odlišný účel; samotný zápis jména do seznamu osob nepovažujte za důkaz přístupu.
 
-| Oprávnění | Co umožňuje |
-|-----------|-------------|
-| **✏️ Úpravy** | Čtení i zápis – uživatel může měnit data stavby, přidávat nabídky, upravovat smlouvy |
-| **👁️ Pouze čtení** | Uživatel vidí data, ale nemůže je měnit |
+**Výsledek:** Anna pracuje na správné stavbě a Petr má ověřený přístup k úkolům, které skutečně potřebuje. Archivovanou stavbu nezaměňujte se smazanou.
 
-- Sdílení nastavuje **vlastník stavby** v sekci Správa staveb.
-- V seznamu staveb vidíte, komu je stavba sdílena.
-- Sdílené osoby lze kdykoliv odebrat.
-- Propsání stavby jinému uživateli může trvat několik minut.
+## Dashboard
 
-![Sdílení: oprávnění](./assets/16-project-sharing-permissions.svg)
+**K čemu slouží:** rychlá orientace v práci a finančních údajích. Rozlišujte souhrn napříč stavbami a **Přehled** uvnitř jedné stavby.
 
----
+1. Před čtením metrik zkontrolujte vybranou stavbu nebo rozsah filtru.
+2. Z přehledu přejděte do konkrétního VŘ či smlouvy a ověřte zdrojovou částku.
+3. Před exportem zkontrolujte filtry a časové období, pokud je obrazovka nabízí.
 
-## 📈 Přehled staveb (analytika)
+**Příklad:** rozpočet Elektroinstalace je 1 500 000 Kč a vybraná nabídka 1 380 000 Kč. Rozdíl činí **120 000 Kč**, tedy **8 %** rozpočtu. Tato aritmetika neznamená automaticky konečnou úsporu stavby: zkontrolujte shodný rozsah, DPH a pozdější dodatky.
 
-Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza.
+**Častá chyba:** porovnávat cenu včetně DPH s rozpočtem bez DPH nebo zaměnit celkovou smluvní cenu za uhrazenou částku.
 
-- Rozevírací menu pro možnost přepnutí stavby.
-- **Filtr fáze stavby**: přepínáte mezi **Vše**, **Soutěž**, **Realizace** a **Archiv** — statistiky a grafy se přepočítají podle vybrané fáze.
-- AI analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti).
-- Export analýzy do PDF (časové razítko a možnost sdílení).
+## Subdodavatelé (Kontakty)
 
-![Přehled staveb a AI](./assets/12-project-overview-ai.svg)
+**K čemu slouží:** evidence firem, jejich specializací a konkrétních kontaktních osob.
 
----
+1. V sekci **Subdodavatelé** založte firmu **Javor Elektro — ukázka**.
+2. Přidejte Annu Ukázkovou a Petra Vzorového jako dvě samostatné kontaktní osoby.
+3. Vyplňte jejich ukázkové e-maily. Stav dostupnosti firmy a specializace nastavte samostatně.
+4. Při přidávání firmy do VŘ ověřte, že jde o správného dodavatele.
 
-## 🔧 Nástroje
+**Příklad:** Anna vyřizuje cenové nabídky, Petr montáž. Jedna firma tak má více osob a pro každou poptávku můžete potřebovat jiného příjemce.
 
-Tender Flow nabízí sadu nástrojů dostupných v sidebaru pod položkou **Nástroje** (případně v **Nastavení**, dle předplatného).
+**Výsledek:** v adresáři zůstává firma s kontakty; na kartě nabídky vyberete konkrétní osobu podle účelu zprávy. Podrobný postup a snímek jsou v kapitole [Příjemce poptávky](#prijemce-poptavky).
 
-### 📊 Excel nástroje
+**Častá chyba:** zakládat stejnou firmu znovu kvůli další osobě. Nejprve zkontrolujte existující záznam a jeho seznam kontaktů.
 
-#### Excel – odemčení
+## Plán VŘ
 
-Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
+**K čemu slouží:** připravit, co a kdy budete poptávat. Položka plánu a nabídka dodavatele nejsou totéž.
 
-**Použití:**
-1. Otevřete **Nastavení → Excel – odemčení**
-2. Klikněte "Vybrat soubor" a nahrajte chráněný Excel
-3. Klikněte "Odemknout"
-4. Stáhněte odemčený soubor
+1. Ve stavbě Javor otevřete **Plán VŘ**.
+2. Přidejte položku **Elektroinstalace** a nastavte požadované termíny.
+3. Pro další část prací vytvořte samostatnou položku, například **Slaboproud**.
+4. Použijte akci pro vytvoření navazujícího VŘ, pokud ho položka ještě nemá.
+5. Otevřete **Výběrová řízení** a ověřte vzniklou poptávku.
 
-**Umístění:** Nastavení → Excel – odemčení (PRO+)
+**Příklad:** pro Elektroinstalaci plánujeme oslovení na 5. 10. 2026 a vyhodnocení do 23. 10. 2026. Dodavatelům zadáme stejné podklady i termín odpovědi, aby nabídky šly porovnat.
 
-#### Excel Spojení listů
+![06 — Plán VŘ: Elektroinstalace a Slaboproud už mají navazující řízení, Venkovní osvětlení čeká na vytvoření.](./assets/plan-vr.png)
 
-Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.
+**Výsledek:** termín a předmět plánu navazují na skutečné VŘ. Po vytvoření navazujícího VŘ nepřidávejte stejné řízení ručně podruhé.
 
-- **Desktop verze**: nativní lokální zpracování.
-- **Web verze**: zpracování přes zabezpečené serverové API.
-- Výstup se stáhne jako `<původní název>_spojeno.xlsx`.
+## Výběrová řízení
 
-**Umístění:** Nastavení → Excel Spojení listů (PRO+)
+**K čemu slouží:** shromáždit nabídky dodavatelů ke konkrétní poptávce a sledovat jejich průběh.
 
-#### Excel Indexace VŘ
+### Přidání dodavatelů
 
-Pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Pracuje ve **dvou fázích**.
+1. Otevřete **Výběrová řízení** u Javoru a vyberte **Elektroinstalace**.
+2. Otevřete výběr dodavatelů, označte ukázkové firmy a potvrďte **Přenést do pipeline**.
+3. Vyčkejte na dokončení ukládání. Karty musí být vidět v příslušné poptávce.
+4. Při hlášení částečného uložení opakujte pouze zbývající výběr. Uložené nabídky zachovejte.
 
-**Fáze 1: Vložení sloupce Oddíly**
+![02 — Tři skutečné karty nabídek se syntetickými dodavateli, cenami a příjemci.](./assets/nabidky.png)
 
-1. Hledá značky "D" ve sloupci F (markerColumn).
-2. Přečte oddíl ze sloupce G (sectionColumn).
-3. Vloží nový sloupec B s názvem "Oddíly".
-4. Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky.
+**Výsledek:** každá karta představuje jednu nabídku firmy v této poptávce. Stejná firma může být v jiném VŘ, ale opakovaný pokus o přidání do stejného VŘ nemá přepsat její původní cenu a stav.
 
-**Fáze 2: Doplnění popisů**
+### Příjemce poptávky
 
-1. Používá výstup z Fáze 1.
-2. Hledá kódy položek ve sloupci G (po posunu).
-3. Páruje kódy s indexem položek (nahrán z Excelu).
-4. Doplňuje popisy do sloupce C.
+1. Na kartě dodavatele najděte **Příjemce poptávky**.
+2. Pokud má firma více kontaktů, rozbalte výběr a zvolte Annu Ukázkovou.
+3. Ověřte jméno, e-mail i telefon zobrazený na kartě.
+4. Teprve poté použijte **Generovat poptávku**.
 
-**Volitelné:** Vytvoření rekapitulačního listu s přehledy.
+![03 — Výběr příjemce na kartě Javor Elektro: Anna a Petr mají oddělené adresy.](./assets/prijemce.png)
 
-**Jak použít:**
-1. Připravte Excel soubor s indexem (2 sloupce: Kód, Popis) a nahrajte jej.
-2. Nahrajte Excel rozpočet.
-3. Spusťte Fázi 1 (Oddíly) – zkontrolujte nastavení sloupců.
-4. Spusťte Fázi 2 (Popisy) – volitelně zapněte rekapitulaci.
-5. Stáhněte finální soubor.
+**Příklad:** koncept zahájený pro Annu používá adresu **anna@example.com**. Změna karty na Petra během přípravy konceptu už tento koncept nepřesměruje; projeví se až při dalším generování.
 
-**Umístění:** Nastavení → Excel Indexace VŘ (PRO+)
+**Časté situace:** kontakt bez platného e-mailu nelze použít pro generování. Jediný kontakt se může zobrazovat bez rozbalovací nabídky. Pokud se volbu nepodaří zapamatovat, aplikace o tom informuje; před další zprávou příjemce znovu ověřte.
 
-#### Index Matcher
+### Ceny, kola a vyhodnocení
 
-Zjednodušená verze Excel Indexace VŘ pro rychlé doplnění popisů podle indexu.
+Doplňte ceny do nabídky a pracujte s historií kol podle dostupných polí. Karty přesouvejte mezi stavy podle skutečného průběhu jednání. Samotný přesun karty není důkaz odeslání e-mailu ani podpisu smlouvy.
 
-- **Import indexu**: načtení slovníku kód→popis z Excel souboru (ukládá se lokálně).
-- **Automatické párování**: doplnění popisů do sloupce B podle kódů ve sloupci F.
+| Dodavatel | Nabídka bez DPH | Co ověřit před rozhodnutím |
+| --- | --- | --- |
+| Javor Elektro — ukázka | 1 380 000 Kč | Zahrnuté rozvody, zkoušky a revize |
+| Lumen Mont — ukázka | 1 420 000 Kč | Termín montáže a platební podmínky |
+| Voltis — ukázka | 1 460 000 Kč | Shodný výkaz výměr a záruka |
 
-**Jak použít:**
-1. Nahrajte index (jednou) – soubor s 2 sloupci: Kód | Popis.
-2. Nahrajte rozpočet s kódy ve sloupci F.
-3. Klikněte "Zpracovat rozpočet" a stáhněte výsledek.
+**Výsledek:** nejnižší ukázková cena je 1 380 000 Kč, ale vítěze určete až po porovnání stejného rozsahu a podmínek. Důvod rozhodnutí doplňte do příslušné poznámky.
 
-> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexace VŘ.
+### Tabulka a exporty
 
-**Umístění:** Nastavení → Index Matcher (PRO+)
+Pro souhrn přepněte na tabulkové zobrazení. Rozbalení VŘ ukáže jeho dodavatele. Před exportem **XLSX** nebo **PDF** zkontrolujte aktuální filtry; export slouží jako výstup pro daný okamžik a nenahrazuje živá data.
 
-### 🔄 Import a synchronizace kontaktů
+## Hromadný e-mail subdodavatelům
 
-Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. export z Google Sheets).
+**K čemu slouží:** připravit oslovení více dodavatelů se stejným zadáním.
 
-Očekávaný formát (typicky): `Firma, Jméno, Specializace, Telefon, Email, IČO, Region`
+1. Nejprve ověřte příjemce na jednotlivých kartách.
+2. Spusťte hromadnou akci a přečtěte rekapitulaci adresátů.
+3. Zkontrolujte předmět, zadání, termín a dokumentaci v připraveném konceptu.
+4. Samotné odeslání dokončete ve svém e-mailovém klientu.
 
-Poznámky k importu:
+**Příklad:** pro Javor oslovujete tři firmy kvůli Elektroinstalaci. Rekapitulace musí obsahovat správnou osobu za každou firmu. Pozdější změna kontaktu na kartě nemění již zahájenou přípravu konceptu.
 
-- Slučuje se podle názvu firmy (case-insensitive).
-- Import doplní specializace (sloučí do seznamu) a kontaktní osoby (bez duplicit podle jména/emailu/telefonu).
-- Primární kontakt (první v seznamu) se používá pro kompatibilitu i pro akce, které potřebují email.
+**Častá chyba:** předpokládat, že otevřením konceptu už byla poptávka odeslána. Odeslání ověřte ve své poště. Syntetické příklady z této příručky neodesílejte.
 
-**Umístění:** Nastavení → Import kontaktů (PRO+)
+## Smlouvy
 
-### 💾 Záloha a obnova dat
+**K čemu slouží:** sledovat smluvní vztahy, ceny, dodatky, čerpání a návaznost na výběrová řízení.
 
-Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu **PRO**.
+1. V boční navigaci rozbalte **Smlouvy** a vyberte **Objednatel** nebo **Subdodavatel**.
+2. Otevřete správnou smlouvu nebo založte novou. Ověřte smluvní stranu, číslo, měnu a základní cenu.
+3. V detailu doplňte údaje a dokumenty podle jednotlivých sekcí.
+4. Faktury, dodatky a úhrady evidujte do příslušné agendy; každá představuje jiný údaj.
 
-#### Šifrování záloh
+### Jedna smlouva pro více VŘ
 
-Všechny zálohy vytvořené v desktop aplikaci jsou **automaticky šifrovány** algoritmem AES-256-GCM. Šifrovací klíč je uložen v zabezpečeném úložišti operačního systému (Windows DPAPI / macOS Keychain). Šifrované soubory mají příponu `.enc.json` a nelze je přečíst bez příslušného klíče. Starší nešifrované zálohy (`.json`) zůstávají čitelné — systém je při obnově automaticky rozpozná.
+**Příklad:** smlouva **JAV-2026-001** pokrývá Elektroinstalaci a Slaboproud na stejné stavbě. Cena celé smlouvy je 1 620 000 Kč bez DPH: 1 380 000 Kč za Elektroinstalaci a 240 000 Kč za Slaboproud. Rozpad je vysvětlením příkladu; aplikace cenu automaticky nerozděluje mezi VŘ.
 
-> **Upozornění:** Při reinstalaci aplikace nebo přeinstalaci systému může dojít ke ztrátě šifrovacího klíče. V takovém případě nelze starší šifrované zálohy dešifrovat. Doporučujeme pravidelně ověřovat funkčnost záloh.
+1. V detailu smlouvy najděte seznam **Výběrová řízení**.
+2. Ve výběru dalšího VŘ zvolte volnou poptávku a nabídku dodavatele.
+3. Potvrďte **Propojit VŘ**.
+4. Zkontrolujte obě vazby v seznamu. Kliknutím na položku přejdete na odpovídající nabídku.
 
-#### Záloha uživatelských dat
+![04 — Smlouva JAV-2026-001 propojená se dvěma VŘ. Cena smlouvy se počtem vazeb nenásobí.](./assets/smlouva.png)
 
-Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace.
+**Pravidlo:** jedna smlouva může pokrývat více VŘ stejné stavby. Jedno VŘ může mít nejvýše jednu smlouvu. Obsazené VŘ se nenabízí k dalšímu propojení.
 
-**Desktop aplikace:**
-- Zálohy se ukládají lokálně do složky `backup` vedle instalace aplikace.
-- Soubory jsou šifrovány (AES-256-GCM) s příponou `.enc.json`.
-- Možnost zapnout **automatickou denní zálohu** (toggle v nastavení) – záloha proběhne 1× denně.
-- Zálohy starší 7 dní se automaticky mažou.
-- Tlačítkem **Otevřít složku záloh** zobrazíte složku v průzkumníku.
+### Odpojení VŘ od smlouvy
 
-**Web verze:**
-- Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče (bez šifrování).
+U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení odstraní pouze vybranou vazbu; smlouva, její dokumenty a ostatní propojení zůstávají.
 
-**Postup:**
-1. Otevřete **Nastavení → Záloha a obnova**
-2. Klikněte **Zálohovat moje data**
-3. Desktop: šifrovaný soubor se uloží do instalační složky; Web: soubor se stáhne
+![05 — Potvrzení odpojení jednoho VŘ: ostatní vazby a smlouva zůstanou zachované.](./assets/odpojeni.png)
 
-#### Záloha kontaktů
+**Častá chyba:** sečíst plnou cenu jedné smlouvy za každé propojené VŘ. Ukázková smlouva zůstává jedním závazkem 1 620 000 Kč, nikoli dvěma závazky po této částce.
 
-Kromě kompletní zálohy lze samostatně zálohovat **pouze kontakty** (subdodavatele a jejich statusy). To je užitečné pro rychlý export adresáře bez zbytku dat.
+## Harmonogram
 
-- Klikněte **Zálohovat kontakty** v sekci Záloha a obnova.
-- Desktop: soubor se uloží šifrovaně do složky `backup`.
-- Web: soubor se stáhne jako JSON.
-- Záloha kontaktů je pouze pro export — obnovu kontaktů proveďte přes kompletní zálohu (uživatelskou nebo organizace).
+**K čemu slouží:** zobrazit termíny v časových souvislostech a odhalit návaznosti, které při pohledu na seznam uniknou.
 
-#### Záloha organizace
+1. Otevřete **Harmonogram** vybrané stavby.
+2. Nastavte vhodné měřítko, například měsíc nebo týden.
+3. Zkontrolujte termíny proti Plánu VŘ a skutečně dohodnutému nástupu dodavatele.
+4. Chybějící nebo neaktuální údaje opravte v příslušné zdrojové agendě.
 
-Administrátor organizace s tarifem **Enterprise** může zálohovat data celé organizace (všech členů).
+**Příklad:** vyhodnocení Elektroinstalace plánujete do 23. 10., montáž od 9. 11. 2026. Před montáží musí být prostor pro dojednání smlouvy a předání podkladů.
 
-- Klikněte **Zálohovat organizaci** v sekci Záloha a obnova.
-- Záloha obsahuje projekty, kontakty a smlouvy všech členů organizace.
+**Výsledek:** termíny odpovídají reálnému postupu. Barevný pruh sám nepotvrzuje připravenost dodavatele.
 
-#### Obnova dat ze zálohy
+## Dokumenty a šablony
 
-Obnova přepíše **pouze záznamy, kde jste vlastníkem**. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova probíhá v jedné transakci — pokud dojde k chybě, žádná data se nezmění.
+**K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek.
 
-**Desktop:**
-1. V sekci **Lokální zálohy** klikněte **Obnovit** u vybrané zálohy (dostupné pro uživatelské a organizační zálohy).
-2. Zkontrolujte náhled (počty záznamů).
-3. Klikněte **Potvrdit obnovu**.
+1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor.
+2. V **Šablonách** připravte texty pro odpovídající druh zprávy.
+3. Při generování ověřte vyplněné údaje a odkazy v náhledu.
+4. Před sdílením ověřte přístup příjemce k dokumentům v úložišti.
 
-**Web:**
-1. Klikněte **Nahrát soubor zálohy (.json)**.
-2. Vyberte dříve stažený soubor zálohy.
-3. Zkontrolujte náhled a potvrďte obnovu.
+**Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ.
 
-**Umístění:** Nastavení → Záloha a obnova (PRO+)
+**Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.
 
----
+## Složkomat
 
-## 💻 Tender Flow Desktop
+**K čemu slouží:** propojit stavbu s dokumentovým úložištěm a spravovat její složkovou strukturu. Ve starších materiálech a některých technických označeních se objevuje název **DocHub**.
 
-Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Nabízí rozšířené funkce oproti webové verzi.
+1. Vyberte Javor a otevřete **Nastavení stavby → Složkomat**.
+2. Zvolte dostupný způsob připojení. Lokální či síťová cesta vyžaduje odpovídající možnosti desktop aplikace.
+3. Ověřte hlavní složku projektu a navrženou strukturu, teprve potom potvrďte akci.
+4. Otevřete cílovou složku a zkontrolujte výsledek.
 
-### Výhody desktop verze
+**Příklad:** ukázková struktura oddělí podklady pro Elektroinstalaci a Slaboproud, aby dodavatelé nedostali cizí zadání. U nové realizační stavby ověřte její vlastní realizační složku.
 
-| Funkce | 💻 Desktop | 🌐 Web |
-|--------|------------|--------|
-| Přístup k souborům | Nativní | Omezené |
-| Excel nástroje | Lokální Python | HTTP API |
-| Úložiště tokenů | OS Keychain (bezpečnější) | localStorage |
-| Auto-update | Windows: ✅ • macOS arm64: manuálně | ❌ |
-| Folder watcher | ✅ | ❌ |
-| Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ |
-| Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč |
-| Záloha (auto, šifrovaná) | ✅ (denní, AES-256-GCM) | ❌ |
+**Oprávnění:** změnu globálního napojení a struktury provádí vlastník projektu. Sdílený uživatel nemusí mít tuto možnost. Online odkaz musí odpovídat podporovanému úložišti; pouhé uložení odkazu není totéž jako aktivní synchronizace.
 
-### Instalace
+**Když složka nefunguje:** ověřte vybranou stavbu, připojený účet, dostupnost disku a oprávnění k cílovému umístění. Po změně projektu nepracujte s odkazem patřícím předchozí stavbě.
 
-#### Windows
-1. Stáhněte instalační soubor `Tender-Flow-Setup-x.x.x.exe`
-2. Spusťte instalátor
-3. Aplikace se nainstaluje do `C:\Program Files\Tender Flow`
-4. Desktop ikona se vytvoří automaticky
+## Úkoly
 
-#### macOS
-1. Stáhněte soubor `Tender-Flow-x.x.x.dmg`
-2. Otevřete DMG soubor
-3. Přetáhněte Tender Flow do složky Applications
-4. Spusťte aplikaci (možná budete muset povolit v System Preferences → Security)
+**K čemu slouží:** osobní evidence práce, podúkolů a připomínek.
 
-### Spuštění
+1. Otevřete agendu úkolů a vytvořte úkol **Zkontrolovat nabídku Javor Elektro**.
+2. Nastavte termín podle potřeby a doplňte podúkoly: rozsah, cena, revize a nástup.
+3. Po kontrole úkol dokončete. Změnu cen a stavů nabídky proveďte samostatně v příslušném VŘ.
 
-- **Windows**: klikněte na ikonu "Tender Flow Desktop" na ploše.
-- **macOS**: otevřete Tender Flow z Launchpadu nebo složky Applications.
+**Příklad:** dokončený osobní úkol potvrzuje vaši kontrolu, sám o sobě nepodepisuje smlouvu ani neodesílá e-mail. U externích integrací ověřujte stav připojení přímo v aplikaci.
 
-### Auto-update
+## Nástroje
 
-- **Windows**: automatická kontrola při spuštění a periodicky během běhu, stažení aktualizace v aplikaci a restart pro instalaci.
-- **macOS (Apple Silicon)**: aktualizace probíhá manuálně stažením nové verze z release artefaktu (`.dmg`).
+Dostupné nástroje vyhledejte v navigaci aplikace. Následující příklady použijte nejprve na kopii vstupních souborů.
+
+### Excel nástroje
+
+| Nástroj | Úkol | Co zkontrolovat ve výsledku |
+| --- | --- | --- |
+| Excel – odemčení | Připravit oprávněně používaný sešit pro úpravy | Otevření souboru, listy a zachování dat |
+| Excel Spojení listů | Spojit podklady z více listů | Počet listů/řádků, pořadí a součty |
+| Excel Indexace VŘ | Doplnit oddíly a popisy podle indexu | Mapování vstupních sloupců a nepřiřazené kódy |
+| Index Matcher | Doplnit popisy podle kódů | Shodu kódů a očekávaných popisů |
+
+**Příklad:** nejprve vyzkoušejte rozpočet se třemi řádky a kódy E-001, E-002 a E-003. V indexu připravte odpovídající popisy a po zpracování porovnejte všechny tři výsledky. Výstup nepoužívejte bez kontroly součtů a vzorců.
+
+Webová a desktopová varianta mohou mít odlišné způsoby zpracování. Dostupnost a případné požadavky sledujte v konkrétním nástroji; nepočítejte s tím, že celá aplikace pracuje offline.
+
+### Import a synchronizace kontaktů
+
+Připravte malý vzorek v podporovaném formátu, ověřte mapování polí a výsledek importu. Teprve potom pokračujte celým adresářem. U synchronizace z URL ověřte správný zdroj a oprávnění k jeho použití.
+
+**Příklad:** dva řádky stejné ukázkové firmy mohou představovat dvě osoby. Po importu zkontrolujte firmu, kontakty, specializace a případné duplicity. Nespoléhejte na pořadí sloupců bez ověření v importním rozhraní.
+
+### Záloha a obnova dat
+
+V **Záloze a obnově** vyberte požadovaný rozsah podle své role. Rozlišujte export kontaktů, uživatelskou zálohu a organizační zálohu. Ve webu se záloha stahuje jako soubor; desktop nabízí i lokální zálohy.
+
+1. Vytvořte aktuální zálohu a ověřte, kde je soubor uložen.
+2. Před obnovou přečtěte náhled, rozsah a počty záznamů.
+3. Zkontrolujte organizaci a vlastníka dat. Obnovu potvrďte jen pro zamýšlený rozsah.
+4. Po dokončení ověřte stavby, kontakty a vazby smluv.
+
+**Pozor:** obnova může měnit existující data. Vyzkoušení provádějte v určeném testovacím prostředí. Stažený nešifrovaný JSON chraňte jako firemní data; u šifrované desktopové zálohy ověřte dostupnost klíče před změnou počítače nebo systému.
+
+## Tender Flow Desktop
+
+**K čemu slouží:** rozšířit práci o nativní možnosti operačního systému, především lokální soubory a desktopové integrace.
+
+### Instalace a aktualizace
+
+Použijte oficiální instalační soubor pro svůj systém. Na macOS přesuňte aplikaci z DMG do Applications; ve Windows projděte instalátorem. Pro aktualizaci sledujte nabídku a stav přímo v aplikaci. Pokud je vyžadované ruční stažení, použijte nabídnutý oficiální postup.
+
+**Příklad:** po aktualizaci porovnejte verzi aplikace s poznámkami vydání. Tato příručka popisuje v1.9.36; u jiné verze se umístění nebo dostupnost funkcí může lišit.
 
 ### Biometrické přihlášení
 
-Desktop aplikace podporuje biometrické přihlášení:
-- **macOS**: Touch ID (na zařízeních s Touch Bar nebo Touch ID)
-- **Windows**: Windows Hello (otisk prstu, obličej)
+Pokud zařízení a aplikace nabízejí biometriku, nejprve se přihlaste běžným způsobem a nastavte ji podle zobrazené nabídky. Biometrie nenahrazuje oprávnění k organizaci ani ke stavbě. Při problému použijte standardní přihlášení.
 
-**Aktivace:**
-1. Přihlaste se poprvé emailem a heslem.
-2. Aktivujte biometrické přihlášení v **Nastavení → Profil**.
-3. Při příštím spuštění můžete použít biometriku.
+### Lokální soubory a zálohy
 
-### Nativní souborové operace
+Lokální cesty jsou vázané na daný počítač a jeho oprávnění. Sdílený kolega nemusí mít stejný disk nebo cestu. U Složkomatu i záloh ověřte cílové umístění, čitelnost a skutečně uložený výsledek.
 
-- **DocHub**: přímý přístup k lokálním složkám.
-- **Vytváření složek**: okamžité bez externího serveru.
-- **Otevírání složek**: nativní průzkumník souborů.
+**Častá chyba:** předpokládat, že lokální soubor je automaticky dostupný všem kolegům nebo že cloudová data zůstanou plně dostupná bez internetu.
 
-### Excel nástroje v desktop verzi
+## Nastavení aplikace
 
-Desktop verze používá lokální Python skripty:
-- **Rychlejší zpracování**: bez HTTP požadavků.
-- **Větší soubory**: bez omezení velikosti uploadu.
-- **Offline použití**: funguje bez internetového připojení.
+**K čemu slouží:** osobní preference a nastavení účtu. Nezaměňujte je s **Nastavením stavby**.
 
-**Prerekvizity:** Python 3.x a knihovna `openpyxl` (`pip install openpyxl`).
+- **Profil:** zkontrolujte osobní údaje a dostupná nastavení přihlášení.
+- **Vzhled:** vyberte podporovaný motiv. Snímky v příručce používají tmavý vzhled; ovládací prvky mohou mít u vás jiné barvy.
+- **Statusy kontaktů:** použijte jasně pojmenované stavy odpovídající práci týmu.
+- **Organizace:** zkontrolujte členství a dostupné možnosti správy.
 
-### Ukončení aplikace
+**Příklad:** barva statusu „Preferovaný“ je pomůcka pro orientaci. Neznamená automaticky vítěze VŘ ani podepsanou smlouvu.
 
-Při kliknutí na "Odhlásit" v desktop verzi máte dvě možnosti:
+## Administrace systému
 
-1. **Ukončit aplikaci (Ponechat přihlášení)** – aplikace se zavře, přihlášení zůstane pro biometriku.
-2. **Odhlásit se (Vyžadovat heslo příště)** – kompletní odhlášení.
+Tato část je určená uživatelům s příslušným administrátorským oprávněním. Běžný uživatel nemusí tyto obrazovky vidět.
 
-**Umístění ke stažení:** kontaktujte administrátora pro přístup k desktop verzi.
+**Postup:** před změnou vyberte správného uživatele nebo organizaci, ověřte účel změny a její rozsah. U správy rolí, dostupných funkcí a registračních pravidel postupujte podle pravidel své organizace. Po změně ověřte požadovaný přístup na konkrétní funkci.
 
----
+**Příklad:** Petr potřebuje přístup k Javoru. Nejprve řešte oprávnění ke stavbě; zbytečně mu nepřidělujte systémovou administraci.
 
-## ⚙️ Nastavení aplikace
+**Výsledek:** uživatel má oprávnění odpovídající práci. Hesla, přístupové tokeny a neveřejná data neposílejte do podpory ani je nevkládejte do screenshotů.
 
-V sekci **Nastavení** najdete konfiguraci profilu, vzhledu a dalších preferencí.
+## Časté otázky
 
-### Profil
+### Nevidím stavbu nebo funkci
 
-- **Zobrazované jméno**: jak vás vidí ostatní v organizaci.
-- **Biometrické přihlášení**: aktivace Touch ID / Windows Hello (pouze desktop).
-- **Změna hesla**: možnost změnit přihlašovací heslo.
+Ověřte účet, organizaci, sdílení stavby a povolené moduly. Pro lokální souborové operace může být potřebná desktopová aplikace. Požádejte vlastníka nebo správce o kontrolu konkrétního oprávnění.
 
-### Vzhled
+### Neotevře se e-mailový klient
 
-- **Motiv**: v uživatelském menu nebo v Nastavení → Profil vyberte vzhled aplikace.
-- **TF basic**: jednoduchý vzhled v barvách landing page. Světlá varianta používá slonovinové plochy a cihlově oranžové akcenty, tmavá teplé antracitové plochy a světlejší oranžovou.
-- **Režim**: vyberte **Světlý**, **Tmavý** nebo **Auto** podle systému. Skin a režim se ukládají samostatně a zůstanou vybrané i po opětovném otevření aplikace.
-- Přihlašovací stránky a obnova hesla používají jednotnou světlou paletu landing page nezávisle na zvoleném skinu aplikace.
-- **Primární barva**: volba akcentové barvy aplikace.
-- **Pozadí**: výběr pozadí pracovní plochy.
+Zkontrolujte přiřazenou aplikaci pro e-mailové odkazy v systému a oprávnění prohlížeče otevřít externí aplikaci. Otevření konceptu není odeslání. Neopakujte skutečné odeslání bez kontroly odeslané pošty.
 
-### Statusy kontaktů
+### Proč se nenabízí VŘ k propojení se smlouvou?
 
-Každá organizace má vlastní seznam stavů pro kontakty (subdodavatele):
+Zkontrolujte, zda patří stejné stavbě a už není propojené s jinou smlouvou. Jedno VŘ může mít nejvýše jednu smlouvu. Potřebné opravy vazeb provádějte až po ověření existující smlouvy.
 
-- Přidávejte, upravujte a odebírejte vlastní stavy.
-- Každému stavu přiřaďte barvu.
-- Stavy se používají pro filtrování a vizuální rozlišení v databázi kontaktů.
+### Co když potřebuji větší obrázek?
 
-### Organizace
+Klikněte na snímek. Zvětšený náhled zavřete tlačítkem **Zavřít** nebo klávesou **Escape**. Bez JavaScriptu se otevře přímo soubor obrázku. Tlačítkem **Tisk / PDF** můžete vytisknout příručku nebo ji uložit přes tiskový dialog prohlížeče; tisk obsahuje všechny kapitoly i při zapnutém hledání.
 
-Správa členství v organizaci – viz sekce **Organizace a předplatné → Členství a role**.
+### Jak popsat chybu podpoře?
 
-![Nastavení aplikace](./assets/09-settings.svg)
+Uveďte verzi aplikace, web či desktop, obrazovku, přesný postup a znění chyby. Přiložte pouze snímek očištěný od osobních a firemních dat. Nezasílejte hesla nebo tokeny. U problému s ukládáním nejprve ověřte, zda změna už neproběhla.
 
----
+## Co je v příručce nové
 
-## 🛡️ Administrace systému
+Vydání příručky ze **16. 9. 2026**, ověřené proti **v1.9.36**, sjednocuje vzhled s landing page, popisuje aktuální boční navigaci a používá navazující příklad Javor. Obsahuje volbu příjemce poptávky, více VŘ pod jednou smlouvou, Složkomat a rozdíly mezi webem a desktopem.
 
-Administrace je dostupná jen účtům s rolí **Admin**. Obsahuje správu registrací, uživatelů, rolí, předplatného a diagnostiky.
-
-> 💡 **Tip:** Pokud v Nastavení nevidíte sekce „Administrace systému", nemáte potřebná oprávnění.
-
-### Přístup a předplatné
-
-Tender Flow vyžaduje platné předplatné; bezplatný účet není k dispozici. Po vypršení předplatného se pracovní část aplikace uzamkne. Data se tím nemažou. Obnovení domluvte se správcem firmy nebo podporou a poté zvolte **Znovu ověřit předplatné**. Na uzamčené obrazovce se můžete také odhlásit. Při zrušení automatického obnovování zůstává přístup do konce platného uhrazeného období.
-
-### Balíčky a funkce
-
-V **Nastavení → Administrace → Balíčky a funkce** najdete přehled obsahu tarifů pouze pro čtení. U balíčku rozbalte **Zobrazit funkce**. Prohlížení nemění dostupnost funkcí.
-
-Tlačítko **Spravovat firmy** otevře správu organizací, kde upravíte plán, licence a fakturační údaje vybrané firmy. Individuální výjimky a oprávnění uživatelů mohou ovlivnit jejich skutečný přístup; přehled balíčků ukazuje společná pravidla tarifů.
-
-Podrobnou matici otevřete tlačítkem **Otevřít pokročilou správu**. Přepínače v ní se ukládají okamžitě a mění společná pravidla celého tarifu. Pro úpravu jediné firmy použijte správu firem. Po zavření pokročilé správy se přehled znovu načte.
-
-
-### Registrace a whitelist
-
-V sekci **Nastavení registrací** (Admin) určíte, kdo se může do Tender Flow registrovat:
-
-- **Povolit registrace všem** – pokud je zapnuto, registrace nejsou omezené doménami.
-- **Whitelist domén** – registrace povolené jen pro vybrané domény (např. `@firma.cz`).
-- **Vyžadovat whitelist emailů** – registrace pouze pro emaily explicitně uvedené v seznamu.
-
-![Nastavení registrací](./assets/13-registration-settings.svg)
-
-### Seznam povolených emailů (Whitelist)
-
-Pokud je zapnuté „Vyžadovat whitelist emailů", mohou se registrovat pouze emaily uvedené v tomto seznamu.
-
-1. Otevřete **Nastavení → Administrace systému**.
-2. V sekci „Seznam povolených emailů" přidejte email, jméno a poznámku.
-3. U záznamu lze přepínat aktivní/neaktivní stav.
-
-![Whitelist emailů](./assets/14-email-whitelist.svg)
-
-### Správa uživatelů a rolí
-
-Sekce Správa uživatelů je určená pro **Admina**. Umožňuje:
-
-- **Spravovat role uživatelů** (přiřazení role).
-- **Nastavit typ přihlášení uživatele** (Auto/Email/Google/Microsoft/GitHub/SAML).
-- **Přepsat úroveň předplatného uživatele** (manuální override nad úrovní organizace).
-- **Definovat oprávnění rolí** (permissions).
-
-![Správa uživatelů a rolí](./assets/15-user-management-roles.svg)
-
-### Incident logy (Admin)
-
-V **Nastavení → Administrace → Incidenty** můžete analyzovat a čistit provozní incidenty.
-
-- **Filtrování incidentů** podle Incident ID, User ID a časového intervalu.
-- **Detail incidentu** s možností kopie JSON detailu do schránky.
-- **Čištění starých logů** dle zadané retenční doby (v dnech).
-
-Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou určeny jako náhrada auditního logu obchodních operací.
-
----
-
-## ❓ Časté otázky
-
-### Neotevře se emailový klient
-
-Zkontrolujte výchozí emailový klient v systému a nastavení emailového klienta v Tender Flow. Funkce pro jednotlivé i hromadné poptávky připravují koncept zprávy; podle nastavení mohou použít systémový emailový odkaz nebo otevřít soubor konceptu EML.
-
-### Některé volby nevidím
-
-Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle předplatného. Podívejte se do tabulky tarifů v sekci **Organizace a předplatné**.
-
-### Excel Spojení listů píše „Funkce není dostupná"
-
-Excel Spojení listů ve web verzi vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
-
-### Kde si mohu stáhnout desktop aplikaci?
-
-Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátora. Desktop aplikace nabízí rozšířené funkce jako Touch ID, nativní přístup k souborům a lokální Excel nástroje.
-
-### Proč se mi na macOS neinstaluje update automaticky?
-
-V aktuální verzi je auto-update aktivní pro Windows. Na macOS (Apple Silicon) se aktualizace instalují manuálně přes nový `.dmg` balíček.
-
-### Jak sdílet stavbu s kolegou?
-
-V sekci **Správa staveb** otevřete detail stavby a v sekci sdílení přidejte uživatele. Můžete nastavit oprávnění: Úpravy nebo Pouze čtení.
-
-### Jak generovat smluvní protokol?
-
-Na záložce **Smlouvy** v detailu stavby vyberte smlouvu a klikněte na akci generování protokolu. Údaje se předvyplní z dat smlouvy – zkontrolujte, doplňte povinná pole a stáhněte výsledný soubor (Excel nebo PDF).
-
-### DocHub synchronizace nefunguje
-
-Ověřte, že máte vybraného správného providera (Google Drive / OneDrive / Tender Flow Desktop) a že kořenová složka je přístupná. V desktop verzi zkontrolujte, že cesta ke složce existuje. Zkuste odpojit a znovu připojit složku.
-
-### Jak obnovit data ze zálohy?
-
-V **Nastavení → Záloha a obnova**: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy. Šifrované zálohy (`.enc.json`) se při obnově automaticky dešifrují.
-
-### Jak funguje automatická záloha v desktop verzi?
-
-V **Nastavení → Záloha a obnova** zapněte toggle „Automatická záloha". Záloha proběhne automaticky 1× denně a je šifrována (AES-256-GCM). Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh".
-
-### Jak zálohovat pouze kontakty?
-
-V **Nastavení → Záloha a obnova** klikněte tlačítko **Zálohovat kontakty**. Exportují se pouze subdodavatelé a jejich statusy. Na desktopu se soubor uloží šifrovaně do složky `backup`, na webu se stáhne jako JSON. Obnova kontaktů ze samostatné zálohy není podporována — použijte kompletní zálohu.
-
-### Jsou zálohy šifrovány?
-
-V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn operačním systémem (Windows DPAPI / macOS Keychain). Webové zálohy (stažené přes prohlížeč) šifrovány nejsou.
-
----
-
-## 🎉 Novinky (changelog)
-
-<span class="version-badge">📱 v1.5.3</span> <span class="version-badge">📖 Verze příručky 2.2</span>
-
-Verzi aplikace najdete vlevo dole v sidebaru.
-
-### v1.5.3
-
-- **Opravy**: opravena uvítací obrazovka, doplněny release podklady pro v1.5.2, čištění projektu.
-
-### v1.5.2
-
-- **Import wizard kontaktů**: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků.
-- **Hromadná úprava specializací**: specializace subdodavatelů lze upravovat hromadně přímo v přehledu kontaktů.
-- **Dodatky a vlastní náklady**: vylepšené formuláře pro dodatky a adresy stavby, včetně podpory vlastních nákladů u dodatků.
-- **Šifrované zálohy**: zálohy v desktop verzi jsou šifrovány algoritmem AES-256-GCM. Desktop ukládá zálohy automaticky s denní frekvencí. Nové tlačítko pro zálohu kontaktů.
-- **Systém nápovědy**: interaktivní nápověda s kontextovými bublinami, klávesová zkratka pro vyhledávání, onboarding pro nové uživatele.
-- **Automatické složky dokumentů**: DocHub v desktop verzi umí vytvořit standardizovanou strukturu složek pro dokumenty stavby jedním kliknutím.
-- **Přepracovaná příručka**: kompletně přepsaná uživatelská příručka s aktuálním popisem všech modulů.
-- **Opravy UX tabulek**: opraveno scrollování a překryvy v tabulkách pipeline, harmonogramu a plánu VŘ.
-
-### v1.5.1
-
-- **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí.
-- **Šifrování záloh**: zálohy v desktop verzi jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn OS (Windows DPAPI / macOS Keychain). Starší nešifrované zálohy zůstávají čitelné.
-- **Záloha kontaktů**: nové tlačítko „Zálohovat kontakty" pro samostatný export subdodavatelů a jejich statusů. Funguje na desktopu (šifrovaně) i na webu (stažení JSON).
-
-### v1.4.3
-
-- **Oprava právních odkazů v desktopu**: odkazy na právní dokumenty nyní fungují správně i v desktop verzi.
-- **Stabilita desktop releasu**: opraven workflow pro publikaci desktop buildů.
-- **Windows Hello**: opravy typů pro biometrické přihlášení.
-
-### v1.4.2
-
-- **GDPR retence dat**: automatická retence provozních logů i CRM dat dle nastavené doby uchovávání.
-- **Compliance kontroly**: ověření souladu s EU předpisy, provázání ROPA s retenčními politikami.
-- **Souhlas s podmínkami**: uživatel musí aktivně potvrdit aktuální znění podmínek užívání.
-
-### v1.4.1
-
-- **OpenAI provider**: v nastavení AI přibyla možnost výběru OpenAI jako poskytovatele.
-- **Generátor smluvních protokolů**: nový nástroj pro generování protokolů ke smlouvám.
-- **Tenant logo**: organizace si může nastavit vlastní logo.
-- **DPA stránka a retence**: přidána veřejná stránka zpracovatelské doložky a nastavení retenčních politik.
-- **Bezpečnost**: CSP builder pro desktop, rozšíření CSP o Stripe domény, RLS pro interní billing tabulky.
-
-### v1.4.0
-
-- **Desktop aktualizace přes GitHub Releases**: Windows auto-update, macOS manuální režim.
-- **Administrace rozšířena o Incident logy**: dohledání chyb podle incident ID, uživatele a času.
-- **Správa uživatelů rozšířena**: typ přihlášení a přepis předplatného.
-- **Organizace v Nastavení**: přehled členů, schvalování žádostí, změny rolí a předání vlastnictví.
-- **Smlouvy**: pole IČ dodavatele a kontextová nabídka nad řádky smluv.
-- **Email nevybraným**: zlepšené sestavení BCC adres.
-
-### v1.3.2
-
-- Rozšířené popisy hlavních modulů v příručce včetně administrace, AI a desktop sekce.
-
-### v1.3.1
-
-- **Smlouvy**: kompletní modul pro evidenci smluv, dodatků a čerpání.
-- **Zpracování dokumentů ke smlouvám**: předvyplnění dat ze souboru.
-- **Desktop UX**: uživatelská příručka se otevírá přímo v aplikaci.
-
-### v1.2.3
-
-- Aktualizace emailových šablon a opravy flow obnovy hesla.
-
-### v1.2.1
-
-- OCR vylepšení a stabilita desktop buildu.
-
-### v0.9.6
-
-- AI Key Policy (server-only), Excel Indexace VŘ, Index Matcher, Desktop aplikace, Mailto IPC Bridge.
-
-### v0.9.5
-
-- AI prompty, DocHub integrace pro lokální složky, stabilita.
-
-### v0.9.4
-
-- Harmonogram (Gantt + exporty), Organizace (tenant), Statusy kontaktů, Dokumenty / Ceníky.
-
-### v0.9.3
-
-- Demo pro prezentaci, AI cache, vylepšený přehled poptávek, UX pop-okna.
-
-### v0.9.2
-
-- Skrývání sidebaru, nová landing page, samostatné routy přihlášení/registrace.
-
-### v0.9.1
-
-- Více specializací na subdodavatele, více kontaktů na firmu, import/synchronizace kontaktů.
-
-### v0.9.0
-
-- Whitelist registrací, role (admin, přípravář, stavbyvedoucí, technik), oprávnění dle rolí.
-
-### v0.8.0
-
-- Dashboard, stav „nedoporučuji" u subdodavatelů, archivace staveb, Plán VŘ, Výběrová řízení (kanban, kola VŘ, export, email nevybraným), Přehled staveb s AI analýzou.
-
----
+Historické odkazy na kapitoly zůstávají zachované. Tato kapitola je přehledem změn příručky; dostupnost funkcí v jiných verzích ověřujte v poznámkách ke konkrétnímu vydání aplikace.
 
 ## ⚖️ Právní dokumenty
 
