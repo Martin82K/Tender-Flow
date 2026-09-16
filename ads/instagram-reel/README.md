@@ -24,8 +24,8 @@ kalkulaci ani náhradu Helios / First RSV.
 cd ads/instagram-reel
 npm ci
 npm run typecheck
-npm run studio
-npm run render
+npx remotion studio src/index.ts
+npx remotion render src/index.ts TenderFlowReel15 out/TenderFlowReel15.mp4
 ```
 
 Z kořene repozitáře:
@@ -45,7 +45,8 @@ npm run ads:reel:stills
 
 Studio i render používají systémový Chrome, pokud je nastavené
 `CHROME_BIN` nebo `REMOTION_BROWSER_EXECUTABLE`. Kompozice je 15 s, 30 fps,
-H.264, 9:16.
+H.264, 1080x1920 (9:16). Ověřený render z tohoto PR je v
+`artifacts/instagram-reel/TenderFlowReel15.mp4`.
 
 ## Vizuál
 

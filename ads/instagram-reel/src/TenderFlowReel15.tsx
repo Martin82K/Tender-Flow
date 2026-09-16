@@ -208,7 +208,7 @@ const ContractCtaScene: React.FC = () => {
         </div>
         <div style={{ marginTop: 14, color: brand.accent, fontSize: 22 }}>Připraveno k podpisu</div>
       </Panel>
-      <div style={{ marginTop: "auto", paddingTop: 40, textAlign: "center" }}>
+      <div style={{ marginTop: 56, textAlign: "center" }}>
         <div style={{ fontSize: 28, color: brand.text2, marginBottom: 28 }}>{TAGLINE}</div>
         <div
           style={{

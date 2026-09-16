@@ -70,7 +70,7 @@ export const ReelChrome: React.FC<{ children: ReactNode; sceneIndex: number }> =
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          padding: "72px 64px 56px",
+          padding: "72px 64px 168px",
         }}
       >
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
