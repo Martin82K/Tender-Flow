@@ -276,9 +276,9 @@ describe("architecture graph analysis", () => {
 
     expect(rawGraph.collectionErrors).toEqual([]);
     expect(rawGraph.nodes).toHaveLength(647);
-    expect(rawGraph.edges).toHaveLength(1994);
+    expect(rawGraph.edges).toHaveLength(1993);
     expect(resolvedGraph.edges).toHaveLength(1683);
-    expect(resolvedGraph.unresolvedEdges).toHaveLength(311);
+    expect(resolvedGraph.unresolvedEdges).toHaveLength(310);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {
         const category = target === "types"
@@ -301,7 +301,7 @@ describe("architecture graph analysis", () => {
     );
     expect(unresolvedCategories).toEqual({
       assets: 25,
-      config: 53,
+      config: 52,
       css: 12,
       fonts: 1,
       public: 1,
