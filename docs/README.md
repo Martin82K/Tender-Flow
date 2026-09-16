@@ -12,6 +12,7 @@ plánované funkce jsou vždy označené; nejsou vydávané za hotové chování
 - [Veřejný obsah a AEO](product/public-aeo-content.md) – aktuální produktová fakta a shoda webu s podklady pro vyhledávače.
 - [Další workflow a modernizace](product/workflow-opportunities.md) – návrh závazků ze smluv.
 - [Tender Flow vs First RSV.online](product/first-rsv-online-vs-tender-flow.md) – překryv nabídky pro Baustav s implementovaným stavem.
+- [Instagram Reel 15 s](product/instagram-reel-15.md) – svislý marketingový spot v Remotion, mimo webový runtime.
 
 ## Architektura
 

@@ -1,0 +1,25 @@
+{
+  "name": "@tenderflow/instagram-reel",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "15s vertical Instagram Reel composition for Tender Flow",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts TenderFlowReel15 out/TenderFlowReel15.mp4 --codec=h264",
+    "stills": "node ./scripts/render-stills.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.525",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.525"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.2"
+  }
+}

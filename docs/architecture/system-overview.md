@@ -18,6 +18,7 @@ izolované adaptéry a Electron IPC.
 | Supabase | `supabase/` | Auth, Postgres, RLS, Storage, Realtime, RPC a Edge Functions |
 | MCP server | `server/mcp/` + `mcp-service/` | kanonické MCP 2.0 nástroje pro remote HTTP a stdio klienty |
 | Excel pomocné služby | `server_py/` | Python merge/unlock a specializované zpracování souborů |
+| Marketingový Reel | `ads/instagram-reel/` | samostatná Remotion kompozice, není v webovém bundle |
 
 ## Hlavní tok webové aplikace
 

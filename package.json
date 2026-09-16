@@ -40,7 +40,12 @@
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:prepare:stable": "npm run release:assert-stable-version && npm run release:prepare",
     "verify:web-dist": "node scripts/verify-web-dist.mjs",
-    "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs"
+    "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs",
+    "ads:reel:install": "npm ci --prefix ads/instagram-reel",
+    "ads:reel:studio": "npm --prefix ads/instagram-reel run studio",
+    "ads:reel:render": "npm --prefix ads/instagram-reel run render",
+    "ads:reel:stills": "npm --prefix ads/instagram-reel run stills",
+    "ads:reel:typecheck": "npm --prefix ads/instagram-reel run typecheck"
   },
   "dependencies": {
     "@appica/icons-react": "1.0.0",
