@@ -5,6 +5,7 @@ import { useElectronUpdater } from "@infra/desktop/useElectronUpdater";
 interface SidebarUpdateStatusProps {
   currentVersion: string;
   isIndustrialSkin: boolean;
+  compact?: boolean;
 }
 
 const clampPercent = (percent: number | undefined): number =>
@@ -13,6 +14,7 @@ const clampPercent = (percent: number | undefined): number =>
 export const SidebarUpdateStatus: React.FC<SidebarUpdateStatusProps> = ({
   currentVersion,
   isIndustrialSkin,
+  compact = false,
 }) => {
   const {
     status,
@@ -26,6 +28,26 @@ export const SidebarUpdateStatus: React.FC<SidebarUpdateStatusProps> = ({
   const mutedTextClass = isIndustrialSkin
     ? "text-[#9c9684]"
     : "text-slate-400 dark:text-slate-500";
+
+  if (compact) {
+    if (status === 'downloaded' || status === 'error') {
+      const label = status === 'downloaded'
+        ? `Restartovat pro aktualizaci na verzi ${version ?? 'novou'}`
+        : 'Zkusit aktualizaci znovu';
+      return <button type="button" aria-label={label} title={label}
+        onClick={() => status === 'downloaded' ? installUpdate() : void checkForUpdates()}
+        className="flex h-12 w-12 items-center justify-center rounded-lg text-primary hover:bg-primary/10">
+        <span aria-hidden="true" className="material-symbols-outlined">{status === 'downloaded' ? 'restart_alt' : 'sync_problem'}</span>
+      </button>;
+    }
+    if (status === 'downloading' || status === 'available') {
+      return <span role="status" aria-live="polite" className={`flex h-12 w-12 items-center justify-center ${mutedTextClass}`}>
+        <span className="sr-only">{status === 'downloading' ? `Stahování aktualizace: ${percent} %` : 'Připravuji aktualizaci'}</span>
+        <span aria-hidden="true" className="material-symbols-outlined motion-safe:animate-spin">sync</span>
+      </span>;
+    }
+    return null;
+  }
 
   if (status === "downloaded") {
     return (

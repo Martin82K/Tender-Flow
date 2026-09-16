@@ -1,12 +1,17 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import type { Project, User, View } from '@/types';
 import type { ThemeSkin } from '@/shared/types/theme';
 
+let mobile = false;
+const mediaListeners = new Set<() => void>();
 vi.mock('@/components/Sidebar', () => ({
-  Sidebar: () => <aside data-testid="sidebar" />,
+  Sidebar: ({ isOpen, isMobile, onToggle }: { isOpen: boolean; isMobile: boolean; onToggle: () => void }) =>
+    <aside data-testid="sidebar" data-open={isOpen} data-mobile={isMobile}>
+      {isOpen && isMobile && <button onClick={onToggle}>Zavřít menu</button>}
+    </aside>,
 }));
 
 vi.mock('@shared/ui/ConfirmationModal', () => ({
@@ -91,61 +96,52 @@ const renderMainLayout = (
   );
 
 describe('MainLayout mobile menu', () => {
-  it.each([
-    ['classic', 'bg-white/95'],
-    ['industrial', 'bg-[var(--tf-skin-surface-deep)]'],
-    ['space', 'bg-[#080b14]/95'],
-  ] as const)('zobrazí viditelný desktopový rail pro skin %s', (skin, skinClass) => {
-    const setIsSidebarOpen = vi.fn();
-    renderMainLayout(false, 'project', 1, setIsSidebarOpen, skin);
+  beforeEach(() => {
+    mobile = false;
+    vi.stubGlobal('matchMedia', () => ({ matches: mobile,
+      addEventListener: (_event: string, listener: () => void) => mediaListeners.add(listener),
+      removeEventListener: (_event: string, listener: () => void) => mediaListeners.delete(listener),
+    }));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); mediaListeners.clear(); });
 
-    const rail = screen.getByTestId('sidebar-reveal-rail');
-    const button = screen.getByRole('button', { name: 'Rozbalit hlavní menu' });
-    expect(screen.queryByText('Rozbalit menu')).not.toBeInTheDocument();
-
-    expect(button).toBe(rail);
-    expect(rail).toHaveClass('hidden', 'h-full', 'w-12', 'flex-none', 'justify-start', 'pt-6', 'md:flex', skinClass);
-    expect(rail).not.toHaveClass('rounded-lg');
-    expect(button).toHaveAttribute('aria-controls', 'app-sidebar');
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-
-    fireEvent.click(button);
-    expect(setIsSidebarOpen).toHaveBeenCalledWith(true);
+  it.each(['classic', 'industrial', 'space'] as const)('delegates desktop mini navigation to Sidebar in %s', skin => {
+    renderMainLayout(false, 'project', 1, vi.fn(), skin);
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'false');
+    expect(screen.queryByTestId('sidebar-reveal-rail')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zobrazit sidebar' })).not.toBeInTheDocument();
   });
 
-  it('vykreslí stabilní mobilní toggle mimo obsah hlavičky', () => {
+  it('opens the mobile menu independently of the desktop preference and isolates the background', () => {
+    mobile = true;
+    const setIsSidebarOpen = vi.fn();
+    const { container } = renderMainLayout(true, 'project', 0.8, setIsSidebarOpen);
+    const sidebar = screen.getByTestId('sidebar');
+    expect(sidebar).toHaveAttribute('data-open', 'false');
+    expect(sidebar.closest('.tf-app-shell')).toBeNull();
+    const button = screen.getByRole('button', { name: 'Zobrazit sidebar' });
+    fireEvent.click(button);
+    expect(sidebar).toHaveAttribute('data-open', 'true');
+    expect(container.querySelector('.tf-app-shell')).toHaveAttribute('inert');
+    expect(container.querySelector('#main-scroll-container')).toHaveClass('overflow-y-hidden');
+    fireEvent.click(screen.getByRole('button', { name: 'Zavřít menu' }));
+    expect(sidebar).toHaveAttribute('data-open', 'false');
+    expect(container.querySelector('.tf-app-shell')).not.toHaveAttribute('inert');
+    expect(setIsSidebarOpen).not.toHaveBeenCalled();
+  });
+
+  it('preserves the desktop collapsed preference when switching to mobile and back', () => {
     const setIsSidebarOpen = vi.fn();
     renderMainLayout(false, 'project', 1, setIsSidebarOpen);
-
-    const button = screen.getByRole('button', { name: 'Zobrazit sidebar' });
-
-    expect(button).toHaveClass('left-2', 'top-2', 'z-40', 'h-11', 'w-11');
-    expect(button).toHaveAttribute('aria-controls', 'app-sidebar');
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-
-    fireEvent.click(button);
-    expect(setIsSidebarOpen).toHaveBeenCalledWith(true);
-  });
-
-  it('při otevřeném sidebaru nabídne stmavené pozadí pro zavření', () => {
-    const setIsSidebarOpen = vi.fn();
-    renderMainLayout(true, 'project', 1, setIsSidebarOpen);
-
-    expect(
-      screen.queryByRole('button', { name: 'Zobrazit sidebar' }),
-    ).not.toBeInTheDocument();
-
-    const backdrop = screen.getByRole('button', {
-      name: 'Zavřít navigační panel kliknutím mimo něj',
-    });
-    expect(backdrop).toHaveClass(
-      'left-[min(20rem,calc(100vw-3rem))]',
-      'z-40',
-      'max-md:block',
-    );
-
-    fireEvent.click(backdrop);
-    expect(setIsSidebarOpen).toHaveBeenCalledWith(false);
+    const resize = (value: boolean) => act(() => { mobile = value; mediaListeners.forEach(listener => listener()); });
+    resize(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Zobrazit sidebar' }));
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'true');
+    resize(false);
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'false');
+    resize(true);
+    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-open', 'false');
+    expect(setIsSidebarOpen).not.toHaveBeenCalled();
   });
 
   it('při zmenšení UI použije ostré layoutové škálování bez transformace celého plátna', () => {

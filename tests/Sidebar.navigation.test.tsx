@@ -60,19 +60,6 @@ const renderSidebar = (
 };
 
 describe('Sidebar navigation', () => {
-  it('používá na mobilu omezenou šířku off-canvas panelu', () => {
-    const { container } = renderSidebar();
-    const sidebar = container.querySelector('#app-sidebar');
-
-    expect(sidebar).toHaveClass(
-      'max-md:!w-[min(20rem,calc(100vw-3rem))]',
-      'max-md:shadow-2xl',
-    );
-    expect(
-      screen.getByRole('button', { name: 'Zavřít sidebar' }),
-    ).toHaveAttribute('aria-controls', 'app-sidebar');
-  });
-
   it('zobrazuje Dodavatele nahoře a TODO Osobní dole', () => {
     const { container } = renderSidebar();
 
@@ -172,5 +159,5 @@ it('umístí sbalení vedle značky a ponechá mobilní zavření', () => {
   expect(collapse).toHaveAttribute('aria-expanded', 'true');
   fireEvent.click(collapse);
   expect(onToggle).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole('button', { name: 'Zavřít sidebar' })).toHaveClass('md:hidden');
+  expect(screen.queryByRole('button', { name: 'Zavřít sidebar' })).not.toBeInTheDocument();
 });

@@ -4,6 +4,8 @@ import type { Project, ProjectTab } from '@/types';
 import { PROJECT_NAVIGATION } from '@features/projects/model/projectNavigation';
 
 interface ProjectSidebarProps {
+  compact?: boolean;
+  onExpand?: () => void;
   projects: Project[];
   hasFeature: (feature: FeatureKey) => boolean;
   selectedProjectId: string;
@@ -12,7 +14,7 @@ interface ProjectSidebarProps {
   onSelect: (id: string, tab?: string, settingsTab?: 'pd' | 'templates' | 'dochub') => void;
 }
 
-export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', onSelect, hasFeature }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', onSelect, hasFeature, compact = false, onExpand }: ProjectSidebarProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [contractsOpen, setContractsOpen] = useState(activeTab === 'contracts' || activeTab === 'contracts-client');
@@ -48,16 +50,17 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
     .filter(item => `${item.name} ${item.location}`.toLocaleLowerCase('cs').includes(query.toLocaleLowerCase('cs')));
   return <div className="tf-project-context">
     <div ref={container} onKeyDown={event => {
-      if (event.key === 'Escape' && open) { setOpen(false); trigger.current?.focus(); }
+      if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
     }}>
       <button ref={trigger} type="button" className="tf-project-switcher w-full px-6 py-4 text-left"
         aria-label={`Změnit stavbu: ${project.name}`} aria-expanded={open} aria-controls="sidebar-project-picker"
-        onClick={() => { setOpen(!open); setQuery(''); }}>
-        <span className="flex items-center justify-between gap-2 font-semibold text-sm">
+        onClick={() => { if (compact) onExpand?.(); setOpen(!open); setQuery(''); }}>
+        {compact && <span aria-hidden="true" className="material-symbols-outlined">domain</span>}
+        <span className="tf-sidebar-label flex items-center justify-between gap-2 font-semibold text-sm">
           <span className="min-w-0 break-words">{project.name}</span>
           <span aria-hidden="true" className="material-symbols-outlined text-lg">expand_more</span>
         </span>
-        <span className="mt-1 block text-xs opacity-70">{project.status === 'archived' ? 'Archiv' : project.status === 'realization' ? 'V realizaci' : 'V soutěži'}</span>
+        <span className="tf-sidebar-label mt-1 block text-xs opacity-70">{project.status === 'archived' ? 'Archiv' : project.status === 'realization' ? 'V realizaci' : 'V soutěži'}</span>
       </button>
       {open && <div id="sidebar-project-picker" className="border-y border-slate-300 dark:border-slate-700 p-3">
         <input autoFocus type="search" aria-label="Hledat stavbu" placeholder="Hledat stavbu…" value={query}
@@ -81,15 +84,15 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
           className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
           onClick={() => setContractsOpen(!contractsOpen)}>
           <span aria-hidden="true" className="material-symbols-outlined text-lg">description</span>
-          Smlouvy
-          <span aria-hidden="true" className="material-symbols-outlined ml-auto text-lg">{contractsOpen ? 'expand_less' : 'expand_more'}</span>
+          <span className="tf-sidebar-label">Smlouvy</span>
+          <span aria-hidden="true" className="tf-sidebar-label material-symbols-outlined ml-auto text-lg">{contractsOpen ? 'expand_less' : 'expand_more'}</span>
         </button>}
         {tab.id === 'contracts-client' && contractsOpen && <div id="sidebar-contract-parties" role="group" aria-label="Smluvní strany">
           {tabs.filter(item => item.id === 'contracts' || item.id === 'contracts-client').map(item => <button key={item.id} type="button" aria-label={item.label}
             aria-current={item.id === selectedTab ? 'page' : undefined} data-active={item.id === selectedTab}
             className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
             onClick={() => onSelect(project.id, item.id)}>
-            <span aria-hidden="true" className="material-symbols-outlined text-lg">{item.icon}</span>{item.label}
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">{item.icon}</span><span className="tf-sidebar-label">{item.label}</span>
           </button>)}
         </div>}
         {tab.id === 'project-settings' && <>
@@ -97,8 +100,8 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
             className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
             onClick={() => setSettingsOpen(!settingsOpen)}>
             <span aria-hidden="true" className="material-symbols-outlined text-lg">settings</span>
-            Nastavení stavby
-            <span aria-hidden="true" className="material-symbols-outlined ml-auto text-lg">{settingsOpen ? 'expand_less' : 'expand_more'}</span>
+            <span className="tf-sidebar-label">Nastavení stavby</span>
+            <span aria-hidden="true" className="tf-sidebar-label material-symbols-outlined ml-auto text-lg">{settingsOpen ? 'expand_less' : 'expand_more'}</span>
           </button>
           {settingsOpen && <div id="sidebar-project-settings" role="group" aria-label="Nastavení stavby">
             {settingsTabs.map(item => <button key={item.id} type="button" aria-label={item.label}
@@ -106,7 +109,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
               data-active={selectedTab === 'project-settings' && selectedSettingsTab === item.id}
               className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
               onClick={() => onSelect(project.id, 'project-settings', item.id)}>
-              <span aria-hidden="true" className="material-symbols-outlined text-lg">{item.icon}</span>{item.label}
+              <span aria-hidden="true" className="material-symbols-outlined text-lg">{item.icon}</span><span className="tf-sidebar-label">{item.label}</span>
             </button>)}
           </div>}
         </>}
@@ -116,7 +119,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
         className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
         onClick={() => onSelect(project.id, tab.id)}>
         <span aria-hidden="true" data-help-id="project-sidebar-tab-icon" className="material-symbols-outlined text-lg">{tab.icon}</span>
-        {tab.label}
+        <span className="tf-sidebar-label">{tab.label}</span>
       </button>}
       </React.Fragment>)}
     </nav>

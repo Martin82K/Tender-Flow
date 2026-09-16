@@ -99,7 +99,9 @@ Příručka neuvádí pevnou tabulku tarifů: skutečný přístup určuje aktu�
 | Realizační tým | Tým vybrané stavby |
 | Nastavení stavby | Odkazy na dokumentaci, šablony a Složkomat |
 
-**Na mobilu:** otevřete hlavní menu v horní liště. Po výběru sledujte název stavby, abyste nezadali údaj do jiného projektu.
+**Sbalení menu na počítači:** šipkou vedle značky sbalíte panel na úzké menu s ikonami. Názvy se zobrazí při najetí myší nebo při ovládání klávesou Tab. Další šipkou panel znovu rozbalíte. V delším menu posouvejte seznam; ovládání a osobní TODO zůstávají dostupné. Výběr jiné stavby rozbalí panel s hledáním.
+
+**Na mobilu:** tlačítkem menu vlevo nahoře otevřete navigaci přes celou obrazovku. Zavřete ji křížkem, klávesou Escape nebo výběrem cílové stránky. Po výběru sledujte název stavby, abyste nezadali údaj do jiného projektu. Nastavení omezených animací v systému se respektuje.
 
 **Častá chyba:** hledat Složkomat v obecném nastavení účtu. Patří do **Nastavení stavby → Složkomat**.
 

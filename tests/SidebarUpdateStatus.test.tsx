@@ -41,6 +41,23 @@ describe("SidebarUpdateStatus", () => {
     expect(screen.queryByRole("button", { name: /restartovat/i })).not.toBeInTheDocument();
   });
 
+  it('keeps the restart action accessible in the icon rail', () => {
+    updaterState = { status: 'downloaded', info: { version: '1.9.7' } };
+    render(<SidebarUpdateStatus currentVersion="1.9.6" isIndustrialSkin compact />);
+    fireEvent.click(screen.getByRole('button', { name: 'Restartovat pro aktualizaci na verzi 1.9.7' }));
+    expect(installUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('keeps retry and download announcements in the icon rail', () => {
+    updaterState = { status: 'error' };
+    const { rerender } = render(<SidebarUpdateStatus currentVersion="1.9.6" isIndustrialSkin compact />);
+    fireEvent.click(screen.getByRole('button', { name: 'Zkusit aktualizaci znovu' }));
+    expect(checkForUpdates).toHaveBeenCalledOnce();
+    updaterState = { status: 'downloading', progress: { percent: 42, transferred: 42, total: 100 } };
+    rerender(<SidebarUpdateStatus currentVersion="1.9.6" isIndustrialSkin compact />);
+    expect(screen.getByRole('status')).toHaveTextContent('Stahování aktualizace: 42 %');
+  });
+
   it("zobrazuje průběh stahování a omezí procenta na platný rozsah", () => {
     updaterState = {
       status: "downloading",
