@@ -76,16 +76,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
-    // The global search portal lives outside the inert application shell.
-    const blockGlobalSearch = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !event.altKey && !event.shiftKey) {
+    // Global search, quick paste and help portals live outside the inert shell.
+    const blockGlobalModalHotkeys = (event: KeyboardEvent) => {
+      if (event.key === 'F1' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !event.altKey)) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     };
-    window.addEventListener('keydown', blockGlobalSearch, true);
+    window.addEventListener('keydown', blockGlobalModalHotkeys, true);
     return () => {
-      window.removeEventListener('keydown', blockGlobalSearch, true);
+      window.removeEventListener('keydown', blockGlobalModalHotkeys, true);
       document.body.style.overflow = previousOverflow;
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
     };

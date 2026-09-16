@@ -25,4 +25,4 @@ C1 obsahuje tabulku staveb se stavem, počtem otevřených VŘ a nejbližší uz
 
 Nenačtené nebo nepřístupné souhrny nejsou nuly. Chyba má možnost opakování; chybějící souhrn je explicitně označený. Správní akce jsou pod nabídkou se třemi tečkami u každé stavby. Archiv a jeho stávající oprávnění zůstávají zachované. Demo stavby bez serverového souhrnu zobrazí nedostupnost VŘ místo smyšlených čísel.
 
-Mobilní menu po dobu otevření zachytává Ctrl/Cmd+K před globálním handlerem, aby portál vyhledávání nepřevzal fokus. Desktopová šířka je uchována v `MainLayout`, takže přechod přes mobilní breakpoint nezahodí ruční nastavení. Kompaktní industrial ikony mají 24px glyf i kontejner.
+Mobilní menu po dobu otevření zachytává Ctrl/Cmd+K, Ctrl/Cmd+Shift+K a F1 před globálními handlery, aby portály vyhledávání, vložení kontaktů a nápovědy nepřevzaly fokus. Desktopová šířka je uchována v `MainLayout`, takže přechod přes mobilní breakpoint nezahodí ruční nastavení. Kompaktní industrial ikony mají 24px glyf i kontejner.

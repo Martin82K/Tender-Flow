@@ -81,16 +81,20 @@ describe('Sidebar responsive navigation', () => {
     opener.remove();
   });
 
-  it.each(['ctrlKey', 'metaKey'] as const)('blocks global search via %s only while the mobile dialog is open', modifier => {
+  it.each([
+    { key: 'k', ctrlKey: true }, { key: 'k', metaKey: true },
+    { key: 'k', ctrlKey: true, shiftKey: true }, { key: 'k', metaKey: true, shiftKey: true },
+    { key: 'F1' },
+  ])('blocks global modal shortcut %j only while the mobile dialog is open', shortcut => {
     const globalSearch = vi.fn();
     window.addEventListener('keydown', globalSearch);
     try {
       const { props, rerender } = setup({ isMobile: true, isOpen: true });
-      fireEvent.keyDown(screen.getByRole('button', { name: 'Zavřít sidebar' }), { key: 'k', [modifier]: true });
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Zavřít sidebar' }), shortcut);
       expect(globalSearch).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: 'Zavřít sidebar' })).toHaveFocus();
       rerender(<Sidebar {...props} isOpen={false} />);
-      fireEvent.keyDown(window, { key: 'k', [modifier]: true });
+      fireEvent.keyDown(window, shortcut);
       expect(globalSearch).toHaveBeenCalledOnce();
     } finally { window.removeEventListener('keydown', globalSearch); }
   });
