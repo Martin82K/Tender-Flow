@@ -71,3 +71,9 @@ Historická REST výjimka zahrnuje přesně `get_short_url_target`, ale vyřazov
 `stripe-sync-org-subscription` sdílí výpočet období s webhookem. Synchronizuje oba sloupce konce přístupu a u `past_due` zachovává pouze již uložený konec; `incomplete` neuděluje nové období. Stejnou hodnotu vrací klientovi. Regrese handleru používají mockované Stripe odpovědi a neprovádějí skutečné platby.
 
 Legacy `SubscriptionSettings`, která není připojena v hlavních Nastaveních, opět obsahuje samostatnou akci **Zrušit automatické platby** přes Stripe. Odstranění nabídky Free tuto akci neruší. Stripe nepoužívá původní přepínač, který měnil pouze databázi bez změny u poskytovatele; tento přepínač zůstává pro ostatní předplatná. Nejde o nový samoobslužný prodej v `OrgBillingTab`; současný firemní Enterprise přehled zůstává zachován.
+
+## Licence jednotlivých organizací
+
+Platná licence jedné organizace neodemyká pracovní data jiné expirované organizace.
+Podrobnosti, zachované osobní licence a postup ověření popisuje
+[licenční hranice organizace](../operations/tenant-subscription-boundary.md).
