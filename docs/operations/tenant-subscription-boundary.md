@@ -23,6 +23,13 @@ callbacky ověřují projekt uložený v jednorázovém serverovém OAuth state 
 před token exchange. Globální osobní Microsoft připojení zůstává bez vazby na
 projekt. RPC s explicitní identitou uživatele je dostupné pouze `service_role`.
 
+Notifikace odvozují zdrojový projekt z uloženého `action_url` nebo projektového či
+úkolového `entity_id`. RLS i obě verze `get_my_notifications` filtrují historické
+záznamy; databázový insert trigger potlačuje nové notifikace expirovaných projektů
+i při zápisu servisní rolí z generátorů deadline/task reminders. Osobní připomínky
+a globální zprávy včetně obnovy licence si zachovávají dosavadní pravidla.
+Vytváření projektu kontroluje také dostupnost modulu podle tarifu cílové firmy.
+
 ## Ověření a nasazení
 
 1. Porovnejte aktuální schéma a grants s cílovou databází. Migrace při neočekávané

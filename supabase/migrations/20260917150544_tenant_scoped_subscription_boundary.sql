@@ -66,6 +66,60 @@ REVOKE ALL ON FUNCTION public.has_resource_subscription(uuid,uuid),public.has_pr
 GRANT EXECUTE ON FUNCTION public.has_resource_subscription(uuid,uuid),public.has_project_subscription(text),public.project_has_feature(text,text) TO authenticated,tenderflow_mcp_client,service_role;
 GRANT EXECUTE ON FUNCTION public.has_project_subscription_for_user(text,uuid) TO service_role;
 
+CREATE FUNCTION public.organization_has_feature(org_id uuid, feature_key_input text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT tier='admin' OR (tier IN ('starter','pro','enterprise') AND (
+    EXISTS(SELECT 1 FROM public.subscription_tier_features f WHERE f.tier=e.tier AND f.feature_key=feature_key_input AND f.enabled)
+    OR EXISTS(SELECT 1 FROM public.user_feature_overrides u WHERE u.user_id=auth.uid() AND u.feature_key=feature_key_input AND (u.expires_at IS NULL OR u.expires_at>now()))
+  )) FROM (SELECT private.resource_subscription_tier(org_id,NULL,auth.uid()) AS tier) e;
+$$;
+REVOKE ALL ON FUNCTION public.organization_has_feature(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.organization_has_feature(uuid,text) TO authenticated,service_role;
+
+-- Existing emitters persist the source project in action_url, or use a stable
+-- project/task entity id. Resolve those stored identifiers, never viewer orgs.
+CREATE FUNCTION private.notification_subscription_allowed(entity_type_input text, entity_id_input text, action_url_input text, actor_id uuid) RETURNS boolean
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
+DECLARE source_project text;
+BEGIN
+  IF actor_id IS NULL THEN RETURN false; END IF;
+  source_project := substring(action_url_input FROM '[?&]projectId=([^&#]+)');
+  IF source_project IS NULL AND entity_type_input IN ('project','project_archive','project_clone') THEN
+    source_project := entity_id_input;
+  ELSIF entity_type_input='task_reminder' THEN
+    SELECT t.project_id::text INTO source_project FROM public.tasks t WHERE t.id::text=entity_id_input;
+    IF NOT FOUND THEN RETURN false; END IF;
+  END IF;
+  IF source_project IS NOT NULL THEN
+    RETURN COALESCE((SELECT private.resource_subscription_tier(p.organization_id,p.owner_id,actor_id) IN ('starter','pro','enterprise','admin') FROM public.projects p WHERE p.id=source_project),false);
+  END IF;
+  -- An orphaned project notification must not fall back to an account licence.
+  IF entity_type_input IN ('project','project_archive','project_clone','bid','bid_contracted','category_status','tender_closed','deadline','document') THEN RETURN false; END IF;
+  -- Account notices (including licence recovery) and personal reminders are not
+  -- organization data; preserve their existing access rules and generation.
+  RETURN true;
+END $$;
+REVOKE ALL ON FUNCTION private.notification_subscription_allowed(text,text,text,uuid) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
+CREATE FUNCTION public.notification_has_subscription(entity_type_input text,entity_id_input text,action_url_input text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT private.notification_subscription_allowed(entity_type_input,entity_id_input,action_url_input,auth.uid());
+$$;
+REVOKE ALL ON FUNCTION public.notification_has_subscription(text,text,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.notification_has_subscription(text,text,text) TO authenticated;
+CREATE POLICY tenant_subscription_required ON public.notifications AS RESTRICTIVE FOR ALL TO authenticated
+USING (public.notification_has_subscription(entity_type,entity_id,action_url))
+WITH CHECK (public.notification_has_subscription(entity_type,entity_id,action_url));
+-- Service-role deadline/task generators bypass RLS; suppress unlicensed output
+-- centrally, including direct inserts and insert_notification RPC calls.
+CREATE FUNCTION private.guard_notification_subscription() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF NOT private.notification_subscription_allowed(NEW.entity_type,NEW.entity_id,NEW.action_url,NEW.user_id) THEN RETURN NULL; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION private.guard_notification_subscription() FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
+CREATE TRIGGER notification_subscription_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION private.guard_notification_subscription();
+
 -- Preserve function identities and their existing authorization, signatures and ACLs.
 -- In particular, renaming an RLS helper would leave policy dependencies on the old OID.
 DO $migration$
@@ -83,6 +137,9 @@ BEGIN
     definition := regexp_replace(original,E'BEGIN\n',E'BEGIN\n  '||entry.guard||E'\n');
     IF entry.signature='public.can_project_action(text,text)' THEN
       definition := replace(definition,'public.user_has_feature(', 'public.project_has_feature(project_id_input,');
+    ELSIF entry.signature='public.create_project_with_team(text,text,text,text,uuid,jsonb)' THEN
+      IF position('public.user_has_feature(''module_projects'')' IN definition)=0 THEN RAISE EXCEPTION 'Unexpected create project feature guard'; END IF;
+      definition := replace(definition,'public.user_has_feature(''module_projects'')','public.organization_has_feature(organization_id_input,''module_projects'')');
     END IF;
     EXECUTE definition;
   END LOOP;
@@ -99,6 +156,11 @@ BEGIN
   original := pg_get_functiondef('public.get_overview_tenant_data()'::regprocedure);
   IF position('ON s.id = b.subcontractor_id' IN original)=0 THEN RAISE EXCEPTION 'Unexpected tenant overview join'; END IF;
   EXECUTE replace(original,'ON s.id = b.subcontractor_id','ON s.id = b.subcontractor_id AND public.has_resource_subscription(s.organization_id,s.owner_id)');
+  FOR entry IN SELECT unnest(ARRAY['public.get_my_notifications(integer)','public.get_my_notifications(integer,text)']) AS signature LOOP
+    original := pg_get_functiondef(entry.signature::regprocedure);
+    IF position('WHERE n.user_id = auth.uid()' IN original)=0 THEN RAISE EXCEPTION 'Unexpected notifications RPC: %',entry.signature; END IF;
+    EXECUTE replace(original,'WHERE n.user_id = auth.uid()','WHERE n.user_id = auth.uid() AND public.notification_has_subscription(n.entity_type,n.entity_id,n.action_url)');
+  END LOOP;
 END $migration$;
 
 CREATE OR REPLACE FUNCTION public.export_user_backup(target_org_id uuid) RETURNS jsonb

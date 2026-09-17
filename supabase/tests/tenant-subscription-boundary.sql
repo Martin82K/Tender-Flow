@@ -20,6 +20,7 @@ VALUES
  ('license-active', 'Licensed project', 'tender', '10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001'),
  ('license-expired', 'Expired project', 'tender', '10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002');
 INSERT INTO public.subscription_tier_features(tier,feature_key,enabled) VALUES ('enterprise','module_projects',true),('enterprise','module_contracts',true) ON CONFLICT DO NOTHING;
+INSERT INTO public.subscription_features(key,name) VALUES ('module_projects','Projects') ON CONFLICT DO NOTHING;
 INSERT INTO public.subcontractors(id,company_name,owner_id,organization_id) VALUES
  ('license-contact-a','Contact A','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001'),
  ('license-contact-b','Contact B','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002');
@@ -42,16 +43,31 @@ INSERT INTO auth.oauth_consents(id,user_id,client_id,scopes) VALUES ('40000000-0
 INSERT INTO public.mcp_oauth_client_resources(client_id,resource,enabled) VALUES ('30000000-0000-4000-8000-000000000001','https://www.tenderflow.cz/api/mcp',true);
 INSERT INTO mcp_private.mcp_backend_proof(singleton,proof_hash) VALUES (true,repeat('a',64)) ON CONFLICT(singleton) DO UPDATE SET proof_hash=excluded.proof_hash;
 INSERT INTO public.subcontractors(id,company_name,owner_id,organization_id) VALUES ('license-legacy-contact','Legacy contact','10000000-0000-4000-8000-000000000001',NULL);
+INSERT INTO public.projects(id,name,status,is_demo) VALUES ('license-demo','Demo','tender',true);
+INSERT INTO public.tasks(id,title,created_by,project_id) VALUES
+ ('50000000-0000-4000-8000-000000000001','Expired task','10000000-0000-4000-8000-000000000001','license-expired'),
+ ('50000000-0000-4000-8000-000000000002','Personal task','10000000-0000-4000-8000-000000000001',NULL);
+SET LOCAL session_replication_role = origin;
+-- Existing notifications predate the new insert guard.
+SET LOCAL session_replication_role = replica;
+INSERT INTO public.notifications(user_id,title,entity_type,entity_id,action_url) VALUES
+ ('10000000-0000-4000-8000-000000000001','Licensed notification','deadline','a','/app/project?projectId=license-active&tab=pipeline'),
+ ('10000000-0000-4000-8000-000000000001','Expired notification','deadline','b','/app/project?projectId=license-expired&tab=pipeline'),
+ ('10000000-0000-4000-8000-000000000001','Global notification','system_update',NULL,NULL);
 SET LOCAL session_replication_role = origin;
 SELECT set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
   IF NOT public.has_active_subscription() THEN RAISE EXCEPTION 'control: account must retain its active A licence'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id='license-demo') THEN RAISE EXCEPTION 'Business subscriber demo hidden'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id='license-active') THEN RAISE EXCEPTION 'control: licensed A must remain readable'; END IF;
   IF EXISTS(SELECT 1 FROM public.projects WHERE id='license-expired') THEN RAISE EXCEPTION 'REGRESSION: A licence unlocks expired B through project RLS'; END IF;
   IF public.can_project_action('license-expired','view') THEN RAISE EXCEPTION 'REGRESSION: privileged project helper unlocks B'; END IF;
 END $$;
 DO $$ DECLARE n integer; command text; denied boolean; BEGIN
+  IF EXISTS(SELECT 1 FROM public.notifications WHERE title='Expired notification') THEN RAISE EXCEPTION 'Expired notification RLS bypass'; END IF;
+  IF EXISTS(SELECT 1 FROM public.get_my_notifications(100,NULL) WHERE title='Expired notification') THEN RAISE EXCEPTION 'Expired notification RPC bypass'; END IF;
+  IF (SELECT count(*) FROM public.get_my_notifications(100,NULL) WHERE title IN ('Licensed notification','Global notification'))<>2 THEN RAISE EXCEPTION 'Licensed/global notifications lost'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-legacy-contact') THEN RAISE EXCEPTION 'Legacy owner contact lost'; END IF;
   IF EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-contact-b') THEN RAISE EXCEPTION 'Expired contact readable'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-contact-a') THEN RAISE EXCEPTION 'Licensed contact hidden'; END IF;
@@ -83,6 +99,19 @@ DO $$ DECLARE n integer; command text; denied boolean; BEGIN
   IF NOT EXISTS(SELECT 1 FROM public.organizations WHERE id='20000000-0000-4000-8000-000000000002') THEN RAISE EXCEPTION 'Billing recovery blocked'; END IF;
 END $$;
 RESET ROLE;
+-- A paid target tier can still have its project module disabled.
+UPDATE public.organizations SET override_tier='starter',override_expires_at=now()+interval '1 day' WHERE id='20000000-0000-4000-8000-000000000002';
+INSERT INTO public.subscription_tier_features(tier,feature_key,enabled) VALUES ('starter','module_projects',false) ON CONFLICT(tier,feature_key) DO UPDATE SET enabled=false;
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE denied boolean:=false; BEGIN
+  BEGIN
+    PERFORM public.create_project_with_team('feature-bypass','x','x','tender','20000000-0000-4000-8000-000000000002','[]');
+  EXCEPTION WHEN OTHERS THEN denied:=SQLERRM='Project creation is not permitted'; END;
+  IF NOT denied THEN RAISE EXCEPTION 'Project creation borrows another organization feature'; END IF;
+  PERFORM public.create_project_with_team('allowed-create','Allowed','x','tender','20000000-0000-4000-8000-000000000001','[]');
+  IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id='allowed-create') THEN RAISE EXCEPTION 'Licensed project creation blocked'; END IF;
+END $$;
+RESET ROLE;
 -- A valid override on the target organization restores access; another org never does.
 UPDATE public.organizations SET override_tier='enterprise',override_expires_at=now()+interval '1 day' WHERE id='20000000-0000-4000-8000-000000000002';
 SET LOCAL ROLE authenticated;
@@ -109,6 +138,11 @@ RESET ROLE;
 -- The trusted callback uses the same target licence with its server-side identity.
 SET LOCAL ROLE service_role;
 DO $$ BEGIN
+  IF public.insert_notification('10000000-0000-4000-8000-000000000001','warning','deadline','Must not generate',NULL,'/app/project?projectId=license-expired','deadline','new-b') IS NOT NULL THEN RAISE EXCEPTION 'Service generator bypass'; END IF;
+  IF public.insert_notification('10000000-0000-4000-8000-000000000001','warning','deadline','Allowed generator',NULL,'/app/project?projectId=license-active','deadline','new-a') IS NULL THEN RAISE EXCEPTION 'Licensed generator blocked'; END IF;
+  IF public.insert_notification('10000000-0000-4000-8000-000000000001','info','project','Expired archive',NULL,NULL,'project_archive','license-expired') IS NOT NULL THEN RAISE EXCEPTION 'Archive entity bypass'; END IF;
+  IF public.insert_notification('10000000-0000-4000-8000-000000000001','warning','deadline','Expired task',NULL,'/app/todo','task_reminder','50000000-0000-4000-8000-000000000001') IS NOT NULL THEN RAISE EXCEPTION 'Task generator bypass'; END IF;
+  IF public.insert_notification('10000000-0000-4000-8000-000000000001','warning','deadline','Personal task',NULL,'/app/todo','task_reminder','50000000-0000-4000-8000-000000000002') IS NULL THEN RAISE EXCEPTION 'Personal reminder blocked'; END IF;
   IF public.has_project_subscription_for_user('license-expired','10000000-0000-4000-8000-000000000001') THEN RAISE EXCEPTION 'OAuth project boundary bypass'; END IF;
   IF NOT public.has_project_subscription_for_user('license-active','10000000-0000-4000-8000-000000000001') THEN RAISE EXCEPTION 'OAuth licensed control blocked'; END IF;
 END $$;
