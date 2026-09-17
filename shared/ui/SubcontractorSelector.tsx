@@ -152,7 +152,7 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
     ico: { min: 90 },
     region: { min: 100 },
     regions: { min: 140, flex: true },
-    hodnoceni: { min: 130 },
+    hodnoceni: { min: 170 },
     stav: { min: 110 },
   };
 
@@ -450,11 +450,12 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
                               minimumFractionDigits: 1,
                               maximumFractionDigits: 1,
                             })}
+                            {contact.vendorRatingCount != null && ` · ${contact.vendorRatingCount}×`}
                           </span>
                         </div>
                       ) : (
                         <span className="text-xs text-slate-400">
-                          Neohodnoceno
+                          {contact.vendorRatingUnavailable ? "Hodnocení nedostupné" : "Neohodnoceno"}
                         </span>
                       )}
                     </div>
@@ -496,6 +497,7 @@ interface SubcontractorSelectorProps {
   className?: string;
   /** When provided, enables the "Nejblíže ke stavbě" distance filter */
   projectPosition?: { lat: number; lng: number } | null;
+  defaultSort?: "name" | "rating";
 }
 
 export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
@@ -508,8 +510,9 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   onAddContact,
   className,
   projectPosition,
+  defaultSort = "name",
 }) => {
-  const filters = useContactsFilters(contacts, projectPosition);
+  const filters = useContactsFilters(contacts, projectPosition, defaultSort);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] =
@@ -609,10 +612,17 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
 
   return (
     <div className={`flex flex-col gap-6 min-w-0 ${className || ""}`}>
+      {contacts.some(contact => contact.vendorRatingUnavailable) && (
+        <p role="status" className="text-sm text-amber-700 dark:text-amber-400">
+          Hodnocení se nepodařilo načíst. Pro opakování obnovte stránku.
+        </p>
+      )}
       <ContactsFilterBar
         state={filters.state}
         statuses={statuses}
         specializations={filters.specializations}
+        onRatingChange={filters.setRatingFilter}
+        onSortChange={filters.setSortBy}
         onSearchChange={filters.setSearchText}
         onSpecializationChange={filters.setSpecialization}
         onStatusChange={filters.setStatus}

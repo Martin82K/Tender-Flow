@@ -29,6 +29,33 @@ function make(partial: Partial<Subcontractor>): Subcontractor {
 }
 
 describe("SubcontractorSelector", () => {
+  it("filters ratings, preserves selection and clears the rating filter", async () => {
+    const contacts = [
+      {...make({id: "low", company: "Alfa"}), vendorRatingAverage: 3, vendorRatingCount: 2},
+      {...make({id: "high", company: "Beta"}), vendorRatingAverage: 5, vendorRatingCount: 1},
+      make({id: "none", company: "Gama"}),
+    ];
+    const onFiltered = vi.fn();
+    const onSelection = vi.fn();
+    render(<SubcontractorSelector contacts={contacts} statuses={statuses} selectedIds={new Set(["low"])}
+      onSelectionChange={onSelection} onFilteredContactsChange={onFiltered} defaultSort="rating" />);
+    await waitFor(() => expect(onFiltered.mock.lastCall?.[0].map((c: Subcontractor) => c.id)).toEqual(["high", "low", "none"]));
+    fireEvent.click(screen.getByLabelText("Filtr hodnocení"));
+    fireEvent.click(screen.getByRole("option", {name: "Alespoň 4 ★"}));
+    await waitFor(() => expect(onFiltered.mock.lastCall?.[0].map((c: Subcontractor) => c.id)).toEqual(["high"]));
+    expect(onSelection).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name: /Vymazat vše/i}));
+    await waitFor(() => expect(onFiltered.mock.lastCall?.[0]).toHaveLength(3));
+    fireEvent.click(screen.getByLabelText("Řazení firem"));
+    fireEvent.click(screen.getByRole("option", {name: "Podle názvu"}));
+    await waitFor(() => expect(onFiltered.mock.lastCall?.[0].map((c: Subcontractor) => c.id)).toEqual(["low", "high", "none"]));
+  });
+
+  it("explains unavailable ratings even with a rating filter active", () => {
+    render(<SubcontractorSelector contacts={[{...make({id: "error"}), vendorRatingUnavailable: true}]}
+      statuses={statuses} selectedIds={new Set()} onSelectionChange={() => undefined} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Hodnocení se nepodařilo načíst");
+  });
   beforeEach(() => {
     localStorage.clear();
   });

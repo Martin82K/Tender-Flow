@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuthIdentity } from '@shared/auth/AuthIdentityContext';
 import { Modal } from '@/shared/ui/Modal';
@@ -30,6 +31,7 @@ const formatError = (code: VendorRatingErrorCode, message: string): string =>
   `${message} Kód chyby: ${code}`;
 
 export const VendorRatingDialog: React.FC<Props> = ({ contract, onClose, onSaved }) => {
+  const queryClient = useQueryClient();
   const identity = useAuthIdentity();
   const normalizedUserId = identity?.id.trim() ?? '';
   const authError = !normalizedUserId
@@ -85,6 +87,10 @@ export const VendorRatingDialog: React.FC<Props> = ({ contract, onClose, onSaved
       await contractMutationsApi.updateVendorRating(contract.id, {
         rating: nextRating,
         note: nextNote,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['contacts', 'list', requestUserId],
+        exact: true,
       });
       if (!mountedRef.current || activeUserIdRef.current !== requestUserId) return;
       await onSaved();

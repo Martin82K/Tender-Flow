@@ -6,9 +6,12 @@ import type { ContractWithDetails } from "@/types";
 const state = vi.hoisted(() => ({
   identity: null as AuthIdentity | null,
   legacyUser: null as AuthIdentity | null,
+  invalidateQueries: vi.fn().mockResolvedValue(undefined),
   updateVendorRating: vi.fn(),
   updateContract: vi.fn(),
 }));
+
+vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: state.invalidateQueries }) }));
 
 vi.mock("@shared/auth/AuthIdentityContext", () => ({
   useAuthIdentity: () => state.identity,
@@ -84,7 +87,13 @@ const renderDialog = (
 };
 
 describe("VendorRatingDialog auth boundary", () => {
+  it.each(["Uložit", "Smazat hodnocení"])("refreshes only the saving user's contacts after %s", async (button) => {
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: button }));
+    await waitFor(() => expect(state.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["contacts", "list", "user-a"], exact: true }));
+  });
   beforeEach(() => {
+    state.invalidateQueries.mockClear();
     state.identity = userA;
     state.legacyUser = demoUser;
     state.updateVendorRating.mockReset();
@@ -200,6 +209,7 @@ describe("VendorRatingDialog auth boundary", () => {
     });
 
     expect(onSaved).not.toHaveBeenCalled();
+    expect(state.invalidateQueries).toHaveBeenCalledExactlyOnceWith({queryKey: ["contacts", "list", "user-a"], exact: true});
     expect(screen.getByRole("button", { name: "Uložit" })).not.toBeDisabled();
   });
 
