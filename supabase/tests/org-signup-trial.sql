@@ -254,21 +254,35 @@ BEGIN
     RAISE EXCEPTION 'Manual personal trial must remain available without a business membership';
   END IF;
 
-  DELETE FROM public.organization_members WHERE user_id = u;
-  personal_org_id := public.get_or_create_user_organization_internal(
-    u,
+  FOREACH test_email IN ARRAY ARRAY[
     'signup@seznam.sk',
-    'Public domain fixture'
-  );
+    'signup@aol.com',
+    'signup@post.cz',
+    'signup@pm.me',
+    'signup@gmx.com',
+    'signup@mail.com',
+    'signup@ymail.com'
+  ]
+  LOOP
+    DELETE FROM public.organization_members WHERE user_id = u;
+    personal_org_id := public.get_or_create_user_organization_internal(
+      u,
+      test_email,
+      'Public domain fixture'
+    );
 
-  IF NOT EXISTS (
-    SELECT 1 FROM public.organizations
-    WHERE id = personal_org_id
-      AND type = 'personal'
-      AND (domain_whitelist IS NULL OR NOT ('seznam.sk' = ANY (domain_whitelist)))
-  ) THEN
-    RAISE EXCEPTION 'Public email domains must create a personal organization without a company whitelist';
-  END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.organizations
+      WHERE id = personal_org_id
+        AND type = 'personal'
+        AND (
+          domain_whitelist IS NULL
+          OR NOT (public.normalize_email_domain(test_email) = ANY (domain_whitelist))
+        )
+    ) THEN
+      RAISE EXCEPTION 'Public email domain % must create a personal organization without a company whitelist', test_email;
+    END IF;
+  END LOOP;
 END;
 $$;
 ROLLBACK;

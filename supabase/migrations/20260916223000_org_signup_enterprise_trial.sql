@@ -13,6 +13,73 @@ $$;
 REVOKE ALL ON FUNCTION public._org_signup_trial_deadline(timestamptz) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public._org_signup_trial_deadline(timestamptz) TO authenticated, service_role;
 
+-- Union of is_public_email_domain and is_free_email_provider so consumer
+-- mailboxes never become a shared company tenant with a domain whitelist.
+CREATE OR REPLACE FUNCTION public.is_public_email_domain(domain_input text)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = ''
+AS $$
+BEGIN
+  IF domain_input IS NULL OR btrim(domain_input) = '' THEN
+    RETURN true;
+  END IF;
+
+  RETURN lower(btrim(domain_input)) = ANY(ARRAY[
+    'aol.com',
+    'atlas.cz',
+    'centrum.cz',
+    'email.cz',
+    'gmail.com',
+    'gmx.com',
+    'gmx.net',
+    'googlemail.com',
+    'hotmail.com',
+    'hotmail.cz',
+    'icloud.com',
+    'live.com',
+    'mac.com',
+    'mail.com',
+    'me.com',
+    'msn.com',
+    'outlook.com',
+    'pm.me',
+    'post.cz',
+    'proton.me',
+    'protonmail.com',
+    'quick.cz',
+    'seznam.cz',
+    'seznam.sk',
+    'tiscali.cz',
+    'volny.cz',
+    'yahoo.co.uk',
+    'yahoo.com',
+    'yahoo.cz',
+    'ymail.com',
+    'zoho.com'
+  ]);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_free_email_provider(email text)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = ''
+AS $$
+DECLARE
+  v_domain text;
+BEGIN
+  IF email IS NULL OR btrim(email) = '' THEN
+    RETURN true;
+  END IF;
+
+  v_domain := split_part(lower(btrim(email)), '@', 2);
+  RETURN public.is_public_email_domain(NULLIF(v_domain, ''));
+END;
+$$;
+
 -- Shared seat reservation lock for domain-join, invite, approve and activate.
 CREATE OR REPLACE FUNCTION public._org_billable_seats_available(target_org_id uuid)
 RETURNS boolean

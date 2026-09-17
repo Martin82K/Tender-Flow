@@ -26,6 +26,16 @@ describe("org signup enterprise trial migration", () => {
     expect(migration).toContain("AND om.is_active = true");
     expect(migration).toContain("AND NOT EXISTS (");
     expect(migration).toContain("public.is_public_email_domain(v_domain)");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.is_public_email_domain");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.is_free_email_provider");
+    expect(migration).toContain("'aol.com'");
+    expect(migration).toContain("'post.cz'");
+    expect(migration).toContain("'pm.me'");
+    expect(migration).toContain("'ymail.com'");
+    expect(migration).toContain("'gmx.com'");
+    expect(migration).toContain("'mail.com'");
+    expect(migration).toContain("'seznam.sk'");
+    expect(migration).toContain("'yahoo.co.uk'");
     expect(migration).toContain("public.normalize_email_domain(p_email)");
     expect(migration).toContain("AND o.type = 'business'");
     expect(migration).toContain("AND bo.type = 'business'");
