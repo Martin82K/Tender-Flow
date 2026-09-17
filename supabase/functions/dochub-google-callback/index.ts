@@ -1,3 +1,4 @@
+import { hasOAuthStateSubscription } from "../_shared/oauthSubscription.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
@@ -320,8 +321,7 @@ Deno.serve(async (req) => {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const { data: subscription, error: subscriptionError } = await service.rpc('get_effective_user_tier', { target_user_id: stateRow.user_id });
-    if (subscriptionError || !['starter', 'pro', 'enterprise', 'admin'].includes(subscription?.tier)) {
+    if (!await hasOAuthStateSubscription(service, stateRow, true)) {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
     }
 
