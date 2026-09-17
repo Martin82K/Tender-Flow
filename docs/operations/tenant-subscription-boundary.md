@@ -12,7 +12,8 @@ oprávnění k cizím datům.
 
 Kontrola respektuje platné organizační overrides, konec trialu, placené období
 po zrušení a Stripe `expires_at`. Historické osobní předplatné může zpřístupnit
-osobní prostor, nikoli firemní organizaci. Globální stavy kontaktů zůstávají
+osobní prostor, nikoli firemní organizaci. Starší záznamy bez organizace používají
+licenci uloženého vlastníka; firma se neodvozuje z členství čtenáře. Globální stavy kontaktů zůstávají
 přístupné účtům s platným předplatným. Účet, členství a billing nejsou skryty,
 aby bylo možné obnovit licenci.
 

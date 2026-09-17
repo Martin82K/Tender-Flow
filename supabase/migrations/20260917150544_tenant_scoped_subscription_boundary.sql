@@ -1,30 +1,9 @@
 -- Licensing is an additional resource boundary, never a membership grant.
 -- Account-level entitlement remains available for bootstrap and billing recovery.
 BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '60s';
 CREATE SCHEMA IF NOT EXISTS private;
-
-CREATE FUNCTION private.personal_subscription_tier(person_id uuid) RETURNS text
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
-  SELECT COALESCE((SELECT tier FROM (
-    SELECT COALESCE(up.subscription_tier_override, up.stripe_subscription_tier) AS tier
-    FROM public.user_profiles up WHERE up.user_id = person_id AND (
-      (up.subscription_status = 'active' AND (up.subscription_expires_at IS NULL OR up.subscription_expires_at > now()))
-      OR (up.subscription_status = 'trial' AND up.trial_ends_at > now() AND (up.subscription_expires_at IS NULL OR up.subscription_expires_at > now()))
-      OR (up.subscription_status IN ('cancelled','canceled') AND up.subscription_expires_at > now())
-    )
-    UNION ALL
-    SELECT CASE WHEN o.override_tier IS NOT NULL AND (o.override_expires_at IS NULL OR o.override_expires_at > now())
-      THEN o.override_tier ELSE o.subscription_tier END
-    FROM public.organizations o
-    JOIN public.organization_members m ON m.organization_id=o.id AND m.user_id=person_id AND m.is_active
-    WHERE o.type='personal' AND (
-      (o.override_tier IS NOT NULL AND (o.override_expires_at IS NULL OR o.override_expires_at > now()))
-      OR (o.subscription_status='active' AND (CASE WHEN left(o.billing_customer_id,4)='cus_' THEN o.expires_at ELSE COALESCE(o.billing_period_end,o.expires_at) END IS NULL))
-      OR (o.subscription_status IN ('active','trial','cancelled','canceled','pending','past_due') AND
-        CASE WHEN left(o.billing_customer_id,4)='cus_' THEN o.expires_at ELSE COALESCE(o.billing_period_end,o.expires_at) END > now())
-    )
-  ) e WHERE tier IN ('starter','pro','enterprise') ORDER BY public._tier_rank(tier) DESC LIMIT 1), 'free');
-$$;
 
 CREATE FUNCTION private.resource_subscription_tier(org_id uuid, owner_id uuid, actor_id uuid) RETURNS text
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
@@ -32,7 +11,9 @@ DECLARE o public.organizations%ROWTYPE; access_end timestamptz; tier text;
 BEGIN
   IF actor_id IS NULL THEN RETURN 'free'; END IF;
   IF public.is_platform_admin(actor_id) THEN RETURN 'admin'; END IF;
-  IF org_id IS NULL THEN RETURN private.personal_subscription_tier(COALESCE(owner_id,actor_id)); END IF;
+  -- Legacy rows without an organization belong to the recorded owner's account.
+  -- Never infer a different organization from the viewer's memberships.
+  IF org_id IS NULL THEN RETURN COALESCE(public.get_effective_user_tier(COALESCE(owner_id,actor_id))->>'tier','free'); END IF;
   SELECT * INTO o FROM public.organizations WHERE id=org_id;
   IF NOT FOUND THEN RETURN 'free'; END IF;
   access_end := CASE WHEN left(o.billing_customer_id,4)='cus_' THEN o.expires_at ELSE COALESCE(o.billing_period_end,o.expires_at) END;
@@ -80,7 +61,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   )) FROM (SELECT private.resource_subscription_tier(p.organization_id,p.owner_id,auth.uid()) AS tier
     FROM public.projects p WHERE p.id=project_id_input) e),false);
 $$;
-REVOKE ALL ON FUNCTION private.personal_subscription_tier(uuid), private.resource_subscription_tier(uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
+REVOKE ALL ON FUNCTION private.resource_subscription_tier(uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
 REVOKE ALL ON FUNCTION public.has_resource_subscription(uuid,uuid),public.has_project_subscription(text),public.project_has_feature(text,text),public.has_project_subscription_for_user(text,uuid) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
 GRANT EXECUTE ON FUNCTION public.has_resource_subscription(uuid,uuid),public.has_project_subscription(text),public.project_has_feature(text,text) TO authenticated,tenderflow_mcp_client,service_role;
 GRANT EXECUTE ON FUNCTION public.has_project_subscription_for_user(text,uuid) TO service_role;

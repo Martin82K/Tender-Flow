@@ -41,6 +41,7 @@ INSERT INTO auth.oauth_clients(id,registration_type,redirect_uris,grant_types,to
 INSERT INTO auth.oauth_consents(id,user_id,client_id,scopes) VALUES ('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','openid');
 INSERT INTO public.mcp_oauth_client_resources(client_id,resource,enabled) VALUES ('30000000-0000-4000-8000-000000000001','https://www.tenderflow.cz/api/mcp',true);
 INSERT INTO mcp_private.mcp_backend_proof(singleton,proof_hash) VALUES (true,repeat('a',64)) ON CONFLICT(singleton) DO UPDATE SET proof_hash=excluded.proof_hash;
+INSERT INTO public.subcontractors(id,company_name,owner_id,organization_id) VALUES ('license-legacy-contact','Legacy contact','10000000-0000-4000-8000-000000000001',NULL);
 SET LOCAL session_replication_role = origin;
 SELECT set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 SET LOCAL ROLE authenticated;
@@ -51,6 +52,7 @@ DO $$ BEGIN
   IF public.can_project_action('license-expired','view') THEN RAISE EXCEPTION 'REGRESSION: privileged project helper unlocks B'; END IF;
 END $$;
 DO $$ DECLARE n integer; command text; denied boolean; BEGIN
+  IF NOT EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-legacy-contact') THEN RAISE EXCEPTION 'Legacy owner contact lost'; END IF;
   IF EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-contact-b') THEN RAISE EXCEPTION 'Expired contact readable'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.subcontractors WHERE id='license-contact-a') THEN RAISE EXCEPTION 'Licensed contact hidden'; END IF;
   IF EXISTS(SELECT 1 FROM public.bids WHERE id='license-bid-b') OR EXISTS(SELECT 1 FROM public.bid_tags WHERE bid_id='license-bid-b') THEN RAISE EXCEPTION 'Indirect child bypass'; END IF;
