@@ -40,7 +40,9 @@ describe("trial remaining copy", () => {
     expect(TRIAL_DURATION_DAYS).toBe(14);
     expect(getCalendarDaysRemaining("2026-09-30T10:00:00.000Z")).toBe(14);
     expect(getCalendarDaysRemaining("2026-09-16T12:00:00.000Z")).toBe(1);
-    expect(getCalendarDaysRemaining("2026-09-16T09:00:00.000Z")).toBe(0);
+    expect(getCalendarDaysRemaining("2026-09-16T10:00:00.000Z")).toBe(0);
+    expect(getCalendarDaysRemaining("2026-09-16T09:00:00.000Z")).toBe(-1);
+    expect(getCalendarDaysRemaining("2026-09-16T09:59:59.000Z")).toBe(-1);
     expect(getCalendarDaysRemaining("2026-09-15T10:00:00.000Z")).toBe(-1);
   });
 

@@ -4,8 +4,9 @@ export const getCalendarDaysRemaining = (iso: string | null | undefined): number
   if (!iso) return null;
   const end = Date.parse(iso);
   if (!Number.isFinite(end)) return null;
-  const days = Math.ceil((end - Date.now()) / 86_400_000);
-  return days === 0 ? 0 : days;
+  const now = Date.now();
+  if (end < now) return Math.min(-1, Math.ceil((end - now) / 86_400_000));
+  return Math.ceil((end - now) / 86_400_000);
 };
 
 const czechDayWord = (days: number): "den" | "dny" | "dní" => {

@@ -19,6 +19,17 @@ describe("TrialBanner", () => {
   });
 
   it("hides after expiry or when the account is not on trial", () => {
+    const justExpired = render(
+      <TrialBanner
+        currentPlan="enterprise"
+        isLoading={false}
+        planStatus="trial"
+        planExpiresAt={new Date(Date.now() - 3_600_000).toISOString()}
+      />,
+    );
+    expect(justExpired.queryByRole("status")).not.toBeInTheDocument();
+    justExpired.unmount();
+
     const expired = render(
       <TrialBanner
         currentPlan="enterprise"
