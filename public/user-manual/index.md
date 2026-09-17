@@ -181,6 +181,16 @@ Vyberte stavby, případně stav smlouvy a hledaný název. Rozbalte smlouvu pro
 
 **Častá chyba:** zakládat stejnou firmu znovu kvůli další osobě. Nejprve zkontrolujte existující záznam a jeho seznam kontaktů.
 
+### Hodnocení a doporučené pořadí
+
+Hvězdičky u firmy představují průměr hodnocení z jejích propojených smluv, ke kterým máte přístup. Vedle průměru vidíte počet hodnocení (například **4,5 · 6×**). Hodnocení zadáte nebo smažete v detailu smlouvy; seznam firem se poté automaticky obnoví. Pokud sloupec nevidíte, zapněte **Hodnocení** v nabídce **Sloupce**.
+
+Filtr **Všechna hodnocení** umožňuje vybrat **5 ★**, **Alespoň 4 ★**, **Alespoň 3 ★** nebo **Neohodnoceno**. Kombinuje se se specializací, krajem a dalšími filtry. Akce **Vymazat vše** zruší filtry a ponechá zvolené řazení.
+
+Při výběru dodavatele do VŘ je výchozí řazení **Nejlépe hodnocené**: vyšší průměr, potom vyšší počet hodnocení a nakonec název firmy. Firmy bez hodnocení jsou poslední. V adresáři zůstává výchozí řazení podle názvu; přepínačem je můžete změnit.
+
+**Hodnocení nedostupné** znamená chybu načtení, nikoli firmu bez hodnocení. Obnovte stránku. Taková firma se nezařadí do filtru **Neohodnoceno** ani do filtru minimálního hodnocení. Chybějící přístup ke smlouvám může znamenat, že jejich hodnocení v průměru neuvidíte.
+
 ### Hledání, výběr a úprava firmy
 
 ![Karty kontaktů: specializace, kraj, kontaktní osoby, hodnocení a výběr firmy.](./assets/kontakty.png)

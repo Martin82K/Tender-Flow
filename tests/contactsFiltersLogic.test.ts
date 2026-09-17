@@ -175,3 +175,27 @@ describe("contactsFiltersLogic", () => {
     ).toBe(false);
   });
 });
+
+ describe("vendor rating filters and ranking", () => {
+  const contacts = [
+    { ...make({ id: "none", company: "A bez hodnocení" }) },
+    { ...make({ id: "low", company: "B", vendorRatingAverage: 3 }), vendorRatingCount: 8 },
+    { ...make({ id: "five", company: "C", vendorRatingAverage: 5 }), vendorRatingCount: 1 },
+    { ...make({ id: "four", company: "D", vendorRatingAverage: 4 }), vendorRatingCount: 2 },
+    { ...make({ id: "four-more", company: "E", vendorRatingAverage: 4 }), vendorRatingCount: 6 },
+    { ...make({ id: "unavailable", company: "F" }), vendorRatingUnavailable: true },
+  ];
+  it("ranks averages then counts, leaving unrated last without mutating inputs", () => {
+    expect(filterContacts(contacts, { ...EMPTY_FILTER_STATE, sortBy: "rating" }).map(c => c.id))
+      .toEqual(["five", "four-more", "four", "low", "none", "unavailable"]);
+    expect(contacts[0].id).toBe("none");
+  });
+  it("combines the minimum rating with other filters", () => {
+    expect(filterContacts(contacts, { ...EMPTY_FILTER_STATE, ratingFilter: "4", searchText: "D" }).map(c => c.id)).toEqual(["four"]);
+    expect(filterContacts(contacts, { ...EMPTY_FILTER_STATE, ratingFilter: "4" })).toHaveLength(3);
+    expect(hasActiveFilters({ ...EMPTY_FILTER_STATE, ratingFilter: "4" })).toBe(true);
+  });
+  it("does not treat unavailable ratings as unrated", () => {
+    expect(filterContacts(contacts, { ...EMPTY_FILTER_STATE, ratingFilter: "unrated" }).map(c => c.id)).toEqual(["none"]);
+  });
+});

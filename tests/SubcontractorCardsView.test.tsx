@@ -26,6 +26,19 @@ function make(partial: Partial<Subcontractor>): Subcontractor {
 }
 
 describe("SubcontractorCardsView", () => {
+  it("filters and ranks ratings in the card directory", async () => {
+    const contacts = [make({id:"low", company:"Alfa", vendorRatingAverage:3}), make({id:"high", company:"Beta", vendorRatingAverage:5, vendorRatingCount:2})];
+    render(<SubcontractorCardsView contacts={contacts} statuses={statuses} selectedIds={new Set()} onSelectionChange={() => undefined} />);
+    fireEvent.click(screen.getByRole("combobox", {name:"Řazení firem"}));
+    fireEvent.click(screen.getByRole("option", {name:"Nejlépe hodnocené"}));
+    expect(screen.getAllByRole("heading").map(el => el.textContent)).toEqual(["Beta", "Alfa"]);
+    fireEvent.click(screen.getByRole("combobox", {name:"Filtr hodnocení"}));
+    fireEvent.click(screen.getByRole("option", {name:"Alespoň 4 ★"}));
+    expect(screen.getAllByTestId("subcontractor-card")).toHaveLength(1);
+    expect(screen.getByText("5,0 · 2×")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", {name:"Vymazat vše"}));
+    expect(screen.getAllByTestId("subcontractor-card")).toHaveLength(2);
+  });
   it("vykreslí kartu pro každý kontakt", () => {
     const contacts = [
       make({ id: "a", company: "Alfa" }),

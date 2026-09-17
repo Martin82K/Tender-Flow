@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Subcontractor } from "@/types";
 import {
-  ContactsFilterState,
+  type ContactsFilterState,
+  type ContactSort,
+  type RatingFilter,
   EMPTY_FILTER_STATE,
-  GeoPoint,
+  type GeoPoint,
   filterContacts,
   hasActiveFilters,
 } from "./contactsFiltersLogic";
@@ -13,6 +15,8 @@ const SEARCH_DEBOUNCE_MS = 250;
 export interface UseContactsFiltersResult {
   state: ContactsFilterState;
   debouncedState: ContactsFilterState;
+  setRatingFilter: (value: RatingFilter) => void;
+  setSortBy: (value: ContactSort) => void;
   setSearchText: (value: string) => void;
   setSpecialization: (value: string) => void;
   setStatus: (value: string) => void;
@@ -28,7 +32,10 @@ export interface UseContactsFiltersResult {
 export function useContactsFilters(
   contacts: Subcontractor[],
   projectPosition?: GeoPoint | null,
+  defaultSort: ContactSort = "name",
 ): UseContactsFiltersResult {
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
+  const [sortBy, setSortBy] = useState<ContactSort>(defaultSort);
   const [searchText, setSearchText] = useState("");
   const [specialization, setSpecialization] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -53,19 +60,21 @@ export function useContactsFilters(
   }, [projectPosition, distanceKm]);
 
   const state: ContactsFilterState = useMemo(
-    () => ({ searchText, specialization, status, region, distanceKm }),
-    [searchText, specialization, status, region, distanceKm],
+    () => ({ searchText, specialization, status, region, distanceKm, ratingFilter, sortBy }),
+    [searchText, specialization, status, region, distanceKm, ratingFilter, sortBy],
   );
 
   const debouncedState: ContactsFilterState = useMemo(
     () => ({
+      ratingFilter,
+      sortBy,
       searchText: debouncedSearch,
       specialization,
       status,
       region,
       distanceKm,
     }),
-    [debouncedSearch, specialization, status, region, distanceKm],
+    [debouncedSearch, specialization, status, region, distanceKm, ratingFilter, sortBy],
   );
 
   const specializations = useMemo(() => {
@@ -79,6 +88,7 @@ export function useContactsFilters(
   );
 
   const clear = useCallback(() => {
+    setRatingFilter("all");
     setSearchText("");
     setSpecialization("all");
     setStatus("all");
@@ -89,6 +99,8 @@ export function useContactsFilters(
   return {
     state,
     debouncedState,
+    setRatingFilter,
+    setSortBy,
     setSearchText,
     setSpecialization,
     setStatus,

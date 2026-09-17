@@ -222,10 +222,11 @@ const SubcontractorCard: React.FC<CardProps> = React.memo(
                   minimumFractionDigits: 1,
                   maximumFractionDigits: 1,
                 })}
+                {contact.vendorRatingCount != null && ` · ${contact.vendorRatingCount}×`}
               </span>
             </div>
           ) : (
-            <span className="text-[11px] text-slate-400">Neohodnoceno</span>
+            <span className="text-[11px] text-slate-400">{contact.vendorRatingUnavailable ? "Hodnocení nedostupné" : "Neohodnoceno"}</span>
           )}
         </div>
 
@@ -309,10 +310,17 @@ export const SubcontractorCardsView: React.FC<SubcontractorCardsViewProps> = ({
 
   return (
     <div className={`flex flex-col gap-6 min-w-0 ${className || ""}`}>
+      {contacts.some(contact => contact.vendorRatingUnavailable) && (
+        <p role="status" className="text-sm text-amber-700 dark:text-amber-400">
+          Hodnocení se nepodařilo načíst. Pro opakování obnovte stránku.
+        </p>
+      )}
       <ContactsFilterBar
         state={filters.state}
         statuses={statuses}
         specializations={filters.specializations}
+        onRatingChange={filters.setRatingFilter}
+        onSortChange={filters.setSortBy}
         onSearchChange={filters.setSearchText}
         onSpecializationChange={filters.setSpecialization}
         onStatusChange={filters.setStatus}

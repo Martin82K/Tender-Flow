@@ -65,6 +65,7 @@ export interface Subcontractor {
   regions?: string[]; // Zkratky krajů ČR kde firma působí
   status: string; // Dynamic ID linking to StatusConfig
 
+  vendorRatingUnavailable?: boolean;
   vendorRatingAverage?: number;
   vendorRatingCount?: number;
 

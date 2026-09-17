@@ -67,6 +67,27 @@ jednotlivé stránky kontaktů musí zůstat sekvenční.
   organizaci. Oprava tenantového přiřazení proto nesmí používat globální
   viditelnost ani rozšířit přístup mimo cílovou organizaci.
 
+## Hodnocení v adresáři a výběru do VŘ (17. září 2026)
+
+- Hodnocení se čtou po 1 000 řádcích se stabilním pořadím podle ID smlouvy.
+- Při response chybě i timeoutu/rejection se zachová seznam firem, ale označí se
+  `vendorRatingUnavailable`. Částečný průměr po selhání další stránky se nepoužije.
+- Dialog po úspěšném zápisu nebo smazání invaliduje přesný klíč
+  `contacts/list/<requestUserId>`. Dokončení pro původního uživatele neobnoví
+  cache jiného uživatele a nespustí jeho success callback.
+- Sdílený filtr kombinuje minimální hodnocení či neohodnocené firmy se
+  specializací, krajem, stavem, hledáním a vzdáleností. Nedostupné hodnocení
+  není neohodnocení.
+- Pipeline volí průměr sestupně, počet sestupně, český název a ID. Adresář
+  má výchozí řazení podle názvu. Vymazání filtrů ponechá řazení.
+- RLS a způsob ukládání do smluv se nemění. Průměr zahrnuje pouze smlouvy
+  čitelné aktuálním uživatelem; nejde o globální reputaci napříč tenanty.
+- Bez migrace a nových závislostí. Při incidentu ověřit vazbu vendor_id,
+  čitelnost smlouvy, response všech stránek a obnovu query cache. Nevypínat RLS.
+- Před implementací: PR #470 a #471 měly zelené CI; #470 měl otevřené review
+  připomínky mimo tento rozsah. GitHub Code Scanning vracel „no analysis found“
+  a Dependabot alerts byly vypnuté, takže tyto signály nebyly dostupné.
+
 ## Rollback
 
 Query refaktor neobsahuje novou dependency a legacy consumery zůstávají

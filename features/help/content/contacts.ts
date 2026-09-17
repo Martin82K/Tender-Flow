@@ -101,7 +101,7 @@ export const contactsHelp: HelpEntry[] = [
     view: "contacts",
     label: "Hodnocení",
     description: "Hvězdičkové hodnocení subdodavatele (1-5). Slouží k internímu posouzení kvality a spolehlivosti.",
-    detail: "Hodnocení se zobrazuje v seznamu kontaktů i při výběru subdodavatelů v Pipeline. Pomáhá rychle identifikovat preferované dodavatele.",
+    detail: "Hodnocení je průměr z propojených smluv, ke kterým máte přístup; vedle je počet hodnocení. Upravuje se na detailu smlouvy. V seznamu lze filtrovat 5 ★, alespoň 4 ★, alespoň 3 ★ nebo neohodnocené firmy. Při výběru do Pipeline jsou nejlépe hodnocené firmy nahoře, při shodě rozhoduje počet hodnocení a název. Neohodnocené firmy jsou poslední.",
     category: "data-entry",
     tourOrder: 11,
   },
