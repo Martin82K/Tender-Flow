@@ -224,6 +224,8 @@ export interface FolderInfo {
 }
 
 export interface FileInfo {
+    /** Validated relative path from the resolved root of a scoped file picker. */
+    withinRootRelativePath?: string;
     relativePath: string;
     absolutePath: string;
     name: string;

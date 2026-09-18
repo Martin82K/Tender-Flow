@@ -26,6 +26,11 @@ describe('price offer file mapping', () => {
     expect(mocks.selectFile).toHaveBeenCalledWith({ title: 'Vybrat cenovou nabídku', defaultPath: '/Users/me/OneDrive/Project', withinRoot: '/Users/me/OneDrive/Project' });
     expect(mocks.updateContract).toHaveBeenCalledWith('c', { priceOfferPath: 'Supplier/offer.pdf' });
   });
+  it('maps against the relocated root returned by the scoped picker', async () => {
+    mocks.selectFile.mockResolvedValue({ absolutePath: '/New/OneDrive/Project/Supplier/offer.pdf', withinRootRelativePath: 'Supplier/offer.pdf' });
+    expect(await selectPriceOffer(contract, project, 'user')).toBe(true);
+    expect(mocks.updateContract).toHaveBeenCalledWith('c', { priceOfferPath: 'Supplier/offer.pdf' });
+  });
   it('leaves the mapping unchanged after cancellation', async () => {
     mocks.selectFile.mockResolvedValue(null);
     expect(await selectPriceOffer(contract, project, 'user')).toBe(false);

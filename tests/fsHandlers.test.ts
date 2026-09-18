@@ -377,6 +377,19 @@ describe("fsHandlers", () => {
     expect(JSON.parse(grantedRootsStorage.set.mock.calls[0][1])).toContain("/Users/tester/Projects/Tender");
   });
 
+  it('returns the relative path under a relocated project root without adding grants', async () => {
+    const { dialog } = await import('electron');
+    const root = '/Users/tester/Library/Application Support/TenderFlow/project';
+    fsMock.realpath.mockImplementation(async (value: string) => value);
+    fsMock.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false });
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({ canceled: false, filePaths: [root + '/Supplier/offer.pdf'] } as any);
+    const storage = { get: vi.fn().mockResolvedValue(null), set: vi.fn() };
+    const { registerFsHandlers } = await import('../desktop/main/ipc/modules/fsHandlers');
+    registerFsHandlers({ resolvePortableReadPath: async v => v === '/Old/Project' ? root : v, resolvePortableWritePath: async v => v, requireAuth: vi.fn(), grantedRootsStorage: storage });
+    await expect(handlers.get('fs:selectFile')?.({}, { withinRoot: '/Old/Project' })).resolves.toMatchObject({ withinRootRelativePath: 'Supplier/offer.pdf' });
+    expect(storage.set).not.toHaveBeenCalled();
+  });
+
   it.each(['outside', 'symlink'])('rejects %s selection before persisting any new grant', async mode => {
     const { dialog } = await import('electron');
     const root = '/Users/tester/Library/Application Support/TenderFlow/project';

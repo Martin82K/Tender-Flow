@@ -43,3 +43,6 @@ zápisy vrací zpět pomocí rollbacku.
 Mapování podporuje i starší provider `local`. Systémový picker dostane
 `withinRoot`: hlavní proces před vrácením souboru ověří jeho skutečnou cestu
 včetně symlinků uvnitř již povoleného kořene. Odmítnutý výběr nepřidá žádný grant.
+
+Při přenosu mezi počítači vrací omezený picker relativní cestu vůči již
+přeloženému místnímu kořeni OneDrive. Původní absolutní cesta se do vazby neukládá.

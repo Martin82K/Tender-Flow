@@ -200,6 +200,7 @@ export const registerFsHandlers = ({
         return null;
       }
 
+      let withinRootRelativePath: string | undefined;
       if (withinRoot) {
         const resolvedFile = await fs.realpath(filePath);
         const pathOps = pickPathOps(withinRoot);
@@ -208,12 +209,14 @@ export const registerFsHandlers = ({
           throw new Error('Vyberte soubor uvnitř složky tohoto projektu ve Složkomatu.');
         }
         await ensurePathAllowed(resolvedFile, 'read');
+        withinRootRelativePath = relative.split(pathOps.sep).join('/');
       } else {
         const parentFolder = path.dirname(filePath);
         await addUserGrantedRootAndPersist(parentFolder);
       }
 
       return {
+        ...(withinRootRelativePath ? { withinRootRelativePath } : {}),
         relativePath: path.basename(filePath),
         absolutePath: filePath,
         name: path.basename(filePath),

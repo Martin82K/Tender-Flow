@@ -17,7 +17,9 @@ export const selectPriceOffer = async (
   if (!root) throw new Error('Nejprve připojte svou místní složku projektu ve Složkomatu.');
   const file = await fileSystemAdapter.selectFile({ title: 'Vybrat cenovou nabídku', defaultPath: root, withinRoot: root });
   if (!file) return false;
-  const relativePath = mapPriceOfferPath(root, file.absolutePath);
+  const relativePath = file.withinRootRelativePath !== undefined
+    ? validatePriceOfferPath(file.withinRootRelativePath)
+    : mapPriceOfferPath(root, file.absolutePath);
   await contractMutationsApi.updateContract(contract.id, { priceOfferPath: relativePath });
   return true;
 };
