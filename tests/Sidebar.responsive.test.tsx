@@ -19,6 +19,19 @@ function setup(overrides: Partial<React.ComponentProps<typeof Sidebar>> = {}) {
 }
 
 describe('Sidebar responsive navigation', () => {
+  it('preserves the selected section when collapsing and expanding the sidebar', () => {
+    const { props, rerender } = setup({ isOpen: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Nástroje', exact: true }));
+    for (const isOpen of [false, true]) {
+      rerender(<Sidebar {...props} isOpen={isOpen} />);
+      expect(screen.getByRole('button', { name: 'Nástroje', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      expect(within(screen.getByRole('navigation', { name: 'Nástroje' })).getByRole('button', { name: 'Excel Spojení listů' })).toBeInTheDocument();
+      expect(props.onViewChange).not.toHaveBeenCalled();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Excel Spojení listů' }));
+    expect(props.onViewChange).toHaveBeenCalledWith('settings', { settingsTab: 'tools', settingsSubTab: 'excelMerger' });
+  });
+
   it.each(['classic', 'industrial', 'space'] as const)('keeps a working icon rail when collapsed in %s', skin => {
     const { container, props } = setup({ skin });
     expect(container.querySelector('#app-sidebar')).toHaveStyle({ width: '72px' });
