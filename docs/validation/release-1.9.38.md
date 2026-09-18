@@ -15,3 +15,7 @@ Ověřeno lokálně 18. 9. 2026 na macOS Apple Silicon. Rozsah zahrnuje sloučen
 Instalátor nemá Authenticode podpis. Na tomto macOS hostu nelze potvrdit skutečnou Windows instalaci a kompletní aktualizaci nainstalované aplikace; loopback test ji nenahrazuje. Známé širší bezpečnostní nálezy a neuzavřená licenční review z [validace 1.9.37](release-1.9.37.md) zůstávají mimo rozsah patch bumpu. Bez nových závislostí a bez další databázové změny.
 
 Kontrola web dist byla nejprve omylem spuštěna nad desktopovým výstupem, který záměrně negeneruje veřejné právní routy. Samostatný web build a následná kontrola web dist poté prošly; Windows instalátor obsahuje správné desktopové podklady.
+
+## Zpřesnění testů po CI
+
+První CI běh měl 3 045 úspěšných testů a jediný neúspěšný test DSR výmazu: syntetická změna ThemedNativeSelect nevybrala ověření identity. Testy nyní používají skutečné otevření comboboxu a kliknutí na option u všech zbývajících jednoduchých selectů tohoto souboru (kanál, ověření, CRM stav a retention policy). Očekávané payloady a zákaz automatického mazání se nemění. Všech 22 ComplianceAdmin testů po opravě prošlo. Jde pouze o testovací interakce, ne změnu aplikačního kódu nebo Windows artefaktů.
