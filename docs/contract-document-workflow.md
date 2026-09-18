@@ -10,7 +10,7 @@ Detail smlouvy zachovává seznam vlevo a souhrn smlouvy nad pěti záložkami:
 
 ## Vytvoření protokolu
 
-V sidebaru rozbalte **Dokumenty → Subdodavatel**. Přehled seskupuje smlouvy a počty protokolů podle identity subdodavatele. Záložka **Předávací protokoly** nabízí hledání, filtr smlouvy a typu. Klikněte na **Nový záznam**, vyberte smlouvu a typ **Předání staveniště** nebo **Předání díla**, doplňte název, plánované datum, rozsah a interní poznámku. Zvolte editor nebo připojení souboru po uložení.
+V sidebaru rozbalte **Dokumenty → Subdodavatel**. Přehled seskupuje smlouvy a počty protokolů podle identity subdodavatele. Záložka **Předávací protokoly** nabízí hledání, filtr smlouvy a typu. Bez smlouvy se zobrazí vysvětlení a **Přejít na smlouvy**; bez práva upravovat smlouvy zůstávají zápisy zakázané s uvedeným důvodem. Neplatný filtr smlouvy v URL neblokuje založení záznamu. Klikněte na **Nový záznam**, vyberte smlouvu a typ **Předání staveniště** nebo **Předání díla**, doplňte název, plánované datum, rozsah a interní poznámku. Zvolte editor nebo připojení souboru po uložení.
 
 Objednatel, Sdružení, Evidence reklamací a horizontální Ostatní dokumenty zobrazují **Ve vývoji**. Dosavadní Ceníky zůstávají dostupné v rozbalené sekci Dokumenty.
 
@@ -21,6 +21,12 @@ Vyplňte zástupce, rozsah celého díla nebo jeho části, skutečné datum a v
 Uložit koncept uloží obsah. Pokračovat na náhled uloží verzi a zobrazí její skutečný PDF výstup. PDF i DOCX vycházejí z téže verze, včetně tehdejšího loga a údajů. DOCX obsahuje editovatelný text, podpisy a stránkování. Delší obsah se rozloží na další stránky. Velké logo se před uložením zmenšuje podle skutečné velikosti PNG, aby spolu s textem nepřekročilo limit dokumentu. Chybějící logo organizace se nenahrazuje logem aplikace. Patička uvádí Tender Flow, datum vytvoření, verzi a stránku.
 
 Úprava uloženého dokumentu vytváří další verzi; předchozí obsah se nepřepisuje. Souběžnou změnu jiného uživatele aplikace oznámí a vyžádá otevření nejnovější verze. Protokol staveniště navíc obsahuje podmínky přístupu, BOZP, zařízení staveniště a přípojky. Interní poznámka ani plánované datum se nepovažují za skutečné předání.
+
+## Úprava a smazání záznamu
+
+Záznam otevřete přes **Otevřít**. **Upravit záznam** uloží změny jako novou verzi, **Náhled a export** zpřístupní obsah. **Smazat záznam** vyžaduje potvrzení; odstraní protokol z běžných seznamů. Jde o logické smazání: obsah všech verzí, přílohy i důkazy skutečného předání zůstávají pro audit. U smazaného protokolu již nelze uložit další verzi, přílohu ani potvrzení. Novější souběžná verze smazání odmítne a vyžádá obnovení seznamu.
+
+Vyžaduje migraci `20260918125709_document_protocol_crud.sql`; nasadit před frontendem. Test `supabase/tests/document_protocol_crud.sql` ověřuje CRUD, konflikty a oprávnění s rollbackem. Migrace přidává pouze metadata smazání, žádný existující protokol nemaže a nemění záruku.
 
 ## Finální soubor a potvrzení
 
@@ -47,3 +53,5 @@ Desktopová CSP povoluje `blob:` pouze navíc ve frame-src pro náhled PDF vytvo
 `supabase/tests/subcontractor_document_workspace.sql` ověřuje v transakci s rollbackem uložení obou typů, souběžné verze, potvrzení, nezměněnou záruku, RLS cizího uživatele a zákaz anonymního zápisu. Před nasazením použijte `supabase db push --linked --dry-run`, po nasazení test a kontrolu schématu, počtů a advisorů. Závěrečný dry-run musí hlásit aktuální databázi.
 
 Při kontrole 18. 9. 2026 advisor označuje nové potvrzovací RPC jako dostupné přihlášeným uživatelům v režimu SECURITY DEFINER. To je úmyslné: klient nemá přímý INSERT a funkce ověřuje uživatele, aktivní předplatné i právo zápisu konkrétní stavby; anonymní EXECUTE je odebrané a search_path je pevný. Nový index vazby na verzi je zatím bez provozního využití. Viz [kontrola oprávnění funkcí](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) a [využití indexů](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index). Další hlášení advisorů mimo dokumentovou agendu nejsou součástí této změny.
+
+CRUD kontrola 18. 9. 2026: novým nálezem advisoru je záměrně dostupné `delete_contract_document` v režimu SECURITY DEFINER, chráněné přihlášením, předplatným, právem ke konkrétní stavbě, zákazem archivované stavby a očekávanou verzí. Klient stále nemá přímý UPDATE ani DELETE; anonymní EXECUTE je zakázané. Viz [kontrola oprávnění funkcí](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable). Nový index autora smazání zatím není využitý; kryje cizí klíč. Viz [využití indexů](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index). Produkční počty po migraci zůstaly beze změny a žádný existující dokument nebyl označen jako smazaný.
