@@ -18,10 +18,11 @@ interface Props {
   existing?: DocumentVersion;
   previewOnly?: boolean;
   vendorContacts?: string[];
+  contactsError?: string;
   onClose: () => void;
   onSaved: () => Promise<unknown>;
 }
-export const ProtocolEditor: React.FC<Props> = ({ contractId, initialFields, logo, existing, kind = existing?.snapshot.kind || 'sub_work_handover', previewOnly, vendorContacts = [], onClose, onSaved }) => {
+export const ProtocolEditor: React.FC<Props> = ({ contractId, initialFields, logo, existing, kind = existing?.snapshot.kind || 'sub_work_handover', previewOnly, vendorContacts = [], contactsError, onClose, onSaved }) => {
   const [fields, setFields] = useState(initialFields);
   const [saved, setSaved] = useState<DocumentVersion | undefined>(existing);
   const [documentId] = useState(() => existing?.document_id || crypto.randomUUID());
@@ -70,6 +71,7 @@ export const ProtocolEditor: React.FC<Props> = ({ contractId, initialFields, log
     {preview && <>{!previewOnly && <Button variant="outline" disabled={busy} onClick={() => setPreview(false)}>Upravit údaje</Button>}<Button variant="outline" disabled={busy} onClick={() => void download('docx')}>Export DOCX</Button><Button disabled={busy} onClick={() => void download('pdf')}>Export PDF</Button></>}
   </div>}>
     <div className="flex gap-6 text-sm mb-5 text-slate-500"><span className={!preview ? 'text-primary font-semibold' : ''}>1 Údaje protokolu</span><span className={preview ? 'text-primary font-semibold' : ''}>2 Náhled a export</span></div>
+    {!preview && contactsError && <p role="status" className="mb-4 text-sm text-amber-700 dark:text-amber-400">{contactsError}</p>}
     {error && <p role="alert" className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
     {preview ? <div className="space-y-3"><p className="text-xs text-slate-500">Verze {saved?.version} · Finální PDF nebo upravený DOCX můžete připojit v záložce Dokumenty.</p>{pdfUrl ? <iframe className="w-full h-[65vh] rounded-lg border border-slate-300" title="Náhled předávacího protokolu" src={pdfUrl} /> : <p role="status">Připravuji náhled…</p>}</div> : <fieldset disabled={busy} className="max-w-4xl mx-auto space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{field('recordTitle')}{field('plannedDate', false, 'date')}</div>

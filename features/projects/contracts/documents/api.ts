@@ -10,6 +10,11 @@ const failure = (error: { message: string; code?: string } | null) => {
   throw new Error(error.message);
 };
 export const contractDocumentsApi = {
+  async contacts(vendorId: string): Promise<string[]> {
+    const { data, error } = await dbAdapter.from('subcontractors').select('contacts').eq('id', vendorId).maybeSingle();
+    failure(error);
+    return Array.isArray(data?.contacts) ? data.contacts.filter((contact: unknown): contact is { name: string } => Boolean(contact && typeof contact === 'object' && 'name' in contact && typeof contact.name === 'string')).map((contact: { name: string }) => contact.name) : [];
+  },
   async projectVersions(contractIds: string[]): Promise<DocumentVersion[]> {
     const result: DocumentVersion[] = [];
     for (let chunk = 0; chunk < contractIds.length; chunk += 50) {

@@ -8,8 +8,8 @@ import { documentKindLabels, resultLabels, type DocumentVersion, type HandoverRe
 import { documentInputClass, ProtocolEditor } from '@features/projects/contracts/documents/ProtocolEditor';
 import { formatDate } from '@features/projects/contracts/utils/format';
 
-export function DocumentDetail({ version, versions, canWrite, onBack, onEdit, onRefresh, initialEditor = false }: {
-  version: DocumentVersion; versions: DocumentVersion[]; canWrite: boolean; initialEditor?: boolean;
+export function DocumentDetail({ version, versions, vendorId, canWrite, onBack, onEdit, onRefresh, initialEditor = false }: {
+  version: DocumentVersion; versions: DocumentVersion[]; vendorId?: string; canWrite: boolean; initialEditor?: boolean;
   onBack: () => void; onEdit: () => void; onRefresh: () => Promise<unknown>;
 }) {
   const client = useQueryClient();
@@ -22,6 +22,7 @@ export function DocumentDetail({ version, versions, canWrite, onBack, onEdit, on
   const [source, setSource] = useState('');
   const files = useQuery({ queryKey: ['contract-document-files', version.contract_id, versions.map(v => v.id)], queryFn: () => contractDocumentsApi.files(versions.map(v => v.id)) });
   const events = useQuery({ queryKey: ['contract-handover-events', version.contract_id], queryFn: () => contractDocumentsApi.events(version.contract_id) });
+  const contacts = useQuery({ queryKey: ['document-vendor-contacts', vendorId], queryFn: () => contractDocumentsApi.contacts(vendorId!), enabled: Boolean(vendorId && editor && !editor.readonly && canWrite) });
   const currentEvent = events.data?.find(e => e.document_version_id === version.id);
   const history = events.data?.filter(e => versions.some(v => v.id === e.document_version_id)) || [];
   const legacy = events.data?.filter(e => !e.document_version_id && e.kind === 'handover') || [];
@@ -44,7 +45,7 @@ export function DocumentDetail({ version, versions, canWrite, onBack, onEdit, on
       {history.map(e => <div key={e.id} className="text-sm border-t border-slate-200 dark:border-slate-800 pt-3"><strong>{resultLabels[e.result]} · {formatDate(e.effective_date)} · verze {versions.find(v => v.id === e.document_version_id)?.version}</strong><p className="whitespace-pre-wrap break-words">{e.source_note}</p><p className="text-xs text-slate-500">Zapsáno {new Date(e.created_at).toLocaleString('cs-CZ')} · Autor {e.created_by || 'Odstraněný účet'}</p></div>)}
       {!!legacy.length && <details className="text-xs text-slate-500"><summary>Starší záznamy smlouvy bez vazby na konkrétní protokol ({legacy.length})</summary>{legacy.map(e => <p key={e.id} className="mt-2 whitespace-pre-wrap">{formatDate(e.effective_date)} · {resultLabels[e.result]} · {e.source_note}</p>)}</details>}
     </section>
-    {editor && <ProtocolEditor key={editor.version.id} contractId={version.contract_id} existing={editor.version} initialFields={editor.version.snapshot.fields} logo={editor.version.snapshot.logo} previewOnly={editor.readonly || !canWrite} onClose={() => setEditor(null)} onSaved={onRefresh} />}
+    {editor && <ProtocolEditor key={editor.version.id} contractId={version.contract_id} existing={editor.version} initialFields={editor.version.snapshot.fields} vendorContacts={contacts.data} contactsError={contacts.error ? 'Kontakty se nepodařilo načíst. Zástupce můžete vyplnit ručně.' : undefined} logo={editor.version.snapshot.logo} previewOnly={editor.readonly || !canWrite} onClose={() => setEditor(null)} onSaved={onRefresh} />}
     {confirm && canWrite && <Modal isOpen persistent={busy} onClose={() => { if (!busy) setConfirm(false); }} title="Zapsat skutečné předání" size="lg"><form onSubmit={e => { e.preventDefault(); void run(async () => { await contractDocumentsApi.confirmDocument(version.id,date,result,source); await client.invalidateQueries({queryKey:['contract-handover-events',version.contract_id]}); setConfirm(false); }); }}><fieldset disabled={busy} className="space-y-4">
       <p className="text-sm">{documentKindLabels[version.snapshot.kind]} · verze {version.version}. Záznam zůstane v historii.</p>{error && <p role="alert" className="text-red-600">{error}</p>}
       <label className="block text-sm">Skutečné datum předání<input required type="date" min="1900-01-01" max={new Date().toLocaleDateString('en-CA')} value={date} onChange={e => setDate(e.target.value)} className={documentInputClass} /></label>

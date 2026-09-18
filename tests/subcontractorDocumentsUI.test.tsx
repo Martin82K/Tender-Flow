@@ -3,11 +3,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ContractWithDetails } from '@/types';
-const mocks = vi.hoisted(() => ({ projectVersions:vi.fn(), canWrite:vi.fn(), save:vi.fn(), confirmDocument:vi.fn(), files:vi.fn(),events:vi.fn(), attach:vi.fn(), context:vi.fn(), navigate:vi.fn(), search:'' }));
+const mocks = vi.hoisted(() => ({ projectVersions:vi.fn(), canWrite:vi.fn(), save:vi.fn(), confirmDocument:vi.fn(), files:vi.fn(),events:vi.fn(), attach:vi.fn(), context:vi.fn(),contacts:vi.fn(), navigate:vi.fn(), search:'' }));
 vi.mock('@features/projects/contracts/documents/api',() => ({contractDocumentsApi:mocks,downloadDocumentBlob:vi.fn()}));
 vi.mock('@shared/routing/router',() => ({useLocation:()=>({search:mocks.search}),navigate:mocks.navigate}));
 vi.mock('@features/projects/contracts/documents/export',()=>({exportDocumentPdf:vi.fn(),exportDocumentDocx:vi.fn()}));
 import { SubcontractorDocuments } from '@features/projects/documents/ui/SubcontractorDocuments';
+import { HandoverSection } from '@features/projects/contracts/documents/HandoverSection';
 import { DocumentDetail } from '@features/projects/documents/ui/DocumentDetail';
 import { DocumentRecordForm } from '@features/projects/documents/ui/DocumentRecordForm';
 import { ProjectSidebar } from '@features/projects/ui/ProjectSidebar';
@@ -15,8 +16,22 @@ import { createHandoverDraft, freezeDocument } from '@features/projects/contract
 const contract = {id:'c',projectId:'p',vendorId:'v',vendorName:'Novák',contractNumber:'S-1',title:'Most'} as ContractWithDetails;
 const version = {id:'v1',document_id:'d1',contract_id:'c',version:1,created_at:'2026-09-18',created_by:'u',snapshot:freezeDocument(createHandoverDraft(contract),'2026-09-18',1,null,'sub_site_handover')};
 function wrap(element: React.ReactNode) {return render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}>{element}</QueryClientProvider>);}
-beforeEach(()=>{vi.clearAllMocks();mocks.search='';mocks.projectVersions.mockResolvedValue([version]);mocks.canWrite.mockResolvedValue(true);mocks.files.mockResolvedValue([]);mocks.events.mockResolvedValue([]);});
+beforeEach(()=>{vi.clearAllMocks();mocks.search='';mocks.contacts.mockResolvedValue(['Jan Novák']);mocks.projectVersions.mockResolvedValue([version]);mocks.canWrite.mockResolvedValue(true);mocks.files.mockResolvedValue([]);mocks.events.mockResolvedValue([]);});
 describe('documents workspace',()=>{
+  it('loads vendor contact suggestions when reopening a saved protocol editor',async()=>{
+    wrap(<DocumentDetail vendorId="v" version={version} versions={[version]} canWrite onBack={vi.fn()} onEdit={vi.fn()} onRefresh={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'Otevřít editor'}));
+    await waitFor(()=>expect(document.querySelector('#protocol-vendor-contacts option')).toHaveAttribute('value','Jan Novák'));
+    expect(mocks.contacts).toHaveBeenCalledWith('v');
+    expect(screen.getByLabelText('Zástupce subdodavatele')).toHaveValue('');
+  });
+  it('retains legacy handover history in a contract without any generated protocol',async()=>{
+    mocks.events.mockResolvedValue([{id:'legacy',kind:'handover',result:'accepted',effective_date:'2026-09-01',created_at:'2026-09-01',source_note:'Původní podepsané předání',created_by:'u',document_version_id:null}]);
+    wrap(<HandoverSection contract={contract} warrantyOnly onRefresh={vi.fn()}/>);
+    expect(await screen.findByText('Původní podepsané předání')).toBeInTheDocument();
+    expect(screen.getByText(/Předání díla.*Převzato bez vad/)).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Zapsat předání'})).not.toBeInTheDocument();
+  });
   it('expands documents independently of contracts and routes subcontractor selection',()=>{
     const onSelect=vi.fn();render(<ProjectSidebar projects={[{id:'p',name:'Most',location:'Praha',status:'realization'}]} selectedProjectId="p" activeTab="overview" hasFeature={()=>true} onSelect={onSelect}/>);
     fireEvent.click(screen.getByRole('button',{name:'Dokumenty',exact:true}));

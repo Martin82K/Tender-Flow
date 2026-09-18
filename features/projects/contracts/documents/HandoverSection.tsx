@@ -20,7 +20,7 @@ export const HandoverSection: React.FC<{ contract: ContractWithDetails; onRefres
   const [source, setSource] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const displayEvents = (events.data || []).filter(event => !warrantyOnly || event.kind === 'warranty');
+  const displayEvents = (events.data || []).filter(event => !warrantyOnly || event.kind === 'warranty' || (event.kind === 'handover' && !event.document_version_id));
   const handover = events.data?.find(e => e.kind === 'handover');
   const confirm = async (event: React.FormEvent) => {
     event.preventDefault(); if (!kind) return; setBusy(true); setError('');
@@ -43,6 +43,6 @@ export const HandoverSection: React.FC<{ contract: ContractWithDetails; onRefres
       <p className="text-xs text-slate-500">Záznam uloží datum, autora a zdroj do historie. Pozastávky se uvolňují samostatně.</p>
       <div className="flex gap-2"><Button type="submit" disabled={busy || !source.trim() || !date || (kind === 'handover' && !result)}>{busy ? 'Ukládám…' : 'Potvrdit a uložit'}</Button><Button type="button" variant="outline" disabled={busy} onClick={() => setKind(null)}>Zrušit</Button></div>
     </fieldset></form>}
-    {!!displayEvents.length && <details className="text-xs"><summary className="cursor-pointer text-slate-500">Historie potvrzení ({displayEvents.length})</summary><ol className="space-y-3 mt-3">{displayEvents.map(event => <li key={event.id} className="border-l-2 border-slate-300 dark:border-slate-700 pl-3"><strong>{event.kind === 'handover' ? 'Předání díla' : event.kind === 'site_handover' ? 'Předání staveniště' : 'Začátek záruky'} · {formatDate(event.effective_date)}</strong><p className="whitespace-pre-wrap break-words mt-1">{event.source_note}</p><p className="text-slate-500 mt-1">Zapsáno {new Date(event.created_at).toLocaleString('cs-CZ')} · Autor {event.created_by || 'Odstraněný účet'}</p></li>)}</ol></details>}
+    {!!displayEvents.length && <details className="text-xs"><summary className="cursor-pointer text-slate-500">Historie potvrzení ({displayEvents.length})</summary><ol className="space-y-3 mt-3">{displayEvents.map(event => <li key={event.id} className="border-l-2 border-slate-300 dark:border-slate-700 pl-3"><strong>{event.kind === 'handover' ? 'Předání díla' : event.kind === 'site_handover' ? 'Předání staveniště' : 'Začátek záruky'} · {formatDate(event.effective_date)}{event.kind !== 'warranty' && ` · ${resultLabels[event.result]}`}</strong><p className="whitespace-pre-wrap break-words mt-1">{event.source_note}</p><p className="text-slate-500 mt-1">Zapsáno {new Date(event.created_at).toLocaleString('cs-CZ')} · Autor {event.created_by || 'Odstraněný účet'}</p></li>)}</ol></details>}
   </section>;
 };
