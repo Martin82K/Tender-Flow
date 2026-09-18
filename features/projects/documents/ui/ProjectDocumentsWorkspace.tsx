@@ -8,7 +8,7 @@ export function ProjectDocumentsWorkspace({ projectId, contractsState, contracts
   const { search } = useLocation();
   const section = new URLSearchParams(search).get('documentsSubTab') || 'subcontractor';
   if (['pd','templates','dochub','ceniky'].includes(section)) return <div inert={readOnly}><ProjectDocuments {...props} section="documents" /></div>;
-  const content = section === 'investor' ? <DevelopmentPlaceholder title="Investor" /> : section === 'association' ? <DevelopmentPlaceholder title="Sdružení" /> : section === 'claims' ? <DevelopmentPlaceholder title="Evidence reklamací" /> : !contractsEnabled ? <p className="text-sm text-slate-500">Dokumenty subdodavatelů vyžadují přístup k modulu Smlouvy.</p> : <SubcontractorDocuments key={projectId} projectId={projectId} contractsState={contractsState} readOnly={readOnly} />;
+  const content = section === 'investor' ? <DevelopmentPlaceholder title="Objednatel" /> : section === 'association' ? <DevelopmentPlaceholder title="Sdružení" /> : section === 'claims' ? <DevelopmentPlaceholder title="Evidence reklamací" /> : !contractsEnabled ? <p className="text-sm text-slate-500">Dokumenty subdodavatelů vyžadují přístup k modulu Smlouvy.</p> : <SubcontractorDocuments key={projectId} projectId={projectId} contractsState={contractsState} readOnly={readOnly} />;
   return <div className="tf-documents-view flex-1 min-w-0 bg-slate-50 p-4 dark:bg-slate-950 md:p-6 lg:p-8">{content}</div>;
 
 }
