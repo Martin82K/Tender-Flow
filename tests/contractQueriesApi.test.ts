@@ -19,6 +19,7 @@ vi.mock("@/services/contractService", () => ({
 
 vi.mock("@infra/platform/platformAdapter", () => ({
   shellAdapter: shellAdapterMock,
+  isDesktop: true,
 }));
 
 import { contractQueriesApi } from "../features/projects/contracts/api";
