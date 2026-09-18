@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from 'fflate';
 import { loadPdfRuntime, registerRobotoFont } from '@shared/pdf/pdfRuntime';
-import { documentFooter, documentSections, type DocumentSnapshot } from './model';
+import { documentFooter, documentSections, documentKindLabels, type DocumentSnapshot } from './model';
 
 // Both formats consume the same immutable snapshot; no live organization/contact lookup during export.
 export const exportDocumentPdf = async (snapshot: DocumentSnapshot): Promise<Uint8Array> => {
@@ -24,7 +24,7 @@ export const exportDocumentPdf = async (snapshot: DocumentSnapshot): Promise<Uin
   }
   text('PŘEDÁVACÍ PROTOKOL', 18);
   y += 5;
-  text(`Předání díla subdodavatele · Verze ${snapshot.version}`, 9);
+  text(`${documentKindLabels[snapshot.kind]} subdodavatele · Verze ${snapshot.version}`, 9);
   y += 4;
   for (const section of documentSections(snapshot)) {
     ensure(15);
@@ -80,7 +80,7 @@ export const exportDocumentDocx = async (snapshot: DocumentSnapshot): Promise<Ui
   }
   const content = documentSections(snapshot).map(section => paragraph(section.title, 'Heading1') + (section.text ? paragraph(section.text) : '') + Array.from({ length: section.handwritingLines || 0 }, () => '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:color="BAC0C8"/><w:between w:val="single" w:sz="4" w:color="BAC0C8"/></w:pBdr><w:spacing w:before="0" w:after="0" w:line="450" w:lineRule="exact"/></w:pPr><w:r><w:t> </w:t></w:r></w:p>').join('')).join('');
   const signatures = `<w:tbl><w:tblPr><w:tblW w:w="9864" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="4932"/><w:gridCol w:w="4932"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>${['Za organizaci\n' + (snapshot.fields.issuerRepresentative || 'Jméno'), 'Za subdodavatele\n' + (snapshot.fields.vendorRepresentative || 'Jméno')].map(t => `<w:tc><w:tcPr><w:tcW w:w="4932" w:type="dxa"/></w:tcPr>${paragraph('\n____________________________\n' + t + '\nDatum a podpis')}</w:tc>`).join('')}</w:tr></w:tbl>`;
-  add('word/document.xml', `<w:document ${wordNamespaces}><w:body>${logoXml}${paragraph('PŘEDÁVACÍ PROTOKOL', 'Title')}${paragraph(`Předání díla subdodavatele · Verze ${snapshot.version}`)}${content}${signatures}<w:sectPr><w:footerReference w:type="default" r:id="rFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1021" w:right="1021" w:bottom="1134" w:left="1021" w:header="400" w:footer="567"/></w:sectPr></w:body></w:document>`);
+  add('word/document.xml', `<w:document ${wordNamespaces}><w:body>${logoXml}${paragraph('PŘEDÁVACÍ PROTOKOL', 'Title')}${paragraph(`${documentKindLabels[snapshot.kind]} subdodavatele · Verze ${snapshot.version}`)}${content}${signatures}<w:sectPr><w:footerReference w:type="default" r:id="rFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1021" w:right="1021" w:bottom="1134" w:left="1021" w:header="400" w:footer="567"/></w:sectPr></w:body></w:document>`);
   add('word/footer1.xml', `<w:ftr ${wordNamespaces}>${paragraph(documentFooter(snapshot))}<w:p>${run('Strana ')}<w:fldSimple w:instr="PAGE"/>${run(' / ')}<w:fldSimple w:instr="NUMPAGES"/></w:p></w:ftr>`);
   add('word/styles.xml', `<w:styles ${wordNamespaces}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="20"/><w:lang w:val="cs-CZ"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:pPr><w:keepNext/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:keepNext/><w:spacing w:before="160"/></w:pPr><w:rPr><w:b/><w:sz w:val="22"/></w:rPr></w:style></w:styles>`);
   const rel = (id: string, type: string, target: string) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;

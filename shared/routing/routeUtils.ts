@@ -24,7 +24,9 @@ export const buildAppUrl = (
         categoryId?: string | null;
         contractId?: string | null;
         bidId?: string | null;
-        documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
+        documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky" | "investor" | "subcontractor" | "association" | "claims";
+        documentsView?: "overview" | "protocols" | "other";
+        documentId?: string | null;
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
         settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'mcp' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'rolePermissions' | 'billing' | 'branding';
     }
@@ -59,6 +61,8 @@ export const buildAppUrl = (
             if (opts.bidId) params.set("bidId", opts.bidId);
             if (opts.contractId) params.set("contractId", opts.contractId);
             if (opts.documentsSubTab) params.set("documentsSubTab", opts.documentsSubTab);
+            if (opts.documentsView) params.set("documentsView", opts.documentsView);
+            if (opts.documentId) params.set("documentId", opts.documentId);
             const qs = params.toString();
             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
         }
@@ -83,6 +87,9 @@ export type ParsedAppRoute =
         categoryId?: string;
         contractId?: string;
         bidId?: string;
+        documentId?: string;
+        documentsSubTab?: string;
+        documentsView?: string;
     };
 
 /**
@@ -122,6 +129,9 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
             categoryId: categoryIdParam || undefined,
             contractId: contractIdParam || undefined,
             bidId: params.get("bidId") || undefined,
+            ...(params.get("documentId") ? { documentId: params.get("documentId")! } : {}),
+            ...(params.get("documentsSubTab") ? { documentsSubTab: params.get("documentsSubTab")! } : {}),
+            ...(params.get("documentsView") ? { documentsView: params.get("documentsView")! } : {}),
         };
     }
 

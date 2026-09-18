@@ -396,6 +396,13 @@ Otevřete **Mapa** ve vybrané stavbě. Ověřte polohu stavby, nastavte polomě
 
 ## Dokumenty a šablony
 
+V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled podle firem a horizontální záložku **Předávací protokoly**. Nový záznam přiřaďte ke smlouvě a zvolte **Předání staveniště** nebo **Předání díla**. Záznam lze upravit, připojit PDF/DOCX do 20 MB nebo vytvořit dokument v editoru a exportovat jej. Každá úprava zachovává předchozí verze i jejich přílohy.
+
+Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly.
+
+**Investor**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
+
+
 **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek.
 
 1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor.
