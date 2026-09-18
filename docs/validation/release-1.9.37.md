@@ -52,3 +52,11 @@ Oba DocHub OAuth callbacky jsou aktivní s aktualizací z 17. 9. 2026.
 - První omezený testovací běh narazil na sandbox a Xcode licenci.
   Finální sada běžela s Command Line Tools a povolenými loopback servery.
 
+## Oprava testu po CI
+
+První CI běh měl 3 034 úspěšných testů a jednu chybu DSR rectification:
+očekával verified, uložil pending. Test posílal change na tlačítko
+ThemedSelect přes kompatibilní handler registrovaný v useEffect. Nyní otevírá
+combobox a kliká na skutečnou option Ověřeno; ověření uloženého payloadu
+zůstává beze změny. Všech 22 testů ComplianceAdmin lokálně prošlo.
+Aplikační kód ani sestavené binárky se touto opravou nemění.
