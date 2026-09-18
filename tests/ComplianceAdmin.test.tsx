@@ -362,9 +362,8 @@ describe("ComplianceAdmin", () => {
 
     render(<ComplianceAdmin />);
 
-    fireEvent.change(await screen.findByLabelText("Ověření dsr-rect-1"), {
-      target: { value: "verified" },
-    });
+    fireEvent.click(await screen.findByRole("combobox", { name: "Ověření dsr-rect-1" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Ověřeno", exact: true }));
     fireEvent.change(screen.getByLabelText("Pole k opravě dsr-rect-1"), {
       target: { value: "jméno, e-mail" },
     });
