@@ -19,8 +19,9 @@ vysvětlení. Oprávnění na původním úložišti jsou vždy nutná.
 
 ## Nasazení a bezpečnost
 
-Před frontendem nasaďte migraci `20260918085250_contract_price_offer.sql`.
-Přidává pouze nullable `contracts.price_offer_path` s kontrolou relativní cesty
+Před frontendem nasaďte migrace `20260918085250_contract_price_offer.sql` a
+`20260918104557_preserve_price_offer_restore.sql`.
+První přidává pouze nullable `contracts.price_offer_path` s kontrolou relativní cesty
 bez traversal segmentů, řídicích znaků, dvojtečky a zpětných lomítek a s omezením
 na PDF/DOCX/XLSX. Není potřeba backfill, index, cizí klíč, nové granty ani Storage.
 RLS smluv nadále řídí čtení a změny vazby; lokální přístup používá existující
@@ -31,3 +32,14 @@ Ověření: zrušení výběru, mapování ve složce projektu, odmítnutí ciz�
 spustitelných souborů, otevření přes vlastní kořen jiného uživatele, chyba při
 chybějícím souboru, zamítnutý zápis a online fallback. Po nasazení proveďte
 `supabase db push --dry-run` a ověřte validovaný constraint a nezměněné RLS.
+
+Druhá migrace rozšiřuje existující obnovu uživatelských i tenantních záloh o
+cestu nabídky. Záloha s explicitním null vazbu odstraní, starší záloha bez tohoto
+pole již existující vazbu zachová. Autorizace, vlastnictví, tenantní omezení,
+podpisy historie i granty funkcí obnovy zůstávají zachovány. SQL regresní test
+`supabase/tests/price_offer_backup_roundtrip.sql` používá nové UUID a všechny
+zápisy vrací zpět pomocí rollbacku.
+
+Mapování podporuje i starší provider `local`. Systémový picker dostane
+`withinRoot`: hlavní proces před vrácením souboru ověří jeho skutečnou cestu
+včetně symlinků uvnitř již povoleného kořene. Odmítnutý výběr nepřidá žádný grant.

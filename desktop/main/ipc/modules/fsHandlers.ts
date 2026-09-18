@@ -170,10 +170,15 @@ export const registerFsHandlers = ({
     "fs:selectFile",
     async (
       event,
-      options?: { title?: string; defaultPath?: string },
+      options?: { title?: string; defaultPath?: string; withinRoot?: string },
     ): Promise<FileInfo | null> => {
       requireAuth(event.sender, "fs:selectFile");
       await ensurePersistedRootsLoaded();
+
+      // A scoped picker must never grant a rejected file's parent directory.
+      const withinRoot = options?.withinRoot
+        ? await ensurePathAllowed(await resolvePortableReadPath(options.withinRoot), 'read')
+        : null;
 
       const dialogOptions: Electron.OpenDialogOptions = {
         properties: ["openFile"],
@@ -195,8 +200,18 @@ export const registerFsHandlers = ({
         return null;
       }
 
-      const parentFolder = path.dirname(filePath);
-      await addUserGrantedRootAndPersist(parentFolder);
+      if (withinRoot) {
+        const resolvedFile = await fs.realpath(filePath);
+        const pathOps = pickPathOps(withinRoot);
+        const relative = pathOps.relative(withinRoot, resolvedFile);
+        if (!relative || relative === '..' || relative.startsWith(`..${pathOps.sep}`) || pathOps.isAbsolute(relative)) {
+          throw new Error('Vyberte soubor uvnitř složky tohoto projektu ve Složkomatu.');
+        }
+        await ensurePathAllowed(resolvedFile, 'read');
+      } else {
+        const parentFolder = path.dirname(filePath);
+        await addUserGrantedRootAndPersist(parentFolder);
+      }
 
       return {
         relativePath: path.basename(filePath),

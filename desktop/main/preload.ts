@@ -63,7 +63,7 @@ const electronAPI: ElectronAPI = {
         selectFolder: (): Promise<FolderInfo | null> =>
             invokeTyped('fs:selectFolder'),
 
-        selectFile: (options?: { title?: string; defaultPath?: string }): Promise<FileInfo | null> =>
+        selectFile: (options?: { title?: string; defaultPath?: string; withinRoot?: string }): Promise<FileInfo | null> =>
             invokeTyped('fs:selectFile', options),
 
         listFiles: (folderPath: string): Promise<FileInfo[]> =>

@@ -69,7 +69,7 @@ export interface PlatformInfo {
 
 export interface FileSystemAPI {
     selectFolder: () => Promise<FolderInfo | null>;
-    selectFile: (options?: { title?: string; defaultPath?: string }) => Promise<FileInfo | null>;
+    selectFile: (options?: { title?: string; defaultPath?: string; withinRoot?: string }) => Promise<FileInfo | null>;
     listFiles: (folderPath: string) => Promise<FileInfo[]>;
     readFile: (filePath: string, options?: { maxBytes?: number }) => Promise<Buffer>;
     copyFile: (sourcePath: string, destinationDirectory: string) => Promise<{

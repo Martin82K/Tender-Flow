@@ -23,7 +23,7 @@ describe('price offer file mapping', () => {
   });
   it('automatically maps the selected file without storing a personal absolute path', async () => {
     expect(await selectPriceOffer(contract, project, 'user')).toBe(true);
-    expect(mocks.selectFile).toHaveBeenCalledWith({ title: 'Vybrat cenovou nabídku', defaultPath: '/Users/me/OneDrive/Project' });
+    expect(mocks.selectFile).toHaveBeenCalledWith({ title: 'Vybrat cenovou nabídku', defaultPath: '/Users/me/OneDrive/Project', withinRoot: '/Users/me/OneDrive/Project' });
     expect(mocks.updateContract).toHaveBeenCalledWith('c', { priceOfferPath: 'Supplier/offer.pdf' });
   });
   it('leaves the mapping unchanged after cancellation', async () => {
@@ -56,6 +56,16 @@ describe('price offer file mapping', () => {
     await expect(selectPriceOffer(contract, project, 'user')).rejects.toThrow('desktopové');
     await expect(openPriceOfferFile(project, 'user', 'offer.pdf')).rejects.toThrow('online odkaz');
     expect(mocks.updateContract).not.toHaveBeenCalled();
+  });
+  it('supports the legacy local provider for selection and opening', async () => {
+    const legacy = { ...project, docHubProvider: 'local' as const };
+    expect(await selectPriceOffer(contract, legacy, 'user')).toBe(true);
+    await openPriceOfferFile(legacy, 'user', 'Supplier/offer.pdf');
+    expect(mocks.openFile).toHaveBeenCalled();
+  });
+  it('maps drive and POSIX filesystem roots', () => {
+    expect(mapPriceOfferPath('C:\\', 'c:\\Nabídka.pdf')).toBe('Nabídka.pdf');
+    expect(mapPriceOfferPath('/', '/Nabídka.pdf')).toBe('Nabídka.pdf');
   });
   it('maps Windows paths independently of drive-letter case', () => {
     expect(mapPriceOfferPath('C:\\OneDrive\\Project', 'c:\\OneDrive\\Project\\Supplier\\Nabídka.xlsx')).toBe('Supplier/Nabídka.xlsx');

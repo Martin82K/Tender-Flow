@@ -12,10 +12,10 @@ export const selectPriceOffer = async (
 ): Promise<boolean> => {
   if (contract.projectId !== project.id) throw new Error('Smlouva nepatří k tomuto projektu.');
   if (!isDesktop) throw new Error('Soubor vyberte v desktopové aplikaci Tender Flow, která má přístup ke složce Složkomatu.');
-  if (project.docHubProvider !== 'onedrive') throw new Error('Nejprve připojte místní složku projektu ve Složkomatu.');
+  if (!['onedrive', 'local'].includes(project.docHubProvider || '')) throw new Error('Nejprve připojte místní složku projektu ve Složkomatu.');
   const root = await resolveEffectiveProjectDocHubRoot(project, userId);
   if (!root) throw new Error('Nejprve připojte svou místní složku projektu ve Složkomatu.');
-  const file = await fileSystemAdapter.selectFile({ title: 'Vybrat cenovou nabídku', defaultPath: root });
+  const file = await fileSystemAdapter.selectFile({ title: 'Vybrat cenovou nabídku', defaultPath: root, withinRoot: root });
   if (!file) return false;
   const relativePath = mapPriceOfferPath(root, file.absolutePath);
   await contractMutationsApi.updateContract(contract.id, { priceOfferPath: relativePath });
@@ -30,7 +30,7 @@ export const openPriceOfferFile = async (
   const relativePath = validatePriceOfferPath(path || '');
   if (isDesktop) {
     const root = await resolveEffectiveProjectDocHubRoot(project, userId);
-    if (root && project.docHubProvider === 'onedrive') {
+    if (root && ['onedrive', 'local'].includes(project.docHubProvider || '')) {
       const result = await fileSystemAdapter.openFile(joinDocHubPath(root, relativePath));
       if (!result.success) throw new Error('Soubor se nepodařilo otevřít. Zkontrolujte jeho umístění a synchronizaci Složkomatu.');
       return;

@@ -9,13 +9,14 @@ export const validatePriceOfferPath = (value: string): string => {
 };
 
 export const mapPriceOfferPath = (root: string, absolutePath: string): string => {
-  const normalizedRoot = root.replace(/\\/g, '/').replace(/\/+$/, '');
+  const normalizedRoot = root.replace(/\\/g, '/');
   const normalizedFile = absolutePath.replace(/\\/g, '/');
   const windowsPath = /^[A-Za-z]:\//.test(normalizedRoot) || normalizedRoot.startsWith('//');
-  const comparableRoot = windowsPath ? normalizedRoot.toLowerCase() : normalizedRoot;
+  const prefix = `${normalizedRoot.replace(/\/+$/, '')}/`;
+  const comparableRoot = windowsPath ? prefix.toLowerCase() : prefix;
   const comparableFile = windowsPath ? normalizedFile.toLowerCase() : normalizedFile;
-  if (!normalizedRoot || !comparableFile.startsWith(`${comparableRoot}/`)) {
+  if (!normalizedRoot || !comparableFile.startsWith(comparableRoot)) {
     throw new Error('Vyberte soubor uvnitř složky tohoto projektu ve Složkomatu.');
   }
-  return validatePriceOfferPath(normalizedFile.slice(normalizedRoot.length + 1));
+  return validatePriceOfferPath(normalizedFile.slice(prefix.length));
 };
