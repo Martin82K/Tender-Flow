@@ -513,8 +513,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {currentView === 'project' && <ProjectSidebar compact={compact} onExpand={onToggle} hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
                       activeTab={new URLSearchParams(search).get('tab') || 'overview'}
                       activeSettingsTab={new URLSearchParams(search).get('documentsSubTab') || 'pd'}
+                      activeDocumentsTab={new URLSearchParams(search).get('documentsSubTab') || 'subcontractor'}
                       onSelect={(id, tab, settingsTab) => {
-                        if (settingsTab) navigate(buildAppUrl('project', { projectId: id, tab: 'project-settings', documentsSubTab: settingsTab }));
+                        if (settingsTab) navigate(buildAppUrl('project', { projectId: id, tab: tab === 'documents' ? 'documents' : 'project-settings', documentsSubTab: settingsTab }));
                         else onProjectSelect(id, tab);
                         closeMobileMenu();
                       }} />}
