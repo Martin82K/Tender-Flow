@@ -6274,6 +6274,7 @@ html[data-skin="industrial"] .tf-sidebar .tf-sidebar-section[aria-pressed="true"
 .tf-sidebar .tf-project-nav-row,
 html[data-skin] .tf-sidebar [data-help-id="sidebar-nav-item"] { min-height: 48px !important; }
 .tf-sidebar .tf-project-nav-row { padding-inline: 12px; }
+.tf-sidebar [role="group"] .tf-project-nav-row { padding-left: 32px; }
 .tf-sidebar .tf-sidebar-back { display: flex; align-items: center; gap: 8px; }
 .tf-sidebar .tf-sidebar-nav { scrollbar-width: thin; }
 html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row {

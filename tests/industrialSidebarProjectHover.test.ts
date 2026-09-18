@@ -23,6 +23,11 @@ describe("industrial sidebar project hover", () => {
     expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar .tf-project-nav-row > .material-symbols-outlined')).toContain('font-size: 0.9375rem');
   });
 
+  it("indents project subsections while preserving compact centering", () => {
+    expect(cssBlockFor('.tf-sidebar [role="group"] .tf-project-nav-row')).toContain('padding-left: 32px');
+    expect(cssBlockFor('html[data-skin="industrial"] .tf-sidebar [role="group"] .tf-project-nav-row')).toContain('padding-left: 1.75rem !important');
+  });
+
   it("keeps compact project icon containers at least as wide as their glyphs", () => {
     const glyphBlock = cssBlockFor('html[data-skin] .tf-sidebar[data-compact="true"] .material-symbols-outlined');
     const iconBlock = cssBlockFor('html[data-skin="industrial"] .tf-sidebar[data-compact="true"] .material-symbols-outlined:not(.tf-sidebar-label)');
