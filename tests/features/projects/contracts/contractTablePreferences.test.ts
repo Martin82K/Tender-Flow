@@ -21,7 +21,7 @@ describe('contractTablePreferences', () => {
         }),
       ),
     ).toMatchObject({
-      visibleColumns: ['number', 'document', 'vendor'],
+      visibleColumns: ['number', 'document', 'vendor', 'priceOffer'],
       widths: { number: 420, document: 110, vendor: 280 },
     });
   });
@@ -35,7 +35,7 @@ describe('contractTablePreferences', () => {
       }),
     );
 
-    expect(prefs.visibleColumns).toEqual(['number']);
+    expect(prefs.visibleColumns).toEqual(['number', 'priceOffer']);
     expect(prefs.widths.number).toBeLessThanOrEqual(720);
     expect(prefs.widths.vendor).toBeGreaterThanOrEqual(100);
     expect(prefs.widths).not.toHaveProperty('attacker');
@@ -43,9 +43,16 @@ describe('contractTablePreferences', () => {
 
   it('podporuje staré uložené pole viditelných sloupců', () => {
     expect(parseContractTablePreferences('["number","vendor"]')).toMatchObject({
-      visibleColumns: ['number', 'vendor'],
+      visibleColumns: ['number', 'vendor', 'priceOffer'],
       widths: DEFAULT_CONTRACT_COLUMN_WIDTHS,
     });
+  });
+
+  it('keeps the offer hidden after the user explicitly hides it', () => {
+    const migrated = parseContractTablePreferences(JSON.stringify({ version: 2, visibleColumns: ['document'], widths: {} }));
+    expect(migrated.visibleColumns).toContain('priceOffer');
+    migrated.visibleColumns = ['document'];
+    expect(parseContractTablePreferences(JSON.stringify(migrated)).visibleColumns).toEqual(['document']);
   });
 
   it('mění šířku v bezpečných mezích', () => {

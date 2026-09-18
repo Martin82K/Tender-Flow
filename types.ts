@@ -482,6 +482,8 @@ export interface Contract {
   documentFileName?: string;
   documentMimeType?: string;
   documentSize?: number;
+  /** Path relative to the project Složkomat root; no uploaded copy. */
+  priceOfferPath?: string;
   extractionConfidence?: number;
   extractionJson?: Record<string, unknown>;
 

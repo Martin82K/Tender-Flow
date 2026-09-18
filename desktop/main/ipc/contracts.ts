@@ -11,7 +11,7 @@ import type {
 export interface IpcContractMap {
   "fs:selectFolder": { args: []; result: FolderInfo | null };
   "fs:selectFile": {
-    args: [options?: { title?: string; defaultPath?: string }];
+    args: [options?: { title?: string; defaultPath?: string; withinRoot?: string }];
     result: FileInfo | null;
   };
   "fs:listFiles": { args: [folderPath: string]; result: FileInfo[] };

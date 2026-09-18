@@ -377,6 +377,35 @@ describe("fsHandlers", () => {
     expect(JSON.parse(grantedRootsStorage.set.mock.calls[0][1])).toContain("/Users/tester/Projects/Tender");
   });
 
+  it('returns the relative path under a relocated project root without adding grants', async () => {
+    const { dialog } = await import('electron');
+    const root = '/Users/tester/Library/Application Support/TenderFlow/project';
+    fsMock.realpath.mockImplementation(async (value: string) => value);
+    fsMock.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false });
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({ canceled: false, filePaths: [root + '/Supplier/offer.pdf'] } as any);
+    const storage = { get: vi.fn().mockResolvedValue(null), set: vi.fn() };
+    const { registerFsHandlers } = await import('../desktop/main/ipc/modules/fsHandlers');
+    registerFsHandlers({ resolvePortableReadPath: async v => v === '/Old/Project' ? root : v, resolvePortableWritePath: async v => v, requireAuth: vi.fn(), grantedRootsStorage: storage });
+    await expect(handlers.get('fs:selectFile')?.({}, { withinRoot: '/Old/Project' })).resolves.toMatchObject({ withinRootRelativePath: 'Supplier/offer.pdf' });
+    expect(storage.set).not.toHaveBeenCalled();
+  });
+
+  it.each(['outside', 'symlink'])('rejects %s selection before persisting any new grant', async mode => {
+    const { dialog } = await import('electron');
+    const root = '/Users/tester/Library/Application Support/TenderFlow/project';
+    const outside = '/private/secret/offer.pdf';
+    fsMock.realpath.mockImplementation(async (value: string) => value.endsWith('/escape.pdf') ? outside : value);
+    fsMock.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false });
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({ canceled: false, filePaths: [mode === 'outside' ? outside : root + '/escape.pdf'] } as any);
+    const storage = { get: vi.fn().mockResolvedValue(null), set: vi.fn() };
+    const { registerFsHandlers } = await import('../desktop/main/ipc/modules/fsHandlers');
+    registerFsHandlers({ resolvePortableReadPath: async v => v, resolvePortableWritePath: async v => v, requireAuth: vi.fn(), grantedRootsStorage: storage });
+    await expect(handlers.get('fs:selectFile')?.({}, { withinRoot: root })).rejects.toThrow('projektu');
+    expect(storage.set).not.toHaveBeenCalled();
+    await expect(handlers.get('fs:readFile')?.({}, outside)).rejects.toThrow();
+    expect(fsMock.readFile).not.toHaveBeenCalled();
+  });
+
   it("vybere soubor a ulozi jeho nadrazenou slozku do persistentniho uloziste", async () => {
     const { dialog } = await import("electron");
     const grantedRootsStorage = {

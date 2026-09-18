@@ -31,6 +31,15 @@ describe('contractService updateContract', () => {
     mocks.from.mockReturnValue({ update: mocks.update, delete: mocks.delete });
   });
 
+  it('saves only a validated relative mapping without touching the contract PDF', async () => {
+    await contractService.updateContract('contract-1', { priceOfferPath: 'Dodavatel/Nabídka.pdf' });
+    expect(mocks.update).toHaveBeenCalledWith({ price_offer_path: 'Dodavatel/Nabídka.pdf' });
+  });
+  it('rejects unsafe mapping before querying the database', async () => {
+    await expect(contractService.updateContract('contract-1', { priceOfferPath: '../other.pdf' })).rejects.toThrow();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
   it('uloží změnu měny a umožní vymazat volitelné hodnoty', async () => {
     await contractService.updateContract('contract-1', {
       currency: 'EUR',
