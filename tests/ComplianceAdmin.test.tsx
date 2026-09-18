@@ -320,12 +320,10 @@ describe("ComplianceAdmin", () => {
     fireEvent.change(await screen.findByLabelText("Žadatel dsr-1"), {
       target: { value: "Jana Nováková" },
     });
-    fireEvent.change(screen.getByLabelText("Kanál dsr-1"), {
-      target: { value: "support" },
-    });
-    fireEvent.change(screen.getByLabelText("Ověření dsr-1"), {
-      target: { value: "verified" },
-    });
+    fireEvent.click(await screen.findByRole("combobox", { name: "Kanál dsr-1" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Support", exact: true }));
+    fireEvent.click(await screen.findByRole("combobox", { name: "Ověření dsr-1" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Ověřeno", exact: true }));
     fireEvent.change(screen.getByLabelText("Shrnutí vyřízení dsr-1"), {
       target: { value: "Export připraven a čeká na bezpečné předání žadateli." },
     });
@@ -443,9 +441,8 @@ describe("ComplianceAdmin", () => {
 
     render(<ComplianceAdmin />);
 
-    fireEvent.change(await screen.findByLabelText("Ověření dsr-erase-1"), {
-      target: { value: "verified" },
-    });
+    fireEvent.click(await screen.findByRole("combobox", { name: "Ověření dsr-erase-1" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Ověřeno", exact: true }));
     fireEvent.change(screen.getByLabelText("Právní posouzení výmazu dsr-erase-1"), {
       target: { value: "bez retenční překážky" },
     });
@@ -762,9 +759,8 @@ describe("ComplianceAdmin", () => {
   it("umožní uložit manuální retenční plán pro CRM data", async () => {
     render(<ComplianceAdmin />);
 
-    fireEvent.change(await screen.findByLabelText("Stav CRM retention crm-ret-1"), {
-      target: { value: "approved" },
-    });
+    fireEvent.click(await screen.findByRole("combobox", { name: "Stav CRM retention crm-ret-1" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Schváleno", exact: true }));
     fireEvent.change(screen.getByLabelText("Další review CRM crm-ret-1"), {
       target: { value: "2026-05-01" },
     });
@@ -830,9 +826,8 @@ describe("ComplianceAdmin", () => {
     fireEvent.change(screen.getByLabelText("Kategorie dat činnosti zpracování"), {
       target: { value: "jméno, e-mail, role" },
     });
-    fireEvent.change(screen.getByLabelText("Navázaná retention policy"), {
-      target: { value: "ret-1" },
-    });
+    fireEvent.click(await screen.findByRole("combobox", { name: "Navázaná retention policy" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Incident logy", exact: true }));
     fireEvent.click(screen.getByRole("option", { name: "Supabase (EU)" }));
     fireEvent.click(screen.getAllByRole("button", { name: "Přidat" })[3]);
 
