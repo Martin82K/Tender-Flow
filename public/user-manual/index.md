@@ -400,6 +400,8 @@ V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled 
 
 Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly.
 
+**Upravit záznam** uloží novou verzi protokolu. **Smazat záznam** vyžaduje potvrzení a odebere záznam ze seznamu; historie, přílohy a skutečná předání zůstávají pro audit. Bez dostupné smlouvy použijte **Přejít na smlouvy**.
+
 **Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
 
 

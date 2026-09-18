@@ -11,7 +11,7 @@ export function DocumentRecordForm({ contracts, existing, initialContractId, onC
   contracts: ContractWithDetails[]; existing?: DocumentVersion; initialContractId?: string;
   onClose: () => void; onSaved: (version: DocumentVersion, edit: boolean) => Promise<void>;
 }) {
-  const [contractId, setContractId] = useState(existing?.contract_id || initialContractId || contracts[0]?.id || '');
+  const [contractId, setContractId] = useState(existing?.contract_id || contracts.find(contract => contract.id === initialContractId)?.id || contracts[0]?.id || '');
   const [kind, setKind] = useState<DocumentKind>(existing?.snapshot.kind || 'sub_site_handover');
   const [title, setTitle] = useState(existing?.snapshot.fields.recordTitle || '');
   const [date, setDate] = useState(existing?.snapshot.fields.plannedDate || '');
@@ -25,7 +25,8 @@ export function DocumentRecordForm({ contracts, existing, initialContractId, onC
   const close = () => { if (!busy && (!dirty || window.confirm('Zavřít bez uložení změn?'))) onClose(); };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    const contract = contracts.find(item => item.id === contractId); if (!contract) return;
+    const contract = contracts.find(item => item.id === contractId);
+    if (!contract) { setError('Vyberte dostupnou subdodavatelskou smlouvu.'); return; }
     setBusy(true); setError('');
     try {
       const context = existing ? null : await contractDocumentsApi.context(contract.projectId, contract.vendorId);

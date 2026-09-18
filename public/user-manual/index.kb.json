@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T12:52:30.463Z",
+  "generatedAt": "2026-09-18T13:06:01.750Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -1121,24 +1121,24 @@
     {
       "slug": "dokumenty-a-sablony",
       "title": "Dokumenty a šablony",
-      "content": "V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled podle firem a horizontální záložku **Předávací protokoly**. Nový záznam přiřaďte ke smlouvě a zvolte **Předání staveniště** nebo **Předání díla**. Záznam lze upravit, připojit PDF/DOCX do 20 MB nebo vytvořit dokument v editoru a exportovat jej. Každá úprava zachovává předchozí verze i jejich přílohy. Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly. **Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné. **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek. 1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor. 2. V **Šablonách** připravte texty pro odpovídající druh zprávy. 3. Při generování ověřte vyplněné údaje a odkazy v náhledu. 4. Před sdílením ověřte přístup příjemce k dokumentům v úložišti. **Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ. **Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.",
+      "content": "V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled podle firem a horizontální záložku **Předávací protokoly**. Nový záznam přiřaďte ke smlouvě a zvolte **Předání staveniště** nebo **Předání díla**. Záznam lze upravit, připojit PDF/DOCX do 20 MB nebo vytvořit dokument v editoru a exportovat jej. Každá úprava zachovává předchozí verze i jejich přílohy. Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly. **Upravit záznam** uloží novou verzi protokolu. **Smazat záznam** vyžaduje potvrzení a odebere záznam ze seznamu; historie, přílohy a skutečná předání zůstávají pro audit. Bez dostupné smlouvy použijte **Přejít na smlouvy**. **Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné. **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek. 1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor. 2. V **Šablonách** připravte texty pro odpovídající druh zprávy. 3. Při generování ověřte vyplněné údaje a odkazy v náhledu. 4. Před sdílením ověřte přístup příjemce k dokumentům v úložišti. **Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ. **Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.",
       "keywords": [
-        "dokumenty",
-        "odkazy",
-        "stavby",
-        "podle",
-        "protokoly",
         "znam",
-        "smlouv",
-        "dokument",
+        "dokumenty",
         "lohy",
         "ulo",
+        "smlouvy",
+        "stavby",
+        "protokoly",
+        "smlouv",
+        "upravit",
+        "skute",
+        "protokolu",
+        "vaj",
+        "dostupn",
+        "pou",
         "dokumentaci",
-        "zad",
-        "javor",
-        "nab",
-        "dku",
-        "ablony"
+        "odkazy"
       ],
       "source_anchor": "#dokumenty-a-sablony",
       "level": 2,

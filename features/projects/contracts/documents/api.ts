@@ -19,7 +19,7 @@ export const contractDocumentsApi = {
     const result: DocumentVersion[] = [];
     for (let chunk = 0; chunk < contractIds.length; chunk += 50) {
       for (let offset = 0; ; offset += 500) {
-        const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').in('contract_id', contractIds.slice(chunk, chunk + 50)).order('id').range(offset, offset + 499);
+        const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').is('deleted_at', null).in('contract_id', contractIds.slice(chunk, chunk + 50)).order('id').range(offset, offset + 499);
         failure(error);
         result.push(...(data || []) as DocumentVersion[]);
         if (!data || data.length < 500) break;
@@ -32,12 +32,16 @@ export const contractDocumentsApi = {
     failure(error);
   },
   async list(contractId: string): Promise<DocumentVersion[]> {
-    const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').eq('contract_id', contractId).order('created_at', { ascending: false });
+    const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').is('deleted_at', null).eq('contract_id', contractId).order('created_at', { ascending: false });
     failure(error); return (data || []) as DocumentVersion[];
   },
   async save(contractId: string, documentId: string, expectedVersion: number, snapshot: DocumentSnapshot): Promise<DocumentVersion> {
     const { data, error } = await dbAdapter.rpc('save_contract_document_version', { contract_id_input: contractId, document_id_input: documentId, expected_version: expectedVersion, snapshot_input: snapshot });
     failure(error); return data as DocumentVersion;
+  },
+  async remove(contractId: string, documentId: string, expectedVersion: number): Promise<void> {
+    const { error } = await dbAdapter.rpc('delete_contract_document', { contract_id_input: contractId, document_id_input: documentId, expected_version: expectedVersion });
+    failure(error);
   },
   async files(versionIds: string[]): Promise<DocumentFile[]> {
     const result: DocumentFile[] = [];
