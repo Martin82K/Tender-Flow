@@ -19,6 +19,7 @@ import type {
   ProjectTeamRole,
   User,
 } from "@/types";
+import { ProjectDocumentsWorkspace } from "@features/projects/documents/ui/ProjectDocumentsWorkspace";
 import { ProjectDocuments } from "@features/projects/documents/ui/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useContractsWithDetails } from "@features/projects/contracts/hooks/useContractsWithDetails";
@@ -191,7 +192,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
 
       {isArchived && <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm font-medium text-amber-800">Archivovaná stavba je pouze ke čtení. Nevznikají zde nové úkoly, schválení ani oznámení; obnovit ji může systémový vlastník stavby.</div>}
       {!isArchived && isReadOnly && <div className="border-b border-blue-200 bg-blue-50 px-6 py-3 text-sm font-medium text-blue-800">K této stavbě máte přístup pouze pro čtení.</div>}
-      <div className={`flex-1 overflow-auto flex flex-col ${isReadOnly && activeTab !== "settings" ? "pointer-events-none select-none opacity-80" : ""}`} aria-readonly={isReadOnly}>
+      <div className={`flex-1 overflow-auto flex flex-col ${isReadOnly && activeTab !== "settings" && activeTab !== "documents" ? "pointer-events-none select-none opacity-80" : ""}`} aria-readonly={isReadOnly}>
         {activeTab === "overview" && (
           <ProjectOverviewNew
             project={project}
@@ -272,10 +273,11 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdateDetails={onUpdateDetails}
           />
         )}
-        {(activeTab === "documents" || activeTab === "project-settings") && (
+        {activeTab === "documents" && <ProjectDocumentsWorkspace projectId={projectId} project={project} onUpdate={onUpdateDetails} currentUserId={currentUserId} contractsState={contractsState} contractsEnabled={contractsEnabled} readOnly={isReadOnly} canDocHub={hasFeature(FEATURES.DOC_HUB)} canTemplates={hasFeature(FEATURES.DYNAMIC_TEMPLATES)} />}
+        {activeTab === "project-settings" && (
           <ProjectDocuments
             key={activeTab}
-            section={activeTab === "project-settings" ? "settings" : "documents"}
+            section="settings"
             project={project}
             onUpdate={onUpdateDetails}
             currentUserId={currentUserId}

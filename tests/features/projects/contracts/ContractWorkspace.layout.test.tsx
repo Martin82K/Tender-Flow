@@ -92,7 +92,8 @@ describe('ContractWorkspace layout', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(5);
     fireEvent.click(screen.getByRole('tab', {name:'Dokumenty'}));
     expect(screen.getByTestId('ocr-section')).toBeInTheDocument();
-    expect(screen.getByTestId('generated-section')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name:'Otevřít předávací protokoly'})).toBeInTheDocument();
+    expect(screen.queryByTestId('generated-section')).not.toBeInTheDocument();
     expect(screen.queryByTestId('invoices-section')).not.toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole('tab', {name:'Dokumenty'}), {key:'ArrowRight'});
     expect(screen.getByTestId('invoices-section')).toBeInTheDocument();
