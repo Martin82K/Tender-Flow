@@ -400,7 +400,7 @@ V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled 
 
 Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly.
 
-**OBJEDNATEL**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
+**Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
 
 
 **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek.

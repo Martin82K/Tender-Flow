@@ -18,7 +18,7 @@ interface ProjectSidebarProps {
 export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', activeDocumentsTab = 'subcontractor', onSelect, hasFeature, compact = false, onExpand }: ProjectSidebarProps) {
   const [documentsOpen, setDocumentsOpen] = useState(activeTab === 'documents');
   useEffect(() => { if (activeTab === 'documents') setDocumentsOpen(true); }, [activeTab, selectedProjectId]);
-  const documentTabs = [{id:'investor',label:'OBJEDNATEL'}, {id:'subcontractor',label:'Subdodavatel'}, {id:'association',label:'Sdružení'}, {id:'claims',label:'Evidence reklamací'}, {id:'ceniky',label:'Ceníky'}] as const;
+  const documentTabs = [{id:'investor',label:'Objednatel'}, {id:'subcontractor',label:'Subdodavatel'}, {id:'association',label:'Sdružení'}, {id:'claims',label:'Evidence reklamací'}, {id:'ceniky',label:'Ceníky'}] as const;
   const selectedDocumentsTab = documentTabs.find(item => item.id === activeDocumentsTab)?.id || 'subcontractor';
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
