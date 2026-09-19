@@ -48,6 +48,22 @@ beforeEach(() => {
 });
 
 describe("AppEntry", () => {
+  it("keeps the reset form mounted across authentication and entitlement loading", () => {
+    state.location = { pathname: "/reset-password", search: "?auth_token_hash=hash" };
+    const view = render(<AppEntry />);
+    const form = screen.getByText("public:/reset-password?auth_token_hash=hash:false");
+    state.auth.isAuthenticated = true;
+    state.auth.isLoading = true;
+    state.features.isLoading = true;
+    state.features.currentPlan = "free";
+    view.rerender(<AppEntry />);
+    expect(screen.getByText("public:/reset-password?auth_token_hash=hash:false")).toBe(form);
+    state.auth.isLoading = false;
+    state.features.isLoading = false;
+    view.rerender(<AppEntry />);
+    expect(screen.getByText("public:/reset-password?auth_token_hash=hash:false")).toBe(form);
+    expect(state.loadedInternal).not.toHaveBeenCalled();
+  });
   it.each([false, true])("keeps retired links public during auth loading (authenticated=%s)", (authenticated) => {
     state.auth.isAuthenticated = authenticated;
     state.auth.isLoading = true;

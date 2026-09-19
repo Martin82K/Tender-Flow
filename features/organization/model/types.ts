@@ -65,6 +65,7 @@ export interface EffectiveTierResult {
   tier: string;
   source: 'org_override' | 'org_subscription' | 'user_legacy' | 'platform_admin' | 'default';
   validUntil?: string | null;
+  status?: string | null;
 }
 
 /** Per-user feature override */

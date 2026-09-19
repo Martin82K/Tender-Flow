@@ -1,4 +1,5 @@
 import { getStoredAuthSessionRaw, supabase } from './supabase';
+import { getPublicEnvValue } from '@/shared/config/publicEnv';
 import type { Session } from '@supabase/supabase-js';
 import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
@@ -10,6 +11,37 @@ import {
     CURRENT_TERMS_VERSION,
     hasAcceptedCurrentLegalDocuments,
 } from '@/shared/legal/legalDocumentVersions';
+
+const getRegistrationOrigin = (): string => {
+    const configured = import.meta.env.VITE_AUTH_APP_ORIGIN?.trim();
+    const browserOrigin = typeof window !== 'undefined' && ['http:', 'https:'].includes(window.location.protocol)
+        ? window.location.origin : 'https://www.tenderflow.cz';
+    const origin = new URL(configured || browserOrigin);
+    const secure = origin.protocol === 'https:' || (origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname));
+    if (!secure || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) {
+        throw new Error('Neplatná konfigurace návratové adresy registrace.');
+    }
+    return origin.origin;
+};
+
+const RECOVERY_VERIFICATION_KEY = 'tf-password-recovery-verification';
+const recoveryFingerprint = async (tokenHash: string): Promise<string> => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tokenHash));
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+interface RecoveryVerification { fingerprint: string; userId: string; expiresAt: number }
+let memoryRecoveryVerification: RecoveryVerification | null = null;
+const verifiedRecoverySession = async (tokenHash: string): Promise<Session | null> => {
+    try {
+        let marker = memoryRecoveryVerification;
+        try { marker = JSON.parse(sessionStorage.getItem(RECOVERY_VERIFICATION_KEY) || 'null') || marker; } catch { /* Memory supports storage-disabled browsers. */ }
+        if (!marker || typeof marker.userId !== 'string' || typeof marker.expiresAt !== 'number'
+            || marker.expiresAt <= Date.now() || marker.fingerprint !== await recoveryFingerprint(tokenHash)) return null;
+        const { data, error } = await supabase.auth.getSession();
+        return !error && data.session?.user?.id === marker.userId ? data.session : null;
+    } catch { return null; }
+};
 
 const DEFAULT_PREFERENCES = {
     theme: 'system',
@@ -202,19 +234,39 @@ export const authService = {
         email: string,
         password: string,
         legalAcceptance: LegalAcceptanceInput,
-    ): Promise<User> => {
+        nextPath?: string,
+    ): Promise<User | null> => {
         // Check registration settings before allowing signup
         const canRegister = await authService.checkRegistrationAllowed(email);
         if (!canRegister.allowed) {
             throw new Error(canRegister.reason || 'Registrace není povolena pro tento email.');
         }
 
+        const registrationOrigin = getRegistrationOrigin();
+        let emailRedirectTo: string | undefined;
+        if (nextPath) {
+            try {
+                const target = new URL(nextPath, registrationOrigin);
+                decodeURIComponent(target.pathname);
+                if (target.origin === registrationOrigin && !target.username && !target.password
+                    && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
+                    target.hash = '';
+                    emailRedirectTo = target.href;
+                }
+            } catch { /* Invalid return paths use the configured site URL. */ }
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
+                ...(emailRedirectTo ? { emailRedirectTo } : {}),
                 data: {
                     name,
+                    signup_legal_acceptance: {
+                        termsVersion: legalAcceptance.termsVersion,
+                        privacyVersion: legalAcceptance.privacyVersion,
+                    },
                 },
             },
         });
@@ -230,7 +282,7 @@ export const authService = {
         }
 
         // If there's no session, user is not signed in (e.g. email confirmation required).
-        throw new Error('Registrace proběhla, ale nebyla vytvořena session. Zkontrolujte email pro potvrzení.');
+        return null;
     },
 
     checkRegistrationAllowed: async (email: string): Promise<{ allowed: boolean; reason?: string }> => {
@@ -624,6 +676,25 @@ export const authService = {
                 );
                 const { data, error } = res as any;
                 if (error) return null;
+                const pending = session.user.user_metadata?.signup_legal_acceptance;
+                // Metadata is only the user's pending consent request, never an
+                // authorization claim. The authenticated RPC supplies audit times.
+                const alreadyAccepted = hasAcceptedCurrentLegalDocuments({
+                    termsVersion: data?.terms_version ?? null,
+                    termsAcceptedAt: data?.terms_accepted_at ?? null,
+                    privacyVersion: data?.privacy_version ?? null,
+                    privacyAcceptedAt: data?.privacy_accepted_at ?? null,
+                });
+                if (!alreadyAccepted && session.user.email_confirmed_at
+                    && pending?.termsVersion === CURRENT_TERMS_VERSION
+                    && pending?.privacyVersion === CURRENT_PRIVACY_VERSION) {
+                    const acceptance = await withTimeout(Promise.resolve(supabase.rpc('accept_current_legal_documents', {
+                        p_terms_version: pending.termsVersion,
+                        p_privacy_version: pending.privacyVersion,
+                    })), queryTimeoutMs, 'Pending legal acceptance');
+                    if (acceptance.error) throw acceptance.error;
+                    return acceptance.data ?? data ?? null;
+                }
                 return data ?? null;
             } catch (e) {
                 console.warn('[authService] Could not fetch subscription override', e);
@@ -849,6 +920,41 @@ export const authService = {
             // So if this fails, it's a real network/server error.
             throw error;
         }
+    },
+
+    verifyPasswordRecoveryToken: async (tokenHash: string): Promise<void> => {
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        if (error) throw error;
+        if (!data.session?.user?.id) throw new Error('Nepodařilo se ověřit relaci pro obnovu hesla.');
+        memoryRecoveryVerification = {
+            fingerprint: await recoveryFingerprint(tokenHash),
+            userId: data.session.user.id,
+            expiresAt: Math.min((data.session.expires_at ?? Date.now() / 1000 + 3600) * 1000, Date.now() + 3600000),
+        };
+        try { sessionStorage.setItem(RECOVERY_VERIFICATION_KEY, JSON.stringify(memoryRecoveryVerification)); }
+        catch { /* The in-memory marker still supports retries while this page stays open. */ }
+    },
+
+    hasVerifiedPasswordRecoveryToken: async (tokenHash: string): Promise<boolean> =>
+        Boolean(await verifiedRecoverySession(tokenHash)),
+
+    updateRecoveredPassword: async (password: string, tokenHash: string): Promise<void> => {
+        const session = await verifiedRecoverySession(tokenHash);
+        if (!session?.access_token) throw new Error('Neplatná relace pro obnovu hesla. Otevřete nový odkaz.');
+        // Bind the request to the verified snapshot: a cross-tab sign-in must not
+        // make the shared Auth client update a different account during this await.
+        const url = getPublicEnvValue('VITE_SUPABASE_URL', import.meta.env.VITE_SUPABASE_URL);
+        const key = getPublicEnvValue('VITE_SUPABASE_ANON_KEY', import.meta.env.VITE_SUPABASE_ANON_KEY);
+        const response = await fetch(`${url}/auth/v1/user`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ password }),
+            signal: AbortSignal.timeout(15000),
+        });
+        await response.body?.cancel();
+        if (!response.ok) throw new Error('Nastavení hesla se nezdařilo. Zkontrolujte požadavky na heslo nebo požádejte o nový odkaz.');
+        memoryRecoveryVerification = null;
+        try { sessionStorage.removeItem(RECOVERY_VERIFICATION_KEY); } catch { /* Storage may be disabled. */ }
     },
 
     confirmPasswordReset: async (token: string, password: string): Promise<void> => {

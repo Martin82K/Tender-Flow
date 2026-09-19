@@ -19,6 +19,8 @@ interface FeatureContextType {
   isLoading: boolean;
   refetchFeatures: () => Promise<boolean>;
   verificationError: boolean;
+  planStatus: string | null;
+  planExpiresAt: string | null;
 }
 
 const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
@@ -32,6 +34,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const inFlightRequest = useRef<number | null>(null);
   const verificationTimeout = useRef<number | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>('free');
+  const [planStatus, setPlanStatus] = useState<string | null>(null);
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Tracks which user the current enabledFeatures/currentPlan actually belong to.
@@ -65,6 +69,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setVerificationError(false);
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      setPlanStatus(null);
+      setPlanExpiresAt(null);
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = null;
@@ -82,6 +88,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setVerificationError(false);
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      setPlanStatus(null);
+      setPlanExpiresAt(null);
     }
 
     // Demo mode has no Supabase auth session, so backend RPC feature checks will fail.
@@ -90,6 +98,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
       setEnabledFeatures([...DEMO_FEATURES] as FeatureKey[]);
       setCurrentPlan('demo');
+      setPlanStatus(null);
+      setPlanExpiresAt(null);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
       setFetchedForUserId(userId);
@@ -112,12 +122,16 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
+      let nextPlanStatus: string | null = null;
+      let nextPlanExpiresAt: string | null = null;
 
       let deadline: number | null = null;
       try {
         const tierResult = await getEffectiveUserTier();
         features = await getEnabledFeaturesV2();
         tier = tierResult.tier;
+        nextPlanStatus = tierResult.status ?? null;
+        nextPlanExpiresAt = tierResult.validUntil ?? null;
         deadline = tierResult.validUntil ? Date.parse(tierResult.validUntil) : null;
         if (deadline !== null && !Number.isFinite(deadline)) throw new Error('Invalid subscription expiration');
       } catch (error) {
@@ -126,6 +140,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
         if (code !== 'PGRST202' && code !== '42883') throw error;
         [features, tier] = await Promise.all([getEnabledFeatures(), getCurrentTier()]);
+        nextPlanStatus = null;
+        nextPlanExpiresAt = null;
       }
       if (version !== requestVersion.current) return false;
       setVerificationError(false);
@@ -135,6 +151,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
+      setPlanStatus(nextPlanStatus);
+      setPlanExpiresAt(nextPlanExpiresAt);
       return true;
     } catch (error) {
       if (version !== requestVersion.current) return false;
@@ -144,6 +162,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Fail closed on backend errors to prevent stale or spoofed feature access.
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      setPlanStatus(null);
+      setPlanExpiresAt(null);
       return false;
     } finally {
       window.clearTimeout(timeout);
@@ -175,6 +195,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       requestVersion.current += 1;
       setEnabledFeatures([]);
       setCurrentPlan('free');
+      setPlanStatus(null);
+      setPlanExpiresAt(null);
       setIsLoading(false);
       void fetchFeatures();
     }, Math.max(0, validUntil - Date.now()));
@@ -227,6 +249,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       enabledFeatures,
       verificationError,
       currentPlan,
+      planStatus,
+      planExpiresAt,
       hasFeature,
       isLoading: effectiveIsLoading,
       refetchFeatures: fetchFeatures

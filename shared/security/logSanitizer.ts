@@ -3,6 +3,7 @@ const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._\-+/=]+/gi;
 const JWT_PATTERN = /\b[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\b/g;
 const AUTHORIZATION_PATTERN = /(authorization\s*[:=]\s*)([^\s,}]+)/gi;
 const APIKEY_PATTERN = /(apikey\s*[:=]\s*)([^\s,}]+)/gi;
+const RECOVERY_TOKEN_PATTERN = /([?&](?:auth_token_hash|token_hash|token)=)[^&#\s"'<>]+/gi;
 const REFRESH_TOKEN_PATTERN = /(refresh_token\s*[:=]\s*)([^\s,}]+)/gi;
 
 export const SECRET_KEY_PATTERN =
@@ -18,7 +19,8 @@ export const redactSensitiveText = (value: unknown): string => {
     .replace(JWT_PATTERN, "[redacted-jwt]")
     .replace(AUTHORIZATION_PATTERN, "$1[redacted-token]")
     .replace(APIKEY_PATTERN, "$1[redacted-token]")
-    .replace(REFRESH_TOKEN_PATTERN, "$1[redacted-token]");
+    .replace(REFRESH_TOKEN_PATTERN, "$1[redacted-token]")
+    .replace(RECOVERY_TOKEN_PATTERN, "$1[redacted-token]");
 };
 
 export const sanitizeLogText = (value: unknown, maxLen: number): string => {

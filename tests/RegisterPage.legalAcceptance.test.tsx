@@ -9,6 +9,7 @@ import { RegisterPage } from "@/features/auth/ui/RegisterPage";
 
 const mockState = vi.hoisted(() => ({
   register: vi.fn(),
+  search: "",
   navigate: vi.fn(),
   getAppSettings: vi.fn(),
 }));
@@ -38,7 +39,7 @@ vi.mock("@/shared/routing/router", () => ({
     </a>
   ),
   navigate: mockState.navigate,
-  useLocation: () => ({ pathname: "/register", search: "" }),
+  useLocation: () => ({ pathname: "/register", search: mockState.search }),
 }));
 
 vi.mock("@/services/authService", () => ({
@@ -50,6 +51,7 @@ vi.mock("@/services/authService", () => ({
 describe("RegisterPage legal acceptance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.search = "";
     mockState.getAppSettings.mockResolvedValue({
       allowPublicRegistration: true,
       allowedDomains: [],
@@ -57,6 +59,22 @@ describe("RegisterPage legal acceptance", () => {
     });
   });
 
+  it("po úspěšném signup bez session zobrazí potvrzení a skryje formulář", async () => {
+    mockState.search = "?next=%2Fapp%2Fproject%2Ffixture%3Ftab%3Dtasks";
+    mockState.register.mockResolvedValue({ status: "confirmation_required" });
+    render(<RegisterPage />);
+    for (const [placeholder, value] of [["Jméno a Příjmení", "Test"], ["Email", "test@example.com"], ["Heslo", "password"], ["Potvrzení hesla", "password"]]) {
+      fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
+    }
+    fireEvent.click(screen.getByLabelText(/souhlasím s podmínkami používání/i));
+    fireEvent.click(screen.getByLabelText(/potvrzuji seznámení se zásadami ochrany osobních údajů/i));
+    fireEvent.click(screen.getByRole("button", { name: "Vytvořit účet" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Zkontrolujte e-mail");
+    expect(screen.queryByPlaceholderText("Heslo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vytvořit účet" })).not.toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+    expect(mockState.register).toHaveBeenCalledWith("Test", "test@example.com", "password", expect.any(Object), "/app/project/fixture?tab=tasks");
+  });
   it("bez potvrzení podmínek registraci nepustí", async () => {
     render(<RegisterPage />);
 
@@ -112,6 +130,7 @@ describe("RegisterPage legal acceptance", () => {
           termsVersion: CURRENT_TERMS_VERSION,
           privacyVersion: CURRENT_PRIVACY_VERSION,
         },
+        "/app/projects?status=all",
       );
     });
     expect(mockState.navigate).toHaveBeenCalledWith("/app/projects?status=all", { replace: true });

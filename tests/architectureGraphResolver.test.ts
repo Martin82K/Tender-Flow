@@ -248,7 +248,7 @@ describe("architecture graph resolver", () => {
       );
 
     expect(graph.collectionErrors).toEqual([]);
-    expect(graph.nodes).toHaveLength(651);
+    expect(graph.nodes).toHaveLength(655);
     expect(actual).toEqual(baseline.allowedImports);
     expect(actual).toHaveLength(126);
     expect(boundaryAllowlist.allowedFindings).toHaveLength(36);
