@@ -113,3 +113,11 @@ describe("live override plan presentation", () => {
     expect(plan.activeUntil).toBe("2026-09-25T00:00:00.000Z");
   });
 });
+
+ it.each(["free", "unknown"])("does not activate a non-entitling %s override", (overrideTier) => {
+   const plan = getOrgPlanPresentation({status: "paused", tier: "free", overrideTier,
+     overrideExpiresAt: null, billingPeriodEnd: null, expiresAt: null});
+   expect(plan.isOverridden).toBe(false);
+   expect(plan.status).toBe("paused");
+   expect(plan.effectiveTier).toBe("free");
+ });

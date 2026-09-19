@@ -46,6 +46,7 @@ function verified(body: string, headers: Headers): boolean {
 function signupRedirect(value: unknown): string {
   try {
     const target = new URL(text(value));
+    decodeURIComponent(target.pathname);
     if (target.origin === redirectTo && !target.username && !target.password
       && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
       target.hash = '';

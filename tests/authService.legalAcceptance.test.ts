@@ -1,3 +1,4 @@
+import { webcrypto } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CURRENT_PRIVACY_VERSION,
@@ -197,13 +198,28 @@ describe("authService legal acceptance", () => {
 });
 
 describe("Auth password recovery service", () => {
+  beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); vi.stubGlobal("crypto", webcrypto); });
+  afterEach(() => vi.unstubAllGlobals());
   it("verifies only recovery tokens and updates the current authenticated user", async () => {
-    mockState.verifyOtp.mockResolvedValue({ error: null });
+    mockState.verifyOtp.mockResolvedValue({ data: { session: { user: { id: "recovery-user" }, expires_at: Date.now()/1000 + 3600 } }, error: null });
     mockState.updateUser.mockResolvedValue({ error: null });
     await authService.verifyPasswordRecoveryToken("hash");
     await authService.updateRecoveredPassword("new-password");
     expect(mockState.verifyOtp).toHaveBeenCalledWith({ token_hash: "hash", type: "recovery" });
     expect(mockState.updateUser).toHaveBeenCalledWith({ password: "new-password" });
+  });
+  it("binds reload recovery to the verified token fingerprint, user and lifetime", async () => {
+    mockState.verifyOtp.mockResolvedValue({ data: { session: { user: { id: "recovery-user" }, expires_at: Date.now()/1000 + 3600 } }, error: null });
+    mockState.authGetSession.mockResolvedValue({ data: { session: { user: { id: "recovery-user" } } }, error: null });
+    await authService.verifyPasswordRecoveryToken("private-recovery-token");
+    expect(sessionStorage.getItem("tf-password-recovery-verification")).not.toContain("private-recovery-token");
+    expect(await authService.hasVerifiedPasswordRecoveryToken("private-recovery-token")).toBe(true);
+    expect(await authService.hasVerifiedPasswordRecoveryToken("different-token")).toBe(false);
+    mockState.authGetSession.mockResolvedValue({ data: { session: { user: { id: "different-user" } } }, error: null });
+    expect(await authService.hasVerifiedPasswordRecoveryToken("private-recovery-token")).toBe(false);
+    const marker = JSON.parse(sessionStorage.getItem("tf-password-recovery-verification")!);
+    sessionStorage.setItem("tf-password-recovery-verification", JSON.stringify({ ...marker, expiresAt: 0 }));
+    expect(await authService.hasVerifiedPasswordRecoveryToken("private-recovery-token")).toBe(false);
   });
   it("propagates verification and password policy errors", async () => {
     mockState.verifyOtp.mockResolvedValue({ error: new Error("expired") });

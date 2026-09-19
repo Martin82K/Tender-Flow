@@ -105,3 +105,9 @@ Resend Auth recovery zpráva směřuje na `/reset-password?auth_token_hash=…`.
 ### Konfigurace návratového prostředí
 
 Frontend používá `VITE_AUTH_APP_ORIGIN`, případně aktuální webový origin; desktop bez webového originu používá produkci. Edge hook používá `AUTH_APP_ORIGIN` (výchozí `https://www.tenderflow.cz`). Pro staging nastavte oba na stejný HTTPS origin a přidejte odpovídající `/app/**` do Auth Redirect URLs. Pro lokální Auth lze použít `http://127.0.0.1:3000` na obou stranách a lokální Supabase URL; HTTP je povoleno pouze na loopbacku. Hodnota musí být samotný origin bez cesty, query, fragmentu či přihlašovacích údajů. Hook důvěřuje konfiguraci prostředí, nikoli originu zaslanému klientem. Produkční Supabase z lokálního náhledu zachovává produkční omezení.
+
+### Souběh registrací a omezení resolveru licence
+
+Navazující migrace `20260919083458_serialize_signup_and_scope_licence_resolver.sql` serializuje první založení firmy transakčním zámkem normalizované domény. Dva současně potvrzené účty stejné nové firemní domény tak sdílí jednu organizaci. Osobní domény nadále vytvářejí samostatné organizace. Resolver licence dovoluje vlastní identitu, platformového správce a servisní volání; role MCP si zachovává vlastní licenci, nikoli přístup k cizím údajům. Pomocník rezervace míst není veřejné klientské RPC. SQL test identity i test souběhu používejte pouze v izolované databázi se syntetickými účty.
+
+Po ověření recovery tokenu se pro opakování po obnovení stránky uloží do sessionStorage pouze SHA-256 otisk spotřebovaného tokenu, ID uživatele a konec platnosti (nejvýše hodina a do konce session). Obnovení vyžaduje shodu otisku, platnosti i aktuální identity; heslo ani token se do této značky neukládají. Úspěšná změna hesla značku odstraní. Neplatné procentní kódování návratové cesty se odmítne před vytvořením odkazu. Tarif override `free` ani neznámá hodnota nepřepisují stav předplatného na aktivní.

@@ -29,7 +29,7 @@ export const isLiveOverride = (
   overrideTier: string | null | undefined,
   overrideExpiresAt: string | null | undefined,
 ): boolean => {
-  if (!overrideTier) return false;
+  if (!overrideTier || !["starter", "pro", "enterprise"].includes(overrideTier)) return false;
   if (!overrideExpiresAt) return true;
   const end = Date.parse(overrideExpiresAt);
   return Number.isFinite(end) && end > Date.now();

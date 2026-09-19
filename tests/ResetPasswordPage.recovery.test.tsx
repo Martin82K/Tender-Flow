@@ -7,6 +7,7 @@ import { ResetPasswordPage } from "@/features/auth/ui/ResetPasswordPage";
 const state = vi.hoisted(() => ({
   search: "?auth_token_hash=signed-hash",
   verifyPasswordRecoveryToken: vi.fn(),
+  hasVerifiedPasswordRecoveryToken: vi.fn(),
   updateRecoveredPassword: vi.fn(),
   confirmPasswordReset: vi.fn(),
 }));
@@ -26,6 +27,7 @@ describe("password recovery", () => {
     vi.resetAllMocks();
     state.search = "?auth_token_hash=signed-hash";
     state.verifyPasswordRecoveryToken.mockResolvedValue(undefined);
+    state.hasVerifiedPasswordRecoveryToken.mockResolvedValue(false);
     state.updateRecoveredPassword.mockResolvedValue(undefined);
     state.confirmPasswordReset.mockResolvedValue(undefined);
   });
@@ -57,6 +59,20 @@ describe("password recovery", () => {
     await screen.findByText("Heslo změněno!");
     expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledTimes(1);
     expect(state.updateRecoveredPassword).toHaveBeenCalledTimes(2);
+  });
+  it("resumes verified recovery after a remount without reusing its consumed token", async () => {
+    testConsoleGuard.expect("error", "Reset confirmation error: Error: Network error");
+    state.updateRecoveredPassword.mockRejectedValueOnce(new Error("Network error"));
+    const first = render(<ResetPasswordPage />);
+    submit();
+    await screen.findByText(/Nastavení hesla se nezdařilo/);
+    first.unmount();
+    state.hasVerifiedPasswordRecoveryToken.mockResolvedValue(true);
+    state.verifyPasswordRecoveryToken.mockRejectedValue(new Error("Token already consumed"));
+    render(<ResetPasswordPage />);
+    submit();
+    await screen.findByText("Heslo změněno!");
+    expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledTimes(1);
   });
   it("preserves legacy password reset links", async () => {
     state.search = "?token=legacy-token";

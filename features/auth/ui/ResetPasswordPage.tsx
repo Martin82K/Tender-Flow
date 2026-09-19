@@ -53,7 +53,9 @@ export const ResetPasswordPage: React.FC = () => {
     try {
       if (isAuthRecovery) {
         if (!recoveryVerified) {
-          await authService.verifyPasswordRecoveryToken(token);
+          if (!await authService.hasVerifiedPasswordRecoveryToken(token)) {
+            await authService.verifyPasswordRecoveryToken(token);
+          }
           setRecoveryVerified(true);
         }
         await authService.updateRecoveredPassword(password);

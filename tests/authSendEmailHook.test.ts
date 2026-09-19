@@ -54,7 +54,7 @@ describe('signed Auth mail through Resend', () => {
     const link = new URL(mail.text.split('\n\n')[1]);
     expect(link.searchParams.get('redirect_to')).toBe(target);
   });
-  it.each(['https://evil.invalid/app', 'https://www.tenderflow.cz.evil.invalid/app', 'https://www.tenderflow.cz@evil.invalid/app', 'http://www.tenderflow.cz/app', 'https://www.tenderflow.cz/login?next=https://evil.invalid', 'https://www.tenderflow.cz/app/../login', '//evil.invalid/app'])(
+  it.each(['https://evil.invalid/app', 'https://www.tenderflow.cz.evil.invalid/app', 'https://www.tenderflow.cz@evil.invalid/app', 'http://www.tenderflow.cz/app', 'https://www.tenderflow.cz/login?next=https://evil.invalid', 'https://www.tenderflow.cz/app/../login', '//evil.invalid/app', 'https://www.tenderflow.cz/app/project/%', 'https://www.tenderflow.cz/app/project/%E0%A4%A'])(
     'rejects unsafe confirmation return URLs: %s', async target => {
       await handler(signed({ ...payload, email_data: { ...payload.email_data, redirect_to: target } }));
       const mail = JSON.parse(fetchMock.mock.calls[0][1].body);

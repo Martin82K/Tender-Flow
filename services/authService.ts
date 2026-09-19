@@ -23,6 +23,12 @@ const getRegistrationOrigin = (): string => {
     return origin.origin;
 };
 
+const RECOVERY_VERIFICATION_KEY = 'tf-password-recovery-verification';
+const recoveryFingerprint = async (tokenHash: string): Promise<string> => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tokenHash));
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
 const DEFAULT_PREFERENCES = {
     theme: 'system',
     skin: 'industrial',
@@ -227,6 +233,7 @@ export const authService = {
         if (nextPath) {
             try {
                 const target = new URL(nextPath, registrationOrigin);
+                decodeURIComponent(target.pathname);
                 if (target.origin === registrationOrigin && !target.username && !target.password
                     && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
                     target.hash = '';
@@ -902,13 +909,32 @@ export const authService = {
     },
 
     verifyPasswordRecoveryToken: async (tokenHash: string): Promise<void> => {
-        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
         if (error) throw error;
+        if (!data.session?.user?.id) throw new Error('Nepodařilo se ověřit relaci pro obnovu hesla.');
+        try {
+            sessionStorage.setItem(RECOVERY_VERIFICATION_KEY, JSON.stringify({
+                fingerprint: await recoveryFingerprint(tokenHash),
+                userId: data.session.user.id,
+                expiresAt: Math.min((data.session.expires_at ?? Date.now() / 1000 + 3600) * 1000, Date.now() + 3600000),
+            }));
+        } catch { /* The mounted form still supports retry when browser storage is unavailable. */ }
+    },
+
+    hasVerifiedPasswordRecoveryToken: async (tokenHash: string): Promise<boolean> => {
+        try {
+            const marker = JSON.parse(sessionStorage.getItem(RECOVERY_VERIFICATION_KEY) || 'null');
+            if (!marker || typeof marker.userId !== 'string' || typeof marker.expiresAt !== 'number'
+                || marker.expiresAt <= Date.now() || marker.fingerprint !== await recoveryFingerprint(tokenHash)) return false;
+            const { data, error } = await supabase.auth.getSession();
+            return !error && Boolean(data.session?.user?.id && data.session.user.id === marker.userId);
+        } catch { return false; }
     },
 
     updateRecoveredPassword: async (password: string): Promise<void> => {
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
+        try { sessionStorage.removeItem(RECOVERY_VERIFICATION_KEY); } catch { /* Storage may be disabled. */ }
     },
 
     confirmPasswordReset: async (token: string, password: string): Promise<void> => {
