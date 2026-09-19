@@ -4,8 +4,9 @@ Rozpočet otevřete v navigaci stavby. V části **Importy a verze** najdete rev
 rozpočtu a původní přílohy XLSX.
 
 Přepínač **Výkaz výměr** zobrazí pod položkami jejich výpočty a poznámky.
-Mají drobnější písmo, nižší řádky a odsazený popis. Sdílejí pozadí položky,
-bez dělících čar mezi jednotlivými výpočty; množství zůstává ve svém sloupci.
+Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
+pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
+nejsou dělicí čáry; množství zůstává ve svém sloupci.
 V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat**,
 **Hustotu** (Kompaktní / Pohodlná) a **Sloupce**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
