@@ -153,3 +153,8 @@ používá nejstarší aktivní verzi, takže nové kopie nemění výchozí roz
 
 **Převzít do plánu VŘ** je poslední, neaktivní akce označená „Připravujeme“.
 Z této obrazovky nyní nelze měnit plánované částky VŘ.
+
+
+### Kompaktní ovládání rozpočtu
+
+Záložky **Rekapitulace**, **Položky** a **Importy a verze** sdílejí jednu lištu s tlačítky **Verze**, **Zobrazit/Skrýt strom** a **Akce**. Menu **Verze** obsahuje přepínání rozpočtů a nastavení hlavní verze. Menu **Akce** obsahuje vytvoření pracovní kopie, potvrzení rozpočtu a případné vrácení poslední úpravy; připravované převzetí do plánu VŘ zůstává poslední a neaktivní. Firemní číselníky jsou vpravo před nastavením. Menu nezabírají další řádky nad tabulkou; zavřou se klávesou Escape, přesunem fokusu nebo kliknutím mimo. Na úzké obrazovce se lišta podle potřeby zalomí.

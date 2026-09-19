@@ -184,3 +184,18 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-workspace-recap .tf-budget-recap-columns span:last-child{text-align:right;padding-right:12px}
 .tf-budget-workspace-recap .tf-budget-recap-row{font-size:14px}
 @media(max-width:760px){.tf-budget-workspace-recap .tf-budget-recap-columns{grid-template-columns:minmax(0,1fr) 150px}.tf-budget-workspace-recap .tf-budget-recap-row{font-size:12px}}
+
+/* One command row; secondary controls open without taking space from the table. */
+.tf-budget-commandbar{gap:6px}
+.tf-budget-commandbar>nav{gap:4px;flex-wrap:nowrap}
+.tf-budget-commandbar>nav::after{content:"";height:22px;border-right:1px solid var(--tf-skin-line,#cbd5e1);margin:0 4px}
+.tf-budget-button-menu{position:relative;flex-shrink:0}
+.tf-budget-button-menu-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:25;display:flex;flex-direction:column;gap:8px;width:300px;max-width:calc(100vw - 32px);padding:12px;border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:8px;background:var(--budget-bg);box-shadow:0 8px 24px #0002}
+.tf-budget-button-menu-panel>button{text-align:left}
+.tf-budget-button-menu-panel .tf-budget-revision-picker{width:100%;min-width:0;max-width:100%}
+.tf-budget-main-label{font-size:12px;color:var(--tf-skin-muted,#64748b)}
+@media(max-width:700px){.tf-budget-commandbar{gap:4px}.tf-budget-commandbar button{padding:6px 8px}.tf-budget-commandbar>nav::after{display:none}.tf-budget-button-menu-panel{width:260px;left:auto;right:0}}
+
+.tf-budget-version-options{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto}
+.tf-budget-version-options button{text-align:left;white-space:normal;overflow-wrap:anywhere}
+.tf-budget-version-options button[aria-pressed=true]{border-color:var(--tf-skin-accent,#b76d42);background:var(--tf-skin-accent-soft,var(--budget-bg))}

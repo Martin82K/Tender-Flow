@@ -75,29 +75,23 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
       <button disabled={!nodes.length} onClick={()=>exportBudget(nodes.filter(isPriced),'rozpocet.xlsx')}>Exportovat</button>
       {permissions?.edit&&permissions.prices&&!readOnly&&<button onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}
     </div>
-    {!!activeVersions.length&&<div className="tf-budget-toolbar">
-      <label htmlFor="budget-revision-picker">Verze rozpočtu</label>
-      <ThemedNativeSelect id="budget-revision-picker" aria-label="Verze rozpočtu" className="tf-budget-revision-picker" value={activeId} disabled={saving} onChange={event=>openVersion(event.target.value)}>
-        {!activeVersions.some(r=>r.id===activeId)&&<option value={activeId}>Verze v koši</option>}
-        {activeVersions.map(r=><option key={r.id} value={r.id}>{r.title} · {r.status==='confirmed'?'Potvrzená':'Pracovní'}{r.id===mainId?' · Hlavní':''}</option>)}
-      </ThemedNativeSelect>
-      {activeId===mainId?<span>Hlavní verze</span>:current&&!current.deleted_at&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving||revision.isPending||index.data?.mainRevisionId===undefined} title={index.data?.mainRevisionId===undefined?'Nastavení hlavní verze zatím není dostupné':undefined} onClick={()=>void act(async()=>{await budgetApi.setPrimary(projectId,activeId,index.data?.mainRevisionId??null);await cache.invalidateQueries({queryKey:key});setNotice('Hlavní verze rozpočtu byla změněna.');})}>Nastavit jako hlavní</button>}
-    </div>}
-    <nav className="tf-budget-toolbar" aria-label="Sekce rozpočtu">{(['recap','items','versions'] as const).map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t==='items'?'Položky':t==='recap'?'Rekapitulace':'Importy a verze'}</button>)}</nav>
-    {(error||revision.error||sources.error||catalog.error)&&<p role="alert" className="tf-budget-error">{error||revision.error?.message||sources.error?.message||catalog.error?.message}<button onClick={()=>{setError('');void cache.invalidateQueries({queryKey:key});}}>Obnovit</button></p>}
-    {notice&&<p role="status" className="tf-budget-notice">{notice}<button aria-label="Zavřít oznámení" onClick={()=>setNotice('')}>×</button></p>}
-    {tab==='versions'?<div className="overflow-auto p-4"><BudgetVersions revisions={index.data?.revisions??[]} sources={sources.data??[]} permissions={permissions!} purgeJobs={index.data?.purgeJobs} onPurge={async(jobId,selection)=>{try{await budgetApi.purge(projectId,jobId,selection);setRevisionId('');setSelected(new Set());setUndo(null);setNotice('Trvalé mazání dokončeno.');}finally{await cache.invalidateQueries({queryKey:key});}}} readOnly={readOnly} categoryNames={new Map(categories.map(c=>[c.id,c.title]))}
-      onOpen={id=>{openVersion(id);setTab(index.data?.revisions.find(r=>r.id===id)?.deleted_at?'versions':'items');}}
-      onDownload={s=>void act(async()=>{const blob=await budgetApi.download(s);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=s.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})}
-      onConvert={s=>{setImportSource(s);setImportOpen(true);}}
-      onChange={async(id,kind,restore,version)=>{await budgetApi.trash(projectId,id,kind,restore,version);setRevisionId('');setSelected(new Set());setUndo(null);await cache.invalidateQueries({queryKey:key});setNotice(restore?'Obnoveno z koše.':'Přesunuto do koše. Částky v plánu VŘ se nezměnily.');}}/>
-      <h3>Historie otevřené verze</h3>{history.data?.map(h=><p key={h.id}>{new Date(h.created_at).toLocaleString('cs-CZ')} · {({set_primary:'Nastavení hlavní verze',trash:'Přesunuto do koše',restore:'Obnoveno z koše',create:'Vytvoření',save:'Úprava',confirm:'Potvrzení',apply_tender_plan:'Převzetí do plánu VŘ'} as Record<string,string>)[h.event]||h.event} · verze {h.previous_version??'-'} → {h.new_version}</p>)}
-    </div>:revision.isPending&&activeId?<p role="status">Načítání rozpočtu…</p>:!current?<div className="p-10"><h3>Rozpočet zatím neobsahuje žádné položky</h3><p>Nahrajte XLSX jako přílohu nebo jej převeďte na pracovní rozpočet.</p></div>:<>
-      <div className="tf-budget-toolbar">
+    <div className="tf-budget-toolbar tf-budget-commandbar" role="group" aria-label="Ovládání rozpočtu">
+      <nav className="tf-budget-toolbar" aria-label="Sekce rozpočtu">{(['recap','items','versions'] as const).map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t==='items'?'Položky':t==='recap'?'Rekapitulace':'Importy a verze'}</button>)}</nav>
+      {!!activeVersions.length&&<BudgetButtonMenu label="Verze rozpočtu" caption="Verze">
+        <strong>Verze rozpočtu</strong>
+        <div className="tf-budget-version-options">
+          {activeVersions.map(r=><button key={r.id} type="button" aria-pressed={r.id===activeId} disabled={saving} onClick={()=>openVersion(r.id)}>{r.title} · {r.status==='confirmed'?'Potvrzená':'Pracovní'}{r.id===mainId?' · Hlavní':''}</button>)}
+        </div>
+      {activeId===mainId?<span className="tf-budget-main-label">Hlavní verze</span>:current&&!current.deleted_at&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving||revision.isPending||index.data?.mainRevisionId===undefined} title={index.data?.mainRevisionId===undefined?'Nastavení hlavní verze zatím není dostupné':undefined} onClick={()=>void act(async()=>{await budgetApi.setPrimary(projectId,activeId,index.data?.mainRevisionId??null);await cache.invalidateQueries({queryKey:key});setNotice('Hlavní verze rozpočtu byla změněna.');})}>Nastavit jako hlavní</button>}
+      </BudgetButtonMenu>}
+      {current&&tab!=='versions'&&<>
         <button onClick={()=>updateView({panel:!view.panel})}>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}
+        <BudgetButtonMenu label="Akce rozpočtu" caption="Akce" closeOnAction>
         {editable&&undo&&<button onClick={()=>void act(async()=>{if(current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
         {editable&&permissions?.confirm&&<button onClick={()=>void act(async()=>{await save(current.document,current.allocations,true);})}>Potvrdit rozpočet</button>}
         {!current.deleted_at&&current.status==='confirmed'&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving} onClick={()=>void act(async()=>{const copy=await budgetApi.save({projectId,sourceId:current.source_id,title:`${current.title} · pracovní kopie`,document:{...current.document,origin:'copy',importKey:crypto.randomUUID()},allocations:current.allocations});openVersion(copy.id);await cache.invalidateQueries({queryKey:key});})}>Vytvořit pracovní kopii</button>}
+          <button disabled title="Připravujeme">Převzít do plánu VŘ</button>
+        </BudgetButtonMenu>
         <button className="tf-budget-catalog-trigger" onClick={()=>setCatalogOpen(true)}>Firemní číselníky</button>
         <div ref={viewOptions} className="tf-budget-view-settings" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setViewOptionsOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setViewOptionsOpen(false);viewOptionsButton.current?.focus();}}}>
           <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><span aria-hidden="true" className="material-symbols-outlined">settings</span></button>
@@ -109,8 +103,17 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
             <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Zobrazení sloupců <span aria-hidden="true">→</span></button>
           </div>}
         </div>
-        <button disabled title="Připravujeme">Převzít do plánu VŘ</button>
-      </div>
+      </>}
+    </div>
+    {(error||revision.error||sources.error||catalog.error)&&<p role="alert" className="tf-budget-error">{error||revision.error?.message||sources.error?.message||catalog.error?.message}<button onClick={()=>{setError('');void cache.invalidateQueries({queryKey:key});}}>Obnovit</button></p>}
+    {notice&&<p role="status" className="tf-budget-notice">{notice}<button aria-label="Zavřít oznámení" onClick={()=>setNotice('')}>×</button></p>}
+    {tab==='versions'?<div className="overflow-auto p-4"><BudgetVersions revisions={index.data?.revisions??[]} sources={sources.data??[]} permissions={permissions!} purgeJobs={index.data?.purgeJobs} onPurge={async(jobId,selection)=>{try{await budgetApi.purge(projectId,jobId,selection);setRevisionId('');setSelected(new Set());setUndo(null);setNotice('Trvalé mazání dokončeno.');}finally{await cache.invalidateQueries({queryKey:key});}}} readOnly={readOnly} categoryNames={new Map(categories.map(c=>[c.id,c.title]))}
+      onOpen={id=>{openVersion(id);setTab(index.data?.revisions.find(r=>r.id===id)?.deleted_at?'versions':'items');}}
+      onDownload={s=>void act(async()=>{const blob=await budgetApi.download(s);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=s.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})}
+      onConvert={s=>{setImportSource(s);setImportOpen(true);}}
+      onChange={async(id,kind,restore,version)=>{await budgetApi.trash(projectId,id,kind,restore,version);setRevisionId('');setSelected(new Set());setUndo(null);await cache.invalidateQueries({queryKey:key});setNotice(restore?'Obnoveno z koše.':'Přesunuto do koše. Částky v plánu VŘ se nezměnily.');}}/>
+      <h3>Historie otevřené verze</h3>{history.data?.map(h=><p key={h.id}>{new Date(h.created_at).toLocaleString('cs-CZ')} · {({set_primary:'Nastavení hlavní verze',trash:'Přesunuto do koše',restore:'Obnoveno z koše',create:'Vytvoření',save:'Úprava',confirm:'Potvrzení',apply_tender_plan:'Převzetí do plánu VŘ'} as Record<string,string>)[h.event]||h.event} · verze {h.previous_version??'-'} → {h.new_version}</p>)}
+    </div>:revision.isPending&&activeId?<p role="status">Načítání rozpočtu…</p>:!current?<div className="p-10"><h3>Rozpočet zatím neobsahuje žádné položky</h3><p>Nahrajte XLSX jako přílohu nebo jej převeďte na pracovní rozpočet.</p></div>:<>
       {!!activeFilters.length&&<div className="tf-budget-toolbar">{activeFilters.map(([c,f])=><button key={c} onClick={()=>{if(c==='$all'){onSearchChange?.('');return;}const next={...filters};delete next[c];setFilters(next);}}>{c==='$all'?'Hledání':DEFAULT_COLUMNS.find(col=>col.key===c)?.label}: {f.search||''} {f.selected!==undefined?`${f.selected.length} hodnot`:''} {f.min?`od ${f.min}`:''} {f.max?`do ${f.max}`:''} ×</button>)}<button onClick={()=>{setFilters({});onSearchChange?.('');}}>Vymazat všechny filtry</button></div>}
       <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async edited=>{const document=applyBudgetItemEdit(current.document,edited);await save(document);}}/>}</div>
       {!!selected.size&&<div className="tf-budget-toolbar tf-budget-selection"><strong>{selected.size} vybraných položek napříč rozsahy</strong><button disabled={!editable||!permissions?.allocate} onClick={()=>{setCategoryId('');setAllocationQuantity('');setAllocationOpen(true);}}>Přiřadit / rozdělit do VŘ</button><ThemedNativeSelect aria-label="Štítek výběru" value={tagId} onChange={e=>setTagId(e.target.value)}><option value="">Vyberte štítek</option>{catalog.data?.filter(t=>t.kind==='tag'&&!t.archived).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</ThemedNativeSelect><button disabled={!editable||!tagId} onClick={()=>void act(()=>save({...current.document,nodes:current.document.nodes.map(n=>selected.has(n.id)?{...n,tags:[...new Set([...n.tags,tagId])]}:n)}))}>Přiřadit štítek</button><button onClick={()=>exportBudget(nodes.filter(n=>selected.has(n.id)),'vyber-rozpoctu.xlsx')}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}>Zrušit výběr</button></div>}
@@ -152,4 +155,20 @@ function BudgetColumnSettings({columns,onChange,onClose}:{columns:BudgetColumn[]
       <div className="tf-budget-columns-help"><strong role="status">Zobrazeno {visibleCount} z {columns.length} sloupců</strong><p>Pořadí měníte zvlášť mezi sloupci ponechanými vlevo a ostatními.</p></div>
     </div>
   </Modal>;
+}
+
+
+function BudgetButtonMenu({label,caption,children,closeOnAction=false}:{label:string;caption:string;children:React.ReactNode;closeOnAction?:boolean}) {
+  const [open,setOpen]=useState(false);
+  const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);const id=React.useId();
+  useEffect(()=>{
+    if(!open)return;
+    const dismiss=(event:PointerEvent)=>{if(event.target instanceof Node&&!root.current?.contains(event.target))setOpen(false);};
+    document.addEventListener('pointerdown',dismiss);
+    return ()=>document.removeEventListener('pointerdown',dismiss);
+  },[open]);
+  return <div ref={root} className="tf-budget-button-menu" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setOpen(false);trigger.current?.focus();}}}>
+    <button ref={trigger} type="button" aria-label={label} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}>{caption} <span aria-hidden="true">▾</span></button>
+    {open&&<div id={id} role="group" aria-label={label} className="tf-budget-button-menu-panel" onClick={event=>{const button=event.target instanceof Element?event.target.closest('button'):null;if(closeOnAction&&button&&!button.disabled){setOpen(false);trigger.current?.focus();}}}>{children}</div>}
+  </div>;
 }

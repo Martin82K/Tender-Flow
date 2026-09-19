@@ -71,11 +71,12 @@ Codex Security scan nebyl dostupný, nelze jej vykazovat jako úspěšný. Bezpe
 byla ověřena kontrolou RLS/grantů/tenant hranic, SQL regresními scénáři a advisors;
 597 starších nálezů zůstává existujícím dluhem. Neinstalovaly se nové závislosti.
 
-## Připravená hlavní verze · 19. září 2026
+## Nasazení hlavní verze · 19. září 2026
 
-Migrace `20260919195533_construction_budget_primary_revision.sql` je připravena,
-ale dosud **není nasazena**. Automatická kontrola schvalování vyžaduje samostatný
-souhlas s nasazením do aktivního projektu.
+Migrace `20260919195533_construction_budget_primary_revision.sql` byla nasazena
+po výslovném schválení uživatelem a úspěšném CI na `fc78b21f` (run 35466971153).
+Nasazení přes verzovaný Supabase CLI proběhlo 19. září 2026 přibližně ve 20:26 UTC.
+SHA-256 nasazeného souboru: `0b82d8417d14b0af451496809f4a4ac6760d6d6a4c4ddfa0e52d0883474ab0cd`.
 
 - Soukromá tabulka preferencí má RLS, odebrané klientské granty, FK na projekt
   a revizi a index odkazu na revizi. Veřejné invoker RPC volá private helper
@@ -93,7 +94,21 @@ souhlas s nasazením do aktivního projektu.
 - Frontend před dostupností `mainRevisionId` zachovává původní výchozí verzi
   a neumožní RPC pro nastavení hlavní verze. Přepínání verzí a ostatní UI fungují.
 
-Po schválení nasadit přesnou verzovanou migraci, ověřit počet preferencí a jejich
-příslušnost k projektu, provést SQL test s rollbackem, porovnat security/performance
-advisors s preflightem a vyžadovat závěrečný dry-run bez čekajících migrací.
+Postflight potvrdil 2 revize, 2 přílohy, 2 preference, 0 neplatných odkazů a právě
+1 záznam migrace. SQL test `construction_budget_primary.sql` prošel v transakci
+s rollbackem; žádná syntetická data nezůstala. RLS je aktivní, klient nemá přímá
+zapisovací oprávnění a anonymní role nemůže spouštět nové RPC. Závěrečný
+`db push --dry-run` oznámil `Remote database is up to date.`
+
+Porovnání advisors neukázalo nová varování. Přibyly pouze informační nálezy
+[RLS bez politik](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)
+u soukromé tabulky bez klientských grantů (záměrný zákaz přímého přístupu) a
+[dosud nepoužitý index](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
+nového FK. Existující nálezy mimo rozsah této změny zůstávají.
 Code scanning v GitHubu nemá analýzu, Dependabot je vypnutý; nejde o čisté signály.
+
+
+Kompaktní lišta byla ověřena v sestavené aplikaci: sekce, Verze, strom, Akce,
+číselníky a nastavení sdílejí řádek; sekundární nabídky jsou mimo tok tabulky.
+Nález revize o šířce rekapitulace byl ověřen jako falešně pozitivní: již existující
+pravidlo `width:100%` se uplatňuje a prohlížeč naměřil vypočtenou šířku 1040 px.

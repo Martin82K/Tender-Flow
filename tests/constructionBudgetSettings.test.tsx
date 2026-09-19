@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn() } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn() } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -92,6 +92,7 @@ it('puts recap first, moves catalogs before settings and keeps tender-plan actio
   expect(screen.queryByRole('switch', { name: 'Výkaz výměr' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /^Rozsah:/ })).not.toBeInTheDocument();
   expect(trigger.parentElement?.previousElementSibling).toBe(screen.getByRole('button', { name: 'Firemní číselníky' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
   const plan = screen.getByRole('button', { name: 'Převzít do plánu VŘ' });
   expect(plan).toBeDisabled();
   expect(plan.parentElement?.lastElementChild).toBe(plan);
@@ -104,8 +105,9 @@ it('opens the shared main version, switches copies and saves a main-version chan
   vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [revision, main], mainRevisionId: 'main', permissions: { read: true, prices: true, edit: true, confirm: false, allocate: false } });
   vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'main' ? main : revision);
   await openBudget();
-  expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('main');
-  fireEvent.change(screen.getByRole('combobox', { name: 'Verze rozpočtu' }), { target: { value: 'r' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Verze rozpočtu' }));
+  expect(screen.getByRole('button', { name: 'Hlavní rozpočet · Pracovní · Hlavní' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Rozpočet · Pracovní', exact: true }));
   const setMain = await screen.findByRole('button', { name: 'Nastavit jako hlavní' });
   fireEvent.click(setMain);
   await waitFor(() => expect(budgetApi.setPrimary).toHaveBeenCalledWith('p', 'r', 'main'));
@@ -115,7 +117,8 @@ it('keeps the earliest active version selected when no shared main version has b
   vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [{ ...revision, created_at: '2026-09-19T10:00:00Z' }, old], mainRevisionId: null, permissions: { read: true, prices: true, edit: false, confirm: false, allocate: false } });
   vi.mocked(budgetApi.revision).mockResolvedValue(old);
   await openBudget();
-  expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('old');
+  fireEvent.click(screen.getByRole('button', { name: 'Verze rozpočtu' }));
+  expect(screen.getByRole('button', { name: 'Původní · Pracovní · Hlavní' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.queryByRole('button', { name: 'Nastavit jako hlavní' })).not.toBeInTheDocument();
 });
 it('refreshes the shared main version on reopening even while the cached index is fresh', async () => {
@@ -126,6 +129,46 @@ it('refreshes the shared main version on reopening even while the cached index i
   vi.mocked(budgetApi.index).mockResolvedValue({ permissions, revisions: [revision, main], mainRevisionId: 'new-main' });
   vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'new-main' ? main : revision);
   render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
-  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('new-main'));
+  fireEvent.click(await screen.findByRole('button', { name: 'Verze rozpočtu' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Nová hlavní · Pracovní · Hlavní' })).toHaveAttribute('aria-pressed', 'true'));
   expect(budgetApi.index).toHaveBeenCalledWith('p');
+});
+
+it('keeps budget navigation in one toolbar and reveals version and action controls on demand', async () => {
+  await openBudget();
+  expect(screen.queryByRole('group', { name: 'Verze rozpočtu', exact: true })).not.toBeInTheDocument();
+  const toolbar = screen.getByRole('group', { name: 'Ovládání rozpočtu' });
+  expect(within(toolbar).getByRole('navigation', { name: 'Sekce rozpočtu' })).toBeVisible();
+  const versions = within(toolbar).getByRole('button', { name: 'Verze rozpočtu' });
+  fireEvent.click(versions);
+  expect(screen.getByRole('button', { name: 'Rozpočet · Pracovní · Hlavní' })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Rozpočet · Pracovní · Hlavní' }), { key: 'Escape' });
+  expect(versions).toHaveFocus();
+  expect(screen.queryByRole('group', { name: 'Verze rozpočtu', exact: true })).not.toBeInTheDocument();
+  fireEvent.click(within(toolbar).getByRole('button', { name: 'Akce rozpočtu' }));
+  expect(screen.getByRole('button', { name: 'Převzít do plánu VŘ' })).toBeDisabled();
+  fireEvent.pointerDown(document.body);
+  expect(screen.queryByRole('button', { name: 'Převzít do plánu VŘ' })).not.toBeInTheDocument();
+});
+
+it('creates a working copy from the action menu without changing the shared main version', async () => {
+  const confirmed = { ...revision, status: 'confirmed' as const, source_id: 'source' };
+  const copy = { ...revision, id: 'copy', title: 'Pracovní kopie' };
+  const permissions = { read: true, prices: true, edit: true, confirm: true, allocate: false };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [confirmed], mainRevisionId: 'r', permissions });
+  vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'copy' ? copy : confirmed);
+  vi.mocked(budgetApi.save).mockImplementation(async () => {
+    vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [copy, confirmed], mainRevisionId: 'r', permissions });
+    return copy;
+  });
+  await openBudget();
+  expect(screen.queryByRole('button', { name: 'Vytvořit pracovní kopii' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Vytvořit pracovní kopii' }));
+  await waitFor(() => expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'p', sourceId: 'source', document: expect.objectContaining({ origin: 'copy' }) })));
+  expect(await screen.findByRole('button', { name: 'Akce rozpočtu' })).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.click(screen.getByRole('button', { name: 'Verze rozpočtu' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Pracovní kopie · Pracovní' })).toHaveAttribute('aria-pressed', 'true'));
+  expect(screen.getByRole('button', { name: /Rozpočet · Potvrzená · Hlavní/ })).toBeInTheDocument();
+  expect(budgetApi.setPrimary).not.toHaveBeenCalled();
 });
