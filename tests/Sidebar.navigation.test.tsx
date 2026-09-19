@@ -197,7 +197,7 @@ it('otevře menu jediné stavby přímo a přepne projekt přes hledání', () =
   fireEvent.click(screen.getByRole('button', { name: /Stavba Beta · Brno/ }));
   expect(onProjectSelect).toHaveBeenCalledWith('b', 'overview');
   expect(screen.queryByRole('searchbox', { name: 'Hledat stavbu' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Rozpočet' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Rozpočet' })).toBeInTheDocument();
 });
 
 it('otevře portfolio přes vodorovný přepínač Stavby', () => {

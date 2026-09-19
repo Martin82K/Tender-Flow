@@ -43,29 +43,29 @@ export const AlertModal: React.FC<AlertModalProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-4 text-center">
+      <div className="flex flex-col items-center gap-2 text-center">
         {variant === "success" && (
-          <div className="size-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-3xl">
+          <div className="size-9 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-xl">
               check_circle
             </span>
           </div>
         )}
         {variant === "error" && (
-          <div className="size-16 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-red-600 dark:text-red-400 text-3xl">
+          <div className="size-9 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-red-600 dark:text-red-400 text-xl">
               error
             </span>
           </div>
         )}
         {variant === "info" && (
-          <div className="size-16 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-3xl">
+          <div className="size-9 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-xl">
               info
             </span>
           </div>
         )}
-        <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line text-lg">
+        <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line text-sm">
           {message}
         </p>
 

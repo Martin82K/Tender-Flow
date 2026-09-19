@@ -8,6 +8,7 @@ export const PROJECT_NAVIGATION: ReadonlyArray<{
   feature?: FeatureKey;
 }> = [
   { id: 'overview', label: 'Přehled', icon: 'dashboard' },
+  { id: 'budget', label: 'Rozpočet', icon: 'calculate' },
   { id: 'documents', label: 'Dokumenty', icon: 'folder' },
   { id: 'tender-plan', label: 'Plán VŘ', icon: 'assignment' },
   { id: 'pipeline', label: 'Výběrová řízení', icon: 'view_kanban', feature: FEATURES.MODULE_PIPELINE },

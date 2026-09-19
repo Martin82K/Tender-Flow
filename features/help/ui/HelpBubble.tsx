@@ -149,7 +149,7 @@ export const HelpBubble: React.FC<HelpBubbleProps> = ({ entry, anchor }) => {
           </div>
           <button
             onClick={() => help.setFocused(null, null)}
-            className="flex items-center justify-center w-6 h-6 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="tf-icon-close flex items-center justify-center w-6 h-6 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Zavřít"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>

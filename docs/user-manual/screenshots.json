@@ -48,7 +48,8 @@
     "assets/upozorneni.png",
     "assets/zabezpeceni.png",
     "assets/microsoft.png",
-    "assets/ai-pristupy.png"
+    "assets/ai-pristupy.png",
+    "assets/rozpocet.png"
   ],
   "sources": [
     "docs/user-manual/preview.tsx",
@@ -60,6 +61,13 @@
     "assets/biometrie.png": {
       "version": "1.9.36",
       "capturedAt": "2026-09-16"
+    },
+    "assets/rozpocet.png": {
+      "capturedAt": "2026-09-19",
+      "source": "features/projects/budget/ui/BudgetTable.tsx + BudgetRecap.tsx",
+      "data": "Synthetic SO 01/02, four priced rows, one missing price, one zero quantity. No customer data.",
+      "viewport": "1280x720",
+      "notes": "Production components in a temporary local fixture. Selected columns shown."
     }
   },
   "lastCaptureAt": "2026-09-16"

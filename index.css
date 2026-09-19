@@ -4897,7 +4897,7 @@ html[data-skin] .tf-theme-mode-button:focus-visible {
 }
 
 html[data-skin] .tf-appearance-picker-popover {
-  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   border-color: var(--tf-skin-line-2) !important;
   box-shadow: 0 16px 38px color-mix(in srgb, var(--tf-skin-bg) 42%, transparent) !important;
   color: var(--tf-skin-text) !important;
@@ -4954,7 +4954,7 @@ html[data-skin] .tf-bid-recipient-select .tf-themed-select-trigger:is(:hover, [a
 }
 
 html[data-skin] .tf-themed-select-popover {
-  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   border-color: var(--tf-skin-line-2) !important;
   box-shadow: 0 18px 44px color-mix(in srgb, var(--tf-skin-bg) 48%, transparent) !important;
   color: var(--tf-skin-text) !important;
@@ -6517,3 +6517,25 @@ html[data-skin="basic"] .tf-project-overview-view * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Shared dialog density and skin-aware portal controls. */
+.tf-modal-panel{max-height:calc(100dvh - 32px)}
+.tf-modal-header,.tf-modal-footer{flex-shrink:0}.tf-modal-body{min-height:0}
+.tf-themed-select-search-header{border-color:var(--tf-skin-line)!important}
+.tf-themed-select-search-box{background:var(--tf-skin-surface-muted)!important;border-color:var(--tf-skin-line-2)!important;color:var(--tf-skin-text)!important}
+.tf-themed-select-search-box:focus-within{border-color:var(--tf-skin-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--tf-skin-accent) 18%,transparent)}
+.tf-themed-select-search-box input{background:transparent!important;color:var(--tf-skin-text)!important;box-shadow:none!important}
+.tf-themed-select-search-box input::placeholder,.tf-themed-select-search-box>span{color:var(--tf-skin-muted)!important}
+
+/* Consistent square close target. Mouse clicks do not imitate keyboard focus. */
+.tf-modal-panel .tf-modal-close {width:32px;height:32px;min-width:32px;min-height:32px;padding:0;line-height:1;border-radius:6px;background:transparent;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.tf-modal-panel .tf-modal-close svg {display:block;flex-shrink:0}
+.tf-modal-panel .tf-modal-close:focus:not(:focus-visible) {outline:none;box-shadow:none}
+.tf-modal-panel .tf-modal-close:focus-visible {outline:2px solid var(--tf-skin-accent,#b76d42);outline-offset:2px;box-shadow:none}
+button.tf-icon-close{width:32px;height:32px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;border-radius:6px}
+button.tf-icon-close>.material-symbols-outlined{display:block;line-height:1;font-size:18px}
+button.tf-icon-close:focus:not(:focus-visible){outline:none;box-shadow:none}
+button.tf-icon-close:focus-visible{outline:2px solid var(--tf-skin-accent,#b76d42);outline-offset:2px;box-shadow:none}
+/* Keep the keyboard indicator compact while retaining the full click target. */
+button.tf-icon-close:focus-visible{outline-offset:-4px!important}
+html[data-skin] body button.tf-icon-close:focus-visible{outline-offset:-4px!important}

@@ -437,7 +437,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="tf-icon-close p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     aria-label="Zavřít"
                   >
                     <span className="material-symbols-outlined text-slate-500">close</span>

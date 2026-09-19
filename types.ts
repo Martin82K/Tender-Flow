@@ -9,7 +9,7 @@ export type View =
   | "project-overview"
   | "contract-overview";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "contracts-client" | "map" | "settings" | "project-settings";
+export type ProjectTab = "overview" | "budget" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "contracts-client" | "map" | "settings" | "project-settings";
 
 export type ProjectTeamRole =
   | "deputy"

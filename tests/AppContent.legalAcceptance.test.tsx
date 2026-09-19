@@ -8,6 +8,9 @@ import {
   CURRENT_TERMS_VERSION,
 } from "@/shared/legal/legalDocumentVersions";
 
+// Legal acceptance tests must not send real usage telemetry.
+vi.mock("@/app/hooks/useAppUsageHeartbeat", () => ({ useAppUsageHeartbeat: () => {} }));
+
 const mockState = vi.hoisted(() => ({
   acceptLegalDocuments: vi.fn(),
   updatePreferences: vi.fn(),

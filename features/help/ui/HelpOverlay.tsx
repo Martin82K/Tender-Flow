@@ -83,7 +83,7 @@ export const HelpOverlay: React.FC = () => {
           {/* Close */}
           <button
             onClick={help.deactivate}
-            className="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-lg px-3 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+            className="tf-icon-close flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-lg px-3 py-2 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
             aria-label="Zavřít nápovědu"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
