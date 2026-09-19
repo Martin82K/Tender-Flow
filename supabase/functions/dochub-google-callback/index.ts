@@ -1,3 +1,4 @@
+import { hasOAuthStateSubscription } from "../_shared/oauthSubscription.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
@@ -32,7 +33,7 @@ const siteBaseUrl = () => {
 
 const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
-const redirect = (to: string) =>
+const redirect = (req: Request, to: string) =>
   new Response(null, { status: 302, headers: { ...buildCorsHeaders(req), location: to } });
 
 const withQueryParam = (to: string, key: string, value: string) => {
@@ -298,15 +299,15 @@ Deno.serve(async (req) => {
     if (error) {
       const returnTo = await tryResolveReturnTo(state);
       const to = withQueryParam(sanitizeReturnTo(returnTo), "dochub_error", error);
-      return redirect(to);
+      return redirect(req, to);
     }
     if (!code || !state) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
     }
 
     const [provider, nonce] = state.split(".", 2);
     if (provider !== "gdrive" || !nonce) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
     }
 
     const service = createServiceClient();
@@ -317,12 +318,11 @@ Deno.serve(async (req) => {
     });
 
     if (!stateRow) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const { data: subscription, error: subscriptionError } = await service.rpc('get_effective_user_tier', { target_user_id: stateRow.user_id });
-    if (subscriptionError || !['starter', 'pro', 'enterprise', 'admin'].includes(subscription?.tier)) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
+    if (!await hasOAuthStateSubscription(service, stateRow, true)) {
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
     }
 
     const { data: project, error: projectAccessError } = await service
@@ -331,11 +331,11 @@ Deno.serve(async (req) => {
       .eq("id", stateRow.project_id)
       .maybeSingle();
     if (projectAccessError || !project) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
     if (!project.owner_id || project.owner_id !== stateRow.user_id) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
     const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
     const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
 
     if (!clientId || !clientSecret || !redirectUri || !encKey) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
     }
 
     const token = await tokenExchangeGoogle({ code, clientId, clientSecret, redirectUri });
@@ -387,9 +387,9 @@ Deno.serve(async (req) => {
       .eq("id", stateRow.project_id);
 
     const returnTo = sanitizeReturnTo(stateRow.return_to);
-    return redirect(returnTo);
+    return redirect(req, returnTo);
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown_error";
-    return redirect(withQueryParam(defaultReturnTo(), "dochub_error", message));
+    return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", message));
   }
 });

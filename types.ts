@@ -65,6 +65,7 @@ export interface Subcontractor {
   regions?: string[]; // Zkratky krajů ČR kde firma působí
   status: string; // Dynamic ID linking to StatusConfig
 
+  vendorRatingUnavailable?: boolean;
   vendorRatingAverage?: number;
   vendorRatingCount?: number;
 
@@ -481,6 +482,8 @@ export interface Contract {
   documentFileName?: string;
   documentMimeType?: string;
   documentSize?: number;
+  /** Path relative to the project Složkomat root; no uploaded copy. */
+  priceOfferPath?: string;
   extractionConfidence?: number;
   extractionJson?: Record<string, unknown>;
 

@@ -1,6 +1,7 @@
 export type ContractColumnId =
   | 'number'
   | 'document'
+  | 'priceOffer'
   | 'vendor'
   | 'status'
   | 'total'
@@ -17,6 +18,7 @@ export const CONTRACT_COLUMN_IDS: ContractColumnId[] = [
   'vendor',
   'number',
   'document',
+  'priceOffer',
   'status',
   'total',
   'amendments',
@@ -32,6 +34,7 @@ export const CONTRACT_COLUMN_IDS: ContractColumnId[] = [
 export const DEFAULT_CONTRACT_COLUMN_WIDTHS: Record<ContractColumnId, number> = {
   number: 280,
   document: 104,
+  priceOffer: 150,
   vendor: 220,
   status: 120,
   total: 150,
@@ -87,7 +90,7 @@ export const parseContractTablePreferences = (
   try {
     const parsed: unknown = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      const visibleColumns = parsed.filter(isColumnId);
+      const visibleColumns = [...parsed.filter(isColumnId), 'priceOffer' as const];
       return {
         ...fallback,
         visibleColumns: visibleColumns.length > 0 ? visibleColumns : fallback.visibleColumns,
@@ -109,6 +112,7 @@ export const parseContractTablePreferences = (
       candidate.widths && typeof candidate.widths === 'object'
         ? (candidate.widths as Record<string, unknown>)
         : {};
+    if (!Object.hasOwn(rawWidths, 'priceOffer') && !visibleColumns.includes('priceOffer')) visibleColumns.push('priceOffer');
     const widths = { ...DEFAULT_CONTRACT_COLUMN_WIDTHS };
     for (const column of CONTRACT_COLUMN_IDS) {
       const width = rawWidths[column];

@@ -6,7 +6,12 @@ export interface GeoPoint {
   lng: number;
 }
 
+export type RatingFilter = "all" | "unrated" | "3" | "4" | "5";
+export type ContactSort = "name" | "rating";
+
 export interface ContactsFilterState {
+  ratingFilter?: RatingFilter;
+  sortBy?: ContactSort;
   searchText: string;
   specialization: string;
   status: string;
@@ -15,6 +20,8 @@ export interface ContactsFilterState {
 }
 
 export const EMPTY_FILTER_STATE: ContactsFilterState = {
+  ratingFilter: "all",
+  sortBy: "name",
   searchText: "",
   specialization: "all",
   status: "all",
@@ -68,7 +75,13 @@ export function matchesContactFilters(
     !projectPosition ||
     contactWithinDistance(contact, projectPosition, state.distanceKm);
 
-  return matchesSearch && matchesSpec && matchesStatus && matchesRegion && matchesDistance;
+  const ratingFilter = state.ratingFilter ?? "all";
+  const rating = contact.vendorRatingAverage;
+  const matchesRating = ratingFilter === "all" || (!contact.vendorRatingUnavailable && (
+    ratingFilter === "unrated" ? rating == null : rating != null && rating >= Number(ratingFilter)
+  ));
+
+  return matchesRating && matchesSearch && matchesSpec && matchesStatus && matchesRegion && matchesDistance;
 }
 
 export function contactCoversRegion(
@@ -98,11 +111,21 @@ export function filterContacts(
   state: ContactsFilterState,
   projectPosition?: GeoPoint | null,
 ): Subcontractor[] {
-  return contacts.filter((c) => matchesContactFilters(c, state, projectPosition));
+  const filtered = contacts.filter((c) => matchesContactFilters(c, state, projectPosition));
+  const byName = (a: Subcontractor, b: Subcontractor) =>
+    a.company.localeCompare(b.company, "cs") || a.id.localeCompare(b.id);
+  if (state.sortBy !== "rating") return state.sortBy === "name" ? filtered.sort(byName) : filtered;
+  return filtered.sort((a, b) => {
+    const aRating = a.vendorRatingUnavailable ? -1 : a.vendorRatingAverage ?? -1;
+    const bRating = b.vendorRatingUnavailable ? -1 : b.vendorRatingAverage ?? -1;
+    return bRating - aRating || (b.vendorRatingCount ?? 0) - (a.vendorRatingCount ?? 0)
+      || byName(a, b);
+  });
 }
 
 export function hasActiveFilters(state: ContactsFilterState): boolean {
   return (
+    (state.ratingFilter != null && state.ratingFilter !== "all") ||
     state.searchText.trim() !== "" ||
     state.specialization !== "all" ||
     state.status !== "all" ||

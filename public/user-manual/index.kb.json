@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T20:33:52.320Z",
+  "generatedAt": "2026-09-18T13:06:01.750Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -443,6 +443,32 @@
       "source_anchor": "#dashboard",
       "level": 2,
       "parentTitle": null
+    },
+    {
+      "slug": "hodnoceni-a-doporucene-poradi",
+      "title": "Hodnocení a doporučené pořadí",
+      "content": "Hvězdičky u firmy představují průměr hodnocení z jejích propojených smluv, ke kterým máte přístup. Vedle průměru vidíte počet hodnocení (například **4,5 · 6×**). Hodnocení zadáte nebo smažete v detailu smlouvy; seznam firem se poté automaticky obnoví. Pokud sloupec nevidíte, zapněte **Hodnocení** v nabídce **Sloupce**. Filtr **Všechna hodnocení** umožňuje vybrat **5 ★**, **Alespoň 4 ★**, **Alespoň 3 ★** nebo **Neohodnoceno**. Kombinuje se se specializací, krajem a dalšími filtry. Akce **Vymazat vše** zruší filtry a ponechá zvolené řazení. Při výběru dodavatele do VŘ je výchozí řazení **Nejlépe hodnocené**: vyšší průměr, potom vyšší počet hodnocení a nakonec název firmy. Firmy bez hodnocení jsou poslední. V adresáři zůstává výchozí řazení podle názvu; přepínačem je můžete změnit. **Hodnocení nedostupné** znamená chybu načtení, nikoli firmu bez hodnocení. Obnovte stránku. Taková firma se nezařadí do filtru **Neohodnoceno** ani do filtru minimálního hodnocení. Chybějící přístup ke smlouvám může znamenat, že jejich hodnocení v průměru neuvidíte.",
+      "keywords": [
+        "hodnocen",
+        "firmy",
+        "azen",
+        "stup",
+        "ete",
+        "alespo",
+        "neohodnoceno",
+        "filtry",
+        "choz",
+        "filtru",
+        "doporu",
+        "zdi",
+        "edstavuj",
+        "jej",
+        "propojen",
+        "smluv"
+      ],
+      "source_anchor": "#hodnoceni-a-doporucene-poradi",
+      "level": 3,
+      "parentTitle": "Subdodavatelé (Kontakty)"
     },
     {
       "slug": "hledani-vyber-a-uprava-firmy",
@@ -1095,24 +1121,24 @@
     {
       "slug": "dokumenty-a-sablony",
       "title": "Dokumenty a šablony",
-      "content": "**K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek. 1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor. 2. V **Šablonách** připravte texty pro odpovídající druh zprávy. 3. Při generování ověřte vyplněné údaje a odkazy v náhledu. 4. Před sdílením ověřte přístup příjemce k dokumentům v úložišti. **Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ. **Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.",
+      "content": "V sidebaru stavby rozbalte **Dokumenty**. Pod **Subdodavatel** najdete přehled podle firem a horizontální záložku **Předávací protokoly**. Nový záznam přiřaďte ke smlouvě a zvolte **Předání staveniště** nebo **Předání díla**. Záznam lze upravit, připojit PDF/DOCX do 20 MB nebo vytvořit dokument v editoru a exportovat jej. Každá úprava zachovává předchozí verze i jejich přílohy. Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsledkem a zdrojem. Uložení dokumentu ani přílohy předání nepotvrzuje. Začátek záruky zůstává ve smlouvě v záložce **Předání a záruka**. Ze smlouvy vede odkaz na přesunuté protokoly. **Upravit záznam** uloží novou verzi protokolu. **Smazat záznam** vyžaduje potvrzení a odebere záznam ze seznamu; historie, přílohy a skutečná předání zůstávají pro audit. Bez dostupné smlouvy použijte **Přejít na smlouvy**. **Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné. **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek. 1. V **Nastavení stavby → Odkazy PD** uložte odkazy na dokumentaci pro Javor. 2. V **Šablonách** připravte texty pro odpovídající druh zprávy. 3. Při generování ověřte vyplněné údaje a odkazy v náhledu. 4. Před sdílením ověřte přístup příjemce k dokumentům v úložišti. **Příklad zadání:** „Žádáme o nabídku elektroinstalace pro Bytový dům Javor podle přiloženého výkazu. Nabídku a výluky zašlete do 16. 10. 2026.“ Konkrétní termín a rozsah musí odpovídat danému VŘ. **Častá chyba:** odkaz funguje vám, ale subdodavatel k němu nemá oprávnění. Přístup v cloudovém úložišti se ověřuje samostatně.",
       "keywords": [
-        "odkazy",
-        "dokumentaci",
-        "zad",
-        "javor",
-        "odpov",
-        "stup",
-        "nab",
-        "dku",
+        "znam",
         "dokumenty",
-        "ablony",
-        "emu",
-        "slou",
-        "stupnit",
-        "spr",
-        "vnou",
-        "pou"
+        "lohy",
+        "ulo",
+        "smlouvy",
+        "stavby",
+        "protokoly",
+        "smlouv",
+        "upravit",
+        "skute",
+        "protokolu",
+        "vaj",
+        "dostupn",
+        "pou",
+        "dokumentaci",
+        "odkazy"
       ],
       "source_anchor": "#dokumenty-a-sablony",
       "level": 2,

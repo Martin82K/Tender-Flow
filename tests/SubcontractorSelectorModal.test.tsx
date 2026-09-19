@@ -79,6 +79,7 @@ describe("SubcontractorSelectorModal", () => {
     );
     expect(mocks.selectorProps).toHaveBeenCalledWith(
       expect.objectContaining({
+        defaultSort: "rating",
         contacts: props.contacts,
         statuses: props.statuses,
         selectedIds: props.selectedIds,

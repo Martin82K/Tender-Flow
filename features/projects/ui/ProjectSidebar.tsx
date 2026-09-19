@@ -11,10 +11,15 @@ interface ProjectSidebarProps {
   selectedProjectId: string;
   activeTab: string;
   activeSettingsTab?: string;
-  onSelect: (id: string, tab?: string, settingsTab?: 'pd' | 'templates' | 'dochub') => void;
+  activeDocumentsTab?: string;
+  onSelect: (id: string, tab?: string, settingsTab?: 'pd' | 'templates' | 'dochub' | 'investor' | 'subcontractor' | 'association' | 'claims' | 'ceniky') => void;
 }
 
-export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', onSelect, hasFeature, compact = false, onExpand }: ProjectSidebarProps) {
+export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', activeDocumentsTab = 'subcontractor', onSelect, hasFeature, compact = false, onExpand }: ProjectSidebarProps) {
+  const [documentsOpen, setDocumentsOpen] = useState(activeTab === 'documents');
+  useEffect(() => { if (activeTab === 'documents') setDocumentsOpen(true); }, [activeTab, selectedProjectId]);
+  const documentTabs = [{id:'investor',label:'Objednatel'}, {id:'subcontractor',label:'Subdodavatel'}, {id:'association',label:'Sdružení'}, {id:'claims',label:'Evidence reklamací'}, {id:'ceniky',label:'Ceníky'}] as const;
+  const selectedDocumentsTab = documentTabs.find(item => item.id === activeDocumentsTab)?.id || 'subcontractor';
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [contractsOpen, setContractsOpen] = useState(activeTab === 'contracts' || activeTab === 'contracts-client');
@@ -75,7 +80,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
           {choices.map(item => <button key={item.id} type="button" aria-label={`${item.name} · ${item.location || 'Bez lokace'} · ${item.status === 'realization' ? 'V realizaci' : item.status === 'archived' ? 'Archiv' : 'V soutěži'}`}
             aria-current={item.id === project.id ? 'true' : undefined}
             className="block w-full rounded-md px-2 py-2 text-left text-sm hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-            onClick={() => { setOpen(false); if (selectedTab === 'project-settings') onSelect(item.id, selectedTab, selectedSettingsTab); else onSelect(item.id, selectedTab); }}>
+            onClick={() => { setOpen(false); if (selectedTab === 'project-settings') onSelect(item.id, selectedTab, selectedSettingsTab); else if (selectedTab === 'documents') onSelect(item.id, selectedTab, selectedDocumentsTab); else onSelect(item.id, selectedTab); }}>
             {item.name}{item.id === project.id && <span aria-hidden="true"> ✓</span>}
             <span className="block text-xs text-slate-500">{item.location || 'Bez lokace'} · {item.status === 'realization' ? 'V realizaci' : item.status === 'archived' ? 'Archiv' : 'V soutěži'}</span>
           </button>)}
@@ -101,6 +106,12 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
             <span aria-hidden="true" className="material-symbols-outlined text-lg">{item.icon}</span><span className="tf-sidebar-label">{item.label}</span>
           </button>)}
         </div>}
+        {tab.id === 'documents' && <>
+          <button type="button" aria-label="Dokumenty" aria-current={selectedTab === 'documents' ? 'page' : undefined} aria-expanded={documentsOpen} aria-controls="sidebar-project-documents" className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setDocumentsOpen(!documentsOpen)}>
+            <span aria-hidden="true" className="material-symbols-outlined text-lg">folder_open</span><span className="tf-sidebar-label">Dokumenty</span><span aria-hidden="true" className="tf-sidebar-label material-symbols-outlined ml-auto text-lg">{documentsOpen ? 'expand_less' : 'expand_more'}</span>
+          </button>
+          {documentsOpen && <div id="sidebar-project-documents" role="group" aria-label="Dokumenty stavby">{documentTabs.map(item => <button key={item.id} type="button" aria-label={item.label} aria-current={selectedTab === 'documents' && selectedDocumentsTab === item.id ? 'page' : undefined} data-active={selectedTab === 'documents' && selectedDocumentsTab === item.id} className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelect(project.id, 'documents', item.id)}><span aria-hidden="true" className="material-symbols-outlined text-lg">description</span><span className="tf-sidebar-label">{item.label}</span></button>)}</div>}
+        </>}
         {tab.id === 'project-settings' && <>
           <button type="button" aria-label="Nastavení stavby" aria-expanded={settingsOpen} aria-controls="sidebar-project-settings"
             className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
@@ -119,7 +130,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
             </button>)}
           </div>}
         </>}
-        {tab.id !== 'contracts' && tab.id !== 'contracts-client' && tab.id !== 'project-settings' && <button type="button" aria-label={tab.label}
+        {tab.id !== 'documents' && tab.id !== 'contracts' && tab.id !== 'contracts-client' && tab.id !== 'project-settings' && <button type="button" aria-label={tab.label}
         aria-current={tab.id === selectedTab ? 'page' : undefined} data-active={tab.id === selectedTab}
         data-help-id="project-sidebar-tab"
         className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"

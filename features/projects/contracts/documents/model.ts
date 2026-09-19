@@ -2,7 +2,15 @@ import type { ContractWithDetails, ProjectDetails } from '@/types';
 import { formatDate } from '../utils/format';
 
 export type HandoverResult = '' | 'accepted' | 'with_defects' | 'rejected';
+export type DocumentKind = 'sub_work_handover' | 'sub_site_handover';
+export const documentKindLabels: Record<DocumentKind, string> = { sub_work_handover: 'Předání díla', sub_site_handover: 'Předání staveniště' };
 export interface HandoverFields {
+  recordTitle?: string;
+  plannedDate?: string;
+  note?: string;
+  siteConditions?: string;
+  siteSafety?: string;
+  siteFacilities?: string;
   organizationName: string;
   organizationAddress: string;
   vendorName: string;
@@ -26,7 +34,7 @@ export interface DocumentLogo { dataUrl: string; width: number; height: number }
 export interface DocumentSnapshot {
   schemaVersion: 1;
   templateVersion: 1;
-  kind: 'sub_work_handover';
+  kind: DocumentKind;
   createdAt: string;
   version: number;
   fields: HandoverFields;
@@ -50,7 +58,9 @@ export interface DocumentFile {
 }
 export interface HandoverEvent {
   id: string;
-  kind: 'handover' | 'warranty';
+  kind: 'handover' | 'site_handover' | 'warranty';
+  contract_id?: string;
+  document_version_id?: string | null;
   effective_date: string;
   result: HandoverResult;
   source_note: string;
@@ -66,8 +76,8 @@ export const createHandoverDraft = (contract: ContractWithDetails, project?: Pro
   issuerRepresentative: project?.siteManager || '', vendorRepresentative: '', scope: contract.scopeSummary || contract.title,
   scopeKind: 'whole', actualDate: '', result: '', defects: '', defectsDeadline: '', attachments: '', handwritingLines: 0,
 });
-export const freezeDocument = (fields: HandoverFields, createdAt: string, version: number, logo: DocumentLogo | null = null): DocumentSnapshot => ({
-  schemaVersion: 1, templateVersion: 1, kind: 'sub_work_handover', createdAt, version, fields: { ...fields }, logo: logo ? { ...logo } : null,
+export const freezeDocument = (fields: HandoverFields, createdAt: string, version: number, logo: DocumentLogo | null = null, kind: DocumentKind = 'sub_work_handover'): DocumentSnapshot => ({
+  schemaVersion: 1, templateVersion: 1, kind, createdAt, version, fields: { ...fields }, logo: logo ? { ...logo } : null,
 });
 export const documentSections = (snapshot: DocumentSnapshot): { title: string; text: string; handwritingLines?: number }[] => {
   const f = snapshot.fields;
@@ -77,9 +87,14 @@ export const documentSections = (snapshot: DocumentSnapshot): { title: string; t
       `Subdodavatel: ${f.vendorName}${f.vendorIco ? ` · IČ ${f.vendorIco}` : ''}`, f.vendorAddress,
       `Stavba: ${f.projectName}${f.siteLocation ? ` · ${f.siteLocation}` : ''}`, `Smlouva: ${f.contractNumber || '________________'}`,
     ].filter(Boolean).join('\n') },
-    { title: '1. Předmět a rozsah předání', text: `${f.scopeKind === 'part' ? 'Část díla' : 'Celé dílo'}: ${f.scope}` },
+    { title: '1. Předmět a rozsah předání', text: `${snapshot.kind === 'sub_site_handover' ? (f.scopeKind === 'part' ? 'Část staveniště' : 'Celé staveniště') : (f.scopeKind === 'part' ? 'Část díla' : 'Celé dílo')}: ${f.scope}` },
     { title: '2. Průběh převzetí', text: `Skutečné datum předání: ${f.actualDate ? formatDate(f.actualDate) : '________________'}\nVýsledek: ${f.result ? resultLabels[f.result] : '________________'}` },
     { title: '3. Vady a nedodělky', text: [f.defects, f.defectsDeadline ? `Termín odstranění: ${formatDate(f.defectsDeadline)}` : ''].filter(Boolean).join('\n'), handwritingLines: f.handwritingLines },
+    ...(snapshot.kind === 'sub_site_handover' ? [
+      { title: 'Podmínky a přístup na staveniště', text: f.siteConditions || '________________' },
+      { title: 'Bezpečnost a BOZP', text: f.siteSafety || '________________' },
+      { title: 'Zařízení staveniště a přípojky', text: f.siteFacilities || '________________' },
+    ] : []),
     { title: '4. Předané doklady a přílohy', text: f.attachments || '________________' },
   ];
 };

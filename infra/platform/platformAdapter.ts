@@ -53,7 +53,7 @@ export const fileSystemAdapter = {
     /**
      * Select a single file using system dialog (desktop only)
      */
-    async selectFile(options?: { title?: string; defaultPath?: string }): Promise<FileInfo | null> {
+    async selectFile(options?: { title?: string; defaultPath?: string; withinRoot?: string }): Promise<FileInfo | null> {
         if (isDesktop && window.electronAPI?.fs?.selectFile) {
             return window.electronAPI.fs.selectFile(options);
         }

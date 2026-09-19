@@ -10,18 +10,49 @@ const failure = (error: { message: string; code?: string } | null) => {
   throw new Error(error.message);
 };
 export const contractDocumentsApi = {
+  async contacts(vendorId: string): Promise<string[]> {
+    const { data, error } = await dbAdapter.from('subcontractors').select('contacts').eq('id', vendorId).maybeSingle();
+    failure(error);
+    return Array.isArray(data?.contacts) ? data.contacts.filter((contact: unknown): contact is { name: string } => Boolean(contact && typeof contact === 'object' && 'name' in contact && typeof contact.name === 'string')).map((contact: { name: string }) => contact.name) : [];
+  },
+  async projectVersions(contractIds: string[]): Promise<DocumentVersion[]> {
+    const result: DocumentVersion[] = [];
+    for (let chunk = 0; chunk < contractIds.length; chunk += 50) {
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').is('deleted_at', null).in('contract_id', contractIds.slice(chunk, chunk + 50)).order('id').range(offset, offset + 499);
+        failure(error);
+        result.push(...(data || []) as DocumentVersion[]);
+        if (!data || data.length < 500) break;
+      }
+    }
+    return result;
+  },
+  async confirmDocument(versionId: string, date: string, result: HandoverResult, source: string): Promise<void> {
+    const { error } = await dbAdapter.rpc('confirm_document_handover', { version_id_input: versionId, date_input: date, result_input: result, source_input: source });
+    failure(error);
+  },
   async list(contractId: string): Promise<DocumentVersion[]> {
-    const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').eq('contract_id', contractId).order('created_at', { ascending: false });
+    const { data, error } = await dbAdapter.from('contract_generated_documents').select('*').is('deleted_at', null).eq('contract_id', contractId).order('created_at', { ascending: false });
     failure(error); return (data || []) as DocumentVersion[];
   },
   async save(contractId: string, documentId: string, expectedVersion: number, snapshot: DocumentSnapshot): Promise<DocumentVersion> {
     const { data, error } = await dbAdapter.rpc('save_contract_document_version', { contract_id_input: contractId, document_id_input: documentId, expected_version: expectedVersion, snapshot_input: snapshot });
     failure(error); return data as DocumentVersion;
   },
+  async remove(contractId: string, documentId: string, expectedVersion: number): Promise<void> {
+    const { error } = await dbAdapter.rpc('delete_contract_document', { contract_id_input: contractId, document_id_input: documentId, expected_version: expectedVersion });
+    failure(error);
+  },
   async files(versionIds: string[]): Promise<DocumentFile[]> {
-    if (!versionIds.length) return [];
-    const { data, error } = await dbAdapter.from('contract_document_files').select('*').in('version_id', versionIds).order('created_at', { ascending: false });
-    failure(error); return (data || []) as DocumentFile[];
+    const result: DocumentFile[] = [];
+    for (let chunk = 0; chunk < versionIds.length; chunk += 50) {
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await dbAdapter.from('contract_document_files').select('*').in('version_id', versionIds.slice(chunk, chunk + 50)).order('id').range(offset, offset + 499);
+        failure(error); result.push(...(data || []) as DocumentFile[]);
+        if (!data || data.length < 500) break;
+      }
+    }
+    return result;
   },
   async attach(version: DocumentVersion, file: File): Promise<void> {
     const extension = file.name.split('.').pop()?.toLowerCase();
