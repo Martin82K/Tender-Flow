@@ -21,6 +21,8 @@ interface Props {
   figures?: Record<string,string>; onEdit: (node: BudgetNode) => Promise<void>; jumpId?: string; onNotice: (message: string) => void;
 }
 const numberLabel = formatBudgetNumber;
+const isQuantityDetail = (node: BudgetNode) => node.kind === 'VV' || node.kind === 'note';
+const rowHeight = (node: BudgetNode, density: number) => isQuantityDetail(node) ? Math.max(24, density / 2) : density;
 export function BudgetTable(props: Props) {
   const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
@@ -30,14 +32,18 @@ export function BudgetTable(props: Props) {
   const [editError,setEditError]=useState(''); const [busy,setBusy]=useState(false);
   const items=useMemo(()=>nodes.filter(n=>isPriced(n)&&(!scope||n.sheetId===scope)),[nodes,scope]);
   const matched=useMemo(()=>filterItems(items,filters),[items,filters]);
+  const mutedItems=useMemo(()=>new Set(items.filter((_,index)=>index%2===1).map(item=>item.id)),[items]);
   const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,showVV),[nodes,matched,collapsed,showVV]);
   const aggregate=useMemo(()=>aggregateBudget(nodes),[nodes]);
   const visibleColumns=useMemo(()=>columns.filter(c=>!c.hidden&&(canPrices||!['unitPrice','total'].includes(c.key))).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))),[columns,canPrices]);
   const grid=`42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
   const width=42+visibleColumns.reduce((sum,c)=>sum+c.width,0);
   const lefts=new Map<string,number>(); let left=42; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
-  const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:()=>density,getItemKey:i=>rows[i].id,overscan:12});
-  React.useEffect(()=>{virtual.measure();},[wrap,showVV,expanded,columns,density,virtual]);
+  const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12});
+  React.useLayoutEffect(()=>{
+    // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
+    scroll.current?.querySelectorAll<HTMLDivElement>('[data-index]').forEach(row=>virtual.resizeItem(Number(row.dataset.index),row.offsetHeight));
+  },[wrap,showVV,expanded,columns,density,virtual]);
   React.useEffect(()=>{
     if(!jumpId)return;
     const byId=new Map(nodes.map(n=>[n.id,n]));let parent:string|null=jumpId;const next=new Set(collapsed);while(parent){next.delete(parent);parent=byId.get(parent)?.parentId??null;}
@@ -68,12 +74,12 @@ export function BudgetTable(props: Props) {
     </div>
     <div ref={scroll} className="tf-budget-scroll min-h-0 flex-1 overflow-auto" onScroll={e=>{if(header.current)header.current.scrollLeft=e.currentTarget.scrollLeft;if(footer.current)footer.current.scrollLeft=e.currentTarget.scrollLeft;}}>
       <div style={{height:virtual.getTotalSize(),width,position:'relative'}}>
-      {virtual.getVirtualItems().map(v=>{const n=rows[v.index];const priced=isPriced(n);const group=['object','sheet','section'].includes(n.kind);return <div key={n.id} data-index={v.index} ref={virtual.measureElement} role="row" className={`tf-budget-grid tf-budget-row ${group?'tf-budget-group':''} ${selected.has(n.id)?'tf-budget-selected':''}`} style={{gridTemplateColumns:grid,width,position:'absolute',top:0,transform:`translateY(${v.start}px)`,minHeight:density}}>
+      {virtual.getVirtualItems().map(v=>{const n=rows[v.index];const priced=isPriced(n);const detailRow=isQuantityDetail(n);const itemId=detailRow?n.parentId??n.id:n.id;const group=['object','sheet','section'].includes(n.kind);return <div key={n.id} data-index={v.index} ref={virtual.measureElement} role="row" className={`tf-budget-grid tf-budget-row ${mutedItems.has(itemId)?'tf-budget-row-muted':''} ${detailRow?'tf-budget-quantity-detail':''} ${group?'tf-budget-group':''} ${selected.has(itemId)?'tf-budget-selected':''}`} style={{gridTemplateColumns:grid,width,position:'absolute',top:0,transform:`translateY(${v.start}px)`,minHeight:rowHeight(n,density)}}>
         <div className="tf-budget-check">{(priced||group)&&<input aria-label={`Vybrat ${n.code||n.description}`} type="checkbox" checked={priced?selected.has(n.id):groupItems(n).length>0&&groupItems(n).every(i=>selected.has(i.id))} onChange={e=>{if(priced)onSelected(toggle(selected,n.id));else {const ids=groupItems(n).map(i=>i.id);onSelected(e.target.checked?new Set([...selected,...ids]):new Set([...selected].filter(id=>!ids.includes(id))));}}}/>}</div>
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
           if(c.key==='description')value=<><button className={`tf-budget-description ${wrap||expanded.has(n.id)?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{group?`${collapsed.has(n.id)?'▸':'▾'} `:''}{n.description}</button>{priced&&<button className="tf-budget-description-toggle" onClick={()=>setExpanded(toggle(expanded,n.id))}>{expanded.has(n.id)?'Zkrátit popis':'Celý popis'}</button>}</>;
-          else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:n.total===null?<span className="tf-budget-incomplete">Chybí cena</span>:numberLabel(n.total,true);
+          else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Chybí cena</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');

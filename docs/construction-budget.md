@@ -3,6 +3,15 @@
 Rozpočet otevřete v navigaci stavby. V části **Importy a verze** najdete revize
 rozpočtu a původní přílohy XLSX.
 
+Přepínač **Výkaz výměr** zobrazí pod položkami jejich výpočty a poznámky.
+Mají drobnější písmo, nižší řádky a odsazený popis. Sdílejí pozadí položky,
+bez dělících čar mezi jednotlivými výpočty; množství zůstává ve svém sloupci.
+V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat**,
+**Hustotu** (Kompaktní / Pohodlná) a **Sloupce**. Nastavení se pamatuje pro daný
+projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
+Zalamování a hustota fungují i pro pomocné řádky. Upozornění **Chybí cena**
+se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
+
 ## Odstranění a obnova
 
 U revize nebo přílohy použijte **Odstranit**. Potvrzovací dialog ukáže název,
