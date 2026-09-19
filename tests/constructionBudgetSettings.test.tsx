@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn() } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn() } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -25,7 +25,7 @@ it('keeps view controls under settings and preserves their saved values', async 
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
   expect(screen.queryByRole('checkbox', { name: 'Zalamovat text popisu' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Zobrazení sloupců' })).not.toBeInTheDocument();
-  expect(screen.getByRole('switch', { name: 'Výkaz výměr' })).toBeVisible();
+  expect(screen.queryByRole('switch', { name: 'Výkaz výměr' })).not.toBeInTheDocument();
   fireEvent.click(trigger);
   fireEvent.click(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' }));
   expect(screen.getByRole('group', { name: 'Hustota zobrazení' })).toBeVisible();
@@ -82,4 +82,39 @@ it('orders columns in their pinned group and restores defaults without losing ot
   fireEvent.click(dialog.getByRole('button', { name: 'Hotovo' }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
+});
+it('puts recap first, moves catalogs before settings and keeps tender-plan action unavailable', async () => {
+  const trigger = await openBudget();
+  const nav = within(screen.getByRole('navigation', { name: 'Sekce rozpočtu' }));
+  expect(nav.getAllByRole('button').map(button => button.textContent)).toEqual(['Rekapitulace', 'Položky', 'Importy a verze']);
+  expect(nav.getByRole('button', { name: 'Položky' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('button', { name: 'Skrýt strom' })).toBeVisible();
+  expect(screen.queryByRole('switch', { name: 'Výkaz výměr' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Rozsah:/ })).not.toBeInTheDocument();
+  expect(trigger.parentElement?.previousElementSibling).toBe(screen.getByRole('button', { name: 'Firemní číselníky' }));
+  const plan = screen.getByRole('button', { name: 'Převzít do plánu VŘ' });
+  expect(plan).toBeDisabled();
+  expect(plan.parentElement?.lastElementChild).toBe(plan);
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole('button', { name: /^Rozsah:/ }));
+  expect(screen.getByRole('dialog', { name: 'Rozsah rozpočtu' })).toBeVisible();
+});
+it('opens the shared main version, switches copies and saves a main-version change with a concurrency token', async () => {
+  const main = { ...revision, id: 'main', title: 'Hlavní rozpočet' };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [revision, main], mainRevisionId: 'main', permissions: { read: true, prices: true, edit: true, confirm: false, allocate: false } });
+  vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'main' ? main : revision);
+  await openBudget();
+  expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('main');
+  fireEvent.change(screen.getByRole('combobox', { name: 'Verze rozpočtu' }), { target: { value: 'r' } });
+  const setMain = await screen.findByRole('button', { name: 'Nastavit jako hlavní' });
+  fireEvent.click(setMain);
+  await waitFor(() => expect(budgetApi.setPrimary).toHaveBeenCalledWith('p', 'r', 'main'));
+});
+it('keeps the earliest active version selected when no shared main version has been set', async () => {
+  const old = { ...revision, id: 'old', title: 'Původní', created_at: '2026-09-18T10:00:00Z' };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [{ ...revision, created_at: '2026-09-19T10:00:00Z' }, old], mainRevisionId: null, permissions: { read: true, prices: true, edit: false, confirm: false, allocate: false } });
+  vi.mocked(budgetApi.revision).mockResolvedValue(old);
+  await openBudget();
+  expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('old');
+  expect(screen.queryByRole('button', { name: 'Nastavit jako hlavní' })).not.toBeInTheDocument();
 });

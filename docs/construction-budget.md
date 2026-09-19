@@ -3,12 +3,13 @@
 Rozpočet otevřete v navigaci stavby. V části **Importy a verze** najdete revize
 rozpočtu a původní přílohy XLSX.
 
-Přepínač **Výkaz výměr** zobrazí pod položkami jejich výpočty a poznámky.
+Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty a poznámky.
+Jednotlivé výkazy lze otevírat nezávisle; u položky bez podrobností je tlačítko neaktivní.
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
 pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
 nejsou dělicí čáry; množství zůstává ve svém sloupci.
-V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat text popisu**,
-**Hustota zobrazení** (Kompaktní / Pohodlná) a **Zobrazení sloupců**. Nastavení se pamatuje pro daný
+V ozubeném kolečku **Nastavení zobrazení** za tlačítkem **Firemní číselníky** najdete **Zalamovat text popisu**,
+**Hustota zobrazení** (Kompaktní / Pohodlná), **Zobrazení sloupců** a **Rozsah**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
 V **Zobrazení sloupců** má každý sloupec samostatné volby **Zobrazit** a
 **Ponechat vlevo**. Tato volba drží sloupec na místě při vodorovném posouvání
@@ -26,13 +27,12 @@ Pod názvem není samostatný odkaz pro rozbalení; zobrazení celého textu př
 v tabulce ovládá společná volba **Zalamovat text popisu**.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
-soupisy a oddíly. Při zapnutém **Výkazu výměr** ovládají také výpočty a poznámky
-jednotlivých položek. U řádků bez podřízeného obsahu tlačítko není.
+soupisy a oddíly. Výpočty a poznámky jednotlivých položek ovládá tlačítko **VV**. U řádků bez podřízeného obsahu tlačítko není.
 Ovládání zůstává vlevo i při vodorovném posouvání tabulky.
 
 Pravým tlačítkem v tabulce otevřete nabídku **Sbalit vše / Rozbalit vše** pro
 objekty, soupisy, oddíly i podřízené řádky položek celého rozpočtu. Aktivní rozsah, filtry, výběr položek
-i přepínač výkazu výměr zůstávají zachované. Nad buňkou je navíc volba
+i samostatně otevřené výkazy výměr zůstávají zachované. Nad buňkou je navíc volba
 **Filtrovat podle této hodnoty**; samotné otevření nabídky filtr nemění.
 Nabídku otevřete také klávesami Shift+F10, ovládáte šipkami a zavřete Escape.
 
@@ -132,3 +132,23 @@ odstraní Storage API, nikoli SQL. Dokončení ověří nepřítomnost objektů 
 rozpočtové záznamy s historií. Neúspěch má trvalý identifikátor operace a lze jej
 bezpečně dokončit. Záznam operace zachová autora, čas a identifikátory.
 V rámci QA se trvalé mazání reálných souborů neprovádí, SQL fixture mají rollback.
+
+## Rekapitulace a hlavní verze
+
+**Rekapitulace** je první záložka; při otevření rozpočtu zůstávají výchozí **Položky**.
+Samostatná rekapitulace má mřížku a částky v pevném sloupci vedle názvů. Tlačítko
+**Zobrazit strom / Skrýt strom** ovládá boční strom u položek. Rozsah lze změnit
+v nastavení; omezení na soupis je vidět také nad tabulkou a tlačítkem × je zrušíte.
+
+Rozbalovací seznam **Verze rozpočtu** přepíná aktivní verze a pracovní kopie.
+Přepnutí vyčistí výběr položek, sloupcové filtry, rozsah, otevřená VV a historii kroku Zpět.
+Vyhledávání v hlavičce projektu zůstává zachované. Nová kopie nenahrazuje hlavní verzi.
+**Nastavit jako hlavní** uloží společný výběr pro všechny uživatele projektu a další
+otevření rozpočtu. Vyžaduje oprávnění upravovat rozpočet a číst ceny. Potvrzení
+rozpočtu ani položky se tím nemění. Souběžnou změnu systém odmítne s výzvou k obnovení.
+Po přesunu hlavní verze do koše se použije nejstarší zbývající aktivní verze;
+obnovení z koše ji automaticky nevrátí jako hlavní. Nový projekt bez výslovné volby
+používá nejstarší aktivní verzi, takže nové kopie nemění výchozí rozpočet.
+
+**Převzít do plánu VŘ** je poslední, neaktivní akce označená „Připravujeme“.
+Z této obrazovky nyní nelze měnit plánované částky VŘ.

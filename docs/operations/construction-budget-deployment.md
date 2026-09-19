@@ -70,3 +70,28 @@ Nativní Electron runtime nebyl v tomto průchodu spuštěn. Samostatný nativn�
 Codex Security scan nebyl dostupný, nelze jej vykazovat jako úspěšný. Bezpečnost
 byla ověřena kontrolou RLS/grantů/tenant hranic, SQL regresními scénáři a advisors;
 597 starších nálezů zůstává existujícím dluhem. Neinstalovaly se nové závislosti.
+
+## Připravená hlavní verze · 19. září 2026
+
+Migrace `20260919195533_construction_budget_primary_revision.sql` je připravena,
+ale dosud **není nasazena**. Automatická kontrola schvalování vyžaduje samostatný
+souhlas s nasazením do aktivního projektu.
+
+- Soukromá tabulka preferencí má RLS, odebrané klientské granty, FK na projekt
+  a revizi a index odkazu na revizi. Veřejné invoker RPC volá private helper
+  s pevnou search_path, kontrolou editace, cen a příslušnosti revize k projektu.
+- Výběr se serializuje zámkem řádku preference a kontroluje očekávanou původní
+  hlavní verzi. Koš a změna preference mají stejné pořadí zámků revize → preference.
+- Backfill zachovává dosavadní nejnovější aktivní revizi. Preflight: 2 revize,
+  2 přílohy, 2 projekty k inicializaci. Položky, ceny ani plán VŘ se nemění.
+- Dry-run z izolovaného nasazovacího adresáře obsahoval pouze tuto migraci.
+- Na místním PostgreSQL 17.10 s kopií schématu bez dat a syntetickými identitami
+  prošly testy primary, základního rozpočtu, koše, purge a dat importu. Dvě
+  souběžná nastavení hlavní verze potvrdila čekání a odmítnutí zastaralé změny.
+- Frontend před dostupností `mainRevisionId` zachovává původní výchozí verzi
+  a neumožní RPC pro nastavení hlavní verze. Přepínání verzí a ostatní UI fungují.
+
+Po schválení nasadit přesnou verzovanou migraci, ověřit počet preferencí a jejich
+příslušnost k projektu, provést SQL test s rollbackem, porovnat security/performance
+advisors s preflightem a vyžadovat závěrečný dry-run bez čekajících migrací.
+Code scanning v GitHubu nemá analýzu, Dependabot je vypnutý; nejde o čisté signály.

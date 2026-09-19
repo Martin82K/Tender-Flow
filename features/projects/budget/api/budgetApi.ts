@@ -4,7 +4,7 @@ export interface BudgetPermissions { read: boolean; prices: boolean; edit: boole
 export type BudgetRevisionSummary = Pick<BudgetRevision, 'id' | 'title' | 'status' | 'version' | 'source_id' | 'created_at' | 'deleted_at' | 'purge_job_id'> & { allocation_count?: number; category_ids?: string[] };
 export interface BudgetPurgeJob { id: string; revisionCount: number; sourceCount: number }
 export interface BudgetPurgeSelection { revisions: Array<{ id: string; version: number }>; sources: Array<{ id: string; deleted_at: string }> }
-export interface BudgetIndex { permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
+export interface BudgetIndex { mainRevisionId?: string | null; permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
 const unwrap = <T>(result: { data: unknown; error: { message: string } | null }): T => { if (result.error) throw new Error(result.error.message); return result.data as T; };
 export const budgetApi = {
   async purge(projectId: string, jobId: string, selection: BudgetPurgeSelection): Promise<void> {
@@ -22,6 +22,9 @@ export const budgetApi = {
   },
   async trash(projectId: string, targetId: string, kind: 'revision' | 'source', restore: boolean, version?: number): Promise<void> {
     unwrap(await supabase.rpc('construction_budget_trash', { project_input: projectId, target_input: targetId, kind_input: kind, restore_input: restore, version_input: version ?? null }));
+  },
+  async setPrimary(projectId: string, revisionId: string, expectedId: string | null): Promise<void> {
+    unwrap(await supabase.rpc('construction_budget_set_primary', { project_input: projectId, revision_input: revisionId, expected_input: expectedId }));
   },
   async index(projectId: string): Promise<BudgetIndex> { return unwrap(await supabase.rpc('construction_budget_load', { project_input: projectId })); },
   async revision(projectId: string, revisionId: string): Promise<BudgetRevision> { return unwrap(await supabase.rpc('construction_budget_load', { project_input: projectId, revision_input: revisionId })); },

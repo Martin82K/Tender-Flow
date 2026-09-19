@@ -28,6 +28,9 @@ export function BudgetTable(props: Props) {
   const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
   const [collapsed,setCollapsed]=useState(new Set<string>());
+  const [expandedVV,setExpandedVV]=useState(new Set<string>());
+  const quantityParents=useMemo(()=>new Set(nodes.filter(isQuantityDetail).map(n=>n.parentId)),[nodes]);
+  const visibleVV=showVV?true:expandedVV;
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);
   const filterOrigin=useRef<HTMLButtonElement|null>(null);
   const editLock=useRef(false);
@@ -61,12 +64,12 @@ export function BudgetTable(props: Props) {
   const matched=useMemo(()=>filterItems(items,filters),[items,filters]);
   const expandableIds=useMemo(()=>new Set(nodes.filter(n=>n.parentId).map(n=>n.parentId!)),[nodes]);
   const mutedItems=useMemo(()=>new Set(items.filter((_,index)=>index%2===1).map(item=>item.id)),[items]);
-  const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,showVV),[nodes,matched,collapsed,showVV]);
+  const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,visibleVV),[nodes,matched,collapsed,visibleVV]);
   const aggregate=useMemo(()=>aggregateBudget(nodes),[nodes]);
   const visibleColumns=useMemo(()=>columns.filter(c=>!c.hidden&&(canPrices||!['unitPrice','total'].includes(c.key))).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))),[columns,canPrices]);
-  const grid=`32px 42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
-  const width=74+visibleColumns.reduce((sum,c)=>sum+c.width,0);
-  const lefts=new Map<string,number>(); let left=74; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
+  const grid=`44px 42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
+  const width=86+visibleColumns.reduce((sum,c)=>sum+c.width,0);
+  const lefts=new Map<string,number>(); let left=86; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
   const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12,useAnimationFrameWithResizeObserver:true});
   React.useLayoutEffect(()=>{
     // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
@@ -76,7 +79,7 @@ export function BudgetTable(props: Props) {
     if(!jumpId)return;
     const byId=new Map(nodes.map(n=>[n.id,n]));let parent:string|null=jumpId;const next=new Set(collapsed);while(parent){next.delete(parent);parent=byId.get(parent)?.parentId??null;}
     setCollapsed(next);
-    const target=visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),next,showVV).findIndex(n=>n.id===jumpId);
+    const target=visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),next,visibleVV).findIndex(n=>n.id===jumpId);
     if(target<0)onNotice('Položky cílového oddílu skrývají aktivní filtry. Filtry zůstaly zachované.');
     else requestAnimationFrame(()=>virtual.scrollToIndex(target,{align:'start'}));
     // A jump is an explicit navigation action; filter edits must not repeatedly move the viewport.
@@ -110,7 +113,7 @@ export function BudgetTable(props: Props) {
     <div ref={scroll} className="tf-budget-scroll min-h-0 flex-1 overflow-auto" onScroll={e=>{if(header.current)header.current.scrollLeft=e.currentTarget.scrollLeft;if(footer.current)footer.current.scrollLeft=e.currentTarget.scrollLeft;}}>
       <div style={{height:virtual.getTotalSize(),width,position:'relative'}}>
       {virtual.getVirtualItems().map(v=>{const n=rows[v.index];const priced=isPriced(n);const detailRow=isQuantityDetail(n);const itemId=detailRow?n.parentId??n.id:n.id;const group=['object','sheet','section'].includes(n.kind);return <div key={n.id} data-index={v.index} ref={virtual.measureElement} role="row" className={`tf-budget-grid tf-budget-row ${mutedItems.has(itemId)?'tf-budget-row-muted':''} ${detailRow?'tf-budget-quantity-detail':''} ${group?'tf-budget-group':''} ${selected.has(itemId)?'tf-budget-selected':''}`} style={{gridTemplateColumns:grid,width,position:'absolute',top:0,transform:`translateY(${v.start}px)`,minHeight:rowHeight(n,density)}}>
-        <div className="tf-budget-expand">{expandableIds.has(n.id)&&(group||(priced&&showVV))&&<button type="button" className="tf-budget-expand-toggle" aria-label={`${collapsed.has(n.id)?'Rozbalit':'Sbalit'} ${n.code||n.description}`} aria-expanded={!collapsed.has(n.id)} title={collapsed.has(n.id)?'Rozbalit':'Sbalit'} onClick={()=>setCollapsed(toggle(collapsed,n.id))}>{collapsed.has(n.id)?'+':'−'}</button>}</div>
+        <div className="tf-budget-expand">{priced&&!showVV&&<button type="button" className="tf-budget-vv" aria-label={`Výkaz výměr: ${n.code||n.description}`} aria-expanded={expandedVV.has(n.id)} disabled={!quantityParents.has(n.id)} title={quantityParents.has(n.id)?"Výkaz výměr":"Položka nemá výkaz výměr"} onClick={()=>setExpandedVV(toggle(expandedVV,n.id))}>VV</button>}{expandableIds.has(n.id)&&(group||(priced&&showVV))&&<button type="button" className="tf-budget-expand-toggle" aria-label={`${collapsed.has(n.id)?'Rozbalit':'Sbalit'} ${n.code||n.description}`} aria-expanded={!collapsed.has(n.id)} title={collapsed.has(n.id)?'Rozbalit':'Sbalit'} onClick={()=>setCollapsed(toggle(collapsed,n.id))}>{collapsed.has(n.id)?'+':'−'}</button>}</div>
         <div className="tf-budget-check">{(priced||group)&&<input aria-label={`Vybrat ${n.code||n.description}`} type="checkbox" checked={priced?selected.has(n.id):groupItems(n).length>0&&groupItems(n).every(i=>selected.has(i.id))} onChange={e=>{if(priced)onSelected(toggle(selected,n.id));else {const ids=groupItems(n).map(i=>i.id);onSelected(e.target.checked?new Set([...selected,...ids]):new Set([...selected].filter(id=>!ids.includes(id))));}}}/>}</div>
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
@@ -134,7 +137,7 @@ export function BudgetTable(props: Props) {
         const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next]?.focus();
       }
     }}>
-      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(expandableIds));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
+      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(showVV?expandableIds:nodes.filter(n=>['object','sheet','section'].includes(n.kind)&&expandableIds.has(n.id)).map(n=>n.id)));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
       <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set());setContextMenu(null);tableRef.current?.focus();}}>Rozbalit vše</button>
       {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
     </div>}
