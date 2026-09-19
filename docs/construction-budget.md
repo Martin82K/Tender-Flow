@@ -10,6 +10,10 @@ nejsou dělicí čáry; množství zůstává ve svém sloupci.
 V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat**,
 **Hustotu** (Kompaktní / Pohodlná) a **Sloupce**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
+V **Nastavení sloupců** má každý sloupec samostatné volby **Zobrazit** a
+**Připnout**. Šipky nahoru a dolů upravují pořadí zleva doprava v tabulce,
+zvlášť mezi připnutými a ostatními sloupci. Alespoň jeden sloupec zůstává
+viditelný. **Obnovit výchozí** vrátí původní sloupce; ostatní nastavení ponechá.
 Zalamování a hustota fungují i pro pomocné řádky. Upozornění **Chybí cena**
 se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
 
