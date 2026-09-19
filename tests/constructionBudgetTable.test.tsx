@@ -62,3 +62,56 @@ it('remeasures mounted rows when wrapping changes so details cannot overlap the 
   rerender(table());
   assertNoOverlap();
 });
+
+it('collapses and expands every level from the context menu without changing filters or selection', () => {
+  const group = { ...item, quantity: null, unitPrice: null, total: null };
+  const tree: BudgetNode[] = [
+    { ...group, id: 'object', kind: 'object', code: '', description: 'Objekt školy', parentId: null },
+    { ...group, id: 'sheet', kind: 'sheet', code: '', description: 'Stavební práce', parentId: 'object' },
+    { ...group, id: 'section', kind: 'section', code: '', description: 'Základy', parentId: 'sheet' },
+    ...nodes.map(node => node.parentId ? node : { ...node, parentId: 'section' }),
+  ];
+  const onFilters = vi.fn(); const onSelected = vi.fn();
+  render(<BudgetTable {...table().props} nodes={tree} filters={{ code: { search: '123' } }} selected={new Set(['item'])} onFilters={onFilters} onSelected={onSelected}/>);
+  const target = screen.getByRole('button', { name: 'Výkop základů' });
+  fireEvent.contextMenu(target, { clientX: 150, clientY: 180 });
+  expect(screen.getByRole('menu', { name: 'Akce rozpočtu' })).toBeVisible();
+  expect(onFilters).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Sbalit vše' }));
+  expect(screen.getByRole('button', { name: '▸ Objekt školy' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Výkop základů' })).not.toBeInTheDocument();
+  // All levels are collapsed, including groups hidden by the top-level object.
+  fireEvent.click(screen.getByRole('button', { name: '▸ Objekt školy' }));
+  expect(screen.getByRole('button', { name: '▸ Stavební práce' })).toBeVisible();
+  fireEvent.contextMenu(screen.getByRole('region', { name: 'Položky rozpočtu' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Rozbalit vše' }));
+  expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
+  expect(screen.getByRole('button', { name: '3*4' })).toBeVisible();
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.queryByRole('button', { name: 'Neoceněná práce' })).not.toBeInTheDocument();
+  expect(onFilters).not.toHaveBeenCalled(); expect(onSelected).not.toHaveBeenCalled();
+});
+
+it('retains explicit value filtering and supports keyboard and outside dismissal', () => {
+  const onFilters = vi.fn();
+  render(<BudgetTable {...table().props} onFilters={onFilters}/>);
+  const target = screen.getByRole('button', { name: 'Výkop základů' });
+  fireEvent.contextMenu(target);
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Filtrovat podle této hodnoty' }));
+  expect(onFilters).toHaveBeenCalledWith({ description: { selected: ['Výkop základů'] } });
+  const region = screen.getByRole('region', { name: 'Položky rozpočtu' });
+  fireEvent.keyDown(region, { key: 'F10', shiftKey: true });
+  expect(screen.getByRole('menuitem', { name: 'Sbalit vše' })).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' });
+  expect(screen.getByRole('menuitem', { name: 'Rozbalit vše' })).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument(); expect(region).toHaveFocus();
+  fireEvent.contextMenu(target);
+  fireEvent.pointerDown(document.body);
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  fireEvent.contextMenu(target);
+  fireEvent.scroll(window);
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  fireEvent.contextMenu(screen.getByRole('textbox', { name: 'Filtr Kód' }));
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+});

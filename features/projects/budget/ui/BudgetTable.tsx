@@ -23,6 +23,7 @@ interface Props {
 const numberLabel = formatBudgetNumber;
 const isQuantityDetail = (node: BudgetNode) => node.kind === 'VV' || node.kind === 'note';
 const rowHeight = (node: BudgetNode, density: number) => isQuantityDetail(node) ? Math.max(24, density / 2) : density;
+interface BudgetContext { x: number; y: number; filter?: { column: string; values: string[] } }
 export function BudgetTable(props: Props) {
   const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
@@ -30,6 +31,31 @@ export function BudgetTable(props: Props) {
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);
   const editLock=useRef(false);
   const [editError,setEditError]=useState(''); const [busy,setBusy]=useState(false);
+  const tableRef=useRef<HTMLDivElement>(null);const menuRef=useRef<HTMLDivElement>(null);const menuOrigin=useRef<HTMLElement|null>(null);
+  const [contextMenu,setContextMenu]=useState<BudgetContext|null>(null);
+  const openContextMenu=(x:number,y:number,origin:HTMLElement,filter?:BudgetContext['filter'])=>{
+    const table=tableRef.current;if(!table)return;
+    const rect=table.getBoundingClientRect();const scaleX=rect.width/table.offsetWidth||1;const scaleY=rect.height/table.offsetHeight||1;
+    menuOrigin.current=origin.closest<HTMLElement>('button,[tabindex]')??table;
+    setContextMenu({x:(x-rect.left)/scaleX,y:(y-rect.top)/scaleY,filter});
+  };
+  const closeContextMenu=(restoreFocus=false)=>{
+    setContextMenu(null);
+    if(restoreFocus)(menuOrigin.current?.isConnected?menuOrigin.current:tableRef.current)?.focus();
+  };
+  React.useLayoutEffect(()=>{
+    const menu=menuRef.current;const table=tableRef.current;if(!contextMenu||!menu||!table)return;
+    menu.style.left=`${Math.max(4,Math.min(contextMenu.x,table.clientWidth-menu.offsetWidth-4))}px`;
+    menu.style.top=`${Math.max(4,Math.min(contextMenu.y,table.clientHeight-menu.offsetHeight-4))}px`;
+    menu.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+  },[contextMenu]);
+  React.useEffect(()=>{
+    if(!contextMenu)return;
+    const dismiss=()=>setContextMenu(null);
+    const outside=(event:PointerEvent)=>{if(event.target instanceof Node&&!menuRef.current?.contains(event.target))dismiss();};
+    document.addEventListener('pointerdown',outside);window.addEventListener('resize',dismiss);window.addEventListener('scroll',dismiss,true);
+    return ()=>{document.removeEventListener('pointerdown',outside);window.removeEventListener('resize',dismiss);window.removeEventListener('scroll',dismiss,true);};
+  },[contextMenu]);
   const items=useMemo(()=>nodes.filter(n=>isPriced(n)&&(!scope||n.sheetId===scope)),[nodes,scope]);
   const matched=useMemo(()=>filterItems(items,filters),[items,filters]);
   const mutedItems=useMemo(()=>new Set(items.filter((_,index)=>index%2===1).map(item=>item.id)),[items]);
@@ -62,7 +88,15 @@ export function BudgetTable(props: Props) {
   },[nodes,matched]);
   const groupItems=(node:BudgetNode)=>groups.get(node.id)||[];
   const totals=[['CELKEM ROZPOČET',aggregate.total],...(scope?[['CELKEM SOUPIS',aggregate.byId.get(scope)||'0.00']]:[]),['VÝSLEDKY FILTRU',sumMoney(matched.map(n=>n.total))],...(selected.size?[['VÝBĚR',sumMoney(nodes.filter(n=>selected.has(n.id)&&isPriced(n)).map(n=>n.total))]]:[])];
-  return <div className="tf-budget-table flex min-h-0 min-w-0 flex-1 flex-col">
+  return <div ref={tableRef} role="region" aria-label="Položky rozpočtu" tabIndex={-1} className="tf-budget-table flex min-h-0 min-w-0 flex-1 flex-col" onContextMenu={event=>{
+    if((event.target as HTMLElement).closest('input,textarea,select,[role="dialog"]'))return;
+    event.preventDefault();openContextMenu(event.clientX,event.clientY,event.target as HTMLElement);
+  }} onKeyDown={event=>{
+    if((event.target as HTMLElement).closest('input,textarea,select,[role="dialog"]'))return;
+    if(event.key==='ContextMenu'||(event.shiftKey&&event.key==='F10')){
+      event.preventDefault();const origin=event.target as HTMLElement;const rect=origin.getBoundingClientRect();openContextMenu(rect.left+12,rect.top+12,origin);
+    }
+  }}>
     <div ref={header} className="overflow-hidden shrink-0">
       <div role="row" className="tf-budget-grid tf-budget-heading" style={{gridTemplateColumns:grid,width}}><div><input aria-label="Vybrat všechny výsledky filtru" type="checkbox" checked={matched.length>0&&matched.every(n=>selected.has(n.id))} onChange={e=>onSelected(e.target.checked?new Set([...selected,...matched.map(n=>n.id)]):new Set([...selected].filter(id=>!matched.some(n=>n.id===id))))}/></div>
         {visibleColumns.map(c=><div key={c.key} className="relative" style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:3}:undefined}>
@@ -83,13 +117,25 @@ export function BudgetTable(props: Props) {
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
-          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={e=>{e.preventDefault();const raw=n[c.key];onFilters({...filters,[c.key]:{selected:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}});}}>{value}</div>;
+          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]});}}>{value}</div>;
         })}
       </div>;})}
       </div>
       {!matched.length&&<div className="p-8" role="status">Žádné položky neodpovídají rozsahu a filtrům.</div>}
     </div>
     <div ref={footer} className="tf-budget-totals overflow-hidden shrink-0">{totals.map(([label,total])=><div className="tf-budget-grid" style={{gridTemplateColumns:grid,width}} key={label}><div/>{visibleColumns.map((c,i)=><div className={c.numeric?'tf-budget-number':''} key={c.key}>{c.key==='total'?numberLabel(total,true):c.key==='description'?label:i===0&&!visibleColumns.some(c=>c.key==='description')?label:''}</div>)}</div>)}{aggregate.incomplete&&<p role="status">Součet neobsahuje položky bez ceny.</p>}</div>
+    {contextMenu&&<div ref={menuRef} role="menu" aria-label="Akce rozpočtu" className="tf-budget-context-menu" style={{left:contextMenu.x,top:contextMenu.y}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();}} onKeyDown={event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeContextMenu(true);}
+      else if(event.key==='Tab')closeContextMenu();
+      else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
+        event.preventDefault();const buttons=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));const index=buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next]?.focus();
+      }
+    }}>
+      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(nodes.filter(node=>['object','sheet','section'].includes(node.kind)).map(node=>node.id)));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
+      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set());setContextMenu(null);tableRef.current?.focus();}}>Rozbalit vše</button>
+      {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
+    </div>}
     {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>setFilter(null)}/>}
     {detail&&<Modal isOpen title={`Položka ${detail.code}`} onClose={()=>{if(!busy){setDetail(null);setEditError('');}}} persistent={busy}>
       <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);await onEdit({...detail,quantity,unitPrice:price,total:quantity!==null&&price!==null?multiplyMoney(quantity,price):null});setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>

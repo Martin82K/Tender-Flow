@@ -8,6 +8,10 @@
 .tf-budget-view-settings-wrap{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .tf-budget-view-settings-panel>button{text-align:left}
 .tf-budget-density legend{margin-bottom:5px;font-size:12px}.tf-budget-density>div{display:flex;gap:6px}.tf-budget-density button{flex:1;font-size:12px}.tf-budget-density button[aria-pressed=true]{border-color:var(--tf-skin-accent,#b76d42);background:color-mix(in srgb,var(--tf-skin-accent,#b76d42) 12%,var(--budget-bg))}
+.tf-budget-table{position:relative}
+.tf-budget-context-menu{position:absolute;z-index:30;display:flex;flex-direction:column;min-width:190px;max-width:calc(100% - 8px);padding:4px;border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:8px;background:var(--budget-bg);box-shadow:0 8px 24px #0002;font-size:12px}
+.tf-budget .tf-budget-context-menu button{border:0;background:none;text-align:left;padding:8px 10px}
+.tf-budget .tf-budget-context-menu .tf-budget-context-filter{border-top:1px solid var(--tf-skin-line,#cbd5e1);border-radius:0;margin-top:3px}
 .tf-budget button,.tf-budget select,.tf-budget-controls button,.tf-budget-controls select {padding:6px 10px;border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:6px;background:var(--tf-skin-surface-muted,#f1f5f9);color:var(--tf-skin-text,#172033)}
 .tf-budget button:disabled,.tf-budget-controls button:disabled {opacity:.45;cursor:not-allowed}
 .tf-budget button:hover:not(:disabled),.tf-budget button[aria-current],.tf-budget-active {outline:1px solid var(--tf-skin-accent,#b76d42)}
