@@ -18,6 +18,7 @@ interface Props {
   nodes: BudgetNode[]; scope: string; filters: BudgetFilters; onFilters: (f: BudgetFilters) => void;
   selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; wrap: boolean; density: number;
   columns: BudgetColumn[]; onColumns: (c: BudgetColumn[]) => void; canPrices: boolean; editable: boolean;
+  expandedVV?: Set<string>; onExpandedVV?: (value: Set<string>) => void;
   figures?: Record<string,string>; onEdit: (node: BudgetNode) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
 }
 const numberLabel = formatBudgetNumber;
@@ -28,7 +29,8 @@ export function BudgetTable(props: Props) {
   const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
   const [collapsed,setCollapsed]=useState(new Set<string>());
-  const [expandedVV,setExpandedVV]=useState(new Set<string>());
+  const [localVV,setLocalVV]=useState(new Set<string>());
+  const expandedVV=props.expandedVV??localVV;const setExpandedVV=props.onExpandedVV??setLocalVV;
   const quantityParents=useMemo(()=>new Set(nodes.filter(isQuantityDetail).map(n=>n.parentId)),[nodes]);
   const visibleVV=showVV?true:expandedVV;
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);

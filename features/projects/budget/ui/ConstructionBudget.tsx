@@ -24,6 +24,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   const cache=useQueryClient();const key=['construction-budget',projectId,userId];const viewKey=`tf-budget-view:${userId??'guest'}:${projectId}`;
   const [view,setView]=useState<ViewSettings>(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(viewKey)||'{}')};}catch{return defaults;}});
   const [revisionId,setRevisionId]=useState('');const [tab,setTab]=useState<'items'|'recap'|'versions'>('items');const [filters,setFilters]=useState<BudgetFilters>({});
+  const [expandedVV,setExpandedVV]=useState(new Set<string>());
   const [selected,setSelected]=useState(new Set<string>());const [notice,setNotice]=useState('');const [error,setError]=useState('');const [saving,setSaving]=useState(false);
   const [importOpen,setImportOpen]=useState(false);const [importSource,setImportSource]=useState<BudgetSource|undefined>();const [scopeOpen,setScopeOpen]=useState(false);const [scopeSearch,setScopeSearch]=useState('');
   const [jumpId,setJumpId]=useState('');const [jumpRequest,setJumpRequest]=useState(0);const [columnsOpen,setColumnsOpen]=useState(false);const [catalogOpen,setCatalogOpen]=useState(false);
@@ -38,6 +39,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   const activeVersions=index.data?.revisions.filter(r=>!r.deleted_at&&!r.purge_job_id)??[];
   const mainId=activeVersions.find(r=>r.id===index.data?.mainRevisionId)?.id||(index.data?.mainRevisionId===undefined?activeVersions[0]?.id:undefined)||[...activeVersions].sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')||a.id.localeCompare(b.id))[0]?.id||'';
   const activeId=revisionId||mainId;
+  useEffect(()=>setExpandedVV(new Set()),[activeId]);
   const revision=useQuery({queryKey:[...key,'revision',activeId],queryFn:()=>budgetApi.revision(projectId,activeId),enabled:!!activeId&&!!index.data});
   const catalog=useQuery({queryKey:['budget-catalog',organizationId,userId],queryFn:()=>budgetApi.catalog(organizationId!),enabled:!!organizationId&&!!index.data});
   const history=useQuery({queryKey:[...key,'history',activeId,revision.data?.version],queryFn:()=>budgetApi.history(projectId,activeId),enabled:!!activeId&&tab==='versions'&&!!index.data?.permissions.prices});
@@ -68,7 +70,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   const effectiveFilters:BudgetFilters=searchQuery?{...filters,$all:{search:searchQuery}}:filters;
   const activeFilters=Object.entries(effectiveFilters).filter(([,f])=>f.search||f.selected!==undefined||f.min||f.max);
   if(index.isPending)return <div className="p-6" role="status">Načítání oprávnění rozpočtu…</div>;
-  if(index.error)return <div className="p-6" role="alert">Rozpočet nelze načíst: {index.error.message}<button onClick={()=>void index.refetch()}>Zkusit znovu</button></div>;
+  if(index.error&&!index.data)return <div className="p-6" role="alert">Rozpočet nelze načíst: {index.error.message}<button onClick={()=>void index.refetch()}>Zkusit znovu</button></div>;
   const sheets=current?.document.sheets.filter(s=>s.role==='items'&&s.selected)||[];
   return <section className="tf-budget" aria-label="Rozpočet stavby">
     <div className="tf-budget-toolbar"><h2>Rozpočet stavby</h2><span>{current?.title||'Bez rozpočtu'} {current?.deleted_at?'· V koši':''} · CZK bez DPH</span><span role="status">{saving?'Ukládání…':current?`Uložení ${current.version} · ${current.status==='confirmed'?'Potvrzená':'Pracovní'}`:''}</span>
@@ -92,20 +94,20 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
         {!current.deleted_at&&current.status==='confirmed'&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving} onClick={()=>void act(async()=>{const copy=await budgetApi.save({projectId,sourceId:current.source_id,title:`${current.title} · pracovní kopie`,document:{...current.document,origin:'copy',importKey:crypto.randomUUID()},allocations:current.allocations});openVersion(copy.id);await cache.invalidateQueries({queryKey:key});})}>Vytvořit pracovní kopii</button>}
           <button disabled title="Připravujeme">Převzít do plánu VŘ</button>
         </BudgetButtonMenu>
+      </>}
         <button className="tf-budget-catalog-trigger" onClick={()=>setCatalogOpen(true)}>Firemní číselníky</button>
         <div ref={viewOptions} className="tf-budget-view-settings" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setViewOptionsOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setViewOptionsOpen(false);viewOptionsButton.current?.focus();}}}>
           <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><span aria-hidden="true" className="material-symbols-outlined">settings</span></button>
           {viewOptionsOpen&&<div id={viewOptionsId} role="group" aria-label="Nastavení zobrazení rozpočtu" className="tf-budget-view-settings-panel">
             <strong>Nastavení zobrazení</strong>
-            {tab==='items'&&<button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>}
+            {current&&tab==='items'&&<button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>}
             <label className="tf-budget-view-settings-wrap">Zalamovat text popisu<input type="checkbox" checked={view.wrap} onChange={e=>updateView({wrap:e.target.checked})}/></label>
             <fieldset className="tf-budget-density"><legend>Hustota zobrazení</legend><div><button type="button" aria-pressed={view.density===44} onClick={()=>updateView({density:44})}>Kompaktní</button><button type="button" aria-pressed={view.density===60} onClick={()=>updateView({density:60})}>Pohodlná</button></div><p className="tf-budget-density-help">Mění výšku řádků tabulky.</p></fieldset>
             <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Zobrazení sloupců <span aria-hidden="true">→</span></button>
           </div>}
         </div>
-      </>}
     </div>
-    {(error||revision.error||sources.error||catalog.error)&&<p role="alert" className="tf-budget-error">{error||revision.error?.message||sources.error?.message||catalog.error?.message}<button onClick={()=>{setError('');void cache.invalidateQueries({queryKey:key});}}>Obnovit</button></p>}
+    {(error||index.error||revision.error||sources.error||catalog.error)&&<p role="alert" className="tf-budget-error">{error||index.error?.message||revision.error?.message||sources.error?.message||catalog.error?.message}<button onClick={()=>{setError('');void cache.invalidateQueries({queryKey:key});}}>Obnovit</button></p>}
     {notice&&<p role="status" className="tf-budget-notice">{notice}<button aria-label="Zavřít oznámení" onClick={()=>setNotice('')}>×</button></p>}
     {tab==='versions'?<div className="overflow-auto p-4"><BudgetVersions revisions={index.data?.revisions??[]} sources={sources.data??[]} permissions={permissions!} purgeJobs={index.data?.purgeJobs} onPurge={async(jobId,selection)=>{try{await budgetApi.purge(projectId,jobId,selection);setRevisionId('');setSelected(new Set());setUndo(null);setNotice('Trvalé mazání dokončeno.');}finally{await cache.invalidateQueries({queryKey:key});}}} readOnly={readOnly} categoryNames={new Map(categories.map(c=>[c.id,c.title]))}
       onOpen={id=>{openVersion(id);setTab(index.data?.revisions.find(r=>r.id===id)?.deleted_at?'versions':'items');}}
@@ -115,7 +117,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
       <h3>Historie otevřené verze</h3>{history.data?.map(h=><p key={h.id}>{new Date(h.created_at).toLocaleString('cs-CZ')} · {({set_primary:'Nastavení hlavní verze',trash:'Přesunuto do koše',restore:'Obnoveno z koše',create:'Vytvoření',save:'Úprava',confirm:'Potvrzení',apply_tender_plan:'Převzetí do plánu VŘ'} as Record<string,string>)[h.event]||h.event} · verze {h.previous_version??'-'} → {h.new_version}</p>)}
     </div>:revision.isPending&&activeId?<p role="status">Načítání rozpočtu…</p>:!current?<div className="p-10"><h3>Rozpočet zatím neobsahuje žádné položky</h3><p>Nahrajte XLSX jako přílohu nebo jej převeďte na pracovní rozpočet.</p></div>:<>
       {!!activeFilters.length&&<div className="tf-budget-toolbar">{activeFilters.map(([c,f])=><button key={c} onClick={()=>{if(c==='$all'){onSearchChange?.('');return;}const next={...filters};delete next[c];setFilters(next);}}>{c==='$all'?'Hledání':DEFAULT_COLUMNS.find(col=>col.key===c)?.label}: {f.search||''} {f.selected!==undefined?`${f.selected.length} hodnot`:''} {f.min?`od ${f.min}`:''} {f.max?`do ${f.max}`:''} ×</button>)}<button onClick={()=>{setFilters({});onSearchChange?.('');}}>Vymazat všechny filtry</button></div>}
-      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async edited=>{const document=applyBudgetItemEdit(current.document,edited);await save(document);}}/>}</div>
+      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async edited=>{const document=applyBudgetItemEdit(current.document,edited);await save(document);}}/>}</div>
       {!!selected.size&&<div className="tf-budget-toolbar tf-budget-selection"><strong>{selected.size} vybraných položek napříč rozsahy</strong><button disabled={!editable||!permissions?.allocate} onClick={()=>{setCategoryId('');setAllocationQuantity('');setAllocationOpen(true);}}>Přiřadit / rozdělit do VŘ</button><ThemedNativeSelect aria-label="Štítek výběru" value={tagId} onChange={e=>setTagId(e.target.value)}><option value="">Vyberte štítek</option>{catalog.data?.filter(t=>t.kind==='tag'&&!t.archived).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</ThemedNativeSelect><button disabled={!editable||!tagId} onClick={()=>void act(()=>save({...current.document,nodes:current.document.nodes.map(n=>selected.has(n.id)?{...n,tags:[...new Set([...n.tags,tagId])]}:n)}))}>Přiřadit štítek</button><button onClick={()=>exportBudget(nodes.filter(n=>selected.has(n.id)),'vyber-rozpoctu.xlsx')}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}>Zrušit výběr</button></div>}
     </>}
     {scopeOpen&&<Modal isOpen title="Rozsah rozpočtu" onClose={()=>setScopeOpen(false)}><div className="tf-budget-controls"><label className="tf-budget-field">Hledat soupis<input autoFocus aria-label="Hledat soupis" value={scopeSearch} onChange={e=>setScopeSearch(e.target.value)} placeholder="Kód nebo název soupisu…"/></label><button onClick={()=>{updateView({scope:''});setScopeOpen(false);}}>Celý rozpočet</button><p>Připnuté a nedávné soupisy jsou první. Výběr položek zůstává zachován.</p>{!sheets.some(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch)))&&<p role="status">Žádný soupis neodpovídá hledání.</p>}{sheets.filter(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch))).sort((a,b)=>(view.pinned.includes(b.id)?100:0)+(view.recent.includes(b.id)?10:0)-(view.pinned.includes(a.id)?100:0)-(view.recent.includes(a.id)?10:0)).map(s=><div className="flex gap-2 py-1" key={s.id}><button aria-label={`Připnout ${s.title}`} onClick={()=>updateView({pinned:view.pinned.includes(s.id)?view.pinned.filter(id=>id!==s.id):[...view.pinned,s.id]})}>{view.pinned.includes(s.id)?'★':'☆'}</button><button onClick={()=>{updateView({scope:s.id,recent:[s.id,...view.recent.filter(id=>id!==s.id)].slice(0,8)});setScopeOpen(false);}}>{s.title}</button></div>)}</div></Modal>}
@@ -160,7 +162,19 @@ function BudgetColumnSettings({columns,onChange,onClose}:{columns:BudgetColumn[]
 
 function BudgetButtonMenu({label,caption,children,closeOnAction=false}:{label:string;caption:string;children:React.ReactNode;closeOnAction?:boolean}) {
   const [open,setOpen]=useState(false);
-  const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);const id=React.useId();
+  const root=useRef<HTMLDivElement>(null);const panel=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);const id=React.useId();
+  React.useLayoutEffect(()=>{
+    if(!open)return;
+    const position=()=>{
+      if(!root.current||!panel.current)return;
+      const origin=root.current.getBoundingClientRect();const menu=panel.current.getBoundingClientRect();
+      const scale=(root.current.offsetWidth?origin.width/root.current.offsetWidth:1)||1;
+      const left=Math.max(8,Math.min(origin.left,window.innerWidth-menu.width-8));
+      panel.current.style.left=`${(left-origin.left)/scale}px`;
+    };
+    position();window.addEventListener('resize',position);
+    return ()=>window.removeEventListener('resize',position);
+  },[open]);
   useEffect(()=>{
     if(!open)return;
     const dismiss=(event:PointerEvent)=>{if(event.target instanceof Node&&!root.current?.contains(event.target))setOpen(false);};
@@ -169,6 +183,6 @@ function BudgetButtonMenu({label,caption,children,closeOnAction=false}:{label:st
   },[open]);
   return <div ref={root} className="tf-budget-button-menu" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setOpen(false);trigger.current?.focus();}}}>
     <button ref={trigger} type="button" aria-label={label} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}>{caption} <span aria-hidden="true">▾</span></button>
-    {open&&<div id={id} role="group" aria-label={label} className="tf-budget-button-menu-panel" onClick={event=>{const button=event.target instanceof Element?event.target.closest('button'):null;if(closeOnAction&&button&&!button.disabled){setOpen(false);trigger.current?.focus();}}}>{children}</div>}
+    {open&&<div ref={panel} id={id} role="group" aria-label={label} className="tf-budget-button-menu-panel" onClick={event=>{const button=event.target instanceof Element?event.target.closest('button'):null;if(closeOnAction&&button&&!button.disabled){setOpen(false);trigger.current?.focus();}}}>{children}</div>}
   </div>;
 }

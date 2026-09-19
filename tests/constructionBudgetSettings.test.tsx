@@ -186,3 +186,54 @@ it('shows tree and item-scope controls only for items and preserves them when re
   expect(screen.getByRole('button', { name: 'Zobrazit strom' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Rozsah: sheet-1 ×' })).toBeVisible();
 });
+it('keeps cached budget visible when refreshing the shared index fails', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 300000 } } });
+  client.setQueryData(['construction-budget', 'p', 'u', 'index'], { revisions: [revision], mainRevisionId: 'r', permissions: { read: true, prices: true, edit: false, confirm: false, allocate: false } });
+  client.setQueryData(['construction-budget', 'p', 'u', 'revision', 'r'], revision);
+  vi.mocked(budgetApi.index).mockRejectedValue(new Error('Dočasný výpadek sítě'));
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Dočasný výpadek sítě');
+  expect(screen.getByRole('navigation', { name: 'Sekce rozpočtu' })).toBeVisible();
+  expect(screen.getByRole('region', { name: 'Položky rozpočtu' })).toBeVisible();
+});
+it('keeps company catalogs accessible without any revision and in imports', async () => {
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [], permissions: { read: true, prices: true, edit: false, confirm: false, allocate: false } });
+  const trigger = await screenAfterEmptyBudget();
+  expect(trigger).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Importy a verze' }));
+  expect(screen.getByRole('button', { name: 'Firemní číselníky' })).toBeVisible();
+});
+async function screenAfterEmptyBudget() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
+  return screen.findByRole('button', { name: 'Firemní číselníky' });
+}
+it('retains per-item quantity expansion across tabs and clears it when the revision changes', async () => {
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1200);
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400);
+  const item = { id: 'item', parentId: null, sheetId: 's', kind: 'K', order: 0, code: '123', description: 'Výkop', unit: 'm3', quantity: '12', unitPrice: '10', total: '120', source: { sheet: 'Soupis', row: 1, cells: {} }, sourceType: 'K', tags: [], tenders: [] };
+  const withRows = { ...revision, document: { ...revision.document, nodes: [item, { ...item, id: 'vv', parentId: 'item', kind: 'VV', order: 1, description: '3*4' }] } } as BudgetRevision;
+  const other = { ...withRows, id: 'other', title: 'Jiná' };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [withRows, other], mainRevisionId: 'r', permissions: { read: true, prices: true, edit: false, confirm: false, allocate: false } });
+  vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'other' ? other : withRows);
+  try {
+    await openBudget();
+    fireEvent.click(screen.getByRole('button', { name: 'Výkaz výměr: 123' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rekapitulace', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
+    expect(screen.getByRole('button', { name: 'Výkaz výměr: 123' })).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Verze rozpočtu' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Jiná · Pracovní' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Výkaz výměr: 123' })).toHaveAttribute('aria-expanded', 'false'));
+  } finally { width.mockRestore(); height.mockRestore(); }
+});
+it('keeps a wrapped dropdown inside the viewport', async () => {
+  const geometry = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    return { x: 8, y: 80, left: 8, top: 80, right: this.classList.contains('tf-budget-button-menu-panel') ? 308 : 68, bottom: 112, width: this.classList.contains('tf-budget-button-menu-panel') ? 300 : 60, height: 32, toJSON: () => ({}) };
+  });
+  try {
+    await openBudget();
+    fireEvent.click(screen.getByRole('button', { name: 'Verze rozpočtu' }));
+    expect(screen.getByRole('group', { name: 'Verze rozpočtu', exact: true }).style.left).toBe('0px');
+  } finally { geometry.mockRestore(); }
+});
