@@ -20,6 +20,29 @@ async function openBudget() {
   render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
   return screen.findByRole('button', { name: 'Nastavení zobrazení' });
 }
+it('toggles cell grid lines and restores the saved preference after reopening', async () => {
+  fireEvent.click(await openBudget());
+  const grid = screen.getByRole('checkbox', { name: 'Zobrazit mřížku' });
+  expect(grid).not.toBeChecked();
+  expect(screen.getByRole('region', { name: 'Rozpočet stavby' })).not.toHaveClass('tf-budget-show-grid');
+  fireEvent.click(grid);
+  expect(screen.getByRole('region', { name: 'Rozpočet stavby' })).toHaveClass('tf-budget-show-grid');
+  await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({ grid: true }));
+  cleanup();
+  fireEvent.click(await openBudget());
+  expect(screen.getByRole('checkbox', { name: 'Zobrazit mřížku' })).toBeChecked();
+  expect(screen.getByRole('region', { name: 'Rozpočet stavby' })).toHaveClass('tf-budget-show-grid');
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Zobrazit mřížku' }));
+  expect(screen.getByRole('region', { name: 'Rozpočet stavby' })).not.toHaveClass('tf-budget-show-grid');
+  await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({ grid: false }));
+});
+it('defaults the grid off for older saved settings while retaining other preferences', async () => {
+  localStorage.setItem('tf-budget-view:u:p', JSON.stringify({ wrap: true, density: 60 }));
+  fireEvent.click(await openBudget());
+  expect(screen.getByRole('checkbox', { name: 'Zobrazit mřížku' })).not.toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' })).toBeChecked();
+  expect(screen.getByRole('button', { name: 'Pohodlná' })).toHaveAttribute('aria-pressed', 'true');
+});
 it('keeps view controls under settings and preserves their saved values', async () => {
   const trigger = await openBudget();
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
