@@ -3980,7 +3980,7 @@ html.dark[data-skin="nature"] {
   color-scheme: dark;
 }
 
-/* TF basic: landing-inspired solid surfaces, with independent light and dark palettes. */
+/* TF basic: coffee light palette and an independent warm dark palette. */
 html[data-skin="basic"] {
   --tf-skin-bg: #f5f2ec;
   --tf-skin-surface: #fffefb;
@@ -3995,17 +3995,18 @@ html[data-skin="basic"] {
   --tf-skin-line-2: #b9aea0;
   --tf-skin-grid: transparent;
   --tf-skin-grid-2: transparent;
-  --tf-skin-accent: #af4821;
-  --tf-skin-accent-2: #983e1b;
-  --tf-skin-orange: #af4821;
-  --tf-skin-orange-deep: #983e1b;
+  --tf-skin-accent: #705743;
+  --tf-skin-accent-2: #594331;
+  --tf-skin-accent-soft: #ded2c5;
+  --tf-skin-orange: #705743;
+  --tf-skin-orange-deep: #594331;
   --tf-skin-green: #24633f;
   --tf-skin-blue: #24549a;
   --tf-skin-rose: #b4233e;
   --tf-skin-amber: #8f5a13;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-active-background: #af4821;
+  --tf-settings-active-background: #705743;
   --tf-settings-active-foreground: #ffffff;
   color-scheme: light;
 }
@@ -4026,6 +4027,7 @@ html.dark[data-skin="basic"] {
   --tf-skin-grid-2: transparent;
   --tf-skin-accent: #eaa079;
   --tf-skin-accent-2: #ffc5a1;
+  --tf-skin-accent-soft: initial;
   --tf-skin-orange: #eaa079;
   --tf-skin-orange-deep: #ffc5a1;
   --tf-skin-green: #90cca5;
@@ -4181,7 +4183,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-p
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/10,
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/15 {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%)) !important;
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .border-primary,
@@ -4207,7 +4209,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button[data-active="true"] {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%)) !important;
   border-color: color-mix(in srgb, var(--tf-skin-accent) 52%, var(--tf-skin-line) 48%) !important;
   color: var(--tf-skin-orange-deep) !important;
   box-shadow: 0 3px 10px color-mix(in srgb, var(--tf-skin-bg) 18%, transparent) !important;
@@ -4222,7 +4224,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [data-help-id="tender-plan-header-icon"],
   [data-help-id="tender-plan-tip"]
 ) {
-  background: color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-card) 89%) !important;
+  background: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-card) 89%)) !important;
   border-color: color-mix(in srgb, var(--tf-skin-accent) 35%, var(--tf-skin-line) 65%) !important;
 }
 
@@ -4244,7 +4246,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="bg-indigo-500/10"],
   [class~="bg-sky-100"]
 ) {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%)) !important;
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
@@ -4623,7 +4625,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-s
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar [data-active="true"] {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%)) !important;
   color: var(--tf-skin-orange-deep) !important;
 }
 
@@ -5142,7 +5144,7 @@ html:not([data-skin="space"]) :is(.tf-button-success, .tf-button-warning)::befor
 html[data-skin="basic"] {
   --primary: var(--tf-skin-accent);
   --primary-subtle: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card));
-  --primary-soft: color-mix(in srgb, var(--tf-skin-accent) 16%, var(--tf-skin-card));
+  --primary-soft: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 16%, var(--tf-skin-card)));
   --primary-muted: var(--tf-skin-accent);
   --primary-strong: var(--tf-skin-orange-deep);
   --primary-foreground: var(--tf-settings-active-foreground);

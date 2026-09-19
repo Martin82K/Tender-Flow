@@ -205,10 +205,15 @@ Kontrast ověřuje `tests/publicPalette.test.ts`, navázání akcentů
 
 ## TF basic
 
-Volitelný skin `basic` nabízí světlou paletu navazující na landing page
+Volitelný skin `basic` nabízí světlou kávovou paletu
 a samostatnou tmavou variantu s teplými antracitovými plochami. Používá
 společnou vrstvu panelů, tabulek, formulářů a nastavení, plné krytí a žádné
 obrazové dekorace ani blur. Tokeny Appica jsou navázané na stejnou paletu.
+Ve světlém režimu používají zvýrazněné plochy společný token
+`--tf-skin-accent-soft` (`#DED2C5`, káva s mlékem), také kapitoly rozpočtu
+a aktivní navigace. Primární akce a odkazy používají tmavší kávové odstíny
+`#705743` a `#594331` pro čitelný kontrast. Tmavý režim má vlastní paletu
+a tento světlý token resetuje; ostatní skiny používají své původní směsi barev.
 Výchozí skin zůstává `industrial`; volba TF basic ani změna režimu nemění
 uloženou primární barvu ostatních skinů. `tests/basicTheme.test.tsx` ověřuje
 výběr, persistenci, automatický režim, odstranění předchozího dekoru a kontrast.
