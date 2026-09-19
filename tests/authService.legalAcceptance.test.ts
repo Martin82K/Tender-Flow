@@ -198,19 +198,26 @@ describe("authService legal acceptance", () => {
 });
 
 describe("Auth password recovery service", () => {
-  beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); vi.stubGlobal("crypto", webcrypto); });
+  const recoverySession = { user: { id: "recovery-user" }, access_token: "recovery-access", expires_at: Date.now()/1000 + 3600 };
+  const request = vi.fn();
+  beforeEach(() => {
+    vi.clearAllMocks(); sessionStorage.clear(); vi.stubGlobal("crypto", webcrypto); vi.stubGlobal("fetch", request);
+    mockState.verifyOtp.mockResolvedValue({ data: { session: recoverySession }, error: null });
+    mockState.authGetSession.mockResolvedValue({ data: { session: recoverySession }, error: null });
+    request.mockResolvedValue({ ok: true });
+  });
   afterEach(() => vi.unstubAllGlobals());
-  it("verifies only recovery tokens and updates the current authenticated user", async () => {
-    mockState.verifyOtp.mockResolvedValue({ data: { session: { user: { id: "recovery-user" }, expires_at: Date.now()/1000 + 3600 } }, error: null });
-    mockState.updateUser.mockResolvedValue({ error: null });
+  it("pins password update to the verified recovery identity and removes its marker", async () => {
     await authService.verifyPasswordRecoveryToken("hash");
-    await authService.updateRecoveredPassword("new-password");
+    await authService.updateRecoveredPassword("new-password", "hash");
     expect(mockState.verifyOtp).toHaveBeenCalledWith({ token_hash: "hash", type: "recovery" });
-    expect(mockState.updateUser).toHaveBeenCalledWith({ password: "new-password" });
+    expect(request).toHaveBeenCalledWith(expect.stringContaining("/auth/v1/user"), expect.objectContaining({
+      method: "PUT", headers: expect.objectContaining({ Authorization: "Bearer recovery-access" }), body: JSON.stringify({password: "new-password"}),
+    }));
+    expect(mockState.updateUser).not.toHaveBeenCalled();
+    expect(await authService.hasVerifiedPasswordRecoveryToken("hash")).toBe(false);
   });
   it("binds reload recovery to the verified token fingerprint, user and lifetime", async () => {
-    mockState.verifyOtp.mockResolvedValue({ data: { session: { user: { id: "recovery-user" }, expires_at: Date.now()/1000 + 3600 } }, error: null });
-    mockState.authGetSession.mockResolvedValue({ data: { session: { user: { id: "recovery-user" } } }, error: null });
     await authService.verifyPasswordRecoveryToken("private-recovery-token");
     expect(sessionStorage.getItem("tf-password-recovery-verification")).not.toContain("private-recovery-token");
     expect(await authService.hasVerifiedPasswordRecoveryToken("private-recovery-token")).toBe(true);
@@ -221,10 +228,27 @@ describe("Auth password recovery service", () => {
     sessionStorage.setItem("tf-password-recovery-verification", JSON.stringify({ ...marker, expiresAt: 0 }));
     expect(await authService.hasVerifiedPasswordRecoveryToken("private-recovery-token")).toBe(false);
   });
-  it("propagates verification and password policy errors", async () => {
+  it("rejects password update after a cross-tab identity change", async () => {
+    await authService.verifyPasswordRecoveryToken("identity-token");
+    mockState.authGetSession.mockResolvedValue({ data: { session: { user: { id: "another-user" }, access_token: "another-access" } }, error: null });
+    await expect(authService.updateRecoveredPassword("new-password", "identity-token")).rejects.toThrow("Neplatná relace");
+    expect(request).not.toHaveBeenCalled();
+  });
+  it("keeps the captured identity if the shared session changes as the request starts", async () => {
+    await authService.verifyPasswordRecoveryToken("race-token");
+    request.mockImplementationOnce(async (_url, options) => {
+      mockState.authGetSession.mockResolvedValue({ data: { session: { user: { id: "another-user" }, access_token: "another-access" } }, error: null });
+      expect(options.headers.Authorization).toBe("Bearer recovery-access");
+      return {ok:true};
+    });
+    await authService.updateRecoveredPassword("new-password", "race-token");
+  });
+  it("propagates verification failures and retains retry after a password policy failure", async () => {
+    await authService.verifyPasswordRecoveryToken("policy-token");
+    request.mockResolvedValueOnce({ok:false});
+    await expect(authService.updateRecoveredPassword("weak", "policy-token")).rejects.toThrow("Nastavení hesla se nezdařilo");
+    expect(await authService.hasVerifiedPasswordRecoveryToken("policy-token")).toBe(true);
     mockState.verifyOtp.mockResolvedValue({ error: new Error("expired") });
-    mockState.updateUser.mockResolvedValue({ error: new Error("password policy") });
     await expect(authService.verifyPasswordRecoveryToken("hash")).rejects.toThrow("expired");
-    await expect(authService.updateRecoveredPassword("weak")).rejects.toThrow("password policy");
   });
 });

@@ -12,7 +12,6 @@ export const ResetPasswordPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [token, setToken] = useState("");
   const [isAuthRecovery, setIsAuthRecovery] = useState(false);
-  const [recoveryVerified, setRecoveryVerified] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -21,7 +20,6 @@ export const ResetPasswordPage: React.FC = () => {
     const authToken = params.get("auth_token_hash");
     const tokenParam = authToken || params.get("token");
     setIsAuthRecovery(Boolean(authToken));
-    setRecoveryVerified(false);
     setToken(tokenParam || "");
     if (tokenParam) {
       setToken(tokenParam);
@@ -52,13 +50,10 @@ export const ResetPasswordPage: React.FC = () => {
 
     try {
       if (isAuthRecovery) {
-        if (!recoveryVerified) {
-          if (!await authService.hasVerifiedPasswordRecoveryToken(token)) {
-            await authService.verifyPasswordRecoveryToken(token);
-          }
-          setRecoveryVerified(true);
+        if (!await authService.hasVerifiedPasswordRecoveryToken(token)) {
+          await authService.verifyPasswordRecoveryToken(token);
         }
-        await authService.updateRecoveredPassword(password);
+        await authService.updateRecoveredPassword(password, token);
       } else {
         await authService.confirmPasswordReset(token, password);
       }

@@ -35,7 +35,9 @@ const run = (query, onData) => new Promise((resolve, reject) => {
     if (count !== '1') throw Error(`Concurrent confirmations created ${count} organizations instead of one`);
     const memberships = sql(`SELECT count(*) FROM public.organization_members WHERE user_id IN('${firstId}','${secondId}');`);
     if (memberships !== '2') throw Error('Both confirmed users must have membership');
-    console.log('PASS: simultaneous first confirmations share one organization');
+    const trials = sql(`SELECT count(*) FROM public.organizations WHERE owner_user_id IN('${firstId}','${secondId}') AND subscription_status='trial';`);
+    if (trials !== '1') throw Error('Additional address of a full company must not mint another trial');
+    console.log('PASS: simultaneous confirmations share one company and only one trial');
   } finally {
     sql(`DELETE FROM public.organizations WHERE owner_user_id IN('${firstId}','${secondId}'); DELETE FROM auth.users WHERE id IN('${firstId}','${secondId}');`);
   }

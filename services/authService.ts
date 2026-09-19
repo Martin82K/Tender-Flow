@@ -1,4 +1,5 @@
 import { getStoredAuthSessionRaw, supabase } from './supabase';
+import { getPublicEnvValue } from '@/shared/config/publicEnv';
 import type { Session } from '@supabase/supabase-js';
 import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
@@ -27,6 +28,19 @@ const RECOVERY_VERIFICATION_KEY = 'tf-password-recovery-verification';
 const recoveryFingerprint = async (tokenHash: string): Promise<string> => {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tokenHash));
     return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+interface RecoveryVerification { fingerprint: string; userId: string; expiresAt: number }
+let memoryRecoveryVerification: RecoveryVerification | null = null;
+const verifiedRecoverySession = async (tokenHash: string): Promise<Session | null> => {
+    try {
+        let marker = memoryRecoveryVerification;
+        try { marker = JSON.parse(sessionStorage.getItem(RECOVERY_VERIFICATION_KEY) || 'null') || marker; } catch { /* Memory supports storage-disabled browsers. */ }
+        if (!marker || typeof marker.userId !== 'string' || typeof marker.expiresAt !== 'number'
+            || marker.expiresAt <= Date.now() || marker.fingerprint !== await recoveryFingerprint(tokenHash)) return null;
+        const { data, error } = await supabase.auth.getSession();
+        return !error && data.session?.user?.id === marker.userId ? data.session : null;
+    } catch { return null; }
 };
 
 const DEFAULT_PREFERENCES = {
@@ -912,28 +926,34 @@ export const authService = {
         const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
         if (error) throw error;
         if (!data.session?.user?.id) throw new Error('Nepodařilo se ověřit relaci pro obnovu hesla.');
-        try {
-            sessionStorage.setItem(RECOVERY_VERIFICATION_KEY, JSON.stringify({
-                fingerprint: await recoveryFingerprint(tokenHash),
-                userId: data.session.user.id,
-                expiresAt: Math.min((data.session.expires_at ?? Date.now() / 1000 + 3600) * 1000, Date.now() + 3600000),
-            }));
-        } catch { /* The mounted form still supports retry when browser storage is unavailable. */ }
+        memoryRecoveryVerification = {
+            fingerprint: await recoveryFingerprint(tokenHash),
+            userId: data.session.user.id,
+            expiresAt: Math.min((data.session.expires_at ?? Date.now() / 1000 + 3600) * 1000, Date.now() + 3600000),
+        };
+        try { sessionStorage.setItem(RECOVERY_VERIFICATION_KEY, JSON.stringify(memoryRecoveryVerification)); }
+        catch { /* The in-memory marker still supports retries while this page stays open. */ }
     },
 
-    hasVerifiedPasswordRecoveryToken: async (tokenHash: string): Promise<boolean> => {
-        try {
-            const marker = JSON.parse(sessionStorage.getItem(RECOVERY_VERIFICATION_KEY) || 'null');
-            if (!marker || typeof marker.userId !== 'string' || typeof marker.expiresAt !== 'number'
-                || marker.expiresAt <= Date.now() || marker.fingerprint !== await recoveryFingerprint(tokenHash)) return false;
-            const { data, error } = await supabase.auth.getSession();
-            return !error && Boolean(data.session?.user?.id && data.session.user.id === marker.userId);
-        } catch { return false; }
-    },
+    hasVerifiedPasswordRecoveryToken: async (tokenHash: string): Promise<boolean> =>
+        Boolean(await verifiedRecoverySession(tokenHash)),
 
-    updateRecoveredPassword: async (password: string): Promise<void> => {
-        const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
+    updateRecoveredPassword: async (password: string, tokenHash: string): Promise<void> => {
+        const session = await verifiedRecoverySession(tokenHash);
+        if (!session?.access_token) throw new Error('Neplatná relace pro obnovu hesla. Otevřete nový odkaz.');
+        // Bind the request to the verified snapshot: a cross-tab sign-in must not
+        // make the shared Auth client update a different account during this await.
+        const url = getPublicEnvValue('VITE_SUPABASE_URL', import.meta.env.VITE_SUPABASE_URL);
+        const key = getPublicEnvValue('VITE_SUPABASE_ANON_KEY', import.meta.env.VITE_SUPABASE_ANON_KEY);
+        const response = await fetch(`${url}/auth/v1/user`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', apikey: key, Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ password }),
+            signal: AbortSignal.timeout(15000),
+        });
+        await response.body?.cancel();
+        if (!response.ok) throw new Error('Nastavení hesla se nezdařilo. Zkontrolujte požadavky na heslo nebo požádejte o nový odkaz.');
+        memoryRecoveryVerification = null;
         try { sessionStorage.removeItem(RECOVERY_VERIFICATION_KEY); } catch { /* Storage may be disabled. */ }
     },
 

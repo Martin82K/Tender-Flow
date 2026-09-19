@@ -37,7 +37,7 @@ describe("password recovery", () => {
     submit();
     expect(await screen.findByText("Heslo změněno!")).toBeInTheDocument();
     expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledWith("signed-hash");
-    expect(state.updateRecoveredPassword).toHaveBeenCalledWith("new-password");
+    expect(state.updateRecoveredPassword).toHaveBeenCalledWith("new-password", "signed-hash");
     expect(state.verifyPasswordRecoveryToken.mock.invocationCallOrder[0]).toBeLessThan(state.updateRecoveredPassword.mock.invocationCallOrder[0]);
     expect(state.confirmPasswordReset).not.toHaveBeenCalled();
   });
@@ -55,6 +55,7 @@ describe("password recovery", () => {
     render(<ResetPasswordPage />);
     submit();
     await screen.findByText(/Nastavení hesla se nezdařilo/);
+    state.hasVerifiedPasswordRecoveryToken.mockResolvedValue(true);
     submit();
     await screen.findByText("Heslo změněno!");
     expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledTimes(1);
@@ -73,6 +74,18 @@ describe("password recovery", () => {
     submit();
     await screen.findByText("Heslo změněno!");
     expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledTimes(1);
+  });
+  it("rejects retry when another tab changed the recovery identity", async () => {
+    testConsoleGuard.expect("error", "Reset confirmation error: Error: Network error");
+    testConsoleGuard.expect("error", "Reset confirmation error: Error: Recovery identity changed");
+    state.updateRecoveredPassword.mockRejectedValueOnce(new Error("Network error"));
+    render(<ResetPasswordPage />); submit();
+    await screen.findByText(/Nastavení hesla se nezdařilo/);
+    state.hasVerifiedPasswordRecoveryToken.mockResolvedValue(false);
+    state.verifyPasswordRecoveryToken.mockRejectedValue(new Error("Recovery identity changed"));
+    submit();
+    await waitFor(() => expect(state.verifyPasswordRecoveryToken).toHaveBeenCalledTimes(2));
+    expect(state.updateRecoveredPassword).toHaveBeenCalledTimes(1);
   });
   it("preserves legacy password reset links", async () => {
     state.search = "?token=legacy-token";

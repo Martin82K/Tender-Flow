@@ -209,10 +209,10 @@ BEGIN
     SELECT 1 FROM public.organizations
     WHERE id = personal_org_id
       AND type = 'personal'
-      AND subscription_tier = 'enterprise'
-      AND subscription_status = 'trial'
+      AND subscription_tier = 'free'
+      AND subscription_status = 'expired'
   ) THEN
-    RAISE EXCEPTION 'User over the seat limit must receive a personal trial organization';
+    RAISE EXCEPTION 'User over the seat limit must not receive another trial';
   END IF;
 
   PERFORM set_config(
