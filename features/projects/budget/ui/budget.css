@@ -77,3 +77,18 @@
 .tf-budget-incomplete{font-size:10px;color:var(--tf-skin-muted,#64748b);font-weight:500;white-space:normal}.tf-budget-recap>p.tf-budget-incomplete{padding:6px 0}
 .tf-budget-controls input:not([type=checkbox]):not([type=radio]),.tf-budget-controls textarea,.tf-budget input:not([type=checkbox]):not([type=radio]){font-size:13px;line-height:1.5}.tf-budget-controls input::placeholder,.tf-budget input::placeholder,.tf-budget-controls textarea::placeholder{font-size:inherit;color:var(--tf-skin-muted,#64748b);opacity:.85}
 .tf-budget-catalog-form input{min-height:36px}
+
+/* Expand only the review step; the initial file picker stays compact. */
+.tf-modal-panel:has(.tf-budget-import-review) {max-width:1200px}
+.tf-budget-import-review {display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.tf-budget-import-selection,.tf-budget-import-inspection {display:flex;flex-direction:column;gap:12px;min-width:0}
+.tf-budget-import-inspection {overflow-wrap:anywhere}
+.tf-budget-import-review .tf-budget-existing-file>div {min-width:0}
+.tf-budget-import-review .tf-budget-existing-file>svg {flex-shrink:0}
+.tf-budget-import-review .tf-budget-sheet-tools input {min-width:0;flex:1}
+.tf-budget-import-review .tf-budget-sheet-tools button {flex-shrink:0}
+@media(min-width:900px) {
+  .tf-budget-import-review {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}
+  .tf-budget-import-inspection {border-left:1px solid var(--tf-skin-line,#cbd5e1);padding-left:24px}
+  .tf-budget-import-review .tf-budget-sheet-list {max-height:clamp(190px,calc(100dvh - 370px),560px)}
+}

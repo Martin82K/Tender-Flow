@@ -27,6 +27,10 @@ Při souběžné změně verze server změnu odmítne a je potřeba obnovit sezn
 Uložená příloha se převádí přímo z privátního úložiště. První import vytváří rozpočet,
 navazující importy samostatné verze. Soubor zaznamenává první a poslední převod;
 pracovní kopie datum převodu nemění. Výběr soupisů využívá dostupnou výšku okna.
+Kontrola importu se na široké obrazovce zobrazí v dialogu až 1 200 px: vlevo
+je soubor, název rozpočtu a výběr soupisů, vpravo pokročilé mapování, kontrola
+dat a případné porovnání s předchozí verzí. Na úzkých obrazovkách jsou sekce
+pod sebou. Tlačítko pro vytvoření rozpočtu zůstává v patičce mimo posouvaný obsah.
 Nerozpoznané listy jsou výslovně označené jako neověřená úplnost. Konfliktní figury
 obsahují konkrétní kódy a hodnoty ke kontrole. Jejich aritmetické použití se nepovolí
 odhadem, uložené ceny a množství se však importují beze změny.

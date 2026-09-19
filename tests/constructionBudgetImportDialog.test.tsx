@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BudgetImportDialog } from '@features/projects/budget/ui/BudgetImportDialog';
 import { importInWorker } from '@features/projects/budget/api/importWorker';
@@ -50,6 +50,34 @@ describe('budget import dialog', () => {
     expect(screen.getByText('Import ani potvrzení to neblokuje.')).toBeVisible();
     fireEvent.click(screen.getByRole('button',{name:'Žádný'}));
     expect(screen.getByRole('button',{name:'Vytvořit rozpočet'})).toBeDisabled();
+  });
+
+  it('keeps sheet selection and mapping in named regions with shared validation', async () => {
+    vi.mocked(importInWorker).mockResolvedValue({
+      schemaVersion: 1, figures: {}, nodes: [],
+      sheets: [
+        { id: 's1', name: 'Zemní práce', role: 'items', object: 'SO 1', title: 'Zemní práce', headerRow: 1, selected: true },
+        { id: 's2', name: 'Elektro', role: 'items', object: 'SO 2', title: 'Elektro', headerRow: 1, selected: true },
+      ],
+      issues: [{ sheet: 'Elektro', row: 3, severity: 'error', message: 'Chybí množství.' }],
+    });
+    render(<BudgetImportDialog projectId="p" source={{ id: 's', project_id: 'p', filename: 'rozpocet.xlsx', storage_path: 's', sha256: 'a', status: 'ready', created_at: '2026-09-19T10:00:00Z' }} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    const selection = within(await screen.findByRole('region', { name: 'Výběr soupisů' }));
+    const review = within(screen.getByRole('complementary', { name: 'Mapování a kontrola importu' }));
+    expect(selection.getByText('rozpocet.xlsx')).toBeVisible();
+    expect(selection.getByLabelText('Název rozpočtu')).toHaveValue('Výchozí rozpočet');
+    fireEvent.click(review.getByText(/Co zkontrolovat/));
+    fireEvent.click(review.getByRole('button', { name: 'Zkontrolovat mapování listu' }));
+    expect(review.getByText('Pokročilé mapování sloupců').closest('details')).toHaveAttribute('open');
+    expect(review.getByLabelText('Název soupisu')).toHaveValue('Elektro');
+    fireEvent.click(selection.getByRole('checkbox', { name: 'Zařadit Elektro' }));
+    expect(review.getByText('Import lze dokončit')).toBeVisible();
+    expect(review.getByText(/Vybráno 1 z 2 soupisů/)).toBeVisible();
+    fireEvent.click(selection.getByRole('button', { name: 'Žádný' }));
+    expect(screen.getByRole('button', { name: 'Vytvořit rozpočet' })).toBeDisabled();
+    fireEvent.click(selection.getByRole('button', { name: 'Vše' }));
+    expect(screen.getByRole('button', { name: 'Vytvořit rozpočet' })).toBeEnabled();
+    expect(review.getByText('Lze uložit pracovní rozpočet, potvrzení je blokované')).toBeVisible();
   });
 
   it('shows the selected filename and enables continuing without uploading automatically', () => {
