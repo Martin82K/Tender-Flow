@@ -41,5 +41,5 @@ describe('KROS conversion', () => {
 });
 it('excludes conflicting figures from arithmetic while keeping values available for review',()=>{
  const w=workbook();XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet([['Kód','Výměra'],['F1',2],['F1',3],['F1',4],['OK',0]]),'Seznam figur');
- const d=parseKrosWorkbook(w);expect(d.figures.F1).toBeUndefined();expect(d.figures.OK).toBe('0');expect(d.issues.find(i=>i.kind==='ambiguous-figures')?.figures).toEqual([{code:'F1',values:['2','3','4']}]);expect(aggregateBudget(d.nodes).total).toBe('50.00');
+ const d=parseKrosWorkbook(w);expect(d.figures.F1).toBeUndefined();expect(d.figures.OK).toBe('0');expect(d.issues.find(i=>i.kind==='ambiguous-figures')?.figures).toMatchObject([{code:'F1',values:['2','3','4']}]);expect(aggregateBudget(d.nodes).total).toBe('50.00');
 });

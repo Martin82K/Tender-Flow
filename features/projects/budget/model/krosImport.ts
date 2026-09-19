@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { Unzip, UnzipInflate } from 'fflate';
 import { decimal, money, multiplyMoney, normalizeSearch } from './budgetModel';
-import type { BudgetDocument, BudgetNode, BudgetSheet, SourceCell } from './types';
+import type { BudgetDocument, BudgetNode, BudgetSheet, FigureConflict, FigureSource, SourceCell } from './types';
 
 export interface KrosSheetMapping { headerRow?: number; columns?: Record<string,number>; role?: BudgetSheet['role']; object?: string; title?: string }
 export type KrosMapping = Record<string,KrosSheetMapping>;
@@ -32,7 +32,7 @@ const text = (v: unknown) => v === undefined || v === null ? '' : String(v);
 export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: number, total: number) => void, overrides: KrosMapping = {}): BudgetDocument {
   if (workbook.SheetNames.length > XLSX_LIMITS.sheets) throw new Error('Příliš mnoho listů.');
   const document: BudgetDocument = { schemaVersion: 1, sheets: [], nodes: [], issues: [], figures: {} };
-  const ambiguousFigures = new Set<string>();
+  const figureSources = new Map<string, FigureSource[]>();
   let rowCount = 0;
   for (const [sheetIndex, name] of workbook.SheetNames.entries()) {
     const sheet = workbook.Sheets[name]; const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
@@ -57,12 +57,19 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       const figureHeader=rows.findIndex(row=>row.some(v=>normalizeSearch(text(v))==='vymera')&&row.some(v=>normalizeSearch(text(v))==='kod'));
       if(figureHeader>=0){
         const labels=rows[figureHeader].map(v=>normalizeSearch(text(v))); const codeColumn=labels.indexOf('kod'); const valueColumn=labels.indexOf('vymera');
-        const duplicates=new Map<string,Set<string>>();
-        for(const row of rows.slice(figureHeader+1)){
-          const code=text(row[codeColumn]); if(!/^[A-Za-z_][A-Za-z_0-9]*$/.test(code)||row[valueColumn]===null)continue;
-          try{const value=decimal(row[valueColumn]); if(value!==null){if(Object.hasOwn(document.figures,code)&&document.figures[code]!==value){duplicates.set(code,new Set([document.figures[code],value]));ambiguousFigures.add(code);delete document.figures[code];}else if(ambiguousFigures.has(code)){const values=duplicates.get(code)??new Set<string>();values.add(value);duplicates.set(code,values);}else document.figures[code]=value;}}catch{/* Original remains in the immutable workbook; never guess a value. */}
+        for (let rowIndex = figureHeader + 1; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex]; const code = text(row[codeColumn]);
+          if (code.length > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
+          if (!/^[A-Za-z_][A-Za-z_0-9]*$/.test(code) || row[valueColumn] === null) continue;
+          try {
+            const value = decimal(row[valueColumn]);
+            if (value !== null) {
+              const sources = figureSources.get(code) ?? [];
+              sources.push({ sheet: name, row: rowIndex + 1, cell: XLSX.utils.encode_cell({ r: rowIndex, c: valueColumn }), value });
+              figureSources.set(code, sources);
+            }
+          } catch { /* Never infer a missing numeric value or execute a workbook formula. */ }
         }
-        if(duplicates.size)document.issues.push({sheet:name,row:figureHeader+1,severity:'warning',kind:'ambiguous-figures',figures:[...duplicates].map(([code,values])=>({code,values:[...values]})),message:'Některé figury mají více různých hodnot. Uložená množství a ceny položek jsou zachované. Jen přepočet výrazů s těmito figurami vyžaduje kontrolu originálu.'});
       }
     }
     if (role !== 'items') { progress?.(sheetIndex + 1, workbook.SheetNames.length); continue; }
@@ -113,6 +120,19 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       document.nodes.push({ id, parentId, sheetId, kind, order: document.nodes.length, code: text(row[mapping.code]), description: text(row[mapping.description]), unit: text(row[mapping.unit]), quantity, unitPrice, total, source: { sheet: name, row: r + 1, cells }, sourceType: rawKind, tags: [], tenders: [] });
     }
     progress?.(sheetIndex + 1, workbook.SheetNames.length);
+  }
+  const conflicts: FigureConflict[] = [];
+  const figures = new Map<string, string>();
+  for (const [code, sources] of figureSources) {
+    const values = [...new Set(sources.map(source => source.value))];
+    if (values.length === 1) figures.set(code, values[0]);
+    else conflicts.push({ code, values, sources });
+  }
+  document.figures = Object.fromEntries(figures);
+  if (conflicts.length) {
+    const first = conflicts[0].sources![0];
+    document.issues.push({ sheet: first.sheet, row: first.row, severity: 'warning', kind: 'ambiguous-figures', figures: conflicts,
+      message: 'Některé figury mají více různých hodnot. Vyberte hodnoty pro přepočet výkazu výměr. Uložená množství a ceny položek zůstávají zachované.' });
   }
   return document;
 }

@@ -35,6 +35,29 @@ Nerozpoznané listy jsou výslovně označené jako neověřená úplnost. Konfl
 obsahují konkrétní kódy a hodnoty ke kontrole. Jejich aritmetické použití se nepovolí
 odhadem, uložené ceny a množství se však importují beze změny.
 
+### Vyřešení konfliktů figur před importem
+
+V pravém panelu **Konflikty figur** rozbalte kód figury. U nalezených hodnot
+vidíte zdrojový list, řádek a buňku. Výběrem hodnoty konflikt vyřešíte; případně
+zadejte vlastní číslo (i s desetinnou čárkou) a potvrďte **Použít hodnotu**.
+Rozpracované číslo bez tohoto potvrzení se nepoužije. **Zrušit volbu** vrátí
+figuru do nevyřešeného stavu. Počítadlo ukazuje, kolik konfliktů je vyřešeno.
+
+Volba platí pro kód v celém importovaném rozpočtu. **Použití ve výkazu výměr**
+ukazuje odkazy na přesný kód v rozpoznaných řádcích VV, včetně nezařazených
+soupisů; u rozsáhlého seznamu se zobrazí prvních 50 výskytů a jejich celkový počet.
+Nejde o úplný rozbor všech excelových vzorců. Před volbou ověřte kontext:
+stejný kód může být v původním sešitu použit pro různé části stavby.
+
+Rozhodnutí se ukládá s verzí rozpočtu v `figureResolutions` (hodnota a původ
+`source` nebo `custom`); původní konflikty a jejich zdrojové buňky zůstávají
+v dokumentu pro dohledání. Vyřešená figura je dostupná pro následný výslovný
+přepočet VV. Samotná volba nemění uložená množství, ceny ani originální XLSX.
+Nové rozpoznání s upraveným mapováním všechny volby zahodí a konflikty určí znovu.
+Starší dokumenty bez nových metadat zůstávají kompatibilní, ale nemusí obsahovat
+adresy zdrojových buněk. Nevyřešený konflikt nadále neblokuje import ani potvrzení;
+přepočet výrazu s nevyřešenou figurou zůstane nedostupný.
+
 Číselníky ověřují správcovské oprávnění přes serverovou funkci. Načítání, chyby,
 prázdný stav, duplicity a archiv jsou součástí dialogu. Zápisy nadále chrání RLS.
 Změna s nulovým počtem dotčených řádků se nepovažuje za úspěch. Formuláře mají
