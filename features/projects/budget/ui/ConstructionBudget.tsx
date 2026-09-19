@@ -85,7 +85,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
       {activeId===mainId?<span className="tf-budget-main-label">Hlavní verze</span>:current&&!current.deleted_at&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving||revision.isPending||index.data?.mainRevisionId===undefined} title={index.data?.mainRevisionId===undefined?'Nastavení hlavní verze zatím není dostupné':undefined} onClick={()=>void act(async()=>{await budgetApi.setPrimary(projectId,activeId,index.data?.mainRevisionId??null);await cache.invalidateQueries({queryKey:key});setNotice('Hlavní verze rozpočtu byla změněna.');})}>Nastavit jako hlavní</button>}
       </BudgetButtonMenu>}
       {current&&tab!=='versions'&&<>
-        <button onClick={()=>updateView({panel:!view.panel})}>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}
+        {tab==='items'&&<><button onClick={()=>updateView({panel:!view.panel})}>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}</>}
         <BudgetButtonMenu label="Akce rozpočtu" caption="Akce" closeOnAction>
         {editable&&undo&&<button onClick={()=>void act(async()=>{if(current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
         {editable&&permissions?.confirm&&<button onClick={()=>void act(async()=>{await save(current.document,current.allocations,true);})}>Potvrdit rozpočet</button>}
@@ -97,7 +97,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
           <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><span aria-hidden="true" className="material-symbols-outlined">settings</span></button>
           {viewOptionsOpen&&<div id={viewOptionsId} role="group" aria-label="Nastavení zobrazení rozpočtu" className="tf-budget-view-settings-panel">
             <strong>Nastavení zobrazení</strong>
-            <button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>
+            {tab==='items'&&<button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>}
             <label className="tf-budget-view-settings-wrap">Zalamovat text popisu<input type="checkbox" checked={view.wrap} onChange={e=>updateView({wrap:e.target.checked})}/></label>
             <fieldset className="tf-budget-density"><legend>Hustota zobrazení</legend><div><button type="button" aria-pressed={view.density===44} onClick={()=>updateView({density:44})}>Kompaktní</button><button type="button" aria-pressed={view.density===60} onClick={()=>updateView({density:60})}>Pohodlná</button></div><p className="tf-budget-density-help">Mění výšku řádků tabulky.</p></fieldset>
             <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Zobrazení sloupců <span aria-hidden="true">→</span></button>

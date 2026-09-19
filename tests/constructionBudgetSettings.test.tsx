@@ -172,3 +172,17 @@ it('creates a working copy from the action menu without changing the shared main
   expect(screen.getByRole('button', { name: /Rozpočet · Potvrzená · Hlavní/ })).toBeInTheDocument();
   expect(budgetApi.setPrimary).not.toHaveBeenCalled();
 });
+it('shows tree and item-scope controls only for items and preserves them when returning from recap', async () => {
+  localStorage.setItem('tf-budget-view:u:p', JSON.stringify({ scope: 'sheet-1', panel: false }));
+  await openBudget();
+  expect(screen.getByRole('button', { name: 'Zobrazit strom' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Rozsah: sheet-1 ×' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Rekapitulace', exact: true }));
+  expect(screen.queryByRole('button', { name: /strom$/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Rozsah:/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Nastavení zobrazení' }));
+  expect(screen.queryByRole('button', { name: /^Rozsah:/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
+  expect(screen.getByRole('button', { name: 'Zobrazit strom' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Rozsah: sheet-1 ×' })).toBeVisible();
+});
