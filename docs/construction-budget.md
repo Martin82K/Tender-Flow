@@ -168,3 +168,8 @@ Rozbalená VV se zachovávají při přepínání záložek a vyčistí se při 
 Vyčištění výběru, rozsahu, filtrů a kroku Zpět platí také při změně otevřené hlavní verze po obnovení dat. Krok Zpět je navíc svázaný s ID konkrétní revize. Tlačítko VV i checkbox jsou svisle vystředěné ve svých buňkách, včetně vyšších řádků.
 
 Kompaktní lišta používá ikony společně s textovými popisky. Všechna její tlačítka mají stejnou výšku 36 px, nabídky Verze a Akce označuje šipka. Na menší obrazovce se ovládání zalamuje; názvy sekcí zůstávají čitelné.
+
+V **Nastavení zobrazení → Zobrazit mřížku** zapnete výraznější vodorovné a svislé
+ohraničení buněk tabulky položek, včetně VV, záhlaví a součtů. Volba je ve výchozím
+stavu vypnutá a ukládá se v tomto prohlížeči zvlášť pro uživatele a projekt, stejně
+jako hustota řádků. Nemění data rozpočtu ani samostatnou mřížku rekapitulace.

@@ -62,6 +62,11 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget .tf-budget-expand-toggle{display:flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border-radius:4px;font-size:18px;font-weight:600;line-height:1;background:var(--budget-bg)}
 /* Keep calculations and notes on the plain table surface, including selected items. */
 .tf-budget-row.tf-budget-quantity-detail{background:var(--budget-bg);border-top:0;font-size:11px;line-height:1.45;color:var(--tf-skin-muted,#475569)}
+.tf-budget-show-grid{--budget-grid-line:color-mix(in srgb,var(--tf-skin-line,#cbd5e1) 65%,var(--tf-skin-text,#172033))}
+.tf-budget-show-grid .tf-budget-table{border-color:var(--budget-grid-line)}
+.tf-budget-show-grid .tf-budget-table .tf-budget-grid>div{box-shadow:inset -1px 0 var(--budget-grid-line)}
+.tf-budget-show-grid .tf-budget-row,.tf-budget-show-grid .tf-budget-totals{border-top-color:var(--budget-grid-line)}
+.tf-budget-show-grid .tf-budget-row.tf-budget-quantity-detail,.tf-budget-show-grid .tf-budget-totals>.tf-budget-grid+.tf-budget-grid{border-top:1px solid var(--budget-grid-line)}
 .tf-budget-quantity-detail>div{padding-top:3px;padding-bottom:3px}
 .tf-budget .tf-budget-quantity-detail .tf-budget-description{padding-left:14px;font-size:inherit;line-height:inherit;color:inherit}
 .tf-budget-resize{position:absolute;right:0;top:0;width:7px;height:100%;cursor:col-resize;touch-action:none}.tf-budget-resize:hover{background:var(--tf-skin-accent,#b76d42)}.tf-budget-totals{font-weight:650;background:var(--tf-skin-surface-muted,#f1f5f9);border-top:1px solid var(--tf-skin-line,#cbd5e1)}.tf-budget-selection{padding:8px;background:var(--tf-skin-surface-muted,#f1f5f9)}.tf-budget-error{padding:8px;border:1px solid #b91c1c}.tf-budget-notice{padding:5px 8px;background:var(--tf-skin-surface-muted,#f1f5f9)}

@@ -19,8 +19,8 @@ import type { BudgetAllocation, BudgetDocument, BudgetNode, BudgetRevision, Budg
 import { applyBudgetItemEdit, validateRevisionAllocations } from '../model/revisions';
 import './budget.css';
 interface Props { projectId:string; organizationId?:string; userId?:string; categories:DemandCategory[]; readOnly?:boolean; searchQuery?:string; onSearchChange?:(value:string)=>void }
-interface ViewSettings { scope:string; showVV:boolean; panel:boolean; wrap:boolean; density:number; columns:BudgetColumn[]; recent:string[]; pinned:string[] }
-const defaults:ViewSettings={scope:'',showVV:false,panel:true,wrap:false,density:44,columns:DEFAULT_COLUMNS,recent:[],pinned:[]};
+interface ViewSettings { scope:string; showVV:boolean; panel:boolean; wrap:boolean; grid:boolean; density:number; columns:BudgetColumn[]; recent:string[]; pinned:string[] }
+const defaults:ViewSettings={scope:'',showVV:false,panel:true,wrap:false,grid:false,density:44,columns:DEFAULT_COLUMNS,recent:[],pinned:[]};
 export function ConstructionBudget({projectId,organizationId,userId,categories,readOnly=false,searchQuery='',onSearchChange}:Props) {
   const cache=useQueryClient();const key=['construction-budget',projectId,userId];const viewKey=`tf-budget-view:${userId??'guest'}:${projectId}`;
   const [view,setView]=useState<ViewSettings>(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(viewKey)||'{}')};}catch{return defaults;}});
@@ -81,7 +81,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   if(index.isPending)return <div className="p-6" role="status">Načítání oprávnění rozpočtu…</div>;
   if(index.error&&!index.data)return <div className="p-6" role="alert">Rozpočet nelze načíst: {index.error.message}<button onClick={()=>void index.refetch()}>Zkusit znovu</button></div>;
   const sheets=current?.document.sheets.filter(s=>s.role==='items'&&s.selected)||[];
-  return <section className="tf-budget" aria-label="Rozpočet stavby">
+  return <section className={`tf-budget${view.grid?' tf-budget-show-grid':''}`} aria-label="Rozpočet stavby">
     <div className="tf-budget-toolbar"><h2>Rozpočet stavby</h2><span>{current?.title||'Bez rozpočtu'} {current?.deleted_at?'· V koši':''} · CZK bez DPH</span><span role="status">{saving?'Ukládání…':current?`Uložení ${current.version} · ${current.status==='confirmed'?'Potvrzená':'Pracovní'}`:''}</span>
       <button disabled={!nodes.length} onClick={()=>exportBudget(nodes.filter(isPriced),'rozpocet.xlsx')}>Exportovat</button>
       {permissions?.edit&&permissions.prices&&!readOnly&&<button onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}
@@ -111,6 +111,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
             <strong>Nastavení zobrazení</strong>
             {current&&tab==='items'&&<button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>}
             <label className="tf-budget-view-settings-wrap">Zalamovat text popisu<input type="checkbox" checked={view.wrap} onChange={e=>updateView({wrap:e.target.checked})}/></label>
+            <label className="tf-budget-view-settings-wrap">Zobrazit mřížku<input type="checkbox" checked={view.grid} onChange={e=>updateView({grid:e.target.checked})}/></label>
             <fieldset className="tf-budget-density"><legend>Hustota zobrazení</legend><div><button type="button" aria-pressed={view.density===44} onClick={()=>updateView({density:44})}>Kompaktní</button><button type="button" aria-pressed={view.density===60} onClick={()=>updateView({density:60})}>Pohodlná</button></div><p className="tf-budget-density-help">Mění výšku řádků tabulky.</p></fieldset>
             <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Zobrazení sloupců <span aria-hidden="true">→</span></button>
           </div>}
