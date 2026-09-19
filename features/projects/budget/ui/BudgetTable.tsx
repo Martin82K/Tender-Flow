@@ -18,7 +18,7 @@ interface Props {
   nodes: BudgetNode[]; scope: string; filters: BudgetFilters; onFilters: (f: BudgetFilters) => void;
   selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; wrap: boolean; density: number;
   columns: BudgetColumn[]; onColumns: (c: BudgetColumn[]) => void; canPrices: boolean; editable: boolean;
-  figures?: Record<string,string>; onEdit: (node: BudgetNode) => Promise<void>; jumpId?: string; onNotice: (message: string) => void;
+  figures?: Record<string,string>; onEdit: (node: BudgetNode) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
 }
 const numberLabel = formatBudgetNumber;
 const isQuantityDetail = (node: BudgetNode) => node.kind === 'VV' || node.kind === 'note';
@@ -67,7 +67,7 @@ export function BudgetTable(props: Props) {
   const grid=`32px 42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
   const width=74+visibleColumns.reduce((sum,c)=>sum+c.width,0);
   const lefts=new Map<string,number>(); let left=74; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
-  const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12});
+  const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12,useAnimationFrameWithResizeObserver:true});
   React.useLayoutEffect(()=>{
     // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
     scroll.current?.querySelectorAll<HTMLDivElement>('[data-index]').forEach(row=>virtual.resizeItem(Number(row.dataset.index),row.offsetHeight));
@@ -81,7 +81,7 @@ export function BudgetTable(props: Props) {
     else requestAnimationFrame(()=>virtual.scrollToIndex(target,{align:'start'}));
     // A jump is an explicit navigation action; filter edits must not repeatedly move the viewport.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[jumpId]);
+  },[jumpId,props.jumpRequest]);
   const toggle=(set:Set<string>,id:string)=>{const next=new Set(set);next.has(id)?next.delete(id):next.add(id);return next;};
   const groups=useMemo(()=>{
     const byId=new Map(nodes.map(n=>[n.id,n])); const result=new Map<string,BudgetNode[]>();

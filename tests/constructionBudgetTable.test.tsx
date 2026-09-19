@@ -24,6 +24,15 @@ const nodes: BudgetNode[] = [item,
 function table(showVV = true, canPrices = true, wrap = false, density = 44) {
   return <BudgetTable nodes={nodes} scope="" filters={{}} onFilters={vi.fn()} selected={new Set()} onSelected={vi.fn()} showVV={showVV} wrap={wrap} density={density} columns={DEFAULT_COLUMNS} onColumns={vi.fn()} canPrices={canPrices} editable={false} onEdit={vi.fn()} onNotice={vi.fn()}/>;
 }
+it('handles a repeated explicit jump while preserving filters that hide the target', () => {
+  const onNotice = vi.fn();
+  const props = { ...table().props, jumpId: 'item', filters: { code: { search: 'missing-code' } }, onNotice };
+  const { rerender } = render(<BudgetTable {...props} jumpRequest={1}/>);
+  expect(onNotice).toHaveBeenCalledTimes(1);
+  rerender(<BudgetTable {...props} jumpRequest={2}/>);
+  expect(onNotice).toHaveBeenCalledTimes(2);
+  expect(onNotice).toHaveBeenLastCalledWith(expect.stringContaining('Filtry zůstaly zachované'));
+});
 it('shows quantity details under their item without treating unpriced details as missing prices', () => {
   render(table());
   expect(screen.getAllByText('Chybí cena')).toHaveLength(1);

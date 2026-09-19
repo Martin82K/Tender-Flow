@@ -33,6 +33,19 @@ i přepínač výkazu výměr zůstávají zachované. Nad buňkou je navíc vol
 **Filtrovat podle této hodnoty**; samotné otevření nabídky filtr nemění.
 Nabídku otevřete také klávesami Shift+F10, ovládáte šipkami a zavřete Escape.
 
+Rekapitulace funguje jako **strom rozpočtu**: objekt → soupis → oddíly.
+Odsazení ukazuje skutečné vazby mezi kapitolami; **+ / −** mají jen větve
+s dalšími kapitolami. Kliknutí na název zvýrazní kapitolu ve stromu a přesune
+tabulku na její začátek, také při opakovaném kliknutí. Aktivní sloupcové
+filtry zůstávají zachované; pokud cíl skryjí, aplikace na to upozorní.
+Hledání zobrazuje shody včetně nadřazené cesty a podřízených kapitol nalezené
+větve. Po vymazání hledání se obnoví předchozí rozbalení stromu.
+Pravé tlačítko ve stromu nabízí **Sbalit vše / Rozbalit vše** pouze pro strom;
+při hledání ovládá nalezené větve. Šipky nahoru/dolů pohybují zaměřením,
+vpravo/vlevo rozbalují/sbalují nebo přecházejí mezi rodičem a potomkem,
+Home/End přejdou na začátek/konec a Enter či mezerník otevřou kapitolu.
+Součty se změnou rozbalení ani hledáním nemění a respektují oprávnění k cenám.
+
 ## Odstranění a obnova
 
 U revize nebo přílohy použijte **Odstranit**. Potvrzovací dialog ukáže název,
