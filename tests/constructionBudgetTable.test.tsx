@@ -190,3 +190,25 @@ it('opens focused column search from the compact heading and preserves the other
   fireEvent.click(screen.getByRole('button', { name: 'Hotovo' }));
   expect(screen.getByRole('button', { name: 'Neoceněná práce' })).toBeVisible();
 });
+it('expands VV only for the selected item and disables items without a quantity detail', () => {
+  const second = { ...item, id: 'second', code: '789', description: 'Druhá položka' };
+  render(<BudgetTable {...table(false).props} nodes={[...nodes, second, { ...nodes[2], id: 'second-vv', parentId: 'second', description: '5*6' }]}/>);
+  const first = screen.getByRole('button', { name: 'Výkaz výměr: 123' });
+  expect(first).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('button', { name: 'Výkaz výměr: 456' })).toBeDisabled();
+  fireEvent.click(first);
+  expect(screen.getByText('3*4')).toBeVisible();
+  expect(screen.queryByText('5*6')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Výkaz výměr: 789' }));
+  expect(screen.getByText('5*6')).toBeVisible();
+  fireEvent.click(first);
+  expect(screen.queryByText('3*4')).not.toBeInTheDocument();
+  expect(screen.getByText('5*6')).toBeVisible();
+});
+it('keeps per-item VV usable after collapsing all groups', () => {
+  render(table(false));
+  fireEvent.contextMenu(screen.getByRole('region', { name: 'Položky rozpočtu' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Sbalit vše' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Výkaz výměr: 123' }));
+  expect(screen.getByText('3*4')).toBeVisible();
+});

@@ -90,6 +90,7 @@ export function BudgetRecap({nodes,onJump,prices,activeId}:{nodes:BudgetNode[];o
     <h3>Rekapitulace</h3><p className="tf-budget-muted">Celý rozpočet{prices?` · ${formatBudgetNumber(totals.total,true)} Kč`:''}</p>
     {prices&&totals.incomplete&&<p role="status" className="tf-budget-incomplete">Neúplný součet. Některým položkám chybí cena.</p>}
     <input aria-label="Hledat oddíl" placeholder="Objekt, soupis nebo oddíl…" value={search} onChange={event=>{setSearch(event.target.value);setSearchCollapsed(new Set());setFocusedId('');if(scroll.current)scroll.current.scrollTop=0;}}/>
+    {prices&&<div className="tf-budget-recap-columns" aria-hidden="true"><span>Objekt / soupis / oddíl</span><span>Cena bez DPH (Kč)</span></div>}
     {!rows.length&&<p role="status" className="tf-budget-muted py-4">{query?'Žádný oddíl neodpovídá hledání.':'Rozpočet neobsahuje žádné oddíly.'}</p>}
     <div ref={scroll} role="tree" aria-label="Strom rozpočtu" tabIndex={0} aria-activedescendant={visibleItems.some(item=>rows[item.index].node.id===focused)?`${treeId}-${focused}`:undefined} className="tf-budget-recap-tree min-h-0 flex-1 overflow-auto" onKeyDown={keyboard}>
       <div role="none" style={{height:virtual.getTotalSize(),position:'relative'}}>{visibleItems.map(item=>{
