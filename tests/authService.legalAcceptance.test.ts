@@ -8,6 +8,8 @@ const mockState = vi.hoisted(() => ({
   getStoredAuthSessionRaw: vi.fn(),
   authGetSession: vi.fn(),
   authSignUp: vi.fn(),
+  verifyOtp: vi.fn(),
+  updateUser: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
   invokePublicFunction: vi.fn(),
@@ -18,6 +20,8 @@ vi.mock("../services/supabase", () => ({
     auth: {
       getSession: mockState.authGetSession,
       signUp: mockState.authSignUp,
+      verifyOtp: mockState.verifyOtp,
+      updateUser: mockState.updateUser,
     },
     from: mockState.from,
     rpc: mockState.rpc,
@@ -142,7 +146,7 @@ describe("authService legal acceptance", () => {
     mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending-user" }, session: null }, error: null });
     await expect(authService.register("Pending", "pending@example.com", "password", {
       termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
-    })).rejects.toThrow("Zkontrolujte email pro potvrzení");
+    })).resolves.toBeNull();
     expect(mockState.rpc).not.toHaveBeenCalled();
   });
 
@@ -157,5 +161,22 @@ describe("authService legal acceptance", () => {
     ).rejects.toThrow("Přihlášení vypršelo. Přihlaste se prosím znovu.");
 
     expect(mockState.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("Auth password recovery service", () => {
+  it("verifies only recovery tokens and updates the current authenticated user", async () => {
+    mockState.verifyOtp.mockResolvedValue({ error: null });
+    mockState.updateUser.mockResolvedValue({ error: null });
+    await authService.verifyPasswordRecoveryToken("hash");
+    await authService.updateRecoveredPassword("new-password");
+    expect(mockState.verifyOtp).toHaveBeenCalledWith({ token_hash: "hash", type: "recovery" });
+    expect(mockState.updateUser).toHaveBeenCalledWith({ password: "new-password" });
+  });
+  it("propagates verification and password policy errors", async () => {
+    mockState.verifyOtp.mockResolvedValue({ error: new Error("expired") });
+    mockState.updateUser.mockResolvedValue({ error: new Error("password policy") });
+    await expect(authService.verifyPasswordRecoveryToken("hash")).rejects.toThrow("expired");
+    await expect(authService.updateRecoveredPassword("weak")).rejects.toThrow("password policy");
   });
 });

@@ -38,6 +38,7 @@ export const RegisterPage: React.FC = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState("");
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<{
     isOpen: boolean;
@@ -62,7 +63,13 @@ export const RegisterPage: React.FC = () => {
       if (!termsAccepted || !privacyAccepted) {
         throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
       }
-      await register(name, email, password, getCurrentLegalAcceptanceInput());
+      const result = await register(name, email, password, getCurrentLegalAcceptanceInput());
+      if (result?.status === "confirmation_required") {
+        setConfirmationRequired(true);
+        setPassword("");
+        setConfirmPassword("");
+        return;
+      }
       navigate(nextPath, { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
@@ -98,7 +105,14 @@ export const RegisterPage: React.FC = () => {
         subtitle="Vytvořte si účet a začněte během minuty"
         registrationStatus={registrationStatus}
       >
-        <form onSubmit={onSubmit} className="auth-form">
+        {confirmationRequired ? (
+          <div className="auth-form">
+            <div role="status" className="auth-alert auth-alert-success">
+              Zkontrolujte e-mail. Pro dokončení registrace otevřete potvrzovací odkaz ve zprávě.
+            </div>
+            <Link to={loginHref}>Přejít na přihlášení</Link>
+          </div>
+        ) : <form onSubmit={onSubmit} className="auth-form">
           <input
             type="text"
             placeholder="Jméno a Příjmení"
@@ -192,7 +206,7 @@ export const RegisterPage: React.FC = () => {
             <Link to={loginHref}>Již mám účet</Link>
             <Link to="/">Zpět na hlavní stránku</Link>
           </div>
-        </form>
+        </form>}
       </AuthCard>
     </div>
   );

@@ -202,7 +202,7 @@ export const authService = {
         email: string,
         password: string,
         legalAcceptance: LegalAcceptanceInput,
-    ): Promise<User> => {
+    ): Promise<User | null> => {
         // Check registration settings before allowing signup
         const canRegister = await authService.checkRegistrationAllowed(email);
         if (!canRegister.allowed) {
@@ -230,7 +230,7 @@ export const authService = {
         }
 
         // If there's no session, user is not signed in (e.g. email confirmation required).
-        throw new Error('Registrace proběhla, ale nebyla vytvořena session. Zkontrolujte email pro potvrzení.');
+        return null;
     },
 
     checkRegistrationAllowed: async (email: string): Promise<{ allowed: boolean; reason?: string }> => {
@@ -849,6 +849,16 @@ export const authService = {
             // So if this fails, it's a real network/server error.
             throw error;
         }
+    },
+
+    verifyPasswordRecoveryToken: async (tokenHash: string): Promise<void> => {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+        if (error) throw error;
+    },
+
+    updateRecoveredPassword: async (password: string): Promise<void> => {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
     },
 
     confirmPasswordReset: async (token: string, password: string): Promise<void> => {

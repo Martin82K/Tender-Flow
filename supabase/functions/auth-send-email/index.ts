@@ -55,11 +55,17 @@ function messages(payload: unknown): Mail[] {
     }
     const tokenHash = text(hash);
     if (!tokenHash || tokenHash.length > 512 || !/^[a-zA-Z0-9_-]+$/.test(tokenHash)) throw new Error('Invalid token');
-    const link = new URL('/auth/v1/verify', supabaseUrl);
+    const link = action === 'recovery'
+      ? new URL('/reset-password', redirectTo)
+      : new URL('/auth/v1/verify', supabaseUrl);
     if (link.protocol !== 'https:') throw new Error('Invalid Auth URL');
-    link.searchParams.set('token', tokenHash);
-    link.searchParams.set('type', action);
-    link.searchParams.set('redirect_to', redirectTo);
+    if (action === 'recovery') {
+      link.searchParams.set('auth_token_hash', tokenHash);
+    } else {
+      link.searchParams.set('token', tokenHash);
+      link.searchParams.set('type', action);
+      link.searchParams.set('redirect_to', redirectTo);
+    }
     return { to, subject: subjects[action], text: `${subjects[action]}:\n\n${link}\n\nPokud jste o tuto akci nežádali, zprávu ignorujte.` };
   };
   if (action === 'email_change') {

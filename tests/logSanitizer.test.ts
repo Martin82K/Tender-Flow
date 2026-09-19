@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   sanitizeLogValue,
+  sanitizeLogText,
   summarizeErrorForLog,
 } from "../shared/security/logSanitizer";
 
 describe("logSanitizer", () => {
+  it("redacts reset tokens from incident routes without removing useful query context", () => {
+    expect(sanitizeLogText("/reset-password?auth_token_hash=private-hash&next=/app", 200))
+      .toBe("/reset-password?auth_token_hash=[redacted-token]&next=/app");
+    expect(sanitizeLogText("/reset-password?token=legacy-secret", 200))
+      .toBe("/reset-password?token=[redacted-token]");
+  });
   it("rediguje citlivé hodnoty v objektech", () => {
     const result = sanitizeLogValue({
       email: "john@example.com",

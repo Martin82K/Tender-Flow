@@ -136,6 +136,13 @@ BEGIN
     RAISE EXCEPTION 'user_id and email are required';
   END IF;
 
+  -- Unverified signups must not claim a company domain or reserve a seat.
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE id = p_user_id AND email_confirmed_at IS NOT NULL
+  ) THEN
+    RETURN NULL;
+  END IF;
+
   v_domain := public.normalize_email_domain(p_email);
 
   SELECT organization_id INTO v_org_id
@@ -182,7 +189,7 @@ BEGIN
       VALUES (v_org_id, p_user_id, 'member')
       ON CONFLICT (organization_id, user_id) DO NOTHING;
 
-      -- Signup still seeds a personal Pro trial on user_profiles. Joining an
+      -- Legacy profiles can still carry a personal Pro trial. Joining an
       -- existing organization inherits that org's entitlement, including the wall.
       -- Authenticated recovery cannot write protected profile columns; the
       -- resolver already ignores personal trials for org members.
@@ -359,8 +366,17 @@ BEGIN
 END;
 $$;
 
--- Profile insert runs after org bootstrap. Do not seed a parallel Pro trial
--- when the user already joined a business organization.
+-- Provision only when email ownership has been verified. Confirmed inserts
+-- (including OAuth) continue to use the existing INSERT trigger.
+DROP TRIGGER IF EXISTS on_auth_user_email_confirmed_org ON auth.users;
+CREATE TRIGGER on_auth_user_email_confirmed_org
+AFTER UPDATE OF email_confirmed_at ON auth.users
+FOR EACH ROW
+WHEN (OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL)
+EXECUTE FUNCTION public.handle_new_user_organization();
+
+-- Organization trial is the sole signup entitlement. Profile creation precedes
+-- confirmation; do not leave a parallel personal Pro trial behind.
 CREATE OR REPLACE FUNCTION public.handle_new_user_trial()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -369,26 +385,9 @@ SET search_path = ''
 AS $$
 BEGIN
   IF NEW.subscription_tier_override IS NULL THEN
-    IF EXISTS (
-      SELECT 1
-      FROM public.organization_members om
-      JOIN public.organizations o ON o.id = om.organization_id
-      WHERE om.user_id = NEW.user_id
-        AND om.is_active = true
-        AND o.type = 'business'
-    ) THEN
-      NEW.subscription_status := 'expired';
-      NEW.subscription_tier_override := NULL;
-      NEW.trial_ends_at := now() - interval '1 second';
-    ELSE
-      NEW.subscription_status := 'trial';
-      NEW.subscription_tier_override := NULL;
-      NEW.stripe_subscription_tier := 'pro';
-      NEW.trial_ends_at := now() + interval '14 days';
-      NEW.subscription_started_at := now();
-    END IF;
+    NEW.subscription_status := 'expired';
+    NEW.trial_ends_at := now() - interval '1 second';
   END IF;
-
   RETURN NEW;
 END;
 $$;

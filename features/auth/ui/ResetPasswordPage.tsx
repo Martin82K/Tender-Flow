@@ -11,12 +11,18 @@ export const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [token, setToken] = useState("");
+  const [isAuthRecovery, setIsAuthRecovery] = useState(false);
+  const [recoveryVerified, setRecoveryVerified] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(search);
-    const tokenParam = params.get("token");
+    const authToken = params.get("auth_token_hash");
+    const tokenParam = authToken || params.get("token");
+    setIsAuthRecovery(Boolean(authToken));
+    setRecoveryVerified(false);
+    setToken(tokenParam || "");
     if (tokenParam) {
       setToken(tokenParam);
     } else {
@@ -45,7 +51,15 @@ export const ResetPasswordPage: React.FC = () => {
     setErrorMessage("");
 
     try {
-      await authService.confirmPasswordReset(token, password);
+      if (isAuthRecovery) {
+        if (!recoveryVerified) {
+          await authService.verifyPasswordRecoveryToken(token);
+          setRecoveryVerified(true);
+        }
+        await authService.updateRecoveredPassword(password);
+      } else {
+        await authService.confirmPasswordReset(token, password);
+      }
       setStatus("success");
     } catch (error: any) {
       console.error("Reset confirmation error:", error);

@@ -54,9 +54,15 @@ describe('signed Auth mail through Resend', () => {
     expect(sent[1].to).toEqual(['new@example.invalid']);
     expect(sent[1].text).toContain('token=for-new');
   });
-  it.each(['recovery', 'invite', 'magiclink'])('preserves %s mail flows', async action => {
+  it.each(['invite', 'magiclink'])('preserves %s mail flows', async action => {
     expect((await handler(signed({ ...payload, email_data: { ...payload.email_data, email_action_type: action } }))).status).toBe(200);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).text).toContain(`type=${action}`);
+  });
+  it('routes recovery tokens to a working reset form without granting a session first', async () => {
+    expect((await handler(signed({ ...payload, email_data: { ...payload.email_data, email_action_type: 'recovery' } }))).status).toBe(200);
+    const mail = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(mail.text).toContain('https://www.tenderflow.cz/reset-password?auth_token_hash=abc123');
+    expect(mail.text).not.toContain('/auth/v1/verify');
   });
   it('returns a retryable failure without exposing provider payloads or tokens', async () => {
     fetchMock.mockResolvedValue(new Response('secret provider diagnostic', { status: 503 }));

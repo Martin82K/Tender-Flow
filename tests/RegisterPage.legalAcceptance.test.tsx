@@ -57,6 +57,20 @@ describe("RegisterPage legal acceptance", () => {
     });
   });
 
+  it("po úspěšném signup bez session zobrazí potvrzení a skryje formulář", async () => {
+    mockState.register.mockResolvedValue({ status: "confirmation_required" });
+    render(<RegisterPage />);
+    for (const [placeholder, value] of [["Jméno a Příjmení", "Test"], ["Email", "test@example.com"], ["Heslo", "password"], ["Potvrzení hesla", "password"]]) {
+      fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value } });
+    }
+    fireEvent.click(screen.getByLabelText(/souhlasím s podmínkami používání/i));
+    fireEvent.click(screen.getByLabelText(/potvrzuji seznámení se zásadami ochrany osobních údajů/i));
+    fireEvent.click(screen.getByRole("button", { name: "Vytvořit účet" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Zkontrolujte e-mail");
+    expect(screen.queryByPlaceholderText("Heslo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vytvořit účet" })).not.toBeInTheDocument();
+    expect(mockState.navigate).not.toHaveBeenCalled();
+  });
   it("bez potvrzení podmínek registraci nepustí", async () => {
     render(<RegisterPage />);
 

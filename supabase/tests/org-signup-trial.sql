@@ -23,6 +23,14 @@ BEGIN
   INSERT INTO auth.users(id,email) VALUES
     (u, 'signup-' || u || '@fixture.invalid'),
     (u2, 'signup-' || u2 || '@gmail.com');
+  IF EXISTS (SELECT 1 FROM public.organization_members WHERE user_id IN (u,u2))
+     OR EXISTS (SELECT 1 FROM public.organizations WHERE owner_user_id IN (u,u2)) THEN
+    RAISE EXCEPTION 'Unverified signup must not own a domain or reserve seats';
+  END IF;
+  IF public.get_or_create_user_organization_internal(u, 'signup-' || u || '@fixture.invalid', 'Recovery') IS NOT NULL THEN
+    RAISE EXCEPTION 'Recovery must not provision an unverified account';
+  END IF;
+  UPDATE auth.users SET email_confirmed_at=now() WHERE id IN (u,u2);
   IF NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id=u AND subscription_status='expired') THEN
     RAISE EXCEPTION 'Business signup must not seed a parallel profile trial';
   END IF;
