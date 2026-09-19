@@ -112,7 +112,7 @@ BEGIN
   RETURN COALESCE(v_available, false);
 END;
 $$;
-REVOKE ALL ON FUNCTION public._org_billable_seats_available(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._org_billable_seats_available(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public._org_billable_seats_available(uuid) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.get_or_create_user_organization_internal(
@@ -443,7 +443,7 @@ BEGIN
   WHERE id = target_org_id;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.org_owner_update_seats(uuid, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.org_owner_update_seats(uuid, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.org_owner_update_seats(uuid, integer) TO authenticated, service_role;
 
 NOTIFY pgrst, 'reload schema';

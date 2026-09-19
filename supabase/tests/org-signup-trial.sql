@@ -15,6 +15,10 @@ DECLARE
   member_count integer;
   seat_denied boolean := false;
 BEGIN
+  IF has_function_privilege('anon', 'public._org_billable_seats_available(uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.org_owner_update_seats(uuid,integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous callers must not reserve or update organization seats';
+  END IF;
   -- Exercise the actual signup hooks, including org-before-profile ordering.
   INSERT INTO auth.users(id,email) VALUES
     (u, 'signup-' || u || '@fixture.invalid'),
