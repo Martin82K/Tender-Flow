@@ -60,6 +60,62 @@ const renderSidebar = (
 };
 
 describe('Sidebar navigation', () => {
+  const project = { id: 'a', name: 'Stavba Alfa', location: 'Praha', status: 'tender' as const };
+  const returnProps = { selectedProjectId: 'a', projects: [project], onViewChange: vi.fn(), onProjectSelect: vi.fn(), isOpen: true, onToggle: vi.fn() };
+
+  it.each(['settings', 'project-overview', 'contract-overview', 'contacts', 'todo', 'project-management'] as const)('returns to the selected project from %s', currentView => {
+    const onProjectSelect = vi.fn();
+    render(<Sidebar {...returnProps} currentView={currentView} onProjectSelect={onProjectSelect} />);
+    const back = screen.getByRole('button', { name: /Zpět k otevřené stavbě/ });
+    expect(back).toHaveTextContent('Stavba Alfa');
+    fireEvent.click(back);
+    expect(onProjectSelect).toHaveBeenCalledWith('a');
+    expect(screen.getByRole('button', { name: 'Stavby', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('restores the project menu without resetting an already open project page', () => {
+    const onProjectSelect = vi.fn();
+    render(<Sidebar {...returnProps} currentView="project" onProjectSelect={onProjectSelect} />);
+    expect(screen.queryByRole('button', { name: /Zpět k otevřené stavbě/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Nástroje', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /Zpět k otevřené stavbě/ }));
+    expect(screen.getByRole('navigation', { name: 'Sekce stavby' })).toBeInTheDocument();
+    expect(onProjectSelect).not.toHaveBeenCalled();
+  });
+
+  it('closes mobile navigation after returning and supports the compact menu', () => {
+    const onToggle = vi.fn();
+    const onProjectSelect = vi.fn();
+    const { rerender } = render(<Sidebar {...returnProps} currentView="contacts" isMobile onToggle={onToggle} onProjectSelect={onProjectSelect} />);
+    fireEvent.click(screen.getByRole('button', { name: /Zpět k otevřené stavbě/ }));
+    expect(onProjectSelect).toHaveBeenCalledWith('a');
+    expect(onToggle).toHaveBeenCalledOnce();
+    rerender(<Sidebar {...returnProps} currentView="todo" isOpen={false} onProjectSelect={onProjectSelect} />);
+    const back = screen.getByRole('button', { name: /Zpět k otevřené stavbě.*Stavba Alfa/ });
+    fireEvent.click(back);
+    expect(onProjectSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes the return action when project access or the projects feature is lost', () => {
+    const { rerender } = render(<Sidebar {...returnProps} currentView="contacts" />);
+    expect(screen.getByRole('button', { name: /Zpět k otevřené stavbě/ })).toBeInTheDocument();
+    rerender(<Sidebar {...returnProps} currentView="contacts" projects={[]} />);
+    expect(screen.queryByRole('button', { name: /Zpět k otevřené stavbě/ })).not.toBeInTheDocument();
+    const index = enabledFeatures.indexOf(FEATURES.MODULE_PROJECTS);
+    enabledFeatures.splice(index, 1);
+    try {
+      rerender(<Sidebar {...returnProps} currentView="contacts" />);
+      expect(screen.queryByRole('button', { name: /Zpět k otevřené stavbě/ })).not.toBeInTheDocument();
+    } finally {
+      enabledFeatures.splice(index, 0, FEATURES.MODULE_PROJECTS);
+    }
+  });
+
+  it('does not offer a return without a selected project', () => {
+    render(<Sidebar {...returnProps} currentView="todo" selectedProjectId="" />);
+    expect(screen.queryByRole('button', { name: /Zpět k otevřené stavbě/ })).not.toBeInTheDocument();
+  });
+
   it('zobrazuje Dodavatele nahoře a TODO Osobní dole', () => {
     const { container } = renderSidebar();
 

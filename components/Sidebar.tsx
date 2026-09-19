@@ -255,6 +255,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? 'reports' : currentView === 'settings' && settingsRoute.tab === 'tools' ? 'tools' : 'projects';
   const [menuSection, setMenuSection] = useState<MenuSection>(routeSection);
   useEffect(() => { setMenuSection(routeSection); }, [routeSection, currentView, selectedProjectId]);
+  const selectedProject = projects.find(project => project.id === selectedProjectId);
+  const canReturnToProject = selectedProject && hasFeature(FEATURES.MODULE_PROJECTS)
+    && (currentView !== 'project' || menuSection !== 'projects');
   const navItem = (id: string) => SIDEBAR_NAVIGATION.find(item => item.id === id);
   const renderItem = (id: string) => { const item = navItem(id); return item ? renderNavItem(item) : null; };
   const reportItems = SIDEBAR_NAVIGATION.filter(item => ['project-overview', 'contract-overview'].includes(item.id) && isNavItemEnabled(item));
@@ -522,10 +525,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </>}
                   {menuSection === 'reports' && <nav aria-label="Přehledy" className="tf-sidebar-menu">{reportItems.map(item => renderNavItem(item))}</nav>}
                   {menuSection === 'tools' && <nav aria-label="Nástroje" className="tf-sidebar-menu">{tools.map(item => renderNavItem(item))}</nav>}
-                  {menuSection !== 'projects' && currentView === 'project' && <button type="button"
-                    aria-label="Zpět k otevřené stavbě"
+                  {canReturnToProject && <button type="button"
+                    aria-label={`Zpět k otevřené stavbě: ${selectedProject.name}`}
                     className="tf-sidebar-back mt-6 p-2 text-left text-xs border border-slate-300 dark:border-slate-700 rounded-md"
-                    onClick={() => setMenuSection('projects')}><span aria-hidden="true" className="material-symbols-outlined">arrow_back</span><span className="tf-sidebar-label">Zpět k otevřené stavbě: {projects.find(project => project.id === selectedProjectId)?.name}</span></button>}
+                    onClick={() => {
+                      setMenuSection('projects');
+                      if (currentView !== 'project') onProjectSelect(selectedProject.id);
+                      closeMobileMenu();
+                    }}><span aria-hidden="true" className="material-symbols-outlined">arrow_back</span><span className="tf-sidebar-label">Zpět k otevřené stavbě: {selectedProject.name}</span></button>}
                 </div>
               </div>
             </div>

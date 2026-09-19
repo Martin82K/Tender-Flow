@@ -7,7 +7,7 @@ export const projectHelp: HelpEntry[] = [
     view: "project",
     label: "Záložky projektu",
     description: "Přepínání mezi hlavními sekcemi projektu. Každá záložka zobrazuje jiný pohled na data stavby. Před názvem stavby značí modré S soutěž a oranžové R realizaci.",
-    detail: "Přehled = souhrn a finance, Plán VŘ = harmonogram výběrových řízení, Výběrová řízení = pipeline nabídek, Dokumenty = správa souborů a Harmonogram (Ganttův diagram), Smlouvy = správa smluvní dokumentace.",
+    detail: "Přehled = souhrn a finance, Plán VŘ = harmonogram výběrových řízení, Výběrová řízení = pipeline nabídek, Dokumenty = správa souborů a Harmonogram (Ganttův diagram), Smlouvy = správa smluvní dokumentace. Z jiných stránek aplikace se můžete tlačítkem Zpět k otevřené stavbě vrátit na přehled naposledy vybrané dostupné stavby. Pokud jste jen přepnuli oblast menu a stránka stavby zůstala otevřená, tlačítko obnoví její menu bez změny stránky.",
     category: "navigation",
     tourOrder: 1,
   },
