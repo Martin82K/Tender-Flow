@@ -58,13 +58,14 @@ export function BudgetTable(props: Props) {
   },[contextMenu]);
   const items=useMemo(()=>nodes.filter(n=>isPriced(n)&&(!scope||n.sheetId===scope)),[nodes,scope]);
   const matched=useMemo(()=>filterItems(items,filters),[items,filters]);
+  const expandableIds=useMemo(()=>new Set(nodes.filter(n=>n.parentId).map(n=>n.parentId!)),[nodes]);
   const mutedItems=useMemo(()=>new Set(items.filter((_,index)=>index%2===1).map(item=>item.id)),[items]);
   const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,showVV),[nodes,matched,collapsed,showVV]);
   const aggregate=useMemo(()=>aggregateBudget(nodes),[nodes]);
   const visibleColumns=useMemo(()=>columns.filter(c=>!c.hidden&&(canPrices||!['unitPrice','total'].includes(c.key))).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))),[columns,canPrices]);
-  const grid=`42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
-  const width=42+visibleColumns.reduce((sum,c)=>sum+c.width,0);
-  const lefts=new Map<string,number>(); let left=42; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
+  const grid=`32px 42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
+  const width=74+visibleColumns.reduce((sum,c)=>sum+c.width,0);
+  const lefts=new Map<string,number>(); let left=74; visibleColumns.forEach(c=>{ if(c.pinned){lefts.set(c.key,left);left+=c.width;} });
   const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12});
   React.useLayoutEffect(()=>{
     // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
@@ -98,7 +99,7 @@ export function BudgetTable(props: Props) {
     }
   }}>
     <div ref={header} className="overflow-hidden shrink-0">
-      <div role="row" className="tf-budget-grid tf-budget-heading" style={{gridTemplateColumns:grid,width}}><div><input aria-label="Vybrat všechny výsledky filtru" type="checkbox" checked={matched.length>0&&matched.every(n=>selected.has(n.id))} onChange={e=>onSelected(e.target.checked?new Set([...selected,...matched.map(n=>n.id)]):new Set([...selected].filter(id=>!matched.some(n=>n.id===id))))}/></div>
+      <div role="row" className="tf-budget-grid tf-budget-heading" style={{gridTemplateColumns:grid,width}}><div className="tf-budget-expand"/><div className="tf-budget-check"><input aria-label="Vybrat všechny výsledky filtru" type="checkbox" checked={matched.length>0&&matched.every(n=>selected.has(n.id))} onChange={e=>onSelected(e.target.checked?new Set([...selected,...matched.map(n=>n.id)]):new Set([...selected].filter(id=>!matched.some(n=>n.id===id))))}/></div>
         {visibleColumns.map(c=><div key={c.key} className="relative" style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:3}:undefined}>
           <button className={filters[c.key]&&Object.keys(filters[c.key]).length?'tf-budget-active':''} onClick={()=>setFilter(c)}>{c.label} ▾</button>
           <span role="separator" aria-label={`Šířka ${c.label}`} aria-orientation="vertical" tabIndex={0} className="tf-budget-resize" onKeyDown={e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft')onColumns(columns.map(col=>col.key===c.key?{...col,width:Math.max(60,col.width+(e.key==='ArrowRight'?10:-10))}:col));}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.dataset.start=String(e.clientX);e.currentTarget.dataset.width=String(c.width);}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId)){const w=Math.max(60,Math.min(1000,Number(e.currentTarget.dataset.width)+e.clientX-Number(e.currentTarget.dataset.start)));onColumns(columns.map(col=>col.key===c.key?{...col,width:w}:col));}}}/>
@@ -109,10 +110,11 @@ export function BudgetTable(props: Props) {
     <div ref={scroll} className="tf-budget-scroll min-h-0 flex-1 overflow-auto" onScroll={e=>{if(header.current)header.current.scrollLeft=e.currentTarget.scrollLeft;if(footer.current)footer.current.scrollLeft=e.currentTarget.scrollLeft;}}>
       <div style={{height:virtual.getTotalSize(),width,position:'relative'}}>
       {virtual.getVirtualItems().map(v=>{const n=rows[v.index];const priced=isPriced(n);const detailRow=isQuantityDetail(n);const itemId=detailRow?n.parentId??n.id:n.id;const group=['object','sheet','section'].includes(n.kind);return <div key={n.id} data-index={v.index} ref={virtual.measureElement} role="row" className={`tf-budget-grid tf-budget-row ${mutedItems.has(itemId)?'tf-budget-row-muted':''} ${detailRow?'tf-budget-quantity-detail':''} ${group?'tf-budget-group':''} ${selected.has(itemId)?'tf-budget-selected':''}`} style={{gridTemplateColumns:grid,width,position:'absolute',top:0,transform:`translateY(${v.start}px)`,minHeight:rowHeight(n,density)}}>
+        <div className="tf-budget-expand">{expandableIds.has(n.id)&&(group||(priced&&showVV))&&<button type="button" className="tf-budget-expand-toggle" aria-label={`${collapsed.has(n.id)?'Rozbalit':'Sbalit'} ${n.code||n.description}`} aria-expanded={!collapsed.has(n.id)} title={collapsed.has(n.id)?'Rozbalit':'Sbalit'} onClick={()=>setCollapsed(toggle(collapsed,n.id))}>{collapsed.has(n.id)?'+':'−'}</button>}</div>
         <div className="tf-budget-check">{(priced||group)&&<input aria-label={`Vybrat ${n.code||n.description}`} type="checkbox" checked={priced?selected.has(n.id):groupItems(n).length>0&&groupItems(n).every(i=>selected.has(i.id))} onChange={e=>{if(priced)onSelected(toggle(selected,n.id));else {const ids=groupItems(n).map(i=>i.id);onSelected(e.target.checked?new Set([...selected,...ids]):new Set([...selected].filter(id=>!ids.includes(id))));}}}/>}</div>
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
-          if(c.key==='description')value=<><button className={`tf-budget-description ${wrap||expanded.has(n.id)?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{group?`${collapsed.has(n.id)?'▸':'▾'} `:''}{n.description}</button>{priced&&<button className="tf-budget-description-toggle" onClick={()=>setExpanded(toggle(expanded,n.id))}>{expanded.has(n.id)?'Zkrátit popis':'Celý popis'}</button>}</>;
+          if(c.key==='description')value=<><button className={`tf-budget-description ${wrap||expanded.has(n.id)?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{n.description}</button>{priced&&<button className="tf-budget-description-toggle" onClick={()=>setExpanded(toggle(expanded,n.id))}>{expanded.has(n.id)?'Zkrátit popis':'Celý popis'}</button>}</>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Chybí cena</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;
@@ -123,7 +125,7 @@ export function BudgetTable(props: Props) {
       </div>
       {!matched.length&&<div className="p-8" role="status">Žádné položky neodpovídají rozsahu a filtrům.</div>}
     </div>
-    <div ref={footer} className="tf-budget-totals overflow-hidden shrink-0">{totals.map(([label,total])=><div className="tf-budget-grid" style={{gridTemplateColumns:grid,width}} key={label}><div/>{visibleColumns.map((c,i)=><div className={c.numeric?'tf-budget-number':''} key={c.key}>{c.key==='total'?numberLabel(total,true):c.key==='description'?label:i===0&&!visibleColumns.some(c=>c.key==='description')?label:''}</div>)}</div>)}{aggregate.incomplete&&<p role="status">Součet neobsahuje položky bez ceny.</p>}</div>
+    <div ref={footer} className="tf-budget-totals overflow-hidden shrink-0">{totals.map(([label,total])=><div className="tf-budget-grid" style={{gridTemplateColumns:grid,width}} key={label}><div/><div/>{visibleColumns.map((c,i)=><div className={c.numeric?'tf-budget-number':''} key={c.key}>{c.key==='total'?numberLabel(total,true):c.key==='description'?label:i===0&&!visibleColumns.some(c=>c.key==='description')?label:''}</div>)}</div>)}{aggregate.incomplete&&<p role="status">Součet neobsahuje položky bez ceny.</p>}</div>
     {contextMenu&&<div ref={menuRef} role="menu" aria-label="Akce rozpočtu" className="tf-budget-context-menu" style={{left:contextMenu.x,top:contextMenu.y}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();}} onKeyDown={event=>{
       if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeContextMenu(true);}
       else if(event.key==='Tab')closeContextMenu();
@@ -132,7 +134,7 @@ export function BudgetTable(props: Props) {
         const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next]?.focus();
       }
     }}>
-      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(nodes.filter(node=>['object','sheet','section'].includes(node.kind)).map(node=>node.id)));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
+      <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(expandableIds));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
       <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set());setContextMenu(null);tableRef.current?.focus();}}>Rozbalit vše</button>
       {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
     </div>}

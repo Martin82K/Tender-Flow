@@ -41,6 +41,27 @@ it('hides quantity details through the existing switch and respects price visibi
   expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
   expect(screen.queryByText('Chybí cena')).not.toBeInTheDocument();
   expect(screen.queryByRole('textbox', { name: 'Filtr J. cena' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Sbalit 123' })).not.toBeInTheDocument();
+});
+it('toggles item details with plus and minus before the selection checkbox', () => {
+  render(table());
+  const collapse = screen.getByRole('button', { name: 'Sbalit 123' });
+  const row = collapse.closest('[role="row"]')!;
+  expect(row.firstElementChild).toContainElement(collapse);
+  expect(row.children[1]).toContainElement(screen.getByRole('checkbox', { name: 'Vybrat 123' }));
+  expect(collapse).toHaveTextContent('−');
+  expect(collapse).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.click(collapse);
+  expect(screen.queryByText('3*4')).not.toBeInTheDocument();
+  expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
+  const expand = screen.getByRole('button', { name: 'Rozbalit 123' });
+  expect(expand).toHaveTextContent('+');
+  expect(expand).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
+  fireEvent.click(expand);
+  expect(screen.getByText('3*4')).toBeVisible();
+  expect(screen.getByText('Poznámka k výkopu')).toBeVisible();
+  expect(screen.queryByRole('button', { name: /(?:Sbalit|Rozbalit) 456/ })).not.toBeInTheDocument();
 });
 it('remeasures mounted rows when wrapping changes so details cannot overlap the item', () => {
   const { rerender } = render(table());
@@ -78,11 +99,15 @@ it('collapses and expands every level from the context menu without changing fil
   expect(screen.getByRole('menu', { name: 'Akce rozpočtu' })).toBeVisible();
   expect(onFilters).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('menuitem', { name: 'Sbalit vše' }));
-  expect(screen.getByRole('button', { name: '▸ Objekt školy' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Rozbalit Objekt školy' })).toHaveAttribute('aria-expanded', 'false');
   expect(screen.queryByRole('button', { name: 'Výkop základů' })).not.toBeInTheDocument();
   // All levels are collapsed, including groups hidden by the top-level object.
-  fireEvent.click(screen.getByRole('button', { name: '▸ Objekt školy' }));
-  expect(screen.getByRole('button', { name: '▸ Stavební práce' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Rozbalit Objekt školy' }));
+  expect(screen.getByRole('button', { name: 'Rozbalit Stavební práce' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Stavební práce', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Rozbalit Základy' }));
+  expect(screen.getByRole('button', { name: 'Rozbalit 123' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: '3*4' })).not.toBeInTheDocument();
   fireEvent.contextMenu(screen.getByRole('region', { name: 'Položky rozpočtu' }));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Rozbalit vše' }));
   expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();

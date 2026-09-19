@@ -12,8 +12,13 @@ projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape
 Zalamování a hustota fungují i pro pomocné řádky. Upozornění **Chybí cena**
 se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
 
+Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
+soupisy a oddíly. Při zapnutém **Výkazu výměr** ovládají také výpočty a poznámky
+jednotlivých položek. U řádků bez podřízeného obsahu tlačítko není.
+Ovládání zůstává vlevo i při vodorovném posouvání tabulky.
+
 Pravým tlačítkem v tabulce otevřete nabídku **Sbalit vše / Rozbalit vše** pro
-objekty, soupisy a oddíly celého rozpočtu. Aktivní rozsah, filtry, výběr položek
+objekty, soupisy, oddíly i podřízené řádky položek celého rozpočtu. Aktivní rozsah, filtry, výběr položek
 i přepínač výkazu výměr zůstávají zachované. Nad buňkou je navíc volba
 **Filtrovat podle této hodnoty**; samotné otevření nabídky filtr nemění.
 Nabídku otevřete také klávesami Shift+F10, ovládáte šipkami a zavřete Escape.
