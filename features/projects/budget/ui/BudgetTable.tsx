@@ -27,7 +27,7 @@ interface BudgetContext { x: number; y: number; filter?: { column: string; value
 export function BudgetTable(props: Props) {
   const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
-  const [collapsed,setCollapsed]=useState(new Set<string>()); const [expanded,setExpanded]=useState(new Set<string>());
+  const [collapsed,setCollapsed]=useState(new Set<string>());
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);
   const filterOrigin=useRef<HTMLButtonElement|null>(null);
   const editLock=useRef(false);
@@ -71,7 +71,7 @@ export function BudgetTable(props: Props) {
   React.useLayoutEffect(()=>{
     // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
     scroll.current?.querySelectorAll<HTMLDivElement>('[data-index]').forEach(row=>virtual.resizeItem(Number(row.dataset.index),row.offsetHeight));
-  },[wrap,showVV,expanded,columns,density,virtual]);
+  },[wrap,showVV,columns,density,virtual]);
   React.useEffect(()=>{
     if(!jumpId)return;
     const byId=new Map(nodes.map(n=>[n.id,n]));let parent:string|null=jumpId;const next=new Set(collapsed);while(parent){next.delete(parent);parent=byId.get(parent)?.parentId??null;}
@@ -114,7 +114,7 @@ export function BudgetTable(props: Props) {
         <div className="tf-budget-check">{(priced||group)&&<input aria-label={`Vybrat ${n.code||n.description}`} type="checkbox" checked={priced?selected.has(n.id):groupItems(n).length>0&&groupItems(n).every(i=>selected.has(i.id))} onChange={e=>{if(priced)onSelected(toggle(selected,n.id));else {const ids=groupItems(n).map(i=>i.id);onSelected(e.target.checked?new Set([...selected,...ids]):new Set([...selected].filter(id=>!ids.includes(id))));}}}/>}</div>
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
-          if(c.key==='description')value=<><button className={`tf-budget-description ${wrap||expanded.has(n.id)?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{n.description}</button>{priced&&<button className="tf-budget-description-toggle" onClick={()=>setExpanded(toggle(expanded,n.id))}>{expanded.has(n.id)?'Zkrátit popis':'Celý popis'}</button>}</>;
+          if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{n.description}</button>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Chybí cena</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;

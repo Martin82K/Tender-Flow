@@ -43,6 +43,15 @@ it('shows quantity details under their item without treating unpriced details as
   expect(screen.getByRole('textbox', { name: 'Úplný popis' })).toHaveValue('3*4');
   expect(screen.queryByRole('button', { name: 'Uložit změnu' })).not.toBeInTheDocument();
 });
+it('opens the full item description from its name without a separate expansion link', () => {
+  const description = 'Výkop základů včetně odvozu vytěžené zeminy a uložení na skládku';
+  render(<BudgetTable {...table().props} nodes={[{ ...item, description }]}/>);
+  expect(screen.queryByRole('button', { name: 'Celý popis' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Zkrátit popis' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: description }));
+  expect(screen.getByRole('textbox', { name: 'Úplný popis' })).toHaveValue(description);
+  expect(screen.queryByRole('button', { name: 'Uložit změnu' })).not.toBeInTheDocument();
+});
 it('hides quantity details through the existing switch and respects price visibility', () => {
   const { rerender } = render(table());
   rerender(table(false, false));

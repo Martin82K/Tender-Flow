@@ -21,6 +21,9 @@ Vyhledávací pole jsou uvnitř filtrů, hlavička tabulky má jen názvy sloupc
 Nadpisy množství a cen jsou zarovnané doprava stejně jako jejich hodnoty.
 Zalamování mění jen text popisu, také u pomocných řádků. Hustota mění výšku řádků. Upozornění **Chybí cena**
 se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
+Úplný popis jednotlivé položky otevřete kliknutím na její název v tabulce.
+Pod názvem není samostatný odkaz pro rozbalení; zobrazení celého textu přímo
+v tabulce ovládá společná volba **Zalamovat text popisu**.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
 soupisy a oddíly. Při zapnutém **Výkazu výměr** ovládají také výpočty a poznámky
