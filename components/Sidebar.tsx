@@ -482,7 +482,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Navigation */}
               <div className="tf-sidebar-nav flex flex-col gap-3 mt-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
-                <nav aria-label="Oblasti aplikace" className="tf-sidebar-sections flex flex-col gap-2 shrink-0">
+                <nav aria-label="Oblasti aplikace" className={`tf-sidebar-sections shrink-0 ${compact ? "flex flex-col gap-2" : "grid grid-flow-col auto-cols-fr"}`}>
                   {([
                     { id: 'projects', label: 'Stavby', icon: 'apartment', enabled: hasFeature(FEATURES.MODULE_PROJECTS) },
                     { id: 'contacts', label: 'Dodavatelé', icon: 'handshake', enabled: hasFeature(FEATURES.MODULE_CONTACTS) },
@@ -490,13 +490,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'tools', label: 'Nástroje', icon: 'build', enabled: tools.length > 0 },
                   ] as const).filter(item => item.enabled).map(item => <button key={item.id} type="button"
                     aria-label={item.label} aria-pressed={menuSection === item.id} data-active={menuSection === item.id}
-                    className="tf-sidebar-section flex min-w-0 items-center gap-3 px-3 py-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    className={`tf-sidebar-section flex min-w-0 items-center py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${compact ? "gap-3 px-3 text-sm" : "flex-col gap-1 whitespace-nowrap px-1 text-[10px]"}`}
                     onClick={() => {
                       setMenuSection(item.id);
                       if (item.id === 'projects') { onViewChange('project-management', undefined); closeMobileMenu(); }
                       if (item.id === 'contacts') { onViewChange('contacts', undefined); closeMobileMenu(); }
                     }}>
-                    <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span><span className="tf-sidebar-label">{item.label}</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-xl">{item.icon}</span><span className="tf-sidebar-label max-w-full truncate">{item.label}</span>
                   </button>)}
                 </nav>
                 <div className="tf-sidebar-context shrink-0">
@@ -513,8 +513,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {currentView === 'project' && <ProjectSidebar compact={compact} onExpand={onToggle} hasFeature={hasFeature} projects={projects} selectedProjectId={selectedProjectId}
                       activeTab={new URLSearchParams(search).get('tab') || 'overview'}
                       activeSettingsTab={new URLSearchParams(search).get('documentsSubTab') || 'pd'}
+                      activeDocumentsTab={new URLSearchParams(search).get('documentsSubTab') || 'subcontractor'}
                       onSelect={(id, tab, settingsTab) => {
-                        if (settingsTab) navigate(buildAppUrl('project', { projectId: id, tab: 'project-settings', documentsSubTab: settingsTab }));
+                        if (settingsTab) navigate(buildAppUrl('project', { projectId: id, tab: tab === 'documents' ? 'documents' : 'project-settings', documentsSubTab: settingsTab }));
                         else onProjectSelect(id, tab);
                         closeMobileMenu();
                       }} />}

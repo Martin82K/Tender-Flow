@@ -1,3 +1,4 @@
+import { validatePriceOfferPath } from '@shared/contracts/priceOfferMapping';
 import { supabase } from './supabase';
 import { invokeAuthedFunction } from './functionsClient';
 import { validateContractDocument } from '@/shared/contracts/contractDocument';
@@ -63,6 +64,7 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   linkedBidIds: Array.isArray(row.contract_bid_links)
     ? row.contract_bid_links.map((link: { bid_id: string }) => link.bid_id)
     : undefined,
+  priceOfferPath: (row.price_offer_path as string | null) ?? undefined,
   documentUrl: row.document_url as string | undefined,
   documentStoragePath: row.document_storage_path as string | undefined,
   documentFileName: row.document_file_name as string | undefined,
@@ -540,6 +542,7 @@ export const contractService = {
     if (has('documentUrl')) {
       dbUpdates.document_url = sanitizeDocumentUrl(updates.documentUrl);
     }
+    if (has('priceOfferPath')) dbUpdates.price_offer_path = updates.priceOfferPath == null ? null : validatePriceOfferPath(updates.priceOfferPath);
     if (has('documentStoragePath')) dbUpdates.document_storage_path = updates.documentStoragePath || null;
     if (has('documentFileName')) dbUpdates.document_file_name = updates.documentFileName || null;
     if (has('documentMimeType')) dbUpdates.document_mime_type = updates.documentMimeType || null;

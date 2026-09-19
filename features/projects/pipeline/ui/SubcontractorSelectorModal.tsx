@@ -78,6 +78,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                 {/* Content */}
                 <div inert={isSubmitting} aria-busy={isSubmitting} className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
                     <SubcontractorSelector
+                        defaultSort="rating"
                         contacts={contacts}
                         statuses={statuses}
                         selectedIds={selectedIds}

@@ -413,7 +413,8 @@ BEGIN
   JOIN public.organizations o ON o.id = om.organization_id
   WHERE om.organization_id = target_org_id
     AND om.user_id = auth.uid()
-    AND om.is_active = true;
+    AND om.is_active = true
+  FOR UPDATE OF o;
 
   IF v_role IS NULL OR v_role <> 'owner' THEN
     RAISE EXCEPTION 'Only the organization owner can update seats';
@@ -423,7 +424,7 @@ BEGIN
     RAISE EXCEPTION 'Trial organizations cannot change the seat limit';
   END IF;
 
-  IF new_max_seats < 1 THEN
+  IF new_max_seats IS NULL OR new_max_seats < 1 THEN
     RAISE EXCEPTION 'Minimum seat count is 1';
   END IF;
 

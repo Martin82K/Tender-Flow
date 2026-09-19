@@ -22,6 +22,7 @@ const NOOP = () => undefined;
 const COLUMN_LABELS: Record<ContractColumnId, string> = {
   number: 'Č. smlouvy',
   document: 'Dokument',
+  priceOffer: 'Cenová nabídka',
   vendor: 'Dodavatel',
   status: 'Stav',
   total: 'Hodnota',
@@ -38,6 +39,7 @@ const COLUMN_LABELS: Record<ContractColumnId, string> = {
 const COLUMN_ALIGN: Record<ContractColumnId, 'left' | 'right'> = {
   number: 'left',
   document: 'left',
+  priceOffer: 'left',
   vendor: 'left',
   status: 'left',
   total: 'right',
@@ -74,6 +76,9 @@ interface Props {
   onOpenDocument?: (contract: ContractWithDetails) => Promise<void> | void;
   onAttachDocument?: (contract: ContractWithDetails, file: File) => Promise<void> | void;
   attachingDocumentId?: string | null;
+  onOpenPriceOffer?: (contract: ContractWithDetails) => Promise<void> | void;
+  onAttachPriceOffer?: (contract: ContractWithDetails) => Promise<void> | void;
+  attachingPriceOfferId?: string | null;
   onDataChanged?: () => Promise<void> | void;
 }
 
@@ -85,6 +90,9 @@ export const ContractsTable: React.FC<Props> = ({
   onOpenDocument,
   onAttachDocument,
   attachingDocumentId,
+  onOpenPriceOffer,
+  onAttachPriceOffer,
+  attachingPriceOfferId,
   onDataChanged = NOOP,
 }) => {
   const [preferences, setPreferences] = useState<ContractTablePreferences>(readColumnPrefs);
@@ -269,6 +277,29 @@ export const ContractsTable: React.FC<Props> = ({
                             <div className="font-normal text-[11px] whitespace-normal break-words text-slate-600 dark:text-slate-500 [overflow-wrap:anywhere]">{c.title}</div>
                           </td>
                         );
+                      case 'priceOffer': {
+                        const fileName = c.priceOfferPath?.split('/').pop();
+                        const busy = attachingPriceOfferId === c.id;
+                        return (
+                          <td key={col} className="px-2.5 py-2.5">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <button type="button" disabled={busy}
+                                title={fileName || 'Vybrat soubor cenové nabídky'}
+                                aria-label={`${fileName ? 'Otevřít cenovou nabídku' : 'Připojit cenovou nabídku'} ${c.title}`}
+                                onClick={event => { event.stopPropagation(); void (fileName ? onOpenPriceOffer?.(c) : onAttachPriceOffer?.(c)); }}
+                                className="inline-flex min-h-9 items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50">
+                                <span className="material-symbols-outlined text-[15px]" aria-hidden="true">{fileName ? 'link' : 'attach_file'}</span>
+                                {busy ? 'Mapuji…' : fileName ? 'Otevřít' : 'Připojit'}
+                              </button>
+                              {fileName && <button type="button" disabled={busy}
+                                aria-label={`Změnit soubor cenové nabídky ${c.title}`}
+                                onClick={event => { event.stopPropagation(); void onAttachPriceOffer?.(c); }}
+                                className="min-h-9 px-1 text-xs text-slate-500 hover:text-primary">Změnit</button>}
+                            </div>
+                            {fileName && <div className="mt-1 break-all text-[11px] text-slate-500">{fileName}</div>}
+                          </td>
+                        );
+                      }
                       case 'document': {
                         const hasDocument = Boolean(c.documentStoragePath || c.documentUrl);
                         const isAttaching = attachingDocumentId === c.id;

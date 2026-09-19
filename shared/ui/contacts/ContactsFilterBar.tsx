@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { StatusConfig } from "@/types";
 import { CZ_REGIONS } from "@/config/constants";
-import { ContactsFilterState } from "./contactsFiltersLogic";
+import type { ContactsFilterState, ContactSort, RatingFilter } from "./contactsFiltersLogic";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 
 const filterSelectClassName =
@@ -16,6 +16,8 @@ interface ContactsFilterBarProps {
   state: ContactsFilterState;
   statuses: StatusConfig[];
   specializations: string[];
+  onRatingChange?: (value: RatingFilter) => void;
+  onSortChange?: (value: ContactSort) => void;
   onSearchChange: (value: string) => void;
   onSpecializationChange: (value: string) => void;
   onStatusChange: (value: string) => void;
@@ -31,6 +33,8 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
   state,
   statuses,
   specializations,
+  onRatingChange,
+  onSortChange,
   onSearchChange,
   onSpecializationChange,
   onStatusChange,
@@ -51,6 +55,7 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
   const hasActiveSearch = state.searchText.trim() !== "";
   const distanceActive = state.distanceKm !== null;
   const hasActiveTags =
+    (state.ratingFilter != null && state.ratingFilter !== "all") ||
     state.specialization !== "all" ||
     state.status !== "all" ||
     state.region !== "all" ||
@@ -82,8 +87,8 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
 
   return (
     <div className="tf-contacts-filterbar relative z-20 bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 md:max-w-md flex items-center rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 h-12 min-w-0">
+      <div className="flex flex-col md:flex-row md:flex-wrap gap-4">
+        <div className="w-full md:w-72 md:shrink-0 flex items-center rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 h-12 min-w-0">
           <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">
             search
           </span>
@@ -216,11 +221,37 @@ export const ContactsFilterBar: React.FC<ContactsFilterBarProps> = ({
           </ThemedNativeSelect>
         </div>
 
+        {onRatingChange && (
+          <div className="w-full md:w-52">
+            <ThemedNativeSelect aria-label="Filtr hodnocení" value={state.ratingFilter ?? "all"}
+              onChange={e => onRatingChange(e.target.value as RatingFilter)} className={filterSelectClassName}>
+              <option value="all">Všechna hodnocení</option>
+              <option value="5">5 ★</option>
+              <option value="4">Alespoň 4 ★</option>
+              <option value="3">Alespoň 3 ★</option>
+              <option value="unrated">Neohodnoceno</option>
+            </ThemedNativeSelect>
+          </div>
+        )}
+        {onSortChange && (
+          <div className="w-full md:w-52">
+            <ThemedNativeSelect aria-label="Řazení firem" value={state.sortBy ?? "name"}
+              onChange={e => onSortChange(e.target.value as ContactSort)} className={filterSelectClassName}>
+              <option value="name">Podle názvu</option>
+              <option value="rating">Nejlépe hodnocené</option>
+            </ThemedNativeSelect>
+          </div>
+        )}
         {trailingSlot}
       </div>
 
       {hasActiveTags && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {state.ratingFilter && state.ratingFilter !== "all" && onRatingChange && (
+            <button onClick={() => onRatingChange("all")} className="text-sm text-primary whitespace-nowrap">
+              {state.ratingFilter === "unrated" ? "Neohodnoceno" : `Hodnocení ≥ ${state.ratingFilter} ★`} ×
+            </button>
+          )}
           {state.specialization !== "all" && (
             <button
               onClick={() => onSpecializationChange("all")}

@@ -1,10 +1,11 @@
+-- Run only against an isolated schema copy; all identities below are synthetic.
 BEGIN;
 SET LOCAL lock_timeout = '2s';
 SET LOCAL statement_timeout = '10s';
 DO $$
 DECLARE
-  u uuid;
-  u2 uuid;
+  u uuid := gen_random_uuid();
+  u2 uuid := gen_random_uuid();
   org_id uuid;
   personal_org_id uuid;
   test_email text;
@@ -14,11 +15,13 @@ DECLARE
   member_count integer;
   seat_denied boolean := false;
 BEGIN
-  SELECT user_id INTO STRICT u
-  FROM public.user_profiles
-  WHERE NOT public.is_platform_admin(user_id)
-  ORDER BY user_id
-  LIMIT 1;
+  -- Exercise the actual signup hooks, including org-before-profile ordering.
+  INSERT INTO auth.users(id,email) VALUES
+    (u, 'signup-' || u || '@fixture.invalid'),
+    (u2, 'signup-' || u2 || '@gmail.com');
+  IF NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id=u AND subscription_status='expired') THEN
+    RAISE EXCEPTION 'Business signup must not seed a parallel profile trial';
+  END IF;
 
   UPDATE public.user_profiles
   SET subscription_tier_override = NULL,
@@ -120,17 +123,6 @@ BEGIN
   IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free'
      OR public.get_effective_user_tier(u)->>'tier' IS DISTINCT FROM 'free' THEN
     RAISE EXCEPTION 'Personal signup trial must not reopen an expired organization';
-  END IF;
-
-  SELECT user_id INTO u2
-  FROM public.user_profiles
-  WHERE NOT public.is_platform_admin(user_id)
-    AND user_id <> u
-  ORDER BY user_id
-  LIMIT 1;
-
-  IF u2 IS NULL THEN
-    RAISE EXCEPTION 'Seat-limit fixture needs a second non-admin user';
   END IF;
 
   DELETE FROM public.organization_members WHERE user_id IN (u, u2);
@@ -253,6 +245,18 @@ BEGIN
   IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'pro' THEN
     RAISE EXCEPTION 'Manual personal trial must remain available without a business membership';
   END IF;
+
+  -- Null must never turn a paid organization's finite limit into unlimited seats.
+  UPDATE public.organizations SET subscription_status='active' WHERE id=org_id;
+  PERFORM set_config('request.jwt.claims', jsonb_build_object('sub',u2,'role','authenticated')::text,true);
+  seat_denied := false;
+  BEGIN
+    PERFORM public.org_owner_update_seats(org_id, NULL);
+  EXCEPTION WHEN OTHERS THEN
+    seat_denied := SQLERRM LIKE 'Minimum seat count is 1%';
+  END;
+  IF NOT seat_denied THEN RAISE EXCEPTION 'Null seat limit must be rejected'; END IF;
+  PERFORM set_config('request.jwt.claims','{}',true);
 
   FOREACH test_email IN ARRAY ARRAY[
     'signup@seznam.sk',

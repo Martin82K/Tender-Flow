@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 describe("org signup enterprise trial migration", () => {
   it("creates a 14-day Enterprise trial from created_at and keeps the existing expiry wall", () => {
     const migration = fs.readFileSync(
-      path.join(ROOT, "supabase/migrations/20260916223000_org_signup_enterprise_trial.sql"),
+      path.join(ROOT, "supabase/migrations/20260919070618_org_signup_enterprise_trial.sql"),
       "utf8",
     );
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_or_create_user_organization_internal");

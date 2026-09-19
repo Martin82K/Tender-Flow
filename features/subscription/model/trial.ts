@@ -5,7 +5,7 @@ export const getCalendarDaysRemaining = (iso: string | null | undefined): number
   const end = Date.parse(iso);
   if (!Number.isFinite(end)) return null;
   const now = Date.now();
-  if (end < now) return Math.min(-1, Math.ceil((end - now) / 86_400_000));
+  if (end <= now) return Math.min(-1, Math.ceil((end - now) / 86_400_000));
   return Math.ceil((end - now) / 86_400_000);
 };
 
@@ -48,6 +48,7 @@ export const getOrgPlanPresentation = (input: {
   tier: string | null | undefined;
   overrideTier: string | null | undefined;
   overrideExpiresAt: string | null | undefined;
+  billingCustomerId?: string | null;
   billingPeriodEnd: string | null | undefined;
   expiresAt: string | null | undefined;
 }): OrgPlanPresentation => {
@@ -59,6 +60,8 @@ export const getOrgPlanPresentation = (input: {
     status: liveOverride ? "active" : input.status,
     activeUntil: liveOverride
       ? input.overrideExpiresAt ?? null
-      : input.billingPeriodEnd || input.expiresAt || null,
+      : input.billingCustomerId?.startsWith("cus_")
+        ? input.expiresAt ?? null
+        : input.billingPeriodEnd || input.expiresAt || null,
   };
 };

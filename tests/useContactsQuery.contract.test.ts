@@ -52,6 +52,28 @@ import {
 } from "@/hooks/queries/useContactsQuery";
 
 describe("useContactsQuery contract", () => {
+  it("aggregates all rating pages and discards partial averages if a later page fails", async () => {
+    const range = vi.fn((offset: number) => Promise.resolve({ data: offset === 0
+      ? Array.from({length: 1000}, () => ({vendor_id: "v", vendor_rating: 4}))
+      : [{vendor_id: "v", vendor_rating: 5}], error: null }));
+    const order = vi.fn(() => ({range}));
+    mocks.from.mockImplementation((table: string) => table === "subcontractors"
+      ? {select: () => ({order: () => ({range: () => Promise.resolve({data: [{id: "v", company_name: "Vendor"}], error: null})})})}
+      : {select: () => ({not: () => ({not: () => ({order})})})});
+    useContactsQuery({userId: "user-1"});
+    const data = await mocks.queryOptions!.queryFn();
+    expect(data[0].vendorRatingCount).toBe(1001);
+    expect(data[0].vendorRatingAverage).toBeCloseTo(4005 / 1001);
+    expect(range.mock.calls).toEqual([[0, 999], [1000, 1999]]);
+    expect(order).toHaveBeenCalledWith("id");
+    range.mockImplementation(async (offset: number) => {
+      if (offset > 0) throw new Error("backend private failure");
+      return {data: Array.from({length: 1000}, () => ({vendor_id: "v", vendor_rating: 4})), error: null};
+    });
+    const failed = await mocks.queryOptions!.queryFn();
+    expect(failed[0].vendorRatingAverage).toBeUndefined();
+    expect(failed[0].vendorRatingUnavailable).toBe(true);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.queryOptions = null;
@@ -123,7 +145,7 @@ describe("useContactsQuery contract", () => {
       }
       return {
         select: () => ({
-          not: () => ({ not: () => ratingsPromise }),
+          not: () => ({ not: () => ({ order: () => ({ range: () => ratingsPromise }) }) }),
         }),
       };
     });
@@ -169,7 +191,7 @@ describe("useContactsQuery contract", () => {
         : {
             select: () => ({
               not: () => ({
-                not: () => Promise.resolve({ data: [], error: null }),
+                not: () => ({ order: () => ({ range: () => Promise.resolve({ data: [], error: null }) }) }),
               }),
             }),
           },
@@ -199,7 +221,7 @@ describe("useContactsQuery contract", () => {
         : {
             select: () => ({
               not: () => ({
-                not: () => Promise.resolve({ data: [], error: null }),
+                not: () => ({ order: () => ({ range: () => Promise.resolve({ data: [], error: null }) }) }),
               }),
             }),
           },
@@ -235,8 +257,8 @@ describe("useContactsQuery contract", () => {
         : {
             select: () => ({
               not: () => ({
-                not: () =>
-                  Promise.resolve({ data: null, error: new Error("ratings") }),
+                not: () => ({ order: () => ({ range: () =>
+                  Promise.resolve({ data: null, error: new Error("ratings") }) }) }),
               }),
             }),
           },
@@ -245,7 +267,7 @@ describe("useContactsQuery contract", () => {
     useContactsQuery({ userId: "user-1", userRole: "user" });
 
     await expect(mocks.queryOptions?.queryFn()).resolves.toEqual([
-      expect.objectContaining({ id: "contact-1", company: "Firma" }),
+      expect.objectContaining({ id: "contact-1", company: "Firma", vendorRatingUnavailable: true }),
     ]);
   });
 });

@@ -11,6 +11,7 @@ import { ContractsTable } from './ContractsTable';
 import { ContractWorkspace } from '../workspace/ContractWorkspace';
 import { ContractEditDialog } from '../forms/ContractEditDialog';
 import { contractQueriesApi } from '../api';
+import { selectPriceOffer, openPriceOfferFile } from '../api/priceOfferFiles';
 import { attachContractDocument } from '../utils/attachContractDocument';
 import { useDismissContractDeepLink } from '../hooks/useDismissContractDeepLink';
 
@@ -43,6 +44,7 @@ export const ContractsListPage: React.FC<Props> = ({
   const [editContract, setEditContract] = useState<ContractWithDetails | null>(null);
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [attachingDocumentId, setAttachingDocumentId] = useState<string | null>(null);
+  const [attachingPriceOfferId, setAttachingPriceOfferId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [filter, setFilter] = useState<ContractFilterKey>('all');
   const [query, setQuery] = useState('');
@@ -134,6 +136,30 @@ export const ContractsListPage: React.FC<Props> = ({
       );
     } finally {
       setAttachingDocumentId(null);
+    }
+  };
+
+  const openPriceOffer = async (contract: ContractWithDetails) => {
+    setDocumentError(null);
+    try {
+      if (!projectDetails) throw new Error('Údaje projektu nejsou dostupné.');
+      await openPriceOfferFile(projectDetails, user?.id ?? null, contract.priceOfferPath);
+    } catch (error) {
+      setDocumentError(error instanceof Error ? error.message : 'Cenovou nabídku se nepodařilo otevřít.');
+    }
+  };
+
+  const handleAttachPriceOffer = async (contract: ContractWithDetails) => {
+    setDocumentError(null);
+    setAttachingPriceOfferId(contract.id);
+    try {
+      if (!projectDetails) throw new Error('Údaje projektu nejsou dostupné.');
+      const saved = await selectPriceOffer(contract, projectDetails, user?.id ?? null);
+      if (saved) await refresh();
+    } catch (error) {
+      setDocumentError(error instanceof Error ? error.message : 'Cenovou nabídku se nepodařilo připojit.');
+    } finally {
+      setAttachingPriceOfferId(null);
     }
   };
 
@@ -290,6 +316,9 @@ export const ContractsListPage: React.FC<Props> = ({
             onOpenDocument={openDocument}
             onAttachDocument={handleAttachDocument}
             attachingDocumentId={attachingDocumentId}
+            onOpenPriceOffer={openPriceOffer}
+            onAttachPriceOffer={handleAttachPriceOffer}
+            attachingPriceOfferId={attachingPriceOfferId}
             onDataChanged={refresh}
           />
         )}

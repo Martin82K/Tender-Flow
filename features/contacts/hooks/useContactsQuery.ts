@@ -61,24 +61,34 @@ const fetchAllContactRows = async (): Promise<SubcontractorRow[]> => {
   }
 };
 
-const fetchVendorRatingRows = (): Promise<
-  QueryResponse<VendorRatingRow[] | null>
-> =>
-  withRetry(
-    () =>
-      withTimeout(
-        Promise.resolve(
-          dbAdapter
-            .from("contracts")
-            .select("vendor_id, vendor_rating")
-            .not("vendor_rating", "is", null)
-            .not("vendor_id", "is", null),
-        ),
-        CONTACT_QUERY_TIMEOUT_MS,
-        "Načtení hodnocení dodavatelů vypršelo",
-      ),
-    { retries: 1 },
-  );
+const fetchVendorRatingRows = async (): Promise<VendorRatingRow[]> => {
+  const rows: VendorRatingRow[] = [];
+  for (let offset = 0; ; offset += CONTACT_PAGE_SIZE) {
+    const response = await withRetry<QueryResponse<VendorRatingRow[] | null>>(
+      async () => {
+        const page = await withTimeout(
+          Promise.resolve(
+            dbAdapter
+              .from("contracts")
+              .select("vendor_id, vendor_rating")
+              .not("vendor_rating", "is", null)
+              .not("vendor_id", "is", null)
+              .order("id")
+              .range(offset, offset + CONTACT_PAGE_SIZE - 1),
+          ),
+          CONTACT_QUERY_TIMEOUT_MS,
+          "Načtení hodnocení dodavatelů vypršelo",
+        );
+        if (page.error) throw page.error;
+        return page;
+      },
+      { retries: 1 },
+    );
+    const page = response.data || [];
+    rows.push(...page);
+    if (page.length < CONTACT_PAGE_SIZE) return rows;
+  }
+};
 
 export const useContactsQuery = ({
   userId,
@@ -92,13 +102,13 @@ export const useContactsQuery = ({
 
       const [contactRows, ratingsResponse] = await Promise.all([
         fetchAllContactRows(),
-        fetchVendorRatingRows(),
+        fetchVendorRatingRows().catch(() => null),
       ]);
       const contacts = mapSubcontractorRows(contactRows);
 
-      return ratingsResponse.error
-        ? contacts
-        : applyVendorRatings(contacts, ratingsResponse.data || []);
+      return ratingsResponse === null
+        ? contacts.map(contact => ({ ...contact, vendorRatingUnavailable: true }))
+        : applyVendorRatings(contacts, ratingsResponse);
     },
     staleTime: 5 * 60 * 1000,
   });

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   DESKTOP_DISTRIBUTION_VERSION,
+  MACOS_DISTRIBUTION_VERSION,
   DESKTOP_DOWNLOADS,
   DESKTOP_RELEASES_LATEST_URL,
 } from "@features/public/model/desktopDownloads";
@@ -22,7 +23,7 @@ describe("desktop download URLs", () => {
       `https://github.com/Martin82K/Tender-Flow-Releases/releases/download/v${DESKTOP_DISTRIBUTION_VERSION}/Tender-Flow-Setup-${DESKTOP_DISTRIBUTION_VERSION}.exe`,
     );
     expect(DESKTOP_DOWNLOADS[1].href).toBe(
-      `https://github.com/Martin82K/Tender-Flow-Releases/releases/download/v${DESKTOP_DISTRIBUTION_VERSION}/Tender-Flow-${DESKTOP_DISTRIBUTION_VERSION}-arm64.dmg`,
+      `https://github.com/Martin82K/Tender-Flow-Releases/releases/download/v${MACOS_DISTRIBUTION_VERSION}/Tender-Flow-${MACOS_DISTRIBUTION_VERSION}-arm64.dmg`,
     );
     expect(DESKTOP_DOWNLOADS[1].label).toBe("Stáhnout pro macOS (Apple Silicon)");
     expect(DESKTOP_DOWNLOADS[0].href).not.toContain("/releases/latest/download/");
@@ -40,7 +41,7 @@ describe("trial remaining copy", () => {
     expect(TRIAL_DURATION_DAYS).toBe(14);
     expect(getCalendarDaysRemaining("2026-09-30T10:00:00.000Z")).toBe(14);
     expect(getCalendarDaysRemaining("2026-09-16T12:00:00.000Z")).toBe(1);
-    expect(getCalendarDaysRemaining("2026-09-16T10:00:00.000Z")).toBe(0);
+    expect(getCalendarDaysRemaining("2026-09-16T10:00:00.000Z")).toBe(-1);
     expect(getCalendarDaysRemaining("2026-09-16T09:00:00.000Z")).toBe(-1);
     expect(getCalendarDaysRemaining("2026-09-16T09:59:59.000Z")).toBe(-1);
     expect(getCalendarDaysRemaining("2026-09-15T10:00:00.000Z")).toBe(-1);
@@ -84,6 +85,15 @@ describe("live override plan presentation", () => {
     expect(plan.isOverridden).toBe(true);
     expect(plan.status).toBe("active");
     expect(plan.activeUntil).toBe("2026-12-31T00:00:00.000Z");
+  });
+
+  it("uses the Stripe access deadline instead of stale manual billing dates", () => {
+    const plan = getOrgPlanPresentation({
+      status: "trial", tier: "enterprise", overrideTier: null, overrideExpiresAt: null,
+      billingCustomerId: "cus_fixture", billingPeriodEnd: "2026-10-30T00:00:00Z",
+      expiresAt: "2026-09-20T00:00:00Z",
+    });
+    expect(plan.activeUntil).toBe("2026-09-20T00:00:00Z");
   });
 
   it("keeps trial presentation when the override has already expired", () => {

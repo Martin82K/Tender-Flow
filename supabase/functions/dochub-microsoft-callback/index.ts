@@ -1,3 +1,4 @@
+import { hasOAuthStateSubscription } from "../_shared/oauthSubscription.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
@@ -333,11 +334,6 @@ Deno.serve(async (req) => {
       return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
-    const { data: subscription, error: subscriptionError } = await service.rpc('get_effective_user_tier', { target_user_id: stateRow.user_id });
-    if (subscriptionError || !['starter', 'pro', 'enterprise', 'admin'].includes(subscription?.tier)) {
-      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
-    }
-
     const accessKind: AccessKind = stateRow.access_kind === "personal_read"
       ? "personal_read"
       : stateRow.access_kind === "todo_sync"
@@ -346,6 +342,9 @@ Deno.serve(async (req) => {
           ? "microsoft_graph"
           : "manage";
     const requiresProject = accessKind === "manage" || Boolean(stateRow.project_id);
+    if (!await hasOAuthStateSubscription(service, stateRow, requiresProject)) {
+      return redirect(req, withQueryParam(defaultReturnTo(), "dochub_error", "subscription_required"));
+    }
     const skipProjectMutation = accessKind !== "manage";
     let project: { id: string; owner_id: string | null } | null = null;
 
