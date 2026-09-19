@@ -68,6 +68,23 @@ describe("live override plan presentation", () => {
     expect(isLiveOverride("enterprise", null)).toBe(true);
     expect(isLiveOverride("enterprise", "2026-09-01T00:00:00.000Z")).toBe(false);
     expect(isLiveOverride(null, "2026-12-31T00:00:00.000Z")).toBe(false);
+    expect(isLiveOverride("free", null)).toBe(false);
+    expect(isLiveOverride("free", "2026-12-31T00:00:00.000Z")).toBe(false);
+  });
+
+  it("does not treat a free override as an active entitled plan", () => {
+    const plan = getOrgPlanPresentation({
+      status: "paused",
+      tier: "enterprise",
+      overrideTier: "free",
+      overrideExpiresAt: null,
+      billingPeriodEnd: "2026-12-31T00:00:00.000Z",
+      expiresAt: "2026-12-31T00:00:00.000Z",
+    });
+    expect(plan.isOverridden).toBe(false);
+    expect(plan.isTrial).toBe(false);
+    expect(plan.status).toBe("paused");
+    expect(plan.effectiveTier).toBe("enterprise");
   });
 
   it("does not present a trial when a live override remains", () => {

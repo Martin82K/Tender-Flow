@@ -25,11 +25,13 @@ export const formatTrialRemainingCopy = (days: number): string => {
   return `Zkušební období: ${verb} ${days} ${word}`;
 };
 
+const ENTITLED_OVERRIDE_TIERS = new Set(["starter", "pro", "enterprise"]);
+
 export const isLiveOverride = (
   overrideTier: string | null | undefined,
   overrideExpiresAt: string | null | undefined,
 ): boolean => {
-  if (!overrideTier || !["starter", "pro", "enterprise"].includes(overrideTier)) return false;
+  if (!overrideTier || !ENTITLED_OVERRIDE_TIERS.has(overrideTier)) return false;
   if (!overrideExpiresAt) return true;
   const end = Date.parse(overrideExpiresAt);
   return Number.isFinite(end) && end > Date.now();
