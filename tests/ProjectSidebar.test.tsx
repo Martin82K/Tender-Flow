@@ -50,12 +50,15 @@ describe('Project workspace sidebar', () => {
     const trigger = screen.getByRole('button', { name: /Změnit stavbu/ });
     expect(within(trigger).getByLabelText('Soutěž')).toHaveTextContent('S');
     expect(within(trigger).getByLabelText('Soutěž')).toHaveAttribute('data-status', 'tender');
+    expect(within(trigger).queryByText('V soutěži')).not.toBeInTheDocument();
     rerender(<ProjectSidebar {...props} selectedProjectId="b" />);
     expect(within(trigger).getByLabelText('Realizace')).toHaveTextContent('R');
     expect(within(trigger).getByLabelText('Realizace')).toHaveAttribute('data-status', 'realization');
+    expect(within(trigger).queryByText('V realizaci')).not.toBeInTheDocument();
     rerender(<ProjectSidebar {...props} selectedProjectId="c" />);
     expect(within(trigger).queryByLabelText('Soutěž')).not.toBeInTheDocument();
     expect(within(trigger).queryByLabelText('Realizace')).not.toBeInTheDocument();
+    expect(within(trigger).getAllByText('Archiv')).toHaveLength(2);
   });
   it('closes the picker on collapse and reopens search with one compact click', () => {
     const props = { hasFeature: () => true, projects, selectedProjectId: 'a', activeTab: 'overview', onSelect: vi.fn(), onExpand: vi.fn() };

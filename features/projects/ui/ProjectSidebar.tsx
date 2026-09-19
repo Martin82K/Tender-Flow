@@ -69,13 +69,13 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
         onClick={() => { if (compact) { onExpand?.(); setOpen(true); } else setOpen(!open); setQuery(''); }}>
         {compact && <span aria-hidden="true" className="material-symbols-outlined">domain</span>}
         <span className="tf-sidebar-label flex items-center justify-between gap-2 font-semibold text-sm">
-          <span className="flex min-w-0 items-start gap-2">
-            {project.status !== 'archived' && <span aria-label={project.status === 'realization' ? 'Realizace' : 'Soutěž'} data-status={project.status === 'realization' ? 'realization' : 'tender'} className="tf-project-phase-badge inline-flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-bold">{project.status === 'realization' ? 'R' : 'S'}</span>}
+          <span className="flex min-w-0 items-center gap-3">
+            {project.status !== 'archived' && <span aria-label={project.status === 'realization' ? 'Realizace' : 'Soutěž'} data-status={project.status === 'realization' ? 'realization' : 'tender'} className="tf-project-phase inline-flex w-5 shrink-0 items-center justify-center text-2xl leading-none font-bold">{project.status === 'realization' ? 'R' : 'S'}</span>}
             <span className="min-w-0 break-words">{project.name}</span>
           </span>
           <span aria-hidden="true" className="material-symbols-outlined text-lg">expand_more</span>
         </span>
-        <span className="tf-sidebar-label mt-1 block text-xs opacity-70">{project.status === 'archived' ? 'Archiv' : project.status === 'realization' ? 'V realizaci' : 'V soutěži'}</span>
+        {project.status === 'archived' && <span className="tf-sidebar-label mt-1 block text-xs opacity-70">Archiv</span>}
       </button>
       {open && <div id="sidebar-project-picker" className="border-y border-slate-300 dark:border-slate-700 p-3">
         <input autoFocus type="search" aria-label="Hledat stavbu" placeholder="Hledat stavbu…" value={query}
