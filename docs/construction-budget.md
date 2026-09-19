@@ -146,8 +146,9 @@ Vyhledávání v hlavičce projektu zůstává zachované. Nová kopie nenahrazu
 **Nastavit jako hlavní** uloží společný výběr pro všechny uživatele projektu a další
 otevření rozpočtu. Vyžaduje oprávnění upravovat rozpočet a číst ceny. Potvrzení
 rozpočtu ani položky se tím nemění. Souběžnou změnu systém odmítne s výzvou k obnovení.
-Po přesunu hlavní verze do koše se použije nejstarší zbývající aktivní verze;
-obnovení z koše ji automaticky nevrátí jako hlavní. Nový projekt bez výslovné volby
+Po přesunu hlavní verze do koše se jako nová hlavní uloží nejstarší zbývající aktivní verze;
+obnovení původní verze z koše tento výběr nezmění. Pokud žádná aktivní verze nezbývá,
+hlavní se stane první obnovená nebo nově vytvořená verze. Nový projekt bez výslovné volby
 používá nejstarší aktivní verzi, takže nové kopie nemění výchozí rozpočet.
 
 **Převzít do plánu VŘ** je poslední, neaktivní akce označená „Připravujeme“.

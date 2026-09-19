@@ -82,6 +82,8 @@ souhlas s nasazením do aktivního projektu.
   s pevnou search_path, kontrolou editace, cen a příslušnosti revize k projektu.
 - Výběr se serializuje zámkem řádku preference a kontroluje očekávanou původní
   hlavní verzi. Koš a změna preference mají stejné pořadí zámků revize → preference.
+  Koš uloží náhradní hlavní verzi, kterou obnovení původní verze nepřepíše.
+  První nová verze inicializuje preferenci; index se při každém otevření znovu načte.
 - Backfill zachovává dosavadní nejnovější aktivní revizi. Preflight: 2 revize,
   2 přílohy, 2 projekty k inicializaci. Položky, ceny ani plán VŘ se nemění.
 - Dry-run z izolovaného nasazovacího adresáře obsahoval pouze tuto migraci.

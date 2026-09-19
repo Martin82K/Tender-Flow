@@ -35,17 +35,27 @@ LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$ SELECT private.budget_set
 REVOKE ALL ON FUNCTION private.budget_set_primary(text,uuid,uuid),public.construction_budget_set_primary(text,uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION private.budget_set_primary(text,uuid,uuid),public.construction_budget_set_primary(text,uuid,uuid) TO authenticated;
 
-CREATE FUNCTION private.budget_primary_on_trash() RETURNS trigger
+CREATE FUNCTION private.budget_primary_on_revision() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE primary_id uuid; replacement_id uuid;
 BEGIN
- IF NEW.deleted_at IS NOT NULL THEN
-  UPDATE private.construction_budget_preferences SET revision_id=NULL WHERE project_id=NEW.project_id AND revision_id=NEW.id;
+ INSERT INTO private.construction_budget_preferences(project_id) VALUES(NEW.project_id) ON CONFLICT DO NOTHING;
+ SELECT revision_id INTO primary_id FROM private.construction_budget_preferences WHERE project_id=NEW.project_id FOR UPDATE;
+ IF primary_id=NEW.id AND NEW.deleted_at IS NOT NULL THEN
+  -- Read candidates only after acquiring the preference lock. A concurrent trash
+  -- operation rechecks this pointer in its own trigger after the lock is released.
+  SELECT id INTO replacement_id FROM public.construction_budget_revisions
+   WHERE project_id=NEW.project_id AND id<>NEW.id AND deleted_at IS NULL AND purge_job_id IS NULL
+   ORDER BY created_at,id LIMIT 1;
+  UPDATE private.construction_budget_preferences SET revision_id=replacement_id WHERE project_id=NEW.project_id;
+ ELSIF primary_id IS NULL AND NEW.deleted_at IS NULL AND NEW.purge_job_id IS NULL THEN
+  UPDATE private.construction_budget_preferences SET revision_id=NEW.id WHERE project_id=NEW.project_id;
  END IF;
  RETURN NEW;
 END $$;
-REVOKE ALL ON FUNCTION private.budget_primary_on_trash() FROM PUBLIC,anon,authenticated;
-CREATE TRIGGER budget_primary_on_trash AFTER UPDATE OF deleted_at ON public.construction_budget_revisions
- FOR EACH ROW EXECUTE FUNCTION private.budget_primary_on_trash();
+REVOKE ALL ON FUNCTION private.budget_primary_on_revision() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER budget_primary_on_revision AFTER INSERT OR UPDATE OF deleted_at ON public.construction_budget_revisions
+ FOR EACH ROW EXECUTE FUNCTION private.budget_primary_on_revision();
 
 -- Keep price redaction, purge information and existing permission checks unchanged.
 CREATE OR REPLACE FUNCTION private.budget_load(project_input text, revision_input uuid DEFAULT NULL) RETURNS jsonb

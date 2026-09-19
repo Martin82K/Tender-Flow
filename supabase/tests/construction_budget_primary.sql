@@ -16,6 +16,8 @@ BEGIN
  first_rev:=public.construction_budget_save(p,(src->>'id')::uuid,NULL,0,'Primary test',doc,'[]',false);
  second_rev:=public.construction_budget_save(p,(src->>'id')::uuid,NULL,0,'Copy test',doc,'[]',false);
  prior:=(public.construction_budget_load(p)->>'mainRevisionId')::uuid;
+ PERFORM public.construction_budget_set_primary(p,(second_rev->>'id')::uuid,prior);
+ prior:=(second_rev->>'id')::uuid;
  PERFORM public.construction_budget_set_primary(p,(first_rev->>'id')::uuid,prior);
  IF public.construction_budget_load(p)->>'mainRevisionId' IS DISTINCT FROM first_rev->>'id' THEN RAISE EXCEPTION 'Primary not stored'; END IF;
  denied:=false;
@@ -30,7 +32,11 @@ BEGIN
  PERFORM public.construction_budget_set_primary(p,(second_rev->>'id')::uuid,(first_rev->>'id')::uuid);
  IF public.construction_budget_load(p,(first_rev->>'id')::uuid)->>'version'<>'1' THEN RAISE EXCEPTION 'Document modified by preference'; END IF;
  PERFORM public.construction_budget_trash(p,(second_rev->>'id')::uuid,'revision',false,1);
- IF public.construction_budget_load(p)->>'mainRevisionId' IS NOT NULL THEN RAISE EXCEPTION 'Trash retained as primary'; END IF;
+ IF public.construction_budget_load(p)->>'mainRevisionId' IS NOT DISTINCT FROM second_rev->>'id' THEN RAISE EXCEPTION 'Trash retained as primary'; END IF;
+ prior:=(public.construction_budget_load(p)->>'mainRevisionId')::uuid;
+ PERFORM public.construction_budget_trash(p,(second_rev->>'id')::uuid,'revision',true,2);
+ IF (public.construction_budget_load(p)->>'mainRevisionId')::uuid IS DISTINCT FROM prior THEN RAISE EXCEPTION 'Restored revision stole primary status'; END IF;
+ PERFORM public.construction_budget_trash(p,(second_rev->>'id')::uuid,'revision',false,3);
  denied:=false;
  BEGIN PERFORM public.construction_budget_set_primary(p,(second_rev->>'id')::uuid,NULL); EXCEPTION WHEN raise_exception THEN denied:=true; END;
  IF NOT denied THEN RAISE EXCEPTION 'Trashed revision selected'; END IF;

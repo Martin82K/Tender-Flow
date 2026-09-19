@@ -118,3 +118,14 @@ it('keeps the earliest active version selected when no shared main version has b
   expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('old');
   expect(screen.queryByRole('button', { name: 'Nastavit jako hlavní' })).not.toBeInTheDocument();
 });
+it('refreshes the shared main version on reopening even while the cached index is fresh', async () => {
+  const main = { ...revision, id: 'new-main', title: 'Nová hlavní' };
+  const permissions = { read: true, prices: true, edit: false, confirm: false, allocate: false };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 300000 } } });
+  client.setQueryData(['construction-budget', 'p', 'u', 'index'], { permissions, revisions: [revision, main], mainRevisionId: 'r' });
+  vi.mocked(budgetApi.index).mockResolvedValue({ permissions, revisions: [revision, main], mainRevisionId: 'new-main' });
+  vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'new-main' ? main : revision);
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
+  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Verze rozpočtu' })).toHaveValue('new-main'));
+  expect(budgetApi.index).toHaveBeenCalledWith('p');
+});

@@ -33,7 +33,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   const [allocationOpen,setAllocationOpen]=useState(false);const [categoryId,setCategoryId]=useState('');const [allocationQuantity,setAllocationQuantity]=useState('');const [tagId,setTagId]=useState('');
   const actionLock=useRef(false);const saveLock=useRef(false);
   const [undo,setUndo]=useState<{document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
-  const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId)});
+  const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId),refetchOnMount:'always'});
   const sources=useQuery({queryKey:[...key,'sources'],queryFn:()=>budgetApi.sources(projectId),enabled:!!index.data});
   const activeVersions=index.data?.revisions.filter(r=>!r.deleted_at&&!r.purge_job_id)??[];
   const mainId=activeVersions.find(r=>r.id===index.data?.mainRevisionId)?.id||(index.data?.mainRevisionId===undefined?activeVersions[0]?.id:undefined)||[...activeVersions].sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')||a.id.localeCompare(b.id))[0]?.id||'';
