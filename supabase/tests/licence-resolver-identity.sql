@@ -30,6 +30,12 @@ BEGIN
 END $$;
 RESET ROLE;
 DO $$ BEGIN
+  IF has_function_privilege('authenticated','private.effective_user_tier_internal(uuid)','EXECUTE') OR has_function_privilege('tenderflow_mcp_client','private.effective_user_tier_internal(uuid)','EXECUTE') OR has_function_privilege('anon','private.effective_user_tier_internal(uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Internal licence resolver must not be executable by clients';
+  END IF;
+  IF has_function_privilege('authenticated','public.assign_org_membership_by_domain(uuid,text)','EXECUTE') OR has_function_privilege('anon','public.assign_org_membership_by_domain(uuid,text)','EXECUTE') THEN
+    RAISE EXCEPTION 'Legacy membership assignment must remain internal';
+  END IF;
   IF has_function_privilege('anon','public.get_effective_user_tier(uuid)','EXECUTE') THEN
     RAISE EXCEPTION 'Anonymous licence inspection must be revoked';
   END IF;
