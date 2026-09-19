@@ -237,3 +237,33 @@ it('keeps a wrapped dropdown inside the viewport', async () => {
     expect(screen.getByRole('group', { name: 'Verze rozpočtu', exact: true }).style.left).toBe('0px');
   } finally { geometry.mockRestore(); }
 });
+it('clears revision-specific selection, undo and scope when another user changes the main revision', async () => {
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1200);
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400);
+  const item = { id: 'item', parentId: null, sheetId: 's', kind: 'K', order: 0, code: '123', description: 'Výkop', unit: 'm3', quantity: '12', unitPrice: '10', total: '120', source: { sheet: 'Soupis', row: 1, cells: {} }, sourceType: 'K', tags: [], tenders: [] };
+  const first = { ...revision, document: { ...revision.document, nodes: [item] } } as BudgetRevision;
+  const other = { ...first, id: 'other', title: 'Jiná', version: 2 };
+  const permissions = { read: true, prices: true, edit: true, confirm: false, allocate: false };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [first, other], mainRevisionId: 'r', permissions });
+  vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'other' ? other : first);
+  vi.mocked(budgetApi.save).mockResolvedValue({ ...first, version: 2 });
+  localStorage.setItem('tf-budget-view:u:p', JSON.stringify({ scope: 's' }));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  try {
+    render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Vybrat 123' }));
+    expect(screen.getByText('1 vybraných položek napříč rozsahy')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Výkop', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Uložit změnu' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
+    expect(screen.getByRole('button', { name: 'Zpět' })).toBeVisible();
+    vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [first, other], mainRevisionId: 'other', permissions });
+    await client.invalidateQueries({ queryKey: ['construction-budget', 'p', 'u', 'index'] });
+    await waitFor(() => expect(budgetApi.revision).toHaveBeenCalledWith('p', 'other'));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).not.toBeChecked());
+    expect(screen.queryByText('1 vybraných položek napříč rozsahy')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zpět' })).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).scope).toBe('');
+  } finally { width.mockRestore(); height.mockRestore(); }
+});

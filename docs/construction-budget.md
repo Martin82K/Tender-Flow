@@ -145,7 +145,9 @@ Přepnutí vyčistí výběr položek, sloupcové filtry, rozsah, otevřená VV 
 Vyhledávání v hlavičce projektu zůstává zachované. Nová kopie nenahrazuje hlavní verzi.
 **Nastavit jako hlavní** uloží společný výběr pro všechny uživatele projektu a další
 otevření rozpočtu. Vyžaduje oprávnění upravovat rozpočet a číst ceny. Potvrzení
-rozpočtu ani položky se tím nemění. Souběžnou změnu systém odmítne s výzvou k obnovení.
+rozpočtu ani položky se tím nemění. Pokud se aktuální ID hlavní verze liší od načteného,
+systém změnu odmítne s výzvou k obnovení. Jde o porovnání aktuální hodnoty, nikoli historie
+změn: při mezikroku A → B → A lze volbu založenou na A znovu uložit.
 Po přesunu hlavní verze do koše se jako nová hlavní uloží nejstarší zbývající aktivní verze;
 obnovení původní verze z koše tento výběr nezmění. Pokud žádná aktivní verze nezbývá,
 hlavní se stane první obnovená nebo nově vytvořená verze. Nový projekt bez výslovné volby
@@ -162,3 +164,7 @@ Záložky **Rekapitulace**, **Položky** a **Importy a verze** sdílejí jednu l
 Přepínač bočního stromu a nastavení rozsahu se zobrazují pouze v záložce **Položky**. Samostatná rekapitulace vždy zobrazuje celý rozpočet; návrat do položek zachová dříve zvolený rozsah i stav bočního stromu.
 
 Rozbalená VV se zachovávají při přepínání záložek a vyčistí se při změně verze. Firemní číselníky lze otevřít i před prvním importem a na kartě Importy a verze. Pokud selže obnovení indexu a jsou dostupná uložená data v paměti, rozpočet zůstane zobrazený s chybou a možností opakování. Nabídky upravují svou polohu podle okrajů obrazovky.
+
+Vyčištění výběru, rozsahu, filtrů a kroku Zpět platí také při změně otevřené hlavní verze po obnovení dat. Krok Zpět je navíc svázaný s ID konkrétní revize. Tlačítko VV i checkbox jsou svisle vystředěné ve svých buňkách, včetně vyšších řádků.
+
+Kompaktní lišta používá ikony společně s textovými popisky. Všechna její tlačítka mají stejnou výšku 36 px, nabídky Verze a Akce označuje šipka. Na menší obrazovce se ovládání zalamuje; názvy sekcí zůstávají čitelné.

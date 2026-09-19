@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChartNoAxesColumnIncreasing, ChevronDown, Import, Layers, Library, List, MoreHorizontal, Network, Settings } from 'lucide-react';
 import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
 import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
@@ -33,13 +34,21 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   const [planOpen,setPlanOpen]=useState(false);
   const [allocationOpen,setAllocationOpen]=useState(false);const [categoryId,setCategoryId]=useState('');const [allocationQuantity,setAllocationQuantity]=useState('');const [tagId,setTagId]=useState('');
   const actionLock=useRef(false);const saveLock=useRef(false);
-  const [undo,setUndo]=useState<{document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
+  const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
   const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId),refetchOnMount:'always'});
   const sources=useQuery({queryKey:[...key,'sources'],queryFn:()=>budgetApi.sources(projectId),enabled:!!index.data});
   const activeVersions=index.data?.revisions.filter(r=>!r.deleted_at&&!r.purge_job_id)??[];
   const mainId=activeVersions.find(r=>r.id===index.data?.mainRevisionId)?.id||(index.data?.mainRevisionId===undefined?activeVersions[0]?.id:undefined)||[...activeVersions].sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')||a.id.localeCompare(b.id))[0]?.id||'';
   const activeId=revisionId||mainId;
-  useEffect(()=>setExpandedVV(new Set()),[activeId]);
+  const previousActiveId=useRef(activeId);
+  useEffect(()=>{
+    setExpandedVV(new Set());
+    if(previousActiveId.current&&previousActiveId.current!==activeId){
+      setSelected(new Set());setUndo(null);setFilters({});setJumpId('');setView(old=>({...old,scope:''}));
+      setAllocationOpen(false);setCategoryId('');setAllocationQuantity('');setTagId('');setScopeOpen(false);setScopeSearch('');setPlanOpen(false);
+    }
+    previousActiveId.current=activeId;
+  },[activeId]);
   const revision=useQuery({queryKey:[...key,'revision',activeId],queryFn:()=>budgetApi.revision(projectId,activeId),enabled:!!activeId&&!!index.data});
   const catalog=useQuery({queryKey:['budget-catalog',organizationId,userId],queryFn:()=>budgetApi.catalog(organizationId!),enabled:!!organizationId&&!!index.data});
   const history=useQuery({queryKey:[...key,'history',activeId,revision.data?.version],queryFn:()=>budgetApi.history(projectId,activeId),enabled:!!activeId&&tab==='versions'&&!!index.data?.permissions.prices});
@@ -63,7 +72,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
   },[current,categories,catalog.data]);
   const save=async(document:BudgetDocument,allocations=current?.allocations??[],confirm=false)=>{
     if(!current)throw new Error('Vyberte verzi rozpočtu.');if(saveLock.current)throw new Error('Počkejte na dokončení ukládání.');validateRevisionAllocations(document,allocations);if(confirm&&(document.issues.some(i=>i.severity==='error')||document.nodes.some(n=>isPriced(n)&&(n.quantity===null||n.unitPrice===null||n.total===null))))throw new Error('Rozpočet nelze potvrdit. Doplňte chybějící množství a ceny v detailu položek; chyby mapování opravte novým převodem přílohy.');saveLock.current=true;setSaving(true);setError('');
-    try{const saved=await budgetApi.save({projectId,sourceId:current.source_id,revision:current,title:current.title,document,allocations,confirm});setUndo({document:current.document,allocations:current.allocations,version:saved.version});cache.setQueryData([...key,'revision',saved.id],saved);await cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Uloženo na serveru.');return saved;}finally{saveLock.current=false;setSaving(false);}
+    try{const saved=await budgetApi.save({projectId,sourceId:current.source_id,revision:current,title:current.title,document,allocations,confirm});setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});cache.setQueryData([...key,'revision',saved.id],saved);await cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Uloženo na serveru.');return saved;}finally{saveLock.current=false;setSaving(false);}
   };
   const act=async(action:()=>Promise<unknown>)=>{if(actionLock.current)return;actionLock.current=true;setSaving(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'Operace selhala.');}finally{actionLock.current=false;setSaving(false);}};
   const jump=(n:BudgetNode)=>{if(view.scope&&n.sheetId!==view.scope){updateView({scope:''});setNotice('Rozsah změněn na celý rozpočet kvůli vybranému oddílu. Sloupcové filtry zůstaly zachované.');}setTab('items');setJumpId(n.id);setJumpRequest(request=>request+1);};
@@ -78,8 +87,8 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
       {permissions?.edit&&permissions.prices&&!readOnly&&<button onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}
     </div>
     <div className="tf-budget-toolbar tf-budget-commandbar" role="group" aria-label="Ovládání rozpočtu">
-      <nav className="tf-budget-toolbar" aria-label="Sekce rozpočtu">{(['recap','items','versions'] as const).map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t==='items'?'Položky':t==='recap'?'Rekapitulace':'Importy a verze'}</button>)}</nav>
-      {!!activeVersions.length&&<BudgetButtonMenu label="Verze rozpočtu" caption="Verze">
+      <nav className="tf-budget-toolbar" aria-label="Sekce rozpočtu">{(['recap','items','versions'] as const).map(t=><button key={t} className="tf-budget-command-button" aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t==='items'?<List aria-hidden="true"/>:t==='recap'?<ChartNoAxesColumnIncreasing aria-hidden="true"/>:<Import aria-hidden="true"/>}{t==='items'?'Položky':t==='recap'?'Rekapitulace':'Importy a verze'}</button>)}</nav>
+      {!!activeVersions.length&&<BudgetButtonMenu label="Verze rozpočtu" caption="Verze" icon={<Layers aria-hidden="true"/>}>
         <strong>Verze rozpočtu</strong>
         <div className="tf-budget-version-options">
           {activeVersions.map(r=><button key={r.id} type="button" aria-pressed={r.id===activeId} disabled={saving} onClick={()=>openVersion(r.id)}>{r.title} · {r.status==='confirmed'?'Potvrzená':'Pracovní'}{r.id===mainId?' · Hlavní':''}</button>)}
@@ -87,17 +96,17 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
       {activeId===mainId?<span className="tf-budget-main-label">Hlavní verze</span>:current&&!current.deleted_at&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving||revision.isPending||index.data?.mainRevisionId===undefined} title={index.data?.mainRevisionId===undefined?'Nastavení hlavní verze zatím není dostupné':undefined} onClick={()=>void act(async()=>{await budgetApi.setPrimary(projectId,activeId,index.data?.mainRevisionId??null);await cache.invalidateQueries({queryKey:key});setNotice('Hlavní verze rozpočtu byla změněna.');})}>Nastavit jako hlavní</button>}
       </BudgetButtonMenu>}
       {current&&tab!=='versions'&&<>
-        {tab==='items'&&<><button onClick={()=>updateView({panel:!view.panel})}>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}</>}
-        <BudgetButtonMenu label="Akce rozpočtu" caption="Akce" closeOnAction>
-        {editable&&undo&&<button onClick={()=>void act(async()=>{if(current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
+        {tab==='items'&&<><button className="tf-budget-command-button" onClick={()=>updateView({panel:!view.panel})}><Network aria-hidden="true"/>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button className="tf-budget-command-button" onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}</>}
+        <BudgetButtonMenu label="Akce rozpočtu" caption="Akce" icon={<MoreHorizontal aria-hidden="true"/>} closeOnAction>
+        {editable&&undo&&undo.revisionId===activeId&&<button onClick={()=>void act(async()=>{if(current.id!==undo.revisionId||current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
         {editable&&permissions?.confirm&&<button onClick={()=>void act(async()=>{await save(current.document,current.allocations,true);})}>Potvrdit rozpočet</button>}
         {!current.deleted_at&&current.status==='confirmed'&&permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={saving} onClick={()=>void act(async()=>{const copy=await budgetApi.save({projectId,sourceId:current.source_id,title:`${current.title} · pracovní kopie`,document:{...current.document,origin:'copy',importKey:crypto.randomUUID()},allocations:current.allocations});openVersion(copy.id);await cache.invalidateQueries({queryKey:key});})}>Vytvořit pracovní kopii</button>}
           <button disabled title="Připravujeme">Převzít do plánu VŘ</button>
         </BudgetButtonMenu>
       </>}
-        <button className="tf-budget-catalog-trigger" onClick={()=>setCatalogOpen(true)}>Firemní číselníky</button>
+        <button className="tf-budget-catalog-trigger tf-budget-command-button" onClick={()=>setCatalogOpen(true)}><Library aria-hidden="true"/>Firemní číselníky</button>
         <div ref={viewOptions} className="tf-budget-view-settings" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setViewOptionsOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setViewOptionsOpen(false);viewOptionsButton.current?.focus();}}}>
-          <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><span aria-hidden="true" className="material-symbols-outlined">settings</span></button>
+          <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger tf-budget-command-button" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><Settings aria-hidden="true"/></button>
           {viewOptionsOpen&&<div id={viewOptionsId} role="group" aria-label="Nastavení zobrazení rozpočtu" className="tf-budget-view-settings-panel">
             <strong>Nastavení zobrazení</strong>
             {current&&tab==='items'&&<button onClick={()=>{setViewOptionsOpen(false);setScopeOpen(true);}}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||'Celý rozpočet'} ▾</button>}
@@ -160,7 +169,7 @@ function BudgetColumnSettings({columns,onChange,onClose}:{columns:BudgetColumn[]
 }
 
 
-function BudgetButtonMenu({label,caption,children,closeOnAction=false}:{label:string;caption:string;children:React.ReactNode;closeOnAction?:boolean}) {
+function BudgetButtonMenu({label,caption,icon,children,closeOnAction=false}:{label:string;caption:string;icon:React.ReactNode;children:React.ReactNode;closeOnAction?:boolean}) {
   const [open,setOpen]=useState(false);
   const root=useRef<HTMLDivElement>(null);const panel=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);const id=React.useId();
   React.useLayoutEffect(()=>{
@@ -182,7 +191,7 @@ function BudgetButtonMenu({label,caption,children,closeOnAction=false}:{label:st
     return ()=>document.removeEventListener('pointerdown',dismiss);
   },[open]);
   return <div ref={root} className="tf-budget-button-menu" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setOpen(false);}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setOpen(false);trigger.current?.focus();}}}>
-    <button ref={trigger} type="button" aria-label={label} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}>{caption} <span aria-hidden="true">▾</span></button>
+    <button ref={trigger} type="button" className="tf-budget-command-button" aria-label={label} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}>{icon}{caption}<ChevronDown className="tf-budget-menu-chevron" aria-hidden="true"/></button>
     {open&&<div ref={panel} id={id} role="group" aria-label={label} className="tf-budget-button-menu-panel" onClick={event=>{const button=event.target instanceof Element?event.target.closest('button'):null;if(closeOnAction&&button&&!button.disabled){setOpen(false);trigger.current?.focus();}}}>{children}</div>}
   </div>;
 }
