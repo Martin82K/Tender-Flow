@@ -138,6 +138,14 @@ describe("authService legal acceptance", () => {
     expect(user).toBe(hydratedUser);
   });
 
+  it("po registraci bez potvrzení e-mailu neudělí session ani nezapisuje souhlasy", async () => {
+    mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending-user" }, session: null }, error: null });
+    await expect(authService.register("Pending", "pending@example.com", "password", {
+      termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
+    })).rejects.toThrow("Zkontrolujte email pro potvrzení");
+    expect(mockState.rpc).not.toHaveBeenCalled();
+  });
+
   it("bez aktivní session nevolá RPC a vrátí srozumitelnou chybu", async () => {
     mockState.authGetSession.mockResolvedValue({ data: { session: null } });
 

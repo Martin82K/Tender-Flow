@@ -85,3 +85,13 @@ Verzovaná migrace `20260919070618_org_signup_enterprise_trial.sql` navazuje na 
 Registrační SQL test používá syntetické účty a skutečné auth triggery v izolované databázi, vše vrací rollbackem. Ověřuje i zákaz NULL limitu licencí pro vlastníka. Změna limitu a rezervace licence používají společný zámek organizace. Po deployi zkontrolujte oprávnění funkcí, triggery, výsledné počty, security/performance advisors a závěrečný dry-run bez čekajících migrací.
 
 Veřejné odkazy vedou na existující instalační soubory: Windows 1.9.38 a macOS Apple Silicon 1.9.36. Verze jsou úmyslně nezávislé, protože vydání 1.9.38 obsahuje pouze Windows. Nové desktopové vydání tato změna nevytváří.
+
+### Potvrzení e-mailu před prvním přihlášením
+
+Enterprise trial vyžaduje serverové ověření e-mailu: v Supabase Auth musí být `mailer_autoconfirm=false` a `mailer_allow_unverified_email_sign_ins=false`. Veřejné registrace zůstávají povolené podle současného produktového nastavení; klientská kontrola `app_settings` není bezpečnostní hranice. Při budoucím uzavření registrací je nutné uzavřít také Supabase Auth signup.
+
+Ověřovací zprávy odesílá funkce `auth-send-email` přes existující `RESEND_API_KEY` a `DEFAULT_EMAIL_FROM`. Nepoužívá klientskou session: každé volání ověřuje podpis Standard Webhooks pomocí `SEND_EMAIL_HOOK_SECRET`, přesné tělo, ID a časové okno pěti minut. Resend idempotency klíč omezuje duplicitní doručení při opakování hooku. Odkazy vždy směřují na Auth URL daného projektu a poté na `https://www.tenderflow.cz`; uživatelský redirect se nepřebírá. Podporované jsou registrace, pozvánka, obnova hesla, magic link, reautentizace a obě adresy při bezpečné změně e-mailu. Tajemství ani ověřovací tokeny se nelogují.
+
+Pořadí nasazení: nastavte stejné náhodné podpisové tajemství v Auth hooku a Edge secrets, nasaďte `auth-send-email` přes API s vypnutým JWT ověřováním (autentizaci zajišťuje HMAC), ověřte odmítnutí nepodepsaného požadavku a doručení podepsaného testu přes Resend. Teprve potom aktivujte Send Email hook a potvrzování e-mailu. Nepoužívejte plošný `config push`, který by přepsal nesouvisející produkční nastavení. Nová registrace nesmí před potvrzením vrátit session a přihlášení musí vrátit `email_not_confirmed`. Chyba Resend vrací chybu Auth, nikoli falešný úspěch. Bez funkčního hooku a potvrzování tento trial nenasazujte.
+
+Bez session aplikace požádá o potvrzení e-mailu a neukládá právní souhlasy jménem neověřeného účtu. Po potvrzení se uplatní stávající kontrola právních souhlasů při přihlášení. Nastavení v lokálním `config.toml` rovněž vyžaduje potvrzení e-mailu.

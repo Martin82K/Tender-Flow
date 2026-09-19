@@ -5,6 +5,11 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 
 describe("org signup enterprise trial migration", () => {
+  it("requires email confirmation before signup can produce an authenticated session", () => {
+    const config = fs.readFileSync(path.join(ROOT, "supabase/config.toml"), "utf8");
+    const email = config.split("[auth.email]")[1].split(/\n\[/)[0];
+    expect(email).toMatch(/^enable_confirmations = true$/m);
+  });
   it("creates a 14-day Enterprise trial from created_at and keeps the existing expiry wall", () => {
     const migration = fs.readFileSync(
       path.join(ROOT, "supabase/migrations/20260919070618_org_signup_enterprise_trial.sql"),
