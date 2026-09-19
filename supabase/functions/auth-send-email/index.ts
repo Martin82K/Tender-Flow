@@ -30,6 +30,20 @@ function verified(body: string, headers: Headers): boolean {
   });
 }
 
+// Only signup may carry an application deep link. Never trust arbitrary
+// redirect URLs from the signed payload: the caller originally supplies them.
+function signupRedirect(value: unknown): string {
+  try {
+    const target = new URL(text(value));
+    if (target.origin === redirectTo && !target.username && !target.password
+      && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
+      target.hash = '';
+      return target.href;
+    }
+  } catch { /* Fall back to the trusted site root. */ }
+  return redirectTo;
+}
+
 interface Mail { to: string; subject: string; text: string }
 function messages(payload: unknown): Mail[] {
   const root = record(payload);
@@ -64,7 +78,7 @@ function messages(payload: unknown): Mail[] {
     } else {
       link.searchParams.set('token', tokenHash);
       link.searchParams.set('type', action);
-      link.searchParams.set('redirect_to', redirectTo);
+      link.searchParams.set('redirect_to', action === 'signup' ? signupRedirect(data.redirect_to) : redirectTo);
     }
     return { to, subject: subjects[action], text: `${subjects[action]}:\n\n${link}\n\nPokud jste o tuto akci nežádali, zprávu ignorujte.` };
   };

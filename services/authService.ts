@@ -202,6 +202,7 @@ export const authService = {
         email: string,
         password: string,
         legalAcceptance: LegalAcceptanceInput,
+        nextPath?: string,
     ): Promise<User | null> => {
         // Check registration settings before allowing signup
         const canRegister = await authService.checkRegistrationAllowed(email);
@@ -209,10 +210,23 @@ export const authService = {
             throw new Error(canRegister.reason || 'Registrace není povolena pro tento email.');
         }
 
+        let emailRedirectTo: string | undefined;
+        if (nextPath) {
+            try {
+                const target = new URL(nextPath, 'https://www.tenderflow.cz');
+                if (target.origin === 'https://www.tenderflow.cz' && !target.username && !target.password
+                    && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
+                    target.hash = '';
+                    emailRedirectTo = target.href;
+                }
+            } catch { /* Invalid return paths use the configured site URL. */ }
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
+                ...(emailRedirectTo ? { emailRedirectTo } : {}),
                 data: {
                     name,
                 },

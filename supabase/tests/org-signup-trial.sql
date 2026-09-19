@@ -2,6 +2,34 @@
 BEGIN;
 SET LOCAL lock_timeout = '2s';
 SET LOCAL statement_timeout = '10s';
+-- Inject a transient provisioning failure; confirmation must roll back and retry.
+CREATE FUNCTION pg_temp.reject_trial_fixture() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF current_setting('test.provisioning_fail', true) = 'on' THEN
+    RAISE EXCEPTION 'synthetic transient provisioning failure';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER reject_trial_fixture BEFORE INSERT ON public.organizations
+FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_trial_fixture();
+DO $$
+DECLARE fixture uuid := gen_random_uuid(); rejected boolean := false;
+BEGIN
+  INSERT INTO auth.users(id,email) VALUES(fixture,'retry-'||fixture||'@gmail.com');
+  PERFORM set_config('test.provisioning_fail','on',true);
+  BEGIN
+    UPDATE auth.users SET email_confirmed_at=now() WHERE id=fixture;
+  EXCEPTION WHEN OTHERS THEN rejected := true;
+  END;
+  PERFORM set_config('test.provisioning_fail','off',true);
+  IF NOT rejected OR EXISTS(SELECT 1 FROM auth.users WHERE id=fixture AND email_confirmed_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'Failed provisioning must roll back confirmation for a retry';
+  END IF;
+  UPDATE auth.users SET email_confirmed_at=now() WHERE id=fixture;
+  IF NOT EXISTS(SELECT 1 FROM public.organization_members WHERE user_id=fixture) THEN
+    RAISE EXCEPTION 'Retry must provision the confirmed account';
+  END IF;
+END $$;
 DO $$
 DECLARE
   u uuid := gen_random_uuid();

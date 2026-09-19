@@ -142,6 +142,16 @@ describe("authService legal acceptance", () => {
     expect(user).toBe(hydratedUser);
   });
 
+  it("passes the original internal destination into the email confirmation", async () => {
+    mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending" }, session: null }, error: null });
+    await authService.register("Pending", "pending@example.com", "password", {
+      termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
+    }, "/app/project/fixture?tab=tasks");
+    expect(mockState.authSignUp).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({ emailRedirectTo: "https://www.tenderflow.cz/app/project/fixture?tab=tasks" }),
+    }));
+  });
+
   it("po registraci bez potvrzení e-mailu neudělí session ani nezapisuje souhlasy", async () => {
     mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending-user" }, session: null }, error: null });
     await expect(authService.register("Pending", "pending@example.com", "password", {

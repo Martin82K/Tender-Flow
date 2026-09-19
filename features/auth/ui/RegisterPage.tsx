@@ -63,7 +63,7 @@ export const RegisterPage: React.FC = () => {
       if (!termsAccepted || !privacyAccepted) {
         throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
       }
-      const result = await register(name, email, password, getCurrentLegalAcceptanceInput());
+      const result = await register(name, email, password, getCurrentLegalAcceptanceInput(), nextPath);
       if (result?.status === "confirmation_required") {
         setConfirmationRequired(true);
         setPassword("");

@@ -366,6 +366,22 @@ BEGIN
 END;
 $$;
 
+-- Auth confirmation and organization provisioning are atomic. If provisioning
+-- fails, Auth must retain the unconfirmed state so the link can be retried.
+CREATE OR REPLACE FUNCTION public.handle_new_user_organization()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  PERFORM public.get_or_create_user_organization_internal(
+    NEW.id, NEW.email, NEW.raw_user_meta_data->>'name'
+  );
+  RETURN NEW;
+END;
+$$;
+
 -- Provision only when email ownership has been verified. Confirmed inserts
 -- (including OAuth) continue to use the existing INSERT trigger.
 DROP TRIGGER IF EXISTS on_auth_user_email_confirmed_org ON auth.users;

@@ -43,6 +43,7 @@ interface AuthContextType {
     email: string,
     password: string,
     legalAcceptance: LegalAcceptanceInput,
+    nextPath?: string,
   ) => Promise<{ status: "authenticated" | "confirmation_required" }>;
   acceptLegalDocuments: (input: LegalAcceptanceInput) => Promise<void>;
   updatePreferences: (preferences: any) => Promise<void>;
@@ -916,9 +917,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     email: string,
     password: string,
     legalAcceptance: LegalAcceptanceInput,
+    nextPath?: string,
   ) => {
     try {
-      const user = await authService.register(name, email, password, legalAcceptance);
+      const user = await authService.register(name, email, password, legalAcceptance, nextPath);
       if (!user) return { status: "confirmation_required" as const };
       if (isDesktop) {
         const { data } = await authSessionService.getSession();

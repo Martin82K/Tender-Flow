@@ -45,6 +45,19 @@ describe('signed Auth mail through Resend', () => {
     expect(mail.text).not.toContain('evil.invalid');
     expect(options.headers['Idempotency-Key']).toMatch(/^auth-mail-[a-f0-9]+-0$/);
   });
+  it('preserves an internal application deep link in signup confirmation', async () => {
+    const target = 'https://www.tenderflow.cz/app/project/fixture?tab=tasks&taskId=42';
+    await handler(signed({ ...payload, email_data: { ...payload.email_data, redirect_to: target } }));
+    const mail = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const link = new URL(mail.text.split('\n\n')[1]);
+    expect(link.searchParams.get('redirect_to')).toBe(target);
+  });
+  it.each(['https://evil.invalid/app', 'https://www.tenderflow.cz.evil.invalid/app', 'https://www.tenderflow.cz@evil.invalid/app', 'http://www.tenderflow.cz/app', 'https://www.tenderflow.cz/login?next=https://evil.invalid', 'https://www.tenderflow.cz/app/../login', '//evil.invalid/app'])(
+    'rejects unsafe confirmation return URLs: %s', async target => {
+      await handler(signed({ ...payload, email_data: { ...payload.email_data, redirect_to: target } }));
+      const mail = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(new URL(mail.text.split('\n\n')[1]).searchParams.get('redirect_to')).toBe('https://www.tenderflow.cz');
+    });
   it('maps secure email change hashes to the correct old and new recipients', async () => {
     expect((await handler(signed({ user: { email: 'old@example.invalid', new_email: 'new@example.invalid' }, email_data: { email_action_type: 'email_change', token_hash: 'for-new', token_hash_new: 'for-old' } }))).status).toBe(200);
     const sent = fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body));
