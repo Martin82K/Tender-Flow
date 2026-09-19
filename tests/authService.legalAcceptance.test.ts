@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CURRENT_PRIVACY_VERSION,
   CURRENT_TERMS_VERSION,
@@ -36,8 +36,10 @@ vi.mock("../services/functionsClient", () => ({
 import { authService } from "../services/authService";
 
 describe("authService legal acceptance", () => {
+  afterEach(() => vi.unstubAllEnvs());
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("VITE_AUTH_APP_ORIGIN", "https://www.tenderflow.cz");
     localStorage.clear();
 
     mockState.getStoredAuthSessionRaw.mockReturnValue(null);
@@ -120,6 +122,7 @@ describe("authService legal acceptance", () => {
       options: {
         data: {
           name: "User One",
+          signup_legal_acceptance: { termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION },
         },
       },
     });
@@ -140,6 +143,25 @@ describe("authService legal acceptance", () => {
     );
     expect(hydrateSpy).toHaveBeenCalled();
     expect(user).toBe(hydratedUser);
+  });
+
+  it("defaults to the current web origin when no Auth origin override is configured", async () => {
+    vi.stubEnv("VITE_AUTH_APP_ORIGIN", "");
+    mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending" }, session: null }, error: null });
+    await authService.register("Pending", "pending@example.com", "password", {
+      termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
+    }, "/app/project/fixture");
+    expect(mockState.authSignUp.mock.calls.at(-1)[0].options.emailRedirectTo).toBe(window.location.origin + "/app/project/fixture");
+  });
+  it.each(["https://staging.tenderflow.test", "http://127.0.0.1:3000"])("uses the configured Auth app origin %s", async origin => {
+    vi.stubEnv("VITE_AUTH_APP_ORIGIN", origin);
+    mockState.authSignUp.mockResolvedValue({ data: { user: { id: "pending" }, session: null }, error: null });
+    await authService.register("Pending", "pending@example.com", "password", {
+      termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
+    }, "/app/project/fixture");
+    expect(mockState.authSignUp).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({ emailRedirectTo: origin + "/app/project/fixture" }) }));
+    expect(mockState.authSignUp.mock.calls.at(-1)[0].options.data.signup_legal_acceptance)
+      .toEqual({ termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION });
   });
 
   it("passes the original internal destination into the email confirmation", async () => {

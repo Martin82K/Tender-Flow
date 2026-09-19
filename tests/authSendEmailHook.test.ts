@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 const secret = Buffer.alloc(32, 17).toString('base64');
 const fetchMock = vi.fn();
+let appOrigin: string | undefined;
+let authUrl = "https://project.supabase.co";
 let handler: (request: Request) => Promise<Response>;
 const payload = { user: { email: 'delivered@resend.dev' }, email_data: { email_action_type: 'signup', token_hash: 'abc123', redirect_to: 'https://evil.invalid', token: '123456' } };
 const signed = (value: unknown = payload, age = 0, signatureSecret = secret) => {
@@ -14,12 +16,12 @@ const signed = (value: unknown = payload, age = 0, signatureSecret = secret) => 
   return new Request('https://example.invalid/hook', { method: 'POST', body, headers: { 'webhook-id': id, 'webhook-timestamp': timestamp, 'webhook-signature': `v1,${signature}` } });
 };
 beforeAll(async () => {
-  vi.stubGlobal('Deno', { env: { get: (key: string) => ({ SEND_EMAIL_HOOK_SECRET: `v1,whsec_${secret}`, RESEND_API_KEY: 'test-key', DEFAULT_EMAIL_FROM: 'Tender Flow <noreply@tenderflow.cz>', SUPABASE_URL: 'https://project.supabase.co' }[key]) }, serve: (callback: typeof handler) => { handler = callback; } });
+  vi.stubGlobal('Deno', { env: { get: (key: string) => ({ SEND_EMAIL_HOOK_SECRET: `v1,whsec_${secret}`, RESEND_API_KEY: 'test-key', DEFAULT_EMAIL_FROM: 'Tender Flow <noreply@tenderflow.cz>', SUPABASE_URL: authUrl, AUTH_APP_ORIGIN: appOrigin }[key]) }, serve: (callback: typeof handler) => { handler = callback; } });
   vi.stubGlobal('fetch', fetchMock);
   await import('../supabase/functions/auth-send-email/index');
 });
 afterAll(() => vi.unstubAllGlobals());
-beforeEach(() => { fetchMock.mockReset(); fetchMock.mockResolvedValue(new Response('{"id":"fixture"}', { status: 200 })); });
+beforeEach(async () => { appOrigin = undefined; authUrl = 'https://project.supabase.co'; vi.resetModules(); await import('../supabase/functions/auth-send-email/index'); fetchMock.mockReset(); fetchMock.mockResolvedValue(new Response('{"id":"fixture"}', { status: 200 })); });
 
 describe('signed Auth mail through Resend', () => {
   it.each([-301, 301])('rejects timestamps outside the replay window (%s)', async age => {
@@ -57,6 +59,25 @@ describe('signed Auth mail through Resend', () => {
       await handler(signed({ ...payload, email_data: { ...payload.email_data, redirect_to: target } }));
       const mail = JSON.parse(fetchMock.mock.calls[0][1].body);
       expect(new URL(mail.text.split('\n\n')[1]).searchParams.get('redirect_to')).toBe('https://www.tenderflow.cz');
+    });
+  it.each(['https://staging.tenderflow.test', 'http://127.0.0.1:3000'])(
+    'uses configured origin %s for confirmation and recovery', async origin => {
+      appOrigin = origin;
+      if (origin.startsWith('http:')) authUrl = 'http://127.0.0.1:54321';
+      vi.resetModules(); await import('../supabase/functions/auth-send-email/index');
+      const target = origin + '/app/project/fixture';
+      expect((await handler(signed({ ...payload, email_data: { ...payload.email_data, redirect_to: target } }))).status).toBe(200);
+      const mail = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(new URL(mail.text.split('\n\n')[1]).searchParams.get('redirect_to')).toBe(target);
+      expect((await handler(signed({ ...payload, email_data: { ...payload.email_data, email_action_type: 'recovery' } }))).status).toBe(200);
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body).text).toContain(origin + '/reset-password?auth_token_hash=abc123');
+    });
+  it.each(['http://staging.tenderflow.test', 'https://staging.tenderflow.test/path', 'https://user:password@staging.tenderflow.test'])(
+    'fails closed for invalid deployment origin %s', async origin => {
+      appOrigin = origin;
+      vi.resetModules(); await import('../supabase/functions/auth-send-email/index');
+      expect((await handler(signed())).status).toBe(503);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   it('maps secure email change hashes to the correct old and new recipients', async () => {
     expect((await handler(signed({ user: { email: 'old@example.invalid', new_email: 'new@example.invalid' }, email_data: { email_action_type: 'email_change', token_hash: 'for-new', token_hash_new: 'for-old' } }))).status).toBe(200);

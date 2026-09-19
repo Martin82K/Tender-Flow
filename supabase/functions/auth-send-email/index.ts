@@ -5,13 +5,24 @@ const secret = Deno.env.get('SEND_EMAIL_HOOK_SECRET');
 const apiKey = Deno.env.get('RESEND_API_KEY');
 const sender = Deno.env.get('DEFAULT_EMAIL_FROM') || 'Tender Flow <noreply@tenderflow.cz>';
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const redirectTo = 'https://www.tenderflow.cz';
+const redirectTo = configuredOrigin(Deno.env.get('AUTH_APP_ORIGIN') || 'https://www.tenderflow.cz');
 const reply = (status: number, message?: string) => Response.json(
   message ? { error: { http_code: status, message } } : {}, { status },
 );
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+
+function trustedProtocol(url: URL): boolean {
+  return url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname));
+}
+function configuredOrigin(value: string): string {
+  try {
+    const url = new URL(value);
+    if (trustedProtocol(url) && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash) return url.origin;
+  } catch { /* Invalid deployment configuration fails closed. */ }
+  return '';
+}
 
 // Standard Webhooks signs the exact raw request bytes, ID and timestamp.
 function verified(body: string, headers: Headers): boolean {
@@ -72,7 +83,7 @@ function messages(payload: unknown): Mail[] {
     const link = action === 'recovery'
       ? new URL('/reset-password', redirectTo)
       : new URL('/auth/v1/verify', supabaseUrl);
-    if (link.protocol !== 'https:') throw new Error('Invalid Auth URL');
+    if (!trustedProtocol(link)) throw new Error('Invalid Auth URL');
     if (action === 'recovery') {
       link.searchParams.set('auth_token_hash', tokenHash);
     } else {
@@ -94,7 +105,7 @@ function messages(payload: unknown): Mail[] {
 
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return reply(405, 'Method not allowed');
-  if (!secret || !apiKey || !supabaseUrl) return reply(503, 'Email service unavailable');
+  if (!secret || !apiKey || !supabaseUrl || !redirectTo) return reply(503, 'Email service unavailable');
   const body = await req.text();
   if (body.length > 65536) return reply(413, 'Payload too large');
   if (!verified(body, req.headers)) return reply(401, 'Invalid webhook signature');

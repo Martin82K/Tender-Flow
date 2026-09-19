@@ -11,6 +11,18 @@ import {
     hasAcceptedCurrentLegalDocuments,
 } from '@/shared/legal/legalDocumentVersions';
 
+const getRegistrationOrigin = (): string => {
+    const configured = import.meta.env.VITE_AUTH_APP_ORIGIN?.trim();
+    const browserOrigin = typeof window !== 'undefined' && ['http:', 'https:'].includes(window.location.protocol)
+        ? window.location.origin : 'https://www.tenderflow.cz';
+    const origin = new URL(configured || browserOrigin);
+    const secure = origin.protocol === 'https:' || (origin.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname));
+    if (!secure || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) {
+        throw new Error('Neplatná konfigurace návratové adresy registrace.');
+    }
+    return origin.origin;
+};
+
 const DEFAULT_PREFERENCES = {
     theme: 'system',
     skin: 'industrial',
@@ -210,11 +222,12 @@ export const authService = {
             throw new Error(canRegister.reason || 'Registrace není povolena pro tento email.');
         }
 
+        const registrationOrigin = getRegistrationOrigin();
         let emailRedirectTo: string | undefined;
         if (nextPath) {
             try {
-                const target = new URL(nextPath, 'https://www.tenderflow.cz');
-                if (target.origin === 'https://www.tenderflow.cz' && !target.username && !target.password
+                const target = new URL(nextPath, registrationOrigin);
+                if (target.origin === registrationOrigin && !target.username && !target.password
                     && (target.pathname === '/app' || target.pathname.startsWith('/app/'))) {
                     target.hash = '';
                     emailRedirectTo = target.href;
@@ -229,6 +242,10 @@ export const authService = {
                 ...(emailRedirectTo ? { emailRedirectTo } : {}),
                 data: {
                     name,
+                    signup_legal_acceptance: {
+                        termsVersion: legalAcceptance.termsVersion,
+                        privacyVersion: legalAcceptance.privacyVersion,
+                    },
                 },
             },
         });
@@ -638,6 +655,25 @@ export const authService = {
                 );
                 const { data, error } = res as any;
                 if (error) return null;
+                const pending = session.user.user_metadata?.signup_legal_acceptance;
+                // Metadata is only the user's pending consent request, never an
+                // authorization claim. The authenticated RPC supplies audit times.
+                const alreadyAccepted = hasAcceptedCurrentLegalDocuments({
+                    termsVersion: data?.terms_version ?? null,
+                    termsAcceptedAt: data?.terms_accepted_at ?? null,
+                    privacyVersion: data?.privacy_version ?? null,
+                    privacyAcceptedAt: data?.privacy_accepted_at ?? null,
+                });
+                if (!alreadyAccepted && session.user.email_confirmed_at
+                    && pending?.termsVersion === CURRENT_TERMS_VERSION
+                    && pending?.privacyVersion === CURRENT_PRIVACY_VERSION) {
+                    const acceptance = await withTimeout(Promise.resolve(supabase.rpc('accept_current_legal_documents', {
+                        p_terms_version: pending.termsVersion,
+                        p_privacy_version: pending.privacyVersion,
+                    })), queryTimeoutMs, 'Pending legal acceptance');
+                    if (acceptance.error) throw acceptance.error;
+                    return acceptance.data ?? data ?? null;
+                }
                 return data ?? null;
             } catch (e) {
                 console.warn('[authService] Could not fetch subscription override', e);

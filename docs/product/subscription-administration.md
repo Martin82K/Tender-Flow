@@ -94,10 +94,14 @@ Ověřovací zprávy odesílá funkce `auth-send-email` přes existující `RESE
 
 Pořadí nasazení: nastavte stejné náhodné podpisové tajemství v Auth hooku a Edge secrets, nasaďte `auth-send-email` přes API s vypnutým JWT ověřováním (autentizaci zajišťuje HMAC), ověřte odmítnutí nepodepsaného požadavku a doručení podepsaného testu přes Resend. Teprve potom aktivujte Send Email hook a potvrzování e-mailu. Nepoužívejte plošný `config push`, který by přepsal nesouvisející produkční nastavení. Nová registrace nesmí před potvrzením vrátit session a přihlášení musí vrátit `email_not_confirmed`. Chyba Resend vrací chybu Auth, nikoli falešný úspěch. Bez funkčního hooku a potvrzování tento trial nenasazujte.
 
-Bez session aplikace požádá o potvrzení e-mailu a neukládá právní souhlasy jménem neověřeného účtu. Po potvrzení se uplatní stávající kontrola právních souhlasů při přihlášení. Nastavení v lokálním `config.toml` rovněž vyžaduje potvrzení e-mailu.
+Bez session aplikace požádá o potvrzení e-mailu. Zaškrtnuté verze právních dokumentů uchová jako čekající požadavek v registračních metadatech. Po ověření e-mailu je při načtení profilu dokončí autentizované RPC se serverovým auditním časem. Metadata nejsou zdrojem oprávnění; zastaralé verze, neověřený účet nebo chyba RPC automatické potvrzení neudělí a zůstává stávající právní brána. Již uložené souhlasy se nepřepisují. Nastavení v lokálním `config.toml` rovněž vyžaduje potvrzení e-mailu.
 
 ### Ověření registrace a obnova hesla
 
 Neověřený signup nevytváří organizaci ani členství a nerezervuje firemní doménu či licenci. Organizaci založí trigger až při prvním potvrzení e-mailu; chyba provisioningu rollbackne i potvrzení a dovolí opakování odkazu. Již potvrzené účty (např. OAuth) zpracuje také původní INSERT trigger. Čtrnáctidenní Enterprise trial běží od vzniku organizace, bez souběžného profilového Pro trialu. Registrace bez session zobrazí potvrzení s výzvou ke kontrole e-mailu.
 
 Resend Auth recovery zpráva směřuje na `/reset-password?auth_token_hash=…`. Formulář ověří jednorázový recovery token až při odeslání nového hesla a následně aktualizuje heslo přes Supabase Auth. Při chybě aktualizace umožní opakování bez opětovného spotřebování tokenu. Původní odkazy s `?token=…` nadále obsluhuje stávající reset endpoint. Hodnoty recovery tokenů se při zápisu diagnostiky redigují.
+
+### Konfigurace návratového prostředí
+
+Frontend používá `VITE_AUTH_APP_ORIGIN`, případně aktuální webový origin; desktop bez webového originu používá produkci. Edge hook používá `AUTH_APP_ORIGIN` (výchozí `https://www.tenderflow.cz`). Pro staging nastavte oba na stejný HTTPS origin a přidejte odpovídající `/app/**` do Auth Redirect URLs. Pro lokální Auth lze použít `http://127.0.0.1:3000` na obou stranách a lokální Supabase URL; HTTP je povoleno pouze na loopbacku. Hodnota musí být samotný origin bez cesty, query, fragmentu či přihlašovacích údajů. Hook důvěřuje konfiguraci prostředí, nikoli originu zaslanému klientem. Produkční Supabase z lokálního náhledu zachovává produkční omezení.
