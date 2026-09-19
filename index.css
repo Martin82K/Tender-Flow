@@ -1601,6 +1601,7 @@ html[data-skin="industrial"] [data-help-id="documents-header-icon"] {
 }
 
 html[data-skin="industrial"] [data-help-id="schedule-header-icon"] span,
+html[data-skin="industrial"] [data-help-id="schedule-header-icon"] svg,
 html[data-skin="industrial"] [data-help-id="tender-plan-header-icon"] span,
 html[data-skin="industrial"] [data-help-id="documents-header-icon"] span {
   color: var(--tf-skin-orange-deep) !important;
@@ -6407,6 +6408,18 @@ html .tf-project-manager-view .tf-portfolio-status {
   background: transparent !important;
   border: 0 !important;
 }
+.tf-project-phase-badge[data-status="tender"] {
+  color: #2f7dd3;
+  background: #5da6ff1f;
+  border-color: #5da6ff75;
+}
+.tf-project-phase-badge[data-status="realization"] {
+  color: #a64e22;
+  background: #eaa0791f;
+  border-color: #eaa07975;
+}
+.dark .tf-project-phase-badge[data-status="tender"] { color: #91c3ff; }
+.dark .tf-project-phase-badge[data-status="realization"] { color: #eaa079; }
 .tf-portfolio-bar-realization { background: var(--tf-skin-accent, #eaa079); }
 .tf-portfolio-bar-tender { background: #829dab; }
 .tf-portfolio-bar-track { background: var(--tf-skin-line, #e2e8f0); }
