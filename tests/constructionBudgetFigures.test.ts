@@ -38,9 +38,34 @@ describe('figure conflict decisions', () => {
   it('finds exact VV identifiers once per row, including excluded sheets', () => {
     const { document } = fixture();
     document.sheets[0].selected = false;
-    expect(findFigureUsages(document).get('F1')).toEqual([
+    expect(findFigureUsages(document).get('F1')).toMatchObject([
       { sheet: 'Soupis', row: 3, expression: 'F1*2+F1', selected: false },
     ]);
+  });
+
+  it('includes the complete parent item and all its rows without matching another item by code', () => {
+    const { document } = fixture();
+    const original = structuredClone(document);
+    const usage = findFigureUsages(document).get('F1')![0];
+    expect(usage.item).toEqual(document.nodes.find(node => node.kind === 'K'));
+    expect(usage.lines.map(node => node.description)).toEqual(['F1*2+F1', 'F10*2']);
+    expect(document).toEqual(original);
+    const unrelated = { ...usage.item!, id: 'other-item', sheetId: 'other-sheet' };
+    document.nodes.push(unrelated);
+    usage.node.parentId = unrelated.id;
+    const orphan = findFigureUsages(document).get('F1')![0];
+    expect(orphan.item).toBeUndefined();
+    expect(orphan.lines).toEqual([usage.node]);
+  });
+
+  it('retains every related line and usage beyond the former fifty-row limit', () => {
+    const { document } = fixture();
+    const template = document.nodes.find(node => node.kind === 'VV')!;
+    document.nodes.push(...Array.from({ length: 60 }, (_, i) => ({ ...template, id: `extra-${i}`, order: 10 + i, source: { ...template.source, row: 10 + i } })));
+    const usages = findFigureUsages(document).get('F1')!;
+    expect(usages).toHaveLength(61);
+    expect(usages[0].lines).toHaveLength(62);
+    expect(usages[0].lines.at(-1)?.id).toBe('extra-59');
   });
 
   it('persists and reverses an explicit choice without changing prices or original sources', () => {

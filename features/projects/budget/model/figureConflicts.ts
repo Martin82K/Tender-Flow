@@ -1,5 +1,5 @@
 import { decimal } from './budgetModel';
-import type { BudgetDocument, FigureConflict, FigureResolution, ImportIssue } from './types';
+import type { BudgetDocument, BudgetNode, FigureConflict, FigureResolution, ImportIssue } from './types';
 
 /** Merge legacy per-sheet warnings so one code always has one explicit decision. */
 export function getFigureConflicts(document: BudgetDocument): FigureConflict[] {
@@ -57,14 +57,35 @@ export function getPendingImportIssues(document: BudgetDocument): ImportIssue[] 
   });
 }
 
-export interface FigureUsage { sheet: string; row: number; expression: string; selected: boolean }
+export interface FigureUsage {
+  sheet: string; row: number; expression: string; selected: boolean;
+  object: string; title: string; node: BudgetNode; item?: BudgetNode; lines: BudgetNode[];
+}
 export function findFigureUsages(document: BudgetDocument): Map<string, FigureUsage[]> {
   const usages = new Map(getFigureConflicts(document).map(figure => [figure.code, [] as FigureUsage[]]));
-  const selected = new Set(document.sheets.filter(sheet => sheet.selected && sheet.role === 'items').map(sheet => sheet.id));
+  const sheets = new Map(document.sheets.map(sheet => [sheet.id, sheet]));
+  const nodes = new Map(document.nodes.map(node => [node.id, node]));
+  const children = new Map<string, BudgetNode[]>();
+  for (const node of document.nodes) {
+    if (!node.parentId) continue;
+    const parent = nodes.get(node.parentId);
+    if (!parent || parent.sheetId !== node.sheetId || (parent.kind !== 'K' && parent.kind !== 'M')) continue;
+    const siblings = children.get(parent.id) ?? [];
+    siblings.push(node);
+    children.set(parent.id, siblings);
+  }
+  for (const siblings of children.values()) siblings.sort((a, b) => a.order - b.order);
   for (const node of document.nodes) {
     if (node.kind !== 'VV') continue;
+    const sheet = sheets.get(node.sheetId);
+    const parent = node.parentId ? nodes.get(node.parentId) : undefined;
+    const item = parent?.sheetId === node.sheetId && (parent.kind === 'K' || parent.kind === 'M') ? parent : undefined;
     for (const code of new Set(node.description.match(/[A-Za-z_][A-Za-z_0-9]*/g) ?? [])) {
-      usages.get(code)?.push({ sheet: node.source.sheet, row: node.source.row, expression: node.description, selected: selected.has(node.sheetId) });
+      usages.get(code)?.push({
+        sheet: node.source.sheet, row: node.source.row, expression: node.description,
+        selected: sheet?.selected === true && sheet.role === 'items', object: sheet?.object ?? '', title: sheet?.title ?? '',
+        node, item, lines: item ? children.get(item.id) ?? [] : [node],
+      });
     }
   }
   return usages;

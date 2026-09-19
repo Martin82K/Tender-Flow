@@ -43,11 +43,22 @@ zadejte vlastní číslo (i s desetinnou čárkou) a potvrďte **Použít hodnot
 Rozpracované číslo bez tohoto potvrzení se nepoužije. **Zrušit volbu** vrátí
 figuru do nevyřešeného stavu. Počítadlo ukazuje, kolik konfliktů je vyřešeno.
 
-Volba platí pro kód v celém importovaném rozpočtu. **Použití ve výkazu výměr**
-ukazuje odkazy na přesný kód v rozpoznaných řádcích VV, včetně nezařazených
-soupisů; u rozsáhlého seznamu se zobrazí prvních 50 výskytů a jejich celkový počet.
-Nejde o úplný rozbor všech excelových vzorců. Před volbou ověřte kontext:
-stejný kód může být v původním sešitu použit pro různé části stavby.
+Před volbou se automaticky zobrazí **celá související položka**: objekt, soupis,
+kód, úplný popis, množství, jednotka, jednotková i celková cena a všechny její
+rozpoznané řádky výkazu výměr a poznámky. Odkazy na přesný kód figury jsou
+zvýrazněné. Tlačítky **Předchozí / Další** projdete všechny související položky
+bez limitu 50 výskytů, včetně označených nezařazených soupisů. Opakované použití
+v jedné položce ji v přehledu nezdvojuje. Prohlížení nevybírá hodnotu ani nepřepočítává ceny.
+
+Volba platí pro kód v celém importovaném rozpočtu. Nejde o úplný rozbor všech
+excelových vzorců. Před volbou ověřte kontext: stejný kód může být v původním
+sešitu použit pro různé části stavby. Pokud chybí vazba na nadřazenou položku,
+náhled to výslovně uvádí a ukáže samotný řádek VV. Bez nalezeného použití je
+nutné související položku ověřit v původním XLSX.
+
+Náhled se skládá pouze z rozpoznaného dokumentu, nadřazená položka se vyhledává
+podle ID ve stejném soupisu, nikoli podle opakujícího se kódu. Neprovádí další
+síťová volání a texty ani vzorce z XLSX nespouští jako HTML nebo JavaScript.
 
 Rozhodnutí se ukládá s verzí rozpočtu v `figureResolutions` (hodnota a původ
 `source` nebo `custom`); původní konflikty a jejich zdrojové buňky zůstávají
