@@ -93,9 +93,9 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
           <button ref={viewOptionsButton} type="button" className="tf-budget-view-settings-trigger" aria-label="Nastavení zobrazení" title="Nastavení zobrazení" aria-expanded={viewOptionsOpen} aria-controls={viewOptionsId} onClick={()=>setViewOptionsOpen(open=>!open)}><span aria-hidden="true" className="material-symbols-outlined">settings</span></button>
           {viewOptionsOpen&&<div id={viewOptionsId} role="group" aria-label="Nastavení zobrazení rozpočtu" className="tf-budget-view-settings-panel">
             <strong>Nastavení zobrazení</strong>
-            <label className="tf-budget-view-settings-wrap">Zalamovat<input type="checkbox" checked={view.wrap} onChange={e=>updateView({wrap:e.target.checked})}/></label>
-            <fieldset className="tf-budget-density"><legend>Hustota</legend><div><button type="button" aria-pressed={view.density===44} onClick={()=>updateView({density:44})}>Kompaktní</button><button type="button" aria-pressed={view.density===60} onClick={()=>updateView({density:60})}>Pohodlná</button></div></fieldset>
-            <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Sloupce</button>
+            <label className="tf-budget-view-settings-wrap">Zalamovat text popisu<input type="checkbox" checked={view.wrap} onChange={e=>updateView({wrap:e.target.checked})}/></label>
+            <fieldset className="tf-budget-density"><legend>Hustota zobrazení</legend><div><button type="button" aria-pressed={view.density===44} onClick={()=>updateView({density:44})}>Kompaktní</button><button type="button" aria-pressed={view.density===60} onClick={()=>updateView({density:60})}>Pohodlná</button></div><p className="tf-budget-density-help">Mění výšku řádků tabulky.</p></fieldset>
+            <button type="button" onClick={()=>{setViewOptionsOpen(false);setColumnsOpen(true);}}>Zobrazení sloupců <span aria-hidden="true">→</span></button>
           </div>}
         </div>
       </div>
@@ -113,6 +113,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
 }
 
 function BudgetColumnSettings({columns,onChange,onClose}:{columns:BudgetColumn[];onChange:(columns:BudgetColumn[])=>void;onClose:()=>void}) {
+  const pinHelpId=React.useId();
   const ordered=[...columns].sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned)));
   const visibleCount=columns.filter(column=>!column.hidden).length;
   const canMove=(index:number,direction:number)=>{
@@ -123,19 +124,20 @@ function BudgetColumnSettings({columns,onChange,onClose}:{columns:BudgetColumn[]
     if(!canMove(index,direction))return;
     const next=[...ordered];[next[index],next[index+direction]]=[next[index+direction],next[index]];onChange(next);
   };
-  return <Modal isOpen size="xl" title="Nastavení sloupců" description="Vyberte, co chcete v rozpočtu vidět. Změny se ukládají průběžně." onClose={onClose}
+  return <Modal isOpen size="xl" title="Zobrazení sloupců" description="Změny se ukládají průběžně." onClose={onClose}
     footer={<div className="tf-budget-controls tf-budget-columns-footer"><button type="button" onClick={()=>onChange(DEFAULT_COLUMNS)}>Obnovit výchozí</button><button type="button" className="tf-budget-columns-done" onClick={onClose}>Hotovo</button></div>}>
     <div className="tf-budget-controls tf-budget-columns">
+      <div className="tf-budget-columns-explanation" id={pinHelpId}><strong>Co znamená „Ponechat vlevo“?</strong><p>Sloupec zůstane na místě při posouvání tabulky do stran.</p><p>Šířku tím nezamykáte. Tu upravíte tažením okraje záhlaví.</p></div>
       <table aria-label="Sloupce rozpočtu">
-        <thead><tr><th scope="col">Sloupec</th><th scope="col">Zobrazit</th><th scope="col">Připnout</th><th scope="col">Pořadí</th></tr></thead>
+        <thead><tr><th scope="col">Sloupec</th><th scope="col">Zobrazit</th><th scope="col">Ponechat vlevo</th><th scope="col">Pořadí</th></tr></thead>
         <tbody>{ordered.map((column,index)=><tr key={column.key} className={index>0&&ordered[index-1].pinned&&!column.pinned?'tf-budget-columns-divider':undefined}>
           <th scope="row">{column.label}</th>
           <td><input type="checkbox" aria-label={`Zobrazit ${column.label}`} checked={!column.hidden} disabled={!column.hidden&&visibleCount===1} onChange={event=>onChange(columns.map(c=>c.key===column.key?{...c,hidden:!event.target.checked}:c))}/></td>
-          <td><input type="checkbox" aria-label={`Připnout ${column.label}`} checked={!!column.pinned} onChange={event=>onChange(columns.map(c=>c.key===column.key?{...c,pinned:event.target.checked}:c))}/></td>
+          <td><input type="checkbox" aria-label={`Ponechat vlevo: ${column.label}`} aria-describedby={pinHelpId} checked={!!column.pinned} onChange={event=>onChange(columns.map(c=>c.key===column.key?{...c,pinned:event.target.checked}:c))}/></td>
           <td><div className="tf-budget-columns-order">{([-1,1] as const).map(direction=><button key={direction} type="button" aria-label={`Posunout ${column.label} ${direction===-1?'nahoru':'dolů'}`} title={direction===-1?'Posunout nahoru (vlevo v tabulce)':'Posunout dolů (vpravo v tabulce)'} disabled={!canMove(index,direction)} onClick={()=>move(index,direction)}><span aria-hidden="true">{direction===-1?'↑':'↓'}</span></button>)}</div></td>
         </tr>)}</tbody>
       </table>
-      <div className="tf-budget-columns-help"><strong role="status">Zobrazeno {visibleCount} z {columns.length} sloupců</strong><p>Připnuté sloupce zůstávají vlevo při posouvání. Šipky mění pořadí v rámci připnutých nebo ostatních sloupců.</p></div>
+      <div className="tf-budget-columns-help"><strong role="status">Zobrazeno {visibleCount} z {columns.length} sloupců</strong><p>Pořadí měníte zvlášť mezi sloupci ponechanými vlevo a ostatními.</p></div>
     </div>
   </Modal>;
 }

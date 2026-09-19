@@ -7,18 +7,19 @@ Přepínač **Výkaz výměr** zobrazí pod položkami jejich výpočty a pozná
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
 pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
 nejsou dělicí čáry; množství zůstává ve svém sloupci.
-V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat**,
-**Hustotu** (Kompaktní / Pohodlná) a **Sloupce**. Nastavení se pamatuje pro daný
+V ozubeném kolečku **Nastavení zobrazení** úplně vpravo najdete **Zalamovat text popisu**,
+**Hustota zobrazení** (Kompaktní / Pohodlná) a **Zobrazení sloupců**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
-V **Nastavení sloupců** má každý sloupec samostatné volby **Zobrazit** a
-**Připnout**. Šipky nahoru a dolů upravují pořadí zleva doprava v tabulce,
+V **Zobrazení sloupců** má každý sloupec samostatné volby **Zobrazit** a
+**Ponechat vlevo**. Tato volba drží sloupec na místě při vodorovném posouvání
+tabulky; jeho šířku nemění. Šipky nahoru a dolů upravují pořadí zleva doprava v tabulce,
 zvlášť mezi připnutými a ostatními sloupci. Alespoň jeden sloupec zůstává
 viditelný. **Obnovit výchozí** vrátí původní sloupce; ostatní nastavení ponechá.
 Kliknutím na název sloupce otevřete jeho filtr s rovnou aktivním hledáním.
 Psaní průběžně filtruje položky; ostatní filtry i výběr hodnot zůstávají zachované.
 Vyhledávací pole jsou uvnitř filtrů, hlavička tabulky má jen názvy sloupců.
 Nadpisy množství a cen jsou zarovnané doprava stejně jako jejich hodnoty.
-Zalamování a hustota fungují i pro pomocné řádky. Upozornění **Chybí cena**
+Zalamování mění jen text popisu, také u pomocných řádků. Hustota mění výšku řádků. Upozornění **Chybí cena**
 se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,

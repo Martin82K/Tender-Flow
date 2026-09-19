@@ -23,18 +23,19 @@ async function openBudget() {
 it('keeps view controls under settings and preserves their saved values', async () => {
   const trigger = await openBudget();
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.queryByRole('checkbox', { name: 'Zalamovat' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Sloupce' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'Zalamovat text popisu' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Zobrazení sloupců' })).not.toBeInTheDocument();
   expect(screen.getByRole('switch', { name: 'Výkaz výměr' })).toBeVisible();
   fireEvent.click(trigger);
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Zalamovat' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' }));
+  expect(screen.getByRole('group', { name: 'Hustota zobrazení' })).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Pohodlná' }));
   await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({ wrap: true, density: 60 }));
-  fireEvent.keyDown(screen.getByRole('checkbox', { name: 'Zalamovat' }), { key: 'Escape' });
+  fireEvent.keyDown(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' }), { key: 'Escape' });
   expect(trigger).toHaveFocus();
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
   fireEvent.click(trigger);
-  expect(screen.getByRole('checkbox', { name: 'Zalamovat' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' })).toBeChecked();
   expect(screen.getByRole('button', { name: 'Pohodlná' })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.pointerDown(document.body);
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
@@ -42,8 +43,9 @@ it('keeps view controls under settings and preserves their saved values', async 
 it('opens column configuration from settings and restores focus to the settings button', async () => {
   const trigger = await openBudget();
   fireEvent.click(trigger);
-  fireEvent.click(screen.getByRole('button', { name: 'Sloupce' }));
-  expect(screen.getByRole('dialog', { name: 'Nastavení sloupců' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Zobrazení sloupců' }));
+  expect(screen.getByRole('dialog', { name: 'Zobrazení sloupců' })).toBeVisible();
+  expect(screen.getByText('Co znamená „Ponechat vlevo“?')).toBeVisible();
   expect(trigger).toHaveAttribute('aria-expanded', 'false');
   fireEvent.click(screen.getByRole('checkbox', { name: 'Zobrazit MJ', exact: true }));
   await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).columns.find((column: { key: string }) => column.key === 'unit').hidden).toBe(true));
@@ -53,9 +55,9 @@ it('opens column configuration from settings and restores focus to the settings 
 it('orders columns in their pinned group and restores defaults without losing other view settings', async () => {
   const trigger = await openBudget();
   fireEvent.click(trigger);
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Zalamovat' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Sloupce' }));
-  const dialog = within(screen.getByRole('dialog', { name: 'Nastavení sloupců' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Zalamovat text popisu' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Zobrazení sloupců' }));
+  const dialog = within(screen.getByRole('dialog', { name: 'Zobrazení sloupců' }));
   const names = () => dialog.getAllByRole('rowheader').map(row => row.textContent);
   expect(names().slice(0, 4)).toEqual(['Typ', 'Kód', 'Popis', 'MJ']);
   expect(dialog.getByRole('button', { name: 'Posunout Typ nahoru' })).toBeDisabled();
@@ -63,8 +65,10 @@ it('orders columns in their pinned group and restores defaults without losing ot
   expect(dialog.getByRole('button', { name: 'Posunout Popis nahoru' })).toBeDisabled();
   fireEvent.click(dialog.getByRole('button', { name: 'Posunout Popis dolů' }));
   expect(names().slice(0, 4)).toEqual(['Typ', 'Kód', 'MJ', 'Popis']);
-  fireEvent.click(dialog.getByRole('checkbox', { name: 'Připnout Popis' }));
+  fireEvent.click(dialog.getByRole('checkbox', { name: 'Ponechat vlevo: Popis' }));
   expect(names().slice(0, 4)).toEqual(['Typ', 'Kód', 'Popis', 'MJ']);
+  expect(dialog.getByRole('checkbox', { name: 'Ponechat vlevo: Popis' })).toHaveAccessibleDescription(/Šířku tím nezamykáte/);
+  await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).columns.find((column: { key: string }) => column.key === 'description')).toMatchObject({ pinned: true, width: 420 }));
   fireEvent.click(dialog.getByRole('button', { name: 'Posunout Popis nahoru' }));
   expect(names().slice(0, 3)).toEqual(['Typ', 'Popis', 'Kód']);
   for (const checkbox of dialog.getAllByRole('checkbox', { name: /^Zobrazit / }).slice(1)) fireEvent.click(checkbox);
@@ -72,7 +76,7 @@ it('orders columns in their pinned group and restores defaults without losing ot
   expect(dialog.getByText('Zobrazeno 1 z 9 sloupců')).toBeVisible();
   fireEvent.click(dialog.getByRole('button', { name: 'Obnovit výchozí' }));
   expect(names().slice(0, 4)).toEqual(['Typ', 'Kód', 'Popis', 'MJ']);
-  expect(dialog.getByRole('checkbox', { name: 'Připnout Popis' })).not.toBeChecked();
+  expect(dialog.getByRole('checkbox', { name: 'Ponechat vlevo: Popis' })).not.toBeChecked();
   expect(dialog.getByText('Zobrazeno 9 z 9 sloupců')).toBeVisible();
   await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({ wrap: true }));
   fireEvent.click(dialog.getByRole('button', { name: 'Hotovo' }));
