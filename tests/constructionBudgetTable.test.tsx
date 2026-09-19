@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/BudgetTable';
 import type { BudgetNode } from '@features/projects/budget/model/types';
+import type { BudgetFilters } from '@features/projects/budget/model/budgetModel';
 
 // jsdom has no layout. Supply geometry while exercising the real virtualizer.
 beforeEach(() => {
@@ -40,7 +41,7 @@ it('hides quantity details through the existing switch and respects price visibi
   expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
   expect(screen.queryByText('Chybí cena')).not.toBeInTheDocument();
-  expect(screen.queryByRole('textbox', { name: 'Filtr J. cena' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'J. cena ▾' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Sbalit 123' })).not.toBeInTheDocument();
 });
 it('toggles item details with plus and minus before the selection checkbox', () => {
@@ -137,6 +138,37 @@ it('retains explicit value filtering and supports keyboard and outside dismissal
   fireEvent.contextMenu(target);
   fireEvent.scroll(window);
   expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-  fireEvent.contextMenu(screen.getByRole('textbox', { name: 'Filtr Kód' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Kód ▾' }));
+  fireEvent.contextMenu(screen.getByRole('textbox', { name: 'Hledat Kód' }));
   expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+});
+
+it('opens focused column search from the compact heading and preserves the other filters', () => {
+  function Harness() {
+    const [filters, setFilters] = React.useState<BudgetFilters>({ quantity: { min: '1' } });
+    return <BudgetTable {...table().props} filters={filters} onFilters={setFilters}/>;
+  }
+  render(<Harness/>);
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  const trigger = screen.getByRole('button', { name: 'Popis ▾' });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const search = screen.getByRole('textbox', { name: 'Hledat Popis' });
+  expect(search).toHaveFocus();
+  expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.change(search, { target: { value: 'výkop' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Hotovo' }));
+  expect(trigger).toHaveFocus();
+  expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Neoceněná práce' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Množství ▾' }));
+  expect(screen.getByRole('textbox', { name: 'Hledat Množství' })).toHaveFocus();
+  expect(screen.getByRole('textbox', { name: 'Od' })).toHaveValue('1');
+  fireEvent.click(screen.getByRole('button', { name: 'Hotovo' }));
+  fireEvent.click(trigger);
+  expect(screen.getByRole('textbox', { name: 'Hledat Popis' })).toHaveValue('výkop');
+  fireEvent.click(screen.getByRole('button', { name: 'Vymazat filtr' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Hotovo' }));
+  expect(screen.getByRole('button', { name: 'Neoceněná práce' })).toBeVisible();
 });

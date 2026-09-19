@@ -14,6 +14,10 @@ V **Nastavení sloupců** má každý sloupec samostatné volby **Zobrazit** a
 **Připnout**. Šipky nahoru a dolů upravují pořadí zleva doprava v tabulce,
 zvlášť mezi připnutými a ostatními sloupci. Alespoň jeden sloupec zůstává
 viditelný. **Obnovit výchozí** vrátí původní sloupce; ostatní nastavení ponechá.
+Kliknutím na název sloupce otevřete jeho filtr s rovnou aktivním hledáním.
+Psaní průběžně filtruje položky; ostatní filtry i výběr hodnot zůstávají zachované.
+Vyhledávací pole jsou uvnitř filtrů, hlavička tabulky má jen názvy sloupců.
+Nadpisy množství a cen jsou zarovnané doprava stejně jako jejich hodnoty.
 Zalamování a hustota fungují i pro pomocné řádky. Upozornění **Chybí cena**
 se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a poznámek.
 

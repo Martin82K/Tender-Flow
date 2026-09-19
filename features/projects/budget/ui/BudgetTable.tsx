@@ -29,6 +29,7 @@ export function BudgetTable(props: Props) {
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
   const [collapsed,setCollapsed]=useState(new Set<string>()); const [expanded,setExpanded]=useState(new Set<string>());
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);
+  const filterOrigin=useRef<HTMLButtonElement|null>(null);
   const editLock=useRef(false);
   const [editError,setEditError]=useState(''); const [busy,setBusy]=useState(false);
   const tableRef=useRef<HTMLDivElement>(null);const menuRef=useRef<HTMLDivElement>(null);const menuOrigin=useRef<HTMLElement|null>(null);
@@ -100,10 +101,9 @@ export function BudgetTable(props: Props) {
   }}>
     <div ref={header} className="overflow-hidden shrink-0">
       <div role="row" className="tf-budget-grid tf-budget-heading" style={{gridTemplateColumns:grid,width}}><div className="tf-budget-expand"/><div className="tf-budget-check"><input aria-label="Vybrat všechny výsledky filtru" type="checkbox" checked={matched.length>0&&matched.every(n=>selected.has(n.id))} onChange={e=>onSelected(e.target.checked?new Set([...selected,...matched.map(n=>n.id)]):new Set([...selected].filter(id=>!matched.some(n=>n.id===id))))}/></div>
-        {visibleColumns.map(c=><div key={c.key} className="relative" style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:3}:undefined}>
-          <button className={filters[c.key]&&Object.keys(filters[c.key]).length?'tf-budget-active':''} onClick={()=>setFilter(c)}>{c.label} ▾</button>
+        {visibleColumns.map(c=><div key={c.key} className={`relative ${c.numeric?'tf-budget-number':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:3}:undefined}>
+          <button type="button" aria-haspopup="dialog" aria-expanded={filter?.key===c.key} title={`Hledat a filtrovat: ${c.label}`} className={filters[c.key]&&Object.keys(filters[c.key]).length?'tf-budget-active':''} onClick={event=>{filterOrigin.current=event.currentTarget;setFilter(c);}}>{c.label} ▾</button>
           <span role="separator" aria-label={`Šířka ${c.label}`} aria-orientation="vertical" tabIndex={0} className="tf-budget-resize" onKeyDown={e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft')onColumns(columns.map(col=>col.key===c.key?{...col,width:Math.max(60,col.width+(e.key==='ArrowRight'?10:-10))}:col));}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.dataset.start=String(e.clientX);e.currentTarget.dataset.width=String(c.width);}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId)){const w=Math.max(60,Math.min(1000,Number(e.currentTarget.dataset.width)+e.clientX-Number(e.currentTarget.dataset.start)));onColumns(columns.map(col=>col.key===c.key?{...col,width:w}:col));}}}/>
-          <input aria-label={`Filtr ${c.label}`} value={filters[c.key]?.search||''} placeholder="Hledat…" onChange={e=>onFilters({...filters,[c.key]:{...filters[c.key],search:e.target.value}})}/>
         </div>)}
       </div>
     </div>
@@ -138,7 +138,7 @@ export function BudgetTable(props: Props) {
       <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set());setContextMenu(null);tableRef.current?.focus();}}>Rozbalit vše</button>
       {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
     </div>}
-    {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>setFilter(null)}/>}
+    {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>{setFilter(null);filterOrigin.current?.focus();}}/>}
     {detail&&<Modal isOpen title={`Položka ${detail.code}`} onClose={()=>{if(!busy){setDetail(null);setEditError('');}}} persistent={busy}>
       <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);await onEdit({...detail,quantity,unitPrice:price,total:quantity!==null&&price!==null?multiplyMoney(quantity,price):null});setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
