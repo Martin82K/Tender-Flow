@@ -1,11 +1,38 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { Header } from "@/shared/ui/Header";
 import { AccountMenuProvider } from "@/shared/ui/AccountMenuContext";
 
 describe("Header layout", () => {
+  it.each([
+    { name: 'default', props: {} },
+    { name: 'children below', props: { childrenBelow: true } },
+    { name: 'title below', props: { titleBelow: true } },
+  ])('clears the local filter and restores input focus in $name layout', ({ props }) => {
+    const onSearchChange = vi.fn();
+    render(<AccountMenuProvider accountMenu={null}>
+      <Header title="Stavba" onSearchChange={onSearchChange} {...props} />
+    </AccountMenuProvider>);
+    const input = screen.getByRole('textbox');
+    expect(screen.queryByRole('button', { name: 'Vymazat filtr' })).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'dgf' } });
+    expect(onSearchChange).toHaveBeenLastCalledWith('dgf');
+    const clear = screen.getByRole('button', { name: 'Vymazat filtr' });
+    expect(clear).toHaveAttribute('type', 'button');
+    clear.focus();
+    fireEvent.click(clear);
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    expect(onSearchChange).toHaveBeenLastCalledWith('');
+    expect(screen.queryByRole('button', { name: 'Vymazat filtr' })).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: '  ' } });
+    expect(screen.getByRole('button', { name: 'Vymazat filtr' })).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: '' } });
+    expect(screen.queryByRole('button', { name: 'Vymazat filtr' })).not.toBeInTheDocument();
+  });
+
   it("umí vykreslit kontext nahoře a navigaci ve spodním řádku", () => {
     render(
       <AccountMenuProvider accountMenu={<button type="button">Avatar</button>}>

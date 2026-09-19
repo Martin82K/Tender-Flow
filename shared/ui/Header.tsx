@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
 import { HeaderGlobalSearch } from "@/shared/ui/GlobalSearch";
 import { useTopbarActions } from "@/shared/ui/TopbarActionsContext";
@@ -57,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   skin = "classic",
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const accountMenu = useAccountMenu();
   const topbarActions = useTopbarActions();
   const isIndustrialSkin = skin === "industrial";
@@ -84,8 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
     ? "ml-2 min-w-0 flex-1 bg-transparent border-none focus:ring-0 text-sm text-[#14110a] placeholder-[#9c9684]"
     : "ml-2 min-w-0 flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70";
   const searchInputWideClass = isIndustrialSkin
-    ? "ml-2 flex-1 bg-transparent border-none focus:ring-0 text-sm text-[#14110a] placeholder-[#9c9684]"
-    : "flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2";
+    ? "ml-2 min-w-0 flex-1 bg-transparent border-none focus:ring-0 text-sm text-[#14110a] placeholder-[#9c9684]"
+    : "min-w-0 flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2";
   const headerChildrenBelowClass = isIndustrialSkin
     ? "tf-topbar whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-[4.5rem] pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
     : "tf-topbar whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-[4.5rem] pr-3 sm:pr-4 md:px-6 pt-2 pb-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
@@ -95,6 +96,39 @@ export const Header: React.FC<HeaderProps> = ({
   const headerDefaultClass = isIndustrialSkin
     ? "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-[rgba(20,16,8,0.10)] pl-[4.5rem] pr-3 sm:pr-4 md:px-8 py-4 bg-[#f6f4ee]/95 sticky top-0 z-30 shrink-0 select-none shadow-none"
     : "tf-topbar flex items-center justify-between gap-3 whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-[4.5rem] pr-3 sm:pr-4 md:px-8 py-4 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm";
+
+  const renderLocalFilter = (wide = false) => (
+    <div data-help-id="topbar-search" className={wide ? searchBoxWideClass : searchBoxClass}>
+      <span aria-hidden="true" data-help-id="topbar-search-icon" className="material-symbols-outlined shrink-0 text-slate-400 dark:text-slate-500 text-[18px]">
+        filter_list
+      </span>
+      <input
+        ref={searchInputRef}
+        type="text"
+        aria-label={searchPlaceholder}
+        value={searchQuery}
+        onChange={handleSearchChange}
+        placeholder={searchPlaceholder}
+        data-help-id="topbar-search-input"
+        className={wide ? searchInputWideClass : searchInputClass}
+      />
+      {searchQuery.length > 0 && <button
+        type="button"
+        aria-label="Vymazat filtr"
+        title="Vymazat filtr"
+        className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200/60 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+        onClick={() => {
+          setSearchQuery('');
+          onSearchChange?.('');
+          searchInputRef.current?.focus();
+        }}
+      >
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>}
+    </div>
+  );
 
   const titleBlock = (
     <div className="flex min-w-0 flex-col gap-0.5">
@@ -119,19 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {showSearch && (
           useLocalFilter ? (
-            <div data-help-id="topbar-search" className={searchBoxWideClass}>
-              <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
-                filter_list
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder={searchPlaceholder}
-                data-help-id="topbar-search-input"
-                className={searchInputWideClass}
-              />
-            </div>
+            renderLocalFilter(true)
           ) : (
             <HeaderGlobalSearch />
           )
@@ -160,19 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showSearch && (
               useLocalFilter ? (
-                <div data-help-id="topbar-search" className={searchBoxClass}>
-                  <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
-                    filter_list
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder={searchPlaceholder}
-                    data-help-id="topbar-search-input"
-                    className={searchInputClass}
-                  />
-                </div>
+                renderLocalFilter()
               ) : (
                 <HeaderGlobalSearch />
               )
@@ -214,19 +224,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {showSearch && (
               useLocalFilter ? (
-                <div data-help-id="topbar-search" className={searchBoxWideClass}>
-                  <span data-help-id="topbar-search-icon" className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
-                    filter_list
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder={searchPlaceholder}
-                    data-help-id="topbar-search-input"
-                    className={searchInputWideClass}
-                  />
-                </div>
+                renderLocalFilter(true)
               ) : (
                 <HeaderGlobalSearch />
               )

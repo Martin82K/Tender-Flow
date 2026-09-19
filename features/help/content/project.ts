@@ -133,7 +133,7 @@ export const projectHelp: HelpEntry[] = [
     tab: "pipeline",
     label: "Filtry a zobrazení",
     description: "Filtrování poptávkových kategorií podle stavu (Poptávané/Ukončené/Zasmluvněné) a přepínání mezi mřížkou a tabulkou.",
-    detail: "Tabulka vyplní dostupnou šířku a na menších obrazovkách se posouvá vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky všech poptaných dodavatelů včetně stavu, ceny, kontaktu a poznámky. Dodavatelé jsou seskupeni podle výsledného stavu, barevně odlišeni a uvnitř stavu seřazeni abecedně. Aktuálně filtrovaný přehled lze exportovat do XLSX nebo PDF; export obsahuje stavbu, typ Soutěž/Realizace, datum, čas, verzi Tender Flow a jméno exportujícího uživatele.",
+    detail: "Textový filtr v horní liště vymažete křížkem Vymazat filtr, který se zobrazí po zadání textu. Tabulka vyplní dostupnou šířku a na menších obrazovkách se posouvá vodorovně. Šipkou u názvu VŘ rozbalíte podřízené řádky všech poptaných dodavatelů včetně stavu, ceny, kontaktu a poznámky. Dodavatelé jsou seskupeni podle výsledného stavu, barevně odlišeni a uvnitř stavu seřazeni abecedně. Aktuálně filtrovaný přehled lze exportovat do XLSX nebo PDF; export obsahuje stavbu, typ Soutěž/Realizace, datum, čas, verzi Tender Flow a jméno exportujícího uživatele.",
     category: "navigation",
     tourOrder: 1,
   },
