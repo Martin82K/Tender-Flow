@@ -1,4 +1,4 @@
-# Tender Flow 1.9.39-beta.1
+# Tender Flow v1.9.39-beta.1
 
 Testovací vydání pro ověření práce s velkými stavebními rozpočty.
 

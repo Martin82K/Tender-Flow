@@ -347,3 +347,6 @@ RPC editace pro několik alokací stejného VŘ pokrývajících celé množstv�
 - Cloud preflight 5 revizí / součet verzí 10 / historie 11, plánové RPC zůstává
   zakázané. Dry-run obsahuje pouze 20260920230000. Automatická kontrola nasazení
   požaduje samostatný souhlas pro tuto migraci; zatím nebyla nasazena.
+- CI pro `f68d1292` nad `8469a654`: 3536 testů PASS, 3 skipped,
+  1 selhání konzistence indexu release poznámek. Opraven index a nadpis beta
+  poznámek; cílený `tests/desktopBuildEnv.security.test.ts`: 13 PASS.
