@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
-import type { BudgetAllocation, BudgetNode } from '../model/types';
+import type { BudgetAllocation } from '../model/types';
 
 export interface BudgetRowTenderProps {
   categories?: readonly { id: string; title: string }[];
@@ -9,44 +9,47 @@ export interface BudgetRowTenderProps {
   allocationDisabledReason?: string;
   onCreateTender?: (name: string) => Promise<{id:string;title:string;warning?:string}>;
   onAllocate?: (itemId: string, categoryId: string) => Promise<void>;
+  onAllocateSelection?: (itemIds: readonly string[], categoryId: string) => Promise<void>;
+  onRemoveSelection?: (itemIds: readonly string[]) => Promise<void>;
   onRemoveAllocation?: (allocation: BudgetAllocation) => Promise<void>;
 }
-export function BudgetRowTenders({ node, categories = [], allocations = [], canAllocate, allocationDisabledReason, onAllocate, onRemoveAllocation, onCreateTender }: BudgetRowTenderProps & { node: BudgetNode }) {
-  const [open, setOpen] = useState(false);
-  const [warning,setWarning]=useState('');
-  const [creating,setCreating]=useState(false);
-  const [newName,setNewName]=useState('');
+interface Props {
+  inline?: boolean;
+  itemIds: readonly string[];
+  categories?: BudgetRowTenderProps['categories'];
+  disabled?: boolean;
+  disabledReason?: string;
+  onAssign: (categoryId: string) => Promise<void>;
+  onCreateTender?: BudgetRowTenderProps['onCreateTender'];
+  onRemove?: () => Promise<void>;
+  onClose?: () => void;
+}
+export function BudgetSelectionTenders({inline=false,itemIds,categories=[],disabled,disabledReason,onAssign,onCreateTender,onRemove,onClose}:Props) {
+  const [creating,setCreating]=useState(false),[name,setName]=useState(''),[error,setError]=useState(''),[warning,setWarning]=useState(''),[busy,setBusy]=useState(false);
   const [created,setCreated]=useState<{id:string;title:string}|null>(null);
   const options=created&&!categories.some(c=>c.id===created.id)?[...categories,created]:categories;
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const lock = useRef(false);
-  const latest = useRef({canAllocate,onAllocate});
-  latest.current = {canAllocate,onAllocate};
-  const assigned = allocations.filter(a => a.itemId === node.id);
-  const run = async (action: () => Promise<void>) => {
-    if (!canAllocate || lock.current) return;
-    lock.current = true; setBusy(true); setError('');
-    try { await action(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Přiřazení nelze uložit.'); }
-    finally { lock.current = false; setBusy(false); }
+  const selectionKey=JSON.stringify([...itemIds].sort());
+  const latest=useRef({selectionKey,onAssign,disabled});latest.current={selectionKey,onAssign,disabled};
+  const lock=useRef(false);
+  const run=async(action:()=>Promise<void>)=>{
+    if(disabled||!itemIds.length||lock.current)return;
+    lock.current=true;setBusy(true);setError('');
+    try{await action();}catch(e){const message=e instanceof Error?e.message:'Přiřazení nelze uložit.';setError(/failed to fetch|networkerror|network request failed/i.test(message)?'Spojení se serverem selhalo. Výsledek zápisu není potvrzený; zopakujte stejný výběr VŘ.':message);}finally{lock.current=false;setBusy(false);}
   };
-  return <div className="tf-budget-row-tenders">
-    {canAllocate&&onAllocate?<div className="tf-budget-direct-tender">
-      <ThemedNativeSelect searchable wrapOptions menuMinWidth={420} menuAlign="end" aria-label={`VŘ: ${node.code||node.description}`} title={`Celá položka: ${node.quantity??'—'} ${node.unit}`} value={assigned.length===1?assigned[0].categoryId:''} disabled={busy} onChange={e=>{const id=e.target.value;if(id)void run(()=>onAllocate(node.id,id));}}><option value="">{busy?'Ukládání…':assigned.length>1?'Vybrat jedno VŘ':'Přiřadit VŘ'}</option>{assigned.filter(a=>!options.some(c=>c.id===a.categoryId)).map(a=><option key={a.categoryId} value={a.categoryId} disabled>Nedostupné VŘ</option>)}{options.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</ThemedNativeSelect>
-      {onCreateTender&&<button type="button" aria-label="Nové VŘ" title="Nové VŘ" disabled={busy} aria-expanded={creating} onClick={()=>setCreating(!creating)}>+</button>}
-    </div>:<button type="button" aria-label={`VŘ: ${node.code||node.description}`} aria-expanded={open} onClick={()=>setOpen(!open)}>{(assigned.length?[...new Set(assigned.map(a=>options.find(c=>c.id===a.categoryId)?.title||'Nedostupné VŘ'))].join(', '):node.tenders.join(', '))||'Nepřiřazeno'} {open?'▴':'▾'}</button>}
-    {(canAllocate&&onAllocate||open)&&<div className="tf-budget-row-tender-fields">
-      {(!canAllocate||!onAllocate)&&<small role="status">{allocationDisabledReason||'Přiřazení VŘ nyní nelze měnit.'}</small>}
-      {assigned.map((a, i) => <div key={`${a.categoryId}:${i}`}><span>{options.find(c => c.id === a.categoryId)?.title || 'Nedostupné VŘ'} · {a.quantity} {node.unit}</span>{canAllocate && onRemoveAllocation && <button type="button" disabled={busy} aria-label={`Odebrat ${options.find(c => c.id === a.categoryId)?.title || 'VŘ'}`} onClick={() => void run(() => onRemoveAllocation(a))}>×</button>}</div>)}
-      {canAllocate && onAllocate && <>
-        {onCreateTender&&<>
-          {creating&&<><input aria-label="Název nového VŘ" placeholder="Název VŘ" maxLength={255} value={newName} disabled={busy} onChange={e=>setNewName(e.target.value)}/><small>Nové VŘ se uloží do číselníku stavby.</small><button type="button" disabled={busy||!newName.trim()} onClick={()=>void run(async()=>{const tender=await onCreateTender(newName);setWarning(tender.warning??'');setCreated(tender);if(!latest.current.canAllocate||!latest.current.onAllocate)throw new Error('Přiřazení již není povoleno.');await latest.current.onAllocate(node.id,tender.id);setNewName('');setCreating(false);})}>Vytvořit a přiřadit</button></>}
-        </>}
-        {!options.length&&!onCreateTender&&<small>Číselník zatím neobsahuje VŘ. Vytvořit je může uživatel s oprávněním upravovat VŘ.</small>}
-      </>}
-      {warning&&<p role="status">{warning}</p>}
-      {error && <p role="alert">{error}</p>}
-    </div>}
-  </div>;
+  return <section className={`tf-budget-assignment-strip${inline?' tf-budget-assignment-inline':''}`} aria-label="Přiřazení VŘ výběru">
+    {!inline&&<small>{itemIds.length} položek · celé množství</small>}
+    <div className="tf-budget-assignment-select">
+      {creating?<input autoFocus aria-label="Název nového VŘ" placeholder="Název nového VŘ" maxLength={255} value={name} disabled={busy||disabled} onChange={e=>setName(e.target.value)}/>:<ThemedNativeSelect compact searchable wrapOptions menuMinWidth={420} menuAlign="end" className="w-full" aria-label="VŘ pro vybrané položky" value="" disabled={busy||disabled||!itemIds.length} onChange={e=>{const id=e.target.value;if(id)void run(()=>onAssign(id));}}><option value="">{busy?'Ukládání…':'Přiřadit VŘ'}</option>{options.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</ThemedNativeSelect>}
+    </div>
+    {onCreateTender&&(creating?<button disabled={busy||disabled||!name.trim()} onClick={()=>void run(async()=>{
+      const tender=await onCreateTender(name);setCreated(tender);setCreating(false);setName('');setWarning(tender.warning??'');
+      if(latest.current.selectionKey!==selectionKey||latest.current.disabled)throw new Error('Výběr nebo oprávnění se změnily. Nové VŘ je uložené; vyberte je znovu.');
+      await latest.current.onAssign(tender.id);setCreating(false);setName('');
+    })}>Vytvořit a přiřadit</button>:<button aria-label="Nové VŘ" title="Nové VŘ" disabled={busy||disabled} onClick={()=>setCreating(true)}>+</button>)}
+    {onRemove&&!creating&&<button disabled={busy||disabled} onClick={()=>void run(onRemove)}>Odebrat VŘ</button>}
+    {(creating||onClose)&&<button aria-label="Zavřít přiřazení" disabled={busy} onClick={()=>{if(creating)setCreating(false);else onClose?.();}}>×</button>}
+    {disabled&&disabledReason&&<small role="status" className="tf-budget-assignment-message">{disabledReason}</small>}
+    {warning&&<small role="status" className="tf-budget-assignment-message">{warning}</small>}
+    {error&&<small role="alert" className="tf-budget-assignment-message">{error}</small>}
+  </section>;
 }

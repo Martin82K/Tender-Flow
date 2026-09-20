@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), importTenders: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -30,8 +30,9 @@ it('explains how to assign tenders in a confirmed revision without enabling writ
   try {
     await openBudget();
     fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
-    fireEvent.click(await screen.findByRole('button', { name: 'VŘ: 123' }));
-    expect(screen.getByText('Tato verze je potvrzená. Pro přiřazení VŘ otevřete pracovní verzi v nabídce Verze nebo zvolte Akce → Vytvořit pracovní kopii.')).toBeVisible();
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Vybrat 123' }));
+    expect(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'})).toBeDisabled();
+    expect(screen.getByText(/Tato verze je potvrzená\./)).toBeVisible();
     expect(screen.queryByRole('combobox', { name: 'Cílové VŘ' })).not.toBeInTheDocument();
     expect(budgetApi.save).not.toHaveBeenCalled();
   } finally { width.mockRestore(); height.mockRestore(); }
@@ -350,23 +351,23 @@ it('assigns multiple clicked rows to a tender and clears selection without delet
   const withRows = { ...revision, document: { ...revision.document, nodes: [item, { ...item, id: 'other', code: '456', description: 'Beton', order: 1 }] } } as BudgetRevision;
   vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [withRows], permissions: { read: true, prices: true, edit: true, confirm: true, allocate: true } });
   vi.mocked(budgetApi.revision).mockResolvedValue(withRows);
-  vi.mocked(budgetApi.save).mockResolvedValue({ ...withRows, version: 2 });
+  vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:{...withRows,version:2},createdCategoryIds:[]});
   try {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[{ id: 'vr', title: 'Zemní práce' } as never]} canUseTenders/></QueryClientProvider>);
     fireEvent.click(await screen.findByRole('button', { name: 'Výkop', exact: true }));
     fireEvent.click(screen.getByRole('button', { name: 'Beton', exact: true }), { ctrlKey: true });
-    fireEvent.click(screen.getByRole('button',{name:'Přiřadit VŘ',exact:true}));
+
     fireEvent.click(screen.getByRole('combobox', { name: 'VŘ pro vybrané položky' }));
     expect(screen.queryByRole('region',{name:'Přiřazení množství do VŘ'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('option',{name:'Zemní práce'}));
-    await waitFor(() => expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({ allocations: [{ itemId: 'item', categoryId: 'vr', quantity: '12' }, { itemId: 'other', categoryId: 'vr', quantity: '12' }] })));
+    await waitFor(() => expect(budgetApi.importTenders).toHaveBeenCalledWith('p',expect.objectContaining({ assignments: [{ itemId: 'item', categoryId: 'vr', action: 'replace' }, { itemId: 'other', categoryId: 'vr', action: 'replace' }] })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Zrušit výběr' }));
     expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).not.toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).not.toBeChecked();
     expect(screen.getByRole('button', { name: 'Beton', exact: true })).toBeVisible();
-    expect(budgetApi.save).toHaveBeenCalledTimes(1);
+    expect(budgetApi.importTenders).toHaveBeenCalledTimes(1);
   } finally { width.mockRestore(); height.mockRestore(); }
 });
 
@@ -412,11 +413,59 @@ it('refreshes only catalog and project details when creating a tender before ass
  vi.mocked(budgetApi.save).mockImplementation(async input=>({...current,version:2,document:input.document,allocations:input.allocations}));
  try{
   await openBudget();
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 123'}));
+
   fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
   fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nová fasáda'}});
   fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'}));
   await waitFor(()=>expect(budgetApi.save).toHaveBeenCalled());
-  await waitFor(()=>expect(screen.getByText('Nová fasáda · 12 m3')).toBeVisible());
+  await waitFor(()=>expect(within(screen.getByRole('button',{name:'Výkop',exact:true}).closest('[role="row"]') as HTMLElement).getByText('Nová fasáda')).toBeVisible());
   expect(budgetApi.revision).toHaveBeenCalledTimes(1);
+ }finally{width.mockRestore();height.mockRestore();}
+});
+
+it('assigns through a small idempotent request and retains the retry key after a lost response',async()=>{
+ const width=vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1200),height=vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ const item={id:'item',parentId:null,sheetId:'s',kind:'K',order:0,code:'123',description:'Výkop',unit:'m3',quantity:'12',unitPrice:'10',total:'120',source:{sheet:'S',row:1,cells:{}},tags:[],tenders:[]};
+ const current={...revision,source_id:'source',document:{...revision.document,nodes:[item]}} as BudgetRevision;
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[current],permissions:{read:true,prices:true,edit:true,allocate:true,confirm:false}});
+ vi.mocked(budgetApi.revision).mockResolvedValue(current);
+ vi.mocked(budgetApi.importTenders).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({revision:{...current,version:2,allocations:[{itemId:'item',categoryId:'vr',quantity:'12'}]},createdCategoryIds:[]});
+ try{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" categories={[{id:'vr',title:'Zemní práce'} as never]} canUseTenders/></QueryClientProvider>);
+  fireEvent.click(await screen.findByRole('button',{name:'Výkop',exact:true}));
+  expect(screen.getByLabelText('VŘ pro vybrané položky').closest('.tf-budget-selection')).not.toBeNull();
+  fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'vr'}});
+  await screen.findByRole('alert');
+  expect(budgetApi.save).not.toHaveBeenCalled();
+  const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];
+  expect(request).toMatchObject({mode:'assignments',revisionId:'r',version:1,assignments:[{itemId:'item',categoryId:'vr',action:'replace'}]});
+  expect(request).not.toHaveProperty('document');expect(request).not.toHaveProperty('allocations');
+  expect(screen.getByLabelText('VŘ pro vybrané položky').closest('.tf-budget-selection')).not.toBeNull();
+  fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'vr'}});
+  await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(budgetApi.importTenders).mock.calls[1][1]).toEqual(request);
+  await waitFor(()=>expect(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'})).toBeEnabled());
+  expect(screen.queryByRole('button',{name:'Přiřadit VŘ',exact:true})).not.toBeInTheDocument();
+ }finally{width.mockRestore();height.mockRestore();}
+});
+
+it('preserves budget allocation rights when the import endpoint requires additional pipeline rights',async()=>{
+ const width=vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1200),height=vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ const item={id:'item',parentId:null,sheetId:'s',kind:'K',order:0,code:'123',description:'Výkop',unit:'m3',quantity:'12',unitPrice:'10',total:'120',source:{sheet:'S',row:1,cells:{}},tags:[],tenders:[]};
+ const current={...revision,source_id:'source',document:{...revision.document,nodes:[item]}} as BudgetRevision;
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[current],permissions:{read:true,prices:true,edit:true,allocate:true,confirm:false}});
+ vi.mocked(budgetApi.revision).mockResolvedValue(current);
+ vi.mocked(budgetApi.importTenders).mockRejectedValueOnce(new Error('Import VŘ není povolen.'));
+ vi.mocked(budgetApi.save).mockResolvedValue({...current,version:2});
+ try{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" categories={[{id:'vr',title:'Zemní práce'} as never]} canUseTenders/></QueryClientProvider>);
+  fireEvent.click(await screen.findByRole('button',{name:'Výkop',exact:true}));
+  expect(screen.getByLabelText('VŘ pro vybrané položky').closest('.tf-budget-selection')).not.toBeNull();
+  fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'vr'}});
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'item',categoryId:'vr',quantity:'12'}]})));
+  expect(budgetApi.importTenders).toHaveBeenCalledTimes(1);
  }finally{width.mockRestore();height.mockRestore();}
 });

@@ -292,7 +292,7 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-inline-cell p,.tf-budget-row-tenders p{white-space:normal;font-size:12px;color:var(--tf-skin-danger,#b91c1c)}
 .tf-budget-row-tenders{white-space:normal;font-weight:400}
 .tf-budget-row-tenders>button{width:100%;text-align:left;overflow-wrap:anywhere;padding:2px 4px}
-.tf-budget-row-tender-fields{display:flex;flex-direction:column;gap:7px;padding-top:8px}
+.tf-budget-row-tender-fields{display:flex;flex-direction:column;gap:4px;padding-top:3px}
 .tf-budget-row-tender-fields input,.tf-budget-row-tender-fields select{width:100%;min-width:0}
 .tf-budget-inline-detail{max-height:40vh;overflow:auto;padding:12px;border-top:1px solid var(--tf-skin-line,#cbd5e1)}
 .tf-budget-editor-items{height:60vh;min-height:320px;display:flex;flex-direction:column}
@@ -300,5 +300,11 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 
 .tf-budget-direct-tender{display:flex;align-items:center;gap:4px}.tf-budget-direct-tender>div{flex:1;min-width:0}.tf-budget-direct-tender>button{flex:none}
 
-.tf-budget-assignment-strip{display:flex;align-items:center;gap:12px;padding:6px 12px;border-bottom:1px solid var(--budget-border);background:var(--budget-bg);min-width:0}
+.tf-budget-assignment-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:3px 10px;border-bottom:1px solid var(--budget-border);background:var(--budget-bg);min-width:0}
 .tf-budget-assignment-strip>small{white-space:nowrap}.tf-budget-assignment-select{margin-left:auto;width:min(420px,60%);min-width:0}.tf-budget-assignment-strip>button{flex:none;padding:4px 8px}
+
+.tf-budget-row-tender-fields:empty{display:none}.tf-budget-direct-tender>button{width:26px;height:26px;min-height:0;padding:0!important;border-radius:4px}.tf-budget-assignment-strip>button{padding:2px 6px}
+
+.tf-budget-assignment-message{flex-basis:100%;white-space:normal!important}.tf-budget-assignment-strip [role="alert"]{color:var(--tf-skin-danger,#b91c1c)}
+
+.tf-budget-assignment-inline{margin-left:auto;padding:0;border:0;background:transparent;flex:0 1 420px;gap:6px}.tf-budget-assignment-inline .tf-budget-assignment-select{flex:1;width:auto;min-width:140px}

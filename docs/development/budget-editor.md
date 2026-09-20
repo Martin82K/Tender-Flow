@@ -133,19 +133,24 @@ U typu a štítků šipky a Enter vybírají možnosti; Tab přejde na tlačítk
 Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
 nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
 Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
-Sloupec Výběrové řízení je přímo vyhledávací seznam: výběr okamžitě
-přiřadí celou položku do jediného VŘ. Vedle je tlačítko + pro nové VŘ;
-existující přiřazení lze odebrat. Nabídka má pravý okraj zarovnaný s polem
-a dlouhé názvy se zalamují. Hromadné přiřazení otevře úzký řádek pod
-lištou výběru s počtem položek a výběrem VŘ vpravo. Změna VŘ
-nahradí dosavadní vazby položky; změna množství aktualizuje i přiřazení.
-Dílčí množství se nezadává. Starší dílčí nebo rozdělené vazby je nutné před změnou
-množství výslovně sjednotit výběrem jediného VŘ.
-Zápis respektuje stávající edit/price/allocate oprávnění a zámek rozpočtu.
-Potvrzená verze se neupravuje; přiřazení VŘ vyžaduje pracovní verzi nebo
-Akce → Vytvořit pracovní kopii. Pokud přiřazení není dostupné, neobsazená
-buňka uvádí „Nepřiřazeno“ a po rozbalení vysvětlí důvod (potvrzení,
-zámek, oprávnění, koš nebo probíhající ukládání), místo prázdného obsahu.
+Sloupec Výběrové řízení zobrazuje pouze názvy přiřazených VŘ. Po výběru
+položek je vyhledávací seznam rovnou dostupný vpravo
+ve stejné liště s ostatními akcemi. Výběr ihned přiřadí celé množství všech
+vybraných položek; tlačítko + vytvoří nové VŘ. Nabídka má pravý okraj
+zarovnaný s polem a dlouhé názvy se zalamují. Fokus zvýrazňuje celý vyhledávací
+obal, nikoli samostatný vnitřní input.
+Změna VŘ nahradí dosavadní vazby; změna množství aktualizuje i přiřazení.
+Starší dílčí nebo rozdělené vazby je nutné před změnou množství výslovně sjednotit.
+Zápis respektuje edit/price/allocate oprávnění a zámek. Důvod nedostupnosti
+je v horní liště; potvrzená verze vyžaduje pracovní kopii.
+
+Při dostupném modulu VŘ přiřazování používá existující import RPC v režimu
+assignments: odesílá ID položek a VŘ, nikoli celý dokument. Množství stanoví
+server. Po ztrátě odpovědi stejný výběr a verze opakují stejný operationId.
+Potvrzené odmítnutí dodatečného práva modulu VŘ použije původní save RPC,
+které znovu kontroluje rozpočtová oprávnění. Síťová chyba fallback nespouští.
+Odpověď serveru stále obsahuje celou revizi; velikost odpovědi se touto změnou
+nezmenšuje. Změna nevyžaduje migraci ani změnu serverových oprávnění.
 
 Editor importu nabízí stejnou tabulku v záložce Položky a VŘ. Změny v ní
 zůstávají pracovní až do uložení editoru; ukládá se dokument i alokace.
@@ -154,7 +159,7 @@ Regrese pokrývají inline umístění bez dalšího dialogu, Enter/Escape,
 chybu a opakované potvrzení, čtení bez zápisu a společné uložení z editoru.
 
 Výběr VŘ má vždy aktivní vyhledávání s automatickým fokusem. Chybějící
-VŘ lze vytvořit a přiřadit přímo v řádku, pokud uživatel smí upravovat
+VŘ lze vytvořit a přiřadit přímo v horní liště, pokud uživatel smí upravovat
 projektový číselník. Založení načítá aktuální seznam a používá existující
 RPC s kontrolou souběhu; při opakování využije shodný název. Číselník se
 uloží ihned, přiřazení v importním editoru až s pracovní verzí. Selhání
@@ -170,3 +175,13 @@ V Electronu ověřeno vysvětlení u potvrzené verze a otevření formuláře
 i vyhledávatelného seznamu VŘ v pracovní verzi. Zápis do živých dat
 nebyl součástí tohoto průchodu; uložení a zákaz zápisu pokrývají testy.
 Datový model, oprávnění a serverové kontroly se nemění.
+
+### Ověření horního výběru VŘ (2026-09-20)
+
+Pracovní diff nad `419f777f`, integrační základna `8469a654`:
+- Cílený RED pro malý požadavek: původní cesta volala `budgetApi.save` s celým dokumentem.
+- `npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetImportDialog.test.tsx tests/constructionBudgetSettings.test.tsx tests/architectureGraphAnalysis.test.ts tests/architectureGraphResolver.test.ts`: 112 scénářů; po přesunu stále viditelného výběru byl upraven test pro dvě shodná zobrazení názvu VŘ. Ostatních 111 PASS, opravená sada nastavení níže PASS.
+- `npm run test:run -- tests/constructionBudgetSettings.test.tsx tests/themedRoleSelect.test.tsx`: 40 PASS, bez skipped/todo. Pokrývá i retry stejného operationId a fallback dodatečného práva pipeline.
+- `npm run typecheck`, `npm run build`, `npm run check:boundaries`, `npm run check:legacy-structure`, `npm run check:docs`: PASS. Web build upozorňuje na velké chunky.
+- V prohlížeči na izolované fixture se skutečnými komponentami ověřeno zarovnání do stejné lišty, absence otevíracího tlačítka a menu v buňkách, hledání mezi 61 VŘ, přiřazení, společný fokus a zalomení při šířce 480 px. Bez console errors; fixture nemá font ikon aplikace.
+- Živý zápis nebyl proveden. Síťový důvod uživatelského `Failed to fetch` není potvrzen. Finální CI a nová nezávislá revize jsou stále branou před merge; uživatel merge pozastavil.

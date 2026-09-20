@@ -7,7 +7,9 @@ import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
 import { createBudgetTender } from '../api/createBudgetTender';
 import { budgetApi } from '../api/budgetApi';
+import type { TenderImportRequest } from '../api/budgetApi';
 import { BudgetExportDialog } from './BudgetExportDialog';
+import { BudgetSelectionTenders } from './BudgetRowTenders';
 import { BudgetTable, DEFAULT_COLUMNS } from './BudgetTable';
 import type { BudgetColumn } from './BudgetTable';
 import { BudgetVersions } from './BudgetVersions';
@@ -41,7 +43,8 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
   const [viewOptionsOpen,setViewOptionsOpen]=useState(false);
   const viewOptions=useRef<HTMLDivElement>(null);const viewOptionsButton=useRef<HTMLButtonElement>(null);const viewOptionsId=React.useId();
   const [planOpen,setPlanOpen]=useState(false);
-  const [allocationOpen,setAllocationOpen]=useState(false);const [categoryId,setCategoryId]=useState('');const [tagId,setTagId]=useState('');
+  const [categoryId,setCategoryId]=useState('');const [tagId,setTagId]=useState('');
+  const assignmentAttempt=useRef<{key:string;request:TenderImportRequest}|null>(null);
   const actionLock=useRef(false);const saveLock=useRef(false);
   const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
   const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId),refetchOnMount:'always'});
@@ -54,7 +57,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     setExpandedVV(new Set());
     if(previousActiveId.current&&previousActiveId.current!==activeId){
       setExportSelection(null);setSelected(new Set());setUndo(null);setFilters({});setJumpId('');setView(old=>({...old,scope:''}));
-      setAllocationOpen(false);setCategoryId('');setTagId('');setScopeOpen(false);setScopeSearch('');setPlanOpen(false);
+      setCategoryId('');setTagId('');setScopeOpen(false);setScopeSearch('');setPlanOpen(false);
     }
     previousActiveId.current=activeId;
   },[activeId]);
@@ -98,6 +101,35 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     void cache.invalidateQueries({queryKey:['budget-project-tenders',projectId]});
     void cache.invalidateQueries({queryKey:PROJECT_DETAILS_KEYS.detail(projectId)});
     return {...tender,warning};
+  };
+  const assignTender=async(categoryId:string)=>{
+    if(!current||!editable||!permissions?.allocate||!selected.size)throw new Error('Přiřazení není povoleno.');
+    // Preserve the existing permission path for users without pipeline-module access.
+    if(!canUseTenders){await save(current.document,assignWholeItems(current.document.nodes,current.allocations,selected,categoryId));return;}
+    if(saveLock.current)throw new Error('Počkejte na dokončení ukládání.');
+    const ids=[...selected].sort();
+    const attemptKey=JSON.stringify([projectId,current.id,current.version,ids,categoryId]);
+    saveLock.current=true;setSaving(true);setError('');
+    try{
+      if(assignmentAttempt.current?.key!==attemptKey){
+        const expectedCatalog=await budgetApi.projectTenders(projectId);
+        assignmentAttempt.current={key:attemptKey,request:{operationId:crypto.randomUUID(),mode:'assignments',sourceId:current.source_id,revisionId:current.id,version:current.version,expectedCatalog,newCategories:[],assignments:ids.map(itemId=>({itemId,categoryId,action:'replace'}))}};
+      }
+      const result=await budgetApi.importTenders(projectId,assignmentAttempt.current.request);
+      if(!result.revision)throw new Error('Server nepotvrdil uložené přiřazení. Zopakujte stejný výběr.');
+      const saved=result.revision;assignmentAttempt.current=null;
+      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
+      cache.setQueryData([...key,'revision',saved.id],saved);void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Přiřazení uloženo na serveru.');
+    }catch(error){
+      const message=error instanceof Error?error.message:'';
+      if(message==='Import VŘ není povolen.'){
+        // This RPC also requires pipeline editing; the original endpoint enforces budget allocation rights itself.
+        assignmentAttempt.current=null;saveLock.current=false;
+        await save(current.document,assignWholeItems(current.document.nodes,current.allocations,selected,categoryId));return;
+      }
+      if(message.startsWith('Seznam VŘ se změnil.'))assignmentAttempt.current=null;
+      throw error;
+    }finally{saveLock.current=false;setSaving(false);}
   };
   const act=async(action:()=>Promise<unknown>)=>{if(actionLock.current)return;actionLock.current=true;setSaving(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'Operace selhala.');}finally{actionLock.current=false;setSaving(false);}};
   const jump=(n:BudgetNode)=>{if(view.scope&&n.sheetId!==view.scope){updateView({scope:''});setNotice('Rozsah změněn na celý rozpočet kvůli vybranému oddílu. Sloupcové filtry zůstaly zachované.');}setTab('items');setJumpId(n.id);setJumpRequest(request=>request+1);};
@@ -152,15 +184,10 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       <h3>Historie otevřené verze</h3>{history.data?.map(h=><p key={h.id}>{new Date(h.created_at).toLocaleString('cs-CZ')} · {({set_primary:'Nastavení hlavní verze',trash:'Přesunuto do koše',restore:'Obnoveno z koše',create:'Vytvoření',save:'Úprava',confirm:'Potvrzení',apply_tender_plan:'Převzetí do plánu VŘ'} as Record<string,string>)[h.event]||h.event} · verze {h.previous_version??'-'} → {h.new_version}</p>)}
     </div>:revision.isPending&&activeId?<p role="status">Načítání rozpočtu…</p>:!current?<div className="p-10"><h3>Rozpočet zatím neobsahuje žádné položky</h3><p>Nahrajte XLSX jako přílohu nebo jej převeďte na pracovní rozpočet.</p></div>:<>
       {!!activeFilters.length&&<div className="tf-budget-toolbar">{activeFilters.map(([c,f])=><button key={c} onClick={()=>{if(c==='$all'){onSearchChange?.('');return;}const next={...filters};delete next[c];setFilters(next);}}>{c==='$all'?'Hledání':DEFAULT_COLUMNS.find(col=>col.key===c)?.label}: {f.search||''} {f.selected!==undefined?`${f.selected.length} hodnot`:''} {f.min?`od ${f.min}`:''} {f.max?`do ${f.max}`:''} ×</button>)}<button onClick={()=>{setFilters({});onSearchChange?.('');}}>Vymazat všechny filtry</button></div>}
-      {<div className="tf-budget-toolbar tf-budget-selection" data-empty={!selected.size} aria-hidden={!selected.size}><strong>Vybráno {selected.size} položek</strong><button disabled={!editable||!permissions?.allocate} aria-expanded={allocationOpen} onClick={()=>setAllocationOpen(!allocationOpen)}><ListChecks size={16} aria-hidden="true"/>Přiřadit VŘ</button><ThemedNativeSelect aria-label="Štítek výběru" value={tagId} onChange={e=>setTagId(e.target.value)}><option value="">Vyberte štítek</option>{catalog.data?.filter(t=>t.kind==='tag'&&!t.archived).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</ThemedNativeSelect><button disabled={!editable||!tagId} onClick={()=>void act(()=>save({...current.document,nodes:current.document.nodes.map(n=>selected.has(n.id)?{...n,tags:[...new Set([...n.tags,tagId])]}:n)}))}>Přiřadit štítek</button><button onClick={()=>setExportSelection([...selected])}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}><ListX size={16} aria-hidden="true"/>Zrušit výběr</button></div>}
-      {allocationOpen&&selected.size>0&&<section className="tf-budget-assignment-strip" aria-label="Přiřazení VŘ výběru"><small>{selected.size} položek · celé množství</small><div className="tf-budget-assignment-select"><ThemedNativeSelect searchable wrapOptions menuMinWidth={420} menuAlign="end" className="w-full" aria-label="VŘ pro vybrané položky" value="" disabled={!selected.size||!editable||!permissions?.allocate} onChange={e=>{const id=e.target.value;if(id)void act(async()=>{await save(current.document,assignWholeItems(current.document.nodes,current.allocations,selected,id));setAllocationOpen(false);});}}><option value="">Přiřadit VŘ</option>{categories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</ThemedNativeSelect></div><button type="button" aria-label="Zavřít přiřazení" disabled={saving} onClick={()=>setAllocationOpen(false)}>×</button></section>}
-      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap prominentTotal={tab==='recap'} key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} showNotes={view.showNotes} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} tagOptions={catalog.data?.filter(t=>t.kind==='tag'&&!t.archived)} itemTags={Object.fromEntries(current.document.nodes.map(n=>[n.id,n.tags]))} categories={categories} allocations={current.allocations} canAllocate={!!permissions?.allocate} allocationDisabledReason={allocationDisabledReason} onCreateTender={permissions?.editTenders?createTender:undefined} onAllocate={async(itemId,categoryId)=>{
-        if(!editable||!permissions?.allocate)throw new Error('Přiřazení není povoleno.');
-        await save(current.document,assignWholeItems(current.document.nodes,current.allocations,new Set([itemId]),categoryId));
-      }} onRemoveAllocation={async allocation=>{
-        if(!editable||!permissions?.allocate)throw new Error('Přiřazení není povoleno.');
-        await save(current.document,current.allocations.filter(a=>a!==allocation));
-      }} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async (edited,editedFields)=>{if(current.allocations.some(a=>a.itemId===edited.id)&&current.document.nodes.find(n=>n.id===edited.id)?.unit!==edited.unit)throw new Error('Měrnou jednotku přiřazené položky nelze změnit. Nejdříve zrušte její přiřazení do VŘ.');const document=applyBudgetItemEdit(current.document,edited,editedFields);await save(document,syncWholeItemQuantity(current.document,document,current.allocations,!!permissions?.allocate));}}/>}</div>
+      {<div className="tf-budget-toolbar tf-budget-selection" data-empty={!selected.size} aria-hidden={!selected.size}><strong>Vybráno {selected.size} položek</strong><ThemedNativeSelect aria-label="Štítek výběru" value={tagId} onChange={e=>setTagId(e.target.value)}><option value="">Vyberte štítek</option>{catalog.data?.filter(t=>t.kind==='tag'&&!t.archived).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</ThemedNativeSelect><button disabled={!editable||!tagId} onClick={()=>void act(()=>save({...current.document,nodes:current.document.nodes.map(n=>selected.has(n.id)?{...n,tags:[...new Set([...n.tags,tagId])]}:n)}))}>Přiřadit štítek</button><button onClick={()=>setExportSelection([...selected])}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}><ListX size={16} aria-hidden="true"/>Zrušit výběr</button>{selected.size>0&&<BudgetSelectionTenders inline itemIds={[...selected]} categories={categories} disabled={!editable||!permissions?.allocate} disabledReason={allocationDisabledReason} onCreateTender={permissions?.editTenders?createTender:undefined} onAssign={async id=>{await assignTender(id);}} onRemove={current.allocations.some(a=>selected.has(a.itemId))?async()=>{await save(current.document,current.allocations.filter(a=>!selected.has(a.itemId)));}:undefined}/>}</div>}
+
+
+      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap prominentTotal={tab==='recap'} key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} showNotes={view.showNotes} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} tagOptions={catalog.data?.filter(t=>t.kind==='tag'&&!t.archived)} itemTags={Object.fromEntries(current.document.nodes.map(n=>[n.id,n.tags]))} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async (edited,editedFields)=>{if(current.allocations.some(a=>a.itemId===edited.id)&&current.document.nodes.find(n=>n.id===edited.id)?.unit!==edited.unit)throw new Error('Měrnou jednotku přiřazené položky nelze změnit. Nejdříve zrušte její přiřazení do VŘ.');const document=applyBudgetItemEdit(current.document,edited,editedFields);await save(document,syncWholeItemQuantity(current.document,document,current.allocations,!!permissions?.allocate));}}/>}</div>
 
     </>}
     {scopeOpen&&<Modal isOpen title="Rozsah rozpočtu" onClose={()=>setScopeOpen(false)}><div className="tf-budget-controls"><label className="tf-budget-field">Hledat soupis<input autoFocus aria-label="Hledat soupis" value={scopeSearch} onChange={e=>setScopeSearch(e.target.value)} placeholder="Kód nebo název soupisu…"/></label><button onClick={()=>{updateView({scope:''});setScopeOpen(false);}}>Celý rozpočet</button><p>Připnuté a nedávné soupisy jsou první. Výběr položek zůstává zachován.</p>{!sheets.some(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch)))&&<p role="status">Žádný soupis neodpovídá hledání.</p>}{sheets.filter(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch))).sort((a,b)=>(view.pinned.includes(b.id)?100:0)+(view.recent.includes(b.id)?10:0)-(view.pinned.includes(a.id)?100:0)-(view.recent.includes(a.id)?10:0)).map(s=><div className="flex gap-2 py-1" key={s.id}><button aria-label={`Připnout ${s.title}`} onClick={()=>updateView({pinned:view.pinned.includes(s.id)?view.pinned.filter(id=>id!==s.id):[...view.pinned,s.id]})}>{view.pinned.includes(s.id)?'★':'☆'}</button><button onClick={()=>{updateView({scope:s.id,recent:[s.id,...view.recent.filter(id=>id!==s.id)].slice(0,8)});setScopeOpen(false);}}>{s.title}</button></div>)}</div></Modal>}

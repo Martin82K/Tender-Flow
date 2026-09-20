@@ -411,13 +411,14 @@ it('edits cells and assigns tenders in the editor without opening another dialog
     fireEvent.change(screen.getByLabelText('Upravit Popis'),{target:{value:'Nová omítka'}});
     fireEvent.keyDown(screen.getByLabelText('Upravit Popis'),{key:'Enter'});
     await waitFor(()=>expect(screen.getByRole('button',{name:'Nová omítka'})).toBeVisible());
-    fireEvent.change(screen.getByLabelText('VŘ: 001'),{target:{value:'c'}});
-    await waitFor(()=>expect(screen.getByText('Omítky · 2 m2')).toBeVisible());
+    fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'c'}});
+    await waitFor(()=>expect(within(row).getByText('Omítky')).toBeVisible());
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
     fireEvent.doubleClick(within(row).getByText('2',{exact:true}));
     fireEvent.change(screen.getByLabelText('Upravit Množství'),{target:{value:'3'}});
     fireEvent.keyDown(screen.getByLabelText('Upravit Množství'),{key:'Enter'});
-    await waitFor(()=>expect(screen.getByText('Omítky · 3 m2')).toBeVisible());
+    await waitFor(()=>expect(within(row).getByText('3',{exact:true})).toBeVisible());
     fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
     await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'3'}],document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({description:'Nová omítka'})])})})));
   } finally { vi.restoreAllMocks(); }
@@ -431,8 +432,9 @@ it('lets an explicit whole-item assignment replace transferred links in a new re
   render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
   fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
   fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
-  fireEvent.change(screen.getByLabelText('VŘ: 001'),{target:{value:'new'}});
-  await screen.findByText('Nové práce · 2 m2');
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'new'}});
+  await screen.findByRole('button',{name:'Odebrat VŘ'});
   fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
   fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
   fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
@@ -482,10 +484,11 @@ it('preserves explicit allocation removal when transferring links',async()=>{
   render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
   fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
   fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
-  fireEvent.change(screen.getByLabelText('VŘ: 001'),{target:{value:'new'}});
-  await screen.findByText('Nové práce · 2 m2');
-  fireEvent.click(screen.getByRole('button',{name:'Odebrat Nové práce'}));
-  await waitFor(()=>expect(screen.queryByText('Nové práce · 2 m2')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'new'}});
+  await screen.findByRole('button',{name:'Odebrat VŘ'});
+  fireEvent.click(screen.getByRole('button',{name:'Odebrat VŘ'}));
+  await waitFor(()=>expect(screen.queryByRole('button',{name:'Odebrat VŘ'})).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
   fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
   fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));

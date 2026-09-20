@@ -2,6 +2,7 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/BudgetTable';
+import { BudgetSelectionTenders } from '@features/projects/budget/ui/BudgetRowTenders';
 import { applyBudgetItemEdit } from '@features/projects/budget/model/revisions';
 import type { BudgetDocument, BudgetNode } from '@features/projects/budget/model/types';
 import type { BudgetFilters } from '@features/projects/budget/model/budgetModel';
@@ -316,25 +317,16 @@ it('disables VV for an item with only notes',()=>{
  expect(screen.getByText('Poznámka k výkopu')).toBeVisible();
 });
 
-it('expands tender assignment in the item column without a dialog', async () => {
-  const onAllocate = vi.fn().mockResolvedValue(undefined);
-  render(<BudgetTable {...table(false).props} editable canAllocate categories={[{id:'t1',title:'Zemní práce'}]} onAllocate={onAllocate}/>);
-  const row = screen.getByRole('button', {name:item.description}).closest('[role="row"]') as HTMLElement;
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  fireEvent.change(within(row).getByRole('combobox', {name:'VŘ: 123'}), {target:{value:'t1'}});
-  expect(screen.queryByRole('textbox',{name:'Množství do VŘ'})).not.toBeInTheDocument();
-  await act(async()=>{});
-  expect(onAllocate).toHaveBeenCalledWith('item','t1');
+it('shows tender names in cells without assignment controls', () => {
+ render(<BudgetTable {...table().props} nodes={[{...item,tenders:['Zemní práce']}]} editable canAllocate onAllocate={vi.fn()}/>);
+ expect(screen.getByText('Zemní práce')).toBeVisible();
+ expect(screen.queryByRole('combobox',{name:'VŘ pro vybrané položky'})).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Nové VŘ'})).not.toBeInTheDocument();
 });
-it('explains unavailable tender assignment instead of expanding an empty field', () => {
-  const onAllocate = vi.fn();
-  render(<BudgetTable {...table(false).props} canAllocate onAllocate={onAllocate}/>);
-  const trigger = screen.getByRole('button', {name:'VŘ: 123'});
-  expect(trigger).toHaveTextContent('Nepřiřazeno');
-  fireEvent.click(trigger);
-  expect(screen.getByText('Přiřazení VŘ nyní nelze měnit.')).toBeVisible();
-  expect(screen.queryByRole('combobox', {name:'VŘ: 123'})).not.toBeInTheDocument();
-  expect(onAllocate).not.toHaveBeenCalled();
+it('explains unavailable assignment in the selection toolbar', () => {
+ render(<BudgetSelectionTenders itemIds={['item']} disabled disabledReason="Přiřazení VŘ nyní nelze měnit." onAssign={vi.fn()}/>);
+ expect(screen.getByText('Přiřazení VŘ nyní nelze měnit.')).toBeVisible();
+ expect(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'})).toBeDisabled();
 });
 it('retains a failed inline edit and blocks duplicate submissions', async () => {
   let reject!: (error: Error) => void;
@@ -351,10 +343,9 @@ it('retains a failed inline edit and blocks duplicate submissions', async () => 
 });
 it('keeps tender assignments readable without permitting writes', () => {
   const onAllocate=vi.fn();
-  render(<BudgetTable {...table().props} canAllocate onAllocate={onAllocate} categories={[{id:'t',title:'Zemní práce'}]} allocations={[{itemId:item.id,categoryId:'t',quantity:'4'}]}/>);
-  fireEvent.click(screen.getByRole('button',{name:'VŘ: 123'}));
-  expect(screen.getByText('Zemní práce · 4 m3')).toBeVisible();
-  expect(screen.queryByRole('combobox',{name:'VŘ: 123'})).not.toBeInTheDocument();
+  render(<BudgetTable {...table().props} nodes={[{...item,tenders:['Zemní práce']}]} canAllocate onAllocate={onAllocate} categories={[{id:'t',title:'Zemní práce'}]} allocations={[{itemId:item.id,categoryId:'t',quantity:'4'}]}/>);
+  expect(screen.getByText('Zemní práce')).toBeVisible();
+  expect(screen.queryByRole('combobox',{name:'VŘ pro vybrané položky'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Přiřadit VŘ'})).not.toBeInTheDocument();
 });
 it.each([['kind','Typ','M'],['total','Celkem (Kč)','175']])('saves %s directly in its cell', async (key,label,value) => {
@@ -385,21 +376,21 @@ it('persists tag identifiers and kind without replacing tags with display labels
 });
 it('filters a long tender list immediately while choosing', async () => {
   const categories=Array.from({length:60},(_,i)=>({id:`t${i}`,title:`Řízení ${i}`}));
-  render(<BudgetTable {...table().props} editable canAllocate categories={categories} onAllocate={vi.fn()}/>);
-  fireEvent.click(screen.getByRole('combobox',{name:'VŘ: 123'}));
-  const search=screen.getByRole('searchbox',{name:'Hledat v nabídce VŘ: 123'});
+  render(<BudgetSelectionTenders itemIds={['item']} categories={categories} onAssign={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'}));
+  const search=screen.getByRole('searchbox',{name:'Hledat v nabídce VŘ pro vybrané položky'});
   await vi.waitFor(()=>expect(search).toHaveFocus());
   fireEvent.change(search,{target:{value:'Řízení 59'}});
-  const list=screen.getByRole('listbox',{name:'VŘ: 123'});
+  const list=screen.getByRole('listbox',{name:'VŘ pro vybrané položky'});
   expect(within(list).getAllByRole('option')).toHaveLength(1);
   fireEvent.click(within(list).getByRole('option',{name:'Řízení 59'}));
   await act(async()=>{});
-  expect(screen.queryByRole('listbox',{name:'VŘ: 123'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('listbox',{name:'VŘ pro vybrané položky'})).not.toBeInTheDocument();
 });
-it('creates a tender in the row and assigns the whole item without an extra dialog', async () => {
+it('creates a tender in the toolbar and assigns the whole item without an extra dialog', async () => {
   const onCreateTender=vi.fn().mockResolvedValue({id:'new',title:'Nové práce'});
   const onAllocate=vi.fn().mockResolvedValue(undefined);
-  render(<BudgetTable {...table().props} nodes={[item]} editable canAllocate onAllocate={onAllocate} onCreateTender={onCreateTender}/>);
+  render(<BudgetSelectionTenders itemIds={['item']} onAssign={id=>onAllocate('item',id)} onCreateTender={onCreateTender}/>);
   fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
   fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nové práce'}});
   await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'})));
@@ -411,12 +402,12 @@ it('creates a tender in the row and assigns the whole item without an extra dial
 it('keeps the newly created tender selectable if assignment fails', async () => {
   const onCreateTender=vi.fn().mockResolvedValue({id:'new',title:'Nové práce'});
   const onAllocate=vi.fn().mockRejectedValue(new Error('Konflikt verze'));
-  render(<BudgetTable {...table().props} nodes={[item]} editable canAllocate onAllocate={onAllocate} onCreateTender={onCreateTender}/>);
+  render(<BudgetSelectionTenders itemIds={['item']} onAssign={id=>onAllocate('item',id)} onCreateTender={onCreateTender}/>);
   fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
   fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nové práce'}});
   await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'})));
   expect(screen.getByRole('alert')).toHaveTextContent('Konflikt verze');
-  fireEvent.click(screen.getByRole('combobox',{name:'VŘ: 123'}));
+  fireEvent.click(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'}));
   expect(screen.getByRole('option',{name:'Nové práce'})).toBeVisible();
 });
 it('cancels an inline draft when filtering removes its virtual row and allows another edit', () => {
@@ -456,20 +447,20 @@ it('uses the latest allocation callback after asynchronous tender creation',asyn
  let complete!:(value:{id:string;title:string})=>void;
  const onCreateTender=vi.fn(()=>new Promise<{id:string;title:string}>(resolve=>{complete=resolve;}));
  const oldAllocate=vi.fn(),latestAllocate=vi.fn();
- const props={...table().props,nodes:[item],editable:true,canAllocate:true,onCreateTender};
- const {rerender}=render(<BudgetTable {...props} onAllocate={oldAllocate}/>);
+ const props={itemIds:['item'],onCreateTender};
+ const {rerender}=render(<BudgetSelectionTenders {...props} onAssign={id=>oldAllocate('item',id)}/>);
  fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
  fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nové práce'}});
  fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'}));
- rerender(<BudgetTable {...props} onAllocate={latestAllocate}/>);
+ rerender(<BudgetSelectionTenders {...props} onAssign={id=>latestAllocate('item',id)}/>);
  await act(async()=>complete({id:'new',title:'Nové práce'}));
  expect(oldAllocate).not.toHaveBeenCalled();expect(latestAllocate).toHaveBeenCalledWith('item','new');
 });
-it('opens tender search directly from the cell and assigns the selection immediately',async()=>{
+it('opens tender search directly from the toolbar and assigns the selection immediately',async()=>{
  const onAllocate=vi.fn().mockResolvedValue(undefined);
- render(<BudgetTable {...table().props} nodes={[item]} editable canAllocate categories={[{id:'vr',title:'Zemní práce'}]} onAllocate={onAllocate}/>);
- fireEvent.click(screen.getByRole('combobox',{name:'VŘ: 123'}));
- expect(screen.getByRole('searchbox',{name:'Hledat v nabídce VŘ: 123'})).toBeVisible();
+ render(<BudgetSelectionTenders itemIds={['item']} categories={[{id:'vr',title:'Zemní práce'}]} onAssign={id=>onAllocate('item',id)}/>);
+ fireEvent.click(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'}));
+ expect(screen.getByRole('searchbox',{name:'Hledat v nabídce VŘ pro vybrané položky'})).toBeVisible();
  await act(async()=>fireEvent.click(screen.getByRole('option',{name:'Zemní práce'})));
  expect(onAllocate).toHaveBeenCalledWith('item','vr');
  expect(screen.queryByRole('button',{name:'Přiřadit VŘ',exact:true})).not.toBeInTheDocument();

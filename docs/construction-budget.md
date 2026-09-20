@@ -6,6 +6,9 @@ Jedním kliknutím na položku ji vyberete. Ctrl/Cmd přidává nebo odebírá j
 položky, Shift označí rozsah viditelných položek. Checkboxy zachovávají hromadný
 výběr napříč filtry. Lišta nad tabulkou nabízí **Přiřadit VŘ**, export a
 **Zrušit výběr**; poslední akce pouze odznačuje a žádná data nemaže.
+Výběr VŘ se otevře vpravo ve stejné liště. V nabídce lze hledat a tlačítkem
++ založit chybějící VŘ. Přiřazuje se vždy celé množství vybraných položek.
+Sloupec Výběrové řízení zobrazuje pouze aktuální přiřazení.
 
 Dvojklik nebo F2 upraví konkrétní buňku kódu, popisu, měrné jednotky, množství
 nebo jednotkové ceny. Enter ukládá, Escape ruší. Celková cena se přepočítává.
