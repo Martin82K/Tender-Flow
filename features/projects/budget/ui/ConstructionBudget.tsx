@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChartNoAxesColumnIncreasing, ChevronDown, Import, Layers, Library, List, MoreHorizontal, Network, Settings, LockKeyhole, UnlockKeyhole, ListChecks, ListX } from 'lucide-react';
+import { PROJECT_DETAILS_KEYS } from '@shared/queryKeys/projectDetailKeys';
 import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
 import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
@@ -88,7 +89,8 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     const {tender,warning}=await createBudgetTender(projectId,name);
     setCreatedTenders(old=>[...old.filter(t=>t.id!==tender.id),{...tender,projectId}]);
     if(warning)setNotice(warning);
-    void cache.invalidateQueries();
+    void cache.invalidateQueries({queryKey:['budget-project-tenders',projectId]});
+    void cache.invalidateQueries({queryKey:PROJECT_DETAILS_KEYS.detail(projectId)});
     return {...tender,warning};
   };
   const act=async(action:()=>Promise<unknown>)=>{if(actionLock.current)return;actionLock.current=true;setSaving(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'Operace selhala.');}finally{actionLock.current=false;setSaving(false);}};

@@ -355,7 +355,7 @@ it.each([['kind','Typ','M'],['total','Celkem (Kč)','175']])('saves %s directly 
   fireEvent.doubleClick(within(row).getByText(key==='kind'?'K':'120,00'));
   const input=screen.getByLabelText(`Upravit ${label}`);
   fireEvent.change(input,{target:{value}});
-  await act(async()=>fireEvent.keyDown(input,{key:'Enter'}));
+  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
   expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({[key]:value}),[key]);
 });
 it('persists tag identifiers and kind without replacing tags with display labels', async () => {
@@ -364,13 +364,14 @@ it('persists tag identifiers and kind without replacing tags with display labels
   render(<BudgetTable {...table().props} nodes={[{...item,tags:['Původní']}]} editable tagOptions={[{id:'tag-1',name:'Původní'},{id:'tag-2',name:'Nový'}]} itemTags={{item:['tag-1']}} onEdit={onEdit}/>);
   fireEvent.doubleClick(screen.getByText('Původní'));
   const input=screen.getByRole('listbox',{name:'Upravit Štítky'});
-  fireEvent.change(input,{target:{value:'tag-2'}});
-  await act(async()=>fireEvent.keyDown(input,{key:'Enter'}));
+  fireEvent.click(within(input).getByRole('option',{name:'Původní'}));
+  fireEvent.click(within(input).getByRole('option',{name:'Nový'}));
+  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
   expect(saved.nodes[0].tags).toEqual(['tag-2']);
   const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
   fireEvent.doubleClick(within(row).getByText('K'));
   fireEvent.change(screen.getByLabelText('Upravit Typ'),{target:{value:'M'}});
-  await act(async()=>fireEvent.keyDown(screen.getByLabelText('Upravit Typ'),{key:'Enter'}));
+  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
   expect(saved.nodes[0]).toMatchObject({kind:'M',tags:['tag-2']});
 });
 it('filters a long tender list immediately while choosing', async () => {
@@ -408,4 +409,23 @@ it('keeps the newly created tender selectable if assignment fails', async () => 
   await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'})));
   expect(screen.getByRole('alert')).toHaveTextContent('Konflikt verze');
   expect(screen.getByRole('combobox',{name:'Cílové VŘ'})).toHaveTextContent('Nové práce');
+});
+it('cancels an inline draft when filtering removes its virtual row and allows another edit', () => {
+ const onNotice=vi.fn();
+ const props={...table().props,editable:true,onNotice};
+ const {rerender}=render(<BudgetTable {...props}/>);
+ fireEvent.doubleClick(screen.getByRole('button',{name:item.description}));
+ fireEvent.change(screen.getByLabelText('Upravit Popis'),{target:{value:'Rozepsané'}});
+ rerender(<BudgetTable {...props} filters={{code:{search:'456'}}}/>);
+ fireEvent.doubleClick(screen.getByRole('button',{name:'Neoceněná práce'}));
+ expect(screen.getByLabelText('Upravit Popis')).toHaveValue('Neoceněná práce');
+ expect(onNotice).toHaveBeenCalledWith(expect.stringContaining('zrušena'));
+});
+it('preserves archived tag identifiers when active tags change', async () => {
+ const onEdit=vi.fn().mockResolvedValue(undefined);
+ render(<BudgetTable {...table().props} nodes={[{...item,tags:['Archivovaný']}]} editable itemTags={{item:['archived']}} tagOptions={[{id:'active',name:'Aktivní'}]} onEdit={onEdit}/>);
+ fireEvent.doubleClick(screen.getByText('Archivovaný'));
+ fireEvent.click(within(screen.getByRole('listbox',{name:'Upravit Štítky'})).getByRole('option',{name:'Aktivní'}));
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
+ expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({tags:['archived','active']}),['tags']);
 });

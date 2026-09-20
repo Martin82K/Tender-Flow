@@ -424,3 +424,40 @@ it('edits cells and assigns tenders in the editor without opening another dialog
     await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'3'}],document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({description:'Nová omítka'})])})})));
   } finally { vi.restoreAllMocks(); }
 });
+it('lets an explicit whole-item assignment replace transferred links in a new revision',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  const previous=editorRevision();previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'old',quantity:'2'}];
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('button',{name:'VŘ: 001'}));
+  fireEvent.change(screen.getByLabelText('Cílové VŘ'),{target:{value:'new'}});
+  fireEvent.click(screen.getByRole('button',{name:'Přiřadit VŘ',exact:true}));
+  await screen.findByText('Nové práce · 2 m2');
+  fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+  fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+  fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'new',quantity:'2'}]})));
+ }finally{vi.restoreAllMocks();}
+});
+it('hides draft assignment controls in assignment-only source repair',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  vi.mocked(budgetApi.registerSource).mockResolvedValue({...editorSource,status:'attachment'});
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate canImportTenders onCreateTender={vi.fn()} projectId="p" previous={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('radio',{name:/Pouze převzít přiřazení/}));
+  fireEvent.change(screen.getByLabelText('Soubor XLSX'),{target:{files:[new File(['xlsx'],'assignments.xlsx')]}});
+  fireEvent.click(screen.getByRole('button',{name:'Nahrát a pokračovat'}));
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('button',{name:'VŘ: 001'}));
+  expect(screen.queryByRole('combobox',{name:'Cílové VŘ'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'Nové VŘ'})).not.toBeInTheDocument();
+ }finally{vi.restoreAllMocks();}
+});
