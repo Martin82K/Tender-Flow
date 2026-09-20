@@ -124,6 +124,52 @@ Nerozpoznané listy jsou výslovně označené jako neověřená úplnost. Konfl
 obsahují konkrétní kódy a hodnoty ke kontrole. Jejich aritmetické použití se nepovolí
 odhadem, uložené ceny a množství se však importují beze změny.
 
+### Editor oprav importu
+
+Automatické rozpoznání zůstává výchozí cestou. **Otevřít editor oprav** otevře větší
+pracovní plochu se třemi kroky: **Sloupce**, **Struktura**, **Kontrola**. Existující
+pracovní verzi otevřete přes **Akce → Opravit import**; potvrzenou verzi nejprve
+zkopírujte do pracovní. Uložení používá původní práva projektu a kontrolu verze.
+
+Ve Sloupcích je vlevo náhled původních buněk a vpravo stejně široké ovládací prvky.
+Sloupce vybíráte písmenem a názvem hlavičky. Náhled má nejvýše 60 řádků okolo hlavičky;
+ostatní importované řádky jsou dostupné ve Struktuře po 100 řádcích. Úroveň hierarchie
+lze mapovat mimo AU (číslování od 0). Volba podle profilu zachovává AU pro KROS a
+ploché oddíly Globus. KROS bez platné úrovně nebo se skokem přes chybějícího rodiče
+vytvoří návrh zařazení s blokující chybou, nikoli potvrzenou hierarchii.
+I chybný návrh zůstává omezený na úrovně 0–32; extrémní hodnoty zdroje nesmějí
+vytvořit neomezeně hluboký strom. Globus nepoužívá AU bez výslovného mapování.
+
+Ve Struktuře vyberte řádek, jeho typ a konkrétního rodiče s úplnou cestou. Náhled
+ukáže dotčené řádky a jejich cenu. Můžete přesunout celý podstrom nebo pouze vybraný
+řádek; u druhé možnosti se přímé děti přesunou k jeho původnímu rodiči. Další sousední
+oddíl se nemění. Rodič musí být dřívější uzel stejného soupisu, což zabrání cyklům
+a zachová pořadí pro serverové ověření. **Vrátit poslední opravu** vrací poslední
+změnu v otevřeném editoru. Poznámky, opakované hlavičky a mezisoučty nevstupují do
+ceny. Neznámé neprázdné řádky se zachovají pro ruční klasifikaci.
+
+**Uložit a zavřít** uloží pracovní verzi i opravy a umožní pozdější pokračování.
+Blokující chyby a neúplné ocenění nadále brání potvrzení; bezcenové potvrzené rozpočty
+tato změna nezavádí. Mapování se aplikuje jen na vybraný list. Má-li list ruční opravy,
+jejich zrušení při novém rozpoznání vyžaduje výslovné zaškrtnutí. U uložené verze
+je tento souhlas vyžadován vždy, protože načtení originálu nahradí také pozdější
+úpravy cen a množství daného listu. Existující alokace
+nebo štítky brání přemapování daného listu v téže verzi: použijte novou verzi a ověřený
+přenos vazeb. Opravy se nikdy automaticky nepřenášejí na další soubor.
+Rozpracované změny mapování jiného listu se nepoužijí. Vyřešené konflikty figur
+se při přemapování jednoho listu zachovají, pokud se nezměnila množina nalezených
+hodnot; při změně hodnot vyžadují nové rozhodnutí.
+Při opravě uložené revize se stav její přílohy nemění. Každá změna struktury vypne
+přenos vazeb a znovu vypočítá návrh podle výsledné cesty rodičů; staré návrhy přenosu
+se po změně kontextu položky nepoužijí.
+
+Originální XLSX je neměnný, vzorce se nespouštějí a všechny jeho texty se vykreslují
+jako text. Limity archivu a odmítání maker či externích vazeb zůstávají zachované.
+`sourcePreview` je pouze v paměti a ukládací API jej odstraňuje, protože může
+obsahovat ceny mimo serverem redigované `node.source.cells`. Po otevření konceptu
+je **Načíst náhled originálu** znovu stáhne přes chráněné úložiště, aniž by přepsalo
+opravy. `importRepairs` ukládá pouze typ, rodiče a rozsah ruční interpretace. Ukládání používá existující audit revizí a nevyžaduje migraci.
+
 ### Vyřešení konfliktů figur před importem
 
 V pravém panelu **Konflikty figur** rozbalte kód figury. U nalezených hodnot
@@ -219,6 +265,7 @@ ohraničení buněk tabulky položek, včetně VV, záhlaví a součtů. Volba j
 stavu vypnutá a ukládá se v tomto prohlížeči zvlášť pro uživatele a projekt, stejně
 jako hustota řádků. Nemění data rozpočtu ani samostatnou mřížku rekapitulace.
 
+Při opravě uložené revize nelze položku se štítky nebo alokacemi změnit na necenový typ ani vyřadit její soupis. Editor omezení zobrazí před uložením; vazby je nutné nejprve vyřešit v rozpočtu. Změna práce na materiál a přesun v hierarchii vazby zachovávají.
 ### Záloha, obnova a mazání projektu
 
 Záloha uživatele i firmy zahrnuje dostupné rozpočty, revize, alokace, historii,
@@ -243,6 +290,7 @@ Export položek do Excelu zapisuje množství a ceny jako textové buňky, aby
 zachoval všechny číslice. Prázdné množství při přiřazení do VŘ znamená dosud
 nepřiřazené množství, nikoli celé množství položky.
 
+Náhled má nejvýše 60 řádků na list a 200 000 buněk a 1 000 000 znaků textů i vzorců za celý sešit (nejvýše 256 znaků na náhledovou hodnotu); u mnoha širokých listů ukazuje méně řádků. Chybové buňky Excelu zůstávají bez číselné hodnoty i po ruční opravě typu. Opravené mezisoučty jsou viditelné pod rozbaleným oddílem s položkami, do ceny se podruhé nezapočítávají.
 Plně přiřazená položka se při dalším hromadném rozdělení přeskočí; nulové
 množství nevytváří vazbu na další VŘ. Čísla mohou obsahovat nejvýše 24 číslic
 před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import ohlásí.
@@ -261,3 +309,7 @@ rozpočty a historii, pouze odstraní jeho identitu. Obnova po novém importu
 stejného souboru zachová aktuální zdroj i revize a doplní chybějící staré revize.
 
 Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřešenou figuru nebo jinou chybu; důvod je zobrazen pod tlačítkem. Po vyřešení figury lze výsledek připravit a samostatně potvrdit uložením položky. Rozpracované mazání celého projektu se dokončuje opakováním mazání projektu, nikoli vysypáním koše rozpočtu. Obnova starších importních revizí zachovává nejstarší a nejnovější datum převodu bez závislosti na pořadí revizí v záloze.
+
+Zkrácený náhled je označen upozorněním. Omezení platí pouze pro náhled, původní buňky ani soubor se nemění. Limit znaků brání tomu, aby opakované dlouhé shared strings z malého XLSX zahltily renderer.
+
+Oprava podstromu potvrzuje hierarchii všech dotčených řádků; jiné chyby rozpoznání a ocenění se tím nevyřeší. Položku s podřízeným výkazem výměr nebo poznámkami nelze změnit na necenový typ, dokud jejich zařazení neupravíte, aby zdrojové řádky nezmizely z běžného pohledu.

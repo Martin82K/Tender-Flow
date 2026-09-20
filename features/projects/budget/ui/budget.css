@@ -139,6 +139,34 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 /* Expand only the review step; the initial file picker stays compact. */
 .tf-modal-panel:has(.tf-budget-import-review) {max-width:1200px}
 .tf-budget-import-review {display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.tf-modal-panel:has(.tf-budget-import-editor){width:calc(100vw - 32px);max-width:1600px}
+.tf-budget-import-editor{display:flex;flex-direction:column;gap:16px;min-width:0}
+.tf-budget-editor-toolbar,.tf-budget-editor-steps{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tf-budget-editor-toolbar>input{flex:1;min-width:180px}
+.tf-budget-editor-steps{padding:8px 0;border-block:1px solid var(--tf-skin-line,#cbd5e1)}
+.tf-budget-editor-steps button[aria-current=step]{color:var(--tf-skin-accent,#b96032);border-color:currentColor;background:var(--tf-skin-surface-muted,#fff0e5)}
+.tf-budget-editor-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.tf-budget-editor-source,.tf-budget-editor-detail{min-width:0;background:var(--tf-skin-surface,#fff);border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:8px;padding:16px}
+.tf-budget-editor-detail{display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere}
+.tf-budget-editor-detail h3,.tf-budget-editor-source h3{font-size:16px;font-weight:600}
+.tf-budget-editor-scroll{overflow:auto;max-height:52dvh;margin-top:12px}
+.tf-budget-editor-scroll table{width:100%;border-collapse:collapse;font-size:12px}
+.tf-budget-editor-scroll th,.tf-budget-editor-scroll td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--tf-skin-line,#cbd5e1);min-width:70px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf-budget-editor-scroll th{position:sticky;top:0;background:var(--tf-skin-surface,#fff);z-index:1}
+.tf-budget-editor-scroll td button{text-align:left;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.tf-budget-editor-scroll .is-selected{background:var(--tf-skin-surface-muted,#fff0e5);outline:1px solid var(--tf-skin-accent,#b96032);outline-offset:-1px}
+.tf-budget-mapping-row{display:grid;grid-template-columns:minmax(0,138px) minmax(0,1fr);gap:12px;align-items:center}
+.tf-budget-mapping-row>span{text-align:left;font-size:13px}
+.tf-budget-mapping-row>input{width:100%;min-width:0;text-align:right}
+.tf-budget-mapping-row button{width:100%;text-align:right}
+.tf-budget-mapping-row button>span{margin-left:auto;text-align:right}
+.tf-budget-repair-preview{padding:12px;background:var(--tf-skin-bg,#f6f7f9);border-radius:6px;font-size:12px;line-height:1.6}
+.tf-budget-editor-issues{display:flex;flex-direction:column;gap:12px;max-height:50dvh;overflow:auto}
+.tf-budget-editor-issues>div{padding:12px;border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:6px}
+.tf-budget-source-cells{display:grid;grid-template-columns:48px minmax(0,1fr);gap:6px;font-size:12px;max-height:200px;overflow:auto}
+.tf-budget-source-cells dd{overflow-wrap:anywhere}.tf-budget-source-cells small{display:block}
+@media(max-width:1000px){.tf-budget-editor-layout{grid-template-columns:minmax(0,1fr)}.tf-budget-editor-scroll{max-height:38dvh}.tf-budget-editor-detail{width:100%}}
+@media(max-width:480px){.tf-budget-mapping-row{grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:8px}.tf-budget-editor-source,.tf-budget-editor-detail{padding:12px}}
 .tf-budget-import-selection,.tf-budget-import-inspection {display:flex;flex-direction:column;gap:12px;min-width:0}
 .tf-budget-import-inspection {overflow-wrap:anywhere}
 .tf-budget-import-review .tf-budget-existing-file>div {min-width:0}

@@ -53,7 +53,10 @@ export const budgetApi = {
   },
   async download(source: BudgetSource): Promise<Blob> { return unwrap(await supabase.storage.from('construction-budgets').download(source.storage_path)); },
   async save(args: { projectId: string; sourceId: string; revision?: BudgetRevision; title: string; document: BudgetDocument; allocations: BudgetAllocation[]; confirm?: boolean }): Promise<BudgetRevision> {
-    return unwrap(await supabase.rpc('construction_budget_save', { project_input: args.projectId, source_input: args.sourceId, revision_input: args.revision?.id ?? null, version_input: args.revision?.version ?? 0, title_input: args.title, document_input: args.document, allocations_input: args.allocations, confirm_input: args.confirm ?? false }));
+    // Raw previews may contain prices. Only node.source.cells has server-side price
+    // redaction; keep previews ephemeral and reload them from protected storage.
+    const document = {...args.document,sheets:args.document.sheets.map(sheet=>{const stored={...sheet};delete stored.sourcePreview;return stored;})};
+    return unwrap(await supabase.rpc('construction_budget_save', { project_input: args.projectId, source_input: args.sourceId, revision_input: args.revision?.id ?? null, version_input: args.revision?.version ?? 0, title_input: args.title, document_input: document, allocations_input: args.allocations, confirm_input: args.confirm ?? false }));
   },
   async applyPlan(projectId:string,revisionId:string,categoryId:string,expectedPlan:number):Promise<string> {
     return String(unwrap(await supabase.rpc('construction_budget_apply_plan',{project_input:projectId,revision_input:revisionId,category_input:categoryId,expected_plan:expectedPlan})));

@@ -122,7 +122,7 @@ export function BudgetTable(props: Props) {
           if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={()=>group?setCollapsed(toggle(collapsed,n.id)):setDetail(n)}>{n.description}</button>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Chybí cena</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
-          else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;
+          else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind==='subtotal'?'Mezisoučet':n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
           return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{value}</div>;
         })}

@@ -32,6 +32,14 @@ export function globusWorkbook() {
 }
 
 describe('automatic Globus import', () => {
+  it('does not interpret unrelated AU values as hierarchy unless explicitly mapped',()=>{
+    const workbook=globusWorkbook();
+    workbook.Sheets['000'].AU8={t:'n',v:2};
+    workbook.Sheets['000']['!ref']='A1:AU14';
+    const document=parseKrosWorkbook(workbook);
+    expect(document.nodes.filter(n=>n.kind==='section').map(n=>n.parentId)).toEqual(['sheet:1','sheet:1']);
+    expect(document.issues).toEqual([]);
+  });
   it('detects two-row headers, preserves source and creates sibling sections without double counting', () => {
     const document = readKrosFile(new Uint8Array(XLSX.write(globusWorkbook(), { type: 'array', bookType: 'xlsx' })));
     expect(document.sheets.map(s => s.role)).toEqual(['summary', 'items']);
