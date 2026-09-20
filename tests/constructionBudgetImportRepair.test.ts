@@ -59,6 +59,31 @@ describe('import repair', () => {
     expect(visibleBudgetRows(repaired.nodes,matched,new Set(['sheet:0:row:7']),false).some(n=>n.id==='sheet:0:row:9')).toBe(false);
     expect(aggregateBudget(repaired.nodes).total).toBe('120.00');
   });
+  it.each(['row','subtree'] as const)('rejects hiding quantity details when converting their parent with scope %s',scope=>{
+    const doc=parseKrosWorkbook(repairFixture());
+    expect(()=>applyImportRepair(doc,{nodeId:'sheet:0:row:5',parentId:'sheet:0:row:4',kind:'section',scope})).toThrow(/výkaz výměr/);
+    expect(()=>applyImportRepair(doc,{nodeId:'sheet:0:row:5',parentId:'sheet:0:row:4',kind:'M',scope:'subtree'})).not.toThrow();
+    expect(()=>applyImportRepair(doc,{nodeId:'sheet:0:row:5',parentId:'sheet:0:row:4',kind:'M',scope:'row'})).toThrow(/výkaz výměr/);
+  });
+  it('resolves hierarchy errors for the approved subtree while retaining unrelated classification errors',()=>{
+    const book=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([
+      ['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','Úroveň'],
+      ['D','root','Root','',null,null,null,0],
+      ['D','a','A','',null,null,null,7],
+      ['D','b','B','',null,null,null,8],
+      ['D','c','C','',null,null,null,9],
+      ['K','i','Item','m',1,1,1],
+      ['?','u','Unknown'],
+    ]),'Sheet');
+    const doc=parseKrosWorkbook(book,undefined,{Sheet:{columns:{depth:7}}});
+    expect(doc.issues.filter(i=>i.kind==='hierarchy')).toHaveLength(3);
+    const repair={nodeId:'sheet:0:row:3',parentId:'sheet:0:row:2',kind:'section' as const};
+    const subtree=applyImportRepair(doc,{...repair,scope:'subtree'});
+    expect(subtree.issues.filter(i=>i.kind==='hierarchy')).toEqual([]);
+    expect(subtree.issues.some(i=>i.kind==='unclassified')).toBe(true);
+    expect(applyImportRepair(doc,{...repair,scope:'row'}).issues.filter(i=>i.kind==='hierarchy')).toHaveLength(2);
+  });
   it('honors an explicit depth column outside AU and returns to a higher level', () => {
     const doc = parseKrosWorkbook(repairFixture(), undefined, { Soupis: { columns: { depth: 7 } } });
     expect(doc.nodes.find(n => n.code === '61')?.parentId).toBe('sheet:0:row:3');

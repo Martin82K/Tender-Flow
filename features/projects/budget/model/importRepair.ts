@@ -36,6 +36,7 @@ export function previewImportRepair(document: BudgetDocument, repair: ImportRepa
   // Imported and repaired nodes are topologically ordered; one pass is sufficient.
   for (const candidate of document.nodes) if (candidate.parentId && ids.has(candidate.parentId)) ids.add(candidate.id);
   const descendants = document.nodes.filter(candidate => ids.has(candidate.id));
+  if (isPriced(node) && (!['K','M'].includes(repair.kind) || repair.scope === 'row') && descendants.some(child => child.id !== node.id && (child.kind === 'VV' || child.kind === 'note'))) throw new Error('Položka má výkaz výměr nebo poznámky. Ponechte typ položky a zvolte celý podstrom, nebo nejprve upravte zařazení těchto řádků.');
   if (repair.scope === 'subtree' && repair.kind !== 'section' && descendants.some(child => child.id !== node.id && child.kind !== 'VV' && child.kind !== 'note')) {
     throw new Error('Tento typ nemůže obsahovat oddíly ani položky. Zvolte rozsah pouze tento řádek.');
   }
@@ -46,7 +47,7 @@ export function previewImportRepair(document: BudgetDocument, repair: ImportRepa
 }
 
 export function applyImportRepair(document: BudgetDocument, repair: ImportRepair, allocations: readonly BudgetAllocation[] = []): BudgetDocument {
-  previewImportRepair(document, repair, allocations);
+  const preview = previewImportRepair(document, repair, allocations);
   const original = document.nodes.find(node => node.id === repair.nodeId)!;
   const columns = document.sheets.find(sheet => sheet.id === original.sheetId)?.columns;
   const number = (key: string): string | null => {
@@ -61,7 +62,8 @@ export function applyImportRepair(document: BudgetDocument, repair: ImportRepair
     const total = isPriced(edited) ? number('total') : null;
     edited.total = total === null ? null : money(total);
   }
-  const issues = document.issues.filter(issue => !(issue.sheet === original.source.sheet && issue.row === original.source.row &&
+  const hierarchyRows = new Set(preview.rows);
+  const issues = document.issues.filter(issue => !(issue.kind === 'hierarchy' && issue.sheet === original.source.sheet && hierarchyRows.has(issue.row)) && !(issue.sheet === original.source.sheet && issue.row === original.source.row &&
     (issue.kind === 'hierarchy' || issue.kind === 'unclassified' || (edited.kind !== original.kind && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message.startsWith('Uložená cena se liší'))))));
   if (edited.kind !== original.kind && isPriced(edited)) {
     const issue: Omit<ImportIssue,'message'> = { sheet: original.source.sheet, row: original.source.row, severity:'error' };
