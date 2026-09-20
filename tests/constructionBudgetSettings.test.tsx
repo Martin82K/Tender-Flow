@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), importTenders: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), importTenders: vi.fn(), editItem: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -286,7 +286,7 @@ it('clears revision-specific selection, undo and scope when another user changes
   const permissions = { read: true, prices: true, edit: true, confirm: false, allocate: false };
   vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [first, other], mainRevisionId: 'r', permissions });
   vi.mocked(budgetApi.revision).mockImplementation(async (_project, id) => id === 'other' ? other : first);
-  vi.mocked(budgetApi.save).mockResolvedValue({ ...first, version: 2 });
+  vi.mocked(budgetApi.editItem).mockResolvedValue({id:first.id,version:2,node:item as BudgetRevision['document']['nodes'][number],allocations:[],resolvedIssueIndexes:[]});
   localStorage.setItem('tf-budget-view:u:p', JSON.stringify({ scope: 's' }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   try {
@@ -501,4 +501,29 @@ it.each([false,true])('removes retired tags and keeps visible columns when all o
  expect(screen.queryByText('Štítky')).not.toBeInTheDocument();
  expect(screen.queryByLabelText('Štítek výběru')).not.toBeInTheDocument();
  expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).columns.some((column:{key:string})=>column.key==='tags')).toBe(false);
+});
+
+it('saves a cell through a small request, retries lost responses and updates totals without refetching the document',async()=>{
+ const width=vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1200),height=vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ const item={id:'item',parentId:null,sheetId:'s',kind:'K',order:0,code:'123',description:'Výkop',unit:'m3',quantity:'2600',unitPrice:null,total:'0',source:{sheet:'S',row:1,cells:{}},tags:[],tenders:[]};
+ const current={...revision,source_id:'source',document:{...revision.document,nodes:[item]}} as BudgetRevision;
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[current],permissions:{read:true,prices:true,edit:true,allocate:true,confirm:false}});
+ vi.mocked(budgetApi.revision).mockResolvedValue(current);
+ vi.mocked(budgetApi.editItem).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({id:'r',version:2,node:{...current.document.nodes[0],unitPrice:'100',total:'260000.00'},allocations:[],resolvedIssueIndexes:[]});
+ try{
+  await openBudget();
+  const row=(await screen.findByRole('button',{name:'Výkop',exact:true})).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(row.children[7]);
+  fireEvent.change(screen.getByRole('textbox',{name:'Upravit J. cena'}),{target:{value:'100'}});
+  fireEvent.keyDown(screen.getByRole('textbox',{name:'Upravit J. cena'}),{key:'Enter'});
+  expect(await screen.findByRole('alert')).toHaveTextContent('Hodnota zůstala rozepsaná');
+  const request=vi.mocked(budgetApi.editItem).mock.calls[0][1];
+  expect(request).toMatchObject({revisionId:'r',version:1,itemId:'item',patch:{unitPrice:'100',total:'260000.00'}});
+  expect(JSON.stringify(request).length).toBeLessThan(500);
+  fireEvent.keyDown(screen.getByRole('textbox',{name:'Upravit J. cena'}),{key:'Enter'});
+  await waitFor(()=>expect(screen.queryByRole('textbox',{name:'Upravit J. cena'})).not.toBeInTheDocument());
+  expect(vi.mocked(budgetApi.editItem).mock.calls[1][1]).toEqual(request);
+  expect(within(row).getByText('260 000,00')).toBeVisible();
+  expect(budgetApi.save).not.toHaveBeenCalled();expect(budgetApi.revision).toHaveBeenCalledTimes(1);
+ }finally{width.mockRestore();height.mockRestore();}
 });

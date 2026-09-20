@@ -309,3 +309,121 @@ test('assigns one item in a 11000-row document without changing its content',asy
   assert.ok(elapsed<8000,`assignment exceeded 8s: ${elapsed}`);
  }finally{await db.close();}
 });
+
+test('persists an edited unit price and calculated total in a large draft',async()=>{
+ const db=await assignmentFixture();try{
+  // Install the production compact-history save patch as well as its helper functions.
+  let definition=(await db.query("SELECT pg_get_functiondef('private.budget_save(text,uuid,uuid,integer,text,jsonb,jsonb,boolean)'::regprocedure) body")).rows[0].body;
+  definition=definition.replace('previous_document,previous_allocations)','previous_document,previous_allocations,changes)').replace('old.version,saved.version,old.document,old.allocations)','old.version,saved.version,NULL,NULL,private.budget_revision_reverse_patch(old.document,saved.document,old.allocations,saved.allocations))');
+  await db.exec(definition);
+  const large={...document,nodes:Array.from({length:11000},(_,i)=>({...document.nodes[0],id:i?'item'+i:'item',description:'Synthetic work '+i+'x'.repeat(700),order:i}))};
+  large.nodes[0]={...large.nodes[0],quantity:'2600',unitPrice:null,total:'0'};
+  await db.query('UPDATE construction_budget_revisions SET document=$1 WHERE id=$2',[large,revision]);
+  const edited={...large,nodes:large.nodes.map((n,i)=>i?n:{...n,unitPrice:'100',total:'260000.00'})};
+  const started=performance.now();
+  const result=(await db.query("SELECT private.budget_save('p',$1,$2,1,'Rozpočet',$3,'[]',false) result",[source,revision,edited])).rows[0].result;
+  console.log('11000-row price save ms:',Math.round(performance.now()-started));
+  assert.equal(result.version,2);assert.deepEqual(result.document,edited);
+  const stored=(await db.query('SELECT document FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].document;
+  assert.equal(stored.nodes[0].total,'260000.00');
+  const changes=(await db.query('SELECT changes FROM construction_budget_history')).rows[0].changes;
+  assert.equal(changes.nodes.items.length,1);assert.equal(changes.nodes.items[0].value.unitPrice,null);
+ }finally{await db.close();}
+});
+
+async function itemEditFixture(){
+ const db=await assignmentFixture();
+ let definition=(await db.query("SELECT pg_get_functiondef('private.budget_save(text,uuid,uuid,integer,text,jsonb,jsonb,boolean)'::regprocedure) body")).rows[0].body;
+ definition=definition.replace('previous_document,previous_allocations)','previous_document,previous_allocations,changes)').replace('old.version,saved.version,old.document,old.allocations)','old.version,saved.version,NULL,NULL,private.budget_revision_reverse_patch(old.document,saved.document,old.allocations,saved.allocations))');
+ await db.exec(definition);
+ if(!process.env.BUDGET_ITEM_RED)await db.exec(read('20260920223500_budget_item_patch.sql'));
+ return db;
+}
+const editRequest=()=>({operationId:randomUUID(),revisionId:revision,sourceId:source,version:1,itemId:'item',patch:{unitPrice:'100'},resolvedIssueIndexes:[]});
+const editItem=(db,request,project='p')=>db.query('SELECT public.construction_budget_edit_item($1,$2) result',[project,request]).then(r=>r.rows[0].result);
+test('saves a small item patch, calculates money server-side and safely replays a lost response',async()=>{
+ const db=await itemEditFixture();try{
+  const r=editRequest();const result=await editItem(db,r);
+  assert.equal(result.node.total,'1000.00');assert.equal(result.version,2);
+  assert.ok(JSON.stringify(result).length<2000);assert.equal(result.document,undefined);
+  assert.deepEqual(await editItem(db,r),result);
+  await assert.rejects(editItem(db,{...r,patch:{unitPrice:'101'}}),/conflict/i);
+  assert.equal((await db.query('SELECT count(*)::int n FROM construction_budget_history')).rows[0].n,1);
+  const next={...editRequest(),version:2,patch:{quantity:'12.25'}};
+  assert.equal((await editItem(db,next)).node.total,'1225.00');
+  await assert.rejects(editItem(db,r),/conflict/i);
+ }finally{await db.close();}
+});
+test('item patches retain permissions, tenant isolation, source/version/lock guards and field boundaries',async()=>{
+ const db=await itemEditFixture();try{
+  for(const permission of ['read','edit','prices']){
+   await db.exec(`SET test.${permission}='no'`);await assert.rejects(editItem(db,editRequest()),/denied/i);await db.exec(`SET test.${permission}='yes'`);
+  }
+  await assert.rejects(editItem(db,editRequest(),'foreign'),/denied/i);
+  for(const patch of [{version:0},{sourceId:randomUUID()},{itemId:'missing'},{patch:{parentId:'foreign'}},{patch:{unitPrice:'1e5'}},{patch:{kind:'section'}},{patch:{unitPrice:'100',total:'1'}}])await assert.rejects(editItem(db,{...editRequest(),...patch}));
+  await lock(db,true);await assert.rejects(editItem(db,editRequest()),/uzamčen/);
+  assert.equal((await db.query('SELECT version FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].version,1);
+ }finally{await db.close();}
+});
+test('item quantity patches synchronize whole assignments and reject split quantities and assigned units',async()=>{
+ const db=await itemEditFixture();try{
+  await db.query('UPDATE construction_budget_revisions SET allocations=$1 WHERE id=$2',[[{itemId:'item',categoryId:'existing',quantity:'10'}],revision]);
+  await assert.rejects(editItem(db,{...editRequest(),patch:{unit:'m3'}}),/unit/i);
+  await db.exec("SET test.allocate='no'");
+  await assert.rejects(editItem(db,{...editRequest(),patch:{quantity:'20'}}),/Allocation denied/);
+  // Pricing an allocated item does not require allocation rights.
+  assert.equal((await editItem(db,editRequest())).node.total,'1000.00');
+  await db.exec("SET test.allocate='yes'");
+  const result=await editItem(db,{...editRequest(),version:2,patch:{quantity:'20'}});
+  assert.equal(result.allocations[0].quantity,'20');assert.equal(result.node.total,'2000.00');
+  await db.query('UPDATE construction_budget_revisions SET allocations=$1 WHERE id=$2',[[{itemId:'item',categoryId:'existing',quantity:'5'}],revision]);
+  await assert.rejects(editItem(db,{...editRequest(),version:3,patch:{quantity:'30'}}),/whole/i);
+ }finally{await db.close();}
+});
+test('large item edits transfer a bounded payload and preserve history and unrelated rows',async()=>{
+ const db=await itemEditFixture();try{
+  const large={...document,nodes:Array.from({length:11000},(_,i)=>({...document.nodes[0],id:i?'item'+i:'item',description:'Synthetic work '+i+'x'.repeat(700),order:i}))};
+  await db.query('UPDATE construction_budget_revisions SET document=$1 WHERE id=$2',[large,revision]);
+  const r=editRequest(),started=performance.now(),result=await editItem(db,r);
+  console.log('11000-row patch ms / request bytes / response bytes:',Math.round(performance.now()-started),JSON.stringify(r).length,JSON.stringify(result).length);
+  assert.ok(JSON.stringify(r).length<500);assert.ok(JSON.stringify(result).length<2000);
+  const stored=(await db.query('SELECT document FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].document;
+  assert.equal(stored.nodes[0].total,'1000.00');assert.deepEqual(stored.nodes.slice(1),large.nodes.slice(1));
+  const history=(await db.query('SELECT changes FROM construction_budget_history')).rows[0].changes;
+  assert.equal(history.nodes.items.length,1);assert.equal(history.nodes.items[0].value.unitPrice,'20');
+ }finally{await db.close();}
+});
+test('item edits remove only requested numeric issues on the edited source row and preserve backup history',async()=>{
+ const db=await itemEditFixture();try{
+  const issues=[{sheet:'SO',row:1,severity:'error',message:'Neplatná nebo chybějící hodnota G.'},{sheet:'SO',row:2,severity:'error',message:'Neplatná nebo chybějící hodnota G.'},{sheet:'SO',row:1,severity:'error',message:'Neplatné mapování.'}];
+  await db.query('UPDATE construction_budget_revisions SET document=$1 WHERE id=$2',[{...document,issues},revision]);
+  await assert.rejects(editItem(db,{...editRequest(),resolvedIssueIndexes:[1]}),/Invalid resolved issue/);
+  await assert.rejects(editItem(db,{...editRequest(),resolvedIssueIndexes:[2]}),/Invalid resolved issue/);
+  await assert.rejects(editItem(db,{...editRequest(),resolvedIssueIndexes:[-1]}),/Invalid resolved issue/);
+  const r={...editRequest(),resolvedIssueIndexes:[0]};const result=await editItem(db,r);
+  assert.deepEqual(result.resolvedIssueIndexes,[0]);
+  assert.deepEqual((await db.query('SELECT document FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].document.issues,issues.slice(1));
+  const changes=(await db.query('SELECT changes FROM construction_budget_history')).rows[0].changes;
+  assert.deepEqual(changes.fields.find(f=>f.key==='issues').value,issues);
+  assert.deepEqual(changes.clientEdit,r);
+ }finally{await db.close();}
+});
+test('item edit entry points deny anonymous access and use an empty search path',async()=>{
+ const db=await itemEditFixture();try{
+  const acl=(await db.query("SELECT has_function_privilege('anon','public.construction_budget_edit_item(text,jsonb)','EXECUTE') anon,has_function_privilege('authenticated','public.construction_budget_edit_item(text,jsonb)','EXECUTE') authenticated")).rows[0];
+  assert.equal(acl.anon,false);assert.equal(acl.authenticated,true);
+  const definition=(await db.query("SELECT pg_get_functiondef('private.budget_edit_item(text,jsonb)'::regprocedure) body")).rows[0].body;
+  assert.match(definition,/SET search_path TO ''/);
+  await db.exec("SET test.actor=''");await assert.rejects(editItem(db,editRequest()),/denied/i);
+ }finally{await db.close();}
+});
+
+test('unchanged item edits retain retry metadata even when the reverse patch is empty',async()=>{
+ const db=await itemEditFixture();try{
+  const r={...editRequest(),patch:{description:'Práce'}};
+  const result=await editItem(db,r);assert.equal(result.version,2);
+  assert.deepEqual(await editItem(db,r),result);
+  const changes=(await db.query('SELECT changes FROM construction_budget_history')).rows[0].changes;
+  assert.equal(changes.format,1);assert.equal(changes.nodes,null);assert.deepEqual(changes.clientEdit,r);
+ }finally{await db.close();}
+});

@@ -5,6 +5,7 @@ import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/Budge
 import { BudgetSelectionTenders } from '@features/projects/budget/ui/BudgetRowTenders';
 import { applyBudgetItemEdit } from '@features/projects/budget/model/revisions';
 import type { BudgetDocument, BudgetNode } from '@features/projects/budget/model/types';
+import * as budgetMath from '@features/projects/budget/model/budgetModel';
 import type { BudgetFilters } from '@features/projects/budget/model/budgetModel';
 
 // jsdom has no layout. Supply geometry while exercising the real virtualizer.
@@ -460,4 +461,78 @@ it('ignores retired tag columns restored by older settings',()=>{
  render(<BudgetTable {...table().props} nodes={[{...item,tags:['Historical']}]} columns={[...DEFAULT_COLUMNS,{key:'tags',label:'Štítky',width:150}]} editable/>);
  expect(screen.queryByRole('button',{name:'Štítky ▾'})).not.toBeInTheDocument();
  expect(screen.queryByText('Historical')).not.toBeInTheDocument();
+});
+
+it('persists a confirmed unit price and recalculates the item, chapter and budget totals', async () => {
+ const priced={...item,parentId:'section',quantity:'2600',unitPrice:null,total:'0'};
+ const chapter={...item,id:'section',kind:'section' as const,description:'Zemní práce',quantity:null,unitPrice:null,total:null};
+ const onEdit=vi.fn();
+ function Editor(){
+  const [document,setDocument]=React.useState<BudgetDocument>({schemaVersion:1,nodes:[chapter,priced],sheets:[],issues:[],figures:{}});
+  return <BudgetTable {...table().props} nodes={document.nodes} editable selected={new Set(['item'])} onEdit={async(node,fields)=>{onEdit(node,fields);setDocument(applyBudgetItemEdit(document,node,fields));}}/>;
+ }
+ render(<Editor/>);
+ const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
+ fireEvent.doubleClick(row.children[7]);
+ const input=screen.getByRole('textbox',{name:'Upravit J. cena'});
+ fireEvent.change(input,{target:{value:'100'}});
+ await act(async()=>{fireEvent.keyDown(input,{key:'Enter'});});
+ expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({quantity:'2600',unitPrice:'100',total:'260000.00'}),['unitPrice','total']);
+ expect(screen.queryByRole('textbox',{name:'Upravit J. cena'})).not.toBeInTheDocument();
+ expect(within(row).getByText('260 000,00')).toBeVisible();
+ expect(screen.getAllByText('260 000,00')).toHaveLength(5);
+});
+
+it('commits a changed price on leaving the editor and shows pending status',async()=>{
+ let resolve!:()=>void;
+ const onEdit=vi.fn(()=>new Promise<void>(done=>{resolve=done;}));
+ render(<BudgetTable {...table().props} editable onEdit={onEdit}/>);
+ const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
+ fireEvent.doubleClick(within(row).getByText('10,00'));
+ const input=screen.getByRole('textbox',{name:'Upravit J. cena'});
+ fireEvent.change(input,{target:{value:'100'}});
+ fireEvent.blur(input,{relatedTarget:screen.getByRole('button',{name:'Kód ▾'})});
+ expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({unitPrice:'100',total:'1200.00'}),['unitPrice','total']);
+ expect(screen.getByText('Ukládání…')).toHaveAttribute('role','status');
+ await act(async()=>resolve());
+ expect(screen.queryByRole('textbox',{name:'Upravit J. cena'})).not.toBeInTheDocument();
+});
+it('does not save unchanged cells or save when moving focus to cancel',()=>{
+ const onEdit=vi.fn();
+ render(<BudgetTable {...table().props} editable onEdit={onEdit}/>);
+ const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
+ fireEvent.doubleClick(within(row).getByText('10,00'));
+ const input=screen.getByRole('textbox',{name:'Upravit J. cena'});
+ fireEvent.blur(input,{relatedTarget:screen.getByRole('button',{name:'Kód ▾'})});
+ expect(onEdit).not.toHaveBeenCalled();
+ fireEvent.doubleClick(within(row).getByText('10,00'));
+ const changed=screen.getByRole('textbox',{name:'Upravit J. cena'});
+ fireEvent.change(changed,{target:{value:'100'}});
+ const cancel=screen.getByRole('button',{name:'Zrušit úpravu'});
+ fireEvent.blur(changed,{relatedTarget:cancel});fireEvent.click(cancel);
+ expect(onEdit).not.toHaveBeenCalled();
+ expect(screen.queryByRole('textbox',{name:'Upravit J. cena'})).not.toBeInTheDocument();
+});
+
+it('retains the price draft and error when saving on blur fails',async()=>{
+ const onEdit=vi.fn().mockRejectedValue(new Error('Server není dostupný'));
+ render(<BudgetTable {...table().props} editable onEdit={onEdit}/>);
+ const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
+ fireEvent.doubleClick(within(row).getByText('10,00'));
+ const input=screen.getByRole('textbox',{name:'Upravit J. cena'});
+ fireEvent.change(input,{target:{value:'100'}});
+ await act(async()=>fireEvent.blur(input,{relatedTarget:screen.getByRole('button',{name:'Kód ▾'})}));
+ expect(input).toHaveValue('100');expect(input).toBeEnabled();
+ expect(screen.getByRole('alert')).toHaveTextContent('Server není dostupný');
+ expect(within(row).getByText('120,00')).toBeVisible();
+ expect(onEdit).toHaveBeenCalledTimes(1);
+});
+
+it('does not recalculate the entire budget while typing an uncommitted cell value',()=>{
+ const sum=vi.spyOn(budgetMath,'sumMoney');
+ render(<BudgetTable {...table().props} editable/>);
+ fireEvent.doubleClick(screen.getByRole('button',{name:item.description}));
+ const calls=sum.mock.calls.length;
+ fireEvent.change(screen.getByRole('textbox',{name:'Upravit Popis'}),{target:{value:'Jiný popis'}});
+ expect(sum).toHaveBeenCalledTimes(calls);
 });

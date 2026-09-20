@@ -128,7 +128,9 @@ součástí dosud nenasazené migrace `20260920195705`.
 
 Dvojklik nebo F2 otevře editor v konkrétní buňce položky (typ K/M, kód,
 popis, jednotka, množství, jednotková cena a celkem).
-V textových a číselných buňkách Enter změnu uloží, Escape ji zruší.
+V textových a číselných buňkách Enter nebo opuštění editoru změnu uloží, Escape ji zruší.
+Přesun fokusu na tlačítka ✓/× uvnitř editoru zápis nespouští. Nezměněná buňka
+se při opuštění pouze zavře. Během zápisu se zobrazuje Ukládání…; chyba ponechá hodnotu v editoru.
 U typu šipky a Enter vybírají možnosti; Tab přejde na tlačítko
 Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
 nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
@@ -234,3 +236,67 @@ skutečná tabulka na izolované fixture bez sloupce štítků. Finální CI a r
 zůstávají před merge, který je nadále pozastaven.
 Po doplnění obnovy viditelných sloupců pro nastavení obsahující jen štítky:
 `npm run test:run -- tests/constructionBudgetSettings.test.tsx` 32 PASS.
+
+
+### Ověření ukládání ceny a přepočtu (2026-09-21)
+Základna `8469a654`, pracovní diff nad `e378870c`. Změna pouze potvrzování
+textové/číselné buňky při opuštění editoru; API, oprávnění, tenant hranice,
+verzování a historie zůstávají stávající. Rozpracované číslo není uložená hodnota.
+
+- RED: `npm run test:run -- tests/constructionBudgetTable.test.tsx`: 39 prošlo,
+  2 selhaly (opuštění neukládalo změnu ani nezavíralo nezměněnou buňku).
+- GREEN: stejný příkaz, 42 testů; potvrzení ceny, součty položky/oddílu/rozpočtu,
+  zrušení, nezměněná hodnota, blokování duplicit a zachování hodnoty při chybě.
+- PostgreSQL/WASM: `PGLITE_MODULE=... node --test --test-name-pattern='persists an edited' tests/postgres/budgetEditor.test.mjs`:
+  1 test prošel, bez skipped/todo. Skutečná funkce save s kompaktní historií:
+  11 000 syntetických řádků, cena 100 × 2 600 = 260 000, zápis a následné čtení,
+  historie původní ceny, verze +1. Lokální zápis 602 ms; není měřením živého serveru.
+- Živá DB, pouze čtení: aktuální validační regex přijímá `100`, `260000.00`, `7510.49`.
+- Prohlížeč, izolovaná fixture skutečné tabulky: cena 100, klik na druhou položku,
+  Ukládání…, jedno uložení, cena 100 a součty 260 000. Bez zápisu do zákaznických dat.
+- `npm run typecheck`: prošlo. Finální kompletní CI a bezpečnostní revize PR
+  jsou samostatná brána; merge zůstává pozastavený.
+
+### Malý požadavek pro editaci buňky (2026-09-21)
+Snímek s `Failed to fetch` potvrdil selhání transportu po potvrzení ceny;
+samotné potvrzování editace proto nebylo úplným řešením. Přesnou příčinu
+konkrétního síťového výpadku bez jeho síťového záznamu nelze určit. Dosavadní
+RPC posílalo celý dokument tam i zpět (největší živý dokument 11 077 160 bajtů).
+
+`construction_budget_edit_item` přijímá pouze povolená pole jedné položky,
+identifikátory zdroje/revize/operace, očekávanou verzi a indexy vyřešených
+číselných chyb. Server počítá množství × cenu, synchronizuje celé přiřazené
+množství a volá původní validovaný save uvnitř databáze. Odpověď obsahuje jen
+položku, její alokace a novou verzi. React Query sloučí potvrzenou odpověď bez
+opětovného načtení dokumentu. Při psaní v editoru se součty neměnných dat
+nepočítají znovu.
+
+Opakování stejného požadavku pozná kompaktní historie (`clientEdit`) pouze pro
+stejného uživatele, stejné tělo a bez novější změny revize. Jinak vrací konflikt.
+Metadata jsou součástí stávající historie a jejích záloh/mazání/anonymizace;
+nevzniká nová tabulka ani vazba na účet. Zachována kontrola práv read/edit/prices,
+alokací, projektu, zdroje, verze, koše a zámku, prázdný search_path a zákaz anon.
+Původní full-save zůstává pro import, potvrzení a jiné operace nad celou revizí.
+Nasazení musí předcházet používání nového klientského volání.
+
+Ověřený pracovní diff nad `e378870c`, integrační základna `8469a654`:
+- RED: chybějící RPC v izolované DB; navíc regrese součtů zachytila 7 volání
+  místo 6 po jednom stisku klávesy (1 selhání, 42 nesouvisejících testů skipped).
+- `npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx`:
+  76 PASS, bez skipped/todo; po refaktoru aktualizován mock existujícího testu undo.
+- Celá izolovaná PostgreSQL sada: 27 PASS. Následná kontrola prázdné historie
+  doplnila COALESCE pro opakování nezměněné hodnoty; 7 dotčených DB testů PASS.
+- Syntetický dokument 11 000 řádků: malý zápis 560 ms, JSON požadavek 238 bajtů,
+  JSON odpověď 1 048 bajtů. Orientační lokální WASM měření, nikoli produkční SLA.
+- Prohlížeč se skutečnou tabulkou a 11 000 syntetickými řádky: klik mimo editor,
+  Ukládání, 100 × 2 600 = 260 000, součty, bez console errors. Persistenci této
+  vizuální fixture simuluje lokální stav; serverový zápis je ověřen odděleně SQL testy.
+- `npm run typecheck`, `npm run build`, `npm run check:boundaries`,
+  `npm run check:legacy-structure`, `npm run check:docs`, `git diff --check`: PASS.
+  Build nadále upozorňuje na velké chunky; závislosti se nemění.
+- Cloud preflight: kompaktní historie přítomna, nové RPC dosud nepřítomno;
+  `supabase db push --linked --dry-run` obsahuje pouze novou migraci.
+  Security/performance advisors obsahují existující globální varování; nejsou čistým auditem.
+- Migrace `20260920223500_budget_item_patch.sql` je připravena k samostatně
+  schválenému nasazení. Finální CI a nezávislá PR revize ještě nejsou dokladem
+  pro tento diff; merge zůstává pozastavený.

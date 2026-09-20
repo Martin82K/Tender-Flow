@@ -1,11 +1,19 @@
 import { dbAdapter as supabase } from '@infra/db/dbAdapter';
-import type { BudgetAllocation, BudgetCatalogEntry, BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
+import type { BudgetAllocation, BudgetCatalogEntry, BudgetDocument, BudgetNode, BudgetRevision, BudgetSource } from '../model/types';
 import type { ProjectTender, TenderAssignment } from '../model/tenderImport';
 export interface TenderImportRequest {
   operationId: string; mode: 'assignments' | 'revision' | 'template';
   expectedCatalog: ProjectTender[]; newCategories: ProjectTender[]; assignments: TenderAssignment[];
   sourceId?: string; revisionId?: string; version?: number; title?: string;
   document?: BudgetDocument; allocations?: BudgetAllocation[];
+}
+export interface BudgetItemEditRequest {
+  operationId: string; revisionId: string; sourceId: string; version: number; itemId: string;
+  patch: Partial<Pick<BudgetNode,'kind'|'code'|'description'|'unit'|'quantity'|'unitPrice'|'total'>>;
+  resolvedIssueIndexes: number[];
+}
+export interface BudgetItemEditResult {
+  id: string; version: number; node: BudgetNode; allocations: BudgetAllocation[]; resolvedIssueIndexes: number[];
 }
 export interface BudgetPermissions { read: boolean; prices: boolean; edit: boolean; confirm: boolean; allocate: boolean; editTenders?: boolean; purge?: boolean }
 export type BudgetRevisionSummary = Pick<BudgetRevision, 'id' | 'title' | 'status' | 'version' | 'source_id' | 'created_at' | 'deleted_at' | 'purge_job_id'> & { allocation_count?: number; category_ids?: string[] };
@@ -97,6 +105,9 @@ export const budgetApi = {
     // redaction; keep previews ephemeral and reload them from protected storage.
     const document = {...args.document,sheets:args.document.sheets.map(sheet=>{const stored={...sheet};delete stored.sourcePreview;return stored;})};
     return unwrap(await supabase.rpc('construction_budget_save', { project_input: args.projectId, source_input: args.sourceId, revision_input: args.revision?.id ?? null, version_input: args.revision?.version ?? 0, title_input: args.title, document_input: document, allocations_input: args.allocations, confirm_input: args.confirm ?? false }));
+  },
+  async editItem(projectId: string, request: BudgetItemEditRequest): Promise<BudgetItemEditResult> {
+    return unwrap(await supabase.rpc('construction_budget_edit_item', { project_input: projectId, request_input: request }));
   },
   async applyPlan(projectId:string,revisionId:string,categoryId:string,expectedPlan:number):Promise<string> {
     return String(unwrap(await supabase.rpc('construction_budget_apply_plan',{project_input:projectId,revision_input:revisionId,category_input:categoryId,expected_plan:expectedPlan})));

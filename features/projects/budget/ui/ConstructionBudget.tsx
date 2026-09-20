@@ -7,7 +7,7 @@ import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
 import { createBudgetTender } from '../api/createBudgetTender';
 import { budgetApi } from '../api/budgetApi';
-import type { TenderImportRequest } from '../api/budgetApi';
+import type { TenderImportRequest, BudgetItemEditRequest } from '../api/budgetApi';
 import { BudgetExportDialog } from './BudgetExportDialog';
 import { BudgetSelectionTenders } from './BudgetRowTenders';
 import { BudgetTable, DEFAULT_COLUMNS } from './BudgetTable';
@@ -21,7 +21,7 @@ import { BudgetImportDialog } from './BudgetImportDialog';
 import { decimal, formatBudgetNumber, multiplyMoney, normalizeSearch, sumMoney } from '../model/budgetModel';
 import type { BudgetFilters } from '../model/budgetModel';
 import { isPriced } from '../model/types';
-import type { BudgetAllocation, BudgetDocument, BudgetNode, BudgetRevision, BudgetSource } from '../model/types';
+import type { BudgetNode, BudgetAllocation, BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
 import { applyBudgetItemEdit, assignWholeItems, syncWholeItemQuantity, validateRevisionAllocations } from '../model/revisions';
 import './budget.css';
 interface Props { canUseTenders?:boolean; projectId:string; organizationId?:string; userId?:string; categories:DemandCategory[]; readOnly?:boolean; searchQuery?:string; onSearchChange?:(value:string)=>void }
@@ -45,6 +45,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
   const [planOpen,setPlanOpen]=useState(false);
   const [categoryId,setCategoryId]=useState('');
   const [pendingAssignment,setPendingAssignment]=useState<{revisionId:string;allocations:BudgetAllocation[];itemIds:Set<string>}|null>(null);
+  const itemEditAttempt=useRef<{key:string;request:BudgetItemEditRequest}|null>(null);
   const assignmentAttempt=useRef<{key:string;request:TenderImportRequest}|null>(null);
   const actionLock=useRef(false);const saveLock=useRef(false);
   const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
@@ -91,6 +92,35 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
   const save=async(document:BudgetDocument,allocations=current?.allocations??[],confirm=false)=>{
     if(locked)throw new Error('Rozpočet je uzamčen.');if(!current)throw new Error('Vyberte verzi rozpočtu.');if(saveLock.current)throw new Error('Počkejte na dokončení ukládání.');validateRevisionAllocations(document,allocations);if(confirm&&(document.issues.some(i=>i.severity==='error')||document.nodes.some(n=>isPriced(n)&&(n.quantity===null||n.unitPrice===null||n.total===null))))throw new Error('Rozpočet nelze potvrdit. Doplňte chybějící množství a ceny v detailu položek; chyby mapování a struktury opravte v editoru importu.');saveLock.current=true;setSaving(true);setError('');
     try{const saved=await budgetApi.save({projectId,sourceId:current.source_id,revision:current,title:current.title,document,allocations,confirm});setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});cache.setQueryData([...key,'revision',saved.id],saved);await cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Uloženo na serveru.');return saved;}finally{saveLock.current=false;setSaving(false);}
+  };
+  const saveItem=async(edited:BudgetNode,editedFields?:readonly string[])=>{
+    if(!current||!editable)throw new Error('Úprava položky nyní není povolena.');
+    if(saveLock.current)throw new Error('Počkejte na dokončení ukládání.');
+    if(current.allocations.some(a=>a.itemId===edited.id)&&current.document.nodes.find(n=>n.id===edited.id)?.unit!==edited.unit)throw new Error('Měrnou jednotku přiřazené položky nelze změnit. Nejdříve zrušte její přiřazení do VŘ.');
+    const document=applyBudgetItemEdit(current.document,edited,editedFields);
+    syncWholeItemQuantity(current.document,document,current.allocations,!!permissions?.allocate);
+    const original=current.document.nodes.find(n=>n.id===edited.id)!;
+    const fields=(['kind','code','description','unit','quantity','unitPrice','total'] as const).filter(field=>editedFields?.includes(field)??edited[field]!==original[field]);
+    if(!fields.length)return;
+    const patch=Object.fromEntries(fields.map(field=>[field,edited[field]])) as BudgetItemEditRequest['patch'];
+    const retainedIssues=new Set(document.issues);
+    const resolvedIssueIndexes=current.document.issues.flatMap((issue,index)=>retainedIssues.has(issue)?[]:[index]);
+    const attemptKey=JSON.stringify([projectId,current.id,current.version,edited.id,patch,resolvedIssueIndexes]);
+    if(itemEditAttempt.current?.key!==attemptKey)itemEditAttempt.current={key:attemptKey,request:{operationId:crypto.randomUUID(),revisionId:current.id,sourceId:current.source_id,version:current.version,itemId:edited.id,patch,resolvedIssueIndexes}};
+    saveLock.current=true;setSaving(true);setError('');
+    try{
+      const result=await budgetApi.editItem(projectId,itemEditAttempt.current.request);
+      if(result.id!==current.id||result.version!==current.version+1||result.node.id!==edited.id)throw new Error('Server vrátil nečekanou verzi. Obnovte rozpočet.');
+      const removed=new Set(result.resolvedIssueIndexes);
+      const saved={...current,version:result.version,document:{...current.document,nodes:current.document.nodes.map(n=>n.id===result.node.id?result.node:n),issues:current.document.issues.filter((_,index)=>!removed.has(index))},allocations:[...current.allocations.filter(a=>a.itemId!==edited.id),...result.allocations]};
+      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
+      cache.setQueryData([...key,'revision',saved.id],saved);itemEditAttempt.current=null;
+      void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Uloženo na serveru.');
+    }catch(error){
+      const message=error instanceof Error?error.message:String(error);
+      if(/Failed to fetch|NetworkError|Load failed/i.test(message))throw new Error('Spojení se serverem selhalo. Hodnota zůstala rozepsaná; potvrďte ji znovu. Opakování nevytvoří duplicitní zápis.');
+      throw error;
+    }finally{saveLock.current=false;setSaving(false);}
   };
   const createTender=async(name:string)=>{
     if(!permissions?.editTenders||!permissions.allocate||readOnly||locked)throw new Error('Vytvoření VŘ není povoleno.');
@@ -196,7 +226,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       {<div className="tf-budget-toolbar tf-budget-selection" data-empty={!selected.size} aria-hidden={!selected.size}><strong>Vybráno {selected.size} položek</strong><button onClick={()=>setExportSelection([...selected])}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}><ListX size={16} aria-hidden="true"/>Zrušit výběr</button>{selected.size>0&&<BudgetSelectionTenders inline itemIds={[...selected]} categories={categories} disabled={!editable||!permissions?.allocate} disabledReason={allocationDisabledReason} onCreateTender={permissions?.editTenders?createTender:undefined} onAssign={previewTenderAssignment} onRemove={current.allocations.some(a=>selected.has(a.itemId))?async()=>{await save(current.document,current.allocations.filter(a=>!selected.has(a.itemId)));}:undefined}/>}</div>}
 
 
-      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap prominentTotal={tab==='recap'} key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} pendingTenderItems={pendingAssignment?.revisionId===current.id?pendingAssignment.itemIds:undefined} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} showNotes={view.showNotes} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={async (edited,editedFields)=>{if(current.allocations.some(a=>a.itemId===edited.id)&&current.document.nodes.find(n=>n.id===edited.id)?.unit!==edited.unit)throw new Error('Měrnou jednotku přiřazené položky nelze změnit. Nejdříve zrušte její přiřazení do VŘ.');const document=applyBudgetItemEdit(current.document,edited,editedFields);await save(document,syncWholeItemQuantity(current.document,document,current.allocations,!!permissions?.allocate));}}/>}</div>
+      <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap prominentTotal={tab==='recap'} key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} pendingTenderItems={pendingAssignment?.revisionId===current.id?pendingAssignment.itemIds:undefined} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} showNotes={view.showNotes} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={saveItem}/>}</div>
 
     </>}
     {scopeOpen&&<Modal isOpen title="Rozsah rozpočtu" onClose={()=>setScopeOpen(false)}><div className="tf-budget-controls"><label className="tf-budget-field">Hledat soupis<input autoFocus aria-label="Hledat soupis" value={scopeSearch} onChange={e=>setScopeSearch(e.target.value)} placeholder="Kód nebo název soupisu…"/></label><button onClick={()=>{updateView({scope:''});setScopeOpen(false);}}>Celý rozpočet</button><p>Připnuté a nedávné soupisy jsou první. Výběr položek zůstává zachován.</p>{!sheets.some(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch)))&&<p role="status">Žádný soupis neodpovídá hledání.</p>}{sheets.filter(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch))).sort((a,b)=>(view.pinned.includes(b.id)?100:0)+(view.recent.includes(b.id)?10:0)-(view.pinned.includes(a.id)?100:0)-(view.recent.includes(a.id)?10:0)).map(s=><div className="flex gap-2 py-1" key={s.id}><button aria-label={`Připnout ${s.title}`} onClick={()=>updateView({pinned:view.pinned.includes(s.id)?view.pinned.filter(id=>id!==s.id):[...view.pinned,s.id]})}>{view.pinned.includes(s.id)?'★':'☆'}</button><button onClick={()=>{updateView({scope:s.id,recent:[s.id,...view.recent.filter(id=>id!==s.id)].slice(0,8)});setScopeOpen(false);}}>{s.title}</button></div>)}</div></Modal>}
