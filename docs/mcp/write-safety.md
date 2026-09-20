@@ -7,16 +7,25 @@ Zdroj pravdy: `createProposal`, `confirmProposal` a `executeProposal` v
 Tender Flow odděluje návrh, vědomé potvrzení a provedení. AI klient nesmí tyto
 kroky sloučit ani potvrzovací text domýšlet za uživatele.
 
-Třífázový protokol je povinný pro změny business dat. Jedinou úzkou výjimkou je
+Třífázový protokol je povinný pro změny zdrojových business dat. Úzkou výjimkou je
 `tf_link_outlook_message`: idempotentně uloží pouze stabilní Outlook
 identifikátory k již existující kartě. Nemůže měnit cenu, stav, dodavatele ani
 obsah nabídky. I tato operace vyžaduje write grant, projektové edit právo a
 úspěšný redigovaný audit pokusu; při chybě auditu selže bez zápisu.
 
+Druhou oddělenou operací je `tf_save_offer_comparison`: ukládá odvozený
+porovnávací pohled nad kopiemi položek, nikoli změnu cen nebo stavu nabídek,
+rozpočtu či původních souborů. Uživatel může vytvořením pohledu pověřit MCP
+klienta přímo. Nástroj vyžaduje write grant a grant zápisu nabídky, čtení
+kontaktů, editaci projektu a úspěšný audit pokusu bez obsahu dokumentů.
+Nový pohled má stabilní request ID; úprava vyžaduje očekávanou verzi.
+Automatické vazby ověřuje společný deterministický engine; nejasnosti zůstávají
+k ověření. Žádné placené OCR ani AI se tímto zápisem nespouští.
+
 Write nástroje se objeví pouze klientovi s aktivním, explicitně odvolatelným
 `tenderflow.write` grantem pro přihlášeného uživatele a přesný OAuth klient.
-Grant zpřístupní třífázový protokol a jedinou výše popsanou přímou metadata
-operaci. Nenahrazuje RLS, projektovou autorizaci, audit ani idempotenci;
+Grant zpřístupní třífázový protokol a popsané přímé operace s metadaty
+a odvozeným porovnáním. Nenahrazuje RLS, projektovou autorizaci, audit ani idempotenci;
 potvrzení je povinné pro business změny. Uživatel jej zapíná s druhým explicitním potvrzením
 v Nastavení → Nástroje → MCP přístupy a může jej okamžitě odebrat.
 
