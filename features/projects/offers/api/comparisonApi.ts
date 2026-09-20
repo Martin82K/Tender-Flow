@@ -1,5 +1,5 @@
 import { dbAdapter } from '@infra/db/dbAdapter';
-import { validateAssignments, normalizeOfferItems } from '@shared/offers/comparison.js';
+import { validateAssignments, normalizeOfferItems, validateComparisonWork } from '@shared/offers/comparison.js';
 import type { ComparisonDocument, SavedComparison } from '../model/types';
 const unwrap = <T>(r: {
     data: unknown;
@@ -9,6 +9,7 @@ const unwrap = <T>(r: {
 }): T => { if (r.error)
     throw new Error(r.error.message.includes('Comparison storage quota') ? 'Dosáhli jste limitu uložených porovnání. Smažte nepotřebné pohledy v projektu nebo firmě a opakujte uložení.' : r.error.message); return r.data as T; };
 export function validateComparison(document: ComparisonDocument) {
+    validateComparisonWork(document.sources, document.assignments);
     if (document.schemaVersion !== 1 || document.sources.length < 2 || document.sources.length > 21)
         throw new Error('Vyberte poptávku a nejméně jednu nabídku.');
     const ids = new Set<string>();

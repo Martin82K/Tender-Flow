@@ -34,3 +34,5 @@ Výsledky OCR a návrhů jsou v neveřejné tabulce pro idempotenci a ověření
 ## Ověření
 
 Cílené testy: `npm run test:run -- tests/offers`. Databázová regrese: `PGLITE_MODULE=/absolute/path/to/@electric-sql/pglite/dist/index.js node --test tests/postgres/offerComparison.test.mjs` (samostatný existující auditovaný runtime, žádná produkční data). Testuje granty, cizí projekt/VŘ, souběh verzí, retry, rezervace limitu, správce, feedback, zálohu/obnovu a mazání. Běžná CI navíc kontroluje celý frontend/MCP test suite, hranice modulů, typecheck a build.
+
+Souhrnné pracovní limity (50 000 položek, 50 000 přiřazení, 200 000 kandidátů) kontroluje shodně databáze, web a MCP. Web ověří nově přidávaný zdroj před párováním a výsledné kandidáty před změnou pohledu; odmítnutí zachová dosavadní dokument. Při smazání projektu zůstává účetní historie zpracování, ale `result` s OCR/AI obsahem se vymaže. Trigger blokuje i opětovné uložení výsledku z opožděného dokončení požadavku bez projektu.

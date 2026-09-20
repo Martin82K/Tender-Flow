@@ -14,6 +14,17 @@ CREATE TABLE public.offer_processing_runs (
  result jsonb, created_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz,
  UNIQUE(organization_id,request_id)
 );
+-- Keep accounting after project deletion, but never retain extracted document content.
+-- Also covers provider completions arriving after the FK has been set to NULL.
+CREATE FUNCTION private.offer_processing_scrub_orphan_result() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
+BEGIN
+ IF NEW.project_id IS NULL THEN NEW.result := NULL; END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION private.offer_processing_scrub_orphan_result() FROM PUBLIC,anon,authenticated,service_role,tenderflow_mcp_client;
+CREATE TRIGGER offer_processing_scrub_orphan_result BEFORE INSERT OR UPDATE OF project_id,result
+ ON public.offer_processing_runs FOR EACH ROW EXECUTE FUNCTION private.offer_processing_scrub_orphan_result();
 CREATE INDEX offer_processing_runs_org_date ON public.offer_processing_runs(organization_id,created_at);
 CREATE INDEX offer_processing_runs_project ON public.offer_processing_runs(project_id);
 CREATE INDEX offer_processing_runs_user ON public.offer_processing_runs(user_id);

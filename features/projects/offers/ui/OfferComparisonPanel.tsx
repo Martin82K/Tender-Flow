@@ -4,7 +4,7 @@ import type { BudgetRevisionSummary } from '@features/projects/budget/api/budget
 import { comparisonBudgetSource } from '../model/budgetSource';
 import { exportComparisonPdf, exportComparisonXlsx } from '../api/comparisonExport';
 import { useEffect, useRef, useState } from 'react';
-import { matchOfferItems, compareOffer } from '@shared/offers/comparison.js';
+import { matchOfferItems, compareOffer, validateComparisonWork } from '@shared/offers/comparison.js';
 import { pickFile, readFile } from '@infra/files/fileSystemService';
 import { isDesktop } from '@infra/platform/platformAdapter';
 import { extractPdfOffer, reviewSuggestion, suggestOfferMatches } from '../api/offerAssist';
@@ -98,6 +98,14 @@ export function OfferComparisonPanel({ projectId, categoryId, categoryTitle, res
         const bytes = await readFile(selection.path, { maxBytes: 30 * 1024 * 1024 });
         await inspect(new File([new Uint8Array(bytes).buffer], selection.name || 'nabidka.xlsx'));
     });
+    const appendSource = (source: ComparisonSource, needsReview = false) => {
+        const sources = [...document.sources, source];
+        validateComparisonWork(sources, document.assignments);
+        const links = document.sources.length ? matchOfferItems(document.sources[0].items, source.items) : [];
+        const assignments = { ...document.assignments, ...(document.sources.length ? { [source.id]: needsReview ? links.map(a => ({ ...a, offerId: null, status: a.candidates?.length ? 'review' as const : 'unmatched' as const })) : links } : {}) };
+        validateComparisonWork(sources, assignments);
+        setDocument({ ...document, sources, assignments });
+    };
     const acceptSource = () => {
         if (!pending)
             return;
@@ -106,7 +114,7 @@ export function OfferComparisonPanel({ projectId, categoryId, categoryTitle, res
             const omitted = pending.parsed.workbook.SheetNames.filter(name => !pending.parsed.mappings.some(mapping => mapping.sheet === name));
             if (omitted.length) extracted.notes.push(`Nezahrnuté listy: ${omitted.join(', ')}`);
             const source: ComparisonSource = { id: crypto.randomUUID(), name: pending.name, sha256: pending.hash, ...extracted, origin: 'file' };
-            setDocument(previous => ({ ...previous, sources: [...previous.sources, source], assignments: { ...previous.assignments, ...(previous.sources.length ? { [source.id]: matchOfferItems(previous.sources[0].items, source.items) } : {}) } }));
+            appendSource(source);
             setPending(null);
             setError('');
         }
@@ -176,6 +184,8 @@ export function OfferComparisonPanel({ projectId, categoryId, categoryTitle, res
             setDocument({ schemaVersion: 1, sources: [source], assignments: {} }); }); }}><option value="">Vyberte revizi a přiřazené položky VŘ</option>{budgetOptions.map(r => <option key={r.id} value={r.id}>{r.title} · v{r.version}</option>)}</ThemedNativeSelect>}</div>}
     {pendingPdf && <div className="rounded border p-3"><p>{pendingPdf.name}: PDF odešleme Mistralu pro OCR a rozpoznání položek. Zpracuje se nejvýše 20 stran. Náklady se evidují v administraci; výsledek musí být ověřen proti originálu.</p><button className={inputClass} disabled={!aiConsent || busy || !canEdit} onClick={() => void run(async () => {
                 const file = pendingPdf;
+                if (document.sources.reduce((count, source) => count + source.items.length, 0) >= 50000)
+                    throw new Error('Souhrnný limit položek je vyčerpán. Vytvořte další porovnání před zpracováním PDF.');
                 const extracted = await extractPdfOffer(projectId, file);
                 if (!base && !extracted.items.length)
                     throw new Error('PDF neobsahuje spolehlivý položkový základ. Vyberte poptávkový Excel.');
@@ -184,7 +194,7 @@ export function OfferComparisonPanel({ projectId, categoryId, categoryTitle, res
                     throw new Error('Dokument je již v porovnání.');
                 const source: ComparisonSource = { id: crypto.randomUUID(), name: file.name, sha256, ...extracted, origin: 'file' };
                 if (alive.current) {
-                    setDocument(previous => ({ ...previous, sources: [...previous.sources, source], assignments: { ...previous.assignments, ...(previous.sources.length ? { [source.id]: matchOfferItems(previous.sources[0].items, source.items).map(a => ({ ...a, offerId: null, status: a.candidates?.length ? 'review' as const : 'unmatched' as const })) } : {}) } }));
+                    appendSource(source, true);
                     setPendingPdf(null);
                 }
             })}>Odeslat PDF Mistralu</button> <button className={inputClass} disabled={busy} onClick={() => setPendingPdf(null)}>Zrušit</button></div>}

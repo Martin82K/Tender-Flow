@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { matchOfferItems, compareOffer, validateAssignments, normalizeOfferItems } from '../../../shared/offers/comparison.js';
+import { matchOfferItems, compareOffer, validateAssignments, normalizeOfferItems, validateComparisonWork } from '../../../shared/offers/comparison.js';
 import { toolResultSchema } from '../core/schemas.js';
 const decimal = z.string().max(64).nullable();
 const item = z.object({ id: z.string().min(1).max(200), code: z.string().max(4000), description: z.string().max(4000), unit: z.string().max(100), quantity: decimal, unitPrice: decimal, total: decimal, group: z.string().max(4000), source: z.object({ sheet: z.string().max(255), row: z.number().int().positive() }), note: z.string().max(4000).optional() });
@@ -16,6 +16,7 @@ export function registerOfferComparisonsModule({ supabase, tools, includeWriteTo
   if (!includeWriteTools) return;
   tools.register('tf_save_offer_comparison', { title: 'Uložit porovnávací pohled', description: 'Save a derived comparison of existing source snapshots. Does not edit bids, budgets or files and never calls paid AI. First source is inquiry. Use one stable requestId for retrying creation. Editing requires id and expectedVersion. Uncertain links must remain review/unmatched; manual means explicitly verified by user. Source hashes identify the actual bytes read.', inputSchema: { projectId: z.string().min(1).max(200), categoryId: z.string().max(200).nullable().optional(), id: z.string().uuid().optional(), expectedVersion: z.number().int().nonnegative().default(0), requestId: z.string().uuid(), title: z.string().min(1).max(200), sources: z.array(source).min(2).max(21), assignments: z.record(z.string(), z.array(assignment).max(10000)) }, outputSchema: toolResultSchema, annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }, async args => {
     if (new Set(args.sources.map(s => s.id)).size !== args.sources.length) throw new Error('Duplicate source identity.');
+    validateComparisonWork(args.sources, args.assignments);
     const assignments = { ...args.assignments };
     for (const offer of args.sources.slice(1)) {
       const links = assignments[offer.id] ?? [];

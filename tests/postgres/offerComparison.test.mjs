@@ -181,5 +181,9 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,1);
  await db.exec(`DELETE FROM projects WHERE id='own'`);
  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,0);
+ const deletedRuns=(await db.query('SELECT project_id,result,estimated_cost_usd FROM public.offer_processing_runs')).rows;
+ assert.equal(deletedRuns.length,2);assert.ok(deletedRuns.every(run=>run.project_id===null && run.result===null));assert.ok(deletedRuns.some(run=>Number(run.estimated_cost_usd)===0.01));
+ await db.query('UPDATE public.offer_processing_runs SET result=$1 WHERE id=$2',[{pages:[{text:'late provider result'}]},run.runId]);
+ assert.equal((await db.query('SELECT result FROM public.offer_processing_runs WHERE id=$1',[run.runId])).rows[0].result,null);
  } finally { await db.close(); }
 });

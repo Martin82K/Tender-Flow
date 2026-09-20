@@ -4,6 +4,18 @@
 // Shared pure engine: browser and MCP use identical matching and totals.
 // Source documents and prices are never changed by this module.
 const MAX_ITEMS = 10000;
+/** @param {{items: OfferItem[]}[]} sources @param {Record<string, OfferAssignment[]>} assignments */
+export function validateComparisonWork(sources, assignments) {
+  const itemCount = sources.reduce((count, source) => count + source.items.length, 0);
+  let assignmentCount = 0, candidateCount = 0;
+  for (const links of Object.values(assignments)) {
+    assignmentCount += links.length;
+    for (const link of links) candidateCount += link.candidates?.length || 0;
+  }
+  if (itemCount > 50000 || assignmentCount > 50000 || candidateCount > 200000)
+    throw new Error('Souhrnný limit porovnání je 50 000 položek, 50 000 přiřazení a 200 000 návrhů shod. Rozdělte porovnání na menší části.');
+}
+
 const normalize = value => String(value ?? '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('cs');
 const unit = value => normalize(value).replace(/²/g, '2').replace(/³/g, '3');
 const decimal = value => {
