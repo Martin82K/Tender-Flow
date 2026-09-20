@@ -17,3 +17,14 @@ it('exports line-level qualifications with source references to XLSX and PDF',as
  await exportComparisonPdf(doc,'Test');const pdf=JSON.stringify(captured.table.mock.calls);expect(pdf).toContain('Bez materiálu');expect(pdf).toContain('Alternativní provedení');expect(pdf).toContain('List:2');
  vi.runAllTimers();
 });
+
+it.each([{quantity:'2',unit:'m2',total:'25'},{quantity:'1',unit:'ks',total:'0'}])('retains quoted price for different scope while excluding it from comparable totals',async offer=>{
+ const item={id:'a',code:'1',description:'Malba',group:'',unit:'m2',quantity:'1',unitPrice:'10',total:'10',source:{sheet:'List',row:2}};
+ const doc={schemaVersion:1 as const,sources:[{id:'base',name:'Poptávka',sha256:'a'.repeat(64),origin:'file' as const,items:[item],notes:[]},{id:'offer',name:'Nabídka',sha256:'b'.repeat(64),origin:'file' as const,items:[{...item,...offer,id:'b'}],notes:[]}],assignments:{offer:[{baseId:'a',offerId:'b',status:'manual' as const}]}};
+ vi.stubGlobal('URL',class{static createObjectURL(){return 'blob:test';}static revokeObjectURL(){}});vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(()=>{});vi.useFakeTimers();captured.table.mockClear();
+ await exportComparisonXlsx(doc,'Test');const sheet=(captured.books.at(-1) as ExcelJS.Workbook).getWorksheet('Porovnání')!;
+ const expected=`${Number(offer.total).toFixed(2)} · jiný rozsah (množství / MJ)`;
+ expect(sheet.getCell('D3').value).toBe(expected);expect(sheet.getCell('D4').value).toBe('— (0/1, dílčí)');
+ await exportComparisonPdf(doc,'Test');expect(captured.table.mock.calls[0][1].body[0][3]).toBe(expected);expect(captured.table.mock.calls[0][1].foot[0][3]).toBe('— · 0/1 (dílčí)');
+ vi.runAllTimers();
+});

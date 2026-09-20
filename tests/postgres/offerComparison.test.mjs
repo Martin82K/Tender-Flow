@@ -38,6 +38,7 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  const save = (project='own',category='tender',id=null,version=0,title='Test')=>db.query('SELECT public.offer_comparison_save($1,$2,$3,$4,$5,$6,$7) AS result',[project,id,version,'00000000-0000-0000-0000-000000000010',title,category,doc]);
  await assert.rejects(()=>save('foreign'),/denied/);
  await assert.rejects(()=>save('own','wrong'),/Invalid tender/);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Text schema',{...doc,schemaVersion:'1'}]),/Invalid comparison document/);
  const malformed=structuredClone(doc);malformed.sources[1].id='base';
  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000099','Invalid',malformed]),/Invalid source/);
 

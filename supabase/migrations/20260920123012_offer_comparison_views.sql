@@ -90,7 +90,7 @@ BEGIN
    RETURN to_jsonb(result);
   END IF;
  END IF;
- IF request_input IS NULL OR document_input IS NULL OR jsonb_typeof(document_input) <> 'object' OR document_input->>'schemaVersion' IS DISTINCT FROM '1'
+ IF request_input IS NULL OR document_input IS NULL OR jsonb_typeof(document_input) <> 'object' OR jsonb_typeof(document_input->'schemaVersion') IS DISTINCT FROM 'number' OR document_input->>'schemaVersion' IS DISTINCT FROM '1'
  OR jsonb_typeof(document_input->'sources') IS DISTINCT FROM 'array' OR jsonb_array_length(document_input->'sources') NOT BETWEEN 2 AND 21
  OR jsonb_typeof(document_input->'assignments') IS DISTINCT FROM 'object'
  THEN RAISE EXCEPTION 'Invalid comparison document'; END IF;

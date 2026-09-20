@@ -1,5 +1,6 @@
 import { compareOffer } from '@shared/offers/comparison.js';
 import type { ComparisonDocument } from '../model/types';
+const priceLabel = (row: ReturnType<typeof compareOffer>['rows'][number]) => row.comparableTotal ?? (row.priceStatus === 'different-scope' ? `${row.quotedTotal ?? '—'} · jiný rozsah (množství / MJ)` : row.priceStatus === 'missing-price' ? 'Chybí cena' : 'Nespárováno');
 export async function exportComparisonXlsx(document: ComparisonDocument, title: string): Promise<void> {
     const { default: ExcelJS } = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
@@ -8,7 +9,7 @@ export async function exportComparisonXlsx(document: ComparisonDocument, title: 
     const results = offers.map(s => compareOffer(base.items, s.items, document.assignments[s.id] || []));
     sheet.addRow([title]);
     sheet.addRow(['Kód', 'Položka / objekt', 'Množství', ...offers.map(s => s.name)]);
-    base.items.forEach((item, i) => { const row = sheet.addRow([item.code, `${item.group} / ${item.description}`, `${item.quantity ?? '—'} ${item.unit}`, ...results.map(r => r.rows[i].comparableTotal ?? (r.rows[i].priceStatus === 'different-scope' ? 'Jiný rozsah' : r.rows[i].priceStatus === 'missing-price' ? 'Chybí cena' : 'Nespárováno'))]); if (i % 2 === 1)
+    base.items.forEach((item, i) => { const row = sheet.addRow([item.code, `${item.group} / ${item.description}`, `${item.quantity ?? '—'} ${item.unit}`, ...results.map(r => priceLabel(r.rows[i]))]); if (i % 2 === 1)
         row.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0ECE5' } }; }); });
     sheet.addRow(['', 'Srovnatelný rozsah', '', ...results.map(r => `${r.pricedCount ? r.total : '—'} (${r.pricedCount}/${base.items.length}${r.complete ? '' : ', dílčí'})`)]);
     sheet.columns.forEach((c, i) => { c.width = i === 1 ? 55 : i === 0 ? 18 : 28; });
@@ -51,7 +52,7 @@ export async function exportComparisonPdf(document: ComparisonDocument, title: s
         pdf.text(title.slice(0, 100), 12, 12);
         pdf.setFontSize(9);
         pdf.text(`Skupina dodavatelů ${Math.floor(start / 3) + 1}/${Math.ceil(offers.length / 3)} · základna ${base.name.slice(0, 70)}`, 12, 19);
-        autoTable(pdf, { startY: 25, margin: { left: 12, right: 12, top: 20, bottom: 15 }, styles: { font: 'Roboto', fontSize: 8, cellPadding: 2, lineWidth: 0.15, lineColor: [201, 193, 181] }, headStyles: { fillColor: [101, 103, 107] }, bodyStyles: { fillColor: [240, 236, 229] }, alternateRowStyles: { fillColor: [255, 255, 255] }, head: [['Kód', 'Objekt / položka', 'Množství', ...batch.map(s => s.name)]], body: base.items.map((item, i) => [item.code, `${item.group}\n${item.description}`, `${item.quantity ?? '—'} ${item.unit}`, ...results.map(r => r.rows[i].comparableTotal ?? (r.rows[i].priceStatus === 'different-scope' ? 'Jiný rozsah' : r.rows[i].priceStatus === 'missing-price' ? 'Chybí cena' : 'Nespárováno'))]), foot: [['', 'Srovnatelný rozsah', '', ...results.map(r => `${r.pricedCount ? r.total : '—'} · ${r.pricedCount}/${base.items.length}${r.complete ? '' : ' (dílčí)'}`)]], showFoot: 'lastPage' });
+        autoTable(pdf, { startY: 25, margin: { left: 12, right: 12, top: 20, bottom: 15 }, styles: { font: 'Roboto', fontSize: 8, cellPadding: 2, lineWidth: 0.15, lineColor: [201, 193, 181] }, headStyles: { fillColor: [101, 103, 107] }, bodyStyles: { fillColor: [240, 236, 229] }, alternateRowStyles: { fillColor: [255, 255, 255] }, head: [['Kód', 'Objekt / položka', 'Množství', ...batch.map(s => s.name)]], body: base.items.map((item, i) => [item.code, `${item.group}\n${item.description}`, `${item.quantity ?? '—'} ${item.unit}`, ...results.map(r => priceLabel(r.rows[i]))]), foot: [['', 'Srovnatelný rozsah', '', ...results.map(r => `${r.pricedCount ? r.total : '—'} · ${r.pricedCount}/${base.items.length}${r.complete ? '' : ' (dílčí)'}`)]], showFoot: 'lastPage' });
     }
     pdf.addPage();
     pdf.setFontSize(13);
