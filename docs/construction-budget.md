@@ -342,3 +342,28 @@ Demo režim záložku Rozpočet skrývá; přímý odkaz vrátí uživatele na p
 Kontextový filtr podle hodnoty je dostupný pouze na oceněných položkách K/M.
 Firemní číselník se zálohuje samostatně i bez importovaných rozpočtů; obnova
 chybějících položek vyžaduje správce organizace a platný podpis původní zálohy.
+
+## Export rozpočtu a poptávkového soupisu
+
+Tlačítko **Exportovat** otevře volbu rozsahu: celý rozpočet nebo konkrétní VŘ.
+**Exportovat výběr** předvolí označené položky. Rozsah je nezávislý na filtrech
+zobrazení a volbě cen. U VŘ se exportuje pouze množství skutečně přiřazené danému
+řízení, nikoli celé množství sdílené položky.
+
+Výchozí varianta **bez cen** je poptávkový soupis pro dodavatele: kódy, popisy,
+jednotky, množství a struktura zůstávají; jednotkové ceny a součty jsou prázdné.
+Soubor nepřebírá původní buňky, komentáře, skryté listy, zdrojové vzorce ani interní štítky.
+Po doplnění jednotkových cen v Excelu nové bezpečné vzorce spočítají částky
+a rekapitulaci. Prázdná či textová cena nechává součet neúplný; nula je platná cena. Aplikace tento soubor nikam neodesílá.
+
+Volba **Zahrnout ceny rozpočtu** je dostupná pouze s oprávněním k cenám. Celý
+rozpočet zachovává uložené částky položek; pro VŘ se částka počítá z alokovaného
+množství a jednotkové ceny, zaokrouhlená po položkách. Chybí-li cena nebo částka,
+neúplný součet zůstane prázdný, aby se netvářil jako úplný rozpočet.
+
+List **Rozpočet** obsahuje relevantní objekty, soupisy, oddíly a pododdíly.
+**Rekapitulace** uvádí stejné skupiny se součty exportovaných položek; hierarchické
+mezisoučty se znovu nesčítají do celkové částky. Ve variantě bez cen tato
+rekapitulace čeká na vyplnění cen a neobsahuje cachované interní částky. Desetinné hodnoty jsou v XLSX text,
+aby export nezkracoval jejich přesnost; dodavatelské vzorce používají běžnou
+numerickou přesnost Excelu (přibližně 15 platných číslic); vstupy začínající `=` se nestávají vzorci.
