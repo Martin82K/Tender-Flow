@@ -358,3 +358,31 @@ Mapování sloupců VŘ prochází listy tlačítky **Předchozí list / Další
 Pokud se nové skupiny shodují názvem nebo číslem, lze u jedné z nich zvolit
 **Použít nové VŘ** a přiřadit obě skupiny ke společné nové definici. Rozdílné
 kódy se bez vašeho výběru neslučují.
+
+## Export rozpočtu a poptávkového soupisu
+
+Tlačítko **Exportovat** otevře volbu rozsahu: celý rozpočet nebo konkrétní VŘ.
+**Exportovat výběr** předvolí označené položky. Rozsah je nezávislý na filtrech
+zobrazení a volbě cen. U VŘ se exportuje pouze množství skutečně přiřazené danému
+řízení, nikoli celé množství sdílené položky.
+
+Výchozí varianta **bez cen** je poptávkový soupis pro dodavatele: kódy, popisy,
+jednotky, množství a struktura zůstávají; jednotkové ceny a součty jsou prázdné.
+Soubor nepřebírá původní buňky, komentáře, skryté listy, zdrojové vzorce ani interní štítky.
+Po doplnění jednotkových cen v Excelu nové bezpečné vzorce spočítají částky
+a rekapitulaci. Prázdná či textová cena nechává součet neúplný; nula je platná cena. Aplikace tento soubor nikam neodesílá.
+
+Volba **Zahrnout ceny rozpočtu** je dostupná pouze s oprávněním k cenám. Celý
+rozpočet zachovává uložené částky položek; pro VŘ se částka počítá z alokovaného
+množství a jednotkové ceny, zaokrouhlená po položkách. Chybí-li cena nebo částka,
+neúplný součet zůstane prázdný, aby se netvářil jako úplný rozpočet.
+
+List **Rozpočet** obsahuje relevantní objekty, soupisy, oddíly a pododdíly.
+**Rekapitulace** uvádí stejné skupiny se součty exportovaných položek; hierarchické
+mezisoučty se znovu nesčítají do celkové částky. Ve variantě bez cen tato
+rekapitulace čeká na vyplnění cen a neobsahuje cachované interní částky. Desetinné hodnoty jsou v XLSX text,
+aby export nezkracoval jejich přesnost; dodavatelské vzorce používají běžnou
+numerickou přesnost Excelu (přibližně 15 platných číslic); vstupy začínající `=` se nestávají vzorci.
+
+Export podporuje nejvýše 256 úrovní vnoření. Hlubší nebo cyklická struktura
+zobrazí chybu před vytvořením souboru; upravte nejprve hierarchii rozpočtu.

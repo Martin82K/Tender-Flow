@@ -6,7 +6,7 @@ import type { BudgetNode } from '@features/projects/budget/model/types';
 vi.mock('xlsx', async importOriginal => ({ ...await importOriginal<typeof import('xlsx')>(), writeFile: vi.fn() }));
 it('exports exact decimals as text and never turns descriptions into formulas', () => {
   const node = { kind: 'K', code: '=1+1', description: '+cmd', unit: 'm', quantity: '999999999999999999999999.123456789012345678', unitPrice: '0.123456789012345678', total: '123.00', tags: [], tenders: [] } as unknown as BudgetNode;
-  exportBudget([node], 'budget.xlsx');
+  exportBudget([node], 'budget.xlsx', {scope:{kind:'whole'},allocations:[],includePrices:true,canViewPrices:true});
   const workbook = vi.mocked(XLSX.writeFile).mock.calls[0][0];
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   expect(sheet.E2).toMatchObject({ t: 's', v: node.quantity });
