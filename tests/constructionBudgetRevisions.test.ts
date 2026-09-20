@@ -20,3 +20,7 @@ it('clears corrected numeric issues but preserves mapping errors and other rows'
  const fixed=applyBudgetItemEdit(d,item);expect(fixed.issues).toHaveLength(2);expect(d.issues).toHaveLength(3);expect(fixed.nodes[0].unitPrice).toBe('1');
  expect(applyBudgetItemEdit(d,{...item,unitPrice:null,total:null}).issues).toHaveLength(3);
 });
+it('edits code and unit without changing immutable source references',()=>{
+ const updated=applyBudgetItemEdit(document([item]),{...item,code:'002',unit:'m2',source:{sheet:'Other',row:99,cells:{}}});
+ expect(updated.nodes[0]).toMatchObject({code:'002',unit:'m2',source:item.source});
+});

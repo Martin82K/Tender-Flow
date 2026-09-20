@@ -61,7 +61,7 @@ export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode
   if (complete) { decimal(edited.quantity); decimal(edited.unitPrice); decimal(edited.total); multiplyMoney(edited.quantity!, edited.unitPrice!); }
   return {
     ...document,
-    nodes: document.nodes.map(node => node.id === edited.id ? {...node, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
+    nodes: document.nodes.map(node => node.id === edited.id ? {...node, code: edited.code, unit: edited.unit, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
     issues: document.issues.filter(issue => !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
   };
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/BudgetTable';
 import type { BudgetNode } from '@features/projects/budget/model/types';
@@ -26,7 +26,8 @@ function table(showVV = true, canPrices = true, wrap = false, density = 44) {
 }
 it('recalculates an imported quantity expression without its stored result and annotation', () => {
   render(<BudgetTable {...table().props} editable nodes={[item, { ...nodes[2], description: '2*1 = 2,000 [A]' }]}/>);
-  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  fireEvent.contextMenu(screen.getByRole('button', { name: item.description }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Detail položky' }));
   fireEvent.click(screen.getByRole('button', { name: 'Přepočítat výraz a připravit množství' }));
   expect(screen.getByRole('textbox', { name: 'Množství' })).toHaveValue('2');
   expect(screen.getByRole('alert')).toHaveTextContent('Výsledek 2 je připraven');
@@ -55,7 +56,7 @@ it('opens the full item description from its name without a separate expansion l
   render(<BudgetTable {...table().props} nodes={[{ ...item, description }]}/>);
   expect(screen.queryByRole('button', { name: 'Celý popis' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Zkrátit popis' })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: description }));
+  fireEvent.doubleClick(screen.getByRole('button', { name: description }));
   expect(screen.getByRole('textbox', { name: 'Úplný popis' })).toHaveValue(description);
   expect(screen.queryByRole('button', { name: 'Uložit změnu' })).not.toBeInTheDocument();
 });
@@ -228,11 +229,42 @@ it.each(['3*4','Poznámka k výkopu'])('does not offer a priced-item filter on a
 it('disables recalculation until every referenced figure is resolved', () => {
  const props={...table().props,editable:true,nodes:[item,{...nodes[2],description:'F1*2 = 6 [A]'}]};
  const {rerender}=render(<BudgetTable {...props} figures={{}}/>);
- fireEvent.click(screen.getByRole('button',{name:item.description}));
+ fireEvent.contextMenu(screen.getByRole('button',{name:item.description}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
  expect(screen.getByRole('button',{name:'Přepočítat výraz a připravit množství'})).toBeDisabled();
  expect(screen.getByText(/Přepočet není dostupný/)).toHaveTextContent('F1');
  expect(screen.getByRole('textbox',{name:'Množství'})).toHaveValue('12');
  rerender(<BudgetTable {...props} figures={{F1:'3'}}/>);
  fireEvent.click(screen.getByRole('button',{name:'Přepočítat výraz a připravit množství'}));
  expect(screen.getByRole('textbox',{name:'Množství'})).toHaveValue('6');
+});
+
+it('selects a row on one click and extends selection with modifiers without opening an editor', () => {
+  function Harness() { const [selected, setSelected] = React.useState(new Set<string>()); return <BudgetTable {...table().props} editable selected={selected} onSelected={setSelected}/>; }
+  render(<Harness/>);
+  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Neoceněná práce' }), { metaKey: true });
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).not.toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Neoceněná práce' }), { shiftKey: true });
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).toBeChecked();
+});
+it('edits only the double-clicked cell, saves on Enter and cancels on Escape', async () => {
+  const onEdit = vi.fn().mockResolvedValue(undefined);
+  render(<BudgetTable {...table().props} editable onEdit={onEdit}/>);
+  const row = screen.getByRole('button', { name: item.description }).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(within(row).getByText('12'));
+  const input = screen.getByRole('textbox', { name: 'Upravit Množství' });
+  fireEvent.change(input, { target: { value: '15' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  await vi.waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'item', quantity: '15', total: '150.00' })));
+  fireEvent.doubleClick(screen.getByRole('button', { name: item.description }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Upravit Popis' }), { target: { value: 'Neuložit' } });
+  fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Popis' }), { key: 'Escape' });
+  expect(onEdit).toHaveBeenCalledTimes(1);
 });

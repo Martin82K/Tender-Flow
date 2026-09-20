@@ -11,9 +11,25 @@ export interface BudgetPermissions { read: boolean; prices: boolean; edit: boole
 export type BudgetRevisionSummary = Pick<BudgetRevision, 'id' | 'title' | 'status' | 'version' | 'source_id' | 'created_at' | 'deleted_at' | 'purge_job_id'> & { allocation_count?: number; category_ids?: string[] };
 export interface BudgetPurgeJob { id: string; revisionCount: number; sourceCount: number }
 export interface BudgetPurgeSelection { revisions: Array<{ id: string; version: number }>; sources: Array<{ id: string; deleted_at: string }> }
-export interface BudgetIndex { mainRevisionId?: string | null; permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
+export interface PersonalTenderDefaults { version: number; definitions: ProjectTender[] }
+export interface BudgetIndex { locked?: boolean; lockVersion?: number; mainRevisionId?: string | null; permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
 const unwrap = <T>(result: { data: unknown; error: { message: string } | null }): T => { if (result.error) throw new Error(result.error.message); return result.data as T; };
 export const budgetApi = {
+  async setLock(projectId: string, locked: boolean, version: number): Promise<void> {
+    unwrap(await supabase.rpc('construction_budget_set_lock', { project_input: projectId, locked_input: locked, version_input: version }));
+  },
+  async personalTenders(definitions?: ProjectTender[], version?: number): Promise<PersonalTenderDefaults> {
+    return unwrap(await supabase.rpc('personal_tender_defaults', { definitions_input: definitions ?? null, version_input: version ?? null }));
+  },
+  async saveProjectTenders(projectId: string, expected: ProjectTender[], definitions: ProjectTender[]): Promise<string | undefined> {
+    unwrap(await supabase.rpc('save_project_tender_catalog', { project_input: projectId, expected_input: expected, definitions_input: definitions }));
+    const created = definitions.filter(entry => !expected.some(old => old.id === entry.id)).map(entry => entry.id);
+    if (created.length) {
+      const { syncImportedTenderDocHub } = await import('./tenderDocHub');
+      try { await syncImportedTenderDocHub(projectId, created); }
+      catch { return 'VŘ jsou uložena. Složky DocHubu se nepodařilo synchronizovat; dokončete je v nastavení DocHubu.'; }
+    }
+  },
   async projectTenders(projectId: string): Promise<ProjectTender[]> {
     const rows = unwrap<Array<{id:string;title:string;external_code:string|null}>>(await supabase.from('demand_categories').select('id,title,external_code').eq('project_id',projectId).order('id'));
     return rows.map(row=>({id:row.id,title:row.title,externalCode:row.external_code??''}));

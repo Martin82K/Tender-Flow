@@ -1,5 +1,45 @@
 # Rozpočet stavby
 
+## Výběr, editace a zámek
+
+Jedním kliknutím na položku ji vyberete. Ctrl/Cmd přidává nebo odebírá jednotlivé
+položky, Shift označí rozsah viditelných položek. Checkboxy zachovávají hromadný
+výběr napříč filtry. Lišta nad tabulkou nabízí **Přiřadit VŘ**, export a
+**Zrušit výběr**; poslední akce pouze odznačuje a žádná data nemaže.
+
+Dvojklik nebo F2 upraví konkrétní buňku kódu, popisu, měrné jednotky, množství
+nebo jednotkové ceny. Enter ukládá, Escape ruší. Celková cena se přepočítává.
+Měrnou jednotku položky s přiřazením do VŘ nelze změnit. Pravé tlačítko →
+**Detail položky** zachovává celý popis a přepočet výkazu výměr. Potvrzené
+revize jsou neměnné; pro úpravy vytvořte pracovní kopii přes **Akce**.
+
+**Uzamknout rozpočet** vedle nastavení chrání celý rozpočet stavby na serveru,
+včetně verzí, importů a přiřazení. Odemčení vyžaduje oprávnění k úpravě a čtení
+cen. Export a prohlížení zůstávají dostupné. Zámek nenahrazuje potvrzení revize.
+Oprávněné odstranění celé stavby a anonymizace autora při smazání účtu fungují
+i při uzamčení. Konflikt souběžných změn vyžaduje obnovení dat.
+
+## Číselník VŘ a výchozí základ
+
+Samostatná sekce **Číselník VŘ** obsahuje **VŘ této stavby** a **Moje výchozí VŘ**.
+Projektová evidence upravuje čísla a názvy bez změny vazeb na nabídky, smlouvy
+nebo položky rozpočtu. Existující VŘ se zde nemažou. Přidávat lze nové definice.
+
+**Nastavit jako výchozí** převezme uložený projektový číselník jako osobní základ.
+Před nahrazením zobrazí počet nových a dosavadních definic. Vlastní základ lze
+upravovat, řadit a uložit v záložce **Moje výchozí VŘ**.
+
+Každý uživatel bez vlastního uloženého základu dostane společných 14 definic:
+zemní práce, základy, nosné konstrukce, střecha, izolace, výplně otvorů, fasáda,
+vnitřní povrchy, podlahy, zdravotechnika, vytápění, vzduchotechnika,
+elektroinstalace a venkovní úpravy. Vlastní seznam má přednost, i když jej uživatel
+úmyslně uloží prázdný. Základ se zkopíruje v transakci běžného vytvoření nové
+stavby; změna základu nemění existující stavby. Převod a obnova projektů používají
+své původní definice. Osobní základ je oddělený podle účtu, ne sdílený s kolegy.
+
+Import, export a údaje o otevřené verzi jsou v **Importy a verze**.
+
+
 ## Převzetí přiřazení do výběrových řízení
 
 Při importu souboru do projektu s rozpočtem můžete zvolit **Aktualizovat rozpočet –
@@ -29,7 +69,7 @@ VŘ, nabídek a smluv není součástí tohoto importu. Změní-li někdo mezit�
 nebo seznam VŘ, server zápis odmítne; otevřete nový náhled. Opakování stejného
 požadavku po síťové chybě nevytvoří další řízení ani alokace.
 
-**Vlastní vzory VŘ** umožňují uložit projektové názvy a externí kódy do vlastního
+**Číselník VŘ → Importovat / exportovat vzor** umožňuje uložit projektové názvy a externí kódy do vlastního
 souboru JSON a opakovaně jej použít v jiných projektech. Před vložením můžete upravit
 definice a vybrat, které vytvořit; existující názvy a kódy se nepřepisují. Projektové
 kopie lze dále upravovat v přehledu VŘ. Vzor neobsahuje položkové alokace, ceny,
@@ -86,7 +126,7 @@ Jednotlivé výkazy lze otevírat nezávisle; u položky bez podrobností je tla
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
 pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
 nejsou dělicí čáry; množství zůstává ve svém sloupci.
-V ozubeném kolečku **Nastavení zobrazení** za tlačítkem **Firemní číselníky** najdete **Zalamovat text popisu**,
+V ozubeném kolečku **Nastavení zobrazení** vedle zámku rozpočtu najdete **Zalamovat text popisu**,
 **Hustota zobrazení** (Kompaktní / Pohodlná), **Zobrazení sloupců** a **Rozsah**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
 V **Zobrazení sloupců** má každý sloupec samostatné volby **Zobrazit** a

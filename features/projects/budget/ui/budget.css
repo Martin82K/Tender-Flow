@@ -251,3 +251,26 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-tender-preview table { width: 100%; border-collapse: collapse; }
 .tf-budget-tender-preview th, .tf-budget-tender-preview td { padding: .6rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border-color, #8886); }
 .tf-budget-tender-preview td { min-width: 12rem; max-width: 28rem; overflow-wrap: anywhere; }
+
+.tf-budget-tender-catalog { padding: 24px; overflow: auto; min-height: 0; }
+.tf-budget-tender-catalog h3 { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+.tf-budget-tender-catalog p { margin: 12px 0; max-width: 760px; }
+.tf-budget-catalog-scroll { overflow-x: auto; margin-top: 16px; }
+.tf-budget-tender-catalog table { width: 100%; max-width: 1040px; border-collapse: collapse; }
+.tf-budget-tender-catalog th, .tf-budget-tender-catalog td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--tf-border, #dedbd4); }
+.tf-budget-tender-catalog td:first-child { width: 160px; }
+.tf-budget-tender-catalog td:last-child { width: 160px; }
+.tf-budget-tender-catalog input { width: 100%; min-width: 120px; }
+.tf-budget-tender-catalog [role="tab"][aria-selected="true"] { font-weight: 600; border-color: currentColor; }
+.tf-budget-cell-editor { display: flex; flex-direction: column; gap: 16px; }
+.tf-budget-cell-editor input { width: 100%; margin-top: 8px; }
+.tf-budget-import-actions { margin-bottom: 20px; justify-content: flex-start; }
+.tf-budget-selection { flex-wrap: wrap; }
+@media (max-width: 640px) { .tf-budget-tender-catalog { padding: 12px; } }
+.tf-budget-selection > button, .tf-budget-tender-catalog button { display: inline-flex; align-items: center; gap: 6px; }
+.tf-budget-selection > button svg, .tf-budget-tender-catalog button svg { flex-shrink: 0; }
+/* Keep the row under the pointer between the first and second click. */
+.tf-budget-selection[data-empty="true"] { visibility: hidden; }
+.tf-budget-commandbar > nav { max-width: 100%; min-width: 0; }
+.tf-budget-tender-catalog table { min-width: 600px; }
+.tf-budget-tender-catalog td:last-child .tf-budget-toolbar { flex-wrap: nowrap; }
