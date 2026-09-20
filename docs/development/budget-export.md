@@ -5,7 +5,8 @@ Rozsah (celý rozpočet / VŘ / označené položky) je nezávislý na volbě ce
 U VŘ pochází množství z autoritativních alokací, nikoli z textu `node.tenders`.
 Součty za objekty, soupisy a oddíly obsahují jen exportované listové položky.
 Strom se seřadí průchodem po rodičích, takže pododdíly zůstávají uvnitř svého oddílu.
-Duplicitní alokace, překročená množství, chybějící rodiče a cykly export odmítne.
+Dílčí alokace stejné položky/VŘ přesně sečte bez zaokrouhlení množství.
+Překročená množství, chybějící rodiče a cykly export odmítne.
 
 ## Bezpečnost a životní cyklus
 
@@ -54,3 +55,7 @@ množství × jednotková cena, zaokrouhlené po položkách. Neúplné součty 
 
 Finální CI a nezávislá PR bezpečnostní revize musí odpovídat konečnému commitu a
 integrační základně. Soukromý dodaný XLSX není testovací fixture ani součást PR.
+
+Nezávislá revize #490 upozornila na platné opakované alokace položky do stejného VŘ.
+Regresní test zachovává součet `1.000000000000000001 + 2.125` přesně jako
+`3.125000000000000001`; peněžní zaokrouhlení nastává až po celém množství položky.

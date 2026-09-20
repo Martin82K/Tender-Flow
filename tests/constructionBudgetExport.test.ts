@@ -34,14 +34,20 @@ describe('budget workbook export',()=>{
   expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('495.00');
  });
 });
-it('refuses over-allocation and duplicate links instead of exporting a misleading inquiry',()=>{
+it('refuses over-allocation instead of exporting a misleading inquiry',()=>{
  const options={scope:{kind:'tender' as const,categoryId:'vr',title:'VŘ'},includePrices:false,canViewPrices:false};
  expect(()=>buildBudgetWorkbook(nodes,{...options,allocations:[{itemId:'a',categoryId:'vr',quantity:'11'}]})).toThrow(/přesahuje/);
- expect(()=>buildBudgetWorkbook(nodes,{...options,allocations:[allocations[0],allocations[0]]})).toThrow(/Duplicitní/);
+
 });
 it('leaves incomplete totals blank and rejects cyclic hierarchy',()=>{
  const missing=nodes.map(n=>n.id==='a'?{...n,total:null}:n);
  const options={scope:{kind:'whole' as const},allocations:[],includePrices:true,canViewPrices:true};
  expect(rows(buildBudgetWorkbook(missing,options),'Rekapitulace').at(-1)?.at(-1)).toBe('');
  expect(()=>buildBudgetWorkbook(nodes.map(n=>n.id==='object'?{...n,parentId:'sub'}:n),options)).toThrow(/cyklus/);
+});
+
+it('sums repeated valid links to the same tender with exact quantity precision',()=>{
+ const book=buildBudgetWorkbook(nodes,{scope:{kind:'tender',categoryId:'vr',title:'VŘ'},includePrices:true,canViewPrices:true,allocations:[{itemId:'a',categoryId:'vr',quantity:'1.000000000000000001'},{itemId:'a',categoryId:'vr',quantity:'2.125'}]});
+ expect(rows(book).at(-1)?.[4]).toBe('3.125000000000000001');
+ expect(rows(book).at(-1)?.[6]).toBe('385.78');
 });

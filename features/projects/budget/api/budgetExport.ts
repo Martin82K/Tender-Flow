@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { multiplyMoney, sumMoney, validateAllocation } from '../model/budgetModel';
+import { multiplyMoney, sumMoney, sumQuantities, validateAllocation } from '../model/budgetModel';
 import { isPriced } from '../model/types';
 import type { BudgetAllocation, BudgetNode } from '../model/types';
 
@@ -24,8 +24,7 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
       const quantities = all.get(allocation.itemId) ?? [];
       quantities.push(allocation.quantity); all.set(allocation.itemId, quantities);
       if (allocation.categoryId !== options.scope.categoryId) continue;
-      if (allocated.has(allocation.itemId)) throw new Error('Duplicitní alokace položky do VŘ.');
-      allocated.set(allocation.itemId, allocation.quantity);
+      allocated.set(allocation.itemId, sumQuantities([allocated.get(allocation.itemId) ?? '0', allocation.quantity]));
     }
     for (const id of allocated.keys()) {
       const node = byId.get(id);

@@ -32,6 +32,12 @@ export function multiplyMoney(a: string, b: string): string {
 export function sumMoney(values: Array<string | null>): string {
   return render(values.reduce((sum, value) => sum + (value === null ? 0n : BigInt(money(value).replace('.', ''))), 0n), 2);
 }
+/** Sum quantities without monetary rounding or floating-point conversion. */
+export function sumQuantities(values: string[]): string {
+  const parsed = values.map(parts);
+  const scale = parsed.reduce((max, [, digits]) => Math.max(max, digits), 0);
+  return decimal(render(parsed.reduce((sum, [value, digits]) => sum + value * power(scale - digits), 0n), scale))!;
+}
 export function compareDecimal(a: string, b: string): number {
   const [an, as] = parts(a); const [bn, bs] = parts(b); const difference = an * power(bs) - bn * power(as);
   return difference < 0n ? -1 : difference > 0n ? 1 : 0;
