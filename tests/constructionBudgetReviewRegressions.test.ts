@@ -42,6 +42,6 @@ it('renders aggregate totals beyond the per-item input limit', async () => {
 it('clears overflow issues when the item is corrected', async () => {
  const { applyBudgetItemEdit }=await import('@features/projects/budget/model/revisions');
  const node={id:'a',kind:'K',source:{sheet:'s',row:1},quantity:'2',unitPrice:'3',total:'6'} as BudgetNode;
- const document={nodes:[node],issues:[{sheet:'s',row:1,severity:'error',message:'Množství × jednotková cena přesahuje limit 24 číslic.'}]} as import('@features/projects/budget/model/types').BudgetDocument;
+ const document={schemaVersion:1,sheets:[],figures:{},nodes:[node],issues:[{sheet:'s',row:1,severity:'error',message:'Množství × jednotková cena přesahuje limit 24 číslic.'}]} as import('@features/projects/budget/model/types').BudgetDocument;
  expect(applyBudgetItemEdit(document,node).issues).toEqual([]);
 });
