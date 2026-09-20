@@ -11,7 +11,7 @@ interface Props {
   allocations?: readonly BudgetAllocation[];
   document: BudgetDocument; onChange: (document: BudgetDocument) => void;
   mapping: KrosMapping; onMapping: (mapping: KrosMapping) => void;
-  onRemap: (sheet: string) => Promise<void>; onBack: () => void;
+  onRemap: (sheet: string) => Promise<boolean>; onBack: () => void;
   onLoadPreview?: () => Promise<void>;
   initialSheet?: string; initialRow?: number; busy: boolean; savedRevision?: boolean;
 }
@@ -76,7 +76,7 @@ export function BudgetImportEditor({allocations,document,onChange,mapping,onMapp
         <p className="tf-budget-import-muted">Úrovně začínají 0. Chybějící nebo přeskočené úrovně ověříte v kroku Struktura.</p>
         {mustReplace&&<label><input type="checkbox" disabled={busy} checked={replaceRepairs} onChange={e=>setReplaceRepairs(e.target.checked)}/>Znovu rozpoznat tento list a nahradit jeho ruční úpravy</label>}
         {savedRevision&&<p className="tf-budget-import-muted">Nové rozpoznání načte hodnoty z originálu a nahradí také pozdější úpravy cen a množství tohoto listu.</p>}
-        <button disabled={busy||(mustReplace&&!replaceRepairs)} onClick={async()=>{setUndo(null);await onRemap(sheet.name);setReplaceRepairs(false);setSelectedId('');setDraft(null);}}>Použít mapování</button>
+        <button disabled={busy||(mustReplace&&!replaceRepairs)} onClick={async()=>{if(await onRemap(sheet.name)){setUndo(null);setReplaceRepairs(false);setSelectedId('');setDraft(null);}}}>Použít mapování</button>
       </aside>
     </div>}
     {step==='structure'&&sheet&&<div className="tf-budget-editor-layout">

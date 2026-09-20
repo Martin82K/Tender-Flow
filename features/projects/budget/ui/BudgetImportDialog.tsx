@@ -32,7 +32,7 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
     setFile(next);setSource(undefined);setDocument(null);setMapping({});setMappingSheet('');setPhase('');setError('');
   };
   const start=async(targetSheet?:string)=>{
-    if(operationLock.current)return;operationLock.current=true;
+    if(operationLock.current)return false;operationLock.current=true;
     setError('');setBusy(true);const abort=new AbortController();controller.current=abort;let registered=source;let processingStarted=false;
     try{
       if(editRevision&&!targetSheet)throw new Error('Vyberte konkrétní list pro nové rozpoznání.');
@@ -41,8 +41,8 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
         if(editRevision.allocations.some(a=>affected.has(a.itemId))||document.nodes.some(n=>affected.has(n.id)&&n.tags.length))throw new Error('Tento list má přiřazené štítky nebo množství. Změnu sloupců proveďte jako novou verzi s ověřeným přenosem vazeb.');
       }
       if(!registered){if(!file)throw new Error('Vyberte soubor.');setPhase('Ukládání originálu');registered=await budgetApi.registerSource(projectId,file);setSource(registered);}
-      if(abort.signal.aborted)return;
-      if(mode==='attachment'){onComplete();return;}
+      if(abort.signal.aborted)return false;
+      if(mode==='attachment'){onComplete();return true;}
       if(!editRevision){await budgetApi.sourceStatus(registered,'processing');processingStarted=true;}setPhase('Rozpoznání a validace');
       const effectiveMapping:KrosMapping=targetSheet&&document?Object.fromEntries(document.sheets.map(s=>[s.name,{headerRow:s.headerRow||undefined,columns:s.columns,role:s.role,format:s.format,object:s.object,title:s.title,...(s.name===targetSheet&&Object.hasOwn(mapping,s.name)?mapping[s.name]:{})}])):mapping;
       const blob=file??await budgetApi.download(registered);const parsed=await importInWorker(blob,abort.signal,(done,total)=>setPhase(`Rozpoznání listů ${done}/${total}`),effectiveMapping);
@@ -56,8 +56,8 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
         result=preserveUnchangedFigureResolutions(document,next);
       }else result={...parsed,origin:'import',importKey:crypto.randomUUID()};
       setDocument(result);
-      if(previous){setLinks(proposeRevisionMapping(previous.document,result));setTransfer(false);}setPhase('');
-    }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');}finally{operationLock.current=false;setBusy(false);setPhase('');}
+      if(previous){setLinks(proposeRevisionMapping(previous.document,result));setTransfer(false);}setPhase('');return true;
+    }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');return false;}finally{operationLock.current=false;setBusy(false);setPhase('');}
   };
   useEffect(()=>{
     let active=true;

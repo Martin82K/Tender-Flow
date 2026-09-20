@@ -139,9 +139,16 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       else lastItem = id;
       const priced = kind === 'K' || kind === 'M'; const quantity = (priced || kind === 'VV') ? number(mapping.quantity) : null;
       const unitPrice = priced ? number(mapping.unitPrice) : null; const rawTotal = priced ? number(mapping.total) : null;
-      const total = rawTotal === null ? null : money(rawTotal);
+      let total: string | null = null;
+      if (rawTotal !== null) {
+        try { total = money(rawTotal); decimal(total); }
+        catch { total = null; document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Cena po zaokrouhlení přesahuje limit 24 číslic.' }); }
+      }
       if (priced && (quantity === null || unitPrice === null || total === null)) document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Položka nemá úplné ocenění; prázdná hodnota není nula.' });
-      if (priced && quantity !== null && unitPrice !== null && total !== null && multiplyMoney(quantity, unitPrice) !== total) document.issues.push({ sheet: name, row: r + 1, severity: 'warning', message: 'Uložená cena se liší od množství × jednotkové ceny.' });
+      if (priced && quantity !== null && unitPrice !== null && total !== null) {
+        try { if (multiplyMoney(quantity, unitPrice) !== total) document.issues.push({ sheet: name, row: r + 1, severity: 'warning', message: 'Uložená cena se liší od množství × jednotkové ceny.' }); }
+        catch { document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Množství × jednotková cena přesahuje limit 24 číslic.' }); }
+      }
       document.nodes.push({ id, parentId, sheetId, kind, order: document.nodes.length, code: text(row[mapping.code]), description: text(row[mapping.description]), unit: text(row[mapping.unit]), quantity, unitPrice, total, source: { sheet: name, row: r + 1, cells }, sourceType: rawKind, tags: [], tenders: [] });
     }
     progress?.(sheetIndex + 1, workbook.SheetNames.length);

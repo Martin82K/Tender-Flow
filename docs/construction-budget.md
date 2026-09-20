@@ -291,3 +291,9 @@ zachoval všechny číslice. Prázdné množství při přiřazení do VŘ zname
 nepřiřazené množství, nikoli celé množství položky.
 
 Náhled má nejvýše 60 řádků na list a 200 000 buněk za celý sešit; u mnoha širokých listů ukazuje méně řádků. Chybové buňky Excelu zůstávají bez číselné hodnoty i po ruční opravě typu. Opravené mezisoučty jsou viditelné pod rozbaleným oddílem s položkami, do ceny se podruhé nezapočítávají.
+Plně přiřazená položka se při dalším hromadném rozdělení přeskočí; nulové
+množství nevytváří vazbu na další VŘ. Čísla mohou obsahovat nejvýše 24 číslic
+před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import ohlásí.
+VŘ použité v rozpočtové revizi nelze smazat, dokud existují související revize
+včetně koše; dialog uvede důvod. Historie změn uchovává původní upravené údaje
+úsporně a zůstává součástí podepsané zálohy.

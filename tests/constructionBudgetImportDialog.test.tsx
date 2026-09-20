@@ -55,6 +55,23 @@ describe('import repair workspace',()=>{
     expect(saved.document.importRepairs).toHaveLength(1);
     expect(original.document.nodes.find(n=>n.id==='sheet:0:row:4')?.parentId).toBe('sheet:0:row:2');
   });
+  it('preserves repair undo and selection when remapping fails',async()=>{
+    vi.mocked(budgetApi.download).mockRejectedValueOnce(new Error('Stažení selhalo'));
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
+    fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 4'}));
+    fireEvent.change(screen.getByLabelText('Nadřazený uzel'),{target:{value:'sheet:0:row:3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Použít opravu'}));
+    fireEvent.click(screen.getByRole('button',{name:'1 · Sloupce'}));
+    fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
+    fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Stažení selhalo');
+    expect(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'})).toBeChecked();
+    fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
+    expect(screen.getByLabelText('Nadřazený uzel')).toHaveValue('sheet:0:row:3');
+    fireEvent.click(screen.getByRole('button',{name:'Vrátit poslední opravu'}));
+    expect(screen.getByLabelText('Nadřazený uzel')).toHaveValue('sheet:0:row:2');
+  });
   it('remaps only one sheet and preserves a repair in another sheet',async()=>{
     const original=editorRevision();
     original.document.nodes.find(n=>n.id==='sheet:1:row:4')!.parentId='sheet:1:row:3';

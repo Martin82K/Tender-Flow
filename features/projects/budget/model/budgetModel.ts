@@ -1,14 +1,16 @@
 /** Decimal strings are authoritative; money is rounded per priced leaf, never per group. */
-export function decimal(value: unknown): string | null {
+export function decimal(value: unknown): string | null { return normalizeDecimal(value, 24); }
+function normalizeDecimal(value: unknown, integerDigits: number): string | null {
   if (value === null || value === undefined || value === '') return null;
   const text = String(value).trim().replace(/[\s\u00a0]/g, '').replace(',', '.');
-  if (!/^[+-]?\d+(?:\.\d{1,18})?$/.test(text) || text.length > 48) throw new Error('Neplatné desetinné číslo.');
+  if (!/^[+-]?\d+(?:\.\d{1,18})?$/.test(text) || text.length > integerDigits + 24) throw new Error('Neplatné desetinné číslo.');
   const [whole, fraction = ''] = text.replace(/^\+/, '').split('.');
+  if (BigInt(whole).toString().replace('-', '').length > integerDigits) throw new Error('Číslo smí mít nejvýše 24 číslic před desetinnou čárkou.');
   const result = `${BigInt(whole)}${fraction.replace(/0+$/, '') ? `.${fraction.replace(/0+$/, '')}` : ''}`;
   return whole.startsWith('-') && BigInt(whole) === 0n && /[1-9]/.test(fraction) ? `-${result}` : result;
 }
 const parts = (value: string): [bigint, number] => {
-  const normalized = decimal(value); if (normalized === null) throw new Error('Chybí číslo.');
+  const normalized = normalizeDecimal(value, 100); if (normalized === null) throw new Error('Chybí číslo.');
   const [whole, fraction = ''] = normalized.split('.');
   return [BigInt(whole + fraction), fraction.length];
 };
@@ -24,7 +26,8 @@ function round(value: bigint, from: number, to: number): bigint {
 }
 export function money(value: string): string { const [n, s] = parts(value); return render(round(n, s, 2), 2); }
 export function multiplyMoney(a: string, b: string): string {
-  const [an, as] = parts(a); const [bn, bs] = parts(b); return render(round(an * bn, as + bs, 2), 2);
+  const [an, as] = parts(a); const [bn, bs] = parts(b); const result = render(round(an * bn, as + bs, 2), 2);
+  decimal(result); return result;
 }
 export function sumMoney(values: Array<string | null>): string {
   return render(values.reduce((sum, value) => sum + (value === null ? 0n : BigInt(money(value).replace('.', ''))), 0n), 2);

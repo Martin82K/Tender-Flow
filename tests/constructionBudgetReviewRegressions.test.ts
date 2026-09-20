@@ -20,3 +20,28 @@ it('allocates only the exact remaining signed quantity', () => {
   expect(remainingQuantity('10', ['10'])).toBe('0');
   expect(() => remainingQuantity('10', ['11'])).toThrow();
 });
+
+it('rejects decimal and calculated amounts outside the server contract', async () => {
+  const { decimal, multiplyMoney } = await import('@features/projects/budget/model/budgetModel');
+  expect(decimal('999999999999999999999999.123456789012345678')).toBe('999999999999999999999999.123456789012345678');
+  expect(() => decimal('1000000000000000000000000')).toThrow();
+  expect(() => multiplyMoney('999999999999999999999999', '2')).toThrow();
+});
+it('skips fully assigned items instead of introducing zero-quantity category links', async () => {
+  const { createRemainingAllocations } = await import('@features/projects/budget/model/revisions');
+  const nodes = [{ id: 'full', kind: 'K', quantity: '10' }, { id: 'partial', kind: 'K', quantity: '10' }] as BudgetNode[];
+  expect(createRemainingAllocations(nodes, [{ itemId: 'full', categoryId: 'a', quantity: '10' }, { itemId: 'partial', categoryId: 'a', quantity: '4' }], new Set(['full', 'partial']), 'b')).toEqual([{ itemId: 'partial', categoryId: 'b', quantity: '6' }]);
+  expect(createRemainingAllocations(nodes, [], new Set(['full']), 'b', '0')).toEqual([]);
+});
+it('renders aggregate totals beyond the per-item input limit', async () => {
+ const { sumMoney, formatBudgetNumber } = await import('@features/projects/budget/model/budgetModel');
+ const total=sumMoney(['999999999999999999999999','1']);
+ expect(total).toBe('1000000000000000000000000.00');
+ expect(formatBudgetNumber(total,true)).toContain('1');
+});
+it('clears overflow issues when the item is corrected', async () => {
+ const { applyBudgetItemEdit }=await import('@features/projects/budget/model/revisions');
+ const node={id:'a',kind:'K',source:{sheet:'s',row:1},quantity:'2',unitPrice:'3',total:'6'} as BudgetNode;
+ const document={nodes:[node],issues:[{sheet:'s',row:1,severity:'error',message:'Množství × jednotková cena přesahuje limit 24 číslic.'}]} as import('@features/projects/budget/model/types').BudgetDocument;
+ expect(applyBudgetItemEdit(document,node).issues).toEqual([]);
+});
