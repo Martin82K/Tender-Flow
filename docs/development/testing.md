@@ -12,7 +12,41 @@
 
 Testy jsou v `tests/` a používají `*.test.ts` nebo `*.test.tsx`.
 
+## Rozsah ověření podle dopadu
+
+- Čistě vizuální změny: vizuální kontrola dotčených míst, podle relevance také
+  responzivita, fokus a čitelnost. Bez změny chování nepřidávejte behaviorální testy.
+- Změny chování: cílená regrese s důkazem RED → GREEN a související funkční průchod.
+- Pouhá dokumentace a instrukce: kontrola konzistence, odkazů a diffu; lokálně
+  není potřeba spouštět produktové testy, build ani aplikaci.
+- Oprávnění, data, importy, migrace, závislosti a build konfigurace: odpovídající
+  hlubší kontroly dotčených hranic a runtime. Smíšené změny ověřujte podle všech dopadů.
+- Desktop compile/build a Electron průchod lokálně vyžaduje relevantní dopad
+  na desktop, sdílený renderer nebo build; samotná kosmetika desktop build nevyžaduje.
+  Ověření lokálních release artefaktů tím není dotčeno.
+
+Úplná automatická sada zůstává finální CI bránou před merge včetně stávajících
+bezpečnostních a desktopových kontrol. Identickou úspěšnou kontrolu není nutné
+opakovat lokálně, pokud CI dokládá stejnou verzi. U výsledku evidujte příkaz,
+rozsah, commit (nebo pracovní diff), integrační základnu a výsledek. Úspěšné
+kontroly neopakujte bez změny relevantního kódu, konfigurace, závislostí,
+integrační základny nebo konkrétního nového zjištění. Lokálně opakujte dotčené
+kontroly; povinné CI musí být zelené pro finální revizi a příslušnou základnu.
+Chybějící důkaz nelze vydávat za úspěch.
+
+Lokálně posuzujte bezpečnost konkrétní změny; zachovejte následnou nezávislou
+PR bezpečnostní revizi. Plošný audit bez relevantní změny nebo nového zjištění
+neopakujte. Tenant isolation, ochrana tajemství, migrační a supply-chain
+pravidla v [AGENTS.md](../../AGENTS.md) zůstávají beze změny.
+
 ## Testovací pyramida
+
+Před implementací zmapujte skutečně dotčené životní cykly a vazby změny.
+Podle dopadu zvažte oprávnění a tenant isolation, opakování/idempotenci,
+zálohu a obnovu, mazání vlastníka/účtu a související datové vazby. Relevantní
+scénáře zařaďte do cíleného regresního plánu; opakující se zjištění uchovejte
+stručně v existujících testech nebo technické dokumentaci, bez soukromých dat.
+Nejde o plošný povinný checklist pro kosmetické změny.
 
 ### Čisté modelové testy
 
@@ -109,8 +143,9 @@ PDF nebo font mezi statickými `imports` a příslušné moduly musí být dynam
 
 ### Runtime smoke test aplikace
 
-Každá vývojová smyčka musí kromě automatických testů ověřit také skutečně
-spuštěnou sestavenou aplikaci. Minimální webový smoke test zahrnuje:
+Při změně runtime chování nebo build konfigurace ověřte také skutečně
+spuštěnou sestavenou aplikaci v dotčeném rozsahu. Platný průchod neopakujte
+bez důvodu uvedeného výše. Webový smoke test zahrnuje:
 
 - načtení aplikace bez prázdné stránky nebo chybového překryvu,
 - jeden smysluplný hlavní uživatelský tok a navigaci,
@@ -145,8 +180,9 @@ Pro změnu chování:
 3. doložit relevantní RED příčinu,
 4. implementovat,
 5. spustit cílený GREEN běh,
-6. spustit úplnou sadu a přečíst log,
-7. spustit sestavenou aplikaci a provést runtime smoke test.
+6. provést související funkční průchod, podle dopadu runtime smoke test,
+7. před merge ověřit úplnou CI sadu a její log pro finální revizi; platný
+   výsledek není nutné identicky opakovat lokálně.
 
 Test, který byl zelený před implementací bez dobrého důvodu, nemusí dokazovat
 požadovanou změnu.

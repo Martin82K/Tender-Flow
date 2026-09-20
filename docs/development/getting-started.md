@@ -84,13 +84,14 @@ npm run desktop:compile
 
 ## Testy a kvalita
 
-Při iteraci spusťte cílený test:
+Při změně chování spusťte cílený test:
 
 ```bash
 npm run test:run -- tests/nazev.test.ts
 ```
 
-Před předáním:
+Přehled kontrol pro výběr podle [dopadu změny](testing.md#rozsah-ověření-podle-dopadu).
+Nejde o povinný lokální běh po každé iteraci; úplnou finální sadu zajišťuje CI:
 
 ```bash
 npm run test:run
@@ -124,13 +125,22 @@ očekávané; jinak test selže.
 
 ## Doporučený postup změny
 
-1. Přečíst okolní kód a dokumentaci.
-2. Zapsat testovací plán.
-3. Přidat regresní test a zachytit RED stav.
-4. Implementovat nejmenší bezpečnou změnu.
-5. Spustit cílené a potom úplné kontroly.
+1. Přečíst okolní kód a dokumentaci, projednat a schválit konkrétní rozsah.
+   Schválení platí pro celý cyklus včetně běžných oprav a validace; nové je
+   potřeba při podstatné změně rozsahu nebo rizika.
+2. Zmapovat skutečně dotčené životní cykly a vazby a podle dopadu zapsat
+   [cílený regresní plán](testing.md#testovací-pyramida), včetně relevantních
+   scénářů oprávnění, opakování, obnovy a mazání. Opakující se zjištění uchovat
+   v existujících testech nebo technické dokumentaci; kosmetika nevyžaduje plošný checklist.
+3. Při změně chování přidat regresní test a zachytit RED stav.
+4. Implementovat nejmenší bezpečnou změnu a průběžně tvořit malé smysluplné commity.
+5. Ověřit dotčený rozsah podle dopadu a evidovat verzi výsledků; platné kontroly neopakovat.
 6. Aktualizovat dokumentaci a známá omezení.
-7. Vytvořit PR, ověřit celý CI log a review vlákna.
+7. Použít jeden PR pro jeden soudržný, přezkoumatelný výsledek včetně souvisejících
+   UI úprav a testů. Připomínky řešit dalšími commity v témže otevřeném PR.
+   Nesouvisející práci a samostatně nasaditelné rizikové zásahy oddělit, nevytvářet
+   obří balíky. Ověřit úplnou finální CI sadu, její log, nezávislou bezpečnostní
+   revizi a review vlákna.
 8. Sloučit až při čistém výsledku.
 
 ## Legacy freeze

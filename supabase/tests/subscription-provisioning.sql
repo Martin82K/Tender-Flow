@@ -10,11 +10,11 @@ BEGIN
   FOREACH test_email IN ARRAY ARRAY['subscription-test-'||u||'@gmail.com','test@subscription-'||u||'.invalid'] LOOP
     DELETE FROM public.organization_members WHERE user_id=u;
     org_id := public.get_or_create_user_organization_internal(u,test_email,'Subscription regression fixture');
-    IF NOT EXISTS(SELECT 1 FROM public.organizations WHERE id=org_id AND subscription_tier='free' AND subscription_status='expired') THEN
-      RAISE EXCEPTION 'New organizations must start without an active subscription';
+    IF NOT EXISTS(SELECT 1 FROM public.organizations WHERE id=org_id AND subscription_tier='enterprise' AND subscription_status='trial') THEN
+      RAISE EXCEPTION 'New organizations must start with a 14-day Enterprise trial';
     END IF;
-    IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN
-      RAISE EXCEPTION 'Provisioning must not grant application access';
+    IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'enterprise' THEN
+      RAISE EXCEPTION 'Provisioning must grant trial application access';
     END IF;
   END LOOP;
 END;

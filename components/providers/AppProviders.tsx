@@ -53,7 +53,9 @@ export const AppEntry: React.FC = () => {
   const { isDesktop } = useDesktop();
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
 
-  if (pathname === "/s" || pathname.startsWith("/s/")) {
+  // Recovery establishes a session before updating the password. Keep the
+  // public form mounted across that transition, including for expired plans.
+  if (pathname === "/reset-password" || pathname === "/s" || pathname.startsWith("/s/")) {
     return <PublicEntry><AuthGate pathname={pathname} search={search} isDesktop={isDesktop} /></PublicEntry>;
   }
 

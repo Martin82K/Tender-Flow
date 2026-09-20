@@ -124,7 +124,7 @@ export function BudgetTable(props: Props) {
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind==='subtotal'?'Mezisoučet':n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
-          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]});}}>{value}</div>;
+          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{value}</div>;
         })}
       </div>;})}
       </div>
@@ -149,7 +149,12 @@ export function BudgetTable(props: Props) {
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
         <div className="flex gap-2"><label>Množství<input disabled={busy||!editable||!isPriced(detail)} value={detail.quantity??''} onChange={e=>setDetail({...detail,quantity:e.target.value})}/></label>{canPrices&&<label>Jednotková cena<input disabled={busy||!editable||!isPriced(detail)} value={detail.unitPrice??''} onChange={e=>setDetail({...detail,unitPrice:e.target.value})}/></label>}</div>
-        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=><div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description)&&<button type="button" onClick={()=>{try{const result=evaluateQuantityExpression(n.description,props.figures||{});setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}catch(e){setEditError(e instanceof Error?e.message:'Výraz nelze přepočítat.');}}}>Přepočítat výraz a připravit množství</button>}</div>)}
+        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=>{
+          const canRecalculate=editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description);
+          let result:string|undefined;let reason='';
+          if(canRecalculate){try{result=evaluateQuantityExpression(n.description,props.figures||{});}catch(error){reason=error instanceof Error?error.message:'Výraz nelze přepočítat.';}}
+          return <div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{canRecalculate&&<><button type="button" disabled={busy||result===undefined} onClick={()=>{if(result===undefined)return;setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}}>Přepočítat výraz a připravit množství</button>{reason&&<p>Přepočet není dostupný: {reason}</p>}</>}</div>;
+        })}
         {editError&&<p role="alert">{editError}</p>}{editable&&isPriced(detail)&&<button disabled={busy} type="submit">{busy?'Ukládání…':'Uložit změnu'}</button>}
       </form>
     </Modal>}

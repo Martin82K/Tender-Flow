@@ -72,6 +72,8 @@ vi.mock("@/context/FeatureContext", () => ({
     currentPlan: mockState.currentPlan,
     isLoading: mockState.featuresLoading,
     hasFeature: (feature: string) => !mockState.disabledFeatures.includes(feature),
+    planStatus: null,
+    planExpiresAt: null,
   }),
 }));
 

@@ -113,3 +113,11 @@ describe("ProjectLayout mobile select", () => {
     expect(screen.queryByText("Přepnout na klasický skin")).not.toBeInTheDocument();
   });
 });
+it('redirects a demo budget deep link before mounting the RPC-backed component', async () => {
+ const {startDemoSession,endDemoSession}=await import('@/services/demoData');const onTabChange=vi.fn();startDemoSession();
+ try {
+  render(<ProjectLayout projectId="p-1" projectDetails={{title:'Demo',location:'',finishDate:'',siteManager:''}} onUpdateDetails={()=>undefined} onAddCategory={()=>undefined} activeTab="budget" onTabChange={onTabChange} contacts={[]} statuses={[]} onUpdateContact={()=>undefined}/>);
+  expect(screen.queryByText('Dotaz:')).not.toBeInTheDocument();
+  expect(onTabChange).toHaveBeenCalledWith('overview');
+ } finally {endDemoSession();}
+});

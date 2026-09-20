@@ -31,7 +31,7 @@ import type { ThemeSkin } from "@/shared/types/theme";
 import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings";
 import { projectService } from "@/services/projectService";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
-import { PROJECT_NAVIGATION } from "@features/projects/model/projectNavigation";
+import { projectNavigationForSession } from "@features/projects/model/projectNavigation";
 import { ConstructionBudget } from "@features/projects/budget/ui/ConstructionBudget";
 // --- Main Layout Component ---
 
@@ -121,7 +121,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     });
   }, [project, onUpdateDetails]);
 
-  const allTabs = PROJECT_NAVIGATION;
+  const allTabs = projectNavigationForSession();
 
   const visibleTabs = useMemo(
     () => allTabs.filter((tab) => !tab.feature || hasFeature(tab.feature)),
@@ -207,7 +207,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             skin={skin}
           />
         )}
-        {activeTab === "budget" && <ConstructionBudget searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
+        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <ConstructionBudget searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
         {activeTab === "tender-plan" && (
           <TenderPlan
             projectId={projectId}

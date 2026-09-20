@@ -189,3 +189,56 @@ položek a ochranu VŘ; `construction_budget_backup_delete.sql` obnovu této his
 Migrace kompaktní historie byla nasazená; postflight ověřil sloupec, trigger,
 odebraná klientská práva helperu a původní počty 2 zdrojů / 2 revizí.
 Závěrečný dry-run: databáze aktuální. Nové advisors nálezy nepřibyly.
+
+Migrace `20260920110007_backup_budget_catalog_without_projects.sql` přesouvá
+katalog z opakovaných projektových snapshotů do jednoho podepsaného pole
+`construction_budget_catalog`. Funguje i pro organizaci bez projektů/zdrojů.
+Starší projektové payloady zůstávají obnovitelné. Nový payload ověřuje typ,
+organizaci a podpis; nové položky může obnovit pouze aktivní správce/vlastník.
+Existující položky se nepřepisují. `construction_budget_catalog_backup.sql`
+ověřuje export bez projektů, počet obnovených položek, idempotenci, podvrh a
+cizího aktéra; regresní testy používejte pouze na izolované lokální databázi.
+Migrace katalogu je nasazená; postflight potvrdil privátní helpery bez
+klientského přístupu a zachování 2 zdrojů / 2 revizí. Závěrečný dry-run:
+databáze aktuální. Produkční katalog nebyl testy měněn;
+obnovovací regrese proběhly výhradně lokálně.
+
+Migrace `20260920111929_validate_budget_source_row.sql` vyžaduje `source.row`
+jako JSON číslo s nezápornou celočíselnou hodnotou do 2147483647. Nula zůstává
+platná pro syntetické uzly. Objekt, řetězec, chybějící hodnota, záporné nebo
+zlomkové číslo jsou odmítnuty před uložením; nelze tak poškodit detail položky
+objektem místo čísla. Lokální shape regrese, velký dokument a obnova prošly.
+Read-only preflight nenalezl v existujících produkčních revizích neplatný řádek.
+Migrace zdrojového řádku je nasazená. Postflight potvrdil aktivní kontrolu,
+odebraný anonymní přístup a zachované 2 zdroje / 2 revize; advisors beze změny,
+závěrečný dry-run hlásí aktuální databázi.
+
+Migrace `20260920113812_preserve_budget_authors_on_account_delete.sql` odděluje
+historickou identitu autora od vlastnictví projektu: odkazy na smazaného autora
+se anonymizují (SET NULL), rozpočty/historie/purge joby zůstávají. Jednorázová
+oprávnění k obnově souboru se odstraní (CASCADE). Zámek purge dovoluje pouze
+anonymizaci těchto auditních polí, nikoli změnu obsahu. Obnova staré zálohy
+nepřipisuje práci smazaného autora uživateli, který ji obnovuje.
+
+Migrace `20260920113933_reconcile_reimported_budget_backup_sources.sql` při
+obnově sjednotí zdroj se stejným projektem a SHA-256, přemapuje pouze obnovované
+revize a vrátí klientovi mapu původního/aktuálního UUID. Klient používá tuto mapu
+pro Storage a ověřuje obsah hashem; existující originál nepřepisuje. Rozpracované
+mazání nebo jiný shodný zdroj v koši vyžaduje nejprve dokončení této operace.
+Starší klient bez podpory mapy může v tomto okrajovém případě obnovit metadata,
+ale pro dokončení souborové části potřebuje aktualizaci a opakování zálohy.
+
+Před nasazením byly všechny migrační soubory aplikovány od čistého lokálního
+schématu. Všech 14 SQL scénářů prošlo; nové regrese pokrývají mazání autora,
+obnovu jeho staré podepsané zálohy, dokončení purge jiným oprávněným uživatelem,
+reimport stejného XLSX, zachování současné revize a idempotenci obnovy.
+
+Nasazení 2026-09-20: obě výše uvedené migrace `20260920113812` a `20260920113933` byly nasazeny verzovaným `supabase db push`. Následný dry-run hlásí aktuální databázi. Katalog potvrzuje šest validovaných vazeb autorů `ON DELETE SET NULL` a jednu vazbu dočasného oprávnění `ON DELETE CASCADE`; pomocná funkce mapování zdrojů není spustitelná pro `anon` ani `authenticated`. Počty zdrojů a revizí zůstaly 2/2. Bezpečnostní advisor nepřidal nálezy; dosavadní upozornění na úrovni celého projektu trvají. Produkční testovací zápisy nebyly provedeny.
+
+### Oddělení projektového purge a chronologie převodů
+
+Migrace `20260920121018_guard_budget_purge_and_conversion_dates.sql` odmítá projektové úlohy v obou běžných purge RPC a nezobrazuje je mezi úlohami koše. Projektové oprávnění a dokončovací RPC zůstávají povinné. Trigger data převodu rozšiřuje přes minimum/maximum, takže podepsaná obnova v pořadí UUID nebo doplnění starší revize nevrací poslední převod do minulosti. Zahrnuje cílený přepočet rozsahu z existujících importních revizí, vynechává zamčené zdroje a zachovává dříve uložené krajní časy. Kopie revizí se do časů převodu nezapočítávají.
+
+Ověření: všechny 15 SQL regresní soubory na izolovaném PostgreSQL prošly; nové RED/GREEN pro záměnu purge, doplnění starší revize a úplnou obnovu s opačným pořadím dat. UI regrese 15/15, typecheck a web build prošly. Prohlížeč skutečně zobrazuje zakázaný přepočet s chybějící figurou a vysvětlení. Read-only produkční preflight našel 0 rozpracovaných purge úloh a 0 zdrojů vyžadujících opravu časů.
+
+Nasazeno 2026-09-20 verzovaným CLI push; postflight potvrzuje všechny tři purge guardy a monotónní trigger, zdroje/revize 2/2. Závěrečný dry-run hlásí aktuální databázi a advisors mají stejné nálezy jako před nasazením. Žádné produkční testovací zápisy.

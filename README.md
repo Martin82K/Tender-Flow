@@ -21,7 +21,8 @@ npm install
 npm run dev
 ```
 
-Ověření změn:
+Přehled kontrol (lokálně vybírejte podle [dopadu změny](docs/development/testing.md#rozsah-ověření-podle-dopadu);
+úplná sada zůstává finální CI bránou, bez povinného identického lokálního opakování):
 
 ```bash
 npm run test:run

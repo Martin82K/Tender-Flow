@@ -297,3 +297,15 @@ před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import 
 VŘ použité v rozpočtové revizi nelze smazat, dokud existují související revize
 včetně koše; dialog uvede důvod. Historie změn uchovává původní upravené údaje
 úsporně a zůstává součástí podepsané zálohy.
+
+Demo režim záložku Rozpočet skrývá; přímý odkaz vrátí uživatele na přehled.
+Kontextový filtr podle hodnoty je dostupný pouze na oceněných položkách K/M.
+Firemní číselník se zálohuje samostatně i bez importovaných rozpočtů; obnova
+chybějících položek vyžaduje správce organizace a platný podpis původní zálohy.
+
+Přenos vazeb ze starší revize s alokacemi vyžaduje oprávnění přiřazovat položky
+do VŘ; bez něj je volba zakázaná s vysvětlením. Smazání účtu autora ponechá
+rozpočty a historii, pouze odstraní jeho identitu. Obnova po novém importu
+stejného souboru zachová aktuální zdroj i revize a doplní chybějící staré revize.
+
+Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřešenou figuru nebo jinou chybu; důvod je zobrazen pod tlačítkem. Po vyřešení figury lze výsledek připravit a samostatně potvrdit uložením položky. Rozpracované mazání celého projektu se dokončuje opakováním mazání projektu, nikoli vysypáním koše rozpočtu. Obnova starších importních revizí zachovává nejstarší a nejnovější datum převodu bez závislosti na pořadí revizí v záloze.
