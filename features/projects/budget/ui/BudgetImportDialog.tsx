@@ -8,7 +8,7 @@ import type { BudgetDocument, BudgetRevision, BudgetSource } from '../model/type
 import type { KrosMapping } from '../model/krosImport';
 import { BudgetImportEditor } from './BudgetImportEditor';
 import { BudgetFigureConflicts } from './BudgetFigureConflicts';
-import { getPendingImportIssues } from '../model/figureConflicts';
+import { getPendingImportIssues, preserveUnchangedFigureResolutions } from '../model/figureConflicts';
 import { normalizeSearch } from '../model/budgetModel';
 import { compareRevisions, proposeRevisionMapping, transferRevisionLinks, validateRevisionAllocations } from '../model/revisions';
 interface Props { editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision)=>void }
@@ -52,7 +52,7 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
         const objects=new Map([...parsed.nodes,...document.nodes].filter(n=>n.kind==='object').map(n=>[n.id,n]));
         const sheets=document.sheets.map(s=>s.name===targetSheet?{...replacement,selected:replacement.role==='items'&&(s.role==='items'?s.selected:replacement.selected)}:s);
         const next={...document,sheets,nodes:[...objects.values(),...sheets.flatMap(s=>(s.name===targetSheet?parsed:document).nodes.filter(n=>n.sheetId===s.id&&n.kind!=='object'))],issues:[...document.issues.filter(i=>i.sheet!==targetSheet&&i.kind!=='ambiguous-figures'),...parsed.issues.filter(i=>i.sheet===targetSheet||i.kind==='ambiguous-figures')],figures:parsed.figures,figureResolutions:undefined,importRepairs:document.importRepairs?.filter(r=>!affected.has(r.nodeId))};
-        setDocument(next);
+        setDocument(preserveUnchangedFigureResolutions(document,next));
       }else setDocument({...parsed,origin:'import',importKey:crypto.randomUUID()});
       if(previous){setLinks(proposeRevisionMapping(previous.document,parsed));setTransfer(false);}setPhase('');
     }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');}finally{operationLock.current=false;setBusy(false);setPhase('');}

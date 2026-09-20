@@ -125,6 +125,27 @@ describe('import repair workspace',()=>{
     await waitFor(()=>expect(importInWorker).toHaveBeenCalledTimes(2));
     expect(vi.mocked(importInWorker).mock.calls[1][3]?.Elektro.headerRow).toBe(1);
   });
+  it.each([
+    {origin:'source' as const,value:'2',values:['2','3'],keep:true},
+    {origin:'custom' as const,value:'7',values:['2','3'],keep:true},
+    {origin:'source' as const,value:'2',values:['2','4'],keep:false},
+  ])('revalidates $origin figure decisions after a scoped remap ($keep)',async({origin,value,values,keep})=>{
+    const original=editorRevision();
+    const conflict={sheet:'Figury',row:2,severity:'warning' as const,kind:'ambiguous-figures' as const,message:'Konflikt',figures:[{code:'F1',values:['2','3']}]};
+    original.document.issues.push(conflict);original.document.figures.F1=value;original.document.figureResolutions={F1:{origin,value}};
+    const parsed=editorDocument();parsed.issues.push({...conflict,figures:[{code:'F1',values}]});
+    vi.mocked(importInWorker).mockResolvedValue(parsed);
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
+    fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
+    await waitFor(()=>expect(importInWorker).toHaveBeenCalledOnce());
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Uložit a zavřít'})).toBeEnabled());
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0].document;
+    expect(saved.figures.F1).toBe(keep?value:undefined);
+    expect(saved.figureResolutions?.F1).toEqual(keep?{origin,value}:undefined);
+  });
 });
 
 describe('budget import dialog', () => {

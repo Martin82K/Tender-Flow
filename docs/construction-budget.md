@@ -137,6 +137,8 @@ ostatní importované řádky jsou dostupné ve Struktuře po 100 řádcích. Ú
 lze mapovat mimo AU (číslování od 0). Volba podle profilu zachovává AU pro KROS a
 ploché oddíly Globus. KROS bez platné úrovně nebo se skokem přes chybějícího rodiče
 vytvoří návrh zařazení s blokující chybou, nikoli potvrzenou hierarchii.
+I chybný návrh zůstává omezený na úrovně 0–32; extrémní hodnoty zdroje nesmějí
+vytvořit neomezeně hluboký strom. Globus nepoužívá AU bez výslovného mapování.
 
 Ve Struktuře vyberte řádek, jeho typ a konkrétního rodiče s úplnou cestou. Náhled
 ukáže dotčené řádky a jejich cenu. Můžete přesunout celý podstrom nebo pouze vybraný
@@ -154,6 +156,9 @@ je tento souhlas vyžadován vždy, protože načtení originálu nahradí také
 úpravy cen a množství daného listu. Existující alokace
 nebo štítky brání přemapování daného listu v téže verzi: použijte novou verzi a ověřený
 přenos vazeb. Opravy se nikdy automaticky nepřenášejí na další soubor.
+Rozpracované změny mapování jiného listu se nepoužijí. Vyřešené konflikty figur
+se při přemapování jednoho listu zachovají, pokud se nezměnila množina nalezených
+hodnot; při změně hodnot vyžadují nové rozhodnutí.
 
 Originální XLSX je neměnný, vzorce se nespouštějí a všechny jeho texty se vykreslují
 jako text. Limity archivu a odmítání maker či externích vazeb zůstávají zachované.

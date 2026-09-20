@@ -132,7 +132,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         if ((!globus && explicit === null) || (globus && depthColumn !== undefined && depthColumn !== -1 && explicit === null) || depth > sections.length || depth > 32) {
           document.issues.push({sheet:name,row:r+1,severity:'error',kind:'hierarchy',message:explicit===null?'Nadřazený oddíl je pouze návrh; ve zdroji chybí platná úroveň. Ověřte jej v editoru struktury.':'Úroveň přeskakuje chybějící nadřazený oddíl nebo překračuje limit 32. Opravte rodiče.'});
         }
-        sections.length = Math.min(depth, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
+        sections.length = Math.min(depth, 32, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
       } else if (kind === 'VV' || kind === 'note') parentId = lastItem || parentId;
       else lastItem = id;
       const priced = kind === 'K' || kind === 'M'; const quantity = (priced || kind === 'VV') ? number(mapping.quantity) : null;

@@ -36,6 +36,20 @@ describe('import repair', () => {
     const doc = parseKrosWorkbook(book, undefined, { Soupis: { columns: { depth: 7 } } });
     expect(doc.issues).toContainEqual(expect.objectContaining({ kind: 'hierarchy', row: 4, severity: 'error' }));
   });
+  it('bounds the proposed tree even when a workbook contains growing invalid depths',()=>{
+    const book=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([
+      ['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','Úroveň'],
+      ...Array.from({length:100},(_,depth)=>['D',String(depth),'Oddíl','',null,null,null,depth]),
+      ['K','item','Položka','m',1,1,1],
+    ]),'Deep');
+    const doc=parseKrosWorkbook(book,undefined,{Deep:{columns:{depth:7}}});
+    const depths=new Map<string,number>();
+    for(const node of doc.nodes)depths.set(node.id,node.kind==='section'?(depths.get(node.parentId??'')??0)+1:(depths.get(node.parentId??'')??0));
+    expect(Math.max(...depths.values())).toBeLessThanOrEqual(33);
+    expect(doc.issues.filter(i=>i.kind==='hierarchy')).toHaveLength(67);
+    expect(aggregateBudget(doc.nodes).total).toBe('1.00');
+  });
   it('previews only the selected subtree and preserves source, totals and the next section', () => {
     const doc = parseKrosWorkbook(repairFixture());
     const change = { nodeId: 'sheet:0:row:4', parentId: 'sheet:0:row:3', kind: 'section' as const, scope: 'subtree' as const };
