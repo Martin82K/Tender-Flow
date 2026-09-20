@@ -15,7 +15,7 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  CREATE TABLE organization_members(organization_id uuid,user_id uuid,is_active boolean,professional_role text DEFAULT 'estimator');
  CREATE TABLE organization_role_permissions(organization_id uuid,role_key text,permission_key text,access_level text);
  CREATE FUNCTION private.budget_access(text,text) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT COALESCE(current_setting(''test.budget'',true),'''')<>''no''';
- CREATE TABLE demand_categories(id text PRIMARY KEY,project_id text);
+ CREATE TABLE demand_categories(id text PRIMARY KEY,project_id text,UNIQUE(id,project_id));
  CREATE TABLE construction_budget_revisions(id uuid,project_id text,version integer,deleted_at timestamptz);
  INSERT INTO construction_budget_revisions VALUES('00000000-0000-0000-0000-000000000090','own',1,NULL);
  CREATE FUNCTION public.can_project_module_action(text,text,boolean) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT $1 = current_setting(''test.project'',true) AND (NOT $3 OR current_setting(''test.edit'',true)=''yes'')';
@@ -109,6 +109,8 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  await assert.rejects(()=>db.query('SELECT private.budget_backup_restore($1,$2,$3)',[tampered,manifest.organization_id,'user']),/signature/);
  await db.exec(`RESET ROLE; DELETE FROM auth.users;`);
  assert.equal((await db.query('SELECT created_by FROM public.offer_comparison_views')).rows[0].created_by,null);
+ await db.exec(`DELETE FROM demand_categories WHERE id='tender'`);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,1);
  await db.exec(`DELETE FROM projects WHERE id='own'`);
  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,0);
  } finally { await db.close(); }

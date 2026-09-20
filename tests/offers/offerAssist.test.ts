@@ -12,3 +12,8 @@ it('sends no prices and rejects IDs outside supplied candidates',async()=>{
 it('does not call paid AI if no candidates exist',async()=>{
  invoke.mockClear();expect(await suggestOfferMatches('p',[item],[],[{baseId:'a',offerId:null,status:'unmatched'}])).toEqual([]);expect(invoke).not.toHaveBeenCalled();
 });
+it('generates candidate proposals for inquiry rows omitted from MCP assignments',async()=>{
+ invoke.mockClear();invoke.mockResolvedValue({text:JSON.stringify({suggestions:[{baseId:'a',offerId:'b',reason:'Stejná položka'}]}),complete:true,runId:'run'});
+ const result=await suggestOfferMatches('p',[item],[{...item,id:'b'}],[]);
+ expect(invoke).toHaveBeenCalledTimes(1);expect(result[0].offerId).toBe('b');
+});

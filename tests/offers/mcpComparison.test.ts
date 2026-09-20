@@ -28,3 +28,11 @@ it.each(['tf_list_offer_comparisons','tf_match_offer_items','tf_save_offer_compa
  expect(schema.safeParse('x'.repeat(1024*1024)).success).toBe(false);
  expect(schema.safeParse('project-123').success).toBe(true);
 });
+it('normalizes Czech decimals before the database without changing source input',async()=>{
+ const {handlers,rpc}=setup();
+ const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1,5',unitPrice:'1 000,20',total:'1 500,30',group:'',source:{sheet:'S',row:2}};
+ const sources=[{id:'base',origin:'mcp',name:'Poptávka',sha256:'a'.repeat(64),items:[item],notes:[]},{id:'offer',origin:'mcp',name:'Nabídka',sha256:'b'.repeat(64),items:[{...item,id:'b'}],notes:[]}];
+ await handlers.get('tf_save_offer_comparison')!({projectId:'own',requestId:'00000000-0000-4000-8000-000000000001',title:'Test',expectedVersion:0,sources,assignments:{offer:[{baseId:'a',offerId:'b',status:'matched'}]}});
+ expect(rpc.mock.calls[0][1].document_input.sources[0].items[0]).toMatchObject({quantity:'1.5',unitPrice:'1000.20',total:'1500.30'});
+ expect(item.quantity).toBe('1,5');expect(item.total).toBe('1 500,30');
+});

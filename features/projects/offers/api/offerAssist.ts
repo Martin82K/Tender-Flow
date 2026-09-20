@@ -1,5 +1,6 @@
 import { dbAdapter } from '@infra/db/dbAdapter';
 import { invokeAuthedFunction } from '@infra/functions/functionsClient';
+import { matchOfferItems } from '@shared/offers/comparison.js';
 import type { OfferAssignment, OfferItem } from '@shared/offers/comparison.js';
 export interface AiSuggestion {
     baseId: string;
@@ -8,8 +9,15 @@ export interface AiSuggestion {
     runId: string;
 }
 export async function suggestOfferMatches(projectId: string, base: OfferItem[], offers: OfferItem[], assignments: OfferAssignment[]): Promise<AiSuggestion[]> {
-    const unresolved = assignments.filter(a => !a.offerId).slice(0, 20);
-    const data = unresolved.map(a => ({ base: base.find(b => b.id === a.baseId), candidates: offers.filter(o => a.candidates?.includes(o.id)).slice(0, 5) }));
+    const links = new Map(assignments.map(link => [link.baseId, link]));
+    const used = new Set(assignments.map(link => link.offerId).filter(Boolean));
+    const unresolved = base.filter(row => !links.get(row.id)?.offerId).slice(0, 20);
+    const available = offers.filter(row => !used.has(row.id));
+    const derived = new Map(matchOfferItems(unresolved, available).map(link => [link.baseId, link]));
+    const data = unresolved.map(row => {
+        const ids = new Set([...(links.get(row.id)?.candidates || []), ...(derived.get(row.id)?.candidates || [])]);
+        return { base: row, candidates: available.filter(offer => ids.has(offer.id)).slice(0, 5) };
+    });
     if (!data.some(r => r.candidates.length))
         return [];
     // Prices are unnecessary for identity matching and deliberately omitted.

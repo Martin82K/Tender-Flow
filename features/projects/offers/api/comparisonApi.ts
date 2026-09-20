@@ -1,5 +1,5 @@
 import { dbAdapter } from '@infra/db/dbAdapter';
-import { validateAssignments } from '@shared/offers/comparison.js';
+import { validateAssignments, normalizeOfferItems } from '@shared/offers/comparison.js';
 import type { ComparisonDocument, SavedComparison } from '../model/types';
 const unwrap = <T>(r: {
     data: unknown;
@@ -36,6 +36,6 @@ export const comparisonApi = {
     },
     async save(projectId: string, categoryId: string | null, title: string, document: ComparisonDocument, requestId: string, saved?: SavedComparison): Promise<SavedComparison> {
         validateComparison(document);
-        return unwrap(await dbAdapter.rpc('offer_comparison_save', { project_input: projectId, category_input: categoryId, title_input: title, document_input: document, request_input: requestId, id_input: saved?.id ?? null, version_input: saved?.version ?? 0 }));
+        return unwrap(await dbAdapter.rpc('offer_comparison_save', { project_input: projectId, category_input: categoryId, title_input: title, document_input: { ...document, sources: document.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })) }, request_input: requestId, id_input: saved?.id ?? null, version_input: saved?.version ?? 0 }));
     },
 };

@@ -38,6 +38,12 @@ export function validateItems(items) {
     if (!item.source || typeof item.source.sheet !== 'string' || item.source.sheet.length > 255 || !Number.isInteger(item.source.row) || item.source.row < 1) throw new Error('Chybí odkaz na zdrojový řádek.');
   }
 }
+/** @param {OfferItem[]} items @returns {OfferItem[]} */
+export function normalizeOfferItems(items) {
+  validateItems(items);
+  const canonical = value => value === null || value === undefined || value === '' ? null : String(value).replace(/[\s\u00a0]/g, '').replace(',', '.');
+  return items.map(item => ({ ...item, quantity: canonical(item.quantity), unitPrice: canonical(item.unitPrice), total: canonical(item.total) }));
+}
 /** @param {OfferItem[]} base @param {OfferItem[]} offers @returns {OfferAssignment[]} */
 export function matchOfferItems(base, offers) {
   validateItems(base); validateItems(offers);

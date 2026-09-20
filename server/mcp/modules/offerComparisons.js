@@ -1,5 +1,5 @@
 import * as z from 'zod/v4';
-import { matchOfferItems, compareOffer, validateAssignments } from '../../../shared/offers/comparison.js';
+import { matchOfferItems, compareOffer, validateAssignments, normalizeOfferItems } from '../../../shared/offers/comparison.js';
 import { toolResultSchema } from '../core/schemas.js';
 const decimal = z.string().max(40).nullable();
 const item = z.object({ id: z.string().min(1).max(200), code: z.string().max(4000), description: z.string().max(4000), unit: z.string().max(100), quantity: decimal, unitPrice: decimal, total: decimal, group: z.string().max(4000), source: z.object({ sheet: z.string().max(255), row: z.number().int().positive() }), note: z.string().max(4000).optional() });
@@ -22,7 +22,7 @@ export function registerOfferComparisonsModule({ supabase, tools, includeWriteTo
       const deterministic = new Map(matchOfferItems(args.sources[0].items, offer.items).map(a => [a.baseId, a.offerId]));
       if (links.some(a => a.status === 'matched' && deterministic.get(a.baseId) !== a.offerId)) throw new Error('Unverified automatic match. Keep it marked for review.');
     }
-    const result = unwrap(await supabase.rpc('offer_comparison_save', { project_input: args.projectId, category_input: args.categoryId || null, id_input: args.id || null, version_input: args.expectedVersion, request_input: args.requestId, title_input: args.title, document_input: { schemaVersion: 1, sources: args.sources, assignments: args.assignments } }));
+    const result = unwrap(await supabase.rpc('offer_comparison_save', { project_input: args.projectId, category_input: args.categoryId || null, id_input: args.id || null, version_input: args.expectedVersion, request_input: args.requestId, title_input: args.title, document_input: { schemaVersion: 1, sources: args.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })), assignments: args.assignments } }));
     return { ok: true, data: { id: result.id, version: result.version, processing: 'external-mcp', externalAiCost: 'outside-tf' } };
   }, { action: 'execute_write', riskLevel: 'medium' });
 }

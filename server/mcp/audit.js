@@ -49,7 +49,7 @@ export const redactForAudit = (value, depth = 0) => {
   return { redacted: true, reason: 'payload_too_large', length: text.length };
 };
 
-export const summarizeResultForAudit = (result) => {
+export const summarizeResultForAudit = (result, toolName = '') => {
   const ok = typeof result?.ok === 'boolean' ? result.ok : undefined;
   const error = typeof result?.error === 'string' ? result.error : undefined;
   const data = result?.data;
@@ -59,8 +59,8 @@ export const summarizeResultForAudit = (result) => {
       error,
       status: data.status,
       proposalId: data.proposalId,
-      entityType: data.task ? 'task' : data.bid ? 'bid' : undefined,
-      entityId: data.task?.id || data.bid?.bidId,
+      entityType: toolName === 'tf_save_offer_comparison' ? 'offer_comparison' : data.task ? 'task' : data.bid ? 'bid' : undefined,
+      entityId: toolName === 'tf_save_offer_comparison' ? data.id : data.task?.id || data.bid?.bidId,
       resultKeys: Object.keys(data).slice(0, MAX_OBJECT_KEYS),
     });
   }

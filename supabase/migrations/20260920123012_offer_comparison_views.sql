@@ -11,9 +11,11 @@ CREATE TABLE public.offer_comparison_views (
  request_id uuid NOT NULL,
  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
- UNIQUE(project_id,request_id)
+ UNIQUE(project_id,request_id),
+ FOREIGN KEY(category_id,project_id) REFERENCES public.demand_categories(id,project_id) ON DELETE CASCADE
 );
 CREATE INDEX offer_comparison_project_idx ON public.offer_comparison_views(project_id,updated_at DESC);
+CREATE INDEX offer_comparison_category_idx ON public.offer_comparison_views(category_id,project_id);
 CREATE INDEX offer_comparison_org_idx ON public.offer_comparison_views(organization_id);
 CREATE INDEX offer_comparison_actor_idx ON public.offer_comparison_views(created_by);
 ALTER TABLE public.offer_comparison_views ENABLE ROW LEVEL SECURITY;

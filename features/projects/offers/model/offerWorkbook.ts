@@ -58,7 +58,7 @@ export function extractOfferItems(workbook: XLSX.WorkBook, mappings: OfferSheetM
       if (text('group')) group = text('group');
       const quantityRaw = get('quantity');
       if (!description && !code && quantityRaw === null) continue;
-      if (!unit && (quantityRaw === null || quantityRaw === '')) {
+      if (!code && !unit && (quantityRaw === null || quantityRaw === '') && get('unitPrice') === null && get('total') === null) {
         if (notes.length >= 10000) throw new Error('Příliš mnoho poznámek ve zdroji.');
         if (description) notes.push(`${mapping.sheet}:${r + 1} — ${description}${text('note') ? ' — ' + text('note') : ''}${get('total') !== null ? ' — souhrn: ' + text('total') : ''}`);
         if (description && !unit && quantityRaw === null) group = description;

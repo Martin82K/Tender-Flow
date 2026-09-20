@@ -25,3 +25,7 @@ it('preserves formatted item codes and incomplete quantities as item evidence', 
  const result=extractOfferItems(parsed.workbook,parsed.mappings);
  expect(result.items[0]).toMatchObject({code:'0001',quantity:null,total:'100'});
 });
+it('keeps lump-sum rows without unit and quantity as incomplete items',()=>{
+ const result=parse([['Kód','Popis','MJ','Množství','Celkem'],['P01','Paušální doprava',null,null,2500]]);
+ expect(result.items[0]).toMatchObject({code:'P01',description:'Paušální doprava',unit:'',quantity:null,total:'2500'});
+});
