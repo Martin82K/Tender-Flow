@@ -4,7 +4,7 @@ import { aggregateBudget, budgetRecapTree } from '../model/budgetTree';
 import { formatBudgetNumber, normalizeSearch } from '../model/budgetModel';
 import type { BudgetNode } from '../model/types';
 
-export function BudgetRecap({nodes,onJump,prices,activeId}:{nodes:BudgetNode[];onJump:(n:BudgetNode)=>void;prices:boolean;activeId?:string}) {
+export function BudgetRecap({nodes,onJump,prices,activeId,prominentTotal=true}:{nodes:BudgetNode[];onJump:(n:BudgetNode)=>void;prices:boolean;activeId?:string;prominentTotal?:boolean}) {
   const [search,setSearch]=useState('');
   const [collapsed,setCollapsed]=useState(new Set<string>());
   const [searchCollapsed,setSearchCollapsed]=useState(new Set<string>());
@@ -88,10 +88,10 @@ export function BudgetRecap({nodes,onJump,prices,activeId}:{nodes:BudgetNode[];o
     event.preventDefault();openMenu(event.clientX,event.clientY);
   }}>
     <h3>Rekapitulace</h3>
-    {prices?<section aria-label="Cena celkem" className="tf-budget-recap-total">
+    {prices&&prominentTotal?<section aria-label="Cena celkem" className="tf-budget-recap-total">
       <div><h4>Cena celkem</h4><p className="tf-budget-muted">Celý rozpočet · bez DPH</p></div>
       <strong>{formatBudgetNumber(totals.total,true)} Kč</strong>
-    </section>:<p className="tf-budget-muted">Celý rozpočet</p>}
+    </section>:<p className="tf-budget-muted">Celý rozpočet{prices?` · ${formatBudgetNumber(totals.total,true)} Kč`:''}</p>}
     {prices&&totals.incomplete&&<p role="status" className="tf-budget-incomplete">Neúplný součet. Některým položkám chybí cena.</p>}
     <input aria-label="Hledat oddíl" placeholder="Objekt, soupis nebo oddíl…" value={search} onChange={event=>{setSearch(event.target.value);setSearchCollapsed(new Set());setFocusedId('');if(scroll.current)scroll.current.scrollTop=0;}}/>
     {prices&&<div className="tf-budget-recap-columns" aria-hidden="true"><span>Objekt / soupis / oddíl</span><span>Cena bez DPH (Kč)</span></div>}

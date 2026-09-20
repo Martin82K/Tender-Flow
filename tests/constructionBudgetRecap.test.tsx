@@ -139,3 +139,11 @@ it('shows zero for an empty budget and keeps the warning for incomplete prices',
   expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('100,00 Kč')).toBeVisible();
   expect(screen.getByText('Neúplný součet. Některým položkám chybí cena.')).toBeVisible();
 });
+
+
+it('preserves the compact total in the items sidebar', () => {
+  render(<BudgetRecap nodes={nodes} prices prominentTotal={false} onJump={vi.fn()}/>);
+  expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
+  expect(screen.getByText('Celý rozpočet · 100,00 Kč')).toBeVisible();
+  expect(screen.getByRole('treeitem', { name: 'Zemní práce' })).toBeVisible();
+});
