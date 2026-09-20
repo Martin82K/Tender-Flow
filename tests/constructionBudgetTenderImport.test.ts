@@ -24,6 +24,18 @@ describe('tender column import',()=>{
     expect(mapping.name).toBe(at+1); expect(mapping.code).toBe(at);
     expect(readTenderRows(doc,{[doc.sheets[0].id]:mapping})[0]).toMatchObject({name:'SDK A PODHLEDY, REVIZNÍ DVÍŘKA',externalCode:'02',node:{code:'001'}});
   });
+  it('retains headers and sample rows in bounded previews of wide multisheet workbooks',()=>{
+    const wb=XLSX.utils.book_new();
+    const rows=[...Array.from({length:10},()=>['Úvod']),['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','č. VŘ','Název VŘ'],['K','001','Práce','m2',1,1,1,'02','Stavba']];
+    for(let i=0;i<100;i++){const sheet=XLSX.utils.aoa_to_sheet(rows);sheet['!ref']='A1:OJ12';XLSX.utils.book_append_sheet(wb,sheet,`SO${i}`);}
+    const doc=parseKrosWorkbook(wb);
+    for(const sheet of doc.sheets){
+      expect(sheet.sourcePreview?.rows.some(row=>row.row===11)).toBe(true);
+      expect(sheet.sourcePreview?.rows.some(row=>row.row===12)).toBe(true);
+      expect(detectTenderColumns(sheet)).toMatchObject({name:8,code:7});
+    }
+    expect(doc.sheets.reduce((sum,sheet)=>sum+(sheet.sourcePreview?.rows.reduce((count,row)=>count+row.cells.length,0)??0),0)).toBeLessThanOrEqual(200000);
+  });
   it('offers ambiguous or missing headers for explicit selection',()=>{
     const doc=parseKrosWorkbook(workbook(0,['VŘ','VŘ']));
     expect(detectTenderColumns(doc.sheets[0]).name).toBeUndefined();

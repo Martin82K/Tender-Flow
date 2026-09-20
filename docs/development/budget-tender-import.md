@@ -134,3 +134,14 @@ záměrně autorizované definer funkce; `demand_categories` má performance upo
 na opakované vyhodnocování auth v restriktivní OAuth policy. Tato migrace jejich
 oprávnění nemění. Doporučení viz [database linter](https://supabase.com/docs/guides/database/database-linter)
 a [ochrana hesel](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+Review opravilo náhled širokých vícelistových sešitů: omezený počet buněk vždy
+zahrnuje rozpoznanou hlavičku a při kapacitě alespoň dvou řádků i následující vzorek.
+Import VŘ a vlastní vzory vyžadují také dostupný `MODULE_PIPELINE`; stávající
+přenos alokací mezi revizemi nadále používá samostatné oprávnění allocate.
+Na pracovním diffu po `f04603ae`, základ #486 `3702a4aa`: cílený Vitest průchod
+`constructionBudgetTenderImport`, `constructionBudgetSettings`,
+`ProjectLayout.selectCaret`, `constructionBudgetImportDialog` má 64 passed,
+0 skipped/todo. Dva nové scénáře nejprve prokázaly RED. `npm run typecheck`
+prošel. Lokální produkční browser harness ověřil vypnutý i zapnutý pipeline,
+celý import přiřazení a vzoru, desktop i mobil bez console/page chyb.

@@ -207,7 +207,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             skin={skin}
           />
         )}
-        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <ConstructionBudget searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
+        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <ConstructionBudget canUseTenders={hasFeature(FEATURES.MODULE_PIPELINE)} searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
         {activeTab === "tender-plan" && (
           <TenderPlan
             projectId={projectId}
