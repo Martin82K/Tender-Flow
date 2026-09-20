@@ -67,6 +67,14 @@ INSERT INTO auth.users(id,email,email_confirmed_at) VALUES('96300000-0000-4000-8
 DO $$ BEGIN
  IF (SELECT count(*) FROM public.organization_members WHERE organization_id=current_setting('test.company_id')::uuid)<>3 THEN RAISE EXCEPTION 'Verified company must support initial and email-update joins'; END IF;
 END $$;
+-- The same email-change hook must preserve a pending request when capacity is full.
+UPDATE public.organizations SET max_seats=3 WHERE id=current_setting('test.company_id')::uuid;
+INSERT INTO auth.users(id,email,email_confirmed_at) VALUES('96300000-0000-4000-8000-000000000005','full-email-update@gmail.com',now());
+UPDATE auth.users SET email='full@verified-company.invalid' WHERE id='96300000-0000-4000-8000-000000000005';
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM public.organization_members WHERE user_id='96300000-0000-4000-8000-000000000005' AND organization_id=current_setting('test.company_id')::uuid) THEN RAISE EXCEPTION 'Email change cannot exceed verified company capacity'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.organization_join_requests WHERE user_id='96300000-0000-4000-8000-000000000005' AND organization_id=current_setting('test.company_id')::uuid AND status='pending') THEN RAISE EXCEPTION 'Full company email change must create pending request'; END IF;
+END $$;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"sub":"96300000-0000-4000-8000-000000000002","role":"authenticated","email":"updated@verified-company.invalid"}',true);
 SELECT public.request_org_join_by_email('updated@verified-company.invalid');

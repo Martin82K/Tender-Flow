@@ -259,6 +259,21 @@ END $$;
 REVOKE ALL ON FUNCTION public.assign_org_membership_by_domain(uuid,text) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client;
 GRANT EXECUTE ON FUNCTION public.assign_org_membership_by_domain(uuid,text) TO service_role;
 
+-- Version the existing production email-change hook for clean installations.
+CREATE OR REPLACE FUNCTION public.handle_auth_user_email_update()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+BEGIN
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    PERFORM public.assign_org_membership_by_domain(NEW.id,NEW.email);
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.handle_auth_user_email_update() FROM PUBLIC,anon,authenticated,tenderflow_mcp_client;
+GRANT EXECUTE ON FUNCTION public.handle_auth_user_email_update() TO service_role;
+DROP TRIGGER IF EXISTS tr_auto_org_membership_email_update ON auth.users;
+CREATE TRIGGER tr_auto_org_membership_email_update AFTER UPDATE OF email ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_auth_user_email_update();
+
 CREATE OR REPLACE FUNCTION public.request_org_join_by_email(email_input TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
