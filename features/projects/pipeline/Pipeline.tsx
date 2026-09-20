@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { OfferComparisonPanel } from "@features/projects/offers/ui/OfferComparisonPanel";
 import { useLocation } from "@shared/routing/router";
 import { parseAppRoute } from "@shared/routing/routeUtils";
 import { Header } from "@shared/ui/Header";
@@ -132,6 +133,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     projectDetails.docHubStructureV1 || undefined,
   );
 
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const [demandFilter, setDemandFilter] = useState<
     "all" | "open" | "closed" | "sod"
   >("all");
@@ -447,8 +449,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
             onSelectBulkEmail={openBulkEmailConfirmation}
             onOpenDocHub={handleOpenTenderDocHub}
             onExport={handleExport}
+            onCompare={() => setComparisonOpen(value => !value)}
           />
         </Header>
+
+        {comparisonOpen && <OfferComparisonPanel key={`${projectId}:${activeCategory.id}`} projectId={projectId} categoryId={activeCategory.id} categoryTitle={activeCategory.title} resolveFolder={resolveDesktopTenderFolderPath} onClose={() => setComparisonOpen(false)} />}
 
         <PipelineCategorySummary
           title={activeCategory.title}

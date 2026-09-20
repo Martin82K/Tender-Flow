@@ -1,3 +1,4 @@
+import { registerOfferComparisonsModule } from './offerComparisons.js';
 import { createMcpResourceRuntime } from '../core/resourceRuntime.js';
 import { createMcpToolRuntime } from '../core/toolRuntime.js';
 import { registerChangesModule } from './changes.js';
@@ -28,6 +29,7 @@ export const registerTenderFlowMcpModules = ({
   registerDiscoveryModule(context);
   registerProjectsModule(context);
   registerTendersModule(context);
+  registerOfferComparisonsModule(context);
   registerContractsModule(context);
   registerSubcontractorsModule(context);
   registerTasksModule(context);

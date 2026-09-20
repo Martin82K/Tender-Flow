@@ -22,6 +22,10 @@ const BID_OFFER_WRITE = Object.freeze([
  * consume this list so a newly added tool cannot silently drift between them.
  */
 export const MCP_TOOL_CATALOG = Object.freeze([
+  { name: "tf_list_offer_comparisons", title: "Porovnání nabídek", category: "Výběrová řízení", data: "Uložené porovnávací pohledy dostupného projektu; bez placeného AI.", requiredPermissions: CONTACTS, riskLevel: "low", mode: "read" },
+  { name: "tf_match_offer_items", title: "Párování položek", category: "Výběrová řízení", data: "Párování dodaných položek a kontrola shod; bez změny zdrojů a bez placeného AI.", requiredPermissions: CONTACTS, riskLevel: "low", mode: "read" },
+  { name: "tf_save_offer_comparison", title: "Uložení porovnání", category: "Výběrová řízení", data: "Uložení odvozeného pohledu; nemění ceny nabídek ani zdrojové dokumenty.", requiredPermissions: [...BID_OFFER_WRITE, MCP_PERMISSION_IDS.contactsRead], riskLevel: "medium", mode: "write" },
+
   {
     name: "tf_get_access_status",
     title: "Stav MCP oprávnění",

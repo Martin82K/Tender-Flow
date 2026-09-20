@@ -47,3 +47,14 @@ describe('supplier offer comparison', () => {
     expect(compareOffer(base, offers, matchOfferItems(base, offers)).extraIds).toEqual(['extra']);
   });
 });
+it('rejects a confirmed assignment without an offer and empty units are not comparable', () => {
+ expect(() => validateAssignments([item('a')], [], [{baseId:'a',offerId:null,status:'manual'}])).toThrow();
+ const result=compareOffer([item('a',{unit:''})],[item('b',{unit:''})],[{baseId:'a',offerId:'b',status:'manual'}]);
+ expect(result.pricedCount).toBe(0);
+});
+it('bounds duplicate candidate work and leaves excessive ambiguity for manual review', () => {
+ const offers=Array.from({length:500},(_,i)=>item(`offer-${i}`));
+ const result=matchOfferItems([item('a')],offers)[0];
+ expect(result.offerId).toBeNull();
+ expect(result.reasons).toContain('too-many-candidates');
+});

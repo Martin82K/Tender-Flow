@@ -8,7 +8,3 @@ export interface OfferAssignment {
 }
 export interface ComparedRow { baseId: string; offerId: string | null; quotedTotal: string | null; comparableTotal: string | null; priceStatus: 'priced' | 'missing-price' | 'unmatched' | 'different-scope' }
 export interface OfferComparison { rows: ComparedRow[]; total: string; pricedCount: number; complete: boolean; extraIds: string[] }
-export function validateItems(items: OfferItem[]): void;
-export function matchOfferItems(base: OfferItem[], offers: OfferItem[]): OfferAssignment[];
-export function validateAssignments(base: OfferItem[], offers: OfferItem[], assignments: OfferAssignment[]): void;
-export function compareOffer(base: OfferItem[], offers: OfferItem[], assignments: OfferAssignment[]): OfferComparison;

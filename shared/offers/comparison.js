@@ -1,3 +1,6 @@
+/** @typedef {import('./types').OfferItem} OfferItem */
+/** @typedef {import('./types').OfferAssignment} OfferAssignment */
+/** @typedef {import('./types').OfferComparison} OfferComparison */
 // Shared pure engine: browser and MCP use identical matching and totals.
 // Source documents and prices are never changed by this module.
 const MAX_ITEMS = 10000;
@@ -23,6 +26,7 @@ const cents = value => {
   return sign * ((sign * d.n + divisor / 2n) / divisor);
 };
 const money = value => `${value < 0n ? '-' : ''}${(value < 0n ? -value : value) / 100n}.${String((value < 0n ? -value : value) % 100n).padStart(2, '0')}`;
+/** @param {OfferItem[]} items */
 export function validateItems(items) {
   if (!Array.isArray(items) || items.length > MAX_ITEMS) throw new Error('Neplatný počet položek.');
   const ids = new Set();
@@ -34,14 +38,19 @@ export function validateItems(items) {
     if (!item.source || typeof item.source.sheet !== 'string' || item.source.sheet.length > 255 || !Number.isInteger(item.source.row) || item.source.row < 1) throw new Error('Chybí odkaz na zdrojový řádek.');
   }
 }
+/** @param {OfferItem[]} base @param {OfferItem[]} offers @returns {OfferAssignment[]} */
 export function matchOfferItems(base, offers) {
   validateItems(base); validateItems(offers);
   const byCode = new Map(), byDescription = new Map();
   for (const row of offers) for (const [index, key] of [[byCode, normalize(row.code)], [byDescription, normalize(row.description)]]) {
     if (!key) continue;
-    index.set(key, [...(index.get(key) || []), row]);
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(row);
   }
   const results = base.map(row => {
+    const codeCandidates = byCode.get(normalize(row.code)) || [];
+    const descriptionCandidates = byDescription.get(normalize(row.description)) || [];
+    if (codeCandidates.length + descriptionCandidates.length > 200) return { baseId: row.id, offerId: null, status: 'review', candidates: [...new Set([...codeCandidates.slice(0, 15), ...descriptionCandidates.slice(0, 15)].map(r => r.id))], reasons: ['too-many-candidates'] };
     const candidates = new Map();
     for (const candidate of [...(byCode.get(normalize(row.code)) || []), ...(byDescription.get(normalize(row.description)) || [])]) candidates.set(candidate.id, candidate);
     const ranked = [...candidates.values()].map(candidate => {
@@ -61,6 +70,7 @@ export function matchOfferItems(base, offers) {
   for (const result of results) if (result.offerId) counts.set(result.offerId, (counts.get(result.offerId) || 0) + 1);
   return results.map(result => result.offerId && counts.get(result.offerId) > 1 ? { ...result, offerId: null, status: 'review', reasons: ['shared-candidate'] } : result);
 }
+/** @param {OfferItem[]} base @param {OfferItem[]} offers @param {OfferAssignment[]} assignments */
 export function validateAssignments(base, offers, assignments) {
   validateItems(base); validateItems(offers);
   if (!Array.isArray(assignments) || assignments.length > base.length) throw new Error('Neplatné vazby.');
@@ -68,12 +78,14 @@ export function validateAssignments(base, offers, assignments) {
   for (const link of assignments) {
     if (!baseIds.has(link.baseId) || seenBase.has(link.baseId) || !['matched', 'manual', 'review', 'unmatched'].includes(link.status)) throw new Error('Neplatná vazba na poptávku.');
     seenBase.add(link.baseId);
+    if (link.offerId === null && ['matched', 'manual'].includes(link.status)) throw new Error('Potvrzená vazba musí mít položku nabídky.');
     if (link.offerId !== null) {
       if (!offerIds.has(link.offerId) || seenOffer.has(link.offerId) || !['matched', 'manual'].includes(link.status)) throw new Error('Neplatná nebo opakovaná vazba na nabídku.');
       seenOffer.add(link.offerId);
     }
   }
 }
+/** @param {OfferItem[]} base @param {OfferItem[]} offers @param {OfferAssignment[]} assignments @returns {OfferComparison} */
 export function compareOffer(base, offers, assignments) {
   validateAssignments(base, offers, assignments);
   const indexed = new Map(offers.map(r => [r.id, r])), links = new Map(assignments.map(r => [r.baseId, r]));
@@ -83,7 +95,7 @@ export function compareOffer(base, offers, assignments) {
     const link = links.get(item.id), offer = link?.offerId ? indexed.get(link.offerId) : null;
     if (offer) used.add(offer.id);
     const quoted = offer ? cents(offer.total) : null;
-    const comparable = offer && unit(item.unit) === unit(offer.unit) && equalDecimal(item.quantity, offer.quantity) ? quoted : null;
+    const comparable = offer && unit(item.unit) && unit(item.unit) === unit(offer.unit) && equalDecimal(item.quantity, offer.quantity) ? quoted : null;
     if (comparable !== null) { total += comparable; pricedCount++; }
     return { baseId: item.id, offerId: offer?.id || null, quotedTotal: quoted === null ? null : money(quoted), comparableTotal: comparable === null ? null : money(comparable), priceStatus: !offer ? 'unmatched' : quoted === null ? 'missing-price' : comparable === null ? 'different-scope' : 'priced' };
   });

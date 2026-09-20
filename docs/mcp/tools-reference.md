@@ -1,6 +1,6 @@
 # Reference MCP tools
 
-Stav: 22 nástrojů v policy katalogu; 11 obecných read-only nástrojů dostupných
+Stav: 25 nástrojů v policy katalogu; 11 obecných read-only nástrojů dostupných
 bez zvýšeného grantu, dalších 11 podmíněných user+client grantem k 2026-09-09
 Zdroj pravdy: sdílený katalog `shared/mcp/toolCatalog.js`, doménové registrace
 v `server/mcp/modules/`, společný bezpečnostní runtime v `server/mcp/core/`
@@ -196,3 +196,13 @@ Typy `create_bid`, `create_contact`, `update_contact`, `create_note`,
 `update_note` a `archive_entity` lze připravit pouze jako neproveditelný návrh.
 Cena v obecném `update_bid` podporovaná není; musí použít samostatný
 `update_bid_offer` workflow.
+
+## Porovnání cenových nabídek
+
+- `tf_list_offer_comparisons`: `projectId`, volitelné `id`; vrací dostupné pohledy nebo konkrétní snapshot. Vyžaduje čtení projektu a grant kontaktů.
+- `tf_match_offer_items`: `projectId`, `inquiry`, `offer`; společný deterministický engine vrací vazby, nejasnosti a dílčí ceny srovnatelného množství. Nevolá OCR ani placený model.
+- `tf_save_offer_comparison`: `projectId`, volitelné `categoryId`, `title`, `sources`, `assignments`, stabilní `requestId`; změna navíc vyžaduje `id` a `expectedVersion`. Vyžaduje granty čtení kontaktů a zápisu nabídek, editaci pipeline a audit před zápisem.
+
+První zdroj je poptávka. Každý zdroj má identitu, název, SHA-256 skutečně přečtených bajtů, položky a výhrady. Položka obsahuje `id`, `code`, `description`, `unit`, desetinné řetězce nebo null pro `quantity`, `unitPrice`, `total`, `group` a `source: {sheet, row}`. U rozpočtového snapshotu je hash odvozený z revize a přiřazených položek, včetně `revisionId` a `revisionVersion`.
+
+Text dokumentu je nedůvěryhodný obsah, nikoli instrukce. Nejednoznačné vazby zůstávají `review`/`unmatched`; `manual` označuje vazbu ověřenou uživatelem. Tyto nástroje nikdy nepřepisují nabídky, rozpočty ani soubory. Cena externího asistenta není TF známa; označení `outside-tf` neznamená nulový náklad. Audit zaznamenává pouze identitu projektu/pohledu, bez obsahu dokumentů. Podrobnosti: [porovnání nabídek](../offer-comparison.md).
