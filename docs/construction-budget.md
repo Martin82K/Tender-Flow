@@ -289,3 +289,5 @@ v koši rozpočtu je nutné nejprve dokončit.
 Export položek do Excelu zapisuje množství a ceny jako textové buňky, aby
 zachoval všechny číslice. Prázdné množství při přiřazení do VŘ znamená dosud
 nepřiřazené množství, nikoli celé množství položky.
+
+Náhled má nejvýše 60 řádků na list a 200 000 buněk za celý sešit; u mnoha širokých listů ukazuje méně řádků. Chybové buňky Excelu zůstávají bez číselné hodnoty i po ruční opravě typu. Opravené mezisoučty jsou viditelné pod rozbaleným oddílem s položkami, do ceny se podruhé nezapočítávají.

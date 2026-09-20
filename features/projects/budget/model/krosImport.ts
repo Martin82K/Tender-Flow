@@ -62,11 +62,13 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
     // Bounded, ephemeral raw preview also works when recognition fails.
     const previewStart = Math.max(0, header - 5);
-    const sourcePreview = { rowCount: rows.length, columnCount: range.e.c + 1, rows: rows.slice(previewStart, previewStart + 60).map((values, index) => ({
+    const previewRows = Math.min(60, Math.floor(200000 / workbook.SheetNames.length / (range.e.c + 1)));
+    const sourcePreview = { rowCount: rows.length, columnCount: range.e.c + 1, rows: rows.slice(previewStart, previewStart + previewRows).map((values, index) => ({
       row: previewStart + index + 1, cells: values.map((value, column) => {
-        const formula = sheet[XLSX.utils.encode_cell({ r: previewStart + index, c: column })]?.f;
+        const cell = sheet[XLSX.utils.encode_cell({ r: previewStart + index, c: column })];
+        const formula = cell?.f;
         if (text(value).length > XLSX_LIMITS.text || (formula?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
-        return { value: value as SourceCell['value'], ...(formula ? { formula } : {}) };
+        return { value: cell?.t === 'e' ? null : value as SourceCell['value'], ...(formula ? { formula } : {}) };
       }),
     })) };
     document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', sourcePreview, ...(format ? { format } : {}) });
@@ -110,7 +112,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       for (let c = 0; c <= range.e.c; c++) {
         const address = XLSX.utils.encode_cell({ r, c }); const cell = sheet[address]; if (!cell) continue;
         if (text(cell.v).length > XLSX_LIMITS.text || (cell.f?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
-        cells[address] = { value: cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}) };
+        cells[address] = { value: cell.t === 'e' ? null : cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}) };
       }
       const number = (column: number): string | null => {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: column })];

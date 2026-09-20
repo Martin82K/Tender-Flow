@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { parseKrosWorkbook } from '@features/projects/budget/model/krosImport';
 import { applyImportRepair, previewImportRepair } from '@features/projects/budget/model/importRepair';
-import { aggregateBudget } from '@features/projects/budget/model/budgetTree';
+import { aggregateBudget, visibleBudgetRows } from '@features/projects/budget/model/budgetTree';
 
 export function repairFixture() {
   const book = XLSX.utils.book_new();
@@ -21,6 +21,28 @@ export function repairFixture() {
 }
 
 describe('import repair', () => {
+  it('bounds preview cells across a sparse multi-sheet workbook',()=>{
+    const book=XLSX.utils.book_new();
+    for(let i=0;i<10;i++)XLSX.utils.book_append_sheet(book,{'!ref':'A1:SR60',A1:{t:'s',v:'Pokyny'}},`List ${i}`);
+    const doc=parseKrosWorkbook(book);
+    expect(doc.sheets.reduce((sum,s)=>sum+(s.sourcePreview?.rows.reduce((n,r)=>n+r.cells.length,0)??0),0)).toBeLessThanOrEqual(200000);
+    expect(doc.sheets.every(s=>s.sourcePreview!.rows.length>0)).toBe(true);
+  });
+  it('keeps Excel error codes unpriced when repairing an unknown row',()=>{
+    const book=repairFixture();book.Sheets.Soupis.F9={t:'e',v:7,f:'1/0'};
+    const doc=parseKrosWorkbook(book);
+    const repaired=applyImportRepair(doc,{nodeId:'sheet:0:row:9',parentId:'sheet:0:row:7',kind:'K',scope:'row'});
+    expect(repaired.nodes.find(n=>n.source.row===9)?.unitPrice).toBeNull();
+    expect(repaired.issues).toContainEqual(expect.objectContaining({row:9,severity:'error'}));
+  });
+  it('shows repaired subtotals alongside matched items without adding their value twice',()=>{
+    const doc=parseKrosWorkbook(repairFixture());
+    const repaired=applyImportRepair(doc,{nodeId:'sheet:0:row:9',parentId:'sheet:0:row:7',kind:'subtotal',scope:'row'});
+    const matched=new Set(repaired.nodes.filter(n=>n.kind==='K'||n.kind==='M').map(n=>n.id));
+    expect(visibleBudgetRows(repaired.nodes,matched,new Set(),false).some(n=>n.id==='sheet:0:row:9')).toBe(true);
+    expect(visibleBudgetRows(repaired.nodes,matched,new Set(['sheet:0:row:7']),false).some(n=>n.id==='sheet:0:row:9')).toBe(false);
+    expect(aggregateBudget(repaired.nodes).total).toBe('120.00');
+  });
   it('honors an explicit depth column outside AU and returns to a higher level', () => {
     const doc = parseKrosWorkbook(repairFixture(), undefined, { Soupis: { columns: { depth: 7 } } });
     expect(doc.nodes.find(n => n.code === '61')?.parentId).toBe('sheet:0:row:3');
