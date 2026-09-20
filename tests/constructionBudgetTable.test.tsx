@@ -43,7 +43,7 @@ it('handles a repeated explicit jump while preserving filters that hide the targ
 });
 it('shows quantity details under their item without treating unpriced details as missing prices', () => {
   render(table());
-  expect(screen.getAllByText('Chybí cena')).toHaveLength(1);
+  expect(screen.getAllByText('Neoceněno')).toHaveLength(1);
   const quantityRow = screen.getByRole('button', { name: '3*4' }).closest('[role="row"]')!;
   expect(within(quantityRow as HTMLElement).getByText('12')).toBeVisible();
   expect(within(quantityRow as HTMLElement).queryByRole('checkbox')).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ it('hides quantity details through the existing switch and respects price visibi
   expect(screen.queryByText('3*4')).not.toBeInTheDocument();
   expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
-  expect(screen.queryByText('Chybí cena')).not.toBeInTheDocument();
+  expect(screen.queryByText('Neoceněno')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'J. cena ▾' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Sbalit 123' })).not.toBeInTheDocument();
 });

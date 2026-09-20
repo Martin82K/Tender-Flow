@@ -51,3 +51,22 @@ it('reports calculation overflow as a blocking import issue without crashing', (
  const document=parseKrosWorkbook(w);
  expect(document.issues.some(issue=>issue.severity==='error' && issue.row===6)).toBe(true);
 });
+
+it.each([true, false])('keeps every unpriced tender item with price columns present: %s', (priceColumns) => {
+ const w=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet([
+  ['Typ','Kód','Popis','MJ','Množství',...(priceColumns?['J.cena','Celkem']:[])],
+  ['K','001','Výkop','m3',12],['M','002','Materiál','kg',3],
+ ]),'Soutěž');
+ const result=parseKrosWorkbook(w);
+ expect(result.nodes.filter(n=>n.kind==='K'||n.kind==='M')).toHaveLength(2);
+ expect(result.nodes.filter(n=>n.kind==='K'||n.kind==='M').map(n=>[n.unitPrice,n.total])).toEqual([[null,null],[null,null]]);
+ expect(result.issues.filter(i=>i.severity==='error')).toEqual([]);
+ expect(result.sheets[0]).toMatchObject({selected:true,role:'items',format:'kros'});
+});
+it('preserves invalid priced rows and still reports malformed numbers',()=>{
+ const w=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet([['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem'],['K','001','Výkop','m3',12,'chyba',null]]),'Soutěž');
+ const result=parseKrosWorkbook(w);expect(result.nodes.filter(n=>n.kind==='K')).toHaveLength(1);
+ expect(result.issues.some(i=>i.severity==='error'&&i.message.includes('F'))).toBe(true);
+});

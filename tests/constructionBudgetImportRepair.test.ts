@@ -150,7 +150,7 @@ describe('import repair', () => {
     const doc=parseKrosWorkbook(book);
     const repaired=applyImportRepair(doc,{nodeId:'sheet:0:row:9',parentId:'sheet:0:row:7',kind:'K',scope:'row'});
     expect(repaired.nodes.find(n=>n.source.row===9)?.unitPrice).toBeNull();
-    expect(repaired.issues).toContainEqual(expect.objectContaining({row:9,severity:'error',message:expect.stringContaining('úplné ocenění')}));
+    expect(repaired.issues).toContainEqual(expect.objectContaining({row:9,severity:'error',message:expect.stringContaining('Neplatná nebo chybějící hodnota F.')}));
   });
   it('retains edited prices when changing a priced item category',()=>{
     const doc=parseKrosWorkbook(repairFixture());doc.nodes.find(n=>n.code==='001')!.unitPrice='75';
@@ -165,4 +165,15 @@ describe('import repair', () => {
     expect(()=>applyImportRepair(doc,repair)).toThrow(/vazby/);
     expect(()=>applyImportRepair(doc,{...repair,kind:'M',scope:'subtree'})).not.toThrow();
   });
+});
+it('keeps repaired unpriced items and still reports invalid price cells',()=>{
+ for(const invalid of [false,true]){
+  const book=repairFixture();delete book.Sheets.Soupis.F9;delete book.Sheets.Soupis.G9;
+  if(invalid)book.Sheets.Soupis.F9={t:'s',v:'chyba'};
+  const doc=parseKrosWorkbook(book,undefined,{Soupis:{columns:{depth:7}}});
+  const row=doc.nodes.find(n=>n.source.row===9)!;
+  const fixed=applyImportRepair(doc,{nodeId:row.id,parentId:'sheet:0',kind:'K',scope:'row'});
+  expect(fixed.nodes.find(n=>n.id===row.id)).toMatchObject({kind:'K',quantity:'1',unitPrice:null,total:null});
+  expect(fixed.issues.some(i=>i.row===9&&i.severity==='error')).toBe(invalid);
+ }
 });

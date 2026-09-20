@@ -44,3 +44,16 @@ preflight vrací `no analysis found` (404); nejde o úspěšnou bezpečnostní k
 Supabase advisor před změnou hlásí existující upozornění (search_path, veřejně
 spustitelné definer funkce, ochrana uniklých hesel). Posuzovat pouze nové signály
 oproti této základně; nezaměňovat dostupnost RPC za prokázanou zranitelnost.
+
+## Soutěžní import bez cen
+
+KROS/Globus rozpoznávají soupis i bez cenových sloupců. Pouze cenové sloupce
+mohou mít interní index -1; povinné identifikační sloupce se nadále validují.
+Neoceněné položky se ukládají s null, nikoliv s nulou. Neplatné číselné
+buňky, chyby Excelu a vzorce bez výsledku zůstávají k opravě. Stejná pravidla
+platí při opravě typu řádku. Potvrzení oceněné revize se nemění.
+
+Doplněné RED/GREEN scénáře: úplně chybějící cenové sloupce, prázdné ceny,
+oprava neoceněného řádku, neplatná číselná cena a mapování AA. V prohlížeči
+se používá skutečný XLSX worker nad syntetickým sešitem 40 × 50 položek;
+kontroluje se zachování všech 2 000 položek a viditelnost patičky při scrollu.

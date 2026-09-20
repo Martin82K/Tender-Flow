@@ -62,7 +62,7 @@ export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode
   return {
     ...document,
     nodes: document.nodes.map(node => node.id === edited.id ? {...node, code: edited.code, unit: edited.unit, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
-    issues: document.issues.filter(issue => !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
+    issues: document.issues.filter(issue => !(edited.quantity !== null && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.message === 'Položka nemá vyplněné množství.') && !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Položka nemá vyplněné množství.' || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
   };
 }
 

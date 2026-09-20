@@ -105,7 +105,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     if (role !== 'items') { progress?.(sheetIndex + 1, workbook.SheetNames.length); continue; }
     if(header<0){document.issues.push({sheet:name,row:1,severity:'error',message:'Zvolte hlavičku a mapování sloupců.'});continue;}
     document.sheets[document.sheets.length-1].columns=mapping;
-    if (Object.entries(mapping).filter(([key])=>!identityOnly||['kind','code','description','unit'].includes(key)).some(([key,v]) => !(key === 'depth' && v === -1) && (!Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns))) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
+    if (Object.entries(mapping).filter(([key])=>!identityOnly||['kind','code','description','unit'].includes(key)).some(([key,v]) => !(['depth','unitPrice','total'].includes(key) && v === -1) && (!Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns))) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
     const objectId = `object:${object}`;
     const source = { sheet: name, row: 0, cells: {} };
     const base = { code: '', unit: '', quantity: null, unitPrice: null, total: null, sourceType: '', tags: [], tenders: [] };
@@ -126,6 +126,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         cells[address] = { value: cell.t === 'e' ? null : cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}), ...(cell.t === 'n' && /^0+$/.test(cell.z ?? '') ? {displayText:XLSX.utils.format_cell(cell)} : {}) };
       }
       const number = (column: number): string | null => {
+        if (column < 0) return null;
         const cell = sheet[XLSX.utils.encode_cell({ r, c: column })];
         try {
           if (cell?.t === 'e') throw new Error('Chyba Excelu');
@@ -155,7 +156,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         try { total = money(rawTotal); decimal(total); }
         catch { total = null; document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Cena po zaokrouhlení přesahuje limit 24 číslic.' }); }
       }
-      if (!identityOnly && priced && (quantity === null || unitPrice === null || total === null)) document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Položka nemá úplné ocenění; prázdná hodnota není nula.' });
+      if (!identityOnly && priced && quantity === null) document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Položka nemá vyplněné množství.' });
       if (priced && quantity !== null && unitPrice !== null && total !== null) {
         try { if (multiplyMoney(quantity, unitPrice) !== total) document.issues.push({ sheet: name, row: r + 1, severity: 'warning', message: 'Uložená cena se liší od množství × jednotkové ceny.' }); }
         catch { document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Množství × jednotková cena přesahuje limit 24 číslic.' }); }

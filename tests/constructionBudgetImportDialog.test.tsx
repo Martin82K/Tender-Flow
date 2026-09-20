@@ -387,3 +387,16 @@ it('retains the assignment target when the parent revision query temporarily dis
   rerender(<BudgetImportDialog {...props} previous={undefined}/>);
   expect(screen.getByRole('radio',{name:/Pouze převzít přiřazení/})).toBeChecked();
 });
+it('uses Excel letters in advanced mapping including columns after Z',async()=>{
+ const document=editorDocument();document.sheets[0].sourcePreview!.columnCount=28;
+ vi.mocked(importInWorker).mockResolvedValue(document);
+ render(<BudgetImportDialog projectId="p" source={editorSource} onClose={vi.fn()} onComplete={vi.fn()}/>);
+ fireEvent.click(await screen.findByText('Pokročilé mapování sloupců'));
+ fireEvent.change(screen.getByLabelText('Mapování listu'),{target:{value:'Soupis'}});
+ const code=screen.getByLabelText('Kód · sloupec Excelu');
+ expect(code).toHaveTextContent('B');
+ fireEvent.change(code,{target:{value:'26'}});
+ expect(code).toHaveValue('26');
+ expect(code).toHaveTextContent('AA');
+ expect(screen.queryByLabelText(/číslo sloupce/)).not.toBeInTheDocument();
+});

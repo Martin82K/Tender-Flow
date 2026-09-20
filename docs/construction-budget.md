@@ -38,6 +38,9 @@ stavby; změna základu nemění existující stavby. Převod a obnova projektů
 své původní definice. Osobní základ je oddělený podle účtu, ne sdílený s kolegy.
 
 Import, export a údaje o otevřené verzi jsou v **Importy a verze**.
+Pokročilé mapování vybírá sloupce podle písmen Excelu (A, B, …, AA).
+U cen lze zvolit **Bez cenového sloupce**. Patička kontroly a dokončovací akce
+zůstávají při procházení dlouhého importu viditelné.
 
 
 ## Převzetí přiřazení do výběrových řízení
@@ -107,8 +110,10 @@ tlačítkem **VV** ve zdrojovém pořadí.
 Textové výpočty Globus, např. `2*1 = 2,000 [A]`, se uchovávají jako původní
 text. Pokud VV nemá číselnou buňku množství, zůstane množství prázdné; import
 neodhaduje výsledek z popisu. Ceny se načtou ze skutečných buněk i u souboru
-pojmenovaného „bez cen“. Prázdné ceny nejsou nuly: pracovní import je možný,
-potvrzení neúplného ocenění zůstává blokované.
+pojmenovaného „bez cen“. Prázdné ceny nejsou nuly ani chyba importu: položky se zachovají i bez cenových
+sloupců. To podporuje soutěžní soupisy bez ocenění. Neplatné číslo nebo vzorec
+bez uloženého výsledku je nadále chyba. Potvrzení úplného ocenění zůstává
+oddělené od importu a u neoceněné pracovní verze není možné.
 
 Technicky formáty rozpoznává registr profilů `model/importProfiles.ts`.
 Každý list má volitelný `format`; starší dokumenty bez něj fungují dál.

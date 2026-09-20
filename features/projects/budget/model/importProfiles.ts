@@ -13,7 +13,7 @@ interface ImportProfile {
 // New formats belong here; archive limits, source preservation and validation stay shared.
 const profiles: ImportProfile[] = [
   {
-    format: 'kros', headerRows: 1, required: ['kind', 'description', 'quantity', 'unitPrice'],
+    format: 'kros', headerRows: 1, required: ['kind', 'code', 'description', 'unit', 'quantity'],
     labels: {
       kind: /^typ$/, code: /^kod$/, description: /^popis$/, unit: /^mj$/,
       quantity: /^mnozstvi$/, unitPrice: /^j\.?\s*cena/, total: /^(cena celkem|celkem)/,

@@ -274,3 +274,10 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-commandbar > nav { max-width: 100%; min-width: 0; }
 .tf-budget-tender-catalog table { min-width: 600px; }
 .tf-budget-tender-catalog td:last-child .tf-budget-toolbar { flex-wrap: nowrap; }
+/* Only the body scrolls; import actions remain visible even in a long review. */
+.tf-modal-panel:has(.tf-budget-import) { overflow: hidden; max-height: calc(100dvh - 32px); }
+.tf-modal-panel:has(.tf-budget-import) > .tf-modal-header,
+.tf-modal-panel:has(.tf-budget-import) > .tf-modal-footer { flex-shrink: 0; }
+.tf-modal-panel:has(.tf-budget-import) > .tf-modal-body { min-height: 0; overflow-y: auto; }
+.tf-budget-tender-review-footer { position: sticky; bottom: -16px; z-index: 5; background: var(--tf-skin-surface, #fff); padding: 16px; margin: 0 -16px -16px; border-top: 1px solid var(--tf-skin-line, #cbd5e1); display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tf-budget-tender-review-footer > p, .tf-budget-tender-review-footer > label { flex-basis: 100%; }
