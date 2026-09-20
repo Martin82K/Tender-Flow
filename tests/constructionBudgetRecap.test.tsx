@@ -45,7 +45,7 @@ it('renders the budget hierarchy with expansion controls only on branches and un
   const tree = screen.getByRole('tree', { name: 'Strom rozpočtu' });
   expect(within(tree).getAllByRole('treeitem').map(row => row.getAttribute('aria-level'))).toEqual(['1', '2', '3', '4', '4', '2']);
   expect(screen.queryByRole('button', { name: 'Sbalit Zemní práce' })).not.toBeInTheDocument();
-  expect(screen.getByText('Celý rozpočet · 100,00 Kč')).toBeVisible();
+  expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('100,00 Kč')).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Sbalit HSV' }));
   expect(screen.queryByRole('treeitem', { name: 'Zemní práce' })).not.toBeInTheDocument();
   expect(screen.getByRole('treeitem', { name: 'HSV' })).toHaveAttribute('aria-expanded', 'false');
@@ -60,7 +60,7 @@ it('finds a chapter inside collapsed branches with its ancestors and restores th
   expect(screen.getAllByRole('treeitem').map(row => row.getAttribute('aria-label'))).toEqual(['Škola', 'Stavební práce', 'HSV', 'Zemní práce']);
   fireEvent.change(screen.getByRole('textbox', { name: 'Hledat oddíl' }), { target: { value: '' } });
   expect(screen.getAllByRole('treeitem')).toHaveLength(1);
-  expect(screen.getByText('Celý rozpočet · 100,00 Kč')).toBeVisible();
+  expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('100,00 Kč')).toBeVisible();
 });
 
 it('selects and revisits a chapter without navigating when its branch toggle is clicked', () => {
@@ -110,4 +110,32 @@ it('never reveals prices without price permission, including during search', () 
   fireEvent.change(screen.getByRole('textbox', { name: 'Hledat oddíl' }), { target: { value: 'zemni' } });
   expect(screen.queryByText(/Kč/)).not.toBeInTheDocument();
   expect(screen.getByRole('treeitem', { name: 'Zemní práce' })).toBeVisible();
+});
+
+
+it('shows the whole budget total above search without counting group totals twice', () => {
+  const priced = [...nodes.map(n => n.kind === 'object' ? { ...n, total: '100' } : n),
+    { ...node('second', 'other', 'K', 'Kabel'), total: '25.50' }];
+  const { rerender } = render(<BudgetRecap nodes={priced} prices onJump={vi.fn()}/>);
+  const summary = screen.getByRole('region', { name: 'Cena celkem' });
+  expect(within(summary).getByText('125,50 Kč')).toBeVisible();
+  expect(within(summary).getByText('Celý rozpočet · bez DPH')).toBeVisible();
+  expect(summary.compareDocumentPosition(screen.getByRole('textbox', { name: 'Hledat oddíl' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Hledat oddíl' }), { target: { value: 'zemni' } });
+  expect(within(summary).getByText('125,50 Kč')).toBeVisible();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Hledat oddíl' }), { target: { value: 'nenalezeno' } });
+  expect(within(summary).getByText('125,50 Kč')).toBeVisible();
+  rerender(<BudgetRecap nodes={[...priced, { ...node('third', 'other', 'K', 'Světlo'), total: '4.50' }]} prices onJump={vi.fn()}/>);
+  expect(within(summary).getByText('130,00 Kč')).toBeVisible();
+  rerender(<BudgetRecap nodes={priced} prices={false} onJump={vi.fn()}/>);
+  expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Kč/)).not.toBeInTheDocument();
+});
+
+it('shows zero for an empty budget and keeps the warning for incomplete prices', () => {
+  const { rerender } = render(<BudgetRecap nodes={[]} prices onJump={vi.fn()}/>);
+  expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('0,00 Kč')).toBeVisible();
+  rerender(<BudgetRecap nodes={[...nodes, node('missing', 'other', 'K', 'Bez ceny')]} prices onJump={vi.fn()}/>);
+  expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('100,00 Kč')).toBeVisible();
+  expect(screen.getByText('Neúplný součet. Některým položkám chybí cena.')).toBeVisible();
 });
