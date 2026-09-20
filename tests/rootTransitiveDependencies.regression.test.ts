@@ -15,6 +15,24 @@ const runNode = (script: string) => {
 };
 
 describe("installed root dependency security regressions", () => {
+  it("keeps custom Joi message keys from mutating shared prototypes", () => {
+    runNode(`
+      import Joi from 'joi';
+      const messages = JSON.parse('{"__proto__":{"tfPolluted":"yes"}}');
+      Joi.any().messages(messages);
+      assert.equal(Object.prototype.tfPolluted, undefined);
+      assert.equal(Joi.string().required().validate('ready').value, 'ready');
+    `);
+  });
+
+  it("ignores query parameters after a URL fragment in Hono", () => {
+    runNode(`
+      import { getQueryParam } from 'hono/utils/url';
+      assert.equal(getQueryParam('https://example.test/path#fragment?role=admin', 'role'), undefined);
+      assert.equal(getQueryParam('https://example.test/path?role=user#fragment?role=admin', 'role'), 'user');
+    `);
+  });
+
   it("bounds repeated empty YAML merge sources while preserving updater metadata round trips", () => {
     runNode(`
       import yaml from 'js-yaml';
