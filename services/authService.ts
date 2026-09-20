@@ -730,11 +730,29 @@ export const authService = {
                     organization: { type: string };
                 }> | null; error: unknown };
                 if (error || !data?.length) return null;
-                // Approval may leave a legitimate personal workspace intact. Choose an
-                // active company first, then a stable fallback independent of row order.
-                const priority = (member: NonNullable<typeof data>[number]) =>
-                    (member.is_active === false ? 2 : 0) + (member.organization?.type === 'business' ? 0 : 1);
-                const selected = [...data].sort((a, b) => priority(a) - priority(b)
+                // Use the same server entitlement decision that protects tenant data.
+                // Only multiple active workspaces need a licence-based tie-break.
+                const hasAlternatives = data.filter(member => member.is_active !== false).length > 1;
+                const candidates = await Promise.all(data.map(async member => {
+                    let hasSubscription = false;
+                    if (hasAlternatives && member.is_active !== false) {
+                        try {
+                            const licence = await withTimeout(
+                                Promise.resolve(supabase.rpc('has_resource_subscription', {
+                                    organization_id_input: member.organization_id,
+                                })), queryTimeoutMs, 'Organization licence load'
+                            );
+                            hasSubscription = !licence?.error && licence?.data === true;
+                        } catch {
+                            // Keep a stable recovery workspace; backend gates still apply.
+                        }
+                    }
+                    return { ...member, hasSubscription };
+                }));
+                const priority = (member: typeof candidates[number]) =>
+                    (member.is_active === false ? 4 : 0) + (member.hasSubscription ? 0 : 2)
+                    + (member.organization?.type === 'business' ? 0 : 1);
+                const selected = candidates.sort((a, b) => priority(a) - priority(b)
                     || a.organization_id.localeCompare(b.organization_id))[0];
                 return { organizationId: selected.organization_id, isActive: selected.is_active ?? true };
             } catch (e) {

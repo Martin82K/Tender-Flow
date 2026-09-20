@@ -70,6 +70,7 @@ describe("authService session hydration", () => {
       privacy_accepted_at: null,
     };
 
+    mockState.rpc.mockReset();
     mockState.getStoredAuthSessionRaw.mockReturnValue(null);
     mockState.authGetSession.mockResolvedValue({ data: { session: null } });
 
@@ -157,6 +158,37 @@ describe("authService session hydration", () => {
     expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("z-company");
     organizationMemberships.reverse();
     expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("z-company");
+  });
+  it("selects a licensed personal workspace over an expired company", async () => {
+    organizationMemberships = [
+      { organization_id: "company", is_active: true, organization: { type: "business" } },
+      { organization_id: "personal", is_active: true, organization: { type: "personal" } },
+    ];
+    mockState.rpc.mockImplementation((name: string, args: { organization_id_input: string }) =>
+      Promise.resolve({ data: name === "has_resource_subscription" && args.organization_id_input === "personal", error: null }));
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("personal");
+    organizationMemberships.reverse();
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("personal");
+  });
+
+  it("prefers a licensed company and never selects an inactive licensed membership", async () => {
+    organizationMemberships = [
+      { organization_id: "personal", is_active: true, organization: { type: "personal" } },
+      { organization_id: "company", is_active: true, organization: { type: "business" } },
+      { organization_id: "disabled", is_active: false, organization: { type: "business" } },
+    ];
+    mockState.rpc.mockResolvedValue({ data: true, error: null });
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("company");
+    expect(mockState.rpc).not.toHaveBeenCalledWith("has_resource_subscription", { organization_id_input: "disabled" });
+  });
+
+  it("retains a deterministic recovery workspace when licence checks fail", async () => {
+    organizationMemberships = [
+      { organization_id: "personal", is_active: true, organization: { type: "personal" } },
+      { organization_id: "company", is_active: true, organization: { type: "business" } },
+    ];
+    mockState.rpc.mockResolvedValue({ data: null, error: { message: "Offline" } });
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("company");
   });
   const pendingSession = () => ({ user: { ...makeSession().user, email_confirmed_at: "2026-09-19T08:00:00Z", user_metadata: {
     name: "User One", signup_legal_acceptance: { termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION },
