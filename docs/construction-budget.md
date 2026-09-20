@@ -290,7 +290,7 @@ Export položek do Excelu zapisuje množství a ceny jako textové buňky, aby
 zachoval všechny číslice. Prázdné množství při přiřazení do VŘ znamená dosud
 nepřiřazené množství, nikoli celé množství položky.
 
-Náhled má nejvýše 60 řádků na list a 200 000 buněk za celý sešit; u mnoha širokých listů ukazuje méně řádků. Chybové buňky Excelu zůstávají bez číselné hodnoty i po ruční opravě typu. Opravené mezisoučty jsou viditelné pod rozbaleným oddílem s položkami, do ceny se podruhé nezapočítávají.
+Náhled má nejvýše 60 řádků na list a 200 000 buněk a 1 000 000 znaků textů i vzorců za celý sešit (nejvýše 256 znaků na náhledovou hodnotu); u mnoha širokých listů ukazuje méně řádků. Chybové buňky Excelu zůstávají bez číselné hodnoty i po ruční opravě typu. Opravené mezisoučty jsou viditelné pod rozbaleným oddílem s položkami, do ceny se podruhé nezapočítávají.
 Plně přiřazená položka se při dalším hromadném rozdělení přeskočí; nulové
 množství nevytváří vazbu na další VŘ. Čísla mohou obsahovat nejvýše 24 číslic
 před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import ohlásí.
@@ -309,3 +309,5 @@ rozpočty a historii, pouze odstraní jeho identitu. Obnova po novém importu
 stejného souboru zachová aktuální zdroj i revize a doplní chybějící staré revize.
 
 Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřešenou figuru nebo jinou chybu; důvod je zobrazen pod tlačítkem. Po vyřešení figury lze výsledek připravit a samostatně potvrdit uložením položky. Rozpracované mazání celého projektu se dokončuje opakováním mazání projektu, nikoli vysypáním koše rozpočtu. Obnova starších importních revizí zachovává nejstarší a nejnovější datum převodu bez závislosti na pořadí revizí v záloze.
+
+Zkrácený náhled je označen upozorněním. Omezení platí pouze pro náhled, původní buňky ani soubor se nemění. Limit znaků brání tomu, aby opakované dlouhé shared strings z malého XLSX zahltily renderer.
