@@ -63,3 +63,17 @@ it('keeps zero quantity and zero unit price valid in priced export',()=>{
  const book=buildBudgetWorkbook(zero,{scope:{kind:'selection',itemIds:['a']},allocations:[],includePrices:true,canViewPrices:true});
  expect(rows(book).find(r=>r[1]==='a')?.slice(4,7)).toEqual(['0','0','0']);expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('0.00');
 });
+it('rejects excessively deep export hierarchies before creating a workbook',()=>{
+ const deep=Array.from({length:300},(_,i)=>node(`g${i}`,i?`g${i-1}`:null,'section'));
+ deep.push(node('leaf','g299','K',{quantity:'1',unitPrice:'1',total:'1'}));
+ expect(()=>buildBudgetWorkbook(deep,{scope:{kind:'whole'},allocations:[],includePrices:true,canViewPrices:true})).toThrow(/hloubk/);
+});
+it.each([true,false])('bounds hierarchy work for many leaves sharing deep ancestors (prices=%s)',includePrices=>{
+ let reads=0;const deep=Array.from({length:200},(_,i)=>node(`g${i}`,i?`g${i-1}`:null,'section'));
+ deep.push(...Array.from({length:200},(_,i)=>node(`leaf${i}`,'g199','K',{quantity:'1',unitPrice:'1',total:'1'})));
+ for(const n of deep){const parent=n.parentId;Object.defineProperty(n,'parentId',{get(){reads++;return parent;}});}
+ const book=buildBudgetWorkbook(deep,{scope:{kind:'whole'},allocations:[],includePrices,canViewPrices:true});
+ expect(rows(book)).toHaveLength(401);expect(reads).toBeLessThan(deep.length*20);
+ if(includePrices)expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('200.00');
+ else expect(book.Sheets['Rozpočet'].G2.f).toContain('A202:A401');
+});

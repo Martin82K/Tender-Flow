@@ -71,3 +71,13 @@ jednotkovou cenu a celkovou částku, pro celý rozpočet i výběr. Chybějíc�
 ponechá součet prázdný; nula zůstává platná. Dvě RED regrese pro množství po
 opravě prošly společně se 17 exportními/UI testy a typecheckem (diff po a275537b,
 base main 7de7ad4b). Ocenění VŘ nadále vychází z jeho přiděleného množství.
+
+Bezpečnostní review 727efa85 našlo kvadratickou práci při hluboké hierarchii.
+Export nyní projde relevantní předky jednou, zachovává jen součet/příznak úplnosti
+na uzel a agreguje součty i rozsahy vzorců zdola nahoru. Nejbližší exportovaný
+rodič se memoizuje. Hloubka je omezená na 256 uzlů; cykly a chybějící rodiče
+se nadále odmítají. Regrese počítá přístupy k rodičům u 200 skupin/200 položek
+v obou variantách a samostatně ověřuje odmítnutí 300 úrovní (nejprve RED).
+Na diffu po 727efa85 / main 7de7ad4b prošlo 20 exportních/UI testů, typecheck,
+Chrome desktop/mobil a skutečné stažení. LibreOffice znovu přepočetl pět variant:
+blank/partial/invalid neúplné, complete 122.50, zero 60; bez chybových buněk.

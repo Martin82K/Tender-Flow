@@ -35,34 +35,52 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
   const items = nodes.filter(node => isPriced(node) && (!chosen || chosen.has(node.id)) && (options.scope.kind !== 'tender' || allocated.has(node.id)));
   if (!items.length) throw new Error('Vybraný rozsah neobsahuje položky k exportu.');
   const included = new Set(items.map(node => node.id));
-  const amounts = new Map<string, Array<string | null>>();
+  // Validate each relevant ancestor once, in parent-before-child order.
+  const ancestry: BudgetNode[] = []; const visited = new Set<string>(); const depths = new Map<string, number>();
+  for (const item of items) {
+    const chain: BudgetNode[] = []; const seen = new Set<string>(); let cursor: BudgetNode | undefined = item;
+    while (cursor && !visited.has(cursor.id)) {
+      if (seen.has(cursor.id)) throw new Error('Struktura rozpočtu obsahuje cyklus.');
+      seen.add(cursor.id); chain.push(cursor);
+      if (chain.length > 256) throw new Error('Struktura rozpočtu překročila maximální hloubku 256 řádků.');
+      const parent: string | null = cursor.parentId; cursor = parent ? byId.get(parent) : undefined;
+      if (parent && !cursor) throw new Error('Ve struktuře rozpočtu chybí nadřazený řádek.');
+    }
+    while (chain.length) {
+      const node = chain.pop()!; const depth = (node.parentId ? depths.get(node.parentId)! : 0) + 1;
+      if (depth > 256) throw new Error('Struktura rozpočtu překročila maximální hloubku 256 řádků.');
+      depths.set(node.id, depth); visited.add(node.id); ancestry.push(node);
+      if (isGroup(node)) included.add(node.id);
+    }
+  }
+  const amounts = new Map<string, { value: string; complete: boolean }>();
   const itemValues = new Map<string, { quantity: string | null; amount: string | null }>();
   for (const item of items) {
     const quantity = options.scope.kind === 'tender' ? allocated.get(item.id)! : item.quantity;
     const amount = !options.includePrices || quantity === null || item.unitPrice === null ? null : options.scope.kind === 'tender'
       ? multiplyMoney(quantity, item.unitPrice) : item.total;
     itemValues.set(item.id, { quantity, amount });
-    let parent = item.parentId;
-    const seen = new Set([item.id]);
-    while (parent) {
-      if (seen.has(parent)) throw new Error('Struktura rozpočtu obsahuje cyklus.');
-      seen.add(parent); const ancestor = byId.get(parent);
-      if (!ancestor) throw new Error('Ve struktuře rozpočtu chybí nadřazený řádek.');
-      if (isGroup(ancestor)) {
-        included.add(parent); const values = amounts.get(parent) ?? [];
-        values.push(amount); amounts.set(parent, values);
-      }
-      parent = ancestor.parentId;
-    }
+    amounts.set(item.id, { value: sumMoney([amount]), complete: amount !== null });
+  }
+  // Constant-size subtotal per node; never retain one amount per leaf/ancestor pair.
+  for (let i = ancestry.length - 1; i >= 0; i--) {
+    const node = ancestry[i]; const value = amounts.get(node.id); const parent = node.parentId;
+    if (!value || !parent) continue;
+    const prior = amounts.get(parent);
+    amounts.set(parent, { value: sumMoney([prior?.value ?? '0', value.value]), complete: (prior?.complete ?? true) && value.complete });
   }
   const total = (values: Array<string | null>) => options.includePrices && values.every(value => value !== null) ? sumMoney(values) : '';
   const rows: Array<Array<string | null>> = [['Typ', 'Kód', 'Popis', 'MJ', 'Množství', 'J. cena', 'Celkem', 'VŘ', 'Štítky']];
   const recap: Array<Array<string | null>> = [['Typ', 'Kód', 'Název', 'Celkem bez DPH']];
+  const nearestIncluded = new Map<string, string | null>(); const exportParents = new Map<string, string | null>();
+  for (const node of ancestry) {
+    const parent = node.parentId ? nearestIncluded.get(node.parentId) ?? null : null;
+    exportParents.set(node.id, parent); nearestIncluded.set(node.id, included.has(node.id) ? node.id : parent);
+  }
   const children = new Map<string | null, BudgetNode[]>();
   for (const node of nodes) {
     if (!included.has(node.id)) continue;
-    let parent = node.parentId ?? null;
-    while (parent && !included.has(parent)) parent = byId.get(parent)?.parentId ?? null;
+    const parent = exportParents.get(node.id) ?? null;
     const siblings = children.get(parent) ?? []; siblings.push(node); children.set(parent, siblings);
   }
   const ordered: BudgetNode[] = []; const stack = [...(children.get(null) ?? [])].reverse();
@@ -72,7 +90,8 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
   for (const node of ordered) {
     rowById.set(node.id, rows.length + 1);
     const values = itemValues.get(node.id);
-    const amount = values ? (values.amount ?? '') : total(amounts.get(node.id) ?? []);
+    const subtotal = amounts.get(node.id);
+    const amount = values ? (values.amount ?? '') : options.includePrices && subtotal?.complete ? subtotal.value : '';
     rows.push([node.kind, node.code, node.description, values ? node.unit : '', values?.quantity ?? '',
       values && options.includePrices ? node.unitPrice : '', amount,
       values ? (options.scope.kind === 'tender' ? options.scope.title : node.tenders.join('; ')) : '',
@@ -91,8 +110,13 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
       const row = rowById.get(item.id)!;
       sheet[`G${row}`] = {t:'n', f:`IF(AND(ISNUMBER(F${row}),E${row}<>""),ROUND(_xlfn.NUMBERVALUE(E${row},".",",")*F${row},2),"")`, z:'0.00'};
       sheet[`F${row}`] = {t:'s',v:'',z:'0.00'};
-      let parent = item.parentId;
-      while (parent) {const bound=bounds.get(parent);bounds.set(parent,{first:Math.min(bound?.first??row,row),last:Math.max(bound?.last??row,row)});parent=byId.get(parent)?.parentId??null;}
+      bounds.set(item.id, {first:row,last:row});
+    }
+    for (let i = ancestry.length - 1; i >= 0; i--) {
+      const node = ancestry[i]; const bound = bounds.get(node.id); const parent = node.parentId;
+      if (!bound || !parent) continue;
+      const prior = bounds.get(parent);
+      bounds.set(parent, {first:Math.min(prior?.first ?? bound.first,bound.first),last:Math.max(prior?.last ?? bound.last,bound.last)});
     }
     const subtotal = (first:number,last:number) => {
       const kinds=`A${first}:A${last}`; const values=`G${first}:G${last}`;

@@ -383,3 +383,6 @@ mezisoučty se znovu nesčítají do celkové částky. Ve variantě bez cen tat
 rekapitulace čeká na vyplnění cen a neobsahuje cachované interní částky. Desetinné hodnoty jsou v XLSX text,
 aby export nezkracoval jejich přesnost; dodavatelské vzorce používají běžnou
 numerickou přesnost Excelu (přibližně 15 platných číslic); vstupy začínající `=` se nestávají vzorci.
+
+Export podporuje nejvýše 256 úrovní vnoření. Hlubší nebo cyklická struktura
+zobrazí chybu před vytvořením souboru; upravte nejprve hierarchii rozpočtu.
