@@ -189,3 +189,16 @@ položek a ochranu VŘ; `construction_budget_backup_delete.sql` obnovu této his
 Migrace kompaktní historie byla nasazená; postflight ověřil sloupec, trigger,
 odebraná klientská práva helperu a původní počty 2 zdrojů / 2 revizí.
 Závěrečný dry-run: databáze aktuální. Nové advisors nálezy nepřibyly.
+
+Migrace `20260920110007_backup_budget_catalog_without_projects.sql` přesouvá
+katalog z opakovaných projektových snapshotů do jednoho podepsaného pole
+`construction_budget_catalog`. Funguje i pro organizaci bez projektů/zdrojů.
+Starší projektové payloady zůstávají obnovitelné. Nový payload ověřuje typ,
+organizaci a podpis; nové položky může obnovit pouze aktivní správce/vlastník.
+Existující položky se nepřepisují. `construction_budget_catalog_backup.sql`
+ověřuje export bez projektů, počet obnovených položek, idempotenci, podvrh a
+cizího aktéra; regresní testy používejte pouze na izolované lokální databázi.
+Migrace katalogu je nasazená; postflight potvrdil privátní helpery bez
+klientského přístupu a zachování 2 zdrojů / 2 revizí. Závěrečný dry-run:
+databáze aktuální. Produkční katalog nebyl testy měněn;
+obnovovací regrese proběhly výhradně lokálně.

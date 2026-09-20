@@ -219,3 +219,9 @@ it('keeps per-item VV usable after collapsing all groups', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Výkaz výměr: 123' }));
   expect(screen.getByText('3*4')).toBeVisible();
 });
+it.each(['3*4','Poznámka k výkopu'])('does not offer a priced-item filter on auxiliary row %s', text => {
+ render(table());
+ fireEvent.contextMenu(screen.getByRole('button',{name:text,exact:true}));
+ expect(screen.queryByRole('menuitem',{name:'Filtrovat podle této hodnoty'})).not.toBeInTheDocument();
+ expect(screen.getByRole('menu',{name:'Akce rozpočtu'})).toBeVisible();
+});

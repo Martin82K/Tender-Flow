@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FEATURES, type FeatureKey } from '@/config/features';
 import type { Project, ProjectTab } from '@/types';
 import { ScheduleIcon } from '@features/projects/ui/ScheduleIcon';
-import { PROJECT_NAVIGATION } from '@features/projects/model/projectNavigation';
+import { projectNavigationForSession } from '@features/projects/model/projectNavigation';
 
 interface ProjectSidebarProps {
   compact?: boolean;
@@ -40,7 +40,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const project = projects.find(item => item.id === selectedProjectId);
-  const tabs = PROJECT_NAVIGATION.filter(tab => !tab.feature || hasFeature(tab.feature));
+  const tabs = projectNavigationForSession().filter(tab => !tab.feature || hasFeature(tab.feature));
   const selectedTab: ProjectTab = tabs.find(tab => tab.id === activeTab)?.id ?? 'overview';
   useEffect(() => { setOpen(false); setQuery(''); }, [selectedProjectId]);
   useEffect(() => {

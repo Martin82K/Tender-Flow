@@ -124,7 +124,7 @@ export function BudgetTable(props: Props) {
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
-          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]});}}>{value}</div>;
+          return <div key={c.key} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onDoubleClick={()=>{if(priced&&editable)setDetail(n);}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{value}</div>;
         })}
       </div>;})}
       </div>

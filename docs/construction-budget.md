@@ -249,3 +249,8 @@ před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import 
 VŘ použité v rozpočtové revizi nelze smazat, dokud existují související revize
 včetně koše; dialog uvede důvod. Historie změn uchovává původní upravené údaje
 úsporně a zůstává součástí podepsané zálohy.
+
+Demo režim záložku Rozpočet skrývá; přímý odkaz vrátí uživatele na přehled.
+Kontextový filtr podle hodnoty je dostupný pouze na oceněných položkách K/M.
+Firemní číselník se zálohuje samostatně i bez importovaných rozpočtů; obnova
+chybějících položek vyžaduje správce organizace a platný podpis původní zálohy.

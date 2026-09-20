@@ -217,3 +217,11 @@ it('umístí sbalení vedle značky a ponechá mobilní zavření', () => {
   expect(onToggle).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('button', { name: 'Zavřít sidebar' })).not.toBeInTheDocument();
 });
+it('hides the server-backed budget tab during a local demo session', async () => {
+ const {startDemoSession,endDemoSession}=await import('@/services/demoData');
+ startDemoSession();
+ try {
+  render(<Sidebar currentView="project" selectedProjectId="a" projects={[{id:'a',name:'Demo',location:'',status:'tender'}]} onViewChange={vi.fn()} onProjectSelect={vi.fn()} isOpen onToggle={vi.fn()}/>);
+  expect(screen.queryByRole('button',{name:'Rozpočet',exact:true})).not.toBeInTheDocument();
+ } finally {endDemoSession();}
+});
