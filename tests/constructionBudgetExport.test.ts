@@ -51,8 +51,8 @@ it('sums repeated valid links to the same tender with exact quantity precision',
  expect(rows(book).at(-1)?.[4]).toBe('3.125000000000000001');
  expect(rows(book).at(-1)?.[6]).toBe('385.78');
 });
-it.each((['whole','selection'] as const).flatMap(kind=>(['unitPrice','quantity','total'] as const).map(field=>({kind,field}))))('keeps totals blank for missing $field in $kind export',({kind,field})=>{
- const missing=nodes.map(n=>n.id==='a'?{...n,[field]:null}:n);
+it.each((['whole','selection'] as const).flatMap(kind=>(['unitPrice','quantity','total'] as const).flatMap(field=>[null,undefined].map(value=>({kind,field,value})))))('keeps totals blank for $field=$value in $kind export',({kind,field,value})=>{
+ const missing=nodes.map(n=>{if(n.id!=='a')return n;const copy={...n};if(value===undefined)delete (copy as Partial<BudgetNode>)[field];else copy[field]=null;return copy;});
  const book=buildBudgetWorkbook(missing,{scope:kind==='whole'?{kind}:{kind,itemIds:['a']},allocations:[],includePrices:true,canViewPrices:true});
  expect(rows(book).find(r=>r[1]==='a')?.[6]).toBe('');
  expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('');

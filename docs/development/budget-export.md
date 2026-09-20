@@ -81,3 +81,10 @@ v obou variantách a samostatně ověřuje odmítnutí 300 úrovní (nejprve RED
 Na diffu po 727efa85 / main 7de7ad4b prošlo 20 exportních/UI testů, typecheck,
 Chrome desktop/mobil a skutečné stažení. LibreOffice znovu přepočetl pět variant:
 blank/partial/invalid neúplné, complete 122.50, zero 60; bez chybových buněk.
+
+Draft JSON může číselný klíč také vynechat. Export proto normalizuje quantity,
+unitPrice a total pomocí nullish hodnot, včetně odmítnutí neplatné alokace VŘ.
+Matice ověřuje null i chybějící klíč pro všechna tři pole a oba rozsahy; šest
+nových RED scénářů po opravě prošlo. Diff po 23ad35ad / main 7de7ad4b: 26
+exportních/UI testů a typecheck prošly. Předchozí CI selhala při startu Chrome
+(debugging endpoint), nikoli v testech; nová revize vyžaduje úplnou zelenou CI.

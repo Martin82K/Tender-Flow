@@ -28,7 +28,7 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
     }
     for (const id of allocated.keys()) {
       const node = byId.get(id);
-      if (!node || !isPriced(node) || node.quantity === null) throw new Error('VŘ obsahuje neplatnou položku nebo množství.');
+      if (!node || !isPriced(node) || node.quantity == null) throw new Error('VŘ obsahuje neplatnou položku nebo množství.');
       validateAllocation(node.quantity, all.get(id) ?? []);
     }
   }
@@ -56,9 +56,10 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
   const amounts = new Map<string, { value: string; complete: boolean }>();
   const itemValues = new Map<string, { quantity: string | null; amount: string | null }>();
   for (const item of items) {
-    const quantity = options.scope.kind === 'tender' ? allocated.get(item.id)! : item.quantity;
-    const amount = !options.includePrices || quantity === null || item.unitPrice === null ? null : options.scope.kind === 'tender'
-      ? multiplyMoney(quantity, item.unitPrice) : item.total;
+    const quantity = options.scope.kind === 'tender' ? allocated.get(item.id)! : item.quantity ?? null;
+    const unitPrice = item.unitPrice ?? null;
+    const amount = !options.includePrices || quantity === null || unitPrice === null ? null : options.scope.kind === 'tender'
+      ? multiplyMoney(quantity, unitPrice) : item.total ?? null;
     itemValues.set(item.id, { quantity, amount });
     amounts.set(item.id, { value: sumMoney([amount]), complete: amount !== null });
   }
@@ -93,7 +94,7 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
     const subtotal = amounts.get(node.id);
     const amount = values ? (values.amount ?? '') : options.includePrices && subtotal?.complete ? subtotal.value : '';
     rows.push([node.kind, node.code, node.description, values ? node.unit : '', values?.quantity ?? '',
-      values && options.includePrices ? node.unitPrice : '', amount,
+      values && options.includePrices ? node.unitPrice ?? '' : '', amount,
       values ? (options.scope.kind === 'tender' ? options.scope.title : node.tenders.join('; ')) : '',
       values && options.includePrices ? node.tags.join('; ') : '']);
     if (isGroup(node)) {recap.push([node.kind, node.code, node.description, amount]); recapLinks.push(rows.length);}
