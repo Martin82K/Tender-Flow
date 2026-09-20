@@ -97,7 +97,7 @@ BEGIN
 
   UPDATE public.user_profiles SET stripe_subscription_tier='pro',subscription_status='trial',
     trial_ends_at=now()+interval '1 day',subscription_expires_at=NULL WHERE user_id=u;
-  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'pro' THEN RAISE EXCEPTION 'Valid legacy trial must retain access'; END IF;
+  IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Personal trial must not reopen an expired organization'; END IF;
   UPDATE public.user_profiles SET trial_ends_at=now()-interval '1 day' WHERE user_id=u;
   IF public.get_user_subscription_tier(u) IS DISTINCT FROM 'free' THEN RAISE EXCEPTION 'Expired legacy trial must not grant access'; END IF;
   UPDATE public.user_profiles SET subscription_status='cancelled',subscription_expires_at=now()+interval '1 day' WHERE user_id=u;

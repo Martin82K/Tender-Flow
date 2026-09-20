@@ -19,6 +19,7 @@ INSERT INTO public.projects(id,name,status,owner_id,organization_id)
 VALUES
  ('license-active', 'Licensed project', 'tender', '10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001'),
  ('license-expired', 'Expired project', 'tender', '10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002');
+INSERT INTO public.projects(id,name,status,owner_id,organization_id) VALUES ('license-legacy-shared','Shared legacy project','tender','10000000-0000-4000-8000-000000000001',NULL);
 INSERT INTO public.subscription_tier_features(tier,feature_key,enabled) VALUES ('enterprise','module_projects',true),('enterprise','module_contracts',true) ON CONFLICT DO NOTHING;
 INSERT INTO public.subscription_features(key,name) VALUES ('module_projects','Projects') ON CONFLICT DO NOTHING;
 INSERT INTO public.subcontractors(id,company_name,owner_id,organization_id) VALUES
@@ -38,6 +39,7 @@ INSERT INTO public.user_profiles(user_id,subscription_status,stripe_subscription
 INSERT INTO public.project_shares(project_id,user_id,permission,legacy_external) VALUES
  ('license-active','10000000-0000-4000-8000-000000000002','view',true),
  ('license-expired','10000000-0000-4000-8000-000000000002','view',true);
+INSERT INTO public.project_shares(project_id,user_id,permission,legacy_external) VALUES ('license-legacy-shared','10000000-0000-4000-8000-000000000002','view',true);
 INSERT INTO auth.oauth_clients(id,registration_type,redirect_uris,grant_types,token_endpoint_auth_method) VALUES ('30000000-0000-4000-8000-000000000001','manual','https://example.invalid','authorization_code','client_secret_post');
 INSERT INTO auth.oauth_consents(id,user_id,client_id,scopes) VALUES ('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','openid');
 INSERT INTO public.mcp_oauth_client_resources(client_id,resource,enabled) VALUES ('30000000-0000-4000-8000-000000000001','https://www.tenderflow.cz/api/mcp',true);
@@ -152,6 +154,7 @@ SELECT set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-00000000
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
   IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id='license-active') THEN RAISE EXCEPTION 'Licensed external share lost'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id='license-legacy-shared') THEN RAISE EXCEPTION 'Shared legacy project licence must use its owner'; END IF;
   IF EXISTS(SELECT 1 FROM public.projects WHERE id='license-expired') THEN RAISE EXCEPTION 'External share bypasses expiry'; END IF;
 END $$;
 RESET ROLE;

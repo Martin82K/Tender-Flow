@@ -1,5 +1,6 @@
 import { useExtendedSearchQuery } from "@features/search";
 import { CategoryPlanNotices } from "@features/projects/ui/CategoryPlanNotices";
+import { TrialBanner } from "@features/subscription/ui/TrialBanner";
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
@@ -66,7 +67,7 @@ export const AppContent: React.FC = () => {
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
   const { isDesktop } = useDesktop();
-  const { currentPlan, hasFeature, isLoading: isFeaturesLoading } = useFeatures();
+  const { currentPlan, hasFeature, isLoading: isFeaturesLoading, planStatus, planExpiresAt } = useFeatures();
 
   const route = parseAppRoute(pathname, search);
   const { state, actions } = useAppData(
@@ -601,6 +602,12 @@ export const AppContent: React.FC = () => {
         onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
       >
         <CategoryPlanNotices notices={state.categoryPlanNotices} onRetry={actions.retryCategoryPlan} onDismiss={actions.dismissCategoryPlanNotice} />
+        <TrialBanner
+          currentPlan={currentPlan}
+          isLoading={isFeaturesLoading}
+          planStatus={planStatus}
+          planExpiresAt={planExpiresAt}
+        />
         <LazyViewErrorBoundary
           key={currentView}
           onReload={() => window.location.reload()}

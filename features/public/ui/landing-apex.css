@@ -114,6 +114,10 @@
 .landing-apex .hero-sub{font-size:1.0625rem;color:var(--gray-1);max-width:480px;margin:0 auto 3rem;line-height:1.8;font-weight:350}
 .landing-apex .hero-actions{display:flex;gap:0.75rem;justify-content:center;align-items:center;flex-wrap:wrap}
 .landing-apex .btn-hero-primary{padding:0.9375rem 2.25rem;background:var(--cta);color:var(--bg);border:none;border-radius:14px;font-size:0.9375rem;font-weight:650;cursor:pointer;transition:all .35s var(--ease);letter-spacing:-0.01em;position:relative;overflow:hidden;font-family:var(--font)}
+.landing-apex .btn-hero-secondary{padding:0.9375rem 2.25rem;background:transparent;color:var(--white);border:1px solid var(--border-hover);border-radius:14px;font-size:0.9375rem;font-weight:650;cursor:pointer;transition:all .35s var(--ease);letter-spacing:-0.01em;font-family:var(--font);text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.landing-apex .btn-hero-secondary:hover{border-color:var(--cta);transform:translateY(-2px)}
+.landing-apex .hero-download-note{margin:0.85rem 0 0;font-size:0.8125rem;color:var(--gray-2)}
+.landing-apex .hero-download-note a{color:var(--cta);text-decoration:underline;text-underline-offset:3px}
 .landing-apex .btn-hero-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.15) 50%,transparent 60%);transform:translateX(-100%);transition:transform .6s var(--ease)}
 .landing-apex .btn-hero-primary:hover::after{transform:translateX(100%)}
 .landing-apex .btn-hero-primary:hover{background:var(--cta-hover);box-shadow:0 12px 48px var(--cta-glow);transform:translateY(-2px)}
@@ -495,7 +499,17 @@ html[data-skin="space"] .landing-apex:not(.auth-apex-page) .story-steps button.a
 
 .landing-apex:not(.auth-apex-page) .kc-tag.blue{background:var(--tag-blue-bg);color:var(--tag-blue-fg)}
 .landing-apex:not(.auth-apex-page) .testi-avatar{background:var(--avatar-bg);color:var(--avatar-fg)}
-.landing-apex:not(.auth-apex-page) .hero-sub{margin-bottom:0}
+.landing-apex:not(.auth-apex-page) .hero-actions{margin-top:1.75rem}
+.landing-apex .desktop-download-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem;margin-top:2.5rem}
+.landing-apex .desktop-download-card{padding:2rem;border:1px solid var(--border);border-radius:20px;background:var(--bg-card);display:flex;flex-direction:column;gap:0.75rem}
+.landing-apex .desktop-download-card h3{font-size:1.25rem;font-weight:650;margin:0}
+.landing-apex .desktop-download-card p{margin:0;color:var(--gray-2);font-size:0.8125rem}
+.landing-apex .desktop-download-card .enterprise-pricing-cta{align-self:flex-start;margin-top:0.5rem}
+.landing-apex .desktop-download-latest{margin-top:1.25rem;font-size:0.875rem}
+.landing-apex .desktop-download-latest a{color:var(--cta);text-decoration:underline;text-underline-offset:4px}
+@media(max-width:768px){
+  .landing-apex .desktop-download-grid{grid-template-columns:1fr}
+}
 .landing-apex:not(.auth-apex-page) .social-strip{margin-top:1.5rem}
 .landing-apex .client-reference{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;margin-top:3rem;padding:2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:20px}
 .landing-apex .client-reference h3{font-size:1.5rem;font-weight:650;letter-spacing:-.03em}
