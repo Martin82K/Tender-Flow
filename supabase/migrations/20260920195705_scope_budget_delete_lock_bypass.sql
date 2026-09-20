@@ -40,6 +40,8 @@ END $$;
 CREATE OR REPLACE FUNCTION private.budget_project_delete_finish(project_input text,job_input uuid) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 BEGIN
+ -- Match direct tender writes: catalog advisory lock, then project row lock.
+ PERFORM pg_advisory_xact_lock(hashtextextended('budget-categories:'||project_input,0));
  PERFORM 1 FROM public.projects WHERE id=project_input FOR UPDATE;
  IF NOT FOUND THEN RETURN; END IF;
  IF public.can_project_action(project_input,'delete') IS NOT TRUE OR public.has_project_subscription(project_input) IS NOT TRUE
@@ -73,6 +75,48 @@ BEGIN
  OR EXISTS(SELECT 1 FROM jsonb_array_elements(definitions) e WHERE btrim(e->>'externalCode')<>'' GROUP BY btrim(e->>'externalCode') HAVING count(*)>1)
  OR EXISTS(SELECT 1 FROM jsonb_array_elements(definitions) e GROUP BY e->>'id' HAVING count(*)>1)
  THEN RAISE EXCEPTION 'Duplicitní název nebo číslo VŘ.'; END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION private.budget_backup_restore(manifest jsonb,org_id uuid,scope text) RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE restored integer; envelope jsonb; snapshot jsonb; entry jsonb;
+BEGIN
+ restored:=private.budget_backup_restore_before_personal_tenders(manifest,org_id,scope);
+ IF manifest ? 'budget_editor_settings' THEN
+   envelope:=manifest->'budget_editor_settings';
+   IF auth.uid() IS NULL OR envelope->>'payload' IS NULL OR envelope->>'signature' IS NULL
+    OR private.budget_backup_signature(envelope->>'payload') IS DISTINCT FROM envelope->>'signature'
+   THEN RAISE EXCEPTION 'Invalid budget editor backup signature' USING ERRCODE='42501'; END IF;
+   snapshot:=(envelope->>'payload')::jsonb;
+   IF snapshot->>'kind' IS DISTINCT FROM 'budget-editor-settings' OR snapshot->>'version' IS DISTINCT FROM '1'
+    OR (snapshot->>'organization_id')::uuid IS DISTINCT FROM org_id THEN RAISE EXCEPTION 'Foreign budget editor backup' USING ERRCODE='42501'; END IF;
+   IF scope='user' AND snapshot->>'defaults' IS NOT NULL THEN
+     IF (snapshot->>'actor')::uuid IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Foreign personal tender defaults' USING ERRCODE='42501'; END IF;
+     PERFORM private.validate_tender_definitions(snapshot->'defaults');
+     INSERT INTO private.personal_tender_defaults(user_id,definitions) VALUES(auth.uid(),snapshot->'defaults') ON CONFLICT(user_id) DO NOTHING;
+   END IF;
+   FOR entry IN SELECT value FROM jsonb_array_elements(snapshot->'locks') LOOP
+     IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(manifest->'projects') p WHERE p->>'id'=entry->>'project_id')
+       OR NOT EXISTS(SELECT 1 FROM public.projects WHERE id=entry->>'project_id' AND organization_id=org_id AND (scope='tenant' OR owner_id=auth.uid()))
+       OR private.budget_access(entry->>'project_id','edit') IS NOT TRUE
+       OR private.budget_access(entry->>'project_id','prices') IS NOT TRUE
+     THEN RAISE EXCEPTION 'Foreign budget lock' USING ERRCODE='42501'; END IF;
+     INSERT INTO private.budget_edit_locks(project_id,locked) VALUES(entry->>'project_id',(entry->>'locked')::boolean) ON CONFLICT(project_id) DO NOTHING;
+   END LOOP;
+ END IF;
+ RETURN restored;
+END $$;
+
+-- A completed operation is read-only; keep authorization and payload checks before retry.
+DO $$
+DECLARE definition text; guard text:='PERFORM private.budget_assert_unlocked(project_input);';
+ marker text:=' SELECT COALESCE(jsonb_agg(jsonb_build_object(''id'',c.id,''title'',c.title,''externalCode'',COALESCE(c.external_code,'''')) ORDER BY c.id),''[]'')';
+BEGIN
+ SELECT pg_get_functiondef('private.budget_tender_import(text,jsonb)'::regprocedure) INTO definition;
+ IF position(guard IN definition)=0 OR position(marker IN definition)=0 THEN RAISE EXCEPTION 'Unexpected tender import retry guard'; END IF;
+ definition:=replace(definition,guard,'');
+ definition:=replace(definition,marker,' PERFORM private.budget_assert_unlocked(project_input);'||chr(10)||marker);
+ EXECUTE definition;
 END $$;
 
 COMMIT;

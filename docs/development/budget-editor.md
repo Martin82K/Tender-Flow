@@ -113,3 +113,13 @@ Ověření pracovního diffu nad `a4376595`, integrační základna `7517c42c`:
 - `npm run typecheck`: PASS; testovací PGlite 0.5.8 z existujícího lockfile má nulový audit, ověřený registry podpis a provenance.
 - Začleněná lokální rekapitulace: 34 testů rekapitulace/nastavení PASS, obsah zachovaný spolu s novějšími opravami PR.
 Finální CI, nezávislé review a cloudový postflight se ověřují pro finální commit.
+
+Další revize doplnila tři SQL regrese (všechny RED před opravou, 17 editorových
+SQL testů GREEN po opravě, základna `213c46c5` / main `7517c42c`). Dokončení
+mazání získává katalogový advisory lock před řádkovým zámkem projektu;
+pořadí je ověřeno na instalované funkci. PGlite má jednu session, proto tento
+test nenahrazuje živý souběh dvou PostgreSQL spojení. Retry dokončeného
+importu vrací uložený výsledek i při následném uzamčení, stále kontroluje
+identitu, payload a oprávnění; nový import zůstává zakázaný. Obnova zámku
+vyžaduje edit i prices stejně jako standardní změna zámku. Opravy jsou
+součástí dosud nenasazené migrace `20260920195705`.

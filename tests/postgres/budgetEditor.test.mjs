@@ -234,3 +234,34 @@ test('scopes unlock to authorized delete transactions, preserves retries and rol
   assert.equal((await db.query("SELECT count(*)::int n FROM projects WHERE id='foreign'")).rows[0].n,1);
  }finally{await db.close();}
 });
+
+test('returns a completed import on retry after locking without allowing a new import',async()=>{
+ const db=await fixture();try{
+  const request={operationId:randomUUID(),mode:'template',expectedCatalog:[{id:'existing',title:'Existující',externalCode:''}],newCategories:[{id:'new',title:'Nové',externalCode:'02'}],assignments:[]};
+  const call=r=>db.query("SELECT construction_budget_import_tenders('p',$1) result",[r]).then(r=>r.rows[0].result);
+  const first=await call(request);await lock(db,true);
+  assert.deepEqual(await call(request),first);
+  await assert.rejects(call({...request,operationId:randomUUID()}),/uzamčen/);
+  await assert.rejects(call({...request,newCategories:[]}),/jiné operaci/);
+  await db.exec("SET test.prices='no'");await assert.rejects(call(request),/povolen/);
+ }finally{await db.close();}
+});
+test('requires price access when restoring a lock without a budget envelope',async()=>{
+ const db=await fixture();try{
+  await lock(db,true);const manifest={organization_id:org,projects:[{id:'p'}]};
+  const backup=(await db.query('SELECT private.budget_backup_export($1) result',[manifest])).rows[0].result;
+  await db.exec("DELETE FROM private.budget_edit_locks; SET test.prices='no'");
+  await assert.rejects(db.query("SELECT private.budget_backup_restore($1,$2,'tenant')",[backup,org]),/Foreign budget lock/);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.budget_edit_locks')).rows[0].n,0);
+  await db.exec("SET test.prices='yes'");await db.query("SELECT private.budget_backup_restore($1,$2,'tenant')",[backup,org]);
+  assert.equal((await db.query("SELECT locked FROM private.budget_edit_locks WHERE project_id='p'")).rows[0].locked,true);
+ }finally{await db.close();}
+});
+test('takes the catalog advisory lock before locking the project in deletion completion',async()=>{
+ const db=await fixture();try{
+  // PGlite is single-session: assert the lock-order contract on the installed function.
+  const body=(await db.query("SELECT pg_get_functiondef('private.budget_project_delete_finish(text,uuid)'::regprocedure) body")).rows[0].body;
+  const advisory=body.indexOf("pg_advisory_xact_lock(hashtextextended('budget-categories:'||project_input,0))");
+  assert.ok(advisory>=0 && advisory<body.indexOf('FOR UPDATE'));
+ }finally{await db.close();}
+});
