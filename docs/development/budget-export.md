@@ -65,3 +65,9 @@ rozpočtu/výběru nepoužije, pokud chybí unitPrice. Řádek i rekapitulace z�
 neúplné. Dvě regrese nejprve selhaly; po opravě prošlo 12 exportních/UI testů
 a typecheck nad main `7de7ad4b`. Finální CI a bezpečnostní revize se vztahují
 k publikované opravě; databáze ani formát vzorců se nemění.
+
+Navazující regrese pokrývají všechna tři povinná číselná pole: množství,
+jednotkovou cenu a celkovou částku, pro celý rozpočet i výběr. Chybějící pole
+ponechá součet prázdný; nula zůstává platná. Dvě RED regrese pro množství po
+opravě prošly společně se 17 exportními/UI testy a typecheckem (diff po a275537b,
+base main 7de7ad4b). Ocenění VŘ nadále vychází z jeho přiděleného množství.

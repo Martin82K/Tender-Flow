@@ -51,9 +51,15 @@ it('sums repeated valid links to the same tender with exact quantity precision',
  expect(rows(book).at(-1)?.[4]).toBe('3.125000000000000001');
  expect(rows(book).at(-1)?.[6]).toBe('385.78');
 });
-it.each(['whole','selection'] as const)('keeps row and recap totals blank for missing unit price in %s export',kind=>{
- const missing=nodes.map(n=>n.id==='a'?{...n,unitPrice:null}:n);
+it.each((['whole','selection'] as const).flatMap(kind=>(['unitPrice','quantity','total'] as const).map(field=>({kind,field}))))('keeps totals blank for missing $field in $kind export',({kind,field})=>{
+ const missing=nodes.map(n=>n.id==='a'?{...n,[field]:null}:n);
  const book=buildBudgetWorkbook(missing,{scope:kind==='whole'?{kind}:{kind,itemIds:['a']},allocations:[],includePrices:true,canViewPrices:true});
- expect(rows(book).find(r=>r[1]==='a')?.slice(5,7)).toEqual(['','']);
+ expect(rows(book).find(r=>r[1]==='a')?.[6]).toBe('');
  expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('');
+});
+
+it('keeps zero quantity and zero unit price valid in priced export',()=>{
+ const zero=nodes.map(n=>n.id==='a'?{...n,quantity:'0',unitPrice:'0',total:'0'}:n);
+ const book=buildBudgetWorkbook(zero,{scope:{kind:'selection',itemIds:['a']},allocations:[],includePrices:true,canViewPrices:true});
+ expect(rows(book).find(r=>r[1]==='a')?.slice(4,7)).toEqual(['0','0','0']);expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('0.00');
 });
