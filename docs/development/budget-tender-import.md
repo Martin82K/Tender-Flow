@@ -208,3 +208,11 @@ Historický poskytovatel local používá stejnou desktopovou validaci osobní c
 jako onedrive. Na diffu po `a5c34048` / main `0b4af027` prošlo 55 cílených testů
 (po RED pro všech pět nálezů), typecheck a browser desktop/mobil. Dodatečná regrese
 neplatného odkazu na nové VŘ prošla v desetici UI testů. Migrace se nemění.
+
+Integrace main `3bdf2f0f` po #492 zachovává importní i nabídkové moduly. Review
+ověřilo grant privátní implementace (již přítomný); nový PostgreSQL scénář volá
+veřejné RPC pod `SET ROLE authenticated`, nikoli jako vlastník. Všech 13 SQL
+scénářů prošlo. Dvě UI regrese nejprve selhaly a po opravě prošly: nové definice
+se kontrolují také proti projektovému katalogu; režim assignments nezobrazuje
+ani neprovádí přenos štítků/alokací určený pro novou revizi. Na tomto diffu
+prošlo 51 cílených UI/grafových testů a typecheck. Migrační SQL se nemění.

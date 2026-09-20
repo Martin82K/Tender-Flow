@@ -1,0 +1,61 @@
+import { describe, expect, it, vi } from 'vitest';
+import { registerOfferComparisonsModule } from '../../server/mcp/modules/offerComparisons.js';
+function setup(includeWriteTools = true, denied = false) {
+  const configs = new Map<string, { inputSchema: { projectId: { safeParse: (value: unknown) => { success: boolean } } } }>();
+  const handlers = new Map<string, (args: unknown) => Promise<unknown>>();
+  const rpc = vi.fn().mockResolvedValue({ data: {}, error: denied ? { message: 'denied' } : null });
+  registerOfferComparisonsModule({ supabase: { rpc }, tools: { register: (name: string, _config: unknown, handler: (args: unknown) => Promise<unknown>) => { configs.set(name, _config as { inputSchema: { projectId: { safeParse: (value: unknown) => { success: boolean } } } }); handlers.set(name, handler); } }, includeWriteTools });
+  return { rpc, handlers, configs };
+}
+describe('MCP offer comparison boundary', () => {
+  it('does not expose saving when writes are disabled', () => {
+    expect(setup(false).handlers.has('tf_save_offer_comparison')).toBe(false);
+  });
+  it('checks project access before matching supplied content', async () => {
+    const { handlers, rpc } = setup(true, true);
+    await expect(handlers.get('tf_match_offer_items')!({ projectId: 'foreign', inquiry: [], offer: [] })).rejects.toThrow('denied');
+    expect(rpc).toHaveBeenCalledWith('offer_comparison_load', { project_input: 'foreign' });
+  });
+  it('uses only the database access check; does not invoke AI', async () => {
+    const { handlers, rpc } = setup();
+    await handlers.get('tf_match_offer_items')!({ projectId: 'own', inquiry: [], offer: [] });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
+it.each(['tf_list_offer_comparisons','tf_match_offer_items','tf_save_offer_comparison'])('bounds the project identifier before %s reaches the handler', name => {
+ const schema=setup().configs.get(name).inputSchema.projectId;
+ expect(schema.safeParse('x'.repeat(1024*1024)).success).toBe(false);
+ expect(schema.safeParse('project-123').success).toBe(true);
+});
+it('normalizes Czech decimals before the database without changing source input',async()=>{
+ const {handlers,rpc}=setup();
+ const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1,5',unitPrice:'1 000,20',total:'1 500,30',group:'',source:{sheet:'S',row:2}};
+ const sources=[{id:'base',origin:'mcp',name:'Poptávka',sha256:'a'.repeat(64),items:[item],notes:[]},{id:'offer',origin:'mcp',name:'Nabídka',sha256:'b'.repeat(64),items:[{...item,id:'b'}],notes:[]}];
+ await handlers.get('tf_save_offer_comparison')!({projectId:'own',requestId:'00000000-0000-4000-8000-000000000001',title:'Test',expectedVersion:0,sources,assignments:{offer:[{baseId:'a',offerId:'b',status:'matched'}]}});
+ expect(rpc.mock.calls[0][1].document_input.sources[0].items[0]).toMatchObject({quantity:'1.5',unitPrice:'1000.20',total:'1500.30'});
+ expect(item.quantity).toBe('1,5');expect(item.total).toBe('1 500,30');
+});
+
+it('accepts the full budget decimal precision in MCP schemas',()=>{
+ const tools={register:vi.fn()};registerOfferComparisonsModule({supabase:{rpc:vi.fn()},tools,includeWriteTools:true});
+ const schema=tools.register.mock.calls.find(call=>call[0]==='tf_match_offer_items')![1].inputSchema.inquiry;
+ const quantity='-123456789012345678901234.123456789012345678';
+ expect(schema.safeParse([{id:'a',code:'1',description:'Malba',unit:'m2',quantity,unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}}]).success).toBe(true);
+});
+
+it('fills missing offer assignment keys and preserves omitted category on edits',async()=>{
+ const {handlers,rpc}=setup();const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}};
+ const sources=['base','offer','other'].map(id=>({id,origin:'mcp',name:id,sha256:'a'.repeat(64),items:[item],notes:[]}));
+ const args={projectId:'own',id:'view',requestId:'00000000-0000-4000-8000-000000000001',title:'Test',expectedVersion:2,sources,assignments:{offer:[]}};
+ rpc.mockResolvedValueOnce({data:{id:'view',category_id:'existing'},error:null}).mockResolvedValueOnce({data:{id:'view',version:3,category_id:'existing'},error:null});
+ const result=await handlers.get('tf_save_offer_comparison')!(args);
+ expect(rpc).toHaveBeenCalledWith('offer_comparison_load',{project_input:'own',id_input:'view'});
+ expect(rpc.mock.calls.at(-1)[1]).toMatchObject({category_input:'existing',document_input:{assignments:{offer:[],other:[]}}});
+ expect(args.assignments).toEqual({offer:[]});expect(result).toMatchObject({data:{categoryId:'existing'}});
+});
+it('passes an explicit null category when detaching an existing MCP view',async()=>{
+ const {handlers,rpc}=setup();const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}};
+ await handlers.get('tf_save_offer_comparison')!({projectId:'own',id:'view',categoryId:null,title:'Test',sources:['base','offer'].map(id=>({id,items:[item]})),assignments:{}});
+ expect(rpc).toHaveBeenCalledTimes(1);expect(rpc.mock.calls[0][1]).toMatchObject({category_input:null,document_input:{assignments:{offer:[]}}});
+});

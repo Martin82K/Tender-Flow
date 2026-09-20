@@ -126,3 +126,8 @@ it('renders column mapping for only one sheet at a time while retaining all shee
   expect(screen.getAllByRole('group')).toHaveLength(1);expect(screen.getByLabelText('SO0: name')).toBeInTheDocument();
   fireEvent.click(screen.getByText('Další list'));expect(screen.getByLabelText('SO1: name')).toBeInTheDocument();expect(screen.queryByLabelText('SO0: name')).not.toBeInTheDocument();
 });
+it('blocks creating a new definition that collides with the project catalog',async()=>{
+  setup();fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText('VŘ: Práce');
+  fireEvent.change(screen.getByLabelText('VŘ: Práce'),{target:{value:'new'}});fireEvent.click(screen.getByRole('checkbox'));
+  expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();expect(screen.getByRole('alert')).toHaveTextContent('duplicitní');
+});

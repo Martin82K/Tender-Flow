@@ -178,3 +178,10 @@ test('project realization clone retains tender codes in independent categories a
     assert.equal((await db.query("SELECT external_code FROM demand_categories WHERE id='existing'")).rows[0].external_code,'007');
   }finally{await db.close();}
 });
+
+test('authenticated invokes the wrapper and its private implementation with real role checks',async()=>{
+  const db=await fixture();try{
+    await db.exec('GRANT USAGE ON SCHEMA private,auth TO authenticated; SET ROLE authenticated;');
+    const result=await call(db,request());assert.equal(result.revision.id,revision);assert.deepEqual(result.createdCategoryIds,['new']);
+  }finally{await db.close();}
+});
