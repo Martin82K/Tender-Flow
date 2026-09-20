@@ -2,11 +2,11 @@
 
 V detailu VŘ otevřete **Porovnat nabídky**. Základem je samostatný poptávkový XLSX, nebo konkrétní revize rozpočtu s množstvím přiřazeným do tohoto VŘ. Interní rozpočtové ceny se do základny nepřenášejí. V desktopu výběr souboru začíná ve složce VŘ ze Složkomatu; web používá výběr existujícího lokálního souboru.
 
-1. Zkontrolujte listy a mapování kódu, popisu, MJ, množství a cen.
+1. Zkontrolujte listy a mapování kódu, popisu, MJ, množství a cen. Nerozpoznané listy přidejte samostatně; vynechané listy se zaznamenají do výhrad. Poznámky jednotlivých položek zůstávají u cen a v příloze obou exportů.
 2. Přidejte dodavatelské XLSX/PDF. Shoda kódu sama nestačí: kontrolují se popis, jednotka, množství a objekt. Duplicitní protějšky zůstávají k ověření.
 3. Nejasnou vazbu vyhledejte a potvrďte. Odlišné množství/MJ se nepřepočítává. Nulová cena, chybějící cena a nespárovaná položka jsou odlišné stavy.
 4. Ověřte shodnou měnu a režim DPH originálů. Automatická detekce měny, konverze ani normalizace DPH nejsou součástí tohoto pohledu.
-5. Uložte pohled a případně exportujte XLSX/PDF. Pruhy pokračují přes všechny sloupce. PDF dělí dodavatele po třech a opakuje hlavičky.
+5. Uložte pohled a případně exportujte XLSX/PDF. Nepotřebný uložený pohled lze po potvrzení smazat; smazání hlídá oprávnění a aktuální verzi. Samostatné projektové pohledy z MCP jsou dostupné také v seznamu porovnání VŘ. Pruhy pokračují přes všechny sloupce. PDF dělí dodavatele po třech a opakuje hlavičky.
 
 Součty zahrnují jen spárované položky se shodnou MJ a množstvím, nejsou vždy celkovou cenou nabídky. Výhrady a položky bez protějšku zůstávají dostupné. Zdrojové soubory, rozpočet a souhrnné ceny nabídek se nemění. Nový soubor vyžaduje nový snapshot/párování; původní soubor se nehlídá na pozadí. Změna rozpočtové revize blokuje uložení zastaralého pohledu. Souběžná editace vrací konflikt místo přepsání cizích změn.
 
@@ -29,7 +29,7 @@ Před zapnutím:
 
 Před každým voláním se v transakci rezervuje konzervativní odhad; souběžné požadavky zamykají nastavení firmy. Opakování stejného request ID nepřidává volání. Dokončení ukládá spotřebu, použitý sazebník a odhad ceny; při chybě/neznámé spotřebě zůstává rezervace v měsíčním limitu. Nové uživatelské spuštění je nový pokus a může znovu stát peníze. Zvláště při chybě uprostřed vícestránkového PDF nejprve zkontrolujte statistiku. Automatické síťové retry jsou vypnuté.
 
-Výsledky OCR a návrhů jsou v neveřejné tabulce pro idempotenci a ověření zpětné vazby. V administraci se obsah nezobrazuje; audit MCP jej nezapisuje. Čtení/zápis porovnání vyžaduje také profesní oprávnění `tenders.bids`; rozpočtové snapshoty vyžadují `budget.read` i při pozdějším načtení, změně, záloze a obnově. Vlastník projektu zachovává stávající privilegovaný přístup. Záznamy jsou oddělené podle firmy a projektu, původce může být smazán bez odstranění pohledu. Pohled přiřazený k VŘ se maže s tímto VŘ; složený cizí klíč současně hlídá příslušnost k projektu. Projektové pohledy se mažou s projektem; provozní spotřeba zůstává ve firmě s prázdným projektem/původcem, při smazání firmy se maže. Automatická retenční lhůta záznamů spotřeby není nastavena. Podepsaná projektová/tenant záloha obsahuje snapshoty porovnání a hashe, nikoli externí soubory ani provozní statistiku.
+Výsledky OCR a návrhů jsou v neveřejné tabulce pro idempotenci a ověření zpětné vazby. V administraci se obsah nezobrazuje; audit MCP jej nezapisuje. Čtení/zápis porovnání vyžaduje také profesní oprávnění `tenders.bids`; rozpočtové snapshoty vyžadují `budget.read` i při pozdějším načtení, změně, záloze a obnově. Vlastník projektu zachovává stávající privilegovaný přístup. Záznamy jsou oddělené podle firmy a projektu, původce může být smazán bez odstranění pohledu. Pohled přiřazený k VŘ se maže s tímto VŘ; složený cizí klíč současně hlídá příslušnost k projektu. Projektové pohledy se mažou s projektem; provozní spotřeba zůstává ve firmě s prázdným projektem/původcem, při smazání firmy se maže. Atomická kvóta uložených porovnání je 20 pohledů / 16 MB dokumentů na projekt a 100 pohledů / 32 MB na firmu; platí také při obnově. Jeden dokument má limit 12 MB. Opakování stejného požadavku ani přepis existujícího pohledu nespotřebují další slot. Export porovnání před agregací hlídá 32 MB dat a 64 MB podepsaných obálek. Automatická retenční lhůta záznamů spotřeby není nastavena. Podepsaná projektová/tenant záloha obsahuje snapshoty porovnání a hashe, nikoli externí soubory ani provozní statistiku.
 
 ## Ověření
 

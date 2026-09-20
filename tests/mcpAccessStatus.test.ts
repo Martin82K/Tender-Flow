@@ -66,3 +66,12 @@ describe("MCP access recovery", () => {
     expect(MCP_ACCESS_INSTRUCTIONS).toMatch(/stdio.*restart/);
   });
 });
+
+it('diagnoses comparison writes independently of bid financial writes',async()=>{
+ const financial=['tenderflow.read','tenderflow.write','tenderflow.bids.offer.write'];
+ const missing=await getStatus(financial);expect(missing.data).toMatchObject({financialWriteEnabled:true,comparisonWriteEnabled:false,missingComparisonWritePermissions:['tenderflow.contacts.read']});
+ expect(missing.data.supportedWriteOperations).toContain('save_offer_comparison');
+ expect((await getStatus([...financial,'tenderflow.contacts.read'])).data.comparisonWriteEnabled).toBe(true);
+ expect((await getStatus([...financial,'tenderflow.contacts.read'],false)).data.comparisonWriteEnabled).toBe(false);
+ expect((await getStatus(['tenderflow.contacts.read'])).data.missingComparisonWritePermissions).not.toContain('tenderflow.contacts.read');
+});

@@ -18,6 +18,8 @@ export async function exportComparisonXlsx(document: ComparisonDocument, title: 
         notes.addRow([source.name, source.sha256, 'Snapshot zpracování; původní soubor se nemění.']);
         for (const note of source.notes)
             notes.addRow([source.name, '', note]);
+        for (const item of source.items) if (item.note)
+            notes.addRow([source.name, '', `${item.code} ${item.description}; ${item.source.sheet}:${item.source.row} — ${item.note}`]);
     }
     for (let i = 0; i < offers.length; i++)
         for (const id of results[i].extraIds) {
@@ -59,6 +61,8 @@ export async function exportComparisonPdf(document: ComparisonDocument, title: s
         warnings.push([source.name, `SHA-256: ${source.sha256}`]);
         for (const note of source.notes)
             warnings.push([source.name, note]);
+        for (const item of source.items) if (item.note)
+            warnings.push([source.name, `${item.code} ${item.description}; ${item.source.sheet}:${item.source.row} — ${item.note}`]);
         if (source !== base) {
             const result = compareOffer(base.items, source.items, document.assignments[source.id] || []);
             for (const id of result.extraIds) {

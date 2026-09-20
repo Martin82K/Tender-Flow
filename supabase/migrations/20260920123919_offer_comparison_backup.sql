@@ -4,15 +4,20 @@ BEGIN;
 ALTER FUNCTION private.budget_backup_export(jsonb) RENAME TO budget_backup_export_before_offers;
 CREATE FUNCTION private.budget_backup_export(manifest jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE result jsonb; project jsonb; payload text; envelopes jsonb:='[]';
+DECLARE result jsonb; project jsonb; payload text; envelopes jsonb:='[]'; seen_projects text[]:=ARRAY[]::text[]; export_bytes bigint:=0;
 BEGIN
  result:=private.budget_backup_export_before_offers(manifest);
  FOR project IN SELECT value FROM jsonb_array_elements(manifest->'projects') LOOP
   IF NOT EXISTS(SELECT 1 FROM public.offer_comparison_views WHERE project_id=project->>'id') THEN CONTINUE; END IF;
+  IF project->>'id'=ANY(seen_projects) THEN RAISE EXCEPTION 'Duplicate comparison backup project'; END IF;
+  seen_projects:=array_append(seen_projects,project->>'id');
+  SELECT export_bytes+COALESCE(sum(octet_length(document::text)),0) INTO export_bytes FROM public.offer_comparison_views WHERE project_id=project->>'id';
+  IF export_bytes>32000000 THEN RAISE EXCEPTION 'Comparison backup size limit exceeded'; END IF;
   IF private.offer_comparison_access(project->>'id',false) IS NOT TRUE THEN RAISE EXCEPTION 'Comparison backup access denied' USING ERRCODE='42501'; END IF;
   IF EXISTS(SELECT 1 FROM public.offer_comparison_views v WHERE v.project_id=project->>'id' AND private.offer_comparison_document_access(v.project_id,v.document) IS NOT TRUE) THEN RAISE EXCEPTION 'Budget comparison backup access denied' USING ERRCODE='42501'; END IF;
   SELECT jsonb_build_object('project_id',project->>'id','organization_id',manifest->>'organization_id','views',jsonb_agg(to_jsonb(v) ORDER BY id))::text INTO payload FROM public.offer_comparison_views v WHERE project_id=project->>'id';
   envelopes:=envelopes||jsonb_build_array(jsonb_build_object('payload',payload,'signature',private.budget_backup_signature(payload)));
+  IF octet_length(envelopes::text)>64000000 THEN RAISE EXCEPTION 'Comparison backup envelope size limit exceeded'; END IF;
  END LOOP;
  RETURN result||jsonb_build_object('offer_comparisons',envelopes);
 END $$;

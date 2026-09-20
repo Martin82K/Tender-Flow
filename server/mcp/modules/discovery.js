@@ -44,21 +44,26 @@ export const registerDiscoveryModule = ({ auth, supabase, tools, resources, incl
         .filter((permission) => !hasMcpPermissions(auth.permissions, [permission]));
       const missingFinancialWritePermissions = [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write, MCP_PERMISSIONS.bidOfferWrite]
         .filter((permission) => !hasMcpPermissions(auth.permissions, [permission]));
+      const missingComparisonWritePermissions = [MCP_PERMISSIONS.read, MCP_PERMISSIONS.write, MCP_PERMISSIONS.bidOfferWrite, MCP_PERMISSIONS.contactsRead]
+        .filter((permission) => !hasMcpPermissions(auth.permissions, [permission]));
+      const comparisonWriteEnabled = includeWriteTools && missingComparisonWritePermissions.length === 0;
       const writeEnabled = includeWriteTools && missingWritePermissions.length === 0;
       const financialWriteEnabled = includeWriteTools && missingFinancialWritePermissions.length === 0;
       return { ok: true, data: {
         clientId: auth.clientId,
         writeEnabled,
         financialWriteEnabled,
+        comparisonWriteEnabled,
+        missingComparisonWritePermissions,
         contactsEnabled: canReadContacts,
         writeToolsDisabled: !includeWriteTools,
         missingWritePermissions,
         missingFinancialWritePermissions,
         settingsUrl: 'https://www.tenderflow.cz/app/settings?tab=tools&subTab=mcp',
-        supportedWriteOperations: ['create_task', 'update_bid', 'update_bid_offer', 'link_outlook_message'],
+        supportedWriteOperations: ['create_task', 'update_bid', 'update_bid_offer', 'link_outlook_message', 'save_offer_comparison'],
         nextSteps: [
           ...(missingWritePermissions.length > 0 ? ['V nastavení AI a MCP přístupů vyberte klienta se shodným clientId a zapněte přepínač Zápisové operace.'] : []),
-          ...(!canReadContacts ? ['Pro vyhledání dodavatelů a detailu nabídek povolte také kontaktní údaje na 30 dní.'] : []),
+          ...(!canReadContacts ? ['Pro vyhledání dodavatelů, detailu nabídek a porovnání povolte také kontaktní údaje na 30 dní.'] : []),
           ...(missingFinancialWritePermissions.includes(MCP_PERMISSIONS.bidOfferWrite) ? ['Pro změnu ceny nabídky je nutný také samostatný finanční zápis.'] : []),
           ...(!includeWriteTools ? ['Lokální MCP je spuštěný v režimu pouze pro čtení; upravte jeho konfiguraci.'] : []),
           'Po změně oprávnění u vzdáleného HTTP připojení obnovte seznam nástrojů (tools/list). U lokálního stdio MCP nejprve restartujte proces, aby načetl nová oprávnění. Pokud klient drží starý katalog, použijte jeho aktualizaci nástrojů; neodvolávejte kvůli tomu OAuth souhlas.',

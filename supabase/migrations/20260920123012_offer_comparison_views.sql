@@ -21,6 +21,26 @@ CREATE INDEX offer_comparison_actor_idx ON public.offer_comparison_views(created
 ALTER TABLE public.offer_comparison_views ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.offer_comparison_views FROM PUBLIC,anon,authenticated,tenderflow_mcp_client;
 
+-- One organization lock serializes quotas across projects, including signed restores.
+CREATE FUNCTION private.offer_comparison_storage_guard() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE project_count bigint; project_bytes bigint; org_count bigint; org_bytes bigint;
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id=NEW.project_id AND organization_id=NEW.organization_id) THEN RAISE EXCEPTION 'Comparison project organization mismatch'; END IF;
+ IF TG_OP='UPDATE' AND (NEW.project_id<>OLD.project_id OR NEW.organization_id<>OLD.organization_id) THEN RAISE EXCEPTION 'Comparison ownership cannot change'; END IF;
+ PERFORM id FROM public.organizations WHERE id=NEW.organization_id FOR UPDATE;
+ -- ON CONFLICT retries do not consume an extra slot; the save RPC checks identical content.
+ IF TG_OP='INSERT' AND EXISTS(SELECT 1 FROM public.offer_comparison_views WHERE id=NEW.id OR (project_id=NEW.project_id AND request_id=NEW.request_id)) THEN RETURN NEW; END IF;
+ SELECT count(*) FILTER(WHERE project_id=NEW.project_id),COALESCE(sum(octet_length(document::text)) FILTER(WHERE project_id=NEW.project_id),0),count(*),COALESCE(sum(octet_length(document::text)),0)
+ INTO project_count,project_bytes,org_count,org_bytes FROM public.offer_comparison_views WHERE organization_id=NEW.organization_id AND id<>NEW.id;
+ IF project_count+1>20 OR project_bytes+octet_length(NEW.document::text)>16000000 OR org_count+1>100 OR org_bytes+octet_length(NEW.document::text)>32000000 THEN
+  RAISE EXCEPTION 'Comparison storage quota exceeded; delete obsolete views' USING ERRCODE='54000';
+ END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION private.offer_comparison_storage_guard() FROM PUBLIC,anon,authenticated,tenderflow_mcp_client,service_role;
+CREATE TRIGGER offer_comparison_storage_guard BEFORE INSERT OR UPDATE ON public.offer_comparison_views FOR EACH ROW EXECUTE FUNCTION private.offer_comparison_storage_guard();
+
 CREATE FUNCTION private.offer_comparison_access(project_input text,write_input boolean DEFAULT false) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT auth.uid() IS NOT NULL
@@ -80,14 +100,15 @@ BEGIN
   source_ids:=array_append(source_ids,source->>'id');
   offer_ids:=ARRAY[]::text[];
   FOR item IN SELECT value FROM jsonb_array_elements(source->'items') LOOP
-   IF length(COALESCE(item->>'id','')) NOT BETWEEN 1 AND 200 OR item->>'id'=ANY(offer_ids) THEN RAISE EXCEPTION 'Invalid item identity'; END IF;
+   IF jsonb_typeof(item->'id') IS DISTINCT FROM 'string' OR length(COALESCE(item->>'id','')) NOT BETWEEN 1 AND 200 OR item->>'id'=ANY(offer_ids) THEN RAISE EXCEPTION 'Invalid item identity'; END IF;
    offer_ids:=array_append(offer_ids,item->>'id');
    FOREACH key IN ARRAY ARRAY['code','description','unit','group'] LOOP
     IF jsonb_typeof(item->key) IS DISTINCT FROM 'string' OR length(item->>key)>4000 THEN RAISE EXCEPTION 'Invalid item text'; END IF;
    END LOOP;
    FOREACH key IN ARRAY ARRAY['quantity','unitPrice','total'] LOOP
-    IF NOT item ? key OR (item->key <> 'null'::jsonb AND (jsonb_typeof(item->key) IS DISTINCT FROM 'string' OR item->>key !~ '^-?[0-9]{1,15}(\.[0-9]{1,12})?$')) THEN RAISE EXCEPTION 'Invalid item number'; END IF;
+    IF NOT item ? key OR (item->key <> 'null'::jsonb AND (jsonb_typeof(item->key) IS DISTINCT FROM 'string' OR item->>key !~ '^-?[0-9]{1,24}(\.[0-9]{1,18})?$')) THEN RAISE EXCEPTION 'Invalid item number'; END IF;
    END LOOP;
+   IF item ? 'note' AND (jsonb_typeof(item->'note') IS DISTINCT FROM 'string' OR length(item->>'note')>4000) THEN RAISE EXCEPTION 'Invalid item note'; END IF;
    IF jsonb_typeof(item->'source'->'sheet') IS DISTINCT FROM 'string' OR length(item->'source'->>'sheet')>255
     OR jsonb_typeof(item->'source'->'row') IS DISTINCT FROM 'number' OR COALESCE(item->'source'->>'row','') !~ '^[1-9][0-9]{0,8}$' THEN RAISE EXCEPTION 'Invalid item reference'; END IF;
   END LOOP;
@@ -96,6 +117,15 @@ BEGIN
    IF jsonb_typeof(links) IS DISTINCT FROM 'array' OR jsonb_array_length(links)>cardinality(base_ids) THEN RAISE EXCEPTION 'Invalid assignments'; END IF;
    used_base:=ARRAY[]::text[];used_offer:=ARRAY[]::text[];
    FOR link IN SELECT value FROM jsonb_array_elements(links) LOOP
+    IF jsonb_typeof(link) IS DISTINCT FROM 'object' OR jsonb_typeof(link->'baseId') IS DISTINCT FROM 'string'
+     OR NOT link ? 'offerId' OR jsonb_typeof(link->'offerId') NOT IN ('string','null')
+     OR jsonb_typeof(link->'status') IS DISTINCT FROM 'string' THEN RAISE EXCEPTION 'Invalid assignment shape'; END IF;
+    FOREACH key IN ARRAY ARRAY['candidates','reasons'] LOOP
+     IF link ? key THEN
+      IF jsonb_typeof(link->key) IS DISTINCT FROM 'array' OR jsonb_array_length(link->key)>30 THEN RAISE EXCEPTION 'Invalid assignment metadata'; END IF;
+      IF EXISTS(SELECT 1 FROM jsonb_array_elements(link->key) entry WHERE jsonb_typeof(entry) IS DISTINCT FROM 'string' OR length(entry#>>'{}')>CASE WHEN key='candidates' THEN 200 ELSE 500 END OR (key='candidates' AND NOT (entry#>>'{}'=ANY(offer_ids)))) THEN RAISE EXCEPTION 'Invalid assignment metadata'; END IF;
+     END IF;
+    END LOOP;
     IF link->>'baseId' IS NULL OR NOT (link->>'baseId'=ANY(base_ids)) OR link->>'baseId'=ANY(used_base)
      OR COALESCE(link->>'status','') NOT IN ('matched','manual','review','unmatched') THEN RAISE EXCEPTION 'Invalid inquiry assignment'; END IF;
     used_base:=array_append(used_base,link->>'baseId');
@@ -132,4 +162,15 @@ LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$ SELECT private.offer_comp
 REVOKE ALL ON FUNCTION private.offer_comparison_load(text,uuid),public.offer_comparison_load(text,uuid),private.offer_comparison_save(text,uuid,integer,uuid,text,text,jsonb),public.offer_comparison_save(text,uuid,integer,uuid,text,text,jsonb) FROM PUBLIC,anon;
 GRANT USAGE ON SCHEMA private TO authenticated,tenderflow_mcp_client;
 GRANT EXECUTE ON FUNCTION private.offer_comparison_load(text,uuid),public.offer_comparison_load(text,uuid),private.offer_comparison_save(text,uuid,integer,uuid,text,text,jsonb),public.offer_comparison_save(text,uuid,integer,uuid,text,text,jsonb) TO authenticated,tenderflow_mcp_client;
+CREATE FUNCTION private.offer_comparison_delete(project_input text,id_input uuid,version_input integer) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+BEGIN
+ IF private.offer_comparison_access(project_input,true) IS NOT TRUE THEN RAISE EXCEPTION 'Comparison delete denied' USING ERRCODE='42501'; END IF;
+ DELETE FROM public.offer_comparison_views WHERE id=id_input AND project_id=project_input AND version=version_input AND private.offer_comparison_document_access(project_input,document) IS TRUE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Comparison changed or unavailable; reload before deleting' USING ERRCODE='40001'; END IF;
+END $$;
+CREATE FUNCTION public.offer_comparison_delete(project_input text,id_input uuid,version_input integer) RETURNS void
+LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$ SELECT private.offer_comparison_delete(project_input,id_input,version_input) $$;
+REVOKE ALL ON FUNCTION private.offer_comparison_delete(text,uuid,integer),public.offer_comparison_delete(text,uuid,integer) FROM PUBLIC,anon,tenderflow_mcp_client;
+GRANT EXECUTE ON FUNCTION private.offer_comparison_delete(text,uuid,integer),public.offer_comparison_delete(text,uuid,integer) TO authenticated;
 COMMIT;

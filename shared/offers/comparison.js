@@ -9,7 +9,7 @@ const unit = value => normalize(value).replace(/²/g, '2').replace(/³/g, '3');
 const decimal = value => {
   if (value === null || value === undefined || value === '') return null;
   const text = String(value).replace(/[\s\u00a0]/g, '').replace(',', '.');
-  if (!/^-?\d{1,15}(\.\d{1,12})?$/.test(text)) throw new Error('Neplatná číselná hodnota položky.');
+  if (!/^-?\d{1,24}(\.\d{1,18})?$/.test(text)) throw new Error('Neplatná číselná hodnota položky.');
   const [whole, fraction = ''] = text.split('.');
   return { n: BigInt(whole + fraction), scale: fraction.length };
 };
@@ -35,6 +35,7 @@ export function validateItems(items) {
     ids.add(item.id);
     for (const key of ['code', 'description', 'unit', 'group']) if (typeof item[key] !== 'string' || item[key].length > 4000) throw new Error('Neplatný text položky.');
     for (const key of ['quantity', 'unitPrice', 'total']) decimal(item[key]);
+    if (item.note !== undefined && (typeof item.note !== 'string' || item.note.length > 4000)) throw new Error('Neplatná poznámka položky.');
     if (!item.source || typeof item.source.sheet !== 'string' || item.source.sheet.length > 255 || !Number.isInteger(item.source.row) || item.source.row < 1) throw new Error('Chybí odkaz na zdrojový řádek.');
   }
 }
@@ -82,6 +83,9 @@ export function validateAssignments(base, offers, assignments) {
   if (!Array.isArray(assignments) || assignments.length > base.length) throw new Error('Neplatné vazby.');
   const baseIds = new Set(base.map(r => r.id)), offerIds = new Set(offers.map(r => r.id)), seenBase = new Set(), seenOffer = new Set();
   for (const link of assignments) {
+    if (!link || typeof link.baseId !== 'string' || (link.offerId !== null && typeof link.offerId !== 'string')) throw new Error('Neplatný tvar vazby.');
+    for (const key of ['candidates', 'reasons']) if (link[key] !== undefined && (!Array.isArray(link[key]) || link[key].length > 30 || link[key].some(value => typeof value !== 'string' || value.length > (key === 'candidates' ? 200 : 500)))) throw new Error('Neplatná metadata vazby.');
+    if (link.candidates?.some(id => !offerIds.has(id))) throw new Error('Kandidát není v nabídce.');
     if (!baseIds.has(link.baseId) || seenBase.has(link.baseId) || !['matched', 'manual', 'review', 'unmatched'].includes(link.status)) throw new Error('Neplatná vazba na poptávku.');
     seenBase.add(link.baseId);
     if (link.offerId === null && ['matched', 'manual'].includes(link.status)) throw new Error('Potvrzená vazba musí mít položku nabídky.');

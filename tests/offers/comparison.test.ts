@@ -58,3 +58,17 @@ it('bounds duplicate candidate work and leaves excessive ambiguity for manual re
  expect(result.offerId).toBeNull();
  expect(result.reasons).toContain('too-many-candidates');
 });
+
+it('preserves the full budget quantity precision without rounding',()=>{
+ const quantity='123456789012345678901234.123456789012345678';
+ const base=[item('a',{quantity})],offers=[item('b',{quantity})];
+ expect(compareOffer(base,offers,matchOfferItems(base,offers)).pricedCount).toBe(1);
+ expect(matchOfferItems(base,[item('b',{quantity:'123456789012345678901234.123456789012345679'})])[0].offerId).toBeNull();
+});
+it.each([{baseId:'a',status:'review'},{baseId:'a',offerId:null,status:'review',candidates:'b'},{baseId:'a',offerId:null,status:'review',reasons:[7]}])('rejects malformed assignment fields %j',link=>{
+ expect(()=>validateAssignments([item('a')],[item('b')],[link])).toThrow();
+});
+
+it('bounds candidate metadata and rejects IDs outside the offer',()=>{
+ for(const candidates of [Array(31).fill('b'),['foreign']])expect(()=>validateAssignments([item('a')],[item('b')],[{baseId:'a',offerId:null,status:'review',candidates}])).toThrow();
+});

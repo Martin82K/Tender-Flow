@@ -14,3 +14,16 @@ it('uses allocated quantities without leaking internal budget prices or mutating
  await expect(comparisonBudgetSource(revision,'missing')).rejects.toThrow('nejsou položky');
  }finally{Object.defineProperty(globalThis,'crypto',{value:original,configurable:true});}
 });
+
+it('bounds allocation lookups and rejects more than 10000 selected items',async()=>{
+ const original=globalThis.crypto;Object.defineProperty(globalThis,'crypto',{value:webcrypto,configurable:true});
+ try{
+ let reads=0;const count=500;
+ const nodes=Array.from({length:count},(_,i)=>({id:`i${i}`,parentId:null,kind:'K',code:String(i),description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,source:{sheet:'S',row:i+1,cells:{}}}));
+ const allocations=nodes.map(node=>({get itemId(){reads++;return node.id;},categoryId:'c',quantity:'1'}));
+ const revision={id:'r',title:'Rozpočet',version:1,document:{nodes},allocations} as BudgetRevision;
+ expect((await comparisonBudgetSource(revision,'c')).items).toHaveLength(count);expect(reads).toBeLessThan(count*5);
+ const many=Array.from({length:10001},(_,i)=>({...nodes[0],id:`i${i}`}));
+ await expect(comparisonBudgetSource({...revision,document:{...revision.document,nodes:many},allocations:many.map(node=>({itemId:node.id,categoryId:'c',quantity:'1'}))} as BudgetRevision,'c')).rejects.toThrow('10 000');
+ }finally{Object.defineProperty(globalThis,'crypto',{value:original,configurable:true});}
+});

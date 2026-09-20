@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
 const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
 test('comparison access, retry, concurrency and deletion lifecycle', async () => {
  const db = new PGlite();
+ const rejectInside=async(action,pattern)=>{await db.exec('SAVEPOINT expected_failure');await assert.rejects(action,pattern);await db.exec('ROLLBACK TO SAVEPOINT expected_failure;RELEASE SAVEPOINT expected_failure');};
  try {
  await db.exec(`CREATE ROLE service_role BYPASSRLS; CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE tenderflow_mcp_client; CREATE SCHEMA auth; CREATE SCHEMA private;
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT nullif(current_setting(''test.user'',true),'''')::uuid';
@@ -57,11 +59,40 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  await db.exec(`SELECT set_config('test.budget','yes',false);`);
  const badNotes=structuredClone(doc);badNotes.sources[0].notes=[{text:'invalid'}];
  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000097','Invalid notes',badNotes]),/Invalid source notes/);
+
+ for(const link of [{baseId:'row',status:'review'},{baseId:1,offerId:null,status:'review'},{baseId:'row',offerId:null,status:'review',candidates:'row'},{baseId:'row',offerId:null,status:'review',reasons:[1]},{baseId:'row',offerId:null,status:'review',candidates:Array(31).fill('row')},{baseId:'row',offerId:null,status:'review',candidates:['foreign']}]){
+  const invalid=structuredClone(doc);invalid.assignments.offer=[link];
+  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000095','Invalid link',invalid]),/Invalid .*assignment/);
+ }
+ const precise=structuredClone(doc);precise.sources[0].items[0].quantity='123456789012345678901234.123456789012345678';
+ await db.exec('BEGIN');
+ const precisionResult=(await db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own','00000000-0000-0000-0000-000000000094','Precision',precise])).rows[0].result;
+ assert.equal(precisionResult.document.sources[0].items[0].quantity,precise.sources[0].items[0].quantity);
+ await db.exec('ROLLBACK');
  const first=(await save()).rows[0].result;
  assert.equal((await save()).rows[0].result.id,first.id);
  await assert.rejects(()=>save('own','tender',null,0,'Changed'),/already used/);
  assert.equal((await save('own','tender',first.id,1)).rows[0].result.version,2);
  await assert.rejects(()=>save('own','tender',first.id,1),/reload/);
+ await db.exec('BEGIN');
+ const createRequest=()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own',randomUUID(),'Quota',doc]);
+ for(let i=0;i<18;i++)await createRequest();
+ await rejectInside(createRequest,/Comparison storage quota/);
+ // Retrying creation and updating an existing view still work at the count limit.
+ assert.equal((await save()).rows[0].result.id,first.id);
+ await save('own','tender',first.id,2);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ const temporary=(await createRequest()).rows[0].result;
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['foreign',temporary.id,1]),/denied/);
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,2]),/reload/);
+ await db.exec("SELECT set_config('test.edit','no',false)");
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,1]),/denied/);
+ await db.exec("SELECT set_config('test.edit','yes',false)");
+ await db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,1]);
+ assert.equal((await db.query('SELECT public.offer_comparison_load($1,$2) AS result',['own',temporary.id])).rows[0].result,null);
+ await db.exec('ROLLBACK');
+
  await assert.rejects(()=>db.query('SELECT * FROM public.offer_comparison_views'),/permission denied/);
  await db.exec(`SELECT set_config('test.edit','no',false);`);
  await assert.rejects(()=>save(),/denied/);
@@ -92,12 +123,28 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  CREATE FUNCTION private.budget_backup_export(jsonb) RETURNS jsonb LANGUAGE sql AS 'SELECT $1';
  CREATE FUNCTION private.budget_backup_restore(jsonb,uuid,text) RETURNS integer LANGUAGE sql AS 'SELECT 0';`);
  await db.exec(readFileSync(new URL('../../supabase/migrations/20260920123919_offer_comparison_backup.sql', import.meta.url),'utf8'));
+ // The trigger also guards direct privileged inserts used by signed restores.
+ await db.exec('BEGIN');
+ const rawInsert=(document)=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',['own','00000000-0000-0000-0000-000000000002','Large',document,randomUUID()]);
+ await rawInsert({padding:'x'.repeat(8100000)});
+ await assert.rejects(()=>rawInsert({padding:'x'.repeat(8100000)}),/Comparison storage quota/);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ await db.exec(`INSERT INTO projects(id,organization_id) SELECT 'quota-'||i,'00000000-0000-0000-0000-000000000002' FROM generate_series(1,5) i`);
+ for(let i=0;i<98;i++)await db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',[`quota-${Math.floor(i/20)+1}`,'00000000-0000-0000-0000-000000000002','Quota',doc,randomUUID()]);
+ await assert.rejects(()=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',['quota-5','00000000-0000-0000-0000-000000000002','Quota',doc,randomUUID()]),/Comparison storage quota/);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ await db.exec(`INSERT INTO projects(id,organization_id) SELECT 'bytes-'||i,'00000000-0000-0000-0000-000000000002' FROM generate_series(1,3) i`);
+ const orgBytes=(project)=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',[project,'00000000-0000-0000-0000-000000000002','Bytes',{padding:'x'.repeat(11000000)},randomUUID()]);
+ await orgBytes('bytes-1');await orgBytes('bytes-2');await assert.rejects(()=>orgBytes('bytes-3'),/Comparison storage quota/);await db.exec('ROLLBACK');
  const manifest={organization_id:'00000000-0000-0000-0000-000000000002',projects:[{id:'own'}]};
  await db.exec(`SELECT set_config('test.budget','no',false);`);
  await assert.rejects(()=>db.query('SELECT private.budget_backup_export($1)',[manifest]),/Budget comparison backup access denied/);
  await db.exec(`SELECT set_config('test.budget','yes',false);`);
  const backup=(await db.query('SELECT private.budget_backup_export($1) AS b',[manifest])).rows[0].b;
  assert.equal(backup.offer_comparisons.length,1);
+ await assert.rejects(()=>db.query('SELECT private.budget_backup_export($1)',[{...manifest,projects:[...manifest.projects,...manifest.projects]}]),/Duplicate comparison backup project/);
  await db.exec('DELETE FROM public.offer_comparison_views');
  await db.exec(`SELECT set_config('test.budget','no',false);`);
  await assert.rejects(()=>db.query('SELECT private.budget_backup_restore($1,$2,$3)',[backup,manifest.organization_id,'user']),/Budget comparison restore access denied/);

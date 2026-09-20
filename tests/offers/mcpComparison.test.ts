@@ -36,3 +36,10 @@ it('normalizes Czech decimals before the database without changing source input'
  expect(rpc.mock.calls[0][1].document_input.sources[0].items[0]).toMatchObject({quantity:'1.5',unitPrice:'1000.20',total:'1500.30'});
  expect(item.quantity).toBe('1,5');expect(item.total).toBe('1 500,30');
 });
+
+it('accepts the full budget decimal precision in MCP schemas',()=>{
+ const tools={register:vi.fn()};registerOfferComparisonsModule({supabase:{rpc:vi.fn()},tools,includeWriteTools:true});
+ const schema=tools.register.mock.calls.find(call=>call[0]==='tf_match_offer_items')![1].inputSchema.inquiry;
+ const quantity='-123456789012345678901234.123456789012345678';
+ expect(schema.safeParse([{id:'a',code:'1',description:'Malba',unit:'m2',quantity,unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}}]).success).toBe(true);
+});

@@ -1,10 +1,10 @@
 import * as z from 'zod/v4';
 import { matchOfferItems, compareOffer, validateAssignments, normalizeOfferItems } from '../../../shared/offers/comparison.js';
 import { toolResultSchema } from '../core/schemas.js';
-const decimal = z.string().max(40).nullable();
+const decimal = z.string().max(64).nullable();
 const item = z.object({ id: z.string().min(1).max(200), code: z.string().max(4000), description: z.string().max(4000), unit: z.string().max(100), quantity: decimal, unitPrice: decimal, total: decimal, group: z.string().max(4000), source: z.object({ sheet: z.string().max(255), row: z.number().int().positive() }), note: z.string().max(4000).optional() });
 const source = z.object({ id: z.string().uuid(), name: z.string().min(1).max(255), sha256: z.string().regex(/^[a-f0-9]{64}$/), items: z.array(item).max(10000), notes: z.array(z.string().max(4000)).max(10000), origin: z.enum(['file', 'budget', 'mcp']), revisionId: z.string().uuid().optional(), revisionVersion: z.number().int().positive().optional() });
-const assignment = z.object({ baseId: z.string(), offerId: z.string().nullable(), status: z.enum(['matched', 'manual', 'review', 'unmatched']), candidates: z.array(z.string()).optional(), reasons: z.array(z.string()).optional() });
+const assignment = z.object({ baseId: z.string().min(1).max(200), offerId: z.string().min(1).max(200).nullable(), status: z.enum(['matched', 'manual', 'review', 'unmatched']), candidates: z.array(z.string().max(200)).max(30).optional(), reasons: z.array(z.string().max(500)).max(30).optional() });
 const unwrap = result => { if (result.error) throw new Error(result.error.message); return result.data; };
 export function registerOfferComparisonsModule({ supabase, tools, includeWriteTools }) {
   tools.register('tf_list_offer_comparisons', { title: 'Uložená porovnání nabídek', description: 'Read derived comparison views for an authorized project. Does not run OCR or any paid AI.', inputSchema: { projectId: z.string().min(1).max(200), id: z.string().uuid().optional() }, outputSchema: toolResultSchema, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false } }, async args => ({ ok: true, data: unwrap(await supabase.rpc('offer_comparison_load', { project_input: args.projectId, id_input: args.id || null })) }));

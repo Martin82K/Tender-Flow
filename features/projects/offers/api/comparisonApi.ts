@@ -7,7 +7,7 @@ const unwrap = <T>(r: {
         message: string;
     } | null;
 }): T => { if (r.error)
-    throw new Error(r.error.message); return r.data as T; };
+    throw new Error(r.error.message.includes('Comparison storage quota') ? 'Dosáhli jste limitu uložených porovnání. Smažte nepotřebné pohledy v projektu nebo firmě a opakujte uložení.' : r.error.message); return r.data as T; };
 export function validateComparison(document: ComparisonDocument) {
     if (document.schemaVersion !== 1 || document.sources.length < 2 || document.sources.length > 21)
         throw new Error('Vyberte poptávku a nejméně jednu nabídku.');
@@ -33,6 +33,9 @@ export const comparisonApi = {
             throw new Error('Porovnání nebylo nalezeno.');
         validateComparison(result.document);
         return result;
+    },
+    async remove(projectId: string, id: string, version: number): Promise<void> {
+        unwrap(await dbAdapter.rpc('offer_comparison_delete', { project_input: projectId, id_input: id, version_input: version }));
     },
     async save(projectId: string, categoryId: string | null, title: string, document: ComparisonDocument, requestId: string, saved?: SavedComparison): Promise<SavedComparison> {
         validateComparison(document);
