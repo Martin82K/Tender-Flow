@@ -268,3 +268,12 @@ it('edits only the double-clicked cell, saves on Enter and cancels on Escape', a
   fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Popis' }), { key: 'Escape' });
   expect(onEdit).toHaveBeenCalledTimes(1);
 });
+it('keeps untouched price errors when only the full detail description changes',async()=>{
+ const onEdit=vi.fn().mockResolvedValue(undefined);
+ render(<BudgetTable {...table().props} nodes={[{...item,unitPrice:null,total:null}]} editable onEdit={onEdit}/>);
+ fireEvent.contextMenu(screen.getByRole('button',{name:item.description}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
+ fireEvent.change(screen.getByLabelText('Úplný popis'),{target:{value:'Jiný popis'}});
+ await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'}));});
+ await vi.waitFor(()=>expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({description:'Jiný popis',unitPrice:null,total:null}),['description']));
+});

@@ -57,3 +57,10 @@ it('shows personal and copied project catalogs in the same natural code order de
  await waitFor(()=>expect(screen.getByLabelText('Číslo VŘ 1')).toHaveValue('2'));
  expect(screen.queryByRole('button',{name:/Posunout VŘ/})).not.toBeInTheDocument();
 });
+it('explains and blocks copying more than 500 project definitions into personal defaults',async()=>{
+ vi.mocked(budgetApi.projectTenders).mockResolvedValue(Array.from({length:501},(_,i)=>({id:String(i),title:`VŘ ${i}`,externalCode:String(i)})));
+ setup();await screen.findByLabelText('Název VŘ 501');
+ expect(screen.getByRole('button',{name:'Nastavit jako výchozí'})).toBeDisabled();
+ expect(screen.getByText(/Osobní výchozí číselník může obsahovat nejvýše 500 VŘ/)).toBeVisible();
+ expect(budgetApi.personalTenders).not.toHaveBeenCalled();
+});

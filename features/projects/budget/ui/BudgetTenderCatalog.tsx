@@ -6,8 +6,8 @@ import { budgetApi } from '../api/budgetApi';
 import type { ProjectTender } from '../model/tenderImport';
 import { tenderNameKey } from '../model/tenderImport';
 
-interface Props { projectId: string; userId?: string; readOnly: boolean; onTemplates: () => void }
-export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }: Props) {
+interface Props { projectId: string; userId?: string; readOnly: boolean; canImportTemplates?: boolean; onTemplates: () => void }
+export function BudgetTenderCatalog({ projectId, userId, readOnly, canImportTemplates = true, onTemplates }: Props) {
   const [tab, setTab] = useState<'project' | 'personal'>('project');
   const [draft, setDraft] = useState<ProjectTender[] | null>(null);
   const [base, setBase] = useState<{ definitions: ProjectTender[]; version: number } | null>(null);
@@ -16,7 +16,7 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
   const [notice, setNotice] = useState('');
   const [defaultPreview, setDefaultPreview] = useState<{ version: number; previousCount: number; definitions: ProjectTender[] } | null>(null);
   const prepareDefault = async () => {
-    if (busy || draft || !project.data || !userId) return;
+    if (busy || draft || !project.data || project.data.length > 500 || !userId) return;
     setBusy(true); setError('');
     try {
       const current = await budgetApi.personalTenders();
@@ -75,11 +75,12 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
     {query.isPending ? <p role="status">Načítání číselníku…</p> : query.error ? <p role="alert">{query.error.message}<button onClick={() => void query.refetch()}>Načíst znovu</button></p> : <>
       <div className="tf-budget-toolbar">
         <button disabled={!canEdit || busy || entries.length >= (tab === 'personal' ? 500 : 1000)} onClick={() => update([...entries, { id: crypto.randomUUID(), title: '', externalCode: '' }])}><Plus size={16} aria-hidden="true"/>Přidat VŘ</button>
-        {tab === 'project' && <button disabled={!userId || busy || draft !== null || !entries.length} onClick={() => void prepareDefault()}><Star size={16} aria-hidden="true"/>Nastavit jako výchozí</button>}
-        {tab === 'project' && <button disabled={readOnly || busy || draft !== null} onClick={onTemplates}>Importovat / exportovat vzor</button>}
+        {tab === 'project' && <button disabled={!userId || busy || draft !== null || !entries.length || entries.length > 500} onClick={() => void prepareDefault()}><Star size={16} aria-hidden="true"/>Nastavit jako výchozí</button>}
+        {tab === 'project' && <button disabled={readOnly || !canImportTemplates || busy || draft !== null} title={!canImportTemplates ? 'Import vzoru vyžaduje oprávnění upravovat rozpočet, číst ceny a přiřazovat VŘ.' : undefined} onClick={onTemplates}>Importovat / exportovat vzor</button>}
         <button disabled={!canEdit || !draft || busy || invalid} onClick={() => void save()}><Save size={16} aria-hidden="true"/>{busy ? 'Ukládání…' : 'Uložit číselník'}</button>
         {draft && <button disabled={busy} onClick={() => { setDraft(null); setBase(null); setError(''); void query.refetch(); }}>Zahodit změny</button>}
       </div>
+      {tab === 'project' && entries.length > 500 && <p>Osobní výchozí číselník může obsahovat nejvýše 500 VŘ. Větší projektový seznam nelze převzít celý; vlastní základ upravíte v záložce Moje výchozí VŘ.</p>}
       <div className="tf-budget-catalog-scroll"><table aria-label={tab === 'personal' ? 'Moje výchozí VŘ' : 'VŘ této stavby'}><thead><tr><th>Číslo VŘ</th><th>Název VŘ</th><th>Akce</th></tr></thead><tbody>
         {entries.map((entry, index) => <tr key={entry.id}>
           <td><input aria-label={`Číslo VŘ ${index + 1}`} maxLength={100} value={entry.externalCode} disabled={!canEdit || busy} onChange={e => update(entries.map(row => row.id === entry.id ? { ...row, externalCode: e.target.value } : row))}/></td>
