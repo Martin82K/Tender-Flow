@@ -20,3 +20,19 @@ it('clears corrected numeric issues but preserves mapping errors and other rows'
  const fixed=applyBudgetItemEdit(d,item);expect(fixed.issues).toHaveLength(2);expect(d.issues).toHaveLength(3);expect(fixed.nodes[0].unitPrice).toBe('1');
  expect(applyBudgetItemEdit(d,{...item,unitPrice:null,total:null}).issues).toHaveLength(3);
 });
+it('edits code and unit without changing immutable source references',()=>{
+ const updated=applyBudgetItemEdit(document([item]),{...item,code:'002',unit:'m2',source:{sheet:'Other',row:99,cells:{}}});
+ expect(updated.nodes[0]).toMatchObject({code:'002',unit:'m2',source:item.source});
+});
+
+it('clears only the explicitly repaired mapped numeric column on an unpriced row',()=>{
+ const unpriced={...item,quantity:null,unitPrice:null,total:null};
+ const d=document([unpriced]);d.sheets=[{id:'s',name:'S',columns:{quantity:4,unitPrice:5,total:6}} as BudgetDocument['sheets'][number]];
+ d.issues=['E','F'].map(column=>({sheet:'S',row:1,severity:'error' as const,message:`Neplatná nebo chybějící hodnota ${column}.`}));
+ const quantityFixed=applyBudgetItemEdit(d,{...unpriced,quantity:'5'},['quantity']);
+ expect(quantityFixed.issues.map(i=>i.message)).toEqual(['Neplatná nebo chybějící hodnota F.']);
+ const priceCleared=applyBudgetItemEdit(quantityFixed,quantityFixed.nodes[0],['unitPrice']);
+ expect(priceCleared.issues).toEqual([]);
+ expect(applyBudgetItemEdit(d,{...unpriced,description:'Edited'},['description']).issues).toHaveLength(2);
+ expect(()=>applyBudgetItemEdit(d,{...unpriced,quantity:'bad'},['quantity'])).toThrow();
+});

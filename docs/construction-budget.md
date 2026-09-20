@@ -1,5 +1,54 @@
 # Rozpočet stavby
 
+## Výběr, editace a zámek
+
+Jedním kliknutím na položku ji vyberete. Ctrl/Cmd přidává nebo odebírá jednotlivé
+položky, Shift označí rozsah viditelných položek. Checkboxy zachovávají hromadný
+výběr napříč filtry. Lišta nad tabulkou nabízí **Přiřadit VŘ**, export a
+**Zrušit výběr**; poslední akce pouze odznačuje a žádná data nemaže.
+
+Dvojklik nebo F2 upraví konkrétní buňku kódu, popisu, měrné jednotky, množství
+nebo jednotkové ceny. Enter ukládá, Escape ruší. Celková cena se přepočítává.
+Měrnou jednotku položky s přiřazením do VŘ nelze změnit. Pravé tlačítko →
+**Detail položky** zachovává celý popis a přepočet výkazu výměr. Potvrzené
+revize jsou neměnné; pro úpravy vytvořte pracovní kopii přes **Akce**.
+
+**Uzamknout rozpočet** vedle nastavení chrání celý rozpočet stavby na serveru,
+včetně verzí, importů, přiřazení a názvů/čísel VŘ i při změně z jiných obrazovek.
+Běžná změna stavu soutěže zůstává dostupná. Odemčení vyžaduje oprávnění k úpravě a čtení
+cen. Export a prohlížení zůstávají dostupné. Zámek nenahrazuje potvrzení revize.
+Oprávněné odstranění celé stavby a anonymizace autora při smazání účtu fungují
+i při uzamčení. Konflikt souběžných změn vyžaduje obnovení dat.
+
+## Číselník VŘ a výchozí základ
+
+Samostatná sekce **Číselník VŘ** obsahuje **VŘ této stavby** a **Moje výchozí VŘ**.
+Projektovou evidenci upravuje uživatel s právem zápisu do VŘ a čtení rozpočtu;
+právo měnit položky rozpočtu se pro číselník nevyžaduje. Import vzoru má vlastní
+požadavky na úpravy rozpočtu, ceny a přiřazování VŘ. Evidence upravuje čísla a názvy bez změny vazeb na nabídky, smlouvy
+nebo položky rozpočtu. Existující VŘ se zde nemažou. Přidávat lze nové definice.
+
+**Nastavit jako výchozí** převezme uložený projektový číselník jako osobní základ.
+Před nahrazením zobrazí počet nových a dosavadních definic. Vlastní základ lze
+upravovat a uložit v záložce **Moje výchozí VŘ**. Oba seznamy se zobrazují
+podle čísla a názvu VŘ, nezávisle na interních identifikátorech. Osobní základ
+má limit 500 VŘ (převzetí většího projektu je předem zablokované s vysvětlením); projektový editor podporuje 1 000 VŘ a úpravy již existujících
+větších seznamů.
+
+Každý uživatel bez vlastního uloženého základu dostane společných 14 definic:
+zemní práce, základy, nosné konstrukce, střecha, izolace, výplně otvorů, fasáda,
+vnitřní povrchy, podlahy, zdravotechnika, vytápění, vzduchotechnika,
+elektroinstalace a venkovní úpravy. Vlastní seznam má přednost, i když jej uživatel
+úmyslně uloží prázdný. Základ se zkopíruje v transakci běžného vytvoření nové
+stavby; změna základu nemění existující stavby. Převod a obnova projektů používají
+své původní definice. Osobní základ je oddělený podle účtu, ne sdílený s kolegy.
+
+Import, export a údaje o otevřené verzi jsou v **Importy a verze**.
+Pokročilé mapování vybírá sloupce podle písmen Excelu (A, B, …, AA).
+U cen lze zvolit **Bez cenového sloupce**. Patička kontroly a dokončovací akce
+zůstávají při procházení dlouhého importu viditelné.
+
+
 ## Převzetí přiřazení do výběrových řízení
 
 Při importu souboru do projektu s rozpočtem můžete zvolit **Aktualizovat rozpočet –
@@ -29,7 +78,7 @@ VŘ, nabídek a smluv není součástí tohoto importu. Změní-li někdo mezit�
 nebo seznam VŘ, server zápis odmítne; otevřete nový náhled. Opakování stejného
 požadavku po síťové chybě nevytvoří další řízení ani alokace.
 
-**Vlastní vzory VŘ** umožňují uložit projektové názvy a externí kódy do vlastního
+**Číselník VŘ → Importovat / exportovat vzor** umožňuje uložit projektové názvy a externí kódy do vlastního
 souboru JSON a opakovaně jej použít v jiných projektech. Před vložením můžete upravit
 definice a vybrat, které vytvořit; existující názvy a kódy se nepřepisují. Projektové
 kopie lze dále upravovat v přehledu VŘ. Vzor neobsahuje položkové alokace, ceny,
@@ -61,14 +110,16 @@ Globus podporuje dvouřádkové záhlaví cen, jednotlivé objekty a soupisy, od
 Kódy zůstávají textové, včetně úvodních nul; varianty a cenová soustava zůstávají
 ve zdrojových buňkách. Položky `P` používají interní kategorii práce `K`, ale
 původní označení `P` se uchovává v `sourceType`. Oddíly `SD` jsou sourozenci
-pod soupisem. Podrobnosti `PP`, `VV` a `TS` se zobrazí pod příslušnou položkou
-tlačítkem **VV** ve zdrojovém pořadí.
+pod soupisem. Výkaz `VV` se zobrazí tlačítkem **VV**; poznámky `PP` a `TS` přepínačem
+**Zobrazit poznámky** v nastavení. Podrobnosti zachovávají zdrojové pořadí.
 
 Textové výpočty Globus, např. `2*1 = 2,000 [A]`, se uchovávají jako původní
 text. Pokud VV nemá číselnou buňku množství, zůstane množství prázdné; import
 neodhaduje výsledek z popisu. Ceny se načtou ze skutečných buněk i u souboru
-pojmenovaného „bez cen“. Prázdné ceny nejsou nuly: pracovní import je možný,
-potvrzení neúplného ocenění zůstává blokované.
+pojmenovaného „bez cen“. Prázdné ceny nejsou nuly ani chyba importu: položky se zachovají i bez cenových
+sloupců. To podporuje soutěžní soupisy bez ocenění. Neplatné číslo nebo vzorec
+bez uloženého výsledku je nadále chyba. Potvrzení úplného ocenění zůstává
+oddělené od importu a u neoceněné pracovní verze není možné.
 
 Technicky formáty rozpoznává registr profilů `model/importProfiles.ts`.
 Každý list má volitelný `format`; starší dokumenty bez něj fungují dál.
@@ -81,12 +132,12 @@ Lokální test reálného vzoru lze spustit přes `GLOBUS_SMOKE_FILE` a
 Při přidání dalšího formátu je nutný reprezentativní vzor a regresní test
 automatického rozpoznání, zdrojových vazeb a součtů.
 
-Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty a poznámky.
-Jednotlivé výkazy lze otevírat nezávisle; u položky bez podrobností je tlačítko neaktivní.
+Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty.
+Jednotlivé výkazy lze otevírat nezávisle; u položky bez výkazu výměr je tlačítko neaktivní.
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
 pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
 nejsou dělicí čáry; množství zůstává ve svém sloupci.
-V ozubeném kolečku **Nastavení zobrazení** za tlačítkem **Firemní číselníky** najdete **Zalamovat text popisu**,
+V ozubeném kolečku **Nastavení zobrazení** vedle zámku rozpočtu najdete **Zalamovat text popisu**,
 **Hustota zobrazení** (Kompaktní / Pohodlná), **Zobrazení sloupců** a **Rozsah**. Nastavení se pamatuje pro daný
 projekt a uživatele. Nabídku zavřete kliknutím mimo ni nebo klávesou Escape.
 V **Zobrazení sloupců** má každý sloupec samostatné volby **Zobrazit** a
@@ -110,7 +161,7 @@ Přepočet VV v detailu položky podporuje i importovaný zápis typu
 Původní popis zůstává zachovaný; nové množství je nutné potvrdit uložením položky.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
-soupisy a oddíly. Výpočty a poznámky jednotlivých položek ovládá tlačítko **VV**. U řádků bez podřízeného obsahu tlačítko není.
+soupisy a oddíly. Výpočty jednotlivých položek ovládá tlačítko **VV**, poznámky přepínač **Zobrazit poznámky** v nastavení. U řádků bez podřízeného obsahu tlačítko není.
 Ovládání zůstává vlevo i při vodorovném posouvání tabulky.
 
 Pravým tlačítkem v tabulce otevřete nabídku **Sbalit vše / Rozbalit vše** pro
@@ -386,3 +437,11 @@ numerickou přesnost Excelu (přibližně 15 platných číslic); vstupy začín
 
 Export podporuje nejvýše 256 úrovní vnoření. Hlubší nebo cyklická struktura
 zobrazí chybu před vytvořením souboru; upravte nejprve hierarchii rozpočtu.
+
+
+Řádky typu **Online PSC** se importují jako **Poznámka** bez chyby nerozpoznaného
+typu. Zachovávají původní obsah a vazbu na položku, ale nemají množství, cenu ani
+vliv na součty. Poznámky jsou ve výchozím stavu skryté; volba **Zobrazit poznámky**
+v ozubeném kolečku je zapíná nezávisle na VV a pamatuje se pro uživatele a projekt.
+Zobrazení respektuje aktivní filtry, rozsah a sbalené oddíly. Detail položky nadále
+umožňuje přečíst její poznámky i při jejich skrytí v tabulce.

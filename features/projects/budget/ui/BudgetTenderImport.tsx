@@ -146,12 +146,15 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
         </td></tr>;
       })}</tbody></table></div>
       <div><button disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Předchozí</button> {currentPage+1} / {pages} <button disabled={currentPage+1>=pages} onClick={()=>setPage(currentPage+1)}>Další</button></div>
+      <div className="tf-budget-tender-review-footer" role="group" aria-label="Dokončení kontroly položek">
       <p role="status">{rows.length} položek · {rows.length-named.length} bez názvu VŘ (beze změny) · {unresolved} nevyřešených · {newCategories.length} nových VŘ · {proposed.filter(a=>a.action==='replace').length} nahrazení vazeb · {planned.length} výsledných alokací.</p>
       <label><input type="checkbox" checked={acknowledged} disabled={busy||catalog.isPending||!!catalog.error} onChange={e=>setAcknowledged(e.target.checked)}/>Zkontroloval jsem dopady včetně vynechaných položek a nahrazení vazeb. Plány VŘ, nabídky a smlouvy se nemění.</label>
       {validation&&<p role="alert">{validation}</p>}
       <button className="tf-budget-import-primary" disabled={busy||!acknowledged||!!unresolved||!!validation||tooManyCategories||duplicateDefinitions||!proposed.length||!catalog.data} onClick={()=>void save()}>{busy?'Ukládání…':'Potvrdit import přiřazení'}</button>
+      <button disabled={busy} onClick={onBack}>Zpět ke kontrole rozpočtu</button>
+      </div>
     </>}
     {error&&<p role="alert">{error} Při změně rozpočtu nebo seznamu VŘ zavřete import a otevřete nový náhled.</p>}
-    <button disabled={busy} onClick={onBack}>Zpět ke kontrole rozpočtu</button>
+    {!confirmed&&<button disabled={busy} onClick={onBack}>Zpět ke kontrole rozpočtu</button>}
   </div>;
 }

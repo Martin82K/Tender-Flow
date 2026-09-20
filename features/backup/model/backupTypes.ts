@@ -1,6 +1,7 @@
 export type BackupType = 'user' | 'tenant' | 'contacts';
 
 export interface BackupManifest {
+    budget_editor_settings?: { payload: string; signature: string };
     construction_budget_catalog?: { payload: string; signature: string };
     construction_budgets?: Array<{ payload: string; signature: string }>;
     construction_budget_files?: Record<string, string>;

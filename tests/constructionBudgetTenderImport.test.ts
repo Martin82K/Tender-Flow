@@ -87,3 +87,9 @@ describe('tender column import',()=>{
     expect(()=>parseTenderTemplate('{"format":"other"}')).toThrow();
   });
 });
+
+it('matches tender names with equivalent internal whitespace',async()=>{
+ const {tenderNameKey}=await import('@features/projects/budget/model/tenderImport');
+ expect(tenderNameKey(' Zemní  práce ')).toBe(tenderNameKey('Zemní práce'));
+ expect(tenderNameKey('Zemní\tpráce')).toBe(tenderNameKey('Zemní práce'));
+});

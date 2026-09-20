@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn() } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -114,7 +114,7 @@ it('puts recap first, moves catalogs before settings and keeps tender-plan actio
   expect(screen.getByRole('button', { name: 'Skrýt strom' })).toBeVisible();
   expect(screen.queryByRole('switch', { name: 'Výkaz výměr' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /^Rozsah:/ })).not.toBeInTheDocument();
-  expect(trigger.parentElement?.previousElementSibling).toBe(screen.getByRole('button', { name: 'Firemní číselníky' }));
+  expect(trigger.parentElement?.previousElementSibling).toBe(screen.getByRole('button', { name: 'Uzamknout rozpočet' }));
   fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
   const plan = screen.getByRole('button', { name: 'Převzít do plánu VŘ' });
   expect(plan).toBeDisabled();
@@ -275,8 +275,8 @@ it('clears revision-specific selection, undo and scope when another user changes
   try {
     render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Vybrat 123' }));
-    expect(screen.getByText('1 vybraných položek napříč rozsahy')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Výkop', exact: true }));
+    expect(screen.getByText('Vybráno 1 položek')).toBeVisible();
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'Výkop', exact: true }));
     fireEvent.click(screen.getByRole('button', { name: 'Uložit změnu' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
@@ -285,7 +285,7 @@ it('clears revision-specific selection, undo and scope when another user changes
     await client.invalidateQueries({ queryKey: ['construction-budget', 'p', 'u', 'index'] });
     await waitFor(() => expect(budgetApi.revision).toHaveBeenCalledWith('p', 'other'));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).not.toBeChecked());
-    expect(screen.queryByText('1 vybraných položek napříč rozsahy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vybráno 1 položek')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zpět' })).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).scope).toBe('');
   } finally { width.mockRestore(); height.mockRestore(); }
@@ -306,9 +306,51 @@ it.each([false,true])('gates tender import on pipeline availability (%s) indepen
   vi.mocked(budgetApi.index).mockResolvedValue({revisions:[revision],permissions:{prices:true,edit:true,confirm:false,allocate:true}});
   await openBudget(canUseTenders);
   await waitFor(()=>expect(budgetApi.revision).toHaveBeenCalled());
-  expect(!!screen.queryByRole('button',{name:'Vlastní vzory VŘ'})).toBe(canUseTenders);
+  expect(!!screen.queryByRole('button',{name:'Číselník VŘ'})).toBe(canUseTenders);
+  fireEvent.click(screen.getByRole('button',{name:'Importy a verze'}));
   fireEvent.click(screen.getByRole('button',{name:'Importovat'}));
   expect(!!screen.queryByRole('radio',{name:/Pouze převzít přiřazení do VŘ/})).toBe(canUseTenders);
+});
+
+it('places import and export in versions and unlocks using the current server token', async () => {
+  const permissions = { read: true, prices: true, edit: true, confirm: true, allocate: true };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [revision], permissions, locked: true, lockVersion: 4 });
+  vi.mocked(budgetApi.setLock).mockResolvedValue(undefined);
+  await openBudget();
+  expect(screen.queryByRole('button', { name: 'Importovat' })).not.toBeInTheDocument();
+  const unlock = screen.getByRole('button', { name: 'Odemknout rozpočet' });
+  expect(unlock).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
+  expect(screen.queryByRole('button', { name: 'Potvrdit rozpočet' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Importy a verze' }));
+  expect(screen.getByRole('button', { name: 'Importovat' })).toBeDisabled();
+  fireEvent.click(unlock);
+  await waitFor(() => expect(budgetApi.setLock).toHaveBeenCalledWith('p', false, 4));
+});
+it('assigns multiple clicked rows to a tender and clears selection without deleting items', async () => {
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1200);
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400);
+  const item = { id: 'item', parentId: null, sheetId: 's', kind: 'K', order: 0, code: '123', description: 'Výkop', unit: 'm3', quantity: '12', unitPrice: '10', total: '120', source: { sheet: 'Soupis', row: 1, cells: {} }, sourceType: 'K', tags: [], tenders: [] };
+  const withRows = { ...revision, document: { ...revision.document, nodes: [item, { ...item, id: 'other', code: '456', description: 'Beton', order: 1 }] } } as BudgetRevision;
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [withRows], permissions: { read: true, prices: true, edit: true, confirm: true, allocate: true } });
+  vi.mocked(budgetApi.revision).mockResolvedValue(withRows);
+  vi.mocked(budgetApi.save).mockResolvedValue({ ...withRows, version: 2 });
+  try {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[{ id: 'vr', title: 'Zemní práce' } as never]} canUseTenders/></QueryClientProvider>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Výkop', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Beton', exact: true }), { ctrlKey: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Přiřadit VŘ', exact: true }));
+    fireEvent.change(screen.getByLabelText('Cílové VŘ'), { target: { value: 'vr' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Potvrdit přiřazení' }));
+    await waitFor(() => expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({ allocations: [{ itemId: 'item', categoryId: 'vr', quantity: '12' }, { itemId: 'other', categoryId: 'vr', quantity: '12' }] })));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Zrušit výběr' }));
+    expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Beton', exact: true })).toBeVisible();
+    expect(budgetApi.save).toHaveBeenCalledTimes(1);
+  } finally { width.mockRestore(); height.mockRestore(); }
 });
 
 it('shows the prominent total only on the recap tab and keeps the items sidebar compact', async () => {
@@ -321,4 +363,24 @@ it('shows the prominent total only on the recap tab and keeps the items sidebar 
   fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
   expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
   expect(screen.getByText('Celý rozpočet · 0,00 Kč')).toBeVisible();
+});
+
+it('allows pipeline editors to edit the tender catalog without budget item editing rights',async()=>{
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[revision],permissions:{read:true,prices:false,edit:false,confirm:false,allocate:false,editTenders:true}});
+ await openBudget(true);fireEvent.click(screen.getByRole('button',{name:'Číselník VŘ'}));
+ expect(await screen.findByLabelText('Název VŘ 1')).not.toBeDisabled();
+ expect(screen.getByRole('button',{name:'Přidat VŘ'})).not.toBeDisabled();
+ expect(screen.getByRole('button',{name:'Importovat / exportovat vzor'})).toBeDisabled();
+});
+
+it('defaults notes off for older settings and persists their independent toggle', async () => {
+ localStorage.setItem('tf-budget-view:u:p',JSON.stringify({wrap:true}));
+ fireEvent.click(await openBudget());
+ expect(screen.getByRole('checkbox',{name:'Zobrazit poznámky'})).not.toBeChecked();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Zobrazit poznámky'}));
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({showNotes:true,wrap:true}));
+ cleanup();fireEvent.click(await openBudget());
+ expect(screen.getByRole('checkbox',{name:'Zobrazit poznámky'})).toBeChecked();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Zobrazit poznámky'}));
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({showNotes:false}));
 });

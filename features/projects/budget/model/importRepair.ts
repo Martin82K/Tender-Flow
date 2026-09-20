@@ -50,10 +50,11 @@ export function applyImportRepair(document: BudgetDocument, repair: ImportRepair
   const preview = previewImportRepair(document, repair, allocations);
   const original = document.nodes.find(node => node.id === repair.nodeId)!;
   const columns = document.sheets.find(sheet => sheet.id === original.sheetId)?.columns;
+  const invalidNumbers = new Set<string>();
   const number = (key: string): string | null => {
     const column = columns?.[key]; if (column === undefined || column < 0) return null;
     const cell = original.source.cells[`${sourceColumnName(column)}${original.source.row}`];
-    try { return decimal(typeof cell?.value === 'number' ? Number(cell.value.toPrecision(15)).toLocaleString('en-US', {useGrouping:false,maximumFractionDigits:18}) : cell?.value); } catch { return null; }
+    try { if(cell?.formula&&(cell.value===null||cell.value===''))throw new Error('Chybí uložený výsledek vzorce'); return decimal(typeof cell?.value === 'number' ? Number(cell.value.toPrecision(15)).toLocaleString('en-US', {useGrouping:false,maximumFractionDigits:18}) : cell?.value); } catch { invalidNumbers.add(sourceColumnName(column)); return null; }
   };
   const edited: BudgetNode = { ...original, kind: repair.kind, parentId: repair.parentId };
   if (edited.kind !== original.kind && !(isPriced(edited) && isPriced(original))) {
@@ -64,11 +65,13 @@ export function applyImportRepair(document: BudgetDocument, repair: ImportRepair
   }
   const hierarchyRows = new Set(preview.rows);
   const issues = document.issues.filter(issue => !(issue.kind === 'hierarchy' && issue.sheet === original.source.sheet && hierarchyRows.has(issue.row)) && !(issue.sheet === original.source.sheet && issue.row === original.source.row &&
-    (issue.kind === 'hierarchy' || issue.kind === 'unclassified' || (edited.kind !== original.kind && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message.startsWith('Uložená cena se liší'))))));
+    (issue.kind === 'hierarchy' || issue.kind === 'unclassified' || (edited.kind !== original.kind && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Položka nemá vyplněné množství.' || issue.message.startsWith('Uložená cena se liší'))))));
   if (edited.kind !== original.kind && isPriced(edited)) {
     const issue: Omit<ImportIssue,'message'> = { sheet: original.source.sheet, row: original.source.row, severity:'error' };
-    if (edited.quantity === null || edited.unitPrice === null || edited.total === null) issues.push({...issue,message:'Položka nemá úplné ocenění; prázdná hodnota není nula.'});
-    else if (multiplyMoney(edited.quantity, edited.unitPrice) !== edited.total) issues.push({...issue,severity:'warning',message:'Uložená cena se liší od množství × jednotkové ceny.'});
+    for(const column of invalidNumbers)issues.push({...issue,message:`Neplatná nebo chybějící hodnota ${column}.`});
+    for(const prior of document.issues.filter(i=>i.sheet===original.source.sheet&&i.row===original.source.row&&/^Neplatná nebo chybějící hodnota /.test(i.message)))if(!issues.some(i=>i.sheet===prior.sheet&&i.row===prior.row&&i.message===prior.message))issues.push({...prior,severity:'error'});
+    if (edited.quantity === null) issues.push({...issue,message:'Položka nemá vyplněné množství.'});
+    else if (edited.unitPrice !== null && edited.total !== null && multiplyMoney(edited.quantity, edited.unitPrice) !== edited.total) issues.push({...issue,severity:'warning',message:'Uložená cena se liší od množství × jednotkové ceny.'});
   }
   return { ...document, issues, importRepairs:[...(document.importRepairs ?? []),{...repair}], nodes:document.nodes.map(node =>
     node.id === original.id ? edited : repair.scope === 'row' && node.parentId === original.id ? {...node,parentId:original.parentId} : node) };

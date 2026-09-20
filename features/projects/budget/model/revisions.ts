@@ -1,3 +1,4 @@
+import { sourceColumnName } from './importRepair';
 import { isPriced } from './types';
 import type { BudgetNode, BudgetDocument, BudgetAllocation } from './types';
 import { decimal, multiplyMoney, remainingQuantity, validateAllocation } from './budgetModel';
@@ -54,15 +55,21 @@ export function transferRevisionLinks(before:BudgetDocument,after:BudgetDocument
 }
 
 /** Resolve only numeric errors on the edited source row; mapping errors stay blocking. */
-export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode): BudgetDocument {
+export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode, editedFields?: readonly string[]): BudgetDocument {
   const original = document.nodes.find(node => node.id === edited.id);
   if (!original || !isPriced(original)) throw new Error('Položka již není dostupná. Obnovte rozpočet.');
+  for (const value of [edited.quantity, edited.unitPrice, edited.total]) if (value !== null) decimal(value);
+  const columns = document.sheets.find(sheet => sheet.id === original.sheetId)?.columns;
+  const repairedColumns = new Set(['quantity','unitPrice','total'].filter(key =>
+    (editedFields?.includes(key) ?? original[key as 'quantity' | 'unitPrice' | 'total'] !== edited[key as 'quantity' | 'unitPrice' | 'total']) &&
+    (key !== 'quantity' || edited.quantity !== null) && columns?.[key] !== undefined && columns[key] >= 0
+  ).map(key => sourceColumnName(columns![key])));
   const complete = edited.quantity !== null && edited.unitPrice !== null && edited.total !== null;
   if (complete) { decimal(edited.quantity); decimal(edited.unitPrice); decimal(edited.total); multiplyMoney(edited.quantity!, edited.unitPrice!); }
   return {
     ...document,
-    nodes: document.nodes.map(node => node.id === edited.id ? {...node, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
-    issues: document.issues.filter(issue => !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
+    nodes: document.nodes.map(node => node.id === edited.id ? {...node, code: edited.code, unit: edited.unit, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
+    issues: document.issues.filter(issue => !(issue.sheet === original.source.sheet && issue.row === original.source.row && repairedColumns.has(/^Neplatná nebo chybějící hodnota ([A-Z]+)\.$/.exec(issue.message)?.[1] ?? '')) && !(edited.quantity !== null && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.message === 'Položka nemá vyplněné množství.') && !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Položka nemá vyplněné množství.' || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
   };
 }
 

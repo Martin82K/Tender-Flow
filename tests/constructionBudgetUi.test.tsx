@@ -34,3 +34,14 @@ it('marks incomplete totals on every affected ancestor without treating zero as 
  const result=aggregateBudget([...nodes,{...base,id:'missing',kind:'K',order:4,parentId:'s',total:null}]);
  expect(result.incompleteIds.has('s')).toBe(true);expect(result.incompleteIds.has('missing')).toBe(true);expect(result.incompleteIds.has('b')).toBe(false);
 });
+
+it('toggles notes independently of VV and respects filters and collapsed groups',()=>{
+ const data:BudgetNode[]=[...nodes,{...base,id:'note',kind:'note',parentId:'a',order:4},{...base,id:'section-note',kind:'note',parentId:'s',order:5}];
+ const visible=(vv:boolean,notes:boolean,matched=new Set(['a']),collapsed=new Set<string>())=>visibleBudgetRows(data,matched,collapsed,vv,notes).map(n=>n.id);
+ expect(visible(true,false)).toEqual(['s','a','vv']);
+ expect(visible(false,true)).toEqual(['s','a','note','section-note']);
+ expect(visible(true,true)).toEqual(['s','a','vv','note','section-note']);
+ expect(visible(false,true,new Set(['b']))).toEqual(['s','b','section-note']);
+ expect(visible(true,true,new Set(['a']),new Set(['s']))).toEqual(['s']);
+ expect(aggregateBudget(data).total).toBe('50.00');
+});

@@ -1,8 +1,9 @@
 import React from 'react';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/BudgetTable';
-import type { BudgetNode } from '@features/projects/budget/model/types';
+import { applyBudgetItemEdit } from '@features/projects/budget/model/revisions';
+import type { BudgetDocument, BudgetNode } from '@features/projects/budget/model/types';
 import type { BudgetFilters } from '@features/projects/budget/model/budgetModel';
 
 // jsdom has no layout. Supply geometry while exercising the real virtualizer.
@@ -26,7 +27,8 @@ function table(showVV = true, canPrices = true, wrap = false, density = 44) {
 }
 it('recalculates an imported quantity expression without its stored result and annotation', () => {
   render(<BudgetTable {...table().props} editable nodes={[item, { ...nodes[2], description: '2*1 = 2,000 [A]' }]}/>);
-  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  fireEvent.contextMenu(screen.getByRole('button', { name: item.description }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Detail položky' }));
   fireEvent.click(screen.getByRole('button', { name: 'Přepočítat výraz a připravit množství' }));
   expect(screen.getByRole('textbox', { name: 'Množství' })).toHaveValue('2');
   expect(screen.getByRole('alert')).toHaveTextContent('Výsledek 2 je připraven');
@@ -42,7 +44,7 @@ it('handles a repeated explicit jump while preserving filters that hide the targ
 });
 it('shows quantity details under their item without treating unpriced details as missing prices', () => {
   render(table());
-  expect(screen.getAllByText('Chybí cena')).toHaveLength(1);
+  expect(screen.getAllByText('Neoceněno')).toHaveLength(1);
   const quantityRow = screen.getByRole('button', { name: '3*4' }).closest('[role="row"]')!;
   expect(within(quantityRow as HTMLElement).getByText('12')).toBeVisible();
   expect(within(quantityRow as HTMLElement).queryByRole('checkbox')).not.toBeInTheDocument();
@@ -55,7 +57,7 @@ it('opens the full item description from its name without a separate expansion l
   render(<BudgetTable {...table().props} nodes={[{ ...item, description }]}/>);
   expect(screen.queryByRole('button', { name: 'Celý popis' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Zkrátit popis' })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: description }));
+  fireEvent.doubleClick(screen.getByRole('button', { name: description }));
   expect(screen.getByRole('textbox', { name: 'Úplný popis' })).toHaveValue(description);
   expect(screen.queryByRole('button', { name: 'Uložit změnu' })).not.toBeInTheDocument();
 });
@@ -65,12 +67,12 @@ it('hides quantity details through the existing switch and respects price visibi
   expect(screen.queryByText('3*4')).not.toBeInTheDocument();
   expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Výkop základů' })).toBeVisible();
-  expect(screen.queryByText('Chybí cena')).not.toBeInTheDocument();
+  expect(screen.queryByText('Neoceněno')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'J. cena ▾' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Sbalit 123' })).not.toBeInTheDocument();
 });
 it('toggles item details with plus and minus before the selection checkbox', () => {
-  render(table());
+  render(<BudgetTable {...table().props} showNotes/>);
   const collapse = screen.getByRole('button', { name: 'Sbalit 123' });
   const row = collapse.closest('[role="row"]')!;
   expect(row.firstElementChild).toContainElement(collapse);
@@ -220,7 +222,7 @@ it('keeps per-item VV usable after collapsing all groups', () => {
   expect(screen.getByText('3*4')).toBeVisible();
 });
 it.each(['3*4','Poznámka k výkopu'])('does not offer a priced-item filter on auxiliary row %s', text => {
- render(table());
+ render(<BudgetTable {...table().props} showNotes/>);
  fireEvent.contextMenu(screen.getByRole('button',{name:text,exact:true}));
  expect(screen.queryByRole('menuitem',{name:'Filtrovat podle této hodnoty'})).not.toBeInTheDocument();
  expect(screen.getByRole('menu',{name:'Akce rozpočtu'})).toBeVisible();
@@ -228,11 +230,86 @@ it.each(['3*4','Poznámka k výkopu'])('does not offer a priced-item filter on a
 it('disables recalculation until every referenced figure is resolved', () => {
  const props={...table().props,editable:true,nodes:[item,{...nodes[2],description:'F1*2 = 6 [A]'}]};
  const {rerender}=render(<BudgetTable {...props} figures={{}}/>);
- fireEvent.click(screen.getByRole('button',{name:item.description}));
+ fireEvent.contextMenu(screen.getByRole('button',{name:item.description}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
  expect(screen.getByRole('button',{name:'Přepočítat výraz a připravit množství'})).toBeDisabled();
  expect(screen.getByText(/Přepočet není dostupný/)).toHaveTextContent('F1');
  expect(screen.getByRole('textbox',{name:'Množství'})).toHaveValue('12');
  rerender(<BudgetTable {...props} figures={{F1:'3'}}/>);
  fireEvent.click(screen.getByRole('button',{name:'Přepočítat výraz a připravit množství'}));
  expect(screen.getByRole('textbox',{name:'Množství'})).toHaveValue('6');
+});
+
+it('selects a row on one click and extends selection with modifiers without opening an editor', () => {
+  function Harness() { const [selected, setSelected] = React.useState(new Set<string>()); return <BudgetTable {...table().props} editable selected={selected} onSelected={setSelected}/>; }
+  render(<Harness/>);
+  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Neoceněná práce' }), { metaKey: true });
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).not.toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Neoceněná práce' }), { shiftKey: true });
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 123' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Vybrat 456' })).toBeChecked();
+});
+it('edits only the double-clicked cell, saves on Enter and cancels on Escape', async () => {
+  const onEdit = vi.fn().mockResolvedValue(undefined);
+  render(<BudgetTable {...table().props} editable onEdit={onEdit}/>);
+  const row = screen.getByRole('button', { name: item.description }).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(within(row).getByText('12'));
+  const input = screen.getByRole('textbox', { name: 'Upravit Množství' });
+  fireEvent.change(input, { target: { value: '15' } });
+  await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
+  await vi.waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'item', quantity: '15', total: '150.00' }), ['quantity','total']));
+  fireEvent.doubleClick(screen.getByRole('button', { name: item.description }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Upravit Popis' }), { target: { value: 'Neuložit' } });
+  fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Popis' }), { key: 'Escape' });
+  expect(onEdit).toHaveBeenCalledTimes(1);
+});
+it('keeps untouched price errors when only the full detail description changes',async()=>{
+ const onEdit=vi.fn().mockResolvedValue(undefined);
+ render(<BudgetTable {...table().props} nodes={[{...item,unitPrice:null,total:null}]} editable onEdit={onEdit}/>);
+ fireEvent.contextMenu(screen.getByRole('button',{name:item.description}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
+ fireEvent.change(screen.getByLabelText('Úplný popis'),{target:{value:'Jiný popis'}});
+ await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'}));});
+ await vi.waitFor(()=>expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({description:'Jiný popis',unitPrice:null,total:null}),['description']));
+});
+
+it('does not mark an unchanged unpriced total as repaired when saving quantity', async () => {
+  const unpriced = { ...item, unitPrice: null, total: null };
+  const document: BudgetDocument = { schemaVersion: 1, figures: {}, nodes: [unpriced],
+    sheets: [{ id: 's', name: 'Soupis', columns: { quantity: 4, unitPrice: 5, total: 6 } } as BudgetDocument['sheets'][number]],
+    issues: [{ sheet: 'Soupis', row: 1, severity: 'error', message: 'Neplatná nebo chybějící hodnota G.' }] };
+  const onEdit = vi.fn(async (edited: BudgetNode, fields?: readonly string[]) => {
+    expect(applyBudgetItemEdit(document, edited, fields).issues).toEqual(document.issues);
+  });
+  render(<BudgetTable {...table().props} nodes={[unpriced]} editable onEdit={onEdit}/>);
+  const row = screen.getByRole('button', { name: item.description }).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(within(row).getByText('12'));
+  await act(async () => { fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Množství' }), { key: 'Enter' }); });
+  expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ quantity: '12', total: null }), ['quantity']);
+});
+
+it('shows notes separately from VV and labels them as notes', () => {
+ const {rerender}=render(table(false));
+ fireEvent.click(screen.getByRole('button',{name:'Výkaz výměr: 123'}));
+ expect(screen.getByText('3*4')).toBeVisible();
+ expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
+ rerender(<BudgetTable {...table(false).props} showNotes/>);
+ expect(screen.getByText('Poznámka k výkopu')).toBeVisible();
+ expect(screen.getByText('Poznámka')).toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'Výkaz výměr: 123'}));
+ expect(screen.queryByText('3*4')).not.toBeInTheDocument();
+ expect(screen.getByText('Poznámka k výkopu')).toBeVisible();
+ rerender(<BudgetTable {...table(false).props} showNotes={false}/>);
+ expect(screen.queryByText('Poznámka k výkopu')).not.toBeInTheDocument();
+});
+it('disables VV for an item with only notes',()=>{
+ render(<BudgetTable {...table(false).props} nodes={[item,nodes[1]]} showNotes/>);
+ expect(screen.getByRole('button',{name:'Výkaz výměr: 123'})).toBeDisabled();
+ expect(screen.getByText('Poznámka k výkopu')).toBeVisible();
 });
