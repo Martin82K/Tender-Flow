@@ -7,7 +7,7 @@ import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
 import { createBudgetTender } from '../api/createBudgetTender';
 import { budgetApi } from '../api/budgetApi';
-import type { BudgetAssignmentRequest, BudgetItemEditRequest } from '../api/budgetApi';
+import type { BudgetAssignmentRequest, BudgetItemEditRequest, BudgetUndoRequest } from '../api/budgetApi';
 import { BudgetExportDialog } from './BudgetExportDialog';
 import { BudgetSelectionTenders } from './BudgetRowTenders';
 import { BudgetTable, DEFAULT_COLUMNS } from './BudgetTable';
@@ -47,8 +47,9 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
   const [pendingAssignment,setPendingAssignment]=useState<{revisionId:string;allocations:BudgetAllocation[];itemIds:Set<string>}|null>(null);
   const itemEditAttempt=useRef<{key:string;request:BudgetItemEditRequest}|null>(null);
   const assignmentAttempt=useRef<{key:string;request:BudgetAssignmentRequest}|null>(null);
+  const undoAttempt=useRef<{key:string;request:BudgetUndoRequest}|null>(null);
   const actionLock=useRef(false);const saveLock=useRef(false);
-  const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
+  const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number;operationId?:string}|null>(null);
   const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId),refetchOnMount:'always'});
   const sources=useQuery({queryKey:[...key,'sources'],queryFn:()=>budgetApi.sources(projectId),enabled:!!index.data});
   const activeVersions=index.data?.revisions.filter(r=>!r.deleted_at&&!r.purge_job_id)??[];
@@ -113,7 +114,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       if(result.id!==current.id||result.version!==current.version+1||result.node.id!==edited.id)throw new Error('Server vrátil nečekanou verzi. Obnovte rozpočet.');
       const removed=new Set(result.resolvedIssueIndexes);
       const saved={...current,version:result.version,document:{...current.document,nodes:current.document.nodes.map(n=>n.id===result.node.id?result.node:n),issues:current.document.issues.filter((_,index)=>!removed.has(index))},allocations:[...current.allocations.filter(a=>a.itemId!==edited.id),...result.allocations]};
-      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
+      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version,operationId:itemEditAttempt.current.request.operationId});
       cache.setQueryData([...key,'revision',saved.id],saved);itemEditAttempt.current=null;
       void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Uloženo na serveru.');
     }catch(error){
@@ -141,7 +142,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       const result=await budgetApi.setAssignments(projectId,assignmentAttempt.current.request);
       if(result.id!==current.id||result.version!==current.version+1||JSON.stringify([...result.itemIds].sort())!==JSON.stringify(ids))throw new Error('Server nepotvrdil uložené přiřazení. Obnovte rozpočet.');
       const changed=new Set(result.itemIds);const saved={...current,version:result.version,allocations:[...current.allocations.filter(a=>!changed.has(a.itemId)),...result.allocations]};
-      assignmentAttempt.current=null;setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
+      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version,operationId:assignmentAttempt.current.request.operationId});assignmentAttempt.current=null;
       cache.setQueryData([...key,'revision',saved.id],saved);void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Přiřazení uloženo na serveru.');
     }finally{saveLock.current=false;setSaving(false);}
   };
@@ -176,7 +177,14 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       {current&&(tab==='items'||tab==='recap')&&<>
         {tab==='items'&&<><button className="tf-budget-command-button" onClick={()=>updateView({panel:!view.panel})}><Network aria-hidden="true"/>{view.panel?'Skrýt':'Zobrazit'} strom</button>{view.scope&&<button className="tf-budget-command-button" onClick={()=>updateView({scope:''})}>Rozsah: {sheets.find(s=>s.id===view.scope)?.title||view.scope} ×</button>}</>}
         <BudgetButtonMenu label="Akce rozpočtu" caption="Akce" icon={<MoreHorizontal aria-hidden="true"/>} closeOnAction>
-        {editable&&undo&&undo.revisionId===activeId&&<button onClick={()=>void act(async()=>{if(current.id!==undo.revisionId||current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
+        {editable&&undo&&undo.revisionId===activeId&&<button onClick={()=>void act(async()=>{if(current.id!==undo.revisionId||current.version!==undo.version)throw new Error('Undo má konflikt s novější verzí.');if(undo.operationId){
+          const attemptKey=JSON.stringify([current.id,current.version,undo.operationId]);
+          if(undoAttempt.current?.key!==attemptKey)undoAttempt.current={key:attemptKey,request:{operationId:crypto.randomUUID(),sourceId:current.source_id,revisionId:current.id,version:current.version,undoOperationId:undo.operationId}};
+          const result=await budgetApi.undoPatch(projectId,undoAttempt.current.request);
+          if(result.id!==current.id||result.version!==current.version+1)throw new Error('Server nepotvrdil vrácení změny. Obnovte rozpočet.');
+          cache.setQueryData([...key,'revision',current.id],{...current,document:undo.document,allocations:undo.allocations,version:result.version});undoAttempt.current=null;
+          void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Změna vrácena na serveru.');
+        }else await save(undo.document,undo.allocations);setUndo(null);})}>Zpět</button>}
         {editable&&<button disabled={!sources.data?.some(s=>s.id===current.source_id)} onClick={()=>setRepairOpen(true)}>Opravit import</button>}
         {editable&&permissions?.confirm&&<button onClick={()=>void act(async()=>{await save(current.document,current.allocations,true);})}>Potvrdit rozpočet</button>}
         {!current.deleted_at&&current.status==='confirmed'&&permissions?.edit&&permissions.prices&&!readOnly&&!locked&&<button disabled={saving||(!permissions.allocate&&current.allocations.length>0)} title={!permissions.allocate&&current.allocations.length>0?'Kopírování přiřazení vyžaduje oprávnění k alokacím.':undefined} onClick={()=>void act(async()=>{const copy=await budgetApi.save({projectId,sourceId:current.source_id,title:`${current.title} · pracovní kopie`,document:{...current.document,origin:'copy',importKey:crypto.randomUUID()},allocations:current.allocations});openVersion(copy.id);await cache.invalidateQueries({queryKey:key});})}>Vytvořit pracovní kopii</button>}

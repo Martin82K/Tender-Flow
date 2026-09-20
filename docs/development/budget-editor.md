@@ -350,3 +350,28 @@ RPC editace pro několik alokací stejného VŘ pokrývajících celé množstv�
 - CI pro `f68d1292` nad `8469a654`: 3536 testů PASS, 3 skipped,
   1 selhání konzistence indexu release poznámek. Opraven index a nadpis beta
   poznámek; cílený `tests/desktopBuildEnv.security.test.ts`: 13 PASS.
+
+Navazující revize nad `44e3b97a` (základna `8469a654`) opravuje vrácení malých
+zápisů. `construction_budget_undo_patch` přijímá pouze identifikátor vlastní
+poslední operace a očekávanou verzi, obnovuje serverovou kompaktní historii a
+vrací ID/verzi. Zachovává zdroj, tenant, read/edit/prices a podle změny allocate,
+zámek, historii a idempotentní retry. Nelze vrátit cizí či starší operaci ani
+podstrčit klientský snapshot. Alokační undo nepřepisuje dokument; buněčné undo
+zachová přesné původní celkem a importní issues přes validovaný serverový save.
+
+Limity patch požadavků odpovídají stávajícímu 100 MB dokumentovému/importnímu
+kontraktu, počet vybraných ID zůstává omezen na 250 000 a popis na 32 768 znaků.
+Hromadné cesty používají SQL join místo opakovaného lineárního hledání v JSON poli.
+
+- RED: 4 nové SQL regrese a UI undo přes full save.
+- Cílená UI sada 34 PASS; navazující test alokačního undo PASS.
+- SQL sada 36 PASS / 1 selhání kvalifikace proměnné v novém alokačním undo;
+  po opravě 7 všech dotčených testů PASS, bez skipped/todo.
+- Ověřeno přesné vrácení celkem/issues, vlastní operace, cizí tenant,
+  allocate právo, zámek, retry a historické částečné alokace.
+- 11 000 řádků: hromadné přiřazení + undo přibližně 297 ms v lokálním WASM;
+  odpověď undo pod 100 B. Test všech 250 000 syntetických ID ověřuje velikost
+  požadavku (ID záměrně neexistují); není benchmarkem zápisu 250 000 řádků.
+- Typecheck, web build, boundaries, legacy, docs a diff PASS.
+- Nový dry-run opět obsahuje jen dosud nenasazenou migraci 20260920230000.
+  Ta nyní zahrnuje také navazující undo opravu. Souhlas s deployem zůstává pending.

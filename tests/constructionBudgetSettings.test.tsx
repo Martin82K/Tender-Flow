@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), importTenders: vi.fn(), setAssignments: vi.fn(), editItem: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), importTenders: vi.fn(), setAssignments: vi.fn(), undoPatch: vi.fn(), editItem: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), saveProjectTenders:vi.fn().mockResolvedValue(undefined), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -448,6 +448,12 @@ it('assigns through a small idempotent request and retains the retry key after a
   expect(vi.mocked(budgetApi.setAssignments).mock.calls[1][1]).toEqual(request);
   await waitFor(()=>expect(screen.getByRole('combobox',{name:'VŘ pro vybrané položky'})).toBeEnabled());
   expect(screen.queryByRole('button',{name:'Přiřadit VŘ',exact:true})).not.toBeInTheDocument();
+  vi.mocked(budgetApi.undoPatch).mockResolvedValueOnce({id:'r',version:3});
+  fireEvent.click(screen.getByRole('button',{name:'Akce rozpočtu'}));fireEvent.click(screen.getByRole('button',{name:'Zpět',exact:true}));
+  await waitFor(()=>expect(budgetApi.undoPatch).toHaveBeenCalledWith('p',expect.objectContaining({version:2,undoOperationId:request.operationId})));
+  await waitFor(()=>expect(within(screen.getByRole('button',{name:'Výkop',exact:true}).closest('[role="row"]') as HTMLElement).queryByText('Zemní práce')).not.toBeInTheDocument());
+  expect(budgetApi.save).not.toHaveBeenCalled();
+
  }finally{width.mockRestore();height.mockRestore();}
 });
 
@@ -526,6 +532,13 @@ it('saves a cell through a small request, retries lost responses and updates tot
   await waitFor(()=>expect(screen.queryByRole('textbox',{name:'Upravit J. cena'})).not.toBeInTheDocument());
   expect(vi.mocked(budgetApi.editItem).mock.calls[1][1]).toEqual(request);
   expect(within(row).getByText('260 000,00')).toBeVisible();
+  vi.mocked(budgetApi.undoPatch).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce({id:'r',version:3});
+  fireEvent.click(screen.getByRole('button',{name:'Akce rozpočtu'}));fireEvent.click(screen.getByRole('button',{name:'Zpět',exact:true}));
+  await waitFor(()=>expect(budgetApi.undoPatch).toHaveBeenCalledTimes(1));
+  const undoRequest=vi.mocked(budgetApi.undoPatch).mock.calls[0][1];expect(undoRequest).toMatchObject({version:2,undoOperationId:request.operationId});expect(JSON.stringify(undoRequest).length).toBeLessThan(500);
+  await screen.findByRole('alert');fireEvent.click(screen.getByRole('button',{name:'Akce rozpočtu'}));fireEvent.click(screen.getByRole('button',{name:'Zpět',exact:true}));
+  await waitFor(()=>expect(within(row).queryByText('260 000,00')).not.toBeInTheDocument());
+  expect(vi.mocked(budgetApi.undoPatch).mock.calls[1][1]).toEqual(undoRequest);
   expect(budgetApi.save).not.toHaveBeenCalled();expect(budgetApi.revision).toHaveBeenCalledTimes(1);
  }finally{width.mockRestore();height.mockRestore();}
 });

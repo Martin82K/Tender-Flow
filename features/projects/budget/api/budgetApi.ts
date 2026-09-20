@@ -15,6 +15,7 @@ export interface BudgetItemEditRequest {
 export interface BudgetAssignmentRequest {
   operationId: string; revisionId: string; sourceId: string; version: number; itemIds: string[]; categoryId: string | null;
 }
+export interface BudgetUndoRequest { operationId: string; revisionId: string; sourceId: string; version: number; undoOperationId: string }
 export interface BudgetAssignmentResult { id: string; version: number; itemIds: string[]; allocations: BudgetAllocation[] }
 export interface BudgetItemEditResult {
   id: string; version: number; node: BudgetNode; allocations: BudgetAllocation[]; resolvedIssueIndexes: number[];
@@ -27,6 +28,9 @@ export interface PersonalTenderDefaults { version: number; definitions: ProjectT
 export interface BudgetIndex { locked?: boolean; lockVersion?: number; mainRevisionId?: string | null; permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
 const unwrap = <T>(result: { data: unknown; error: { message: string } | null }): T => { if (result.error) throw new Error(result.error.message); return result.data as T; };
 export const budgetApi = {
+  async undoPatch(projectId: string, request: BudgetUndoRequest): Promise<{id:string;version:number}> {
+    return unwrap(await supabase.rpc('construction_budget_undo_patch', {project_input:projectId,request_input:request}));
+  },
   async setLock(projectId: string, locked: boolean, version: number): Promise<void> {
     unwrap(await supabase.rpc('construction_budget_set_lock', { project_input: projectId, locked_input: locked, version_input: version }));
   },

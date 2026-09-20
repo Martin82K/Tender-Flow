@@ -462,6 +462,12 @@ test('removes assignments from a large budget without saving or returning the do
   const result=await setAssignments(db,{...allocationRequest(),categoryId:null});
   assert.ok(JSON.stringify(result).length<300);assert.deepEqual(result.allocations,[]);
   assert.deepEqual((await db.query('SELECT document FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].document,large);
+  const bulk={...allocationRequest(),version:2,itemIds:large.nodes.map(n=>n.id)};
+  const started=performance.now();const assigned=await setAssignments(db,bulk);assert.equal(assigned.allocations.length,11000);
+  const undo=(await db.query('SELECT public.construction_budget_undo_patch($1,$2) result',['p',{operationId:randomUUID(),sourceId:source,revisionId:revision,version:3,undoOperationId:bulk.operationId}])).rows[0].result;
+  assert.equal(undo.version,4);assert.ok(JSON.stringify(undo).length<100);
+  assert.deepEqual((await db.query('SELECT allocations FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].allocations,[]);
+  console.log('11000-row bulk assignment and undo ms:',Math.round(performance.now()-started));
  }finally{await db.close();}
 });
 
@@ -482,5 +488,47 @@ test('coalesces legacy whole-item allocations to the same tender when editing qu
   await db.query('UPDATE construction_budget_revisions SET allocations=$1 WHERE id=$2',[[{itemId:'item',categoryId:'existing',quantity:'3'},{itemId:'item',categoryId:'existing',quantity:'7'}],revision]);
   const result=await editItem(db,{...editRequest(),patch:{quantity:'12'}});
   assert.deepEqual(result.allocations,[{itemId:'item',categoryId:'existing',quantity:'12'}]);
+ }finally{await db.close();}
+});
+
+test('small undo restores exact item totals and issues, retries safely and enforces the original actor',async()=>{
+ const db=await allocationPatchFixture();try{
+  const before={...document,nodes:[{...document.nodes[0],total:'175'}],issues:[{sheet:'SO',row:1,severity:'error',message:'Položka nemá úplné ocenění.'}]};
+  await db.query('UPDATE construction_budget_revisions SET document=$1 WHERE id=$2',[before,revision]);
+  const edit={...editRequest(),resolvedIssueIndexes:[0]};await editItem(db,edit);
+  const r={operationId:randomUUID(),sourceId:source,revisionId:revision,version:2,undoOperationId:edit.operationId};
+  const undo=()=>db.query('SELECT public.construction_budget_undo_patch($1,$2) result',['p',r]).then(r=>r.rows[0].result);
+  await db.exec("SET test.edit='no'");await assert.rejects(undo(),/denied/i);await db.exec("SET test.edit='yes'");
+  await db.exec("SET test.actor='00000000-0000-0000-0000-000000000009'");await assert.rejects(undo(),/conflict/i);await db.exec(`SET test.actor='${actor}'`);
+  const result=await undo();assert.equal(result.version,3);assert.deepEqual(await undo(),result);assert.ok(JSON.stringify(result).length<100);
+  assert.deepEqual((await db.query('SELECT document FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].document,before);
+  assert.equal((await db.query('SELECT count(*)::int n FROM construction_budget_history')).rows[0].n,2);
+ }finally{await db.close();}
+});
+test('small assignment undo restores legacy partial links without returning a document',async()=>{
+ const db=await allocationPatchFixture();try{
+  const original=[{itemId:'item',categoryId:'existing',quantity:'3'}];await db.query('UPDATE construction_budget_revisions SET allocations=$1 WHERE id=$2',[original,revision]);
+  const edit=allocationRequest();await setAssignments(db,edit);
+  const r={operationId:randomUUID(),sourceId:source,revisionId:revision,version:2,undoOperationId:edit.operationId};
+  const undo=(request=r,project='p')=>db.query('SELECT public.construction_budget_undo_patch($1,$2) result',[project,request]).then(r=>r.rows[0].result);
+  await assert.rejects(undo({...r,undoOperationId:randomUUID()}),/conflict/i);
+  await assert.rejects(undo(r,'foreign'),/denied/i);
+  await db.exec("SET test.allocate='no'");await assert.rejects(undo(),/denied/i);await db.exec("SET test.allocate='yes'");
+  await lock(db,true);await assert.rejects(undo(),/uzamčen/);await lock(db,false,1);
+  const result=await undo();assert.equal(result.version,3);assert.equal(result.document,undefined);
+  assert.deepEqual((await db.query('SELECT allocations FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].allocations,original);
+ }finally{await db.close();}
+});
+test('item patches accept the supported full Unicode description length',async()=>{
+ const db=await allocationPatchFixture();try{
+  const description='🧱'.repeat(32768);const result=await editItem(db,{...editRequest(),patch:{description}});assert.equal(result.node.description,description);
+  await assert.rejects(editItem(db,{...editRequest(),version:2,patch:{description:description+'x'}}),/Description too long/);
+ }finally{await db.close();}
+});
+test('assignment request supports selection of all 250000 imported IDs',async()=>{
+ const db=await allocationPatchFixture();try{
+  const ids=Array.from({length:250000},(_,i)=>'sheet:0:row:'+i);
+  // The request passes size/count validation; these synthetic IDs are deliberately absent.
+  await assert.rejects(setAssignments(db,{...allocationRequest(),itemIds:ids}),/Invalid item or quantity/);
  }finally{await db.close();}
 });
