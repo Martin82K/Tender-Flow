@@ -58,3 +58,6 @@ describe('whole-item tender assignment',()=>{
   expect(()=>assignWholeItems([{...item,quantity:null}],[],new Set(['a']),'vr')).toThrow('množství');
  });
 });
+it('requires explicit reassignment before expanding a legacy partial allocation',()=>{
+ expect(()=>syncWholeItemQuantity(document([item]),document([{...item,quantity:'12'}]),[{itemId:'a',categoryId:'vr',quantity:'3'}],true)).toThrow('jedno VŘ');
+});

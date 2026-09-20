@@ -114,7 +114,7 @@ export function syncWholeItemQuantity(before: BudgetDocument, after: BudgetDocum
     if (!assigned.length) continue;
     if (!canAllocate) throw new Error('Změna množství přiřazené položky vyžaduje oprávnění k VŘ.');
     const categories = new Set(assigned.map(a => a.categoryId));
-    if (categories.size !== 1) throw new Error('Položka má starší rozdělené přiřazení. Nejdříve vyberte jedno VŘ pro celou položku.');
+    if (categories.size !== 1 || remainingQuantity(originals.get(node.id)?.quantity ?? '0', assigned.map(a => a.quantity)) !== '0') throw new Error('Položka má starší rozdělené přiřazení. Nejdříve vyberte jedno VŘ pro celou položku.');
     result = assignWholeItems(after.nodes, result, new Set([node.id]), assigned[0].categoryId);
   }
   return result;

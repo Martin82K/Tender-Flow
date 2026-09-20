@@ -461,3 +461,19 @@ it('hides draft assignment controls in assignment-only source repair',async()=>{
   expect(screen.queryByRole('button',{name:'Nové VŘ'})).not.toBeInTheDocument();
  }finally{vi.restoreAllMocks();}
 });
+it('preserves explicitly edited tags when transferring a previous revision',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog tagOptions={[{id:'new',name:'Nový štítek'}]} projectId="p" source={editorSource} previous={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  const row=screen.getByRole('button',{name:'Omítka',exact:true}).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(row.lastElementChild!);
+  fireEvent.click(screen.getByRole('option',{name:'Nový štítek'}));fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'}));
+  await waitFor(()=>expect(screen.queryByLabelText('Upravit Štítky')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({id:'sheet:0:row:5',tags:['new']})])})})));
+ }finally{vi.restoreAllMocks();}
+});

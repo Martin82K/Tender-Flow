@@ -21,6 +21,8 @@ export function BudgetRowTenders({ node, categories = [], allocations = [], canA
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
+  const latest = useRef({canAllocate,onAllocate});
+  latest.current = {canAllocate,onAllocate};
   const assigned = allocations.filter(a => a.itemId === node.id);
   const run = async (action: () => Promise<void>) => {
     if (!canAllocate || lock.current) return;
@@ -39,7 +41,7 @@ export function BudgetRowTenders({ node, categories = [], allocations = [], canA
         <button type="button" disabled={busy || !category} onClick={() => void run(() => onAllocate(node.id, category))}>{busy ? 'Ukládání…' : assigned.length ? 'Změnit VŘ' : 'Přiřadit VŘ'}</button>
         {onCreateTender&&<>
           <button type="button" disabled={busy} aria-expanded={creating} onClick={()=>setCreating(!creating)}>Nové VŘ</button>
-          {creating&&<><input aria-label="Název nového VŘ" placeholder="Název VŘ" maxLength={255} value={newName} disabled={busy} onChange={e=>setNewName(e.target.value)}/><small>Nové VŘ se uloží do číselníku stavby.</small><button type="button" disabled={busy||!newName.trim()} onClick={()=>void run(async()=>{const tender=await onCreateTender(newName);setWarning(tender.warning??'');setCreated(tender);setCategory(tender.id);await onAllocate(node.id,tender.id);setNewName('');setCreating(false);})}>Vytvořit a přiřadit</button></>}
+          {creating&&<><input aria-label="Název nového VŘ" placeholder="Název VŘ" maxLength={255} value={newName} disabled={busy} onChange={e=>setNewName(e.target.value)}/><small>Nové VŘ se uloží do číselníku stavby.</small><button type="button" disabled={busy||!newName.trim()} onClick={()=>void run(async()=>{const tender=await onCreateTender(newName);setWarning(tender.warning??'');setCreated(tender);setCategory(tender.id);if(!latest.current.canAllocate||!latest.current.onAllocate)throw new Error('Přiřazení již není povoleno.');await latest.current.onAllocate(node.id,tender.id);setNewName('');setCreating(false);})}>Vytvořit a přiřadit</button></>}
         </>}
         {!options.length&&!onCreateTender&&<small>Číselník zatím neobsahuje VŘ. Vytvořit je může uživatel s oprávněním upravovat VŘ.</small>}
       </>}

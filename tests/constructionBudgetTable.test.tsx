@@ -429,3 +429,30 @@ it('preserves archived tag identifiers when active tags change', async () => {
  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
  expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({tags:['archived','active']}),['tags']);
 });
+it('focuses the type editor when opened with F2',()=>{
+ render(<BudgetTable {...table().props} editable/>);
+ const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
+ const cell=within(row).getByText('K');cell.focus();fireEvent.keyDown(cell,{key:'F2'});
+ expect(screen.getByRole('combobox',{name:'Upravit Typ'})).toHaveFocus();
+});
+it('closes the old detail when starting a cell edit',()=>{
+ render(<BudgetTable {...table().props} editable/>);
+ fireEvent.contextMenu(screen.getByRole('button',{name:item.description}));
+ fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
+ fireEvent.doubleClick(screen.getByRole('button',{name:item.description}));
+ expect(screen.queryByLabelText('Úplný popis')).not.toBeInTheDocument();
+ expect(screen.getByLabelText('Upravit Popis')).toBeVisible();
+});
+it('uses the latest allocation callback after asynchronous tender creation',async()=>{
+ let complete!:(value:{id:string;title:string})=>void;
+ const onCreateTender=vi.fn(()=>new Promise<{id:string;title:string}>(resolve=>{complete=resolve;}));
+ const oldAllocate=vi.fn(),latestAllocate=vi.fn();
+ const props={...table().props,editable:true,canAllocate:true,onCreateTender};
+ const {rerender}=render(<BudgetTable {...props} onAllocate={oldAllocate}/>);
+ fireEvent.click(screen.getByRole('button',{name:'VŘ: 123'}));fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
+ fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nové práce'}});
+ fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'}));
+ rerender(<BudgetTable {...props} onAllocate={latestAllocate}/>);
+ await act(async()=>complete({id:'new',title:'Nové práce'}));
+ expect(oldAllocate).not.toHaveBeenCalled();expect(latestAllocate).toHaveBeenCalledWith('item','new');
+});
