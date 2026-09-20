@@ -45,6 +45,14 @@ BEGIN
  job:=public.construction_budget_project_delete_start(pid);
  IF public.construction_budget_project_delete_start(pid)->>'id' IS DISTINCT FROM job->>'id' THEN RAISE EXCEPTION 'Retry changed deletion job'; END IF;
  denied:=false;
+ BEGIN PERFORM public.construction_budget_purge_start(pid,(job->>'id')::uuid,'[]','[]'); EXCEPTION WHEN raise_exception THEN denied:=true; END;
+ IF NOT denied THEN RAISE EXCEPTION 'Project deletion resumed as ordinary purge'; END IF;
+ denied:=false;
+ BEGIN PERFORM public.construction_budget_purge_finish(pid,(job->>'id')::uuid); EXCEPTION WHEN raise_exception THEN denied:=true; END;
+ IF NOT denied THEN RAISE EXCEPTION 'Project deletion finished as ordinary purge'; END IF;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.construction_budget_load(pid)->'purgeJobs') j WHERE j->>'id'=job->>'id') THEN RAISE EXCEPTION 'Project deletion exposed in ordinary trash'; END IF;
+
+ denied:=false;
  BEGIN PERFORM public.construction_budget_source(pid,'late.xlsx',repeat('e',64),'attachment'); EXCEPTION WHEN raise_exception THEN denied:=true; END;
  IF NOT denied THEN RAISE EXCEPTION 'Import allowed during deletion'; END IF;
  PERFORM public.construction_budget_project_delete_finish(pid,(job->>'id')::uuid);
