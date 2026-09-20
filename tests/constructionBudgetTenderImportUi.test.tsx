@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { BudgetTenderImport } from '@features/projects/budget/ui/BudgetTenderImport';
@@ -18,7 +18,7 @@ function setup(allocations:BudgetRevision['allocations']=[],duplicate=false,fall
   const onComplete=vi.fn();
   const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
   render(<QueryClientProvider client={client}><BudgetTenderImport projectId="p" sourceId="incoming" document={document} previous={previous} mode="assignments" title="Import" allocations={[]} onBack={vi.fn()} onComplete={onComplete} onBusyChange={vi.fn()}/></QueryClientProvider>);
-  return {previous,onComplete};
+  return {previous,onComplete,client};
 }
 it('confirms detected columns and sends only assignments, never imported prices or quantities',async()=>{
   const {previous,onComplete}=setup();vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:previous,createdCategoryIds:[]});
@@ -61,4 +61,12 @@ it('bounds manual code suggestions and keeps search available for further target
   fireEvent.click(target);expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(102);fireEvent.click(target);
   fireEvent.change(screen.getByLabelText('Hledat další cílové položky (kód nebo popis)'),{target:{value:'Jiná položka 249'}});
   fireEvent.click(target);expect(screen.getByRole('option',{name:/Jiná položka 249/})).toBeInTheDocument();
+});
+
+it('requires a fresh confirmation when the project tender catalog changes',async()=>{
+  const {client}=setup();
+  fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText('VŘ: Práce');
+  fireEvent.click(screen.getByRole('checkbox'));expect(screen.getByText('Potvrdit import přiřazení')).not.toBeDisabled();
+  await act(async()=>{client.setQueryData(['budget-project-tenders','p'],[{id:'replacement',title:'Práce',externalCode:'02'}]);});
+  await waitFor(()=>expect(screen.getByRole('checkbox')).not.toBeChecked());expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
 });

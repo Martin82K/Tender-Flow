@@ -82,7 +82,7 @@ Průběžné důkazy se vztahují k pracovnímu diffu nad `138c4286`:
 | --- | --- |
 | `constructionBudgetTenderImport.test.ts` | RED chybějící model; později RED soubor bez cen. GREEN posunuté sloupce, názvy, identity, duplicity, alokace a vzory. |
 | `constructionBudgetImport.test.ts`, `constructionBudgetGlobus.test.ts`, `constructionBudgetImportDialog.test.tsx` | Spolu s novým modelem 50 testů prošlo v počáteční iteraci. |
-| `constructionBudgetTenderImportUi.test.tsx` | 4 testy prošly: omezené ruční návrhy s dohledáním dalších cílů, vynechané skupiny neblokují duplicity, potvrzení náhledu, serverový payload bez cen/množství, konflikty a stejný operation UUID při retry. |
+| `constructionBudgetTenderImportUi.test.tsx` | 5 testů prošlo: nové potvrzení po změně seznamu VŘ, omezené ruční návrhy s dohledáním dalších cílů, vynechané skupiny neblokují duplicity, potvrzení náhledu, serverový payload bez cen/množství, konflikty a stejný operation UUID při retry. |
 | `node --test tests/postgres/budgetTenderImport.test.mjs` | 11 PostgreSQL scénářů prošlo: atomický rollback, oprávnění, cizí projekt, verze, kopie confirmed, kódy/restore, revision režim, granty. Fixtures modelují oprávnění; nejde o produkční RLS end-to-end. |
 | `constructionBudgetTenderRealFile.test.ts` | Soukromý dodaný XLSX prošel read-only smoke testem. Bez `TENDER_IMPORT_SMOKE_FILE` je test výslovně skipped. Skutečná cílová revize nebyla poskytnuta. |
 | `constructionBudgetTenderTemplates.test.tsx` | 3 testy prošly: nezávislé editovatelné definice, vynechání a explicitní řešení duplicit. |
