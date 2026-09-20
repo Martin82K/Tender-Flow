@@ -11,7 +11,7 @@ BEGIN
    EXCEPTION WHEN raise_exception THEN denied:=true; END;
    IF NOT denied THEN RAISE EXCEPTION 'Missing collection accepted: %',key; END IF;
  END LOOP;
- FOR bad IN SELECT value FROM jsonb_array_elements('[{"tags":null},{"tags":{}},{"tags":[3]},{"tenders":null},{"source":null},{"source":{"sheet":"x","cells":null}},{"description":null}]') LOOP
+ FOR bad IN SELECT value FROM jsonb_array_elements('[{"tags":null},{"tags":{}},{"tags":[3]},{"tenders":null},{"source":null},{"source":{"sheet":"x","cells":null}},{"description":null},{"source":{"sheet":"x","cells":{},"row":{}}},{"source":{"sheet":"x","cells":{},"row":"2"}},{"source":{"sheet":"x","cells":{},"row":1.5}},{"source":{"sheet":"x","cells":{},"row":-1}},{"source":{"sheet":"x","cells":{}}}]') LOOP
    denied:=false;
    BEGIN PERFORM public.construction_budget_save('budget-primary-fixture',(src->>'id')::uuid,NULL,0,'Invalid',jsonb_set(doc,'{nodes}',jsonb_build_array('{"id":"n","kind":"note"}'::jsonb||bad)),'[]',false);
    EXCEPTION WHEN raise_exception THEN denied:=true; END;

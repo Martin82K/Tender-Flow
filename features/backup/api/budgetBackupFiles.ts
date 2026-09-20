@@ -52,15 +52,18 @@ export async function validateBudgetBackupFiles(manifest: BackupManifest): Promi
   }
 }
 /** Never overwrite immutable originals. A failed upload leaves a retryable restore, not success. */
-export async function restoreBudgetBackupFiles(manifest: BackupManifest): Promise<void> {
+export async function restoreBudgetBackupFiles(manifest: BackupManifest, sourceMapping: Record<string,string> = {}): Promise<void> {
   for (const source of sources(manifest)) {
+    const restoredId=sourceMapping[source.id] ?? source.id;
+    if(!/^[a-f0-9-]{36}$/.test(restoredId))throw new Error('Neplatný obnovený zdroj rozpočtu.');
+    const restoredPath=`${manifest.organization_id}/${restoredId}/source.xlsx`;
     const storage = dbAdapter.storage.from('construction-budgets');
-    const existing = await storage.download(source.storage_path);
+    const existing = await storage.download(restoredPath);
     if (!existing.error && existing.data) {
       if (await digest(new Uint8Array(await existing.data.arrayBuffer())) !== source.sha256) throw new Error('Existující XLSX má jiný kontrolní součet. Obnova byla zastavena.');
       continue;
     }
-    const { error } = await storage.upload(source.storage_path, decode(manifest.construction_budget_files![source.id]), { upsert: false, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const { error } = await storage.upload(restoredPath, decode(manifest.construction_budget_files![source.id]), { upsert: false, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     if (error) throw new Error('Data byla obnovena, ale XLSX se nepodařilo nahrát. Opakujte obnovu stejné zálohy.');
   }
 }

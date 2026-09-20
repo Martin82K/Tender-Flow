@@ -169,7 +169,7 @@ describe('import repair workspace',()=>{
     previous.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['tag'];
     previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
     vi.mocked(importInWorker).mockResolvedValue(editorDocument());
-    render(<BudgetImportDialog projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    render(<BudgetImportDialog canAllocate projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
     fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
     fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
     fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 4'}));
@@ -341,4 +341,14 @@ describe('budget import dialog', () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
     expect(budgetApi.registerSource).toHaveBeenCalledWith('p', file);
   });
+});
+it('blocks allocation transfer without the allocate permission', async () => {
+ const document={schemaVersion:1,figures:{},nodes:[],issues:[],sheets:[]} as import('@features/projects/budget/model/types').BudgetDocument;
+ vi.mocked(importInWorker).mockResolvedValue(document);
+ const previous={id:'old',title:'Old',document,allocations:[{itemId:'a',categoryId:'c',quantity:'1'}]} as import('@features/projects/budget/model/types').BudgetRevision;
+ render(<BudgetImportDialog projectId="p" previous={previous} source={{id:'s',project_id:'p',filename:'x.xlsx',storage_path:'s',sha256:'a',status:'ready',created_at:''}} onClose={vi.fn()} onComplete={vi.fn()}/>);
+ fireEvent.click(await screen.findByText('Přenos štítků a alokací z předchozí verze'));
+ const transfer=await screen.findByRole('checkbox',{name:'Přenést ověřené vazby'});
+ expect(transfer).toBeDisabled();
+ expect(screen.getByText(/Přenos alokací vyžaduje oprávnění/)).toBeInTheDocument();
 });

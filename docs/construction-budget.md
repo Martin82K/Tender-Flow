@@ -343,6 +343,11 @@ Kontextový filtr podle hodnoty je dostupný pouze na oceněných položkách K/
 Firemní číselník se zálohuje samostatně i bez importovaných rozpočtů; obnova
 chybějících položek vyžaduje správce organizace a platný podpis původní zálohy.
 
+Přenos vazeb ze starší revize s alokacemi vyžaduje oprávnění přiřazovat položky
+do VŘ; bez něj je volba zakázaná s vysvětlením. Smazání účtu autora ponechá
+rozpočty a historii, pouze odstraní jeho identitu. Obnova po novém importu
+stejného souboru zachová aktuální zdroj i revize a doplní chybějící staré revize.
+
 ## Export rozpočtu a poptávkového soupisu
 
 Tlačítko **Exportovat** otevře volbu rozsahu: celý rozpočet nebo konkrétní VŘ.
