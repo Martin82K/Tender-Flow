@@ -11,7 +11,7 @@ export function BudgetTenderTemplates({projectId,onClose}:{projectId:string;onCl
   const [definitions,setDefinitions]=useState<ProjectTender[]>([]);const [selected,setSelected]=useState<Set<string>>(new Set());
   const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [notice,setNotice]=useState('');
   const lock=useRef(false);const operation=useRef<{signature:string;id:string}|null>(null);
-  const duplicate=(entry:ProjectTender)=>catalog.data?.some(c=>tenderNameKey(c.title)===tenderNameKey(entry.title)||!!entry.externalCode&&entry.externalCode===c.externalCode);
+  const duplicate=(entry:ProjectTender)=>catalog.data?.some(c=>tenderNameKey(c.title)===tenderNameKey(entry.title)||!!entry.externalCode.trim()&&entry.externalCode.trim()===c.externalCode);
   const saveTemplate=()=>{
     if(!catalog.data)return;
     const content={format:'tender-flow-tenders',version:1,categories:catalog.data.map(c=>({title:c.title,externalCode:c.externalCode}))};
@@ -26,7 +26,7 @@ export function BudgetTenderTemplates({projectId,onClose}:{projectId:string;onCl
       setDefinitions(entries);setSelected(new Set(entries.filter(c=>!duplicate(c)).map(c=>c.id)));
     }catch(e){setError(e instanceof Error?e.message:'Vzor nelze načíst.');}
   };
-  const chosen=definitions.filter(c=>selected.has(c.id));
+  const chosen=definitions.filter(c=>selected.has(c.id)).map(c=>({...c,title:c.title.trim(),externalCode:c.externalCode.trim()}));
   const conflict=chosen.some((c,i)=>duplicate(c)||chosen.slice(0,i).some(p=>tenderNameKey(p.title)===tenderNameKey(c.title)||!!c.externalCode&&p.externalCode===c.externalCode));
   const apply=async()=>{
     if(lock.current||!catalog.data||conflict||!chosen.length)return;lock.current=true;setBusy(true);setError('');

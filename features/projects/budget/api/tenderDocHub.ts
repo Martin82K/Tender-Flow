@@ -21,9 +21,10 @@ export async function syncImportedTenderDocHub(projectId:string,createdIds:strin
     categories.push(...(categoryResult.data??[]));
   }
   if(!categories.length)return;
-  if(row.dochub_provider==='onedrive'){
+  if((row.dochub_provider==='onedrive'||row.dochub_provider==='local')){
     if(!isDesktop)throw new Error('Lokální složky vytvořte v desktopové aplikaci.');
     await authSessionStore.syncSession();const userId=authSessionStore.getSnapshot()?.session?.user.id;if(!userId)throw new Error('Přihlášení není dostupné.');
+    // Legacy local roots use the same owner/personal-root validation as OneDrive.
     const project:ProjectDetails={id:projectId,ownerId:row.owner_id??undefined,title:'',location:'',finishDate:'',siteManager:'',categories:[],docHubProvider:'onedrive',docHubRootLink:row.dochub_root_link??undefined,docHubRootId:row.dochub_root_id,docHubStructureV1:row.dochub_structure_v1};
     const rootPath=await resolveEffectiveProjectDocHubRoot(project,userId);
     if(!rootPath)throw new Error('Nastavte vlastní ověřené umístění DocHubu.');

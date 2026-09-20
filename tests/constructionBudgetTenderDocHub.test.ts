@@ -43,3 +43,7 @@ it('scopes category lookup to the project and stops before filesystem access wit
   fixture.user.mockReturnValue({session:{user:{id:'u'}}});fixture.root.mockResolvedValue('');
   await expect(syncImportedTenderDocHub('p',['a'])).rejects.toThrow();expect(fixture.ensure).not.toHaveBeenCalled();
 });
+it('supports the historical local provider with the same verified desktop path',async()=>{
+  fixture.project.dochub_provider='local';await syncImportedTenderDocHub('p',['a']);
+  expect(fixture.root).toHaveBeenCalledWith(expect.objectContaining({docHubProvider:'onedrive'}),'u');expect(fixture.ensure).toHaveBeenCalled();expect(fixture.invoke).not.toHaveBeenCalled();
+});

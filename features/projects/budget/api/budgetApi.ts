@@ -59,6 +59,8 @@ export const budgetApi = {
     if (!/\.xlsx$/i.test(file.name) || file.size > 30 * 1024 * 1024) throw new Error('Vyberte XLSX do 30 MB.');
     const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
     const hash = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+    const ready = unwrap<BudgetSource | null>(await supabase.from('construction_budget_sources').select('*').eq('project_id',projectId).eq('sha256',hash).eq('status','ready').is('deleted_at',null).is('purge_job_id',null).maybeSingle());
+    if(ready)return ready; // Reuse an immutable completed source without resetting its status.
     const source = unwrap<BudgetSource>(await supabase.rpc('construction_budget_source', { project_input: projectId, filename_input: file.name, hash_input: hash }));
     // No upsert: original files are immutable. A duplicate import reuses the registered source.
     const existing = await supabase.storage.from('construction-budgets').info(source.storage_path);

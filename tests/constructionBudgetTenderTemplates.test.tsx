@@ -43,3 +43,9 @@ it('shows a post-save DocHub warning without offering the same definitions again
   expect(screen.queryByText('Vytvořit 1 VŘ v tomto projektu')).not.toBeInTheDocument();
   expect(budgetApi.importTenders).toHaveBeenCalledTimes(1);
 });
+it('normalizes edited codes for conflicts and for the submitted definitions',async()=>{
+  setup();await upload([{title:'Nové',externalCode:'02'}]);
+  fireEvent.change(screen.getByLabelText('Číslo VŘ'),{target:{value:'01 '}});expect(screen.getByText('Vytvořit 1 VŘ v tomto projektu')).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Číslo VŘ'),{target:{value:' 03 '}});fireEvent.click(screen.getByText('Vytvořit 1 VŘ v tomto projektu'));
+  await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalled());expect(vi.mocked(budgetApi.importTenders).mock.calls[0][1].newCategories[0].externalCode).toBe('03');
+});
