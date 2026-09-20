@@ -50,7 +50,7 @@ export const createMcpToolRuntime = ({ server, auth, supabase }) => {
         riskLevel: effectiveRiskLevel,
         success: true,
         requestSummary: args,
-        resultSummary: summarizeResultForAudit(result),
+        resultSummary: summarizeResultForAudit(result, toolName),
       });
       return textJson(result);
     } catch (error) {

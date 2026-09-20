@@ -72,7 +72,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     usedGroups.add(destinationKey(key));proposed.push({itemId:target,categoryId,action});
   }
   const newCategories:ProjectTender[]=groups.filter(g=>usedGroups.has(g.key)&&categories.get(g.key)==='new').map(g=>({id:getNewId(g.key),title:g.title,externalCode:g.externalCode}));
-  const definitionNames=new Set<string>();const definitionCodes=new Set<string>();
+  const definitionNames=new Set((catalog.data??[]).map(c=>tenderNameKey(c.title)));const definitionCodes=new Set((catalog.data??[]).map(c=>c.externalCode).filter(Boolean));
   const duplicateDefinitions=newCategories.some(c=>{const name=tenderNameKey(c.title);if(definitionNames.has(name)||!!c.externalCode&&definitionCodes.has(c.externalCode))return true;definitionNames.add(name);if(c.externalCode)definitionCodes.add(c.externalCode);return false;});
   const tooManyCategories=newCategories.length>1000;
   let validation='';let planned=existing;

@@ -1,0 +1,218 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { pathToFileURL } from 'node:url';
+const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
+test('comparison access, retry, concurrency and deletion lifecycle', async () => {
+ const db = new PGlite();
+ const rejectInside=async(action,pattern)=>{await db.exec('SAVEPOINT expected_failure');await assert.rejects(action,pattern);await db.exec('ROLLBACK TO SAVEPOINT expected_failure;RELEASE SAVEPOINT expected_failure');};
+ try {
+ await db.exec(`CREATE ROLE service_role BYPASSRLS; CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE tenderflow_mcp_client; CREATE SCHEMA auth; CREATE SCHEMA private;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT nullif(current_setting(''test.user'',true),'''')::uuid';
+ CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS 'SELECT jsonb_build_object(''role'',current_setting(''test.role'',true))';
+ CREATE TABLE auth.users(id uuid PRIMARY KEY);
+ CREATE TABLE organizations(id uuid PRIMARY KEY);
+ CREATE TABLE projects(id text PRIMARY KEY,organization_id uuid REFERENCES organizations,owner_id uuid);
+ CREATE TABLE organization_members(organization_id uuid,user_id uuid,is_active boolean,professional_role text DEFAULT 'estimator');
+ CREATE TABLE organization_role_permissions(organization_id uuid,role_key text,permission_key text,access_level text);
+ CREATE FUNCTION private.budget_access(text,text) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT COALESCE(current_setting(''test.budget'',true),'''')<>''no''';
+ CREATE TABLE demand_categories(id text PRIMARY KEY,project_id text,UNIQUE(id,project_id));
+ CREATE TABLE construction_budget_revisions(id uuid,project_id text,version integer,deleted_at timestamptz);
+ INSERT INTO construction_budget_revisions VALUES('00000000-0000-0000-0000-000000000090','own',1,NULL);
+ CREATE FUNCTION public.can_project_module_action(text,text,boolean) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT $1 = current_setting(''test.project'',true) AND (NOT $3 OR current_setting(''test.edit'',true)=''yes'')';
+ CREATE FUNCTION public.mcp_has_permission(text) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT current_setting(''test.grant'',true)=''yes''';
+ GRANT USAGE ON SCHEMA auth TO authenticated,tenderflow_mcp_client;
+ INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-000000000001');
+ INSERT INTO organizations VALUES ('00000000-0000-0000-0000-000000000002');
+ INSERT INTO projects(id,organization_id) VALUES ('own','00000000-0000-0000-0000-000000000002'),('foreign','00000000-0000-0000-0000-000000000002');
+ INSERT INTO organization_members(organization_id,user_id,is_active) VALUES ('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001',true);
+ INSERT INTO organization_role_permissions VALUES('00000000-0000-0000-0000-000000000002','estimator','tenders.bids','write');
+ INSERT INTO demand_categories VALUES ('tender','own'),('wrong','foreign');`);
+ await db.exec(readFileSync(new URL('../../supabase/migrations/20260920123012_offer_comparison_views.sql', import.meta.url),'utf8'));
+ await db.exec(`CREATE FUNCTION public.is_active_org_admin_or_owner(uuid) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT current_setting(''test.admin'',true)=''yes''';`);
+ await db.exec(readFileSync(new URL('../../supabase/migrations/20260920123359_offer_processing_usage.sql', import.meta.url),'utf8'));
+ await db.exec(`SELECT set_config('test.user','00000000-0000-0000-0000-000000000001',false),set_config('test.project','own',false),set_config('test.edit','yes',false),set_config('test.role','authenticated',false); SET ROLE authenticated;`);
+ const source = { id:'base',origin:'file',name:'file.xlsx',sha256:'a'.repeat(64),notes:[],items:[{id:'row',code:'1',description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,group:'',source:{sheet:'S',row:2}}] };
+ const doc = {schemaVersion:1,sources:[source,{...source,id:'offer',name:'offer.xlsx'}],assignments:{offer:[]}};
+ const save = (project='own',category='tender',id=null,version=0,title='Test')=>db.query('SELECT public.offer_comparison_save($1,$2,$3,$4,$5,$6,$7) AS result',[project,id,version,'00000000-0000-0000-0000-000000000010',title,category,doc]);
+ await assert.rejects(()=>save('foreign'),/denied/);
+ await assert.rejects(()=>save('own','wrong'),/Invalid tender/);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Text schema',{...doc,schemaVersion:'1'}]),/Invalid comparison document/);
+ const malformed=structuredClone(doc);malformed.sources[1].id='base';
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000099','Invalid',malformed]),/Invalid source/);
+
+ await db.exec(`RESET ROLE;UPDATE organization_role_permissions SET access_level='read';SET ROLE authenticated;`);
+ assert.equal((await db.query('SELECT public.offer_comparison_load($1) AS result',['own'])).rows[0].result.canEdit,false);
+ await assert.rejects(()=>save(),/denied/);
+ await db.exec(`RESET ROLE;UPDATE organization_role_permissions SET access_level='none';SET ROLE authenticated;`);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_load($1)',['own']),/denied/);
+ await db.exec(`RESET ROLE;UPDATE organization_role_permissions SET access_level='write';SET ROLE authenticated;`);
+ const budgetDoc=structuredClone(doc);Object.assign(budgetDoc.sources[0],{origin:'budget',revisionId:'00000000-0000-0000-0000-000000000090',revisionVersion:1});
+ await db.exec(`SELECT set_config('test.budget','no',false);`);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000098','Budget',budgetDoc]),/Budget read denied/);
+ await db.exec(`SELECT set_config('test.budget','yes',false);`);
+ const budgetView=(await db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own','00000000-0000-0000-0000-000000000098','Budget',budgetDoc])).rows[0].result;
+ await db.exec(`SELECT set_config('test.budget','no',false);`);
+ assert.equal((await db.query('SELECT public.offer_comparison_load($1) AS result',['own'])).rows[0].result.views.length,0);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_load($1,$2)',['own',budgetView.id]),/Budget read denied/);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,$2,1,$3,$4,NULL,$5)',['own',budgetView.id,'00000000-0000-0000-0000-000000000098','Bypass',doc]),/reload/);
+ await db.exec(`SELECT set_config('test.budget','yes',false);`);
+ const duplicateItems=structuredClone(doc);duplicateItems.sources[1].items.push(duplicateItems.sources[1].items[0]);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Duplicate items',duplicateItems]),/Invalid item identity/);
+ for(const links of [[{baseId:'row',offerId:null,status:'review'},{baseId:'row',offerId:null,status:'review'}],[{baseId:'row',offerId:'row',status:'manual'},{baseId:'row2',offerId:'row',status:'manual'}]]){
+  const duplicateLinks=structuredClone(doc);duplicateLinks.sources[0].items.push({...source.items[0],id:'row2'});duplicateLinks.assignments.offer=links;
+  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Duplicate links',duplicateLinks]),/Invalid (inquiry|offer) assignment/);
+ }
+ const badNotes=structuredClone(doc);badNotes.sources[0].notes=[{text:'invalid'}];
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000097','Invalid notes',badNotes]),/Invalid source notes/);
+
+ for(const link of [{baseId:'row',status:'review'},{baseId:1,offerId:null,status:'review'},{baseId:'row',offerId:null,status:'review',candidates:'row'},{baseId:'row',offerId:null,status:'review',reasons:[1]},{baseId:'row',offerId:null,status:'review',candidates:Array(31).fill('row')},{baseId:'row',offerId:null,status:'review',candidates:['foreign']}]){
+  const invalid=structuredClone(doc);invalid.assignments.offer=[link];
+  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000095','Invalid link',invalid]),/Invalid .*assignment/);
+ }
+ const precise=structuredClone(doc);precise.sources[0].items[0].quantity='123456789012345678901234.123456789012345678';
+ await db.exec('BEGIN');
+ const precisionResult=(await db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own','00000000-0000-0000-0000-000000000094','Precision',precise])).rows[0].result;
+ assert.equal(precisionResult.document.sources[0].items[0].quantity,precise.sources[0].items[0].quantity);
+ await db.exec('ROLLBACK');
+ const first=(await save()).rows[0].result;
+ assert.equal((await save()).rows[0].result.id,first.id);
+ await assert.rejects(()=>save('own','tender',null,0,'Changed'),/already used/);
+ assert.equal((await save('own','tender',first.id,1)).rows[0].result.version,2);
+ await assert.rejects(()=>save('own','tender',first.id,1),/reload/);
+ await db.exec('BEGIN');
+ assert.equal((await save('own',null,first.id,2)).rows[0].result.category_id,null);
+ assert.equal((await save('own','tender',first.id,3)).rows[0].result.category_id,'tender');
+ await db.exec('ROLLBACK');
+ const manyItems=Array.from({length:10000},(_,i)=>({...source.items[0],id:`row-${i}`}));
+ const large={schemaVersion:1,sources:[{...source,items:manyItems},{...source,id:'offer',items:manyItems}],assignments:{offer:manyItems.map(item=>({baseId:item.id,offerId:item.id,status:'manual',candidates:[item.id]}))}};
+ await db.exec('BEGIN');const largeRequest=randomUUID();
+ const saveLarge=()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)->>\'id\' AS id',['own',largeRequest,'Large',large]);
+ const start=performance.now();const largeResult=await saveLarge();const validatedMs=performance.now()-start;
+ const retryStart=performance.now();assert.equal((await saveLarge()).rows[0].id,largeResult.rows[0].id);const retryMs=performance.now()-retryStart;
+ console.log(JSON.stringify({comparisonRows:20000,assignments:10000,validatedMs:Math.round(validatedMs),retryMs:Math.round(retryMs)}));await db.exec('ROLLBACK');
+ const excessiveCandidates={...large,assignments:{offer:manyItems.map(item=>({baseId:item.id,offerId:null,status:'review',candidates:manyItems.slice(0,21).map(row=>row.id)}))}};
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Candidate work',excessiveCandidates]),/Comparison validation work limit/);
+ const workLimit={schemaVersion:1,sources:Array.from({length:6},(_,i)=>({...source,id:`source-${i}`,items:i===5?[manyItems[0]]:manyItems})),assignments:Object.fromEntries(Array.from({length:5},(_,i)=>[`source-${i+1}`,[]]))};
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Work limit',workLimit]),/Comparison validation work limit/);
+ await db.exec('BEGIN');
+ const createRequest=()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own',randomUUID(),'Quota',doc]);
+ for(let i=0;i<18;i++)await createRequest();
+ await rejectInside(createRequest,/Comparison storage quota/);
+ // Retrying creation and updating an existing view still work at the count limit.
+ assert.equal((await save()).rows[0].result.id,first.id);
+ await save('own','tender',first.id,2);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ const temporary=(await createRequest()).rows[0].result;
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['foreign',temporary.id,1]),/denied/);
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,2]),/reload/);
+ await db.exec("SELECT set_config('test.edit','no',false)");
+ await rejectInside(()=>db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,1]),/denied/);
+ await db.exec("SELECT set_config('test.edit','yes',false)");
+ await db.query('SELECT public.offer_comparison_delete($1,$2,$3)',['own',temporary.id,1]);
+ assert.equal((await db.query('SELECT public.offer_comparison_load($1,$2) AS result',['own',temporary.id])).rows[0].result,null);
+ await db.exec('ROLLBACK');
+
+ await assert.rejects(()=>db.query('SELECT * FROM public.offer_comparison_views'),/permission denied/);
+ await db.exec(`SELECT set_config('test.edit','no',false);`);
+ await assert.rejects(()=>save(),/denied/);
+ assert.ok((await db.query('SELECT public.offer_comparison_load($1,$2) AS v',['own',first.id])).rows[0].v);
+ await db.exec(`RESET ROLE; SELECT set_config('test.role','tenderflow_mcp_client',false),set_config('test.grant','no',false); SET ROLE tenderflow_mcp_client;`);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_load($1)',['own']),/denied/);
+ await db.exec(`RESET ROLE; INSERT INTO public.offer_processing_settings VALUES('00000000-0000-0000-0000-000000000002',true,0.1); SET ROLE service_role;`);
+ const reserve=(request,hash='b'.repeat(64))=>db.query('SELECT public.offer_processing_reserve($1,$2,$3,$4,$5,$6,$7,$8) AS r',['own','00000000-0000-0000-0000-000000000001',request,hash,'matching','test-model',0.06,{version:'test'}]);
+ const run=(await reserve('00000000-0000-0000-0000-000000000020')).rows[0].r;
+ assert.equal((await reserve('00000000-0000-0000-0000-000000000020')).rows[0].r.reused,true);
+ await assert.rejects(()=>reserve('00000000-0000-0000-0000-000000000020','c'.repeat(64)),/conflict/);
+ await assert.rejects(()=>reserve('00000000-0000-0000-0000-000000000021'),/budget/);
+ await db.query('UPDATE public.offer_processing_runs SET estimated_cost_usd=0.01,status=$1,result=$2 WHERE id=$3',['completed',{text:JSON.stringify({suggestions:[{baseId:'a',offerId:'b'}]})},run.runId]);
+ await reserve('00000000-0000-0000-0000-000000000021');
+
+ // Rolling burst quotas count pending/failed attempts and share the organization lock.
+ for (const [scope,stage,count,age,userId] of [
+  ['user_hour','ocr',10,'0 minutes','00000000-0000-0000-0000-000000000001'],
+  ['user_day','ocr',40,'2 hours','00000000-0000-0000-0000-000000000001'],
+  ['org_hour','ocr',60,'0 minutes',null],
+  ['org_day','ocr',200,'2 hours',null],
+  ['user_hour','matching',25,'0 minutes','00000000-0000-0000-0000-000000000001'],
+  ['user_day','extraction',100,'2 hours','00000000-0000-0000-0000-000000000001'],
+  ['org_hour','matching',150,'0 minutes',null],
+  ['org_day','extraction',625,'2 hours',null]
+ ]) {
+  await db.exec('BEGIN');
+  await db.exec(`UPDATE public.offer_processing_settings SET monthly_limit_usd=10000; DELETE FROM public.offer_processing_runs;`);
+  await db.query(`INSERT INTO public.offer_processing_runs(organization_id,project_id,user_id,request_id,input_hash,stage,model,reserved_usd,pricing,status,created_at)
+   SELECT '00000000-0000-0000-0000-000000000002','own',$1,gen_random_uuid(),repeat('a',64),$2,'test',0.000001,'{}','failed',now()-$3::interval FROM generate_series(1,$4::integer)`,[userId,stage,age,count]);
+  const burst=()=>db.query('SELECT public.offer_processing_reserve($1,$2,$3,$4,$5,$6,$7,$8)',['own','00000000-0000-0000-0000-000000000001',randomUUID(),'c'.repeat(64),stage,'test',0.01,{version:'test'}]);
+  await rejectInside(burst,new RegExp(`AI rate limit exceeded: ${scope}`));
+  if (userId) {
+   const existing=(await db.query('SELECT request_id FROM public.offer_processing_runs LIMIT 1')).rows[0];
+   const retry=(await db.query('SELECT public.offer_processing_reserve($1,$2,$3,$4,$5,$6,$7,$8) AS r',['own',userId,existing.request_id,'a'.repeat(64),stage,'test',0.01,{version:'test'}])).rows[0].r;
+   assert.equal(retry.reused,true);
+  }
+  // A rolling window expires; rejected attempts never create a charged run.
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_processing_runs')).rows[0].n,count);
+  await db.exec("UPDATE public.offer_processing_runs SET created_at=now()-interval '25 hours'");await burst();
+  await db.exec('ROLLBACK');
+ }
+ await db.exec(`RESET ROLE; SELECT set_config('test.role','authenticated',false),set_config('test.edit','yes',false); SET ROLE authenticated;`);
+ await db.query('SELECT public.offer_processing_feedback_save($1,$2,$3)',[run.runId,'a',true]);
+ await assert.rejects(()=>db.query('SELECT public.offer_processing_feedback_save($1,$2,$3)',[run.runId,'foreign',true]),/Unknown/);
+ await assert.rejects(()=>db.query('SELECT public.offer_processing_admin($1)',['00000000-0000-0000-0000-000000000002']),/admin/);
+ await db.exec(`SELECT set_config('test.admin','yes',false);`);
+ const report=(await db.query('SELECT public.offer_processing_admin($1) AS r',['00000000-0000-0000-0000-000000000002'])).rows[0].r;
+ assert.equal(report.quality[0].accepted,1);assert.equal(report.runs.length,2);
+ assert.equal(report.runs.filter(r=>r.estimated_cost_usd===null).length,1);
+ await db.exec(`RESET ROLE;
+ UPDATE public.projects SET owner_id='00000000-0000-0000-0000-000000000001';
+ CREATE FUNCTION public.is_org_member(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
+ CREATE FUNCTION public.is_org_admin(uuid) RETURNS boolean LANGUAGE sql AS 'SELECT true';
+ CREATE FUNCTION private.budget_backup_signature(text) RETURNS text LANGUAGE sql AS 'SELECT md5($1)';
+ CREATE FUNCTION private.budget_backup_export(jsonb) RETURNS jsonb LANGUAGE sql AS 'SELECT $1';
+ CREATE FUNCTION private.budget_backup_restore(jsonb,uuid,text) RETURNS integer LANGUAGE sql AS 'SELECT 0';`);
+ await db.exec(readFileSync(new URL('../../supabase/migrations/20260920123919_offer_comparison_backup.sql', import.meta.url),'utf8'));
+ // The trigger also guards direct privileged inserts used by signed restores.
+ await db.exec('BEGIN');
+ const rawInsert=(document)=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',['own','00000000-0000-0000-0000-000000000002','Large',document,randomUUID()]);
+ await rawInsert({padding:'x'.repeat(8100000)});
+ await assert.rejects(()=>rawInsert({padding:'x'.repeat(8100000)}),/Comparison storage quota/);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ await db.exec(`INSERT INTO projects(id,organization_id) SELECT 'quota-'||i,'00000000-0000-0000-0000-000000000002' FROM generate_series(1,5) i`);
+ for(let i=0;i<98;i++)await db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',[`quota-${Math.floor(i/20)+1}`,'00000000-0000-0000-0000-000000000002','Quota',doc,randomUUID()]);
+ await assert.rejects(()=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',['quota-5','00000000-0000-0000-0000-000000000002','Quota',doc,randomUUID()]),/Comparison storage quota/);
+ await db.exec('ROLLBACK');
+ await db.exec('BEGIN');
+ await db.exec(`INSERT INTO projects(id,organization_id) SELECT 'bytes-'||i,'00000000-0000-0000-0000-000000000002' FROM generate_series(1,3) i`);
+ const orgBytes=(project)=>db.query('INSERT INTO public.offer_comparison_views(project_id,organization_id,title,document,request_id) VALUES($1,$2,$3,$4,$5)',[project,'00000000-0000-0000-0000-000000000002','Bytes',{padding:'x'.repeat(11000000)},randomUUID()]);
+ await orgBytes('bytes-1');await orgBytes('bytes-2');await assert.rejects(()=>orgBytes('bytes-3'),/Comparison storage quota/);await db.exec('ROLLBACK');
+ const manifest={organization_id:'00000000-0000-0000-0000-000000000002',projects:[{id:'own'}]};
+ await db.exec(`SELECT set_config('test.budget','no',false);`);
+ await assert.rejects(()=>db.query('SELECT private.budget_backup_export($1)',[manifest]),/Budget comparison backup access denied/);
+ await db.exec(`SELECT set_config('test.budget','yes',false);`);
+ const backup=(await db.query('SELECT private.budget_backup_export($1) AS b',[manifest])).rows[0].b;
+ assert.equal(backup.offer_comparisons.length,1);
+ await assert.rejects(()=>db.query('SELECT private.budget_backup_export($1)',[{...manifest,projects:[...manifest.projects,...manifest.projects]}]),/Duplicate comparison backup project/);
+ await db.exec('DELETE FROM public.offer_comparison_views');
+ await db.exec(`SELECT set_config('test.budget','no',false);`);
+ await assert.rejects(()=>db.query('SELECT private.budget_backup_restore($1,$2,$3)',[backup,manifest.organization_id,'user']),/Budget comparison restore access denied/);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,0);
+ await db.exec(`SELECT set_config('test.budget','yes',false);`);
+ await db.query('SELECT private.budget_backup_restore($1,$2,$3)',[backup,manifest.organization_id,'user']);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,2);
+ const tampered=structuredClone(backup);tampered.offer_comparisons[0].signature='bad';
+ await assert.rejects(()=>db.query('SELECT private.budget_backup_restore($1,$2,$3)',[tampered,manifest.organization_id,'user']),/signature/);
+ await db.exec(`RESET ROLE; DELETE FROM auth.users;`);
+ assert.equal((await db.query('SELECT created_by FROM public.offer_comparison_views')).rows[0].created_by,null);
+ await db.exec(`DELETE FROM demand_categories WHERE id='tender'`);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,1);
+ await db.exec(`DELETE FROM projects WHERE id='own'`);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_comparison_views')).rows[0].n,0);
+ const deletedRuns=(await db.query('SELECT project_id,result,estimated_cost_usd FROM public.offer_processing_runs')).rows;
+ assert.equal(deletedRuns.length,2);assert.ok(deletedRuns.every(run=>run.project_id===null && run.result===null));assert.ok(deletedRuns.some(run=>Number(run.estimated_cost_usd)===0.01));
+ await db.query('UPDATE public.offer_processing_runs SET result=$1 WHERE id=$2',[{pages:[{text:'late provider result'}]},run.runId]);
+ assert.equal((await db.query('SELECT result FROM public.offer_processing_runs WHERE id=$1',[run.runId])).rows[0].result,null);
+ } finally { await db.close(); }
+});

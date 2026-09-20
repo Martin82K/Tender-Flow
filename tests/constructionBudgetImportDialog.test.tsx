@@ -362,6 +362,7 @@ it('keeps assignment-only source out of processing while the user reviews or clo
   fireEvent.change(screen.getByLabelText('Soubor XLSX'),{target:{files:[new File(['xlsx'],'assignments.xlsx')]}});
   fireEvent.click(screen.getByRole('button',{name:'Nahrát a pokračovat'}));
   await screen.findByRole('button',{name:'Pokračovat k přiřazení VŘ'});
+  expect(screen.queryByRole('checkbox',{name:'Přenést ověřené vazby'})).not.toBeInTheDocument();
   expect(budgetApi.sourceStatus).not.toHaveBeenCalledWith(expect.anything(),'processing');
   fireEvent.keyDown(screen.getByRole('dialog'),{key:'Escape'});
   expect(close).toHaveBeenCalled();
