@@ -71,7 +71,7 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
     amounts.set(parent, { value: sumMoney([prior?.value ?? '0', value.value]), complete: (prior?.complete ?? true) && value.complete });
   }
   const total = (values: Array<string | null>) => options.includePrices && values.every(value => value !== null) ? sumMoney(values) : '';
-  const rows: Array<Array<string | null>> = [['Typ', 'Kód', 'Popis', 'MJ', 'Množství', 'J. cena', 'Celkem', 'VŘ', 'Štítky']];
+  const rows: Array<Array<string | null>> = [['Typ', 'Kód', 'Popis', 'MJ', 'Množství', 'J. cena', 'Celkem', 'VŘ']];
   const recap: Array<Array<string | null>> = [['Typ', 'Kód', 'Název', 'Celkem bez DPH']];
   const nearestIncluded = new Map<string, string | null>(); const exportParents = new Map<string, string | null>();
   for (const node of ancestry) {
@@ -95,14 +95,13 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
     const amount = values ? (values.amount ?? '') : options.includePrices && subtotal?.complete ? subtotal.value : '';
     rows.push([node.kind, node.code, node.description, values ? node.unit : '', values?.quantity ?? '',
       values && options.includePrices ? node.unitPrice ?? '' : '', amount,
-      values ? (options.scope.kind === 'tender' ? options.scope.title : node.tenders.join('; ')) : '',
-      values && options.includePrices ? node.tags.join('; ') : '']);
+      values ? (options.scope.kind === 'tender' ? options.scope.title : node.tenders.join('; ')) : '']);
     if (isGroup(node)) {recap.push([node.kind, node.code, node.description, amount]); recapLinks.push(rows.length);}
   }
   recap.push(['celkem', '', 'Celkem exportovaný rozsah', total([...itemValues.values()].map(value => value.amount))]);
   const workbook = XLSX.utils.book_new();
   const sheet = XLSX.utils.aoa_to_sheet(rows);
-  sheet['!cols'] = [8, 20, 75, 10, 22, 22, 24, 35, 25].map(wch => ({ wch }));
+  sheet['!cols'] = [8, 20, 75, 10, 22, 22, 24, 35].map(wch => ({ wch }));
   const summary = XLSX.utils.aoa_to_sheet(recap);
   summary['!cols'] = [12, 20, 75, 24].map(wch => ({ wch }));
   if (!options.includePrices) {

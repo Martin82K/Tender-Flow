@@ -157,12 +157,13 @@ describe('import repair', () => {
     const repaired=applyImportRepair(doc,{nodeId:'sheet:0:row:5',parentId:'sheet:0:row:4',kind:'M',scope:'subtree'});
     expect(repaired.nodes.find(n=>n.code==='001')?.unitPrice).toBe('75');
   });
-  it('rejects non-priced types for tagged or allocated items before applying a repair',()=>{
+  it('protects allocations but allows legacy tagged items to change type',()=>{
     const doc=parseKrosWorkbook(repairFixture());
     const repair={nodeId:'sheet:0:row:5',parentId:'sheet:0:row:4',kind:'note' as const,scope:'row' as const};
-    expect(()=>applyImportRepair(doc,repair,[{itemId:repair.nodeId,categoryId:'c',quantity:'1'}])).toThrow(/vazby/);
+    expect(()=>applyImportRepair(doc,repair,[{itemId:repair.nodeId,categoryId:'c',quantity:'1'}])).toThrow(/přiřazení/);
     doc.nodes.find(n=>n.id===repair.nodeId)!.tags=['tag'];
-    expect(()=>applyImportRepair(doc,repair)).toThrow(/vazby/);
+    doc.nodes=doc.nodes.filter(n=>n.parentId!==repair.nodeId);
+    expect(()=>applyImportRepair(doc,repair)).not.toThrow();
     expect(()=>applyImportRepair(doc,{...repair,kind:'M',scope:'subtree'})).not.toThrow();
   });
 });

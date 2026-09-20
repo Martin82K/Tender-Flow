@@ -43,3 +43,8 @@ it('searches budget codes, descriptions and assignments across all rows',()=>{
  expect(filterItems(items, {$all:{search:'004999'}})[0].id).toBe('4999');
  expect(filterItems(items, {$all:{search:'nenalezeno'}})).toHaveLength(0);
 });
+it('does not use retired tags in global search',()=>{
+ const tagged={...items[0],tags:['RetiredUniqueTag']};
+ expect(filterItems([tagged],{$all:{search:'RetiredUniqueTag'}})).toEqual([]);
+ expect(filterItems([tagged],{$all:{search:'Položka'}})).toEqual([tagged]);
+});

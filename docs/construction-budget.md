@@ -248,7 +248,7 @@ tato změna nezavádí. Mapování se aplikuje jen na vybraný list. Má-li list
 jejich zrušení při novém rozpoznání vyžaduje výslovné zaškrtnutí. U uložené verze
 je tento souhlas vyžadován vždy, protože načtení originálu nahradí také pozdější
 úpravy cen a množství daného listu. Existující alokace
-nebo štítky brání přemapování daného listu v téže verzi: použijte novou verzi a ověřený
+brání přemapování daného listu v téže verzi: použijte novou verzi a ověřený
 přenos vazeb. Opravy se nikdy automaticky nepřenášejí na další soubor.
 Rozpracované změny mapování jiného listu se nepoužijí. Vyřešené konflikty figur
 se při přemapování jednoho listu zachovají, pokud se nezměnila množina nalezených
@@ -359,7 +359,7 @@ ohraničení buněk tabulky položek, včetně VV, záhlaví a součtů. Volba j
 stavu vypnutá a ukládá se v tomto prohlížeči zvlášť pro uživatele a projekt, stejně
 jako hustota řádků. Nemění data rozpočtu ani samostatnou mřížku rekapitulace.
 
-Při opravě uložené revize nelze položku se štítky nebo alokacemi změnit na necenový typ ani vyřadit její soupis. Editor omezení zobrazí před uložením; vazby je nutné nejprve vyřešit v rozpočtu. Změna práce na materiál a přesun v hierarchii vazby zachovávají.
+Při opravě uložené revize nelze položku s přiřazením do VŘ změnit na necenový typ ani vyřadit její soupis. Editor omezení zobrazí před uložením; vazby je nutné nejprve vyřešit v rozpočtu. Změna práce na materiál a přesun v hierarchii vazby zachovávají.
 ### Záloha, obnova a mazání projektu
 
 Záloha uživatele i firmy zahrnuje dostupné rozpočty, revize, alokace, historii,
@@ -448,3 +448,7 @@ vliv na součty. Poznámky jsou ve výchozím stavu skryté; volba **Zobrazit po
 v ozubeném kolečku je zapíná nezávisle na VV a pamatuje se pro uživatele a projekt.
 Zobrazení respektuje aktivní filtry, rozsah a sbalené oddíly. Detail položky nadále
 umožňuje přečíst její poznámky i při jejich skrytí v tabulce.
+
+Štítky již aplikace nenabízí. Nejsou v tabulce, nastavení sloupců, liště výběru,
+číselnících ani exportu. Historické hodnoty zůstávají v uložených revizích a zálohách,
+při běžné úpravě jiné hodnoty se nemažou. Do nové verze se nepřenášejí.

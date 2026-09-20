@@ -127,9 +127,9 @@ součástí dosud nenasazené migrace `20260920195705`.
 ### Úpravy přímo v tabulce
 
 Dvojklik nebo F2 otevře editor v konkrétní buňce položky (typ K/M, kód,
-popis, jednotka, množství, jednotková cena, celkem a dostupné štítky).
+popis, jednotka, množství, jednotková cena a celkem).
 V textových a číselných buňkách Enter změnu uloží, Escape ji zruší.
-U typu a štítků šipky a Enter vybírají možnosti; Tab přejde na tlačítko
+U typu šipky a Enter vybírají možnosti; Tab přejde na tlačítko
 Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
 nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
 Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
@@ -212,3 +212,25 @@ chyba je nad tabulkou a přežije zrušení výběru i odscrollování řádku.
 - Advisory baseline je dostupný, ale není čistý: existující globální varování mutable search_path a veřejně spustitelných definer funkcí, výkonové indexy/politiky. Dotčená private tabulka operací má záměrně RLS bez klientských policies a bez přímých grantů; změna je neoslabuje.
 
 Po nasazení security/performance advisors zachovávají stejné počty kategorií zjištění jako preflight; nejde o čistý globální audit. Živý zápis položky a jeho latence nebyly měřeny.
+
+
+### Odstranění štítků z produktu (2026-09-21)
+
+Pracovní diff nad `f1e08cc7`, integrační základna `8469a654`: odstraněny sloupec,
+editor a hromadné přiřazování, správa v číselníku, exportní sloupec a zapojení
+štítků do globálního hledání. Staré nastavení sloupců se očistí při načtení;
+pokud by nezbyl viditelný sloupec, obnoví se výchozí sloupce. Staré tags zůstávají
+v datovém formátu a zálohách; běžná editace je nepřepisuje. Nejsou přenášeny
+z předchozí verze a neblokují opravy soupisů ani typů řádků. Ochrany přiřazení
+VŘ, tenant isolation a serverová validace zůstávají zachované. Bez migrace.
+
+RED: staré sloupce a globální hledání stále nabízely štítky. GREEN:
+`npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx tests/constructionBudgetCatalog.test.tsx tests/constructionBudgetImportDialog.test.tsx tests/constructionBudgetImportRepair.test.ts tests/constructionBudgetExport.test.ts` 152 PASS;
+`npm run test:run -- tests/constructionBudgetModel.test.ts` 7 PASS;
+po zrušení šířky devátého exportního sloupce cílený export 25 PASS.
+Žádné skipped/todo. Typecheck, web build, boundaries, legacy structure a docs
+PASS; build má stávající varování na velké chunky. Vizuálně zkontrolována
+skutečná tabulka na izolované fixture bez sloupce štítků. Finální CI a review
+zůstávají před merge, který je nadále pozastaven.
+Po doplnění obnovy viditelných sloupců pro nastavení obsahující jen štítky:
+`npm run test:run -- tests/constructionBudgetSettings.test.tsx` 32 PASS.

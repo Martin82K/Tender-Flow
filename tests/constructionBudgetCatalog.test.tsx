@@ -10,22 +10,30 @@ beforeEach(()=>{vi.resetAllMocks();api.catalog.mockResolvedValue([]);api.canMana
 function open(){const client=new QueryClient({defaultOptions:{queries:{retry:false}}});render(<QueryClientProvider client={client}><BudgetCatalogDialog organizationId="org" userId="user" onClose={()=>{}}/></QueryClientProvider>);}
 it('labels an empty catalog and prevents duplicate requests while saving',async()=>{
  let finish!:()=>void;api.saveCatalog.mockImplementation(()=>new Promise<void>(resolve=>{finish=resolve;}));open();
- await screen.findByText('Zatím žádné štítky');
- fireEvent.change(screen.getByLabelText('Název štítku'),{target:{value:'Priorita'}});
- const add=screen.getByRole('button',{name:'Přidat štítek'});fireEvent.click(add);fireEvent.click(add);
+ await screen.findByText('Zatím žádné profese');
+ fireEvent.change(screen.getByLabelText('Název profese'),{target:{value:'Priorita'}});
+ const add=screen.getByRole('button',{name:'Přidat profesi'});fireEvent.click(add);fireEvent.click(add);
  expect(api.saveCatalog).toHaveBeenCalledTimes(1);expect(screen.getByRole('button',{name:'Ukládání…'})).toBeDisabled();
- finish();await waitFor(()=>expect(screen.getByLabelText('Název štítku')).toHaveValue(''));
+ finish();await waitFor(()=>expect(screen.getByLabelText('Název profese')).toHaveValue(''));
 });
 it('keeps save errors inside the dialog and preserves the entered name',async()=>{
- api.saveCatalog.mockRejectedValue(new Error('Přístup zamítnut.'));open();await screen.findByText('Zatím žádné štítky');
- fireEvent.change(screen.getByLabelText('Název štítku'),{target:{value:'Priorita'}});fireEvent.click(screen.getByRole('button',{name:'Přidat štítek'}));
- expect(await screen.findByRole('alert')).toHaveTextContent('Přístup zamítnut.');expect(screen.getByLabelText('Název štítku')).toHaveValue('Priorita');
+ api.saveCatalog.mockRejectedValue(new Error('Přístup zamítnut.'));open();await screen.findByText('Zatím žádné profese');
+ fireEvent.change(screen.getByLabelText('Název profese'),{target:{value:'Priorita'}});fireEvent.click(screen.getByRole('button',{name:'Přidat profesi'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Přístup zamítnut.');expect(screen.getByLabelText('Název profese')).toHaveValue('Priorita');
 });
 it('shows a read only list for non administrators',async()=>{
- api.canManageCatalog.mockResolvedValue(false);api.catalog.mockResolvedValue([{id:'t',kind:'tag',organization_id:'org',name:'Priorita',archived:false,color:'#64748b'}]);open();
- await screen.findByText('Priorita');expect(screen.queryByRole('button',{name:'Archivovat Priorita'})).not.toBeInTheDocument();expect(screen.queryByLabelText('Název štítku')).not.toBeInTheDocument();
+ api.canManageCatalog.mockResolvedValue(false);api.catalog.mockResolvedValue([{id:'t',kind:'profession',organization_id:'org',name:'Priorita',archived:false,color:'#64748b'}]);open();
+ await screen.findByText('Priorita');expect(screen.queryByRole('button',{name:'Archivovat Priorita'})).not.toBeInTheDocument();expect(screen.queryByLabelText('Název profese')).not.toBeInTheDocument();
 });
 it('archives an entry instead of deleting it',async()=>{
- const entry={id:'t',kind:'tag',organization_id:'org',name:'Priorita',archived:false,color:'#64748b'};api.catalog.mockResolvedValue([entry]);open();
+ const entry={id:'t',kind:'profession',organization_id:'org',name:'Priorita',archived:false,color:'#64748b'};api.catalog.mockResolvedValue([entry]);open();
  fireEvent.click(await screen.findByRole('button',{name:'Archivovat Priorita'}));await waitFor(()=>expect(api.saveCatalog).toHaveBeenCalledWith({...entry,archived:true}));
+});
+
+it('does not offer the retired tag catalog even when historical entries exist',async()=>{
+ api.catalog.mockResolvedValue([{id:'old',kind:'tag',name:'Historical',archived:false}]);open();
+ await screen.findByText('Zatím žádné profese');
+ fireEvent.click(screen.getByRole('combobox',{name:'Číselník'}));
+ expect(screen.queryByRole('option',{name:'Štítky'})).not.toBeInTheDocument();
+ expect(screen.queryByText('Historical')).not.toBeInTheDocument();
 });

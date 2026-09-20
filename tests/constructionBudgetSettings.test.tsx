@@ -113,11 +113,11 @@ it('orders columns in their pinned group and restores defaults without losing ot
   expect(names().slice(0, 3)).toEqual(['Typ', 'Popis', 'Kód']);
   for (const checkbox of dialog.getAllByRole('checkbox', { name: /^Zobrazit / }).slice(1)) fireEvent.click(checkbox);
   expect(dialog.getByRole('checkbox', { name: 'Zobrazit Typ' })).toBeDisabled();
-  expect(dialog.getByText('Zobrazeno 1 z 9 sloupců')).toBeVisible();
+  expect(dialog.getByText('Zobrazeno 1 z 8 sloupců')).toBeVisible();
   fireEvent.click(dialog.getByRole('button', { name: 'Obnovit výchozí' }));
   expect(names().slice(0, 4)).toEqual(['Typ', 'Kód', 'Popis', 'MJ']);
   expect(dialog.getByRole('checkbox', { name: 'Ponechat vlevo: Popis' })).not.toBeChecked();
-  expect(dialog.getByText('Zobrazeno 9 z 9 sloupců')).toBeVisible();
+  expect(dialog.getByText('Zobrazeno 8 z 8 sloupců')).toBeVisible();
   await waitFor(() => expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({ wrap: true }));
   fireEvent.click(dialog.getByRole('button', { name: 'Hotovo' }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -494,4 +494,11 @@ it('shows assignment immediately and rolls it back with a durable error after se
   expect(within(row).queryByText('Zemní práce')).not.toBeInTheDocument();
   expect(within(row).queryByText('Ukládání…')).not.toBeInTheDocument();
  }finally{width.mockRestore();height.mockRestore();}
+});
+it.each([false,true])('removes retired tags and keeps visible columns when all others were hidden: %s',async(hidden)=>{
+ localStorage.setItem('tf-budget-view:u:p',JSON.stringify({columns:[{key:'tags',label:'Štítky',width:150},{key:'description',label:'Popis',width:420,hidden}]}));
+ fireEvent.click(await openBudget());fireEvent.click(screen.getByRole('button',{name:/Zobrazení sloupců/}));
+ expect(screen.queryByText('Štítky')).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('Štítek výběru')).not.toBeInTheDocument();
+ expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).columns.some((column:{key:string})=>column.key==='tags')).toBe(false);
 });

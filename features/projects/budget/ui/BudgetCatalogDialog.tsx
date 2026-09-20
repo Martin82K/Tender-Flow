@@ -7,7 +7,6 @@ import { budgetApi } from '../api/budgetApi';
 import type { BudgetCatalogEntry } from '../model/types';
 
 const kinds = {
-  tag: { label: 'Štítky', field: 'Název štítku', example: 'Např. K prověření', add: 'Přidat štítek', empty: 'Zatím žádné štítky', help: 'Štítky přiřadíte vybraným položkám rozpočtu.' },
   profession: { label: 'Profese', field: 'Název profese', example: 'Např. Elektroinstalace', add: 'Přidat profesi', empty: 'Zatím žádné profese', help: 'Společný seznam profesí pro vaši organizaci.' },
   unit: { label: 'Jednotky', field: 'Název jednotky', example: 'Např. m² nebo ks', add: 'Přidat jednotku', empty: 'Zatím žádné jednotky', help: 'Přidání jednotky nemění údaje z importovaných souborů.' },
   type: { label: 'Typy položek', field: 'Název typu', example: 'Např. Montážní práce', add: 'Přidat typ', empty: 'Zatím žádné typy položek', help: 'Vlastní názvy typů. Původní typy KROS zůstávají zachované.' },
@@ -18,7 +17,7 @@ export function BudgetCatalogDialog({ organizationId, userId, readOnly = false, 
   const queryKey = ['budget-catalog', organizationId, userId];
   const catalog = useQuery({ queryKey, queryFn: () => budgetApi.catalog(organizationId!), enabled: !!organizationId });
   const access = useQuery({ queryKey: ['budget-catalog-access', organizationId, userId], queryFn: () => budgetApi.canManageCatalog(organizationId!), enabled: !!organizationId });
-  const [kind, setKind] = useState<BudgetCatalogEntry['kind']>('tag');
+  const [kind, setKind] = useState<Exclude<BudgetCatalogEntry['kind'],'tag'>>('profession');
   const [name, setName] = useState('');
   const [archived, setArchived] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,7 +44,7 @@ export function BudgetCatalogDialog({ organizationId, userId, readOnly = false, 
   return <Modal isOpen title="Firemní číselníky" description="Společné hodnoty pro rozpočty vaší organizace." size="lg" persistent={busy} onClose={onClose}>
     <div className="tf-budget-controls tf-budget-catalog">
       {!organizationId ? <p role="status">Číselníky jsou dostupné pro stavby přiřazené organizaci.</p> : <>
-        <label className="tf-budget-field">Číselník<ThemedNativeSelect value={kind} disabled={busy} onChange={e => { setKind(e.target.value as BudgetCatalogEntry['kind']); setName(''); setError(''); setNotice(''); setArchived(false); }}>
+        <label className="tf-budget-field">Číselník<ThemedNativeSelect aria-label="Číselník" value={kind} disabled={busy} onChange={e => { setKind(e.target.value as Exclude<BudgetCatalogEntry['kind'],'tag'>); setName(''); setError(''); setNotice(''); setArchived(false); }}>
           {Object.entries(kinds).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
         </ThemedNativeSelect></label>
         <p className="tf-budget-muted">{meta.help}</p>

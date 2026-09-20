@@ -77,3 +77,8 @@ it.each([true,false])('bounds hierarchy work for many leaves sharing deep ancest
  if(includePrices)expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('200.00');
  else expect(book.Sheets['Rozpočet'].G2.f).toContain('A202:A401');
 });
+
+it('omits retired tags even from a priced whole-budget export',()=>{
+ const book=buildBudgetWorkbook(nodes,{scope:{kind:'whole'},allocations,includePrices:true,canViewPrices:true});
+ expect(book.Sheets['Rozpočet']['!cols']).toHaveLength(8);expect(rows(book)[0]).not.toContain('Štítky');expect(JSON.stringify(book)).not.toContain('INTERNAL');
+});

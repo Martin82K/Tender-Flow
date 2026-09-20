@@ -358,21 +358,15 @@ it.each([['kind','Typ','M'],['total','Celkem (Kč)','175']])('saves %s directly 
   await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
   expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({[key]:value}),[key]);
 });
-it('persists tag identifiers and kind without replacing tags with display labels', async () => {
-  let saved: BudgetDocument = {schemaVersion:1,nodes:[{...item,tags:['tag-1']}],sheets:[],issues:[],figures:{}};
-  const onEdit=vi.fn(async (edited:BudgetNode,fields?:readonly string[])=>{saved=applyBudgetItemEdit(saved,edited,fields);});
-  render(<BudgetTable {...table().props} nodes={[{...item,tags:['Původní']}]} editable tagOptions={[{id:'tag-1',name:'Původní'},{id:'tag-2',name:'Nový'}]} itemTags={{item:['tag-1']}} onEdit={onEdit}/>);
-  fireEvent.doubleClick(screen.getByText('Původní'));
-  const input=screen.getByRole('listbox',{name:'Upravit Štítky'});
-  fireEvent.click(within(input).getByRole('option',{name:'Původní'}));
-  fireEvent.click(within(input).getByRole('option',{name:'Nový'}));
-  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
-  expect(saved.nodes[0].tags).toEqual(['tag-2']);
-  const row=screen.getByRole('button',{name:item.description}).closest('[role="row"]') as HTMLElement;
-  fireEvent.doubleClick(within(row).getByText('K'));
-  fireEvent.change(screen.getByLabelText('Upravit Typ'),{target:{value:'M'}});
-  await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
-  expect(saved.nodes[0]).toMatchObject({kind:'M',tags:['tag-2']});
+it('preserves historical tag identifiers while editing other fields',async()=>{
+ let saved:BudgetDocument={schemaVersion:1,nodes:[{...item,tags:['tag-1']}],sheets:[],issues:[],figures:{}};
+ const onEdit=vi.fn(async(edited:BudgetNode,fields?:readonly string[])=>{saved=applyBudgetItemEdit(saved,edited,fields);});
+ render(<BudgetTable {...table().props} nodes={saved.nodes} editable onEdit={onEdit}/>);
+ fireEvent.doubleClick(screen.getByText('K',{exact:true}));
+ fireEvent.change(screen.getByLabelText('Upravit Typ'),{target:{value:'M'}});
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
+ expect(saved.nodes[0]).toMatchObject({kind:'M',tags:['tag-1']});
+ expect(screen.queryByLabelText('Upravit Štítky')).not.toBeInTheDocument();
 });
 it('filters a long tender list immediately while choosing', async () => {
   const categories=Array.from({length:60},(_,i)=>({id:`t${i}`,title:`Řízení ${i}`}));
@@ -421,13 +415,10 @@ it('cancels an inline draft when filtering removes its virtual row and allows an
  expect(screen.getByLabelText('Upravit Popis')).toHaveValue('Neoceněná práce');
  expect(onNotice).toHaveBeenCalledWith(expect.stringContaining('zrušena'));
 });
-it('preserves archived tag identifiers when active tags change', async () => {
- const onEdit=vi.fn().mockResolvedValue(undefined);
- render(<BudgetTable {...table().props} nodes={[{...item,tags:['Archivovaný']}]} editable itemTags={{item:['archived']}} tagOptions={[{id:'active',name:'Aktivní'}]} onEdit={onEdit}/>);
- fireEvent.doubleClick(screen.getByText('Archivovaný'));
- fireEvent.click(within(screen.getByRole('listbox',{name:'Upravit Štítky'})).getByRole('option',{name:'Aktivní'}));
- await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'})));
- expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({tags:['archived','active']}),['tags']);
+it('does not render archived tags or an editor for them',()=>{
+ render(<BudgetTable {...table().props} nodes={[{...item,tags:['Archivovaný']}]} editable/>);
+ expect(screen.queryByText('Archivovaný')).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('Upravit Štítky')).not.toBeInTheDocument();
 });
 it('focuses the type editor when opened with F2',()=>{
  render(<BudgetTable {...table().props} editable/>);
@@ -464,4 +455,9 @@ it('opens tender search directly from the toolbar and assigns the selection imme
  await act(async()=>fireEvent.click(screen.getByRole('option',{name:'Zemní práce'})));
  expect(onAllocate).toHaveBeenCalledWith('item','vr');
  expect(screen.queryByRole('button',{name:'Přiřadit VŘ',exact:true})).not.toBeInTheDocument();
+});
+it('ignores retired tag columns restored by older settings',()=>{
+ render(<BudgetTable {...table().props} nodes={[{...item,tags:['Historical']}]} columns={[...DEFAULT_COLUMNS,{key:'tags',label:'Štítky',width:150}]} editable/>);
+ expect(screen.queryByRole('button',{name:'Štítky ▾'})).not.toBeInTheDocument();
+ expect(screen.queryByText('Historical')).not.toBeInTheDocument();
 });

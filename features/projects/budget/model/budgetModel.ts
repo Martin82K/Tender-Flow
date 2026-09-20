@@ -47,7 +47,7 @@ export interface ColumnFilter { search?: string; selected?: string[]; min?: stri
 export type BudgetFilters = Record<string, ColumnFilter>;
 export interface FilterableItem { [key: string]: unknown }
 export function cellValues(item: FilterableItem, column: string): string[] {
-  if (column === '$all') return ['code','description','unit','tenders','tags'].flatMap(key => cellValues(item,key));
+  if (column === '$all') return ['code','description','unit','tenders'].flatMap(key => cellValues(item,key));
   const v = item[column]; return Array.isArray(v) ? (v.length ? v.map(String) : ['']) : [v === null || v === undefined ? '' : String(v)];
 }
 function matches(item: FilterableItem, column: string, filter: ColumnFilter): boolean {

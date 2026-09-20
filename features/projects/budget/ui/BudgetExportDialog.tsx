@@ -30,7 +30,7 @@ export function BudgetExportDialog({nodes,allocations,categories,canViewPrices,s
     </ThemedNativeSelect></label>
     {scope==='tender'&&<label>Výběrové řízení<ThemedNativeSelect aria-label="Výběrové řízení" value={categoryId} onChange={event=>setCategoryId(event.target.value)}><option value="">Vyberte VŘ</option>{categories.map(category=><option key={category.id} value={category.id}>{category.title}</option>)}</ThemedNativeSelect></label>}
     <label><input type="checkbox" checked={prices&&canViewPrices} disabled={!canViewPrices} onChange={event=>setPrices(event.target.checked)}/>Zahrnout ceny rozpočtu</label>
-    <p>{prices&&canViewPrices?'Export obsahuje jednotkové ceny a součty.':'Poptávkový soupis má prázdné jednotkové ceny. Po jejich doplnění se částky a rekapitulace spočítají; neúplné součty zůstanou prázdné. Interní ceny ani štítky neobsahuje.'}</p>
+    <p>{prices&&canViewPrices?'Export obsahuje jednotkové ceny a součty.':'Poptávkový soupis má prázdné jednotkové ceny. Po jejich doplnění se částky a rekapitulace spočítají; neúplné součty zůstanou prázdné. Interní ceny neobsahuje.'}</p>
     <p>Soubor zachová objekty, soupisy a oddíly včetně pododdílů a přidá rekapitulaci. U VŘ obsahuje pouze přiřazená množství. Filtry zobrazení rozsah exportu nemění.</p>
     {!canViewPrices&&<p>Vaše oprávnění dovoluje pouze export bez cen.</p>}
     {error&&<p role="alert">{error}</p>}
