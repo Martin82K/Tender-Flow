@@ -47,3 +47,13 @@ it('sets the current project catalog as the personal default after showing the r
   expect(budgetApi.personalTenders).toHaveBeenLastCalledWith(definitions, 3);
   expect(budgetApi.saveProjectTenders).not.toHaveBeenCalled();
 });
+
+it('shows personal and copied project catalogs in the same natural code order despite random ids',async()=>{
+ const entries=[{id:'a',title:'Third',externalCode:'10'},{id:'z',title:'First',externalCode:'2'}];
+ vi.mocked(budgetApi.projectTenders).mockResolvedValue(entries);
+ vi.mocked(budgetApi.personalTenders).mockResolvedValue({version:1,definitions:[...entries].reverse()});
+ setup();expect(await screen.findByLabelText('Číslo VŘ 1')).toHaveValue('2');
+ fireEvent.click(screen.getByRole('tab',{name:'Moje výchozí VŘ'}));
+ await waitFor(()=>expect(screen.getByLabelText('Číslo VŘ 1')).toHaveValue('2'));
+ expect(screen.queryByRole('button',{name:/Posunout VŘ/})).not.toBeInTheDocument();
+});

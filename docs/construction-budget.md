@@ -14,7 +14,8 @@ Měrnou jednotku položky s přiřazením do VŘ nelze změnit. Pravé tlačítk
 revize jsou neměnné; pro úpravy vytvořte pracovní kopii přes **Akce**.
 
 **Uzamknout rozpočet** vedle nastavení chrání celý rozpočet stavby na serveru,
-včetně verzí, importů a přiřazení. Odemčení vyžaduje oprávnění k úpravě a čtení
+včetně verzí, importů, přiřazení a názvů/čísel VŘ i při změně z jiných obrazovek.
+Běžná změna stavu soutěže zůstává dostupná. Odemčení vyžaduje oprávnění k úpravě a čtení
 cen. Export a prohlížení zůstávají dostupné. Zámek nenahrazuje potvrzení revize.
 Oprávněné odstranění celé stavby a anonymizace autora při smazání účtu fungují
 i při uzamčení. Konflikt souběžných změn vyžaduje obnovení dat.
@@ -27,7 +28,10 @@ nebo položky rozpočtu. Existující VŘ se zde nemažou. Přidávat lze nové 
 
 **Nastavit jako výchozí** převezme uložený projektový číselník jako osobní základ.
 Před nahrazením zobrazí počet nových a dosavadních definic. Vlastní základ lze
-upravovat, řadit a uložit v záložce **Moje výchozí VŘ**.
+upravovat a uložit v záložce **Moje výchozí VŘ**. Oba seznamy se zobrazují
+podle čísla a názvu VŘ, nezávisle na interních identifikátorech. Osobní základ
+má limit 500 VŘ; projektový editor podporuje 1 000 VŘ a úpravy již existujících
+větších seznamů.
 
 Každý uživatel bez vlastního uloženého základu dostane společných 14 definic:
 zemní práce, základy, nosné konstrukce, střecha, izolace, výplně otvorů, fasáda,

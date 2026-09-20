@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Plus, Save, Trash2, Star } from 'lucide-react';
+import { Plus, Save, Trash2, Star } from 'lucide-react';
 import { Modal } from '@shared/ui/Modal';
 import { budgetApi } from '../api/budgetApi';
 import type { ProjectTender } from '../model/tenderImport';
@@ -38,7 +38,8 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
   const project = useQuery({ queryKey: ['budget-project-tenders', projectId, userId], queryFn: () => budgetApi.projectTenders(projectId) });
   const personal = useQuery({ queryKey: ['personal-tender-defaults', userId], queryFn: () => budgetApi.personalTenders(), enabled: tab === 'personal' && !!userId });
   const query = tab === 'project' ? project : personal;
-  const definitions = tab === 'project' ? project.data : personal.data?.definitions;
+  const sourceDefinitions = tab === 'project' ? project.data : personal.data?.definitions;
+  const definitions = useMemo(() => [...(sourceDefinitions ?? [])].sort((a,b) => a.externalCode.localeCompare(b.externalCode,'cs',{numeric:true}) || a.title.localeCompare(b.title,'cs')), [sourceDefinitions]);
   const entries = draft ?? definitions ?? [];
   const canEdit = tab === 'personal' ? !!userId : !readOnly;
   const update = (next: ProjectTender[]) => {
@@ -46,7 +47,6 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
     setDraft(next); setNotice('');
   };
   const invalid = entries.some((entry, i) => !entry.title.trim() || entries.slice(0, i).some(other => tenderNameKey(other.title) === tenderNameKey(entry.title) || !!entry.externalCode.trim() && other.externalCode.trim() === entry.externalCode.trim()));
-  const move = (index: number, direction: number) => { const next = [...entries]; [next[index], next[index + direction]] = [next[index + direction], next[index]]; update(next); };
   const save = async () => {
     if (busy || !draft || !base || !canEdit || invalid) return;
     setBusy(true); setError('');
@@ -71,10 +71,10 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
       <button role="tab" aria-selected={tab === 'personal'} disabled={busy || draft !== null || !userId} onClick={() => { setTab('personal'); setError(''); setNotice(''); }}>Moje výchozí VŘ</button>
     </div>
     {tab === 'personal' && personal.data?.version === 0 && <p role="status">Používáte společný základní číselník Tender Flow. Úpravou a uložením vytvoříte svůj vlastní výchozí seznam.</p>}
-    <p>{tab === 'personal' ? 'Tento osobní základ se automaticky zkopíruje do každé nové stavby, kterou vytvoříte. Existující stavby se nezmění. Pořadí platí pro váš výchozí seznam.' : 'Názvy a čísla VŘ této stavby. Položky rozpočtu přiřadíte k VŘ v sekci Položky, jednotlivě i hromadně.'}</p>
+    <p>{tab === 'personal' ? 'Tento osobní základ se automaticky zkopíruje do každé nové stavby, kterou vytvoříte. Existující stavby se nezmění. Seznam je řazen podle čísla a názvu VŘ.' : 'Názvy a čísla VŘ této stavby. Položky rozpočtu přiřadíte k VŘ v sekci Položky, jednotlivě i hromadně.'}</p>
     {query.isPending ? <p role="status">Načítání číselníku…</p> : query.error ? <p role="alert">{query.error.message}<button onClick={() => void query.refetch()}>Načíst znovu</button></p> : <>
       <div className="tf-budget-toolbar">
-        <button disabled={!canEdit || busy || entries.length >= 500} onClick={() => update([...entries, { id: crypto.randomUUID(), title: '', externalCode: '' }])}><Plus size={16} aria-hidden="true"/>Přidat VŘ</button>
+        <button disabled={!canEdit || busy || entries.length >= (tab === 'personal' ? 500 : 1000)} onClick={() => update([...entries, { id: crypto.randomUUID(), title: '', externalCode: '' }])}><Plus size={16} aria-hidden="true"/>Přidat VŘ</button>
         {tab === 'project' && <button disabled={!userId || busy || draft !== null || !entries.length} onClick={() => void prepareDefault()}><Star size={16} aria-hidden="true"/>Nastavit jako výchozí</button>}
         {tab === 'project' && <button disabled={readOnly || busy || draft !== null} onClick={onTemplates}>Importovat / exportovat vzor</button>}
         <button disabled={!canEdit || !draft || busy || invalid} onClick={() => void save()}><Save size={16} aria-hidden="true"/>{busy ? 'Ukládání…' : 'Uložit číselník'}</button>
@@ -85,7 +85,6 @@ export function BudgetTenderCatalog({ projectId, userId, readOnly, onTemplates }
           <td><input aria-label={`Číslo VŘ ${index + 1}`} maxLength={100} value={entry.externalCode} disabled={!canEdit || busy} onChange={e => update(entries.map(row => row.id === entry.id ? { ...row, externalCode: e.target.value } : row))}/></td>
           <td><input aria-label={`Název VŘ ${index + 1}`} maxLength={255} value={entry.title} disabled={!canEdit || busy} onChange={e => update(entries.map(row => row.id === entry.id ? { ...row, title: e.target.value } : row))}/></td>
           <td><div className="tf-budget-toolbar">
-            {tab === 'personal' && <><button aria-label={`Posunout VŘ ${index + 1} nahoru`} disabled={busy || index === 0} onClick={() => move(index, -1)}><ArrowUp size={16}/></button><button aria-label={`Posunout VŘ ${index + 1} dolů`} disabled={busy || index === entries.length - 1} onClick={() => move(index, 1)}><ArrowDown size={16}/></button></>}
             {(tab === 'personal' || !project.data?.some(old => old.id === entry.id)) && <button aria-label={`Odstranit VŘ ${index + 1} z číselníku`} disabled={!canEdit || busy} onClick={() => update(entries.filter(row => row.id !== entry.id))}><Trash2 size={16}/></button>}
           </div></td>
         </tr>)}

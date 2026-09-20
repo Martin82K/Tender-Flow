@@ -22,7 +22,7 @@ export const budgetApi = {
     return unwrap(await supabase.rpc('personal_tender_defaults', { definitions_input: definitions ?? null, version_input: version ?? null }));
   },
   async saveProjectTenders(projectId: string, expected: ProjectTender[], definitions: ProjectTender[]): Promise<string | undefined> {
-    unwrap(await supabase.rpc('save_project_tender_catalog', { project_input: projectId, expected_input: expected, definitions_input: definitions }));
+    unwrap(await supabase.rpc('save_project_tender_catalog', { project_input: projectId, expected_input: [...expected].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0), definitions_input: definitions }));
     const created = definitions.filter(entry => !expected.some(old => old.id === entry.id)).map(entry => entry.id);
     if (created.length) {
       const { syncImportedTenderDocHub } = await import('./tenderDocHub');

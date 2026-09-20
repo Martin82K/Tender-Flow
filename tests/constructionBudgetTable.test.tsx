@@ -262,7 +262,7 @@ it('edits only the double-clicked cell, saves on Enter and cancels on Escape', a
   const input = screen.getByRole('textbox', { name: 'Upravit Množství' });
   fireEvent.change(input, { target: { value: '15' } });
   await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
-  await vi.waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'item', quantity: '15', total: '150.00' })));
+  await vi.waitFor(() => expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'item', quantity: '15', total: '150.00' }), ['quantity','total']));
   fireEvent.doubleClick(screen.getByRole('button', { name: item.description }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Upravit Popis' }), { target: { value: 'Neuložit' } });
   fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Popis' }), { key: 'Escape' });

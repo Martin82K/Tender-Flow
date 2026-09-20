@@ -19,7 +19,7 @@ interface Props {
   selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; wrap: boolean; density: number;
   columns: BudgetColumn[]; onColumns: (c: BudgetColumn[]) => void; canPrices: boolean; editable: boolean;
   expandedVV?: Set<string>; onExpandedVV?: (value: Set<string>) => void;
-  figures?: Record<string,string>; onEdit: (node: BudgetNode) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
+  figures?: Record<string,string>; onEdit: (node: BudgetNode, editedFields?: readonly string[]) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
 }
 const numberLabel = formatBudgetNumber;
 const editableFields = new Set(['code', 'description', 'unit', 'quantity', 'unitPrice']);
@@ -54,7 +54,7 @@ export function BudgetTable(props: Props) {
     try{
       const edited={...cell.node,[cell.column.key]:cell.column.numeric?decimal(cell.value):cell.value};
       if(cell.column.numeric)edited.total=edited.quantity!==null&&edited.unitPrice!==null?multiplyMoney(edited.quantity,edited.unitPrice):null;
-      await onEdit(edited);setCell(null);
+      await onEdit(edited,[cell.column.key,...(cell.column.numeric?['total']:[])]);setCell(null);
     }catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}
     finally{editLock.current=false;setBusy(false);}
   };
@@ -176,7 +176,7 @@ export function BudgetTable(props: Props) {
     </Modal>}
     {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>{setFilter(null);filterOrigin.current?.focus();}}/>}
     {detail&&<Modal isOpen title={`Položka ${detail.code}`} onClose={()=>{if(!busy){setDetail(null);setEditError('');}}} persistent={busy}>
-      <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);await onEdit({...detail,quantity,unitPrice:price,total:quantity!==null&&price!==null?multiplyMoney(quantity,price):null});setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
+      <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);await onEdit({...detail,quantity,unitPrice:price,total:quantity!==null&&price!==null?multiplyMoney(quantity,price):null},['quantity','unitPrice','total']);setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
         <div className="flex gap-2"><label>Množství<input disabled={busy||!editable||!isPriced(detail)} value={detail.quantity??''} onChange={e=>setDetail({...detail,quantity:e.target.value})}/></label>{canPrices&&<label>Jednotková cena<input disabled={busy||!editable||!isPriced(detail)} value={detail.unitPrice??''} onChange={e=>setDetail({...detail,unitPrice:e.target.value})}/></label>}</div>

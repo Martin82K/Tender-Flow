@@ -52,6 +52,7 @@ async function fixture(){
     GRANT USAGE ON SCHEMA private,auth TO authenticated;
   `);
   if(!process.env.BUDGET_UX_RED)await db.exec(read('20260920182433_budget_lock_and_personal_tenders.sql'));
+  await db.exec(read('20260920190558_harden_budget_catalog_guards.sql'));
   return db;
 }
 
@@ -151,5 +152,27 @@ test('provides a shared starting catalog to every new user and preserves explici
    await defaults(db,[],0);assert.deepEqual((await defaults(db)).definitions,[]);
    await db.exec("SET test.actor='00000000-0000-0000-0000-000000000009'");
    assert.equal((await defaults(db)).definitions.length,14);
+ }finally{await db.close();}
+});
+
+test('guards direct tender identity writes while locked but permits pipeline status and authorized purge',async()=>{
+ const db=await fixture();try{
+  await lock(db,true);
+  await assert.rejects(db.exec("UPDATE demand_categories SET title='changed' WHERE id='existing'"),/uzamčen/);
+  await assert.rejects(db.exec("INSERT INTO demand_categories(id,project_id,title) VALUES('new','p','New')"),/uzamčen/);
+  await assert.rejects(db.exec("DELETE FROM demand_categories WHERE id='existing'"),/uzamčen/);
+  await db.exec("UPDATE demand_categories SET status='closed' WHERE id='existing'");
+  await db.exec("INSERT INTO private.construction_budget_purge_jobs VALUES('p',true,NULL)");
+  await db.exec("DELETE FROM demand_categories WHERE id='existing'");
+ }finally{await db.close();}
+});
+test('edits a project catalog larger than personal defaults without relaxing the personal limit',async()=>{
+ const db=await fixture();try{
+  const entries=Array.from({length:501},(_,i)=>({id:`large-${i}`,title:`Tender ${i}`,externalCode:String(i)}));
+  await assert.rejects(defaults(db,entries,0),/500/);
+  const base=[{id:'existing',title:'Existující',externalCode:''}];
+  await db.query("SELECT save_project_tender_catalog('p',$1,$2)",[base,[...base,...entries]]);
+  const snapshot=(await db.query("SELECT id,title,COALESCE(external_code,'') AS \"externalCode\" FROM demand_categories WHERE project_id='p' ORDER BY id")).rows;
+  await db.query("SELECT save_project_tender_catalog('p',$1,$2)",[snapshot,snapshot.map(e=>e.id==='existing'?{...e,title:'Renamed'}:e)]);
  }finally{await db.close();}
 });

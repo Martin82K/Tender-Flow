@@ -72,3 +72,15 @@ tabulek a absenci přímých grantů authenticated. Finální `supabase db push
 --linked --dry-run` hlásí `Remote database is up to date`. Nasazovací záznam
 potvrzuje zachování původních dat a provedení security/performance advisorů;
 jejich existující upozornění zůstávají výše uvedeným omezením.
+
+
+Revize PR #495 doplnila migraci `20260920190558`: trigger chrání identitu VŘ
+při přímých zápisech z pipeline, ale propouští změny stavu a oprávněný purge.
+Projektový validátor dovoluje 1 000 VŘ nebo již existující větší počet; osobní
+limit 500 zůstává. Regrese před opravou: 2 SQL a 2 UI/model testy RED;
+po opravě 10 SQL a 27 UI/model testů GREEN. Číselné chyby se odstraňují pouze
+pro skutečně editovaný namapovaný sloupec, i při prázdných cenách.
+Nepřenášené ruční řazení bylo odstraněno; obě evidence používají číslo/název.
+Import pomocníka označení sloupců přidává jednu rozlišenou hranu (2 188/1 872),
+bez nového cyklu nebo legacy vazby. Nezávislá bezpečnostní revize původního
+produktového diffu `3571d634` byla bez nálezů; změny z revize vyžadují novou kontrolu.
