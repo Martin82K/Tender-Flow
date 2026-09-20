@@ -145,3 +145,12 @@ test('operation records do not prevent actor deletion and zero target quantity c
     await db.exec("SET test.actor=''");await assert.rejects(call(db,r),/povolen/);
   }finally{await db.close();}
 });
+test('finishes the incoming assignment source without replacing the revision source',async()=>{
+  const db=await fixture();try{
+    const incoming=randomUUID();
+    await db.query("INSERT INTO construction_budget_sources(id,project_id,organization_id,filename,storage_path,sha256,status) VALUES($1,'p',$2,'assignments.xlsx','p/assignments',repeat('b',64),'processing')",[incoming,org]);
+    const result=await call(db,{...request(),sourceId:incoming});
+    assert.equal(result.revision.source_id,source);
+    assert.equal((await db.query('SELECT status FROM construction_budget_sources WHERE id=$1',[incoming])).rows[0].status,'ready');
+  }finally{await db.close();}
+});

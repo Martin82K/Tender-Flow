@@ -82,10 +82,10 @@ Průběžné důkazy se vztahují k pracovnímu diffu nad `138c4286`:
 | --- | --- |
 | `constructionBudgetTenderImport.test.ts` | RED chybějící model; později RED soubor bez cen. GREEN posunuté sloupce, názvy, identity, duplicity, alokace a vzory. |
 | `constructionBudgetImport.test.ts`, `constructionBudgetGlobus.test.ts`, `constructionBudgetImportDialog.test.tsx` | Spolu s novým modelem 50 testů prošlo v počáteční iteraci. |
-| `constructionBudgetTenderImportUi.test.tsx` | 3 testy prošly: vynechané skupiny neblokují duplicity, potvrzení náhledu, serverový payload bez cen/množství, konflikty a stejný operation UUID při retry. |
-| `node --test tests/postgres/budgetTenderImport.test.mjs` | 10 PostgreSQL scénářů prošlo: atomický rollback, oprávnění, cizí projekt, verze, kopie confirmed, kódy/restore, revision režim, granty. Fixtures modelují oprávnění; nejde o produkční RLS end-to-end. |
+| `constructionBudgetTenderImportUi.test.tsx` | 4 testy prošly: omezené ruční návrhy s dohledáním dalších cílů, vynechané skupiny neblokují duplicity, potvrzení náhledu, serverový payload bez cen/množství, konflikty a stejný operation UUID při retry. |
+| `node --test tests/postgres/budgetTenderImport.test.mjs` | 11 PostgreSQL scénářů prošlo: atomický rollback, oprávnění, cizí projekt, verze, kopie confirmed, kódy/restore, revision režim, granty. Fixtures modelují oprávnění; nejde o produkční RLS end-to-end. |
 | `constructionBudgetTenderRealFile.test.ts` | Soukromý dodaný XLSX prošel read-only smoke testem. Bez `TENDER_IMPORT_SMOKE_FILE` je test výslovně skipped. Skutečná cílová revize nebyla poskytnuta. |
-| `constructionBudgetTenderTemplates.test.tsx` | 2 testy prošly: nezávislé editovatelné definice, vynechání a explicitní řešení duplicit. |
+| `constructionBudgetTenderTemplates.test.tsx` | 3 testy prošly: nezávislé editovatelné definice, vynechání a explicitní řešení duplicit. |
 | Sestavený UI harness v Chrome | Desktop 1440 a mobil 390 px: výběr sloupců, potvrzení, import přiřazení, použití vzoru; bez console/page/network chyb. API je fixture, nejde o produkční E2E. |
 | `npm run typecheck` | Pro průběžný diff prošlo. |
 | `npm run check:boundaries`, `npm run check:legacy-structure` | Pro průběžný diff prošlo; žádný nový soubor ve frozen roots. |
@@ -112,3 +112,25 @@ npm audit --prefix tests/postgres --audit-level=high
 npm audit signatures --prefix tests/postgres
 PGLITE_MODULE="$PWD/tests/postgres/node_modules/@electric-sql/pglite/dist/index.js" node --test tests/postgres/budgetTenderImport.test.mjs
 ```
+
+### Navazující integrační ověření
+
+Integrační opravy #486 `3702a4aa` jsou zahrnuté od `5a7b00f3`. Při sloučení
+zůstal zachován zákaz přenosu alokací bez oprávnění; test editoru nově explicitně
+zadává oprávněného uživatele (`e9d30f3e`). Další cílené RED/GREEN testy ověřily
+omezení ručních návrhů na 100 s dohledáním dalších položek a možnost zrušit
+vybranou definici, která se při editaci stala duplicitou (`e49d8df3`).
+
+Dry-run `supabase db push --linked --dry-run --include-all` po aktualizaci
+propojení na IPv4 uvedl výhradně tuto migraci. Před nasazením bude zopakován pro
+finální revizi. Oprava po testu RED přidala atomické dokončení stavu příchozího
+souboru také v režimu assignments; autoritativní source_id revize se nemění.
+Celý izolovaný PostgreSQL průchod: 11 passed, 0 skipped/todo.
+
+Cloud advisors před nasazením nejsou čisté: existují varování search_path,
+anonymních i přihlášených SECURITY DEFINER RPC, vypnuté kontroly uniklých hesel
+a výkonu RLS/indexů. Relevantní stávající signál: veřejné restore wrappery jsou
+záměrně autorizované definer funkce; `demand_categories` má performance upozornění
+na opakované vyhodnocování auth v restriktivní OAuth policy. Tato migrace jejich
+oprávnění nemění. Doporučení viz [database linter](https://supabase.com/docs/guides/database/database-linter)
+a [ochrana hesel](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
