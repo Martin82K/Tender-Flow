@@ -352,3 +352,14 @@ it('assigns multiple clicked rows to a tender and clears selection without delet
     expect(budgetApi.save).toHaveBeenCalledTimes(1);
   } finally { width.mockRestore(); height.mockRestore(); }
 });
+it('shows the prominent total only on the recap tab and keeps the items sidebar compact', async () => {
+  localStorage.setItem('tf-budget-view:u:p', JSON.stringify({ panel: true }));
+  await openBudget();
+  expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
+  expect(screen.getByText('Celý rozpočet · 0,00 Kč')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Rekapitulace', exact: true }));
+  expect(within(screen.getByRole('region', { name: 'Cena celkem' })).getByText('0,00 Kč')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
+  expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
+  expect(screen.getByText('Celý rozpočet · 0,00 Kč')).toBeVisible();
+});
