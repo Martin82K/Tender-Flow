@@ -33,7 +33,7 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
   };
   const start=async(targetSheet?:string)=>{
     if(operationLock.current)return;operationLock.current=true;
-    setError('');setBusy(true);const abort=new AbortController();controller.current=abort;let registered=source;
+    setError('');setBusy(true);const abort=new AbortController();controller.current=abort;let registered=source;let processingStarted=false;
     try{
       if(editRevision&&!targetSheet)throw new Error('Vyberte konkrétní list pro nové rozpoznání.');
       if(targetSheet&&document&&editRevision){
@@ -43,8 +43,9 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
       if(!registered){if(!file)throw new Error('Vyberte soubor.');setPhase('Ukládání originálu');registered=await budgetApi.registerSource(projectId,file);setSource(registered);}
       if(abort.signal.aborted)return;
       if(mode==='attachment'){onComplete();return;}
-      await budgetApi.sourceStatus(registered,'processing');setPhase('Rozpoznání a validace');
-      const blob=file??await budgetApi.download(registered);const parsed=await importInWorker(blob,abort.signal,(done,total)=>setPhase(`Rozpoznání listů ${done}/${total}`),mapping);
+      await budgetApi.sourceStatus(registered,'processing');processingStarted=true;setPhase('Rozpoznání a validace');
+      const effectiveMapping:KrosMapping=targetSheet&&document?Object.fromEntries(document.sheets.map(s=>[s.name,{headerRow:s.headerRow||undefined,columns:s.columns,role:s.role,format:s.format,object:s.object,title:s.title,...(s.name===targetSheet&&Object.hasOwn(mapping,s.name)?mapping[s.name]:{})}])):mapping;
+      const blob=file??await budgetApi.download(registered);const parsed=await importInWorker(blob,abort.signal,(done,total)=>setPhase(`Rozpoznání listů ${done}/${total}`),effectiveMapping);
       if(targetSheet&&document){
         const affected=new Set(document.nodes.filter(n=>n.source.sheet===targetSheet&&n.kind!=='object').map(n=>n.id));
         const replacement=parsed.sheets.find(s=>s.name===targetSheet);if(!replacement)throw new Error('Zdrojový list již není dostupný. Obnovte import.');
@@ -54,7 +55,7 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
         setDocument(next);
       }else setDocument({...parsed,origin:'import',importKey:crypto.randomUUID()});
       if(previous){setLinks(proposeRevisionMapping(previous.document,parsed));setTransfer(false);}setPhase('');
-    }catch(e){if(registered)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');}finally{operationLock.current=false;setBusy(false);setPhase('');}
+    }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');}finally{operationLock.current=false;setBusy(false);setPhase('');}
   };
   useEffect(()=>{
     let active=true;

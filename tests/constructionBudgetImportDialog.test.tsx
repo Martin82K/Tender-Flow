@@ -112,6 +112,18 @@ describe('import repair workspace',()=>{
     expect(await screen.findByRole('alert')).toHaveTextContent('Tento list má přiřazené štítky nebo množství');
     expect(budgetApi.download).not.toHaveBeenCalled();
     expect(importInWorker).not.toHaveBeenCalled();
+    expect(budgetApi.sourceStatus).not.toHaveBeenCalled();
+  });
+  it('does not apply unfinished mapping changes from another sheet',async()=>{
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={editorSource} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+    fireEvent.change(screen.getByLabelText('List v editoru'),{target:{value:'sheet:1'}});
+    fireEvent.change(screen.getByLabelText('Řádek hlavičky v editoru'),{target:{value:'999'}});
+    fireEvent.change(screen.getByLabelText('List v editoru'),{target:{value:'sheet:0'}});
+    fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
+    await waitFor(()=>expect(importInWorker).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(importInWorker).mock.calls[1][3]?.Elektro.headerRow).toBe(1);
   });
 });
 
