@@ -171,3 +171,21 @@ oprávnění vlastníka `restore`, nepovoluje běžnou editaci archivu. Regresn�
 nejprve reprodukoval odmítnutí obnovy a po opravě prošel. Migrace je nasazená,
 závěrečný dry-run opět hlásil aktuální databázi. Lokální test 5 000 přiřazených
 položek prošel pod limitem 8 sekund (`construction_budget_bulk_allocations.sql`).
+
+Migrace `20260920103208_compact_budget_history_and_guard_category_delete.sql`
+zavádí `construction_budget_history.changes`: reverzní změny formátu 1 místo
+kopie celého dokumentu při každém uložení. Původní plné historické snímky zůstávají.
+Pole `fields` obsahuje původní hodnoty a příznak existence, `nodes` a `allocations`
+původní délku a změněné pozice. Pro rekonstrukci se změny aplikují od nejnovější
+verze zpět; pole se zkrátí/rozšíří na původní délku a doplní původní položky.
+Podepsaná záloha i obnova zachovávají oba formáty historie.
+
+Mazání VŘ navázaného na libovolnou revizi (včetně koše) je odmítnuto, aby
+nevznikla neplatná přiřazení. Validace uložení a mazání VŘ sdílejí projektový
+transakční zámek. Dokončení mazání celého projektu nejprve odstraní revize.
+Lokální `construction_budget_history_deltas.sql` ověřuje malou změnu tisíce
+položek a ochranu VŘ; `construction_budget_backup_delete.sql` obnovu této historie.
+
+Migrace kompaktní historie byla nasazená; postflight ověřil sloupec, trigger,
+odebraná klientská práva helperu a původní počty 2 zdrojů / 2 revizí.
+Závěrečný dry-run: databáze aktuální. Nové advisors nálezy nepřibyly.

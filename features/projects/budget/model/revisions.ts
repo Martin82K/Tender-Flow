@@ -1,6 +1,6 @@
 import { isPriced } from './types';
 import type { BudgetNode, BudgetDocument, BudgetAllocation } from './types';
-import { validateAllocation } from './budgetModel';
+import { decimal, multiplyMoney, remainingQuantity, validateAllocation } from './budgetModel';
 export interface RevisionDifference { before?: BudgetNode; after?: BudgetNode; status: 'added' | 'removed' | 'changed' | 'ambiguous' }
 /** Match source identity AND semantic context; duplicate keys require human resolution. */
 export function compareRevisions(before: BudgetDocument, after: BudgetDocument): RevisionDifference[] {
@@ -58,9 +58,28 @@ export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode
   const original = document.nodes.find(node => node.id === edited.id);
   if (!original || !isPriced(original)) throw new Error('Položka již není dostupná. Obnovte rozpočet.');
   const complete = edited.quantity !== null && edited.unitPrice !== null && edited.total !== null;
+  if (complete) { decimal(edited.quantity); decimal(edited.unitPrice); decimal(edited.total); multiplyMoney(edited.quantity!, edited.unitPrice!); }
   return {
     ...document,
     nodes: document.nodes.map(node => node.id === edited.id ? {...node, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
-    issues: document.issues.filter(issue => !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění')))),
+    issues: document.issues.filter(issue => !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
   };
+}
+
+/** Add only nonzero remaining quantities; existing assignments are preserved. */
+export function createRemainingAllocations(nodes: BudgetNode[], existing: BudgetAllocation[], selected: Set<string>, categoryId: string, explicitQuantity?: string): BudgetAllocation[] {
+  const grouped = new Map<string, string[]>();
+  for (const allocation of existing) {
+    const values = grouped.get(allocation.itemId) ?? []; values.push(allocation.quantity); grouped.set(allocation.itemId, values);
+  }
+  const additions: BudgetAllocation[] = [];
+  for (const node of nodes) {
+    if (!selected.has(node.id) || !isPriced(node)) continue;
+    if (node.quantity === null) throw new Error('Položka nemá vyplněné množství.');
+    const quantity = selected.size === 1 && explicitQuantity?.trim()
+      ? decimal(explicitQuantity)!
+      : remainingQuantity(node.quantity, grouped.get(node.id) ?? []);
+    if (quantity !== '0') additions.push({ itemId: node.id, categoryId, quantity });
+  }
+  return additions;
 }

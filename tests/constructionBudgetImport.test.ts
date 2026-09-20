@@ -43,3 +43,11 @@ it('excludes conflicting figures from arithmetic while keeping values available 
  const w=workbook();XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet([['Kód','Výměra'],['F1',2],['F1',3],['F1',4],['OK',0]]),'Seznam figur');
  const d=parseKrosWorkbook(w);expect(d.figures.F1).toBeUndefined();expect(d.figures.OK).toBe('0');expect(d.issues.find(i=>i.kind==='ambiguous-figures')?.figures).toMatchObject([{code:'F1',values:['2','3','4']}]);expect(aggregateBudget(d.nodes).total).toBe('50.00');
 });
+
+it('reports calculation overflow as a blocking import issue without crashing', () => {
+ const w=workbook();
+ w.Sheets.Soupis.E6={t:'s',v:'999999999999999999999999'};
+ w.Sheets.Soupis.F6={t:'s',v:'2'};
+ const document=parseKrosWorkbook(w);
+ expect(document.issues.some(issue=>issue.severity==='error' && issue.row===6)).toBe(true);
+});

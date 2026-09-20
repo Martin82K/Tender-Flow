@@ -242,3 +242,10 @@ v koši rozpočtu je nutné nejprve dokončit.
 Export položek do Excelu zapisuje množství a ceny jako textové buňky, aby
 zachoval všechny číslice. Prázdné množství při přiřazení do VŘ znamená dosud
 nepřiřazené množství, nikoli celé množství položky.
+
+Plně přiřazená položka se při dalším hromadném rozdělení přeskočí; nulové
+množství nevytváří vazbu na další VŘ. Čísla mohou obsahovat nejvýše 24 číslic
+před desetinnou čárkou a 18 za ní. Překročení při výpočtu ceny import ohlásí.
+VŘ použité v rozpočtové revizi nelze smazat, dokud existují související revize
+včetně koše; dialog uvede důvod. Historie změn uchovává původní upravené údaje
+úsporně a zůstává součástí podepsané zálohy.
