@@ -477,3 +477,26 @@ it('preserves explicitly edited tags when transferring a previous revision',asyn
   await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({id:'sheet:0:row:5',tags:['new']})])})})));
  }finally{vi.restoreAllMocks();}
 });
+
+it('preserves explicit allocation removal when transferring links',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  const previous=editorRevision();previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'old',quantity:'2'}];
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('button',{name:'VŘ: 001'}));
+  fireEvent.change(screen.getByLabelText('Cílové VŘ'),{target:{value:'new'}});
+  fireEvent.click(screen.getByRole('button',{name:'Přiřadit VŘ',exact:true}));
+  await screen.findByText('Nové práce · 2 m2');
+  fireEvent.click(screen.getByRole('button',{name:'Odebrat Nové práce'}));
+  await waitFor(()=>expect(screen.queryByText('Nové práce · 2 m2')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+  fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+  fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[]})));
+ }finally{vi.restoreAllMocks();}
+});

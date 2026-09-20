@@ -9,7 +9,7 @@ export async function createBudgetTender(projectId: string, name: string): Promi
   const current = await budgetApi.projectTenders(projectId);
   const existing = current.find(t => tenderNameKey(t.title) === tenderNameKey(title));
   // Reusing an existing name makes a retry after a lost response safe.
-  if (existing) return { tender: existing };
+  if (existing) return { tender: existing, warning: await budgetApi.syncProjectTenderFolders(projectId, [existing.id]) };
   const tender = { id: crypto.randomUUID(), title, externalCode: '' };
   const warning = await budgetApi.saveProjectTenders(projectId, current, [...current, tender]);
   return { tender, warning };

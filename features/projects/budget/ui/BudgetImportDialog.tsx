@@ -19,6 +19,7 @@ export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canI
   if(!previousRef.current&&incomingPrevious)previousRef.current=incomingPrevious;
   const previous=previousRef.current;
   const [allocations,setAllocations]=useState<BudgetAllocation[]>(editRevision?.allocations??[]);
+  const editedAllocations=useRef(new Set<string>());
   const editedTags=useRef(new Set<string>());
   const [tenderReview,setTenderReview]=useState<{document:BudgetDocument;allocations:BudgetRevision['allocations']}|null>(null);
   const [withTenders,setWithTenders]=useState(false);
@@ -38,7 +39,7 @@ export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canI
     if(!/\.xlsx$/i.test(next.name)){setError('Podporován je pouze soubor XLSX.');return;}
     if(next.size>30*1024*1024){setError('Soubor překračuje limit 30 MB.');return;}
     if(!next.size){setError('Soubor je prázdný. Vyberte platný sešit XLSX.');return;}
-    editedTags.current.clear();setFile(next);setAllocations([]);setSource(undefined);setDocument(null);setMapping({});setMappingSheet('');setPhase('');setError('');
+    editedTags.current.clear();editedAllocations.current.clear();setFile(next);setAllocations([]);setSource(undefined);setDocument(null);setMapping({});setMappingSheet('');setPhase('');setError('');
   };
   const start=async(targetSheet?:string)=>{
     if(operationLock.current)return false;operationLock.current=true;
@@ -96,7 +97,7 @@ export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canI
       const chosenObjects=new Set(document.nodes.filter(n=>n.kind==='sheet'&&chosen.has(n.id)).map(n=>n.parentId));
       const filtered={...document,nodes:document.nodes.filter(n=>chosen.has(n.sheetId)||(n.kind==='object'&&chosenObjects.has(n.id))),issues:document.issues.filter(i=>i.kind==='ambiguous-figures'||document.sheets.some(s=>s.name===i.sheet&&chosen.has(s.id)))};
       if(mode!=='assignments'&&transfer&&previous?.allocations.length&&!canAllocate)throw new Error('Přenos alokací vyžaduje oprávnění přiřazovat položky do VŘ.');
-      const explicitlyAssigned=new Set(allocations.map(a=>a.itemId));
+      const explicitlyAssigned=new Set([...editedAllocations.current,...allocations.map(a=>a.itemId)]);
       const transferred=mode!=='assignments'&&transfer&&previous?transferRevisionLinks(previous.document,filtered,previous.allocations.filter(a=>!explicitlyAssigned.has(links[a.itemId])),Object.fromEntries(Object.entries(links).filter(([,id])=>filtered.nodes.some(n=>n.id===id)))):{document:filtered,allocations};
       const draftNodes=new Map(filtered.nodes.map(n=>[n.id,n]));
       transferred.document={...transferred.document,nodes:transferred.document.nodes.map(node=>editedTags.current.has(node.id)?{...node,tags:draftNodes.get(node.id)!.tags}:node)};
@@ -136,8 +137,8 @@ export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canI
     {initialSource&&!document&&!busy&&error&&<button onClick={()=>void start()}>Zkusit převod znovu</button>}
     {document&&editor&&<BudgetImportEditor onCreateTender={mode==='assignments'?undefined:onCreateTender} tagOptions={tagOptions} allocations={allocations} categories={categories} canAllocate={mode!=='assignments'&&canAllocate&&!busy} onAllocate={async(itemId,categoryId)=>{
       if(mode==='assignments'||!canAllocate||busy)throw new Error('Přiřazení není povoleno.');
-      const next=assignWholeItems(document.nodes,allocations,new Set([itemId]),categoryId);validateRevisionAllocations(document,next);setAllocations(next);
-    }} onRemoveAllocation={async allocation=>{if(mode==='assignments'||!canAllocate||busy)throw new Error('Přiřazení není povoleno.');setAllocations(allocations.filter(a=>a!==allocation));}} savedRevision={!!editRevision} document={document} onChange={next=>{const nextAllocations=syncWholeItemQuantity(document,next,allocations,canAllocate);validateRevisionAllocations(next,nextAllocations);const previousNodes=new Map(document.nodes.map(n=>[n.id,n]));for(const node of next.nodes){const old=previousNodes.get(node.id);if(old&&JSON.stringify(old.tags)!==JSON.stringify(node.tags))editedTags.current.add(node.id);}setAllocations(nextAllocations);setDocument(next);setTransfer(false);if(previous)setLinks(proposeRevisionMapping(previous.document,next));}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
+      const next=assignWholeItems(document.nodes,allocations,new Set([itemId]),categoryId);validateRevisionAllocations(document,next);editedAllocations.current.add(itemId);setAllocations(next);
+    }} onRemoveAllocation={async allocation=>{if(mode==='assignments'||!canAllocate||busy)throw new Error('Přiřazení není povoleno.');editedAllocations.current.add(allocation.itemId);setAllocations(allocations.filter(a=>a!==allocation));}} savedRevision={!!editRevision} document={document} onChange={next=>{const nextAllocations=syncWholeItemQuantity(document,next,allocations,canAllocate);validateRevisionAllocations(next,nextAllocations);const previousNodes=new Map(document.nodes.map(n=>[n.id,n]));for(const node of next.nodes){const old=previousNodes.get(node.id);if(old&&JSON.stringify(old.tags)!==JSON.stringify(node.tags))editedTags.current.add(node.id);}setAllocations(nextAllocations);setDocument(next);setTransfer(false);if(previous)setLinks(proposeRevisionMapping(previous.document,next));}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
     {document&&!editor&&<div className="tf-budget-import-review">
       <section className="tf-budget-import-selection" aria-label="Výběr soupisů">
       {sourcePreview}

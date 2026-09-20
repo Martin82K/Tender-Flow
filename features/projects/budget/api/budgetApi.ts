@@ -24,9 +24,11 @@ export const budgetApi = {
   async saveProjectTenders(projectId: string, expected: ProjectTender[], definitions: ProjectTender[]): Promise<string | undefined> {
     unwrap(await supabase.rpc('save_project_tender_catalog', { project_input: projectId, expected_input: [...expected].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0), definitions_input: definitions }));
     const created = definitions.filter(entry => !expected.some(old => old.id === entry.id)).map(entry => entry.id);
-    if (created.length) {
-      const { syncImportedTenderDocHub } = await import('./tenderDocHub');
-      try { await syncImportedTenderDocHub(projectId, created); }
+    return budgetApi.syncProjectTenderFolders(projectId, created);
+  },
+  async syncProjectTenderFolders(projectId: string, categoryIds: string[]): Promise<string | undefined> {
+    if (categoryIds.length) {
+      try { const { syncImportedTenderDocHub } = await import('./tenderDocHub'); await syncImportedTenderDocHub(projectId, categoryIds); }
       catch { return 'VŘ jsou uložena. Složky DocHubu se nepodařilo synchronizovat; dokončete je v nastavení DocHubu.'; }
     }
   },
