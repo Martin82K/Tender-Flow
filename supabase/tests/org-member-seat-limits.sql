@@ -4,7 +4,7 @@ SET LOCAL lock_timeout = '2s';
 SET LOCAL statement_timeout = '10s';
 INSERT INTO auth.users(id,email,email_confirmed_at)
 SELECT ('96300000-0000-4000-8000-' || lpad(i::text,12,'0'))::uuid,
-       'seat-' || i || '@gmail.com', now() FROM generate_series(1,6) i;
+       'seat-' || i || '@gmail.com', now() FROM generate_series(1,7) i;
 INSERT INTO public.organizations(id,name,type,subscription_tier,subscription_status,max_seats)
 VALUES ('96300000-0000-4000-8000-000000000010','RPC seat fixture','business','enterprise','trial',1);
 INSERT INTO public.organization_members(organization_id,user_id,role,is_active,is_billable)
@@ -112,6 +112,24 @@ DO $$ DECLARE denied boolean := false; BEGIN
 END $$;
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{}',true);
+-- Legitimate email add and verified request approval consume the remaining seats.
+UPDATE public.organizations SET max_seats=7 WHERE id='96300000-0000-4000-8000-000000000010';
+INSERT INTO public.organization_join_requests(id,organization_id,user_id,email)
+VALUES('96300000-0000-4000-8000-000000000020','96300000-0000-4000-8000-000000000010','96300000-0000-4000-8000-000000000007','seat-7@gmail.com');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"96300000-0000-4000-8000-000000000001"}',true);
+SELECT public.add_org_member_by_email('96300000-0000-4000-8000-000000000010','seat-6@gmail.com');
+SELECT public.approve_org_join_request('96300000-0000-4000-8000-000000000020');
+SELECT public.add_org_member_by_email('96300000-0000-4000-8000-000000000010','seat-6@gmail.com','admin');
+RESET ROLE;
+SELECT set_config('request.jwt.claims','{}',true);
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.organization_members WHERE organization_id='96300000-0000-4000-8000-000000000010' AND is_active AND is_billable) <> 7
+     OR NOT EXISTS(SELECT 1 FROM public.organization_join_requests WHERE id='96300000-0000-4000-8000-000000000020' AND status='approved')
+     OR NOT EXISTS(SELECT 1 FROM public.organization_members WHERE organization_id='96300000-0000-4000-8000-000000000010' AND user_id='96300000-0000-4000-8000-000000000006' AND role='member') THEN
+    RAISE EXCEPTION 'Email add, approval and duplicate role preservation must remain supported';
+  END IF;
+END $$;
 UPDATE public.organization_members SET is_active=false WHERE organization_id='96300000-0000-4000-8000-000000000010' AND user_id='96300000-0000-4000-8000-000000000001';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"96300000-0000-4000-8000-000000000001"}',true);
@@ -123,7 +141,9 @@ END $$;
 RESET ROLE;
 DO $$ BEGIN
   IF has_function_privilege('anon','public.add_org_member(uuid,uuid,text)','EXECUTE')
-     OR has_function_privilege('anon','public.activate_org_member(uuid,uuid)','EXECUTE') THEN
+     OR has_function_privilege('anon','public.activate_org_member(uuid,uuid)','EXECUTE')
+     OR has_function_privilege('anon','public.add_org_member_by_email(uuid,text,text)','EXECUTE')
+     OR has_function_privilege('anon','public.approve_org_join_request(uuid)','EXECUTE') THEN
     RAISE EXCEPTION 'Anonymous roles must not execute member mutation RPCs';
   END IF;
 END $$;
