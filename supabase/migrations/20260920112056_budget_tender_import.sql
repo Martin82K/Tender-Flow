@@ -144,6 +144,8 @@ BEGIN
    saved:=private.budget_save(project_input,source_id,revision_id,COALESCE(base.version,0),
      CASE WHEN mode='assignments' THEN CASE WHEN base.status='confirmed' THEN left(base.title,180)||' · přiřazení VŘ' ELSE base.title END ELSE request_input->>'title' END,
      document,allocations,false);
+   UPDATE public.construction_budget_sources SET status='ready'
+   WHERE id=(request_input->>'sourceId')::uuid AND project_id=project_input;
  END IF;
  INSERT INTO private.budget_tender_import_operations(project_id,operation_id,actor_id,request_hash,revision_id,created_category_ids)
  VALUES(project_input,operation,auth.uid(),request_hash,(saved->>'id')::uuid,created_ids);
