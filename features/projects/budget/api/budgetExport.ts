@@ -39,7 +39,7 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
   const itemValues = new Map<string, { quantity: string | null; amount: string | null }>();
   for (const item of items) {
     const quantity = options.scope.kind === 'tender' ? allocated.get(item.id)! : item.quantity;
-    const amount = !options.includePrices ? null : options.scope.kind === 'tender'
+    const amount = !options.includePrices || item.unitPrice === null ? null : options.scope.kind === 'tender'
       ? (item.unitPrice === null ? null : multiplyMoney(quantity!, item.unitPrice)) : item.total;
     itemValues.set(item.id, { quantity, amount });
     let parent = item.parentId;

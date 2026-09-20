@@ -59,3 +59,9 @@ integrační základně. Soukromý dodaný XLSX není testovací fixture ani sou
 Nezávislá revize #490 upozornila na platné opakované alokace položky do stejného VŘ.
 Regresní test zachovává součet `1.000000000000000001 + 2.125` přesně jako
 `3.125000000000000001`; peněžní zaokrouhlení nastává až po celém množství položky.
+
+Finální review neúplných pracovních revizí: uložený total se u oceněného celého
+rozpočtu/výběru nepoužije, pokud chybí unitPrice. Řádek i rekapitulace zůstanou
+neúplné. Dvě regrese nejprve selhaly; po opravě prošlo 12 exportních/UI testů
+a typecheck nad main `7de7ad4b`. Finální CI a bezpečnostní revize se vztahují
+k publikované opravě; databáze ani formát vzorců se nemění.

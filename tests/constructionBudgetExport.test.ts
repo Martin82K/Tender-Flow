@@ -51,3 +51,9 @@ it('sums repeated valid links to the same tender with exact quantity precision',
  expect(rows(book).at(-1)?.[4]).toBe('3.125000000000000001');
  expect(rows(book).at(-1)?.[6]).toBe('385.78');
 });
+it.each(['whole','selection'] as const)('keeps row and recap totals blank for missing unit price in %s export',kind=>{
+ const missing=nodes.map(n=>n.id==='a'?{...n,unitPrice:null}:n);
+ const book=buildBudgetWorkbook(missing,{scope:kind==='whole'?{kind}:{kind,itemIds:['a']},allocations:[],includePrices:true,canViewPrices:true});
+ expect(rows(book).find(r=>r[1]==='a')?.slice(5,7)).toEqual(['','']);
+ expect(rows(book,'Rekapitulace').at(-1)?.at(-1)).toBe('');
+});
