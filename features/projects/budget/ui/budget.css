@@ -239,3 +239,15 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-version-options{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto}
 .tf-budget-version-options button{text-align:left;white-space:normal;overflow-wrap:anywhere}
 .tf-budget-version-options button[aria-pressed=true]{border-color:var(--tf-skin-accent,#b76d42);background:var(--tf-skin-accent-soft,var(--budget-bg))}
+.tf-budget-tender-import { display: flex; flex-direction: column; gap: 1rem; }
+.tf-budget-tender-import h3, .tf-budget-tender-import h4 { font-size: 1rem; font-weight: 600; }
+.tf-budget-tender-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; max-height: 24rem; overflow: auto; }
+.tf-budget-tender-groups > label { min-width: 0; }
+@media(max-width:640px) { .tf-budget-tender-groups { grid-template-columns: minmax(0, 1fr); } }
+.tf-budget-tender-import fieldset { padding: 1rem; border: 1px solid var(--border-color, #8886); }
+.tf-budget-tender-import label { display: block; margin-block: .5rem; }
+.tf-budget-tender-import select { max-width: 100%; }
+.tf-budget-tender-preview { overflow: auto; max-height: 65vh; }
+.tf-budget-tender-preview table { width: 100%; border-collapse: collapse; }
+.tf-budget-tender-preview th, .tf-budget-tender-preview td { padding: .6rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border-color, #8886); }
+.tf-budget-tender-preview td { min-width: 12rem; max-width: 28rem; overflow-wrap: anywhere; }
