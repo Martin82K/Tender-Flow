@@ -107,7 +107,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
       <div className="tf-budget-tender-preview"><table><thead><tr><th>Zdroj</th><th>Cílová položka</th><th>Existující přiřazení</th></tr></thead><tbody>{visible.slice(currentPage*30,(currentPage+1)*30).map(match=>{
         const target=targetOf(match);const prior=existingByItem.get(target)??[];const group=categories.get(tenderKey(match.row.externalCode,match.row.name));const categoryId=group==='new'?getNewId(tenderKey(match.row.externalCode,match.row.name)):group;
         const same=prior.length>0&&prior.every(a=>a.categoryId===categoryId);
-        const suggestions=match.candidates.length?match.candidates.map(id=>nodeIndex.get(id)!).filter(Boolean):targetNodes.filter(n=>n.unit===match.row.node.unit&&n.code===match.row.node.code);
+        const suggestions=match.candidates.length?match.candidates.map(id=>nodeIndex.get(id)!).filter(Boolean):targetNodes.filter(n=>n.unit===match.row.node.unit&&n.code===match.row.node.code).slice(0,100);
         const searched=targetQuery.trim()?targetNodes.filter(n=>n.unit===match.row.node.unit&&`${n.code} ${n.description}`.toLocaleLowerCase('cs').includes(targetQuery.toLocaleLowerCase('cs'))).slice(0,100):[];
         const selected=nodeIndex.get(target);
         const candidates=[...new Map([...suggestions,...searched,...(selected?[selected]:[])].map(n=>[n.id,n])).values()];

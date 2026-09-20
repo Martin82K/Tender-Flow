@@ -9,10 +9,11 @@ import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 vi.mock('@features/projects/budget/api/budgetApi',()=>({budgetApi:{projectTenders:vi.fn(),importTenders:vi.fn()}}));
 beforeEach(()=>{vi.clearAllMocks();vi.mocked(budgetApi.projectTenders).mockResolvedValue([{id:'tender',title:'Práce',externalCode:'02'}]);});
-function setup(allocations:BudgetRevision['allocations']=[],duplicate=false){
+function setup(allocations:BudgetRevision['allocations']=[],duplicate=false,fallbackCount=0){
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['č. VŘ','Název VŘ','Typ','Kód','Popis','MJ','Množství','J.cena','Celkem'],['02','Práce','K','001','Položka','m2',999,500,499500]]),'SO');
   if(duplicate)XLSX.utils.sheet_add_aoa(wb.Sheets.SO,[['03','Jiné práce','K','001','Položka','m2',999,500,499500]],{origin:-1});
   const document=parseKrosWorkbook(wb);const before=structuredClone(document);before.nodes.find(n=>n.kind==='K')!.quantity='10';before.nodes.find(n=>n.kind==='K')!.unitPrice='20';
+  if(fallbackCount){const original=before.nodes.find(n=>n.kind==='K')!;before.nodes=before.nodes.filter(n=>n.kind!=='K');for(let i=0;i<fallbackCount;i++)before.nodes.push({...original,id:`candidate-${i}`,description:`Jiná položka ${i}`});}
   const previous={id:'revision',project_id:'p',organization_id:'org',source_id:'original',title:'Původní',status:'draft',version:3,created_at:'',document:before,allocations} satisfies BudgetRevision;
   const onComplete=vi.fn();
   const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
@@ -51,4 +52,13 @@ it('excludes skipped groups when checking duplicate target selections',async()=>
   fireEvent.change(screen.getByLabelText('VŘ: Jiné práce'),{target:{value:'skip'}});
   fireEvent.click(screen.getByRole('checkbox'));
   expect(screen.getByText('Potvrdit import přiřazení')).not.toBeDisabled();
+});
+
+it('bounds manual code suggestions and keeps search available for further targets',async()=>{
+  setup([],false,250);
+  fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText('VŘ: Práce');
+  const target=screen.getByLabelText('Položka sheet:0:row:2');
+  fireEvent.click(target);expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(102);fireEvent.click(target);
+  fireEvent.change(screen.getByLabelText('Hledat další cílové položky (kód nebo popis)'),{target:{value:'Jiná položka 249'}});
+  fireEvent.click(target);expect(screen.getByRole('option',{name:/Jiná položka 249/})).toBeInTheDocument();
 });
