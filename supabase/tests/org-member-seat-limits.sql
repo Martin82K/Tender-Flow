@@ -113,9 +113,12 @@ END $$;
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{}',true);
 -- Legitimate email add and verified request approval consume the remaining seats.
+UPDATE auth.users SET email='seat-7@seat-approval.invalid' WHERE id='96300000-0000-4000-8000-000000000007';
+INSERT INTO private.verified_organization_domains(domain,organization_id,evidence)
+VALUES('seat-approval.invalid','96300000-0000-4000-8000-000000000010','Synthetic DNS verification');
 UPDATE public.organizations SET max_seats=7 WHERE id='96300000-0000-4000-8000-000000000010';
 INSERT INTO public.organization_join_requests(id,organization_id,user_id,email)
-VALUES('96300000-0000-4000-8000-000000000020','96300000-0000-4000-8000-000000000010','96300000-0000-4000-8000-000000000007','seat-7@gmail.com');
+VALUES('96300000-0000-4000-8000-000000000020','96300000-0000-4000-8000-000000000010','96300000-0000-4000-8000-000000000007','seat-7@seat-approval.invalid');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"96300000-0000-4000-8000-000000000001"}',true);
 SELECT public.add_org_member_by_email('96300000-0000-4000-8000-000000000010','seat-6@gmail.com');

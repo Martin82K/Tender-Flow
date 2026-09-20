@@ -66,7 +66,7 @@ const auth = `SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim
       if (mode === 'duplicate') assert.equal(secondResult.code, 0, secondResult.error);
       else {
         assert.notEqual(secondResult.code, 0, 'Competing seat must be rejected');
-        assert.match(secondResult.error, mode === 'admin_limit' ? /Cannot reduce seats below/ : /Seat limit reached/);
+        assert.match(secondResult.error, mode === 'admin_limit' ? /Cannot reduce seats below/ : mode === 'replace_approval' ? /Join request changed; retry approval/ : /Seat limit reached/);
       }
       assert.equal(sql(`SELECT count(*) FROM public.organization_members WHERE organization_id='${org}' AND is_active AND is_billable;`), '2');
       sql(`DELETE FROM public.organization_join_requests WHERE id='${request}';`);
