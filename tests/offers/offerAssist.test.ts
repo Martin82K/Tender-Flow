@@ -29,3 +29,9 @@ it('derives a missing PDF total from explicit operands while preserving supplied
  const file=new File(['%PDF-1.7'],'offer.pdf');Object.defineProperty(file,'arrayBuffer',{value:async()=>new TextEncoder().encode('%PDF-1.7').buffer});
  const result=await extractPdfOffer('p',file);expect(result.items.map(row=>row.total)).toEqual(['3.50','7','0.00']);
 });
+
+it('rejects more than 10000 PDF items before returning a document or charging later pages',async()=>{
+ invoke.mockClear();invoke.mockResolvedValueOnce({pages:Array.from({length:12},(_,i)=>({page:i+1,text:'OCR'})),limitedToPages:20}).mockResolvedValue({complete:true,text:JSON.stringify({items:Array(1000).fill(item),notes:[],summary:null})});
+ const file=new File(['%PDF-1.7'],'large.pdf');Object.defineProperty(file,'arrayBuffer',{value:async()=>new TextEncoder().encode('%PDF-1.7').buffer});
+ await expect(extractPdfOffer('p',file)).rejects.toThrow('10 000');expect(invoke).toHaveBeenCalledTimes(12);
+});

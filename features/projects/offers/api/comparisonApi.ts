@@ -39,6 +39,8 @@ export const comparisonApi = {
     },
     async save(projectId: string, categoryId: string | null, title: string, document: ComparisonDocument, requestId: string, saved?: SavedComparison): Promise<SavedComparison> {
         validateComparison(document);
-        return unwrap(await dbAdapter.rpc('offer_comparison_save', { project_input: projectId, category_input: categoryId, title_input: title, document_input: { ...document, sources: document.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })) }, request_input: requestId, id_input: saved?.id ?? null, version_input: saved?.version ?? 0 }));
+        const assignments = { ...document.assignments };
+        for (const source of document.sources.slice(1)) assignments[source.id] ??= [];
+        return unwrap(await dbAdapter.rpc('offer_comparison_save', { project_input: projectId, category_input: categoryId, title_input: title, document_input: { ...document, assignments, sources: document.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })) }, request_input: requestId, id_input: saved?.id ?? null, version_input: saved?.version ?? 0 }));
     },
 };

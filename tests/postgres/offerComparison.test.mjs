@@ -57,6 +57,12 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  await assert.rejects(()=>db.query('SELECT public.offer_comparison_load($1,$2)',['own',budgetView.id]),/Budget read denied/);
  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,$2,1,$3,$4,NULL,$5)',['own',budgetView.id,'00000000-0000-0000-0000-000000000098','Bypass',doc]),/reload/);
  await db.exec(`SELECT set_config('test.budget','yes',false);`);
+ const duplicateItems=structuredClone(doc);duplicateItems.sources[1].items.push(duplicateItems.sources[1].items[0]);
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Duplicate items',duplicateItems]),/Invalid item identity/);
+ for(const links of [[{baseId:'row',offerId:null,status:'review'},{baseId:'row',offerId:null,status:'review'}],[{baseId:'row',offerId:'row',status:'manual'},{baseId:'row2',offerId:'row',status:'manual'}]]){
+  const duplicateLinks=structuredClone(doc);duplicateLinks.sources[0].items.push({...source.items[0],id:'row2'});duplicateLinks.assignments.offer=links;
+  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Duplicate links',duplicateLinks]),/Invalid (inquiry|offer) assignment/);
+ }
  const badNotes=structuredClone(doc);badNotes.sources[0].notes=[{text:'invalid'}];
  await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own','00000000-0000-0000-0000-000000000097','Invalid notes',badNotes]),/Invalid source notes/);
 
@@ -74,6 +80,21 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  await assert.rejects(()=>save('own','tender',null,0,'Changed'),/already used/);
  assert.equal((await save('own','tender',first.id,1)).rows[0].result.version,2);
  await assert.rejects(()=>save('own','tender',first.id,1),/reload/);
+ await db.exec('BEGIN');
+ assert.equal((await save('own',null,first.id,2)).rows[0].result.category_id,null);
+ assert.equal((await save('own','tender',first.id,3)).rows[0].result.category_id,'tender');
+ await db.exec('ROLLBACK');
+ const manyItems=Array.from({length:10000},(_,i)=>({...source.items[0],id:`row-${i}`}));
+ const large={schemaVersion:1,sources:[{...source,items:manyItems},{...source,id:'offer',items:manyItems}],assignments:{offer:manyItems.map(item=>({baseId:item.id,offerId:item.id,status:'manual',candidates:[item.id]}))}};
+ await db.exec('BEGIN');const largeRequest=randomUUID();
+ const saveLarge=()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)->>\'id\' AS id',['own',largeRequest,'Large',large]);
+ const start=performance.now();const largeResult=await saveLarge();const validatedMs=performance.now()-start;
+ const retryStart=performance.now();assert.equal((await saveLarge()).rows[0].id,largeResult.rows[0].id);const retryMs=performance.now()-retryStart;
+ console.log(JSON.stringify({comparisonRows:20000,assignments:10000,validatedMs:Math.round(validatedMs),retryMs:Math.round(retryMs)}));await db.exec('ROLLBACK');
+ const excessiveCandidates={...large,assignments:{offer:manyItems.map(item=>({baseId:item.id,offerId:null,status:'review',candidates:manyItems.slice(0,21).map(row=>row.id)}))}};
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Candidate work',excessiveCandidates]),/Comparison validation work limit/);
+ const workLimit={schemaVersion:1,sources:Array.from({length:6},(_,i)=>({...source,id:`source-${i}`,items:i===5?[manyItems[0]]:manyItems})),assignments:Object.fromEntries(Array.from({length:5},(_,i)=>[`source-${i+1}`,[]]))};
+ await assert.rejects(()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4)',['own',randomUUID(),'Work limit',workLimit]),/Comparison validation work limit/);
  await db.exec('BEGIN');
  const createRequest=()=>db.query('SELECT public.offer_comparison_save($1,NULL,0,$2,$3,NULL,$4) AS result',['own',randomUUID(),'Quota',doc]);
  for(let i=0;i<18;i++)await createRequest();

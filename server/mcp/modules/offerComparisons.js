@@ -14,15 +14,23 @@ export function registerOfferComparisonsModule({ supabase, tools, includeWriteTo
     return { ok: true, data: { assignments, comparison: compareOffer(args.inquiry, args.offer, assignments), processing: 'rules', externalAiCost: 'outside-tf' } };
   });
   if (!includeWriteTools) return;
-  tools.register('tf_save_offer_comparison', { title: 'Uložit porovnávací pohled', description: 'Save a derived comparison of existing source snapshots. Does not edit bids, budgets or files and never calls paid AI. First source is inquiry. Use one stable requestId for retrying creation. Editing requires id and expectedVersion. Uncertain links must remain review/unmatched; manual means explicitly verified by user. Source hashes identify the actual bytes read.', inputSchema: { projectId: z.string().min(1).max(200), categoryId: z.string().max(200).optional(), id: z.string().uuid().optional(), expectedVersion: z.number().int().nonnegative().default(0), requestId: z.string().uuid(), title: z.string().min(1).max(200), sources: z.array(source).min(2).max(21), assignments: z.record(z.string(), z.array(assignment).max(10000)) }, outputSchema: toolResultSchema, annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }, async args => {
+  tools.register('tf_save_offer_comparison', { title: 'Uložit porovnávací pohled', description: 'Save a derived comparison of existing source snapshots. Does not edit bids, budgets or files and never calls paid AI. First source is inquiry. Use one stable requestId for retrying creation. Editing requires id and expectedVersion. Uncertain links must remain review/unmatched; manual means explicitly verified by user. Source hashes identify the actual bytes read.', inputSchema: { projectId: z.string().min(1).max(200), categoryId: z.string().max(200).nullable().optional(), id: z.string().uuid().optional(), expectedVersion: z.number().int().nonnegative().default(0), requestId: z.string().uuid(), title: z.string().min(1).max(200), sources: z.array(source).min(2).max(21), assignments: z.record(z.string(), z.array(assignment).max(10000)) }, outputSchema: toolResultSchema, annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false } }, async args => {
     if (new Set(args.sources.map(s => s.id)).size !== args.sources.length) throw new Error('Duplicate source identity.');
+    const assignments = { ...args.assignments };
     for (const offer of args.sources.slice(1)) {
-      const links = args.assignments[offer.id] || [];
+      const links = assignments[offer.id] ?? [];
+      assignments[offer.id] = links;
       validateAssignments(args.sources[0].items, offer.items, links);
       const deterministic = new Map(matchOfferItems(args.sources[0].items, offer.items).map(a => [a.baseId, a.offerId]));
       if (links.some(a => a.status === 'matched' && deterministic.get(a.baseId) !== a.offerId)) throw new Error('Unverified automatic match. Keep it marked for review.');
     }
-    const result = unwrap(await supabase.rpc('offer_comparison_save', { project_input: args.projectId, category_input: args.categoryId || null, id_input: args.id || null, version_input: args.expectedVersion, request_input: args.requestId, title_input: args.title, document_input: { schemaVersion: 1, sources: args.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })), assignments: args.assignments } }));
-    return { ok: true, data: { id: result.id, version: result.version, processing: 'external-mcp', externalAiCost: 'outside-tf' } };
+    let categoryId = args.categoryId;
+    if (args.id && categoryId === undefined) {
+      const existing = unwrap(await supabase.rpc('offer_comparison_load', { project_input: args.projectId, id_input: args.id }));
+      if (!existing) throw new Error('Comparison not found.');
+      categoryId = existing.category_id;
+    }
+    const result = unwrap(await supabase.rpc('offer_comparison_save', { project_input: args.projectId, category_input: categoryId ?? null, id_input: args.id || null, version_input: args.expectedVersion, request_input: args.requestId, title_input: args.title, document_input: { schemaVersion: 1, sources: args.sources.map(source => ({ ...source, items: normalizeOfferItems(source.items) })), assignments } }));
+    return { ok: true, data: { id: result.id, version: result.version, categoryId: result.category_id, processing: 'external-mcp', externalAiCost: 'outside-tf' } };
   }, { action: 'execute_write', riskLevel: 'medium' });
 }

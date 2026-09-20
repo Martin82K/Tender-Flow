@@ -43,3 +43,19 @@ it('accepts the full budget decimal precision in MCP schemas',()=>{
  const quantity='-123456789012345678901234.123456789012345678';
  expect(schema.safeParse([{id:'a',code:'1',description:'Malba',unit:'m2',quantity,unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}}]).success).toBe(true);
 });
+
+it('fills missing offer assignment keys and preserves omitted category on edits',async()=>{
+ const {handlers,rpc}=setup();const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}};
+ const sources=['base','offer','other'].map(id=>({id,origin:'mcp',name:id,sha256:'a'.repeat(64),items:[item],notes:[]}));
+ const args={projectId:'own',id:'view',requestId:'00000000-0000-4000-8000-000000000001',title:'Test',expectedVersion:2,sources,assignments:{offer:[]}};
+ rpc.mockResolvedValueOnce({data:{id:'view',category_id:'existing'},error:null}).mockResolvedValueOnce({data:{id:'view',version:3,category_id:'existing'},error:null});
+ const result=await handlers.get('tf_save_offer_comparison')!(args);
+ expect(rpc).toHaveBeenCalledWith('offer_comparison_load',{project_input:'own',id_input:'view'});
+ expect(rpc.mock.calls.at(-1)[1]).toMatchObject({category_input:'existing',document_input:{assignments:{offer:[],other:[]}}});
+ expect(args.assignments).toEqual({offer:[]});expect(result).toMatchObject({data:{categoryId:'existing'}});
+});
+it('passes an explicit null category when detaching an existing MCP view',async()=>{
+ const {handlers,rpc}=setup();const item={id:'a',code:'1',description:'Malba',unit:'m2',quantity:'1',unitPrice:null,total:null,group:'',source:{sheet:'S',row:1}};
+ await handlers.get('tf_save_offer_comparison')!({projectId:'own',id:'view',categoryId:null,title:'Test',sources:['base','offer'].map(id=>({id,items:[item]})),assignments:{}});
+ expect(rpc).toHaveBeenCalledTimes(1);expect(rpc.mock.calls[0][1]).toMatchObject({category_input:null,document_input:{assignments:{offer:[]}}});
+});

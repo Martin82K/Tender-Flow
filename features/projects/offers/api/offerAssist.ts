@@ -1,7 +1,7 @@
 import { dbAdapter } from '@infra/db/dbAdapter';
 import { invokeAuthedFunction } from '@infra/functions/functionsClient';
 import { multiplyMoney } from '@features/projects/budget/model/budgetModel';
-import { matchOfferItems } from '@shared/offers/comparison.js';
+import { matchOfferItems, validateItems } from '@shared/offers/comparison.js';
 import type { OfferAssignment, OfferItem } from '@shared/offers/comparison.js';
 export interface AiSuggestion {
     baseId: string;
@@ -86,6 +86,8 @@ export async function extractPdfOffer(projectId: string, file: File): Promise<{
         const extracted = JSON.parse(result.text);
         if (!Array.isArray(extracted.items) || extracted.items.length > 1000 || !Array.isArray(extracted.notes))
             throw new Error('Neplatná struktura PDF položek.');
+        if (items.length + extracted.items.length > 10000)
+            throw new Error('Porovnání podporuje nejvýše 10 000 položek napříč všemi stranami PDF.');
         for (const [index, row] of extracted.items.entries()) {
             const text = (key: string) => { if (typeof row[key] !== 'string' || row[key].length > 4000)
                 throw new Error('Neplatný text extrakce.'); return row[key]; };
@@ -100,6 +102,7 @@ export async function extractPdfOffer(projectId: string, file: File): Promise<{
         if (extracted.summary !== null && extracted.summary !== undefined)
             notes.push(`Strana ${page.page}, neověřený souhrn: ${String(extracted.summary).slice(0, 4000)}`);
     }
+    validateItems(items);
     return { items, notes };
 }
 export async function reviewSuggestion(runId: string, itemId: string, accepted: boolean): Promise<void> {

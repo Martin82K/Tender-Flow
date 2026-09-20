@@ -77,16 +77,32 @@ LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$ SELECT private.offer_comp
 
 CREATE FUNCTION private.offer_comparison_save(project_input text,id_input uuid,version_input integer,request_input uuid,title_input text,category_input text,document_input jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE org uuid; result public.offer_comparison_views; source jsonb; item jsonb; link jsonb; links jsonb; source_ids text[]:=ARRAY[]::text[]; base_ids text[]; offer_ids text[]; used_base text[]; used_offer text[]; key text;
+DECLARE org uuid; result public.offer_comparison_views; source jsonb; item jsonb; link jsonb; links jsonb; source_ids text[]:=ARRAY[]::text[]; base_ids jsonb; offer_ids jsonb; base_count integer; work_count bigint; key text;
 BEGIN
  IF private.offer_comparison_access(project_input,true) IS NOT TRUE THEN RAISE EXCEPTION 'Comparison edit denied' USING ERRCODE='42501'; END IF;
  SELECT organization_id INTO org FROM public.projects WHERE id=project_input;
+ -- A creation retry only compares the immutable request payload; do not revalidate every row.
+ IF id_input IS NULL AND request_input IS NOT NULL THEN
+  SELECT * INTO result FROM public.offer_comparison_views WHERE project_id=project_input AND request_id=request_input;
+  IF FOUND THEN
+   IF private.offer_comparison_document_access(project_input,result.document) IS NOT TRUE THEN RAISE EXCEPTION 'Budget read denied' USING ERRCODE='42501'; END IF;
+   IF result.document IS DISTINCT FROM document_input OR result.title IS DISTINCT FROM title_input OR result.category_id IS DISTINCT FROM category_input THEN RAISE EXCEPTION 'Request already used for another comparison' USING ERRCODE='40001'; END IF;
+   RETURN to_jsonb(result);
+  END IF;
+ END IF;
  IF request_input IS NULL OR document_input IS NULL OR jsonb_typeof(document_input) <> 'object' OR document_input->>'schemaVersion' IS DISTINCT FROM '1'
  OR jsonb_typeof(document_input->'sources') IS DISTINCT FROM 'array' OR jsonb_array_length(document_input->'sources') NOT BETWEEN 2 AND 21
  OR jsonb_typeof(document_input->'assignments') IS DISTINCT FROM 'object'
  THEN RAISE EXCEPTION 'Invalid comparison document'; END IF;
  IF octet_length(document_input::text)>12000000 OR jsonb_array_length(document_input->'sources'->0->'items')=0 THEN RAISE EXCEPTION 'Invalid comparison size or empty inquiry'; END IF;
- SELECT array_agg(value->>'id') INTO base_ids FROM jsonb_array_elements(document_input->'sources'->0->'items');
+ -- Bound total work before procedural validation, independently of JSON byte size.
+ SELECT COALESCE(sum(CASE WHEN jsonb_typeof(value->'items')='array' THEN jsonb_array_length(value->'items') ELSE 0 END),0) INTO work_count FROM jsonb_array_elements(document_input->'sources');
+ IF work_count>50000 THEN RAISE EXCEPTION 'Comparison validation work limit exceeded'; END IF;
+ SELECT COALESCE(sum(CASE WHEN jsonb_typeof(value)='array' THEN jsonb_array_length(value) ELSE 0 END),0) INTO work_count FROM jsonb_each(document_input->'assignments');
+ IF work_count>50000 THEN RAISE EXCEPTION 'Comparison validation work limit exceeded'; END IF;
+ SELECT COALESCE(sum(CASE WHEN jsonb_typeof(candidate_link->'candidates')='array' THEN jsonb_array_length(candidate_link->'candidates') ELSE 0 END),0) INTO work_count
+ FROM jsonb_each(document_input->'assignments') assignment CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(assignment.value)='array' THEN assignment.value ELSE '[]'::jsonb END) candidate_link;
+ IF work_count>200000 THEN RAISE EXCEPTION 'Comparison validation work limit exceeded'; END IF;
  FOR source IN SELECT value FROM jsonb_array_elements(document_input->'sources') LOOP
   IF jsonb_typeof(source->'items') IS DISTINCT FROM 'array' OR jsonb_array_length(source->'items') NOT BETWEEN 0 AND 10000
    OR COALESCE(source->>'sha256','') !~ '^[a-f0-9]{64}$' OR length(COALESCE(source->>'name','')) NOT BETWEEN 1 AND 255
@@ -98,10 +114,11 @@ BEGIN
   THEN RAISE EXCEPTION 'Invalid source identity or notes'; END IF;
   IF EXISTS(SELECT 1 FROM jsonb_array_elements(source->'notes') n WHERE jsonb_typeof(n) IS DISTINCT FROM 'string' OR length(n#>>'{}')>4000) THEN RAISE EXCEPTION 'Invalid source notes'; END IF;
   source_ids:=array_append(source_ids,source->>'id');
-  offer_ids:=ARRAY[]::text[];
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(source->'items') entry WHERE jsonb_typeof(entry->'id') IS DISTINCT FROM 'string' OR length(COALESCE(entry->>'id','')) NOT BETWEEN 1 AND 200)
+   OR (SELECT count(*)<>count(DISTINCT entry->>'id') FROM jsonb_array_elements(source->'items') entry) THEN RAISE EXCEPTION 'Invalid item identity'; END IF;
+  SELECT COALESCE(jsonb_object_agg(entry->>'id',true),'{}'::jsonb) INTO offer_ids FROM jsonb_array_elements(source->'items') entry;
+  IF cardinality(source_ids)=1 THEN base_ids:=offer_ids;base_count:=jsonb_array_length(source->'items'); END IF;
   FOR item IN SELECT value FROM jsonb_array_elements(source->'items') LOOP
-   IF jsonb_typeof(item->'id') IS DISTINCT FROM 'string' OR length(COALESCE(item->>'id','')) NOT BETWEEN 1 AND 200 OR item->>'id'=ANY(offer_ids) THEN RAISE EXCEPTION 'Invalid item identity'; END IF;
-   offer_ids:=array_append(offer_ids,item->>'id');
    FOREACH key IN ARRAY ARRAY['code','description','unit','group'] LOOP
     IF jsonb_typeof(item->key) IS DISTINCT FROM 'string' OR length(item->>key)>4000 THEN RAISE EXCEPTION 'Invalid item text'; END IF;
    END LOOP;
@@ -114,8 +131,9 @@ BEGIN
   END LOOP;
   IF cardinality(source_ids)>1 THEN
    links:=document_input->'assignments'->(source->>'id');
-   IF jsonb_typeof(links) IS DISTINCT FROM 'array' OR jsonb_array_length(links)>cardinality(base_ids) THEN RAISE EXCEPTION 'Invalid assignments'; END IF;
-   used_base:=ARRAY[]::text[];used_offer:=ARRAY[]::text[];
+   IF jsonb_typeof(links) IS DISTINCT FROM 'array' OR jsonb_array_length(links)>base_count THEN RAISE EXCEPTION 'Invalid assignments'; END IF;
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(links) entry GROUP BY entry->>'baseId' HAVING count(*)>1) THEN RAISE EXCEPTION 'Invalid inquiry assignment'; END IF;
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(links) entry WHERE entry->>'offerId' IS NOT NULL GROUP BY entry->>'offerId' HAVING count(*)>1) THEN RAISE EXCEPTION 'Invalid offer assignment'; END IF;
    FOR link IN SELECT value FROM jsonb_array_elements(links) LOOP
     IF jsonb_typeof(link) IS DISTINCT FROM 'object' OR jsonb_typeof(link->'baseId') IS DISTINCT FROM 'string'
      OR NOT link ? 'offerId' OR jsonb_typeof(link->'offerId') NOT IN ('string','null')
@@ -123,15 +141,13 @@ BEGIN
     FOREACH key IN ARRAY ARRAY['candidates','reasons'] LOOP
      IF link ? key THEN
       IF jsonb_typeof(link->key) IS DISTINCT FROM 'array' OR jsonb_array_length(link->key)>30 THEN RAISE EXCEPTION 'Invalid assignment metadata'; END IF;
-      IF EXISTS(SELECT 1 FROM jsonb_array_elements(link->key) entry WHERE jsonb_typeof(entry) IS DISTINCT FROM 'string' OR length(entry#>>'{}')>CASE WHEN key='candidates' THEN 200 ELSE 500 END OR (key='candidates' AND NOT (entry#>>'{}'=ANY(offer_ids)))) THEN RAISE EXCEPTION 'Invalid assignment metadata'; END IF;
+      IF EXISTS(SELECT 1 FROM jsonb_array_elements(link->key) entry WHERE jsonb_typeof(entry) IS DISTINCT FROM 'string' OR length(entry#>>'{}')>CASE WHEN key='candidates' THEN 200 ELSE 500 END OR (key='candidates' AND NOT (offer_ids ? (entry#>>'{}')))) THEN RAISE EXCEPTION 'Invalid assignment metadata'; END IF;
      END IF;
     END LOOP;
-    IF link->>'baseId' IS NULL OR NOT (link->>'baseId'=ANY(base_ids)) OR link->>'baseId'=ANY(used_base)
+    IF link->>'baseId' IS NULL OR NOT (base_ids ? (link->>'baseId'))
      OR COALESCE(link->>'status','') NOT IN ('matched','manual','review','unmatched') THEN RAISE EXCEPTION 'Invalid inquiry assignment'; END IF;
-    used_base:=array_append(used_base,link->>'baseId');
     IF link->>'offerId' IS NOT NULL THEN
-     IF NOT (link->>'offerId'=ANY(offer_ids)) OR link->>'offerId'=ANY(used_offer) OR link->>'status' NOT IN ('matched','manual') THEN RAISE EXCEPTION 'Invalid offer assignment'; END IF;
-     used_offer:=array_append(used_offer,link->>'offerId');
+     IF NOT (offer_ids ? (link->>'offerId')) OR link->>'status' NOT IN ('matched','manual') THEN RAISE EXCEPTION 'Invalid offer assignment'; END IF;
     ELSIF link->>'status' IN ('matched','manual') THEN RAISE EXCEPTION 'Confirmed assignment requires offer item'; END IF;
    END LOOP;
   END IF;
@@ -151,7 +167,7 @@ BEGIN
    IF result.document IS DISTINCT FROM document_input OR result.title IS DISTINCT FROM title_input OR result.category_id IS DISTINCT FROM category_input THEN RAISE EXCEPTION 'Request already used for another comparison' USING ERRCODE='40001'; END IF;
   END IF;
  ELSE
-  UPDATE public.offer_comparison_views SET title=title_input,document=document_input,version=version+1,updated_at=now()
+  UPDATE public.offer_comparison_views SET title=title_input,category_id=category_input,document=document_input,version=version+1,updated_at=now()
   WHERE id=id_input AND project_id=project_input AND version=version_input AND private.offer_comparison_document_access(project_input,document) IS TRUE RETURNING * INTO result;
   IF result.id IS NULL THEN RAISE EXCEPTION 'Comparison changed; reload before saving' USING ERRCODE='40001'; END IF;
  END IF;
