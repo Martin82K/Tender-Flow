@@ -11,6 +11,7 @@ export interface PipelineDetailToolbarProps {
   informationUpdateRecipientCount: number;
   loserRecipientCount: number;
   onBack: () => void;
+  onCompare?: () => void;
   onAddSubcontractor: () => void;
   onSelectBulkEmail: (kind: PipelineBulkEmailKind) => void;
   onOpenDocHub: () => void | Promise<void>;
@@ -27,6 +28,7 @@ export const PipelineDetailToolbar: React.FC<PipelineDetailToolbarProps> = ({
   informationUpdateRecipientCount,
   loserRecipientCount,
   onBack,
+  onCompare,
   onAddSubcontractor,
   onSelectBulkEmail,
   onOpenDocHub,
@@ -114,6 +116,8 @@ export const PipelineDetailToolbar: React.FC<PipelineDetailToolbarProps> = ({
         </span>
         <span>Přidat dodavatele</span>
       </button>
+
+      {onCompare && <button type="button" onClick={onCompare} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold dark:border-slate-600">Porovnat nabídky</button>}
 
       <PipelineBulkEmailMenu
         inquiryRecipientCount={inquiryRecipientCount}

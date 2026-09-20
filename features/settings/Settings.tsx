@@ -1,3 +1,4 @@
+import { OfferProcessingAdmin } from "./OfferProcessingAdmin";
 import React, { useEffect, useMemo, useState } from "react";
 import { useFileExport } from "@shared/hooks/useFileExport";
 import { Header } from "@/shared/ui/Header";
@@ -609,6 +610,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 {activeAdminSubTab === "usage" && <AppUsageAdmin />}
                 {activeAdminSubTab === "ai" && (
                   <>
+                    <OfferProcessingAdmin organizationId={user?.organizationId} />
                     <AISettings isAdmin={isAdmin} />
                   </>
                 )}
