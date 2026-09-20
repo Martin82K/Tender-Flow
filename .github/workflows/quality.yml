@@ -41,6 +41,13 @@ jobs:
       - name: Run test suite
         run: npm run test:run
 
+      - name: Verify and run isolated PostgreSQL import regressions
+        run: |
+          npm ci --prefix tests/postgres --ignore-scripts
+          npm audit --prefix tests/postgres --audit-level=high
+          npm audit signatures --prefix tests/postgres
+          PGLITE_MODULE="$PWD/tests/postgres/node_modules/@electric-sql/pglite/dist/index.js" node --test tests/postgres/budgetTenderImport.test.mjs
+
       - name: Check project UI layout and theme states in Chrome
         run: npm run test:project-ui
         env:

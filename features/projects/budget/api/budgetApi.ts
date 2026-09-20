@@ -1,5 +1,12 @@
 import { dbAdapter as supabase } from '@infra/db/dbAdapter';
 import type { BudgetAllocation, BudgetCatalogEntry, BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
+import type { ProjectTender, TenderAssignment } from '../model/tenderImport';
+export interface TenderImportRequest {
+  operationId: string; mode: 'assignments' | 'revision' | 'template';
+  expectedCatalog: ProjectTender[]; newCategories: ProjectTender[]; assignments: TenderAssignment[];
+  sourceId?: string; revisionId?: string; version?: number; title?: string;
+  document?: BudgetDocument; allocations?: BudgetAllocation[];
+}
 export interface BudgetPermissions { read: boolean; prices: boolean; edit: boolean; confirm: boolean; allocate: boolean; purge?: boolean }
 export type BudgetRevisionSummary = Pick<BudgetRevision, 'id' | 'title' | 'status' | 'version' | 'source_id' | 'created_at' | 'deleted_at' | 'purge_job_id'> & { allocation_count?: number; category_ids?: string[] };
 export interface BudgetPurgeJob { id: string; revisionCount: number; sourceCount: number }
@@ -7,6 +14,14 @@ export interface BudgetPurgeSelection { revisions: Array<{ id: string; version: 
 export interface BudgetIndex { mainRevisionId?: string | null; permissions: BudgetPermissions; revisions: BudgetRevisionSummary[]; purgeJobs?: BudgetPurgeJob[] }
 const unwrap = <T>(result: { data: unknown; error: { message: string } | null }): T => { if (result.error) throw new Error(result.error.message); return result.data as T; };
 export const budgetApi = {
+  async projectTenders(projectId: string): Promise<ProjectTender[]> {
+    const rows = unwrap<Array<{id:string;title:string;external_code:string|null}>>(await supabase.from('demand_categories').select('id,title,external_code').eq('project_id',projectId).order('id'));
+    return rows.map(row=>({id:row.id,title:row.title,externalCode:row.external_code??''}));
+  },
+  async importTenders(projectId: string, request: TenderImportRequest): Promise<{revision:BudgetRevision|null;createdCategoryIds:string[]}> {
+    const payload = request.document ? {...request,document:{...request.document,sheets:request.document.sheets.map(sheet=>{const stored={...sheet};delete stored.sourcePreview;return stored;})}} : request;
+    return unwrap(await supabase.rpc('construction_budget_import_tenders',{project_input:projectId,request_input:payload}));
+  },
   async purge(projectId: string, jobId: string, selection: BudgetPurgeSelection): Promise<void> {
     const job = unwrap<BudgetPurgeJob & { paths: string[]; completed: boolean }>(await supabase.rpc('construction_budget_purge_start', {
       project_input: projectId, job_input: jobId, revisions_input: selection.revisions, sources_input: selection.sources,
