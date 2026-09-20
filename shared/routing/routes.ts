@@ -15,6 +15,7 @@ export type { View, ProjectTab };
 export const isProjectTab = (val: string | null): val is ProjectTab => {
   return (
     val === "overview" ||
+    val === "budget" ||
     val === "tender-plan" ||
     val === "pipeline" ||
     val === "schedule" ||

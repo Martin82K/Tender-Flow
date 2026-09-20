@@ -70,11 +70,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     <Modal isOpen={isOpen} onClose={onCancel || (() => {})} size="sm">
       <div className="flex flex-col items-center text-center">
         <div
-          className={`w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 ${getIconColor()}`}
+          className={`w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2 ${getIconColor()}`}
         >
-          <span className="material-symbols-outlined text-3xl">{getIcon()}</span>
+          <span className="material-symbols-outlined text-xl">{getIcon()}</span>
         </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
           {title}
         </h3>
         {messageNode ? (

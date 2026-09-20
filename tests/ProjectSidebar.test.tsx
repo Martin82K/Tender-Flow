@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProjectSidebar } from '@features/projects/ui/ProjectSidebar';
 import { FEATURES } from '@/config/features';
@@ -16,6 +16,50 @@ function setup(activeTab = 'contracts', selectedProjectId = 'a') {
   return onSelect;
 }
 describe('Project workspace sidebar', () => {
+  it('nests schedule in documents and preserves its route when switching projects', () => {
+    const onSelect = setup('schedule');
+    expect(screen.getByRole('button', { name: 'Dokumenty' })).toHaveAttribute('aria-expanded', 'true');
+    const schedule = within(screen.getByRole('group', { name: 'Dokumenty stavby' })).getByRole('button', { name: 'Harmonogram' });
+    expect(schedule).toHaveAttribute('aria-current', 'page');
+    expect(screen.getAllByRole('button', { name: 'Harmonogram' })).toHaveLength(1);
+    fireEvent.click(schedule);
+    expect(onSelect).toHaveBeenLastCalledWith('a', 'schedule');
+    fireEvent.click(screen.getByRole('button', { name: /Změnit stavbu/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Beta · Brno/ }));
+    expect(onSelect).toHaveBeenLastCalledWith('b', 'schedule');
+    fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
+    expect(screen.queryByRole('button', { name: 'Harmonogram' })).not.toBeInTheDocument();
+  });
+  it('opens documents when navigating to schedule', () => {
+    const props = { hasFeature: () => true, projects, selectedProjectId: 'a', onSelect: vi.fn() };
+    const { rerender } = render(<ProjectSidebar {...props} activeTab="overview" />);
+    expect(screen.queryByRole('button', { name: 'Harmonogram' })).not.toBeInTheDocument();
+    rerender(<ProjectSidebar {...props} activeTab="schedule" />);
+    expect(within(screen.getByRole('group', { name: 'Dokumenty stavby' })).getByRole('button', { name: 'Harmonogram' })).toHaveAttribute('aria-current', 'page');
+  });
+  it('hides unavailable schedule while preserving document navigation', () => {
+    const onSelect = vi.fn();
+    render(<ProjectSidebar hasFeature={feature => feature !== FEATURES.PROJECT_SCHEDULE} projects={projects} selectedProjectId="a" activeTab="documents" onSelect={onSelect} />);
+    expect(screen.queryByRole('button', { name: 'Harmonogram' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ceníky' }));
+    expect(onSelect).toHaveBeenCalledWith('a', 'documents', 'ceniky');
+  });
+  it('updates phase badges when switching projects and omits them for archives', () => {
+    const props = { hasFeature: () => true, projects, activeTab: 'overview', onSelect: vi.fn() };
+    const { rerender } = render(<ProjectSidebar {...props} selectedProjectId="a" />);
+    const trigger = screen.getByRole('button', { name: /Změnit stavbu/ });
+    expect(within(trigger).getByLabelText('Soutěž')).toHaveTextContent('S');
+    expect(within(trigger).getByLabelText('Soutěž')).toHaveAttribute('data-status', 'tender');
+    expect(within(trigger).queryByText('V soutěži')).not.toBeInTheDocument();
+    rerender(<ProjectSidebar {...props} selectedProjectId="b" />);
+    expect(within(trigger).getByLabelText('Realizace')).toHaveTextContent('R');
+    expect(within(trigger).getByLabelText('Realizace')).toHaveAttribute('data-status', 'realization');
+    expect(within(trigger).queryByText('V realizaci')).not.toBeInTheDocument();
+    rerender(<ProjectSidebar {...props} selectedProjectId="c" />);
+    expect(within(trigger).queryByLabelText('Soutěž')).not.toBeInTheDocument();
+    expect(within(trigger).queryByLabelText('Realizace')).not.toBeInTheDocument();
+    expect(within(trigger).getAllByText('Archiv')).toHaveLength(2);
+  });
   it('closes the picker on collapse and reopens search with one compact click', () => {
     const props = { hasFeature: () => true, projects, selectedProjectId: 'a', activeTab: 'overview', onSelect: vi.fn(), onExpand: vi.fn() };
     const { rerender } = render(<ProjectSidebar {...props} compact={false} />);

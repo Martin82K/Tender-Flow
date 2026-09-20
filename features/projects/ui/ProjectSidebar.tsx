@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FEATURES, type FeatureKey } from '@/config/features';
 import type { Project, ProjectTab } from '@/types';
-import { PROJECT_NAVIGATION } from '@features/projects/model/projectNavigation';
+import { ScheduleIcon } from '@features/projects/ui/ScheduleIcon';
+import { projectNavigationForSession } from '@features/projects/model/projectNavigation';
 
 interface ProjectSidebarProps {
   compact?: boolean;
@@ -16,8 +17,8 @@ interface ProjectSidebarProps {
 }
 
 export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeSettingsTab = 'pd', activeDocumentsTab = 'subcontractor', onSelect, hasFeature, compact = false, onExpand }: ProjectSidebarProps) {
-  const [documentsOpen, setDocumentsOpen] = useState(activeTab === 'documents');
-  useEffect(() => { if (activeTab === 'documents') setDocumentsOpen(true); }, [activeTab, selectedProjectId]);
+  const [documentsOpen, setDocumentsOpen] = useState(activeTab === 'documents' || activeTab === 'schedule');
+  useEffect(() => { if (activeTab === 'documents' || activeTab === 'schedule') setDocumentsOpen(true); }, [activeTab, selectedProjectId]);
   const documentTabs = [{id:'investor',label:'Objednatel'}, {id:'subcontractor',label:'Subdodavatel'}, {id:'association',label:'Sdružení'}, {id:'claims',label:'Evidence reklamací'}, {id:'ceniky',label:'Ceníky'}] as const;
   const selectedDocumentsTab = documentTabs.find(item => item.id === activeDocumentsTab)?.id || 'subcontractor';
   const [open, setOpen] = useState(false);
@@ -39,7 +40,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const project = projects.find(item => item.id === selectedProjectId);
-  const tabs = PROJECT_NAVIGATION.filter(tab => !tab.feature || hasFeature(tab.feature));
+  const tabs = projectNavigationForSession().filter(tab => !tab.feature || hasFeature(tab.feature));
   const selectedTab: ProjectTab = tabs.find(tab => tab.id === activeTab)?.id ?? 'overview';
   useEffect(() => { setOpen(false); setQuery(''); }, [selectedProjectId]);
   useEffect(() => {
@@ -68,10 +69,13 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
         onClick={() => { if (compact) { onExpand?.(); setOpen(true); } else setOpen(!open); setQuery(''); }}>
         {compact && <span aria-hidden="true" className="material-symbols-outlined">domain</span>}
         <span className="tf-sidebar-label flex items-center justify-between gap-2 font-semibold text-sm">
-          <span className="min-w-0 break-words">{project.name}</span>
+          <span className="flex min-w-0 items-center gap-3">
+            {project.status !== 'archived' && <span aria-label={project.status === 'realization' ? 'Realizace' : 'Soutěž'} data-status={project.status === 'realization' ? 'realization' : 'tender'} className="tf-project-phase inline-flex w-5 shrink-0 items-center justify-center text-2xl leading-none font-bold">{project.status === 'realization' ? 'R' : 'S'}</span>}
+            <span className="min-w-0 break-words">{project.name}</span>
+          </span>
           <span aria-hidden="true" className="material-symbols-outlined text-lg">expand_more</span>
         </span>
-        <span className="tf-sidebar-label mt-1 block text-xs opacity-70">{project.status === 'archived' ? 'Archiv' : project.status === 'realization' ? 'V realizaci' : 'V soutěži'}</span>
+        {project.status === 'archived' && <span className="tf-sidebar-label mt-1 block text-xs opacity-70">Archiv</span>}
       </button>
       {open && <div id="sidebar-project-picker" className="border-y border-slate-300 dark:border-slate-700 p-3">
         <input autoFocus type="search" aria-label="Hledat stavbu" placeholder="Hledat stavbu…" value={query}
@@ -110,7 +114,9 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
           <button type="button" aria-label="Dokumenty" aria-current={selectedTab === 'documents' ? 'page' : undefined} aria-expanded={documentsOpen} aria-controls="sidebar-project-documents" className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setDocumentsOpen(!documentsOpen)}>
             <span aria-hidden="true" className="material-symbols-outlined text-lg">folder_open</span><span className="tf-sidebar-label">Dokumenty</span><span aria-hidden="true" className="tf-sidebar-label material-symbols-outlined ml-auto text-lg">{documentsOpen ? 'expand_less' : 'expand_more'}</span>
           </button>
-          {documentsOpen && <div id="sidebar-project-documents" role="group" aria-label="Dokumenty stavby">{documentTabs.map(item => <button key={item.id} type="button" aria-label={item.label} aria-current={selectedTab === 'documents' && selectedDocumentsTab === item.id ? 'page' : undefined} data-active={selectedTab === 'documents' && selectedDocumentsTab === item.id} className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelect(project.id, 'documents', item.id)}><span aria-hidden="true" className="material-symbols-outlined text-lg">description</span><span className="tf-sidebar-label">{item.label}</span></button>)}</div>}
+          {documentsOpen && <div id="sidebar-project-documents" role="group" aria-label="Dokumenty stavby">{documentTabs.map(item => <button key={item.id} type="button" aria-label={item.label} aria-current={selectedTab === 'documents' && selectedDocumentsTab === item.id ? 'page' : undefined} data-active={selectedTab === 'documents' && selectedDocumentsTab === item.id} className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelect(project.id, 'documents', item.id)}><span aria-hidden="true" className="material-symbols-outlined text-lg">description</span><span className="tf-sidebar-label">{item.label}</span></button>)}
+            {tabs.filter(item => item.id === 'schedule').map(item => <button key={item.id} type="button" aria-label={item.label} aria-current={selectedTab === item.id ? 'page' : undefined} data-active={selectedTab === item.id} className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent pl-11 pr-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => onSelect(project.id, item.id)}><ScheduleIcon className="size-[18px] shrink-0" /><span className="tf-sidebar-label">{item.label}</span></button>)}
+          </div>}
         </>}
         {tab.id === 'project-settings' && <>
           <button type="button" aria-label="Nastavení stavby" aria-expanded={settingsOpen} aria-controls="sidebar-project-settings"
@@ -130,7 +136,7 @@ export function ProjectSidebar({ projects, selectedProjectId, activeTab, activeS
             </button>)}
           </div>}
         </>}
-        {tab.id !== 'documents' && tab.id !== 'contracts' && tab.id !== 'contracts-client' && tab.id !== 'project-settings' && <button type="button" aria-label={tab.label}
+        {tab.id !== 'schedule' && tab.id !== 'documents' && tab.id !== 'contracts' && tab.id !== 'contracts-client' && tab.id !== 'project-settings' && <button type="button" aria-label={tab.label}
         aria-current={tab.id === selectedTab ? 'page' : undefined} data-active={tab.id === selectedTab}
         data-help-id="project-sidebar-tab"
         className="tf-project-nav-row flex w-full items-center gap-2.5 border-l-2 border-transparent px-6 py-2.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"

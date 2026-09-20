@@ -109,5 +109,11 @@ describe("TF basic", () => {
       }
     }
     expect(contrast(color("tf-settings-active-foreground"), color("tf-settings-active-background"))).toBeGreaterThanOrEqual(4.5);
+    if (mode === "light") {
+      for (const text of ["text", "accent", "orange-deep"]) {
+        expect(contrast(color(`tf-skin-${text}`), color("tf-skin-accent-soft")), `${text} on highlighted surfaces`).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrast("#ffffff", color("tf-skin-accent"))).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

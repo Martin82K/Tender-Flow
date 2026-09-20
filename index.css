@@ -1601,6 +1601,7 @@ html[data-skin="industrial"] [data-help-id="documents-header-icon"] {
 }
 
 html[data-skin="industrial"] [data-help-id="schedule-header-icon"] span,
+html[data-skin="industrial"] [data-help-id="schedule-header-icon"] svg,
 html[data-skin="industrial"] [data-help-id="tender-plan-header-icon"] span,
 html[data-skin="industrial"] [data-help-id="documents-header-icon"] span {
   color: var(--tf-skin-orange-deep) !important;
@@ -3979,7 +3980,7 @@ html.dark[data-skin="nature"] {
   color-scheme: dark;
 }
 
-/* TF basic: landing-inspired solid surfaces, with independent light and dark palettes. */
+/* TF basic: coffee light palette and an independent warm dark palette. */
 html[data-skin="basic"] {
   --tf-skin-bg: #f5f2ec;
   --tf-skin-surface: #fffefb;
@@ -3994,17 +3995,18 @@ html[data-skin="basic"] {
   --tf-skin-line-2: #b9aea0;
   --tf-skin-grid: transparent;
   --tf-skin-grid-2: transparent;
-  --tf-skin-accent: #af4821;
-  --tf-skin-accent-2: #983e1b;
-  --tf-skin-orange: #af4821;
-  --tf-skin-orange-deep: #983e1b;
+  --tf-skin-accent: #705743;
+  --tf-skin-accent-2: #594331;
+  --tf-skin-accent-soft: #ded2c5;
+  --tf-skin-orange: #705743;
+  --tf-skin-orange-deep: #594331;
   --tf-skin-green: #24633f;
   --tf-skin-blue: #24549a;
   --tf-skin-rose: #b4233e;
   --tf-skin-amber: #8f5a13;
   --tf-settings-primary: var(--tf-skin-accent);
   --tf-settings-primary-strong: var(--tf-skin-orange-deep);
-  --tf-settings-active-background: #af4821;
+  --tf-settings-active-background: #705743;
   --tf-settings-active-foreground: #ffffff;
   color-scheme: light;
 }
@@ -4025,6 +4027,7 @@ html.dark[data-skin="basic"] {
   --tf-skin-grid-2: transparent;
   --tf-skin-accent: #eaa079;
   --tf-skin-accent-2: #ffc5a1;
+  --tf-skin-accent-soft: initial;
   --tf-skin-orange: #eaa079;
   --tf-skin-orange-deep: #ffc5a1;
   --tf-skin-green: #90cca5;
@@ -4180,7 +4183,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-p
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/10,
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .bg-primary\/15 {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 13%, var(--tf-skin-card) 87%)) !important;
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .border-primary,
@@ -4206,7 +4209,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) [data-help-id="project-tabs"] button[data-active="true"] {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%)) !important;
   border-color: color-mix(in srgb, var(--tf-skin-accent) 52%, var(--tf-skin-line) 48%) !important;
   color: var(--tf-skin-orange-deep) !important;
   box-shadow: 0 3px 10px color-mix(in srgb, var(--tf-skin-bg) 18%, transparent) !important;
@@ -4221,7 +4224,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [data-help-id="tender-plan-header-icon"],
   [data-help-id="tender-plan-tip"]
 ) {
-  background: color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-card) 89%) !important;
+  background: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 11%, var(--tf-skin-card) 89%)) !important;
   border-color: color-mix(in srgb, var(--tf-skin-accent) 35%, var(--tf-skin-line) 65%) !important;
 }
 
@@ -4243,7 +4246,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
   [class~="bg-indigo-500/10"],
   [class~="bg-sky-100"]
 ) {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 12%, var(--tf-skin-card) 88%)) !important;
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) :is(
@@ -4622,7 +4625,7 @@ html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-s
 }
 
 html:is([data-skin="botanica"], [data-skin="nature"], [data-skin="basic"]) .tf-sidebar [data-active="true"] {
-  background-color: color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%) !important;
+  background-color: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 17%, var(--tf-skin-card) 83%)) !important;
   color: var(--tf-skin-orange-deep) !important;
 }
 
@@ -4896,7 +4899,7 @@ html[data-skin] .tf-theme-mode-button:focus-visible {
 }
 
 html[data-skin] .tf-appearance-picker-popover {
-  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   border-color: var(--tf-skin-line-2) !important;
   box-shadow: 0 16px 38px color-mix(in srgb, var(--tf-skin-bg) 42%, transparent) !important;
   color: var(--tf-skin-text) !important;
@@ -4953,7 +4956,7 @@ html[data-skin] .tf-bid-recipient-select .tf-themed-select-trigger:is(:hover, [a
 }
 
 html[data-skin] .tf-themed-select-popover {
-  background: color-mix(in srgb, var(--tf-skin-card) 97%, transparent) !important;
+  background: var(--tf-skin-surface) !important;
   border-color: var(--tf-skin-line-2) !important;
   box-shadow: 0 18px 44px color-mix(in srgb, var(--tf-skin-bg) 48%, transparent) !important;
   color: var(--tf-skin-text) !important;
@@ -5141,7 +5144,7 @@ html:not([data-skin="space"]) :is(.tf-button-success, .tf-button-warning)::befor
 html[data-skin="basic"] {
   --primary: var(--tf-skin-accent);
   --primary-subtle: color-mix(in srgb, var(--tf-skin-accent) 8%, var(--tf-skin-card));
-  --primary-soft: color-mix(in srgb, var(--tf-skin-accent) 16%, var(--tf-skin-card));
+  --primary-soft: var(--tf-skin-accent-soft, color-mix(in srgb, var(--tf-skin-accent) 16%, var(--tf-skin-card)));
   --primary-muted: var(--tf-skin-accent);
   --primary-strong: var(--tf-skin-orange-deep);
   --primary-foreground: var(--tf-settings-active-foreground);
@@ -6407,6 +6410,14 @@ html .tf-project-manager-view .tf-portfolio-status {
   background: transparent !important;
   border: 0 !important;
 }
+.tf-project-phase[data-status="tender"] {
+  color: #2f7dd3;
+}
+.tf-project-phase[data-status="realization"] {
+  color: #a64e22;
+}
+.dark .tf-project-phase[data-status="tender"] { color: #91c3ff; }
+.dark .tf-project-phase[data-status="realization"] { color: #eaa079; }
 .tf-portfolio-bar-realization { background: var(--tf-skin-accent, #eaa079); }
 .tf-portfolio-bar-tender { background: #829dab; }
 .tf-portfolio-bar-track { background: var(--tf-skin-line, #e2e8f0); }
@@ -6503,4 +6514,40 @@ html[data-skin="basic"] .tf-project-overview-view,
 html[data-skin="basic"] .tf-project-overview-view * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+
+/* Shared dialog density and skin-aware portal controls. */
+.tf-modal-panel{max-height:calc(100dvh - 32px)}
+.tf-modal-header,.tf-modal-footer{flex-shrink:0}.tf-modal-body{min-height:0}
+.tf-themed-select-search-header{border-color:var(--tf-skin-line)!important}
+.tf-themed-select-search-box{background:var(--tf-skin-surface-muted)!important;border-color:var(--tf-skin-line-2)!important;color:var(--tf-skin-text)!important}
+.tf-themed-select-search-box:focus-within{border-color:var(--tf-skin-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--tf-skin-accent) 18%,transparent)}
+.tf-themed-select-search-box input{background:transparent!important;color:var(--tf-skin-text)!important;box-shadow:none!important}
+.tf-themed-select-search-box input::placeholder,.tf-themed-select-search-box>span{color:var(--tf-skin-muted)!important}
+
+/* Consistent square close target. Mouse clicks do not imitate keyboard focus. */
+.tf-modal-panel .tf-modal-close {width:32px;height:32px;min-width:32px;min-height:32px;padding:0;line-height:1;border-radius:6px;background:transparent;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.tf-modal-panel .tf-modal-close svg {display:block;flex-shrink:0}
+.tf-modal-panel .tf-modal-close:focus:not(:focus-visible) {outline:none;box-shadow:none}
+.tf-modal-panel .tf-modal-close:focus-visible {outline:2px solid var(--tf-skin-accent,#b76d42);outline-offset:2px;box-shadow:none}
+button.tf-icon-close{width:32px;height:32px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;border-radius:6px}
+button.tf-icon-close>.material-symbols-outlined{display:block;line-height:1;font-size:18px}
+button.tf-icon-close:focus:not(:focus-visible){outline:none;box-shadow:none}
+button.tf-icon-close:focus-visible{outline:2px solid var(--tf-skin-accent,#b76d42);outline-offset:2px;box-shadow:none}
+/* Keep the keyboard indicator compact while retaining the full click target. */
+button.tf-icon-close:focus-visible{outline-offset:-4px!important}
+html[data-skin] body button.tf-icon-close:focus-visible{outline-offset:-4px!important}
+
+/* Compact account controls; retain keyboard focus and dropdown behavior. */
+.tf-account-menu-panel .tf-appearance-picker,
+.tf-account-menu-panel .tf-theme-mode-control { min-height: 34px; }
+.tf-account-menu-panel .tf-theme-mode-button,
+.tf-account-menu-panel .tf-ui-scale-button { width: 28px; height: 28px; min-width: 28px; padding: 0; }
+.tf-account-menu-panel .tf-appearance-section .material-symbols-outlined { font-size: 16px; }
+html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-trigger {
+  min-height: 28px; padding: 4px 6px; border-color: transparent !important;
+  background: transparent !important; box-shadow: none !important;
+}
+html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-trigger:hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 8%, transparent) !important;
 }

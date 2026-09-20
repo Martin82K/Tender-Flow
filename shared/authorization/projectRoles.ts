@@ -44,6 +44,13 @@ export const PROJECT_PERMISSION_AREAS: ProjectPermissionAreaDefinition[] = [
         { key: "project.overview.investor_finance", label: "Finance investora" },
         { key: "project.overview.internal_budget", label: "Interní rozpočet" },
       ] },
+      { key: "budget", label: "Rozpočet stavby", actions: [
+        { key: "budget.read", label: "Čtení rozpočtu" },
+        { key: "budget.prices", label: "Čtení cen a původních souborů" },
+        { key: "budget.edit", label: "Úpravy pracovní revize" },
+        { key: "budget.confirm", label: "Potvrzení revize", supportsApproval: true },
+        { key: "budget.allocate", label: "Přiřazení množství k VŘ" },
+      ] },
       { key: "team", label: "Realizační tým", actions: [
         { key: "project.team.roster", label: "Seznam realizačního týmu" },
         { key: "project.team.manage", label: "Správa členství ve stavbě" },

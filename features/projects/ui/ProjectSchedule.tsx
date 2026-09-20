@@ -1,4 +1,5 @@
 import React from "react";
+import { ScheduleIcon } from "@features/projects/ui/ScheduleIcon";
 import { useFileExport } from "@shared/hooks/useFileExport";
 import type { DemandCategory } from "@/types";
 import {
@@ -59,7 +60,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
               data-help-id="schedule-header-icon"
               className="size-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center"
             >
-              <span className="material-symbols-outlined text-purple-400 text-2xl">bar_chart</span>
+              <ScheduleIcon className="size-7 text-purple-600 dark:text-purple-300" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Harmonogram</h2>
@@ -436,7 +437,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                   <button
                     type="button"
                     onClick={closeEditModal}
-                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="tf-icon-close p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     aria-label="Zavřít"
                   >
                     <span className="material-symbols-outlined text-slate-500">close</span>

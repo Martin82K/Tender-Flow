@@ -1,3 +1,4 @@
+import { projectDemoDataApi } from '@features/projects/api/projectDemoDataApi';
 import { FEATURES, type FeatureKey } from '@/config/features';
 import type { ProjectTab } from '@/types';
 
@@ -8,6 +9,7 @@ export const PROJECT_NAVIGATION: ReadonlyArray<{
   feature?: FeatureKey;
 }> = [
   { id: 'overview', label: 'Přehled', icon: 'dashboard' },
+  { id: 'budget', label: 'Rozpočet', icon: 'calculate' },
   { id: 'documents', label: 'Dokumenty', icon: 'folder' },
   { id: 'tender-plan', label: 'Plán VŘ', icon: 'assignment' },
   { id: 'pipeline', label: 'Výběrová řízení', icon: 'view_kanban', feature: FEATURES.MODULE_PIPELINE },
@@ -19,3 +21,8 @@ export const PROJECT_NAVIGATION: ReadonlyArray<{
   { id: 'settings', label: 'Realizační tým', icon: 'groups' },
   { id: 'project-settings', label: 'Nastavení stavby', icon: 'settings' },
 ];
+
+/** Demo has no budget backend; keep navigation and deep-link guards aligned. */
+export function projectNavigationForSession() {
+  return projectDemoDataApi.isDemoSession() ? PROJECT_NAVIGATION.filter(tab => tab.id !== 'budget') : PROJECT_NAVIGATION;
+}

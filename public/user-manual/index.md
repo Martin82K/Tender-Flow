@@ -202,6 +202,20 @@ Zúžte adresář hledáním, specializací, stavem nebo krajem. Na kartě firmy
 Ve formuláři doplňte alespoň název a specializaci. Níže pokračujte seznamem kontaktních osob, jejich rolí, e-mailů a telefonů. Ověření podle IČO používejte se skutečným platným IČO vlastní firmy; ukázková firma v příručce nemá identitu v rejstříku. Před uložením zkontrolujte nalezené údaje, regiony, poznámku a stav dostupnosti.
 
 
+## Rozpočet stavby
+
+V sekci **Rozpočet** pracujete s položkami ze sešitu XLSX. Soubor lze přetáhnout do importu nebo vybrat z počítače. Volba **Pouze příloha** uchová originál; později u něj klikněte na **Převést**. Aplikace zpracuje uložený soubor bez dalšího nahrávání.
+
+Při prvním převodu vytvoříte rozpočet, při dalších samostatnou verzi. Před uložením vyberte soupisy a prohlédněte **Co zkontrolovat**. Nerozpoznané listy vyžadují kontrolu, nelze je považovat za ověřený kompletní rozpočet. Upozornění na více hodnot jedné figury neblokuje import ani potvrzení. Uložené ceny a množství zůstávají zachované, přepočet takového výrazu vyžaduje kontrolu originálu.
+
+![Položky, rekapitulace a neúplný součet na syntetických datech](./assets/rozpocet.png)
+
+Rekapitulace ukazuje celý rozpočet. Tabulku omezíte rozsahem a filtry v záhlaví; hledání pracuje nad všemi položkami. Prázdná cena není nula. Označení **Neúplný součet** znamená, že některé ceny chybí. Otevřete detail položky kliknutím na její popis a doplňte hodnoty. Potvrzenou verzi nelze přímo upravovat, vytvořte pracovní kopii.
+
+V **Importy a verze** najdete datum nahrání, převodu a vytvoření verze. Přesun do koše je vratný. Obnovte nejdříve přílohu, potom její verze. Správce může vybrané záznamy trvale smazat nebo vysypat koš po zadání **SMAZAT**. Aktivní vazby odstranění přílohy blokují. Přerušenou operaci dokončíte tlačítkem **Dokončit mazání**; koš se automaticky nevysypává.
+
+**Firemní číselníky** sdílejí hodnoty v organizaci. Spravuje je vlastník nebo administrátor. Archivace zachová již použité hodnoty; záznam lze obnovit. Vybraným položkám můžete přiřadit aktivní štítek.
+
 ## Plán VŘ
 
 **K čemu slouží:** připravit, co a kdy budete poptávat. Položka plánu a nabídka dodavatele nejsou totéž.

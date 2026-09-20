@@ -207,8 +207,8 @@ export const ThemedSelect = <T extends string>({
       style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, transform: position.openAbove ? "translateY(-100%)" : undefined }}
     >
       {searchable && (
-        <div className="shrink-0 border-b border-slate-200/80 p-2 dark:border-slate-700/70">
-          <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-2 dark:border-slate-700 dark:bg-slate-950/70">
+        <div className="tf-themed-select-search-header shrink-0 border-b border-slate-200/80 p-2 dark:border-slate-700/70">
+          <div className="tf-themed-select-search-box flex items-center gap-2 rounded-md border border-slate-300 bg-white px-2 dark:border-slate-700 dark:bg-slate-950/70">
             <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">search</span>
             <input
               ref={searchRef}
@@ -302,7 +302,7 @@ export const ThemedSelect = <T extends string>({
         style={triggerStyle}
         className={`tf-themed-select-trigger flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-2 text-left text-xs shadow-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${triggerClassName}`}
       >
-        <span className="min-w-0 flex-1 truncate">{selectedOption && renderOption ? renderOption(selectedOption) : selectedOption?.label || "—"}</span>
+        <span className="min-w-0 flex-1 truncate">{selectedOption && renderOption ? renderOption(selectedOption) : selectedOption?.label || "Vyberte"}</span>
         <span aria-hidden="true" className={`material-symbols-outlined text-[16px] transition-transform ${isOpen ? "rotate-180" : ""}`}>
           expand_more
         </span>

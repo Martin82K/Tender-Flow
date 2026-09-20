@@ -72,6 +72,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -155,6 +156,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
         const nextAvatarUrl = await userProfileService.getAvatarUrl(profile.avatarPath);
         if (!active) return;
         setDisplayName(profile.displayName || "");
+        setAvatarPath(profile.avatarPath || null);
         setAvatarUrl(nextAvatarUrl);
       } catch {
         if (active) {
@@ -169,6 +171,22 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       active = false;
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !avatarPath || !user?.id) return;
+    let active = true;
+    void userProfileService.getAvatarUrl(avatarPath).then((url) => {
+      if (active) setAvatarUrl(url);
+    }).catch(() => {
+      if (active) setAvatarUrl(null);
+    });
+    return () => { active = false; };
+  }, [isOpen, avatarPath, user?.id]);
+
+  const handleAvatarError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const failedUrl = event.currentTarget.getAttribute("src");
+    setAvatarUrl((current) => current === failedUrl ? null : current);
+  };
 
   const closeAndNavigate = (
     settingsTab: "user" | "tools" | "organization" | "admin",
@@ -246,6 +264,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
     setAvatarStatus(null);
     try {
       const result = await userProfileService.uploadAvatar(user.id, file);
+      setAvatarPath(result.avatarPath);
       setAvatarUrl(result.avatarUrl);
       setAvatarStatus("Avatar uložen.");
     } catch (error) {
@@ -288,6 +307,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                 alt=""
                 className="size-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={handleAvatarError}
               />
             ) : (
               initials
@@ -322,6 +342,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     alt=""
                     className="size-full object-cover"
                     referrerPolicy="no-referrer"
+                    onError={handleAvatarError}
                   />
                 ) : (
                   <div className="flex size-full items-center justify-center text-sm font-black">

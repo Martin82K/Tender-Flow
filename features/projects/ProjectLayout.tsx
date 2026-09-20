@@ -31,7 +31,8 @@ import type { ThemeSkin } from "@/shared/types/theme";
 import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings";
 import { projectService } from "@/services/projectService";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
-import { PROJECT_NAVIGATION } from "@features/projects/model/projectNavigation";
+import { projectNavigationForSession } from "@features/projects/model/projectNavigation";
+import { ConstructionBudget } from "@features/projects/budget/ui/ConstructionBudget";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -120,7 +121,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
     });
   }, [project, onUpdateDetails]);
 
-  const allTabs = PROJECT_NAVIGATION;
+  const allTabs = projectNavigationForSession();
 
   const visibleTabs = useMemo(
     () => allTabs.filter((tab) => !tab.feature || hasFeature(tab.feature)),
@@ -174,6 +175,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle={`${currentStatus} · ${visibleTabs.find(tab => tab.id === activeTab)?.label ?? "Přehled"}`}
         skin={skin}
         onSearchChange={setSearchQuery}
+        searchValue={searchQuery}
         searchPlaceholder="Hledat v projektu..."
         helpSlot={
           <div className="flex items-center gap-1">
@@ -192,7 +194,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
 
       {isArchived && <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm font-medium text-amber-800">Archivovaná stavba je pouze ke čtení. Nevznikají zde nové úkoly, schválení ani oznámení; obnovit ji může systémový vlastník stavby.</div>}
       {!isArchived && isReadOnly && <div className="border-b border-blue-200 bg-blue-50 px-6 py-3 text-sm font-medium text-blue-800">K této stavbě máte přístup pouze pro čtení.</div>}
-      <div className={`flex-1 overflow-auto flex flex-col ${isReadOnly && activeTab !== "settings" && activeTab !== "documents" ? "pointer-events-none select-none opacity-80" : ""}`} aria-readonly={isReadOnly}>
+      <div className={`flex-1 overflow-auto flex flex-col ${isReadOnly && activeTab !== "settings" && activeTab !== "documents" && activeTab !== "budget" ? "pointer-events-none select-none opacity-80" : ""}`} aria-readonly={isReadOnly}>
         {activeTab === "overview" && (
           <ProjectOverviewNew
             project={project}
@@ -205,6 +207,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             skin={skin}
           />
         )}
+        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <ConstructionBudget searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
         {activeTab === "tender-plan" && (
           <TenderPlan
             projectId={projectId}

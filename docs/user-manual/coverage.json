@@ -1,7 +1,7 @@
 {
   "scope": "Běžné uživatelské funkce; systémová a organizační administrace odložena.",
   "projectNavigation": {
-    "overview": "prehled", "documents": "dokumenty", "tender-plan": "plan-vr", "pipeline": "vr-tabulka",
+    "overview": "prehled", "budget": "rozpocet", "documents": "dokumenty", "tender-plan": "plan-vr", "pipeline": "vr-tabulka",
     "contracts-client": "objednatel", "contracts": "smlouva-formular", "schedule": "harmonogram", "map": "mapa",
     "settings": "tym", "project-settings": "slozkomat"
   },

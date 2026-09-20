@@ -1,3 +1,4 @@
+import { deleteProjectWithBudget } from '@features/projects/budget/api/deleteProjectWithBudget';
 import { supabase } from "./supabase";
 import type { ActiveProjectStatus, Project, ProjectAccessKind, ProjectTeamRole } from "../types";
 import { isDemoSession, DEMO_PROJECT } from "./demoData";
@@ -151,9 +152,7 @@ export const projectService = {
         });
       }
     } else {
-      const { error } = await supabase.from("projects").delete().eq("id", id);
-
-      if (error) throw error;
+      await deleteProjectWithBudget(id);
     }
   },
 

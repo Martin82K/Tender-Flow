@@ -1,3 +1,4 @@
+import { attachBudgetBackupFiles, validateBudgetBackupFiles, restoreBudgetBackupFiles } from './budgetBackupFiles';
 import { dbAdapter } from '@infra/db/dbAdapter';
 import { backupAdapter } from '@infra/platform/platformAdapter';
 import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
@@ -41,10 +42,10 @@ export const backupService = {
     async exportUserBackup(orgId: string): Promise<BackupManifest> {
         const { data, error } = await dbAdapter.rpc<BackupManifest>(
             'export_user_backup',
-            { target_org_id: orgId }
+            { target_org_id: orgId, include_budget_files: true }
         );
         if (error) throw error;
-        return data as BackupManifest;
+        return attachBudgetBackupFiles(data as BackupManifest);
     },
 
     /**
@@ -53,21 +54,24 @@ export const backupService = {
     async exportTenantBackup(orgId: string): Promise<BackupManifest> {
         const { data, error } = await dbAdapter.rpc<BackupManifest>(
             'export_tenant_backup',
-            { target_org_id: orgId }
+            { target_org_id: orgId, include_budget_files: true }
         );
         if (error) throw error;
-        return data as BackupManifest;
+        return attachBudgetBackupFiles(data as BackupManifest);
     },
 
     /**
      * Restore user backup (only overwrites user-owned records).
      */
     async restoreUserBackup(backupJson: BackupManifest, orgId: string): Promise<RestoreSummary> {
+        await validateBudgetBackupFiles(backupJson);
+        const { construction_budget_files: _files, ...databaseManifest } = backupJson;
         const { data, error } = await dbAdapter.rpc<RestoreSummary>(
             'restore_user_backup',
-            { backup_json: backupJson, target_org_id: orgId }
+            { backup_json: databaseManifest, target_org_id: orgId }
         );
         if (error) throw error;
+        await restoreBudgetBackupFiles(backupJson, data?.restored_construction_budget_sources);
         return data as RestoreSummary;
     },
 
@@ -75,11 +79,14 @@ export const backupService = {
      * Restore tenant backup (all org data, admin/owner only).
      */
     async restoreTenantBackup(backupJson: BackupManifest, orgId: string): Promise<RestoreSummary> {
+        await validateBudgetBackupFiles(backupJson);
+        const { construction_budget_files: _files, ...databaseManifest } = backupJson;
         const { data, error } = await dbAdapter.rpc<RestoreSummary>(
             'restore_tenant_backup',
-            { backup_json: backupJson, target_org_id: orgId }
+            { backup_json: databaseManifest, target_org_id: orgId }
         );
         if (error) throw error;
+        await restoreBudgetBackupFiles(backupJson, data?.restored_construction_budget_sources);
         return data as RestoreSummary;
     },
 

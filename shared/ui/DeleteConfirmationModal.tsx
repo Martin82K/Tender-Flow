@@ -29,19 +29,19 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
     return (
         <Modal isOpen={isOpen} onClose={onCancel} size="sm">
             <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-4 text-red-500">
-                    <span className="material-symbols-outlined text-3xl">warning</span>
+                <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center mb-2 text-red-500">
+                    <span className="material-symbols-outlined text-xl">warning</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
                     Smazat stavbu?
                 </h3>
                 <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-2">
                     Chystáte se smazat stavbu:
                 </p>
-                <p className="text-red-500 font-bold text-base mb-4">
+                <p className="text-red-500 font-bold text-base mb-2">
                     {projectName}
                 </p>
-                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-4">
+                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-2">
                     Pro potvrzení napište <span className="font-bold text-red-500">smazat</span>
                 </p>
                 <input
@@ -54,7 +54,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
                 />
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-3 flex gap-3">
                 <Button
                     variant="secondary"
                     className="flex-1"

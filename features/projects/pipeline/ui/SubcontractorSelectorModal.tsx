@@ -68,7 +68,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                             onClick={onClose}
                             disabled={isSubmitting}
                             aria-label="Zavřít výběr dodavatelů"
-                            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="tf-icon-close text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
