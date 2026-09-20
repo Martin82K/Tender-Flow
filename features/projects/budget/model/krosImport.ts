@@ -62,8 +62,8 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       .sort((a, b) => Number(b.match(/\d+/)?.[0]) - Number(a.match(/\d+/)?.[0]));
     const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
     // Bounded, ephemeral raw preview also works when recognition fails.
-    const previewStart = Math.max(0, header - 5);
     const previewRows = Math.min(60, Math.floor(200000 / workbook.SheetNames.length / (range.e.c + 1)));
+    const previewStart = Math.max(0, header - Math.min(5, Math.max(0, previewRows - 2)));
     const sourcePreview = { rowCount: rows.length, columnCount: range.e.c + 1, rows: rows.slice(previewStart, previewStart + previewRows).map((values, index) => ({
       row: previewStart + index + 1, cells: values.map((value, column) => {
         const cell = sheet[XLSX.utils.encode_cell({ r: previewStart + index, c: column })];

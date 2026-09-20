@@ -19,10 +19,10 @@ import { isPriced } from '../model/types';
 import type { BudgetAllocation, BudgetDocument, BudgetNode, BudgetRevision, BudgetSource } from '../model/types';
 import { applyBudgetItemEdit, createRemainingAllocations, validateRevisionAllocations } from '../model/revisions';
 import './budget.css';
-interface Props { projectId:string; organizationId?:string; userId?:string; categories:DemandCategory[]; readOnly?:boolean; searchQuery?:string; onSearchChange?:(value:string)=>void }
+interface Props { canUseTenders?:boolean; projectId:string; organizationId?:string; userId?:string; categories:DemandCategory[]; readOnly?:boolean; searchQuery?:string; onSearchChange?:(value:string)=>void }
 interface ViewSettings { scope:string; showVV:boolean; panel:boolean; wrap:boolean; grid:boolean; density:number; columns:BudgetColumn[]; recent:string[]; pinned:string[] }
 const defaults:ViewSettings={scope:'',showVV:false,panel:true,wrap:false,grid:false,density:44,columns:DEFAULT_COLUMNS,recent:[],pinned:[]};
-export function ConstructionBudget({projectId,organizationId,userId,categories,readOnly=false,searchQuery='',onSearchChange}:Props) {
+export function ConstructionBudget({canUseTenders=false,projectId,organizationId,userId,categories,readOnly=false,searchQuery='',onSearchChange}:Props) {
   const cache=useQueryClient();const key=['construction-budget',projectId,userId];const viewKey=`tf-budget-view:${userId??'guest'}:${projectId}`;
   const [view,setView]=useState<ViewSettings>(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(viewKey)||'{}')};}catch{return defaults;}});
   const [revisionId,setRevisionId]=useState('');const [tab,setTab]=useState<'items'|'recap'|'versions'>('items');const [filters,setFilters]=useState<BudgetFilters>({});
@@ -89,7 +89,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
     <div className="tf-budget-toolbar"><h2>Rozpočet stavby</h2><span>{current?.title||'Bez rozpočtu'} {current?.deleted_at?'· V koši':''} · CZK bez DPH</span><span role="status">{saving?'Ukládání…':current?`Uložení ${current.version} · ${current.status==='confirmed'?'Potvrzená':'Pracovní'}`:''}</span>
       <button disabled={!nodes.length} onClick={()=>setExportSelection([])}>Exportovat</button>
       {permissions?.edit&&permissions.prices&&!readOnly&&<button onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}
-    {permissions?.edit&&permissions.prices&&permissions.allocate&&!readOnly&&<button onClick={()=>setTemplatesOpen(true)}>Vlastní vzory VŘ</button>}
+    {canUseTenders&&permissions?.edit&&permissions.prices&&permissions.allocate&&!readOnly&&<button onClick={()=>setTemplatesOpen(true)}>Vlastní vzory VŘ</button>}
     </div>
     <div className="tf-budget-toolbar tf-budget-commandbar" role="group" aria-label="Ovládání rozpočtu">
       <nav className="tf-budget-toolbar" aria-label="Sekce rozpočtu">{(['recap','items','versions'] as const).map(t=><button key={t} className="tf-budget-command-button" aria-current={tab===t?'page':undefined} onClick={()=>setTab(t)}>{t==='items'?<List aria-hidden="true"/>:t==='recap'?<ChartNoAxesColumnIncreasing aria-hidden="true"/>:<Import aria-hidden="true"/>}{t==='items'?'Položky':t==='recap'?'Rekapitulace':'Importy a verze'}</button>)}</nav>
@@ -144,7 +144,7 @@ export function ConstructionBudget({projectId,organizationId,userId,categories,r
     {repairOpen&&current&&<BudgetImportDialog key={current.id} editRevision={current} projectId={projectId} source={sources.data?.find(s=>s.id===current.source_id)} onClose={()=>setRepairOpen(false)} onComplete={r=>{setRepairOpen(false);if(r){cache.setQueryData([...key,'revision',r.id],r);setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:r.version});}void cache.invalidateQueries({queryKey:key});}}/>}
     {exportSelection&&current&&<BudgetExportDialog nodes={nodes} allocations={current.allocations} categories={categories} canViewPrices={permissions?.prices??false} selectedIds={exportSelection} onClose={()=>setExportSelection(null)}/>}
     {templatesOpen&&<BudgetTenderTemplates projectId={projectId} onClose={()=>setTemplatesOpen(false)}/>}
-    {importOpen&&<BudgetImportDialog canAllocate={permissions?.allocate??false} hasVersions={!!index.data?.revisions.length} projectId={projectId} source={importSource} previous={current} onClose={()=>{setImportOpen(false);void cache.invalidateQueries({queryKey:key});}} onComplete={(r?:BudgetRevision)=>{setImportOpen(false);if(r){setRevisionId(r.id);updateView({scope:''});setSelected(new Set());setUndo(null);cache.setQueryData([...key,'revision',r.id],r);}void cache.invalidateQueries({queryKey:key});}}/>}
+    {importOpen&&<BudgetImportDialog canImportTenders={canUseTenders} canAllocate={permissions?.allocate??false} hasVersions={!!index.data?.revisions.length} projectId={projectId} source={importSource} previous={current} onClose={()=>{setImportOpen(false);void cache.invalidateQueries({queryKey:key});}} onComplete={(r?:BudgetRevision)=>{setImportOpen(false);if(r){setRevisionId(r.id);updateView({scope:''});setSelected(new Set());setUndo(null);cache.setQueryData([...key,'revision',r.id],r);}void cache.invalidateQueries({queryKey:key});}}/>}
   </section>;
 }
 
