@@ -98,6 +98,22 @@ describe('automatic Globus import', () => {
     expect(document.nodes).toEqual([]);
   });
 
+  it('imports P and SD correctly when an unrecognized header is explicitly mapped as Globus', () => {
+    const workbook = globusWorkbook();
+    for (const cell of ['A5', 'C5', 'E5', 'F5', 'G5', 'H6', 'I6']) workbook.Sheets['000'][cell].v = 'Vlastní záhlaví';
+    expect(parseKrosWorkbook(workbook).sheets[1].role).toBe('unknown');
+    const document = parseKrosWorkbook(workbook, undefined, { '000': {
+      role: 'items', format: 'globus', headerRow: 5,
+      columns: { kind: 0, code: 2, description: 4, unit: 5, quantity: 6, unitPrice: 7, total: 8 },
+    } });
+    expect(document.sheets[1]).toMatchObject({ format: 'globus', object: '000', title: 'Příprava' });
+    expect(document.nodes.filter(isPriced)).toHaveLength(2);
+    expect(document.nodes.filter(node => node.kind === 'section')).toHaveLength(2);
+    expect(document.nodes.filter(node => node.kind === 'note')).toHaveLength(2);
+    expect(aggregateBudget(document.nodes).total).toBe('50.00');
+    expect(document.issues).toEqual([]);
+  });
+
   it.each(['xl/vbaProject.bin', 'xl/externalLinks/externalLink1.xml', 'xl/embeddings/object.bin'])('rejects active content %s before automatic recognition', entry => {
     const bytes = new Uint8Array(XLSX.write(globusWorkbook(), { type: 'array', bookType: 'xlsx' }));
     const archive = unzipSync(bytes);

@@ -12,6 +12,22 @@ vi.mock('@features/projects/budget/api/importWorker', () => ({ importInWorker: v
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('budget import dialog', () => {
+  it('allows choosing Globus for unrecognized headings before repeating recognition', async () => {
+    vi.mocked(importInWorker).mockResolvedValue({ schemaVersion: 1, figures: {}, nodes: [], issues: [], sheets: [
+      { id: 's1', name: '000', role: 'unknown', object: 'Bez objektu', title: '000', headerRow: 0, selected: false },
+    ] });
+    render(<BudgetImportDialog projectId="p" source={{ id: 's', project_id: 'p', filename: 'custom.xlsx', storage_path: 's', sha256: 'a', status: 'ready', created_at: '2026-09-19T10:00:00Z' }} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Zkontrolovat 000' }));
+    fireEvent.change(screen.getByLabelText('Formát listu'), { target: { value: 'globus' } });
+    fireEvent.change(screen.getByLabelText('Role listu'), { target: { value: 'items' } });
+    fireEvent.change(screen.getByLabelText('Řádek hlavičky'), { target: { value: '5' } });
+    expect(screen.getByLabelText('Formát listu')).toHaveValue('globus');
+    fireEvent.click(screen.getByRole('button', { name: 'Znovu rozpoznat s tímto mapováním' }));
+    await waitFor(() => expect(importInWorker).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(importInWorker).mock.calls[1][3]).toMatchObject({ '000': { format: 'globus', role: 'items', headerRow: 5 } });
+    fireEvent.change(screen.getByLabelText('Formát listu'), { target: { value: 'auto' } });
+    expect(screen.getByLabelText('Formát listu')).toHaveValue('auto');
+  });
   it('shows the automatically detected Globus format with mapping collapsed and saves its items', async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([

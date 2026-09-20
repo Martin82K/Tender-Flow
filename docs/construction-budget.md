@@ -11,6 +11,9 @@ listu, nikoli podle názvu souboru nebo přítomnosti loga. Podporované soupisy
 rovnou vyberou; v náhledu stačí zkontrolovat rozsah a dokončit import. Pokročilé
 mapování zůstává sbalené jako pomoc pro nerozpoznané nebo nestandardní soubory.
 Posunuté hlavičky a přeuspořádané sloupce se rozpoznají bez ručního mapování.
+U vlastního záhlaví lze v pokročilém mapování zvolit **Formát listu → Globus**,
+roli, řádek hlavičky a sloupce. Volba formátu zachová význam řádků `P` a `SD`
+i bez rozpoznatelných názvů sloupců. U běžných vzorů tato volba není potřeba.
 
 Globus podporuje dvouřádkové záhlaví cen, jednotlivé objekty a soupisy, oddíly
 `SD`, položky `P`, doplňující popis `PP`, výkaz výměr `VV` a technický popis

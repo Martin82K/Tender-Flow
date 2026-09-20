@@ -2,9 +2,9 @@ import * as XLSX from 'xlsx';
 import { Unzip, UnzipInflate } from 'fflate';
 import { decimal, money, multiplyMoney, normalizeSearch } from './budgetModel';
 import { detectBudgetLayout, globusIdentity, isGlobusColumnGuide } from './importProfiles';
-import type { BudgetDocument, BudgetNode, BudgetSheet, FigureConflict, FigureSource, SourceCell } from './types';
+import type { BudgetDocument, BudgetImportFormat, BudgetNode, BudgetSheet, FigureConflict, FigureSource, SourceCell } from './types';
 
-export interface KrosSheetMapping { headerRow?: number; columns?: Record<string,number>; role?: BudgetSheet['role']; object?: string; title?: string }
+export interface KrosSheetMapping { headerRow?: number; columns?: Record<string,number>; role?: BudgetSheet['role']; object?: string; title?: string; format?: BudgetImportFormat | 'auto' }
 export type KrosMapping = Record<string,KrosSheetMapping>;
 export const XLSX_LIMITS = { compressed: 30 * 1024 * 1024, expanded: 160 * 1024 * 1024, entry: 32 * 1024 * 1024, entries: 4000, sheets: 200, rows: 250000, columns: 512, text: 32768 };
 /** Check actual streamed output sizes, not ZIP size declarations. Never execute macros/links. */
@@ -45,18 +45,22 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     const header=override.headerRow ? override.headerRow-1 : detected?.header ?? -1;
     if(header>=rows.length||header < -1)throw new Error("Neplatný řádek hlavičky.");
     const layout = detectBudgetLayout(rows, header);
-    const globus = layout?.format === 'globus';
+    const format = (override.format === 'auto' ? undefined : override.format) ?? layout?.format;
+    const globus = format === 'globus';
+    const columns = (rows[header] ?? []).map(v => normalizeSearch(text(v)));
+    const col = (pattern: RegExp) => columns.findIndex(v => pattern.test(v));
+    const mapping = { kind: col(/^typ$/), code: col(/^kod$/), description: col(/^popis$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...layout?.columns, ...override.columns };
     const sheetId = `sheet:${sheetIndex}`;
     const heading = rows.slice(0, 30).flat().map(text).join(' ');
     const role: BudgetSheet['role'] = override.role ?? (header >= 0 ? 'items' : /rekapitulace/i.test(heading) ? 'summary' : /seznam figur/i.test(heading + name) ? 'figures' : /pokyny/i.test(heading + name) ? 'instructions' : 'unknown');
     const labelAfter = (label: string) => { const i = rows.slice(0, 35).findIndex(row => row.some(v => text(v) === label)); return i >= 0 ? rows[i + 1]?.map(text).find(v => v.trim()) || '' : ''; };
-    const identity = globus ? globusIdentity(rows, header, layout.columns) : undefined;
+    const identity = globus ? globusIdentity(rows, header, mapping) : undefined;
     const object = override.object || identity?.object || labelAfter('Objekt:') || 'Bez objektu';
     const levelLabels = rows.slice(0, header >= 0 ? header : 35).flat().map(text)
       .filter(value => /^Úroveň \d+:$/.test(value))
       .sort((a, b) => Number(b.match(/\d+/)?.[0]) - Number(a.match(/\d+/)?.[0]));
     const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
-    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', ...(layout ? { format: layout.format } : {}) });
+    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', ...(format ? { format } : {}) });
     if (role === 'figures') {
       const figureHeader=rows.findIndex(row=>row.some(v=>normalizeSearch(text(v))==='vymera')&&row.some(v=>normalizeSearch(text(v))==='kod'));
       if(figureHeader>=0){
@@ -78,9 +82,6 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     }
     if (role !== 'items') { progress?.(sheetIndex + 1, workbook.SheetNames.length); continue; }
     if(header<0){document.issues.push({sheet:name,row:1,severity:'error',message:'Zvolte hlavičku a mapování sloupců.'});continue;}
-    const columns = rows[header].map(v => normalizeSearch(text(v)));
-    const col = (pattern: RegExp) => columns.findIndex(v => pattern.test(v));
-    const mapping = { kind: col(/^typ$/), code: col(/^kod$/), description: col(/^popis$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...layout?.columns, ...override.columns };
     document.sheets[document.sheets.length-1].columns=mapping;
     if (Object.values(mapping).some(v => !Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns)) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
     const objectId = `object:${object}`;
@@ -92,7 +93,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     for (let r = header + 1; r < rows.length; r++) {
       const row = rows[r]; const rawKind = text(row[mapping.kind]).trim();
       if (!rawKind) continue;
-      if (globus && r === header + 2 && isGlobusColumnGuide(row, layout.columns)) continue;
+      if (globus && r === header + 2 && isGlobusColumnGuide(row, mapping)) continue;
       const kind: BudgetNode['kind'] = rawKind === 'D' || (globus && rawKind === 'SD') ? 'section' : globus && rawKind === 'P' ? 'K' : rawKind === 'K' || rawKind === 'M' || rawKind === 'VV' ? rawKind : 'note';
       const cells: Record<string, SourceCell> = {};
       for (let c = 0; c <= range.e.c; c++) {
