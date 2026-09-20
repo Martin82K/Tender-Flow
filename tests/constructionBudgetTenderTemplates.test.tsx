@@ -26,3 +26,11 @@ it('blocks duplicate definitions inside the template until explicitly excluded',
   await screen.findByRole('alert');expect(screen.getByText('Vytvořit 2 VŘ v tomto projektu')).toBeDisabled();
   fireEvent.click(screen.getAllByRole('checkbox')[1]);expect(screen.getByText('Vytvořit 1 VŘ v tomto projektu')).not.toBeDisabled();
 });
+it('lets the user exclude a selected definition after editing it to an existing name',async()=>{
+  setup();await upload([{title:'Nové',externalCode:'02'},{title:'Jiné',externalCode:'03'}]);
+  await screen.findByText('Vytvořit 2 VŘ v tomto projektu');
+  fireEvent.change(screen.getAllByLabelText('Název VŘ')[0],{target:{value:'Stávající'}});
+  expect(screen.getByText('Vytvořit 2 VŘ v tomto projektu')).toBeDisabled();
+  fireEvent.click(screen.getAllByRole('checkbox')[0]);
+  expect(screen.getByText('Vytvořit 1 VŘ v tomto projektu')).not.toBeDisabled();
+});
