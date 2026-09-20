@@ -89,7 +89,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     setCreatedTenders(old=>[...old.filter(t=>t.id!==tender.id),{...tender,projectId}]);
     if(warning)setNotice(warning);
     void cache.invalidateQueries();
-    return tender;
+    return {...tender,warning};
   };
   const act=async(action:()=>Promise<unknown>)=>{if(actionLock.current)return;actionLock.current=true;setSaving(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'Operace selhala.');}finally{actionLock.current=false;setSaving(false);}};
   const jump=(n:BudgetNode)=>{if(view.scope&&n.sheetId!==view.scope){updateView({scope:''});setNotice('Rozsah změněn na celý rozpočet kvůli vybranému oddílu. Sloupcové filtry zůstaly zachované.');}setTab('items');setJumpId(n.id);setJumpRequest(request=>request+1);};

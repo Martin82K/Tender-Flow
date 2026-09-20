@@ -13,7 +13,7 @@ import { getPendingImportIssues, preserveUnchangedFigureResolutions } from '../m
 import { sourceColumnName } from '../model/importRepair';
 import { normalizeSearch } from '../model/budgetModel';
 import { assignWholeItems, syncWholeItemQuantity, compareRevisions, proposeRevisionMapping, transferRevisionLinks, validateRevisionAllocations } from '../model/revisions';
-interface Props { onCreateTender?:(name:string)=>Promise<{id:string;title:string}>; tagOptions?:readonly {id:string;name:string}[]; categories?:readonly {id:string;title:string}[]; canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision,notice?:string)=>void }
+interface Props { onCreateTender?:(name:string)=>Promise<{id:string;title:string;warning?:string}>; tagOptions?:readonly {id:string;name:string}[]; categories?:readonly {id:string;title:string}[]; canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision,notice?:string)=>void }
 export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canImportTenders=false,canAllocate=false,editRevision,projectId,source:initialSource,previous:incomingPrevious,hasVersions=!!incomingPrevious,onClose,onComplete}:Props) {
   const previousRef=useRef(incomingPrevious);
   if(!previousRef.current&&incomingPrevious)previousRef.current=incomingPrevious;

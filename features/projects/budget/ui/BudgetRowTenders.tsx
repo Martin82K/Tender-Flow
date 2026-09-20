@@ -6,13 +6,14 @@ export interface BudgetRowTenderProps {
   categories?: readonly { id: string; title: string }[];
   allocations?: readonly BudgetAllocation[];
   canAllocate?: boolean;
-  onCreateTender?: (name: string) => Promise<{id:string;title:string}>;
+  onCreateTender?: (name: string) => Promise<{id:string;title:string;warning?:string}>;
   onAllocate?: (itemId: string, categoryId: string) => Promise<void>;
   onRemoveAllocation?: (allocation: BudgetAllocation) => Promise<void>;
 }
 export function BudgetRowTenders({ node, categories = [], allocations = [], canAllocate, onAllocate, onRemoveAllocation, onCreateTender }: BudgetRowTenderProps & { node: BudgetNode }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState('');
+  const [warning,setWarning]=useState('');
   const [creating,setCreating]=useState(false);
   const [newName,setNewName]=useState('');
   const [created,setCreated]=useState<{id:string;title:string}|null>(null);
@@ -38,10 +39,11 @@ export function BudgetRowTenders({ node, categories = [], allocations = [], canA
         <button type="button" disabled={busy || !category} onClick={() => void run(() => onAllocate(node.id, category))}>{busy ? 'Ukládání…' : assigned.length ? 'Změnit VŘ' : 'Přiřadit VŘ'}</button>
         {onCreateTender&&<>
           <button type="button" disabled={busy} aria-expanded={creating} onClick={()=>setCreating(!creating)}>Nové VŘ</button>
-          {creating&&<><input aria-label="Název nového VŘ" placeholder="Název VŘ" maxLength={255} value={newName} disabled={busy} onChange={e=>setNewName(e.target.value)}/><small>Nové VŘ se uloží do číselníku stavby.</small><button type="button" disabled={busy||!newName.trim()} onClick={()=>void run(async()=>{const tender=await onCreateTender(newName);setCreated(tender);setCategory(tender.id);await onAllocate(node.id,tender.id);setNewName('');setCreating(false);})}>Vytvořit a přiřadit</button></>}
+          {creating&&<><input aria-label="Název nového VŘ" placeholder="Název VŘ" maxLength={255} value={newName} disabled={busy} onChange={e=>setNewName(e.target.value)}/><small>Nové VŘ se uloží do číselníku stavby.</small><button type="button" disabled={busy||!newName.trim()} onClick={()=>void run(async()=>{const tender=await onCreateTender(newName);setWarning(tender.warning??'');setCreated(tender);setCategory(tender.id);await onAllocate(node.id,tender.id);setNewName('');setCreating(false);})}>Vytvořit a přiřadit</button></>}
         </>}
         {!options.length&&!onCreateTender&&<small>Číselník zatím neobsahuje VŘ. Vytvořit je může uživatel s oprávněním upravovat VŘ.</small>}
       </>}
+      {warning&&<p role="status">{warning}</p>}
       {error && <p role="alert">{error}</p>}
     </div>}
   </div>;
