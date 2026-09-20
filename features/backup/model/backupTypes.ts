@@ -25,6 +25,7 @@ export interface BackupManifest {
 }
 
 export interface RestoreSummary {
+    restored_construction_budget_sources?: Record<string,string>;
     success: boolean;
     restored_projects: number;
     restored_demand_categories: number;

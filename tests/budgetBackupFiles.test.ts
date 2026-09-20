@@ -38,3 +38,11 @@ it('rejects paths outside the signed source identity before touching Storage', a
   await expect(attachBudgetBackupFiles(malicious)).rejects.toThrow('Neplatný zdroj');
   expect(mocks.download).not.toHaveBeenCalled();
 });
+it('restores bytes to the server-selected identical source after reimport', async () => {
+ const replacement='87654321-4321-4321-4321-210987654321';
+ const complete={...manifest,construction_budget_files:{[id]:'YWJj'}};
+ mocks.download.mockResolvedValue({data:null,error:{message:'missing'}});
+ await restoreBudgetBackupFiles(complete,{[id]:replacement});
+ expect(mocks.upload).toHaveBeenCalledWith(`org/${replacement}/source.xlsx`,new Uint8Array([97,98,99]),expect.objectContaining({upsert:false}));
+ expect(mocks.download).toHaveBeenCalledWith(`org/${replacement}/source.xlsx`);
+});

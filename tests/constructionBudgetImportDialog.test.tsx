@@ -342,3 +342,13 @@ describe('budget import dialog', () => {
     expect(budgetApi.registerSource).toHaveBeenCalledWith('p', file);
   });
 });
+it('blocks allocation transfer without the allocate permission', async () => {
+ const document={schemaVersion:1,figures:{},nodes:[],issues:[],sheets:[]} as import('@features/projects/budget/model/types').BudgetDocument;
+ vi.mocked(importInWorker).mockResolvedValue(document);
+ const previous={id:'old',title:'Old',document,allocations:[{itemId:'a',categoryId:'c',quantity:'1'}]} as import('@features/projects/budget/model/types').BudgetRevision;
+ render(<BudgetImportDialog projectId="p" previous={previous} source={{id:'s',project_id:'p',filename:'x.xlsx',storage_path:'s',sha256:'a',status:'ready',created_at:''}} onClose={vi.fn()} onComplete={vi.fn()}/>);
+ fireEvent.click(await screen.findByText('Přenos štítků a alokací z předchozí verze'));
+ const transfer=await screen.findByRole('checkbox',{name:'Přenést ověřené vazby'});
+ expect(transfer).toBeDisabled();
+ expect(screen.getByText(/Přenos alokací vyžaduje oprávnění/)).toBeInTheDocument();
+});
