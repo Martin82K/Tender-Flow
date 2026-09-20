@@ -128,12 +128,15 @@ součástí dosud nenasazené migrace `20260920195705`.
 
 Dvojklik nebo F2 otevře editor v konkrétní buňce položky (typ K/M, kód,
 popis, jednotka, množství, jednotková cena, celkem a dostupné štítky).
-Enter změnu uloží, Escape ji zruší; při chybě zůstane vstup otevřený.
+V textových a číselných buňkách Enter změnu uloží, Escape ji zruší.
+U typu a štítků šipky a Enter vybírají možnosti; Tab přejde na tlačítko
+Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
+nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
 Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
 Sloupec Výběrové řízení rozbalí přímo řádek: zobrazí alokace a umožní
 přiřazení celé položky do jediného VŘ a odebrání přiřazení. Změna VŘ
 nahradí dosavadní vazby položky; změna množství aktualizuje i přiřazení.
-Dílčí množství se nezadává. Starší rozdělené vazby je nutné před změnou
+Dílčí množství se nezadává. Starší dílčí nebo rozdělené vazby je nutné před změnou
 množství výslovně sjednotit výběrem jediného VŘ.
 Zápis respektuje stávající edit/price/allocate oprávnění a zámek rozpočtu.
 
