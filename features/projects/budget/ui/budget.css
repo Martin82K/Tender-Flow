@@ -211,7 +211,7 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-workspace-recap .tf-budget-recap-row{border-bottom:1px solid var(--tf-skin-line,#cbd5e1);border-radius:0;padding-right:0}
 .tf-budget-workspace-recap .tf-budget-recap-label{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;align-self:stretch;align-items:center}
 .tf-budget-workspace-recap .tf-budget-recap-row small{display:flex;flex-direction:column;justify-content:center;align-self:stretch;border-left:1px solid var(--tf-skin-line,#cbd5e1);padding:8px 12px;margin:0;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
-.tf-budget-vv{border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:4px;padding:3px 4px;font-size:11px;font-weight:600}
+.tf-budget .tf-budget-vv{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:26px;height:24px;border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:4px;padding:0;font-size:11px;font-weight:600;line-height:1}
 .tf-budget-vv[aria-expanded=true]{background:var(--tf-skin-accent-soft);color:var(--tf-skin-accent)}
 .tf-budget-vv:disabled{opacity:.3;cursor:default}
 .tf-budget-catalog-trigger{margin-left:auto}
