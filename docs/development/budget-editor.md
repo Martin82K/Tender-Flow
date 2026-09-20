@@ -84,3 +84,13 @@ Nepřenášené ruční řazení bylo odstraněno; obě evidence používají č
 Import pomocníka označení sloupců přidává jednu rozlišenou hranu (2 188/1 872),
 bez nového cyklu nebo legacy vazby. Nezávislá bezpečnostní revize původního
 produktového diffu `3571d634` byla bez nálezů; změny z revize vyžadují novou kontrolu.
+
+
+Finální okrajové regrese: detail předává jen změněná pole a při změně popisu
+nepřepočítává cenu; dvouřádkový Globus bez cen ignoruje vodicí řádek; tlačítko
+výchozího seznamu vysvětluje limit 500 před odesláním. Migrace `20260920193400`
+sjednocuje whitespace klíč názvu se stávajícím importem a klientem a vrací
+`permissions.editTenders` ze stejného pipeline helperu jako zápis katalogu.
+Neuděluje nová oprávnění, nemění granty ani RLS. Import vzoru si zachovává
+původní přísnější oprávnění. RED: 4 UI/model scénáře a 1 SQL scénář;
+GREEN: 76 cílených testů a 11 editorových PostgreSQL testů.

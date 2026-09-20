@@ -23,14 +23,16 @@ i při uzamčení. Konflikt souběžných změn vyžaduje obnovení dat.
 ## Číselník VŘ a výchozí základ
 
 Samostatná sekce **Číselník VŘ** obsahuje **VŘ této stavby** a **Moje výchozí VŘ**.
-Projektová evidence upravuje čísla a názvy bez změny vazeb na nabídky, smlouvy
+Projektovou evidenci upravuje uživatel s právem zápisu do VŘ a čtení rozpočtu;
+právo měnit položky rozpočtu se pro číselník nevyžaduje. Import vzoru má vlastní
+požadavky na úpravy rozpočtu, ceny a přiřazování VŘ. Evidence upravuje čísla a názvy bez změny vazeb na nabídky, smlouvy
 nebo položky rozpočtu. Existující VŘ se zde nemažou. Přidávat lze nové definice.
 
 **Nastavit jako výchozí** převezme uložený projektový číselník jako osobní základ.
 Před nahrazením zobrazí počet nových a dosavadních definic. Vlastní základ lze
 upravovat a uložit v záložce **Moje výchozí VŘ**. Oba seznamy se zobrazují
 podle čísla a názvu VŘ, nezávisle na interních identifikátorech. Osobní základ
-má limit 500 VŘ; projektový editor podporuje 1 000 VŘ a úpravy již existujících
+má limit 500 VŘ (převzetí většího projektu je předem zablokované s vysvětlením); projektový editor podporuje 1 000 VŘ a úpravy již existujících
 větších seznamů.
 
 Každý uživatel bez vlastního uloženého základu dostane společných 14 definic:

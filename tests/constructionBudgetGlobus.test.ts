@@ -151,3 +151,12 @@ it('keeps Globus tender items when both price columns are absent',()=>{
  expect(result.nodes.filter(isPriced)).toHaveLength(2);
  expect(result.issues.filter(i=>i.severity==='error')).toEqual([]);
 });
+it('skips the original Globus guide row after removing both price columns',()=>{
+ const workbook=globusWorkbook();
+ const rows=XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets['000'],{header:1,defval:null});
+ workbook.Sheets['000']=XLSX.utils.aoa_to_sheet(rows.map(row=>row.filter((_,i)=>i!==7&&i!==8)));
+ const result=parseKrosWorkbook(workbook);
+ expect(result.nodes.filter(isPriced)).toHaveLength(2);
+ expect(result.nodes.some(n=>n.source.row===7)).toBe(false);
+ expect(result.issues.filter(i=>i.severity==='error')).toEqual([]);
+});

@@ -53,6 +53,7 @@ async function fixture(){
   `);
   if(!process.env.BUDGET_UX_RED)await db.exec(read('20260920182433_budget_lock_and_personal_tenders.sql'));
   await db.exec(read('20260920190558_harden_budget_catalog_guards.sql'));
+  await db.exec(read('20260920193400_align_budget_catalog_permissions_and_names.sql'));
   return db;
 }
 
@@ -174,5 +175,16 @@ test('edits a project catalog larger than personal defaults without relaxing the
   await db.query("SELECT save_project_tender_catalog('p',$1,$2)",[base,[...base,...entries]]);
   const snapshot=(await db.query("SELECT id,title,COALESCE(external_code,'') AS \"externalCode\" FROM demand_categories WHERE project_id='p' ORDER BY id")).rows;
   await db.query("SELECT save_project_tender_catalog('p',$1,$2)",[snapshot,snapshot.map(e=>e.id==='existing'?{...e,title:'Renamed'}:e)]);
+ }finally{await db.close();}
+});
+
+test('rejects whitespace-equivalent tender names and reports pipeline editing separately',async()=>{
+ const db=await fixture();try{
+  await assert.rejects(defaults(db,[definitions[0],{...definitions[1],title:'Zemní  práce'}],0),/Duplicitní/);
+  await assert.rejects(defaults(db,[{...definitions[0],title:'\t\n'}],0),/platné/);
+  await db.exec("SET test.edit='no'; SET test.pipeline='yes'");
+  assert.equal((await db.query("SELECT construction_budget_load('p') result")).rows[0].result.permissions.editTenders,true);
+  await db.exec("SET test.pipeline='no'");
+  assert.equal((await db.query("SELECT construction_budget_load('p') result")).rows[0].result.permissions.editTenders,false);
  }finally{await db.close();}
 });

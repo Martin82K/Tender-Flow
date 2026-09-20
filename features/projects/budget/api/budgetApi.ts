@@ -7,7 +7,7 @@ export interface TenderImportRequest {
   sourceId?: string; revisionId?: string; version?: number; title?: string;
   document?: BudgetDocument; allocations?: BudgetAllocation[];
 }
-export interface BudgetPermissions { read: boolean; prices: boolean; edit: boolean; confirm: boolean; allocate: boolean; purge?: boolean }
+export interface BudgetPermissions { read: boolean; prices: boolean; edit: boolean; confirm: boolean; allocate: boolean; editTenders?: boolean; purge?: boolean }
 export type BudgetRevisionSummary = Pick<BudgetRevision, 'id' | 'title' | 'status' | 'version' | 'source_id' | 'created_at' | 'deleted_at' | 'purge_job_id'> & { allocation_count?: number; category_ids?: string[] };
 export interface BudgetPurgeJob { id: string; revisionCount: number; sourceCount: number }
 export interface BudgetPurgeSelection { revisions: Array<{ id: string; version: number }>; sources: Array<{ id: string; deleted_at: string }> }

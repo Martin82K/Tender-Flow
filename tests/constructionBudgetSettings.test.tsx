@@ -6,7 +6,7 @@ import { ConstructionBudget } from '@features/projects/budget/ui/ConstructionBud
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import type { BudgetRevision } from '@features/projects/budget/model/types';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn() } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { index: vi.fn(), sources: vi.fn(), revision: vi.fn(), setPrimary: vi.fn(), save: vi.fn(), history: vi.fn().mockResolvedValue([]), setLock: vi.fn(), projectTenders: vi.fn().mockResolvedValue([{id:"vr",title:"Zemní práce",externalCode:"01"}]) } }));
 const revision = { id: 'r', title: 'Rozpočet', version: 1, status: 'draft', allocations: [], document: { schemaVersion: 1, figures: {}, nodes: [], sheets: [], issues: [] } } as unknown as BudgetRevision;
 beforeEach(() => {
   localStorage.clear();
@@ -363,4 +363,12 @@ it('shows the prominent total only on the recap tab and keeps the items sidebar 
   fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
   expect(screen.queryByRole('region', { name: 'Cena celkem' })).not.toBeInTheDocument();
   expect(screen.getByText('Celý rozpočet · 0,00 Kč')).toBeVisible();
+});
+
+it('allows pipeline editors to edit the tender catalog without budget item editing rights',async()=>{
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[revision],permissions:{read:true,prices:false,edit:false,confirm:false,allocate:false,editTenders:true}});
+ await openBudget(true);fireEvent.click(screen.getByRole('button',{name:'Číselník VŘ'}));
+ expect(await screen.findByLabelText('Název VŘ 1')).not.toBeDisabled();
+ expect(screen.getByRole('button',{name:'Přidat VŘ'})).not.toBeDisabled();
+ expect(screen.getByRole('button',{name:'Importovat / exportovat vzor'})).toBeDisabled();
 });
