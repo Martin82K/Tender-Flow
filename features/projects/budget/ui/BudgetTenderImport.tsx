@@ -17,6 +17,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
   const catalog=useQuery({queryKey:['budget-project-tenders',projectId],queryFn:()=>budgetApi.projectTenders(projectId),refetchOnWindowFocus:false});
   const [mapping,setMapping]=useState<Record<string,TenderColumns>>(()=>Object.fromEntries(document.sheets.map(s=>[s.id,detectTenderColumns(s)])));
   const [confirmed,setConfirmed]=useState(false); const [acknowledged,setAcknowledged]=useState(false);
+  useEffect(()=>setAcknowledged(false),[catalog.data,previous?.id,previous?.version,document]);
   const [choices,setChoices]=useState<Record<string,string>>({}); const [targets,setTargets]=useState<Record<string,string>>({});
   const [actions,setActions]=useState<Record<string,TenderAssignment['action']>>({});
   const [page,setPage]=useState(0); const [query,setQuery]=useState('');
@@ -126,7 +127,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
       })}</tbody></table></div>
       <div><button disabled={currentPage===0} onClick={()=>setPage(currentPage-1)}>Předchozí</button> {currentPage+1} / {pages} <button disabled={currentPage+1>=pages} onClick={()=>setPage(currentPage+1)}>Další</button></div>
       <p role="status">{rows.length} položek · {rows.length-named.length} bez názvu VŘ (beze změny) · {unresolved} nevyřešených · {newCategories.length} nových VŘ · {proposed.filter(a=>a.action==='replace').length} nahrazení vazeb · {planned.length} výsledných alokací.</p>
-      <label><input type="checkbox" checked={acknowledged} disabled={busy} onChange={e=>setAcknowledged(e.target.checked)}/>Zkontroloval jsem dopady včetně vynechaných položek a nahrazení vazeb. Plány VŘ, nabídky a smlouvy se nemění.</label>
+      <label><input type="checkbox" checked={acknowledged} disabled={busy||catalog.isPending||!!catalog.error} onChange={e=>setAcknowledged(e.target.checked)}/>Zkontroloval jsem dopady včetně vynechaných položek a nahrazení vazeb. Plány VŘ, nabídky a smlouvy se nemění.</label>
       {validation&&<p role="alert">{validation}</p>}
       <button className="tf-budget-import-primary" disabled={busy||!acknowledged||!!unresolved||!!validation||duplicateDefinitions||!proposed.length||!catalog.data} onClick={()=>void save()}>{busy?'Ukládání…':'Potvrdit import přiřazení'}</button>
     </>}
