@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { Unzip, UnzipInflate } from 'fflate';
 import { decimal, money, multiplyMoney, normalizeSearch } from './budgetModel';
+import { detectBudgetLayout, globusIdentity, isGlobusColumnGuide } from './importProfiles';
 import type { BudgetDocument, BudgetNode, BudgetSheet, FigureConflict, FigureSource, SourceCell } from './types';
 
 export interface KrosSheetMapping { headerRow?: number; columns?: Record<string,number>; role?: BudgetSheet['role']; object?: string; title?: string }
@@ -40,19 +41,22 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     if (rowCount > XLSX_LIMITS.rows || range.e.c >= XLSX_LIMITS.columns) throw new Error('Sešit překročil limit řádků nebo sloupců.');
     const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null, blankrows: true, range: { s: { r: 0, c: 0 }, e: range.e } });
     const override=overrides[name]||{};
-    const detectedHeader = rows.findIndex(row => row.some(v => normalizeSearch(text(v)) === 'typ') && row.some(v => normalizeSearch(text(v)) === 'popis') && row.some(v => normalizeSearch(text(v)) === 'mnozstvi') && row.some(v => /^j\.?\s*cena/.test(normalizeSearch(text(v)))));
-    const header=override.headerRow ? override.headerRow-1 : detectedHeader;
+    const detected = detectBudgetLayout(rows);
+    const header=override.headerRow ? override.headerRow-1 : detected?.header ?? -1;
     if(header>=rows.length||header < -1)throw new Error("Neplatný řádek hlavičky.");
+    const layout = detectBudgetLayout(rows, header);
+    const globus = layout?.format === 'globus';
     const sheetId = `sheet:${sheetIndex}`;
     const heading = rows.slice(0, 30).flat().map(text).join(' ');
     const role: BudgetSheet['role'] = override.role ?? (header >= 0 ? 'items' : /rekapitulace/i.test(heading) ? 'summary' : /seznam figur/i.test(heading + name) ? 'figures' : /pokyny/i.test(heading + name) ? 'instructions' : 'unknown');
     const labelAfter = (label: string) => { const i = rows.slice(0, 35).findIndex(row => row.some(v => text(v) === label)); return i >= 0 ? rows[i + 1]?.map(text).find(v => v.trim()) || '' : ''; };
-    const object = override.object || labelAfter('Objekt:') || 'Bez objektu';
+    const identity = globus ? globusIdentity(rows, header, layout.columns) : undefined;
+    const object = override.object || identity?.object || labelAfter('Objekt:') || 'Bez objektu';
     const levelLabels = rows.slice(0, header >= 0 ? header : 35).flat().map(text)
       .filter(value => /^Úroveň \d+:$/.test(value))
       .sort((a, b) => Number(b.match(/\d+/)?.[0]) - Number(a.match(/\d+/)?.[0]));
-    const title = override.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
-    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items' });
+    const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
+    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', ...(layout ? { format: layout.format } : {}) });
     if (role === 'figures') {
       const figureHeader=rows.findIndex(row=>row.some(v=>normalizeSearch(text(v))==='vymera')&&row.some(v=>normalizeSearch(text(v))==='kod'));
       if(figureHeader>=0){
@@ -76,7 +80,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     if(header<0){document.issues.push({sheet:name,row:1,severity:'error',message:'Zvolte hlavičku a mapování sloupců.'});continue;}
     const columns = rows[header].map(v => normalizeSearch(text(v)));
     const col = (pattern: RegExp) => columns.findIndex(v => pattern.test(v));
-    const mapping = { kind: col(/^typ$/), code: col(/^kod$/), description: col(/^popis$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...override.columns };
+    const mapping = { kind: col(/^typ$/), code: col(/^kod$/), description: col(/^popis$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...layout?.columns, ...override.columns };
     document.sheets[document.sheets.length-1].columns=mapping;
     if (Object.values(mapping).some(v => !Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns)) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
     const objectId = `object:${object}`;
@@ -88,7 +92,8 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     for (let r = header + 1; r < rows.length; r++) {
       const row = rows[r]; const rawKind = text(row[mapping.kind]).trim();
       if (!rawKind) continue;
-      const kind: BudgetNode['kind'] = rawKind === 'D' ? 'section' : rawKind === 'K' || rawKind === 'M' || rawKind === 'VV' ? rawKind : 'note';
+      if (globus && r === header + 2 && isGlobusColumnGuide(row, layout.columns)) continue;
+      const kind: BudgetNode['kind'] = rawKind === 'D' || (globus && rawKind === 'SD') ? 'section' : globus && rawKind === 'P' ? 'K' : rawKind === 'K' || rawKind === 'M' || rawKind === 'VV' ? rawKind : 'note';
       const cells: Record<string, SourceCell> = {};
       for (let c = 0; c <= range.e.c; c++) {
         const address = XLSX.utils.encode_cell({ r, c }); const cell = sheet[address]; if (!cell) continue;
@@ -108,7 +113,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       let parentId = sections.at(-1) || sheetId;
       if (kind === 'section') {
         const depthCell = sheet[`AU${r + 1}`];
-        const depth = depthCell && /^\d+$/.test(text(depthCell.v)) ? Math.min(32, Number(depthCell.v)) : (/^[A-Z]+$/.test(text(row[mapping.code])) ? 0 : 1);
+        const depth = globus ? 0 : depthCell && /^\d+$/.test(text(depthCell.v)) ? Math.min(32, Number(depthCell.v)) : (/^[A-Z]+$/.test(text(row[mapping.code])) ? 0 : 1);
         sections.length = Math.min(depth, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
       } else if (kind === 'VV' || kind === 'note') parentId = lastItem || parentId;
       else lastItem = id;

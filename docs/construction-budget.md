@@ -3,6 +3,41 @@
 Rozpočet otevřete v navigaci stavby. V části **Importy a verze** najdete revize
 rozpočtu a původní přílohy XLSX.
 
+## Automatické rozpoznání rozpočtů
+
+Import automaticky rozpozná **KROS** a **Globus** (pracovní název exportu
+EstiCon podle ikony zeměkoule). Formát určuje podle hlaviček a struktury každého
+listu, nikoli podle názvu souboru nebo přítomnosti loga. Podporované soupisy se
+rovnou vyberou; v náhledu stačí zkontrolovat rozsah a dokončit import. Pokročilé
+mapování zůstává sbalené jako pomoc pro nerozpoznané nebo nestandardní soubory.
+Posunuté hlavičky a přeuspořádané sloupce se rozpoznají bez ručního mapování.
+
+Globus podporuje dvouřádkové záhlaví cen, jednotlivé objekty a soupisy, oddíly
+`SD`, položky `P`, doplňující popis `PP`, výkaz výměr `VV` a technický popis
+`TS`. Rekapitulace, oddíly, pomocné číslování sloupců a popisy cenu nezvyšují.
+Kódy zůstávají textové, včetně úvodních nul; varianty a cenová soustava zůstávají
+ve zdrojových buňkách. Položky `P` používají interní kategorii práce `K`, ale
+původní označení `P` se uchovává v `sourceType`. Oddíly `SD` jsou sourozenci
+pod soupisem. Podrobnosti `PP`, `VV` a `TS` se zobrazí pod příslušnou položkou
+tlačítkem **VV** ve zdrojovém pořadí.
+
+Textové výpočty Globus, např. `2*1 = 2,000 [A]`, se uchovávají jako původní
+text. Pokud VV nemá číselnou buňku množství, zůstane množství prázdné; import
+neodhaduje výsledek z popisu. Ceny se načtou ze skutečných buněk i u souboru
+pojmenovaného „bez cen“. Prázdné ceny nejsou nuly: pracovní import je možný,
+potvrzení neúplného ocenění zůstává blokované.
+
+Technicky formáty rozpoznává registr profilů `model/importProfiles.ts`.
+Každý list má volitelný `format`; starší dokumenty bez něj fungují dál.
+Společný importér a worker zachovávají validaci, limity ZIP/XLSX a zdrojové
+buňky. Vzorce se nespouštějí, používají se pouze uložené výsledky. Makra,
+externí vazby a vložené objekty import nadále odmítá. Originál se nemění.
+
+Lokální test reálného vzoru lze spustit přes `GLOBUS_SMOKE_FILE` a
+`tests/constructionBudgetGlobusRealFile.test.ts`; soukromý soubor se necommituje.
+Při přidání dalšího formátu je nutný reprezentativní vzor a regresní test
+automatického rozpoznání, zdrojových vazeb a součtů.
+
 Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty a poznámky.
 Jednotlivé výkazy lze otevírat nezávisle; u položky bez podrobností je tlačítko neaktivní.
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté

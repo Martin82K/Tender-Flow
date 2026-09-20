@@ -57,6 +57,7 @@ export function BudgetImportDialog({projectId,source:initialSource,previous,hasV
     }catch(e){setError(e instanceof Error?e.message:'Uložení selhalo.');}finally{operationLock.current=false;setBusy(false);}
   };
   const itemSheets=document?.sheets.filter(s=>s.role==='items')??[];
+  const detectedFormats=[...new Set(itemSheets.flatMap(s=>s.format?[s.format==='globus'?'Globus':'KROS']:[]))];
   const selectedSheets=itemSheets.filter(s=>s.selected).length;
   const shownSheets=itemSheets.filter(s=>normalizeSearch(`${s.name} ${s.title} ${s.object}`).includes(normalizeSearch(sheetSearch)));
   const selectedNames=new Set(itemSheets.filter(s=>s.selected).map(s=>s.name));
@@ -87,6 +88,7 @@ export function BudgetImportDialog({projectId,source:initialSource,previous,hasV
     {document&&<div className="tf-budget-import-review">
       <section className="tf-budget-import-selection" aria-label="Výběr soupisů">
       {sourcePreview}
+      {!!detectedFormats.length&&<p className="tf-budget-import-muted">Rozpoznaný formát: {detectedFormats.join(', ')}</p>}
       <label className="tf-budget-import-name">{hasVersions?'Název verze':'Název rozpočtu'}<input value={title} onChange={e=>setTitle(e.target.value)}/></label>
       <div className="tf-budget-import-stats"><span><strong>{itemSheets.length}</strong> soupisů</span><span><strong>{document.nodes.filter(n=>n.kind==='K'||n.kind==='M').length.toLocaleString('cs-CZ')}</strong> položek</span><span>{document.issues.filter(i=>i.severity==='error').length?`${document.issues.filter(i=>i.severity==='error').length} chyb`:'Bez blokujících chyb'}</span></div>
       <div className="tf-budget-sheet-picker"><div className="tf-budget-sheet-tools"><input aria-label="Hledat soupis při importu" placeholder="Hledat soupis nebo objekt…" value={sheetSearch} onChange={e=>setSheetSearch(e.target.value)}/><button disabled={busy} onClick={()=>setDocument({...document,sheets:document.sheets.map(s=>s.role==='items'?{...s,selected:true}:s)})}>Vše</button><button disabled={busy} onClick={()=>setDocument({...document,sheets:document.sheets.map(s=>({...s,selected:false}))})}>Žádný</button></div>

@@ -1,15 +1,39 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as XLSX from 'xlsx';
+import { parseKrosWorkbook } from '@features/projects/budget/model/krosImport';
 import { BudgetImportDialog } from '@features/projects/budget/ui/BudgetImportDialog';
 import { importInWorker } from '@features/projects/budget/api/importWorker';
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 
-vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { registerSource: vi.fn(), sourceStatus: vi.fn().mockResolvedValue(undefined), download: vi.fn().mockResolvedValue(new Blob(['xlsx'])) } }));
+vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { save: vi.fn().mockResolvedValue({ id: 'revision' }), registerSource: vi.fn(), sourceStatus: vi.fn().mockResolvedValue(undefined), download: vi.fn().mockResolvedValue(new Blob(['xlsx'])) } }));
 vi.mock('@features/projects/budget/api/importWorker', () => ({ importInWorker: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('budget import dialog', () => {
+  it('shows the automatically detected Globus format with mapping collapsed and saves its items', async () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['O', 'Rozpočet:', '000', null, 'Příprava'],
+      ['Typ', 'Poř. číslo', 'Kód položky', 'Varianta', 'Název položky', 'MJ', 'Množství', 'Cena'],
+      [null, null, null, null, null, null, null, 'Jednotková', 'Celkem'],
+      ['P', 1, '001', null, 'Zaměření', 'KPL', 2, 25, 50],
+    ]), '000');
+    vi.mocked(importInWorker).mockResolvedValue(parseKrosWorkbook(workbook));
+    const onComplete = vi.fn();
+    render(<BudgetImportDialog projectId="p" source={{ id: 's', project_id: 'p', filename: 'globus.xlsx', storage_path: 's', sha256: 'a', status: 'ready', created_at: '2026-09-19T10:00:00Z' }} onClose={vi.fn()} onComplete={onComplete}/>);
+    expect(await screen.findByText('Rozpoznaný formát: Globus')).toBeVisible();
+    expect(screen.getByText('Pokročilé mapování sloupců').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByRole('checkbox', { name: 'Zařadit 000' })).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Vytvořit rozpočet' }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
+    expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({
+      projectId: 'p', sourceId: 's', document: expect.objectContaining({
+        nodes: expect.arrayContaining([expect.objectContaining({ code: '001', sourceType: 'P', total: '50.00' })]),
+      }),
+    }));
+  });
   it('accepts a dropped XLSX without starting an upload', () => {
     render(<BudgetImportDialog projectId="p" onClose={vi.fn()} onComplete={vi.fn()}/>);
     const zone = screen.getByLabelText('Soubor XLSX').parentElement!;
