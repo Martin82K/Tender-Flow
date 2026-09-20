@@ -171,4 +171,19 @@ BEGIN
    EXECUTE definition;
  END LOOP;
 END $migration$;
+
+-- Preserve every current clone authorization/subscription guard; extend only
+-- the category INSERT so realization projects retain their independent codes.
+DO $migration$
+DECLARE definition text; columns_anchor text := E'      title,\n      budget_display,';
+ values_anchor text := E'      v_source_category.title,\n      v_source_category.budget_display,';
+BEGIN
+ SELECT pg_get_functiondef('public.clone_tender_project_to_realization(character varying)'::regprocedure) INTO definition;
+ IF (length(definition)-length(replace(definition,columns_anchor,'')))/length(columns_anchor)<>1
+    OR (length(definition)-length(replace(definition,values_anchor,'')))/length(values_anchor)<>1
+ THEN RAISE EXCEPTION 'Unknown project clone category shape'; END IF;
+ definition:=replace(definition,columns_anchor,E'      title,\n      external_code,\n      budget_display,');
+ definition:=replace(definition,values_anchor,E'      v_source_category.title,\n      v_source_category.external_code,\n      v_source_category.budget_display,');
+ EXECUTE definition;
+END $migration$;
 COMMIT;

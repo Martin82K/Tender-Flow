@@ -352,3 +352,27 @@ it('blocks allocation transfer without the allocate permission', async () => {
  expect(transfer).toBeDisabled();
  expect(screen.getByText(/Přenos alokací vyžaduje oprávnění/)).toBeInTheDocument();
 });
+
+it('keeps assignment-only source out of processing while the user reviews or closes it',async()=>{
+  vi.mocked(budgetApi.registerSource).mockResolvedValue({...editorSource,status:'attachment'});
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  const close=vi.fn();
+  render(<BudgetImportDialog canAllocate canImportTenders projectId="p" previous={editorRevision()} onClose={close} onComplete={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('radio',{name:/Pouze převzít přiřazení/}));
+  fireEvent.change(screen.getByLabelText('Soubor XLSX'),{target:{files:[new File(['xlsx'],'assignments.xlsx')]}});
+  fireEvent.click(screen.getByRole('button',{name:'Nahrát a pokračovat'}));
+  await screen.findByRole('button',{name:'Pokračovat k přiřazení VŘ'});
+  expect(budgetApi.sourceStatus).not.toHaveBeenCalledWith(expect.anything(),'processing');
+  fireEvent.keyDown(screen.getByRole('dialog'),{key:'Escape'});
+  expect(close).toHaveBeenCalled();
+});
+
+it('returns a parsed new-revision source to attachment while awaiting confirmation',async()=>{
+  vi.mocked(budgetApi.registerSource).mockResolvedValue({...editorSource,status:'attachment'});
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog projectId="p" onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.change(screen.getByLabelText('Soubor XLSX'),{target:{files:[new File(['xlsx'],'revision.xlsx')]}});
+  fireEvent.click(screen.getByRole('button',{name:'Nahrát a pokračovat'}));
+  await screen.findByRole('button',{name:'Vytvořit rozpočet'});
+  expect(vi.mocked(budgetApi.sourceStatus).mock.calls.map(call=>call[1])).toEqual(['processing','attachment']);
+});

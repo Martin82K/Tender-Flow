@@ -39,6 +39,7 @@ async function fixture(){
   await db.exec(hardening.slice(hardening.indexOf('CREATE OR REPLACE FUNCTION'),hardening.indexOf('-- The UI deliberately')));
   await db.query(`INSERT INTO construction_budget_revisions(id,project_id,organization_id,source_id,title,document) VALUES($1,'p',$2,$3,'Rozpočet',$4)`,[revision,org,source,document]);
   for(const scope of ['user','tenant'])await db.exec(`CREATE FUNCTION public.restore_${scope}_backup_without_offer_deadline_20260817(backup_json jsonb,target_org_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ DECLARE cnt_categories integer:=0; item jsonb; BEGIN FOR item IN SELECT value FROM jsonb_array_elements(backup_json->'demand_categories') LOOP IF item->>'project_id'='p' THEN cnt_categories := cnt_categories + 1; END IF; END LOOP; RETURN '{}'::jsonb; END $$;`);
+  await db.exec(read('20260321130000_harden_clone_tender_rpc_ownerless_access.sql'));
   await db.exec(migration);
   return db;
 }
@@ -152,5 +153,28 @@ test('finishes the incoming assignment source without replacing the revision sou
     const result=await call(db,{...request(),sourceId:incoming});
     assert.equal(result.revision.source_id,source);
     assert.equal((await db.query('SELECT status FROM construction_budget_sources WHERE id=$1',[incoming])).rows[0].status,'ready');
+  }finally{await db.close();}
+});
+
+test('project realization clone retains tender codes in independent categories and preserves authorization',async()=>{
+  const db=await fixture();try{
+    await db.exec(`ALTER TABLE projects ADD status text DEFAULT 'tender', ADD name text, ADD location text, ADD is_demo boolean, ADD investor text, ADD technical_supervisor text, ADD finish_date date, ADD site_manager text, ADD construction_manager text, ADD construction_technician text, ADD planned_cost numeric;
+      ALTER TABLE demand_categories ADD created_at timestamptz DEFAULT now(), ADD deadline date, ADD realization_start date, ADD realization_end date, ADD work_items jsonb;
+      CREATE FUNCTION public.is_org_member(uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+      CREATE TABLE project_shares(project_id text,user_id uuid,permission text,UNIQUE(project_id,user_id));
+      CREATE TABLE project_contracts(project_id text,maturity_days integer,warranty_months integer,retention_terms text,site_facilities_percent numeric,insurance_percent numeric);
+      CREATE TABLE project_investor_financials(project_id text,sod_price numeric);
+      CREATE TABLE project_amendments(id text,project_id text,label text,price numeric,created_at timestamptz);
+      CREATE TABLE tender_plans(id text,project_id text,name text,date_from date,date_to date,category_id text,created_at timestamptz);
+      CREATE TABLE bids(id text,category_id text,subcontractor_id text,company_name text,contact_person text,email text,phone text,price numeric,price_display text,price_history jsonb,created_at timestamptz);
+      UPDATE demand_categories SET external_code='007' WHERE id='existing';
+      SET test.actor='00000000-0000-0000-0000-000000000099';`);
+    await assert.rejects(db.query("SELECT * FROM clone_tender_project_to_realization('p')"),/oprávnění/);
+    await db.exec(`SET test.actor='${actor}'`);
+    const result=await db.query("SELECT * FROM clone_tender_project_to_realization('p')");const cloned=result.rows[0].cloned_project_id;
+    const categories=await db.query('SELECT id,external_code FROM demand_categories WHERE project_id=$1',[cloned]);
+    assert.equal(categories.rows.length,1);assert.equal(categories.rows[0].external_code,'007');assert.notEqual(categories.rows[0].id,'existing');
+    await db.query('UPDATE demand_categories SET external_code=$1 WHERE project_id=$2',['008',cloned]);
+    assert.equal((await db.query("SELECT external_code FROM demand_categories WHERE id='existing'")).rows[0].external_code,'007');
   }finally{await db.close();}
 });

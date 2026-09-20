@@ -70,3 +70,20 @@ it('requires a fresh confirmation when the project tender catalog changes',async
   await act(async()=>{client.setQueryData(['budget-project-tenders','p'],[{id:'replacement',title:'Práce',externalCode:'02'}]);});
   await waitFor(()=>expect(screen.getByRole('checkbox')).not.toBeChecked());expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
 });
+
+it('pages large tender group lists and blocks creating over 1000 categories before a request',async()=>{
+  vi.mocked(budgetApi.projectTenders).mockResolvedValue([]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','Název VŘ'],
+    ...Array.from({length:1001},(_,i)=>['K',String(i),`Položka ${i}`,'m2',1,1,1,`Skupina ${i}`])]),'SO');
+  const document=parseKrosWorkbook(wb);const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<QueryClientProvider client={client}><BudgetTenderImport projectId="p" sourceId="s" document={document} mode="revision" title="Nová" allocations={[]} onBack={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()}/></QueryClientProvider>);
+  fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText('VŘ: Skupina 0');
+  expect(screen.getAllByLabelText(/^VŘ: /)).toHaveLength(30);
+  expect(screen.getByText(/Nejvýše 1 000 nových VŘ/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox'));expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Hledat skupinu VŘ'),{target:{value:'Skupina 1000'}});
+  fireEvent.change(screen.getByLabelText('VŘ: Skupina 1000'),{target:{value:'skip'}});
+  expect(screen.queryByText(/Nejvýše 1 000 nových VŘ/)).not.toBeInTheDocument();
+  expect(budgetApi.importTenders).not.toHaveBeenCalled();
+});

@@ -145,3 +145,22 @@ Na pracovním diffu po `f04603ae`, základ #486 `3702a4aa`: cílený Vitest prů
 0 skipped/todo. Dva nové scénáře nejprve prokázaly RED. `npm run typecheck`
 prošel. Lokální produkční browser harness ověřil vypnutý i zapnutý pipeline,
 celý import přiřazení a vzoru, desktop i mobil bez console/page chyb.
+
+Další životní cykly ověřené při review: během náhledu přiřazení zůstává zdroj
+přílohou (nebo si ponechá dřívější stav ready); převod nové revize po parsování
+ukončí processing a čeká na potvrzení jako příloha. Zavření náhledu nebo chyba
+RPC proto nezanechá neprobíhající operaci jako processing. Seznam skupin má
+stránky po 30, hledání a limit 1 000 nových VŘ před odesláním; automatické shody
+používají index názvů/kódů místo opakovaných průchodů katalogem.
+
+Migrace také rozšiřuje existující INSERT kategorií při převodu projektu do
+realizace o external_code. Zachovává aktuální funkci včetně kontrol předplatného
+a přístupu; neočekávaný tvar zastaví celou migraci. Cloud preflight potvrdil oba
+jednoznačné body vložení i přítomnost subscription guardu. Izolovaná regrese
+spouští skutečné tělo klonovací funkce proti syntetickým tabulkám a ověřuje kód
+007, nové ID, nezávislost kopie i zamítnutí cizího uživatele.
+
+Ověření pracovního diffu po bd1d9cc8 na main 67bc303d: cílený Vitest importního
+dialogu a VŘ má 33 passed; PostgreSQL průchod má 12 passed, 0 skipped/todo.
+Nové scénáře nejprve prokázaly RED. Typecheck a browser průchod bez console/page
+chyb prošly. Finální CI musí proběhnout pro publikovanou revizi.
