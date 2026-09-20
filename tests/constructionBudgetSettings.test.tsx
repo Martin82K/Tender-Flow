@@ -469,3 +469,29 @@ it('preserves budget allocation rights when the import endpoint requires additio
   expect(budgetApi.importTenders).toHaveBeenCalledTimes(1);
  }finally{width.mockRestore();height.mockRestore();}
 });
+
+it('shows assignment immediately and rolls it back with a durable error after selection is cleared',async()=>{
+ const width=vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1200),height=vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ const item={id:'item',parentId:null,sheetId:'s',kind:'K',order:0,code:'123',description:'Výkop',unit:'m3',quantity:'12',unitPrice:'10',total:'120',source:{sheet:'S',row:1,cells:{}},tags:[],tenders:[]};
+ const current={...revision,source_id:'source',document:{...revision.document,nodes:[item]}} as BudgetRevision;
+ vi.mocked(budgetApi.index).mockResolvedValue({revisions:[current],permissions:{read:true,prices:true,edit:true,allocate:true,confirm:false}});
+ vi.mocked(budgetApi.revision).mockResolvedValue(current);
+ let fail!:(error:Error)=>void;
+ vi.mocked(budgetApi.importTenders).mockImplementationOnce(()=>new Promise((_,reject)=>{fail=reject;}));
+ try{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" categories={[{id:'vr',title:'Zemní práce'} as never]} canUseTenders/></QueryClientProvider>);
+  fireEvent.click(await screen.findByRole('button',{name:'Výkop',exact:true}));
+  expect(screen.getByLabelText('VŘ pro vybrané položky').closest('.tf-budget-selection')).not.toBeNull();
+  fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'vr'}});
+  const row=screen.getByRole('button',{name:'Výkop',exact:true}).closest('[role="row"]') as HTMLElement;
+  expect(within(row).getByText('Zemní práce')).toBeVisible();
+  expect(within(row).getByText('Ukládání…')).toBeVisible();
+  await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('button',{name:'Zrušit výběr'}));
+  fail(new Error('canceling statement due to statement timeout'));
+  await waitFor(()=>expect(screen.getByRole('alert')).toHaveTextContent('časový limit'));
+  expect(within(row).queryByText('Zemní práce')).not.toBeInTheDocument();
+  expect(within(row).queryByText('Ukládání…')).not.toBeInTheDocument();
+ }finally{width.mockRestore();height.mockRestore();}
+});

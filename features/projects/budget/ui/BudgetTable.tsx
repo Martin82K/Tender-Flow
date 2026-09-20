@@ -16,6 +16,7 @@ export const DEFAULT_COLUMNS: BudgetColumn[] = [
   {key:'tenders',label:'Výběrové řízení',width:180}, {key:'tags',label:'Štítky',width:150},
 ];
 interface Props extends BudgetRowTenderProps {
+  pendingTenderItems?: ReadonlySet<string>;
   tagOptions?: readonly {id:string;name:string}[];
   itemTags?: Readonly<Record<string, string[]>>;
   nodes: BudgetNode[]; scope: string; filters: BudgetFilters; onFilters: (f: BudgetFilters) => void;
@@ -158,7 +159,7 @@ export function BudgetTable(props: Props) {
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
           if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={event=>group?setCollapsed(toggle(collapsed,n.id)):priced?selectRow(n,event):openDetail(n)}>{n.description}</button>;
-          else if(c.key==='tenders'&&priced)value=n.tenders.join(', ')||'—';
+          else if(c.key==='tenders'&&priced)value=<span aria-busy={props.pendingTenderItems?.has(n.id)||undefined}>{n.tenders.join(', ')||'—'}{props.pendingTenderItems?.has(n.id)&&<small className="tf-budget-assignment-pending">Ukládání…</small>}</span>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Neoceněno</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?'Poznámka':n.kind==='subtotal'?'Mezisoučet':n.kind;

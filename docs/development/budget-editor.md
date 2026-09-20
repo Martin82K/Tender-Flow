@@ -185,3 +185,30 @@ Pracovní diff nad `419f777f`, integrační základna `8469a654`:
 - `npm run typecheck`, `npm run build`, `npm run check:boundaries`, `npm run check:legacy-structure`, `npm run check:docs`: PASS. Web build upozorňuje na velké chunky.
 - V prohlížeči na izolované fixture se skutečnými komponentami ověřeno zarovnání do stejné lišty, absence otevíracího tlačítka a menu v buňkách, hledání mezi 61 VŘ, přiřazení, společný fokus a zalomení při šířce 480 px. Bez console errors; fixture nemá font ikon aplikace.
 - Živý zápis nebyl proveden. Síťový důvod uživatelského `Failed to fetch` není potvrzen. Finální CI a nová nezávislá revize jsou stále branou před merge; uživatel merge pozastavil.
+
+### Přímý zápis přiřazení a stav v buňce (2026-09-21)
+
+Pracovní diff nad `d59b65e2`, integrační základna `8469a654`.
+Uživatelský screenshot doložil `statement timeout`. Migrace
+`20260920220500_budget_assignment_fast_path.sql` přidává do existujícího RPC
+úzkou větev pro nahrazení přiřazení v pracovní revizi existujícím VŘ.
+Nemění dokument; zapisuje pouze alokace, verzi a kompatibilní zpětný patch
+historie. Zachovává vstupní oprávnění, projektové vazby, serializaci číselníku,
+kontrolu verze, zámkový trigger a tabulku idempotentních operací.
+Ostatní režimy importu používají dosavadní ukládání. Nejsou nové tabulky,
+FK ani indexy; záloha/obnova a mazání pracují se stejnými datovými vazbami.
+
+UI vykreslí VŘ ihned s označením Ukládání, jako dočasnou vrstvu nad revizí.
+Teprve potvrzená odpověď aktualizuje cache. Při selhání se vrstva odstraní;
+chyba je nad tabulkou a přežije zrušení výběru i odscrollování řádku.
+
+- RED: bez nové migrace test zachytil volání obecného `budget_save`; UI test
+  bez dočasné vrstvy nenašel název VŘ v buňce před dokončením požadavku.
+- `PGLITE_MODULE=tests/postgres/node_modules/@electric-sql/pglite/dist/index.js node --test tests/postgres/budgetEditor.test.mjs`: 20 PASS, 0 skipped/todo. Syntetický rozpočet 11 000 řádků: přibližně 200 ms na přiřazení; nejde o měření produkce. Testy zachovávají oprávnění, cizí projekt/VŘ, zdroj, verzi, zámek, historii a opakování.
+- `npm run test:run -- tests/constructionBudgetSettings.test.tsx tests/constructionBudgetTable.test.tsx`: 67 PASS, 0 skipped/todo.
+- `npm run typecheck`, `npm run build`: PASS; build má stávající varování velkých chunků.
+- Vizuální fixture skutečné tabulky: VŘ a Ukládání v buňce během čekání, po simulované chybě návrat původní hodnoty.
+- Preflight živé databáze: existující funkce SECURITY DEFINER s prázdným search_path a EXECUTE pouze postgres/authenticated; oba indexy tabulky operací existují. CLI dry-run nabízí pouze tuto migraci. Uživatel schválil nasazení; CLI push provedl tuto jedinou migraci. Následná kontrola potvrdila novou větev, stejná ACL/search_path a beze změn počty revizí, verzí, alokací, historie a operací. Finální dry-run: Remote database is up to date.
+- Advisory baseline je dostupný, ale není čistý: existující globální varování mutable search_path a veřejně spustitelných definer funkcí, výkonové indexy/politiky. Dotčená private tabulka operací má záměrně RLS bez klientských policies a bez přímých grantů; změna je neoslabuje.
+
+Po nasazení security/performance advisors zachovávají stejné počty kategorií zjištění jako preflight; nejde o čistý globální audit. Živý zápis položky a jeho latence nebyly měřeny.

@@ -265,3 +265,47 @@ test('takes the catalog advisory lock before locking the project in deletion com
   assert.ok(advisory>=0 && advisory<body.indexOf('FOR UPDATE'));
  }finally{await db.close();}
 });
+
+async function assignmentFixture(){
+ const db=await fixture();
+ const compact=read('20260920103208_compact_budget_history_and_guard_category_delete.sql');
+ await db.exec(compact.slice(compact.indexOf('ALTER TABLE public.construction_budget_history'),compact.indexOf('DO $migration$')));
+ if(!process.env.BUDGET_ASSIGNMENT_RED)await db.exec(read('20260920220500_budget_assignment_fast_path.sql'));
+ return db;
+}
+const directRequest=()=>({operationId:randomUUID(),mode:'assignments',sourceId:source,revisionId:revision,version:1,expectedCatalog:[{id:'existing',title:'Existující',externalCode:''}],newCategories:[],assignments:[{itemId:'item',categoryId:'existing',action:'replace'}]});
+const assign=(db,r,project='p')=>db.query('SELECT public.construction_budget_import_tenders($1,$2) result',[project,r]).then(r=>r.rows[0].result);
+test('assigns existing draft items without re-saving their document and retains history and retry safety',async()=>{
+ const db=await assignmentFixture();try{
+  await db.exec(`CREATE OR REPLACE FUNCTION private.budget_save(project_input text,source_input uuid,revision_input uuid,version_input integer,title_input text,document_input jsonb,allocations_input jsonb,confirm_input boolean DEFAULT false) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'full-document-save-called'; END $$;`);
+  const r=directRequest();const result=await assign(db,r);
+  assert.deepEqual(result.revision.document,document);assert.equal(result.revision.version,2);
+  assert.deepEqual(result.revision.allocations,[{itemId:'item',categoryId:'existing',quantity:'10'}]);
+  assert.equal((await assign(db,r)).revision.version,2);
+  const history=(await db.query('SELECT changes FROM construction_budget_history')).rows;
+  assert.equal(history.length,1);assert.deepEqual(history[0].changes,{format:1,fields:[],nodes:null,allocations:{length:0,items:[]}});
+  await assert.rejects(assign(db,{...r,version:2}),/jiné operaci/);
+ }finally{await db.close();}
+});
+test('fast assignment preserves authorization, locks, version, source and tenant boundaries',async()=>{
+ const db=await assignmentFixture();try{
+  for(const permission of ['read','edit','prices','allocate','pipeline']){
+   await db.exec(`SET test.${permission}='no'`);await assert.rejects(assign(db,directRequest()),/povolen/);await db.exec(`SET test.${permission}='yes'`);
+  }
+  await assert.rejects(assign(db,directRequest(),'foreign'),/povolen/);
+  for(const patch of [{version:0},{document},{sourceId:randomUUID()},{assignments:[{itemId:'item',categoryId:'foreign',action:'replace'}]},{assignments:[{itemId:'missing',categoryId:'existing',action:'replace'}]}])await assert.rejects(assign(db,{...directRequest(),...patch}));
+  await lock(db,true);await assert.rejects(assign(db,directRequest()),/uzamčen/);
+  assert.equal((await db.query('SELECT version FROM construction_budget_revisions WHERE id=$1',[revision])).rows[0].version,1);
+  assert.equal((await db.query('SELECT count(*)::int n FROM construction_budget_history')).rows[0].n,0);
+ }finally{await db.close();}
+});
+test('assigns one item in a 11000-row document without changing its content',async()=>{
+ const db=await assignmentFixture();try{
+  const large={...document,nodes:Array.from({length:11000},(_,i)=>({...document.nodes[0],id:i?'item'+i:'item',description:'Synthetic work '+i+'x'.repeat(700),order:i}))};
+  await db.query('UPDATE construction_budget_revisions SET document=$1 WHERE id=$2',[large,revision]);
+  const started=performance.now();const result=await assign(db,directRequest());
+  const elapsed=performance.now()-started;console.log('11000-row assignment ms:',Math.round(elapsed));
+  assert.deepEqual(result.revision.document,large);assert.equal(result.revision.allocations.length,1);
+  assert.ok(elapsed<8000,`assignment exceeded 8s: ${elapsed}`);
+ }finally{await db.close();}
+});
