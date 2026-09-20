@@ -181,3 +181,17 @@ persistence/DocHub testů. Typecheck, web build, browser desktop/mobil a docs pr
 hranice zůstávají bez nových výjimek (36), legacy importů 126 a frozen souborů 111.
 Graf má 684 uzlů, 2144 hran, 1828 vyřešených a 316 očekávaných externích odkazů.
 Testy DocHubu používají mockované cloudové i lokální služby, nikoli skutečné složky.
+
+Finální editor #487 je sloučený v main `0b4af027`. Integrace do importu zachovává
+limit náhledu 1 000 000 znaků / 256 na hodnotu, původní nezkrácená zdrojová data
+i náš výběr řádků s hlavičkou. Opravy existujících revizí dostávají oprávnění
+allocate stejně jako nový import. Na integračním diffu nad `140941a0` a této
+základně prošlo 91 cílených testů parseru, editoru, VŘ, UI a architektury;
+read-only test skutečného soukromého souboru a typecheck také prošly.
+
+Poslední úplná CI před touto integrací: `140941a0` / main `67bc303d`, testovaný
+merge `52b2f5a1`, běh `35512184890`: 3339 passed / 3 skipped (externí fixtures),
+PostgreSQL 12 passed / 0 skipped. Nezávislá bezpečnostní revize této revize
+bez nálezu. Finální společný commit vyžaduje novou CI. Root audit zůstává na
+7 známých nálezech v nezměněných závislostech (2 low, 5 moderate); desktop a
+izolovaný PostgreSQL runtime mají 0. Existující varování velkých chunků trvá.

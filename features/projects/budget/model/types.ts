@@ -8,7 +8,7 @@ export interface BudgetNode {
   sourceType: string; tags: string[]; tenders: string[];
   [key: string]: unknown;
 }
-export interface BudgetSourcePreview { rowCount: number; columnCount: number; rows: { row: number; cells: SourceCell[] }[] }
+export interface BudgetSourcePreview { truncated?: boolean; rowCount: number; columnCount: number; rows: { row: number; cells: SourceCell[] }[] }
 export interface BudgetSheet { id: string; name: string; role: 'items' | 'figures' | 'summary' | 'instructions' | 'unknown'; object: string; title: string; headerRow: number; columns?: Record<string, number>; selected: boolean; format?: BudgetImportFormat; sourcePreview?: BudgetSourcePreview }
 export interface FigureSource { sheet: string; row: number; cell: string; value: string }
 export interface FigureConflict { code: string; values: string[]; sources?: FigureSource[] }
