@@ -35,6 +35,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
   const document: BudgetDocument = { schemaVersion: 1, sheets: [], nodes: [], issues: [], figures: {} };
   const figureSources = new Map<string, FigureSource[]>();
   let rowCount = 0;
+  let previewTextRemaining = 1000000;
   for (const [sheetIndex, name] of workbook.SheetNames.entries()) {
     const sheet = workbook.Sheets[name]; const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
     rowCount += range.e.r + 1;
@@ -62,6 +63,15 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       .sort((a, b) => Number(b.match(/\d+/)?.[0]) - Number(a.match(/\d+/)?.[0]));
     const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
     // Bounded, ephemeral raw preview also works when recognition fails.
+    let previewTruncated = false;
+    const previewText = (value: string): string => {
+      const limit = Math.min(256, previewTextRemaining);
+      const clipped = value.length > limit;
+      const result = clipped ? (limit > 0 ? value.slice(0, limit - 1) + '…' : '') : value;
+      previewTextRemaining -= result.length;
+      previewTruncated ||= clipped;
+      return result;
+    };
     const previewRows = Math.min(60, Math.floor(200000 / workbook.SheetNames.length / (range.e.c + 1)));
     const previewStart = Math.max(0, header - Math.min(5, Math.max(0, previewRows - 2)));
     const sourcePreview = { rowCount: rows.length, columnCount: range.e.c + 1, rows: rows.slice(previewStart, previewStart + previewRows).map((values, index) => ({
@@ -69,10 +79,10 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         const cell = sheet[XLSX.utils.encode_cell({ r: previewStart + index, c: column })];
         const formula = cell?.f;
         if (text(value).length > XLSX_LIMITS.text || (formula?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
-        return { value: cell?.t === 'e' ? null : value as SourceCell['value'], ...(formula ? { formula } : {}) };
+        return { value: cell?.t === 'e' ? null : typeof value === 'string' ? previewText(value) : value as SourceCell['value'], ...(formula ? { formula: previewText(formula) } : {}) };
       }),
     })) };
-    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', sourcePreview, ...(format ? { format } : {}) });
+    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', sourcePreview: {...sourcePreview,...(previewTruncated ? {truncated:true} : {})}, ...(format ? { format } : {}) });
     if (role === 'figures') {
       const figureHeader=rows.findIndex(row=>row.some(v=>normalizeSearch(text(v))==='vymera')&&row.some(v=>normalizeSearch(text(v))==='kod'));
       if(figureHeader>=0){
