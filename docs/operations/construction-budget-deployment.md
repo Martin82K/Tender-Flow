@@ -164,3 +164,10 @@ je RLS bez klientských politik záměrné: přímá práva jsou odebraná a ope
 provádějí autorizované funkce. Nový index pro autora obnovy dosud nebyl použit.
 Koncový test skutečné Storage služby a Electron obnovy zůstává oddělený od
 lokálních SQL a UI testů; samotný PostgreSQL kontejner tyto služby neobsahuje.
+
+Následná migrace `20260920101228_preserve_archived_budget_restore.sql` opravuje
+obnovu chybějících podepsaných revizí v archivovaném projektu. Používá existující
+oprávnění vlastníka `restore`, nepovoluje běžnou editaci archivu. Regresní test
+nejprve reprodukoval odmítnutí obnovy a po opravě prošel. Migrace je nasazená,
+závěrečný dry-run opět hlásil aktuální databázi. Lokální test 5 000 přiřazených
+položek prošel pod limitem 8 sekund (`construction_budget_bulk_allocations.sql`).

@@ -6,7 +6,7 @@ BEGIN
  PERFORM set_config('request.jwt.claim.sub',uid::text,true);
  PERFORM set_config('request.jwt.claim.role','authenticated',true);
  src:=public.construction_budget_source(pid,'backup.xlsx',repeat('d',64),'attachment');
- rev:=public.construction_budget_save(pid,(src->>'id')::uuid,NULL,0,'Backup roundtrip','{"schemaVersion":1,"sheets":[],"issues":[],"figures":{},"nodes":[]}','[]',false);
+ rev:=public.construction_budget_save(pid,(src->>'id')::uuid,NULL,0,'Backup roundtrip','{"schemaVersion":1,"sheets":[],"issues":[],"figures":{},"nodes":[]}','[]',true);
  -- Model a source whose file upload has not completed; only metadata exists.
  PERFORM public.construction_budget_source(pid,'backup.xlsx',repeat('d',64),'attachment');
  manifest:=private.budget_backup_export(jsonb_build_object('organization_id',org,'projects',jsonb_build_array(jsonb_build_object('id',pid))));
@@ -28,6 +28,11 @@ BEGIN
  IF private.budget_backup_restore(manifest,org,'user')<>1 THEN RAISE EXCEPTION 'Missing revision not restored'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.construction_budget_history WHERE revision_id=(rev->>'id')::uuid) THEN RAISE EXCEPTION 'History not restored'; END IF;
  IF (SELECT revision_id FROM private.construction_budget_preferences WHERE project_id=pid) IS DISTINCT FROM (rev->>'id')::uuid THEN RAISE EXCEPTION 'Primary revision not restored'; END IF;
+ UPDATE public.projects SET status='archived' WHERE id=pid;
+ DELETE FROM public.construction_budget_history WHERE project_id=pid;
+ DELETE FROM public.construction_budget_revisions WHERE project_id=pid;
+ IF private.budget_backup_restore(manifest,org,'user')<>1 THEN RAISE EXCEPTION 'Archived budget not restored'; END IF;
+ UPDATE public.projects SET status='tender' WHERE id=pid;
  PERFORM set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
  denied:=false;
  BEGIN PERFORM public.construction_budget_project_delete_start(pid); EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
