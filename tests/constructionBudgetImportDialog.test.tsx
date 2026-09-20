@@ -69,6 +69,7 @@ describe('import repair workspace',()=>{
     await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
     expect(vi.mocked(budgetApi.save).mock.calls[0][0].document.nodes.find(n=>n.id==='sheet:1:row:4')?.parentId).toBe('sheet:1:row:3');
     expect(vi.mocked(budgetApi.save).mock.calls[0][0].document.importRepairs).toHaveLength(1);
+    expect(budgetApi.sourceStatus).not.toHaveBeenCalled();
   });
   it('requires an explicit choice before replacing manual repairs on the mapped sheet',()=>{
     const original=editorRevision();original.document.importRepairs=[{nodeId:'sheet:0:row:4',parentId:'sheet:0:row:3',kind:'section',scope:'subtree'}];
@@ -145,6 +146,26 @@ describe('import repair workspace',()=>{
     const saved=vi.mocked(budgetApi.save).mock.calls[0][0].document;
     expect(saved.figures.F1).toBe(keep?value:undefined);
     expect(saved.figureResolutions?.F1).toEqual(keep?{origin,value}:undefined);
+  });
+  it('recomputes transfer suggestions after a manual change of parent context',async()=>{
+    const previous=editorRevision();
+    previous.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['tag'];
+    previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+    fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
+    fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 4'}));
+    fireEvent.change(screen.getByLabelText('Nadřazený uzel'),{target:{value:'sheet:0:row:3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Použít opravu'}));
+    fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+    fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
+    fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+    fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0];
+    expect(saved.allocations).toEqual([]);
+    expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:5')?.tags).toEqual([]);
   });
 });
 

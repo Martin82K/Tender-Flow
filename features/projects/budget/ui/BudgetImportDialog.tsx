@@ -43,18 +43,20 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
       if(!registered){if(!file)throw new Error('Vyberte soubor.');setPhase('Ukládání originálu');registered=await budgetApi.registerSource(projectId,file);setSource(registered);}
       if(abort.signal.aborted)return;
       if(mode==='attachment'){onComplete();return;}
-      await budgetApi.sourceStatus(registered,'processing');processingStarted=true;setPhase('Rozpoznání a validace');
+      if(!editRevision){await budgetApi.sourceStatus(registered,'processing');processingStarted=true;}setPhase('Rozpoznání a validace');
       const effectiveMapping:KrosMapping=targetSheet&&document?Object.fromEntries(document.sheets.map(s=>[s.name,{headerRow:s.headerRow||undefined,columns:s.columns,role:s.role,format:s.format,object:s.object,title:s.title,...(s.name===targetSheet&&Object.hasOwn(mapping,s.name)?mapping[s.name]:{})}])):mapping;
       const blob=file??await budgetApi.download(registered);const parsed=await importInWorker(blob,abort.signal,(done,total)=>setPhase(`Rozpoznání listů ${done}/${total}`),effectiveMapping);
+      let result:BudgetDocument;
       if(targetSheet&&document){
         const affected=new Set(document.nodes.filter(n=>n.source.sheet===targetSheet&&n.kind!=='object').map(n=>n.id));
         const replacement=parsed.sheets.find(s=>s.name===targetSheet);if(!replacement)throw new Error('Zdrojový list již není dostupný. Obnovte import.');
         const objects=new Map([...parsed.nodes,...document.nodes].filter(n=>n.kind==='object').map(n=>[n.id,n]));
         const sheets=document.sheets.map(s=>s.name===targetSheet?{...replacement,selected:replacement.role==='items'&&(s.role==='items'?s.selected:replacement.selected)}:s);
         const next={...document,sheets,nodes:[...objects.values(),...sheets.flatMap(s=>(s.name===targetSheet?parsed:document).nodes.filter(n=>n.sheetId===s.id&&n.kind!=='object'))],issues:[...document.issues.filter(i=>i.sheet!==targetSheet&&i.kind!=='ambiguous-figures'),...parsed.issues.filter(i=>i.sheet===targetSheet||i.kind==='ambiguous-figures')],figures:parsed.figures,figureResolutions:undefined,importRepairs:document.importRepairs?.filter(r=>!affected.has(r.nodeId))};
-        setDocument(preserveUnchangedFigureResolutions(document,next));
-      }else setDocument({...parsed,origin:'import',importKey:crypto.randomUUID()});
-      if(previous){setLinks(proposeRevisionMapping(previous.document,parsed));setTransfer(false);}setPhase('');
+        result=preserveUnchangedFigureResolutions(document,next);
+      }else result={...parsed,origin:'import',importKey:crypto.randomUUID()};
+      setDocument(result);
+      if(previous){setLinks(proposeRevisionMapping(previous.document,result));setTransfer(false);}setPhase('');
     }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');}finally{operationLock.current=false;setBusy(false);setPhase('');}
   };
   useEffect(()=>{
@@ -113,7 +115,7 @@ export function BudgetImportDialog({editRevision,projectId,source:initialSource,
     {!document&&!initialSource&&<p className="tf-budget-import-assurance"><ShieldCheck size={16} aria-hidden="true"/><span>Původní soubor zůstane beze změny. Existující verze se nepřepíší.</span></p>}
     {phase&&<p role="status" className="tf-budget-import-progress">{busy&&<LoaderCircle size={16} className="tf-budget-spin" aria-hidden="true"/>}{phase}</p>}{busy&&phase!=='Ukládání rozpočtu…'&&<button onClick={()=>controller.current?.abort()}>Zrušit zpracování</button>}{error&&<p role="alert" className="tf-budget-error">{error}</p>}
     {initialSource&&!document&&!busy&&error&&<button onClick={()=>void start()}>Zkusit převod znovu</button>}
-    {document&&editor&&<BudgetImportEditor savedRevision={!!editRevision} document={document} onChange={next=>{setDocument(next);setTransfer(false);}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
+    {document&&editor&&<BudgetImportEditor savedRevision={!!editRevision} document={document} onChange={next=>{setDocument(next);setTransfer(false);if(previous)setLinks(proposeRevisionMapping(previous.document,next));}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
     {document&&!editor&&<div className="tf-budget-import-review">
       <section className="tf-budget-import-selection" aria-label="Výběr soupisů">
       {sourcePreview}

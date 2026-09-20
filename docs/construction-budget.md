@@ -159,6 +159,9 @@ přenos vazeb. Opravy se nikdy automaticky nepřenášejí na další soubor.
 Rozpracované změny mapování jiného listu se nepoužijí. Vyřešené konflikty figur
 se při přemapování jednoho listu zachovají, pokud se nezměnila množina nalezených
 hodnot; při změně hodnot vyžadují nové rozhodnutí.
+Při opravě uložené revize se stav její přílohy nemění. Každá změna struktury vypne
+přenos vazeb a znovu vypočítá návrh podle výsledné cesty rodičů; staré návrhy přenosu
+se po změně kontextu položky nepoužijí.
 
 Originální XLSX je neměnný, vzorce se nespouštějí a všechny jeho texty se vykreslují
 jako text. Limity archivu a odmítání maker či externích vazeb zůstávají zachované.
