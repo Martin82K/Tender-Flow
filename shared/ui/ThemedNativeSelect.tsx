@@ -16,6 +16,8 @@ interface ThemedNativeSelectProps
   searchable?: boolean;
   wrapOptions?: boolean;
   menuMinWidth?: number;
+  menuAlign?: "start" | "end";
+  compact?: boolean;
   multiple?: boolean;
 }
 
@@ -60,6 +62,8 @@ export const ThemedNativeSelect: React.FC<ThemedNativeSelectProps> = ({
   searchable,
   wrapOptions,
   menuMinWidth,
+  menuAlign,
+  compact,
   title,
   style,
   value,
@@ -237,6 +241,8 @@ export const ThemedNativeSelect: React.FC<ThemedNativeSelectProps> = ({
           searchable={searchable ?? options.length > 12}
           wrapOptions={wrapOptions}
           menuMinWidth={menuMinWidth}
+          menuAlign={menuAlign}
+          compact={compact}
           className={fillsContainer ? "min-w-0 w-full" : "min-w-0"}
           triggerClassName={className}
           triggerStyle={style}

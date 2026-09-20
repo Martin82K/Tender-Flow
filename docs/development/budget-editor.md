@@ -123,3 +123,255 @@ importu vrací uložený výsledek i při následném uzamčení, stále kontrol
 identitu, payload a oprávnění; nový import zůstává zakázaný. Obnova zámku
 vyžaduje edit i prices stejně jako standardní změna zámku. Opravy jsou
 součástí dosud nenasazené migrace `20260920195705`.
+
+### Úpravy přímo v tabulce
+
+Dvojklik nebo F2 otevře editor v konkrétní buňce položky (typ K/M, kód,
+popis, jednotka, množství, jednotková cena a celkem).
+V textových a číselných buňkách Enter nebo opuštění editoru změnu uloží, Escape ji zruší.
+Přesun fokusu na tlačítka ✓/× uvnitř editoru zápis nespouští. Nezměněná buňka
+se při opuštění pouze zavře. Během zápisu se zobrazuje Ukládání…; chyba ponechá hodnotu v editoru.
+U typu šipky a Enter vybírají možnosti; Tab přejde na tlačítko
+Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
+nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
+Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
+Sloupec Výběrové řízení zobrazuje pouze názvy přiřazených VŘ. Po výběru
+položek je vyhledávací seznam rovnou dostupný vpravo
+ve stejné liště s ostatními akcemi. Výběr ihned přiřadí celé množství všech
+vybraných položek; tlačítko + vytvoří nové VŘ. Nabídka má pravý okraj
+zarovnaný s polem a dlouhé názvy se zalamují. Fokus zvýrazňuje celý vyhledávací
+obal, nikoli samostatný vnitřní input.
+Změna VŘ nahradí dosavadní vazby; změna množství aktualizuje i přiřazení.
+Starší dílčí nebo rozdělené vazby je nutné před změnou množství výslovně sjednotit.
+Zápis respektuje edit/price/allocate oprávnění a zámek. Důvod nedostupnosti
+je v horní liště; potvrzená verze vyžaduje pracovní kopii.
+
+Při dostupném modulu VŘ přiřazování používá existující import RPC v režimu
+assignments: odesílá ID položek a VŘ, nikoli celý dokument. Množství stanoví
+server. Po ztrátě odpovědi stejný výběr a verze opakují stejný operationId.
+Potvrzené odmítnutí dodatečného práva modulu VŘ použije původní save RPC,
+které znovu kontroluje rozpočtová oprávnění. Síťová chyba fallback nespouští.
+Odpověď serveru stále obsahuje celou revizi; velikost odpovědi se touto změnou
+nezmenšuje. Změna nevyžaduje migraci ani změnu serverových oprávnění.
+
+Editor importu nabízí stejnou tabulku v záložce Položky a VŘ. Změny v ní
+zůstávají pracovní až do uložení editoru; ukládá se dokument i alokace.
+Přemapování ani vyřazení soupisu s alokacemi nesmí vazby zahodit.
+Regrese pokrývají inline umístění bez dalšího dialogu, Enter/Escape,
+chybu a opakované potvrzení, čtení bez zápisu a společné uložení z editoru.
+
+Výběr VŘ má vždy aktivní vyhledávání s automatickým fokusem. Chybějící
+VŘ lze vytvořit a přiřadit přímo v horní liště, pokud uživatel smí upravovat
+projektový číselník. Založení načítá aktuální seznam a používá existující
+RPC s kontrolou souběhu; při opakování využije shodný název. Číselník se
+uloží ihned, přiřazení v importním editoru až s pracovní verzí. Selhání
+přiřazení nezahodí už vytvořené VŘ ani nezakládá další kopii.
+
+Regrese prázdného rozbalení VŘ (základ `8b66ad51`, integrační main
+`8469a654`): dva nové scénáře nejprve RED; po opravě 63 testů tabulky
+a nastavení PASS bez skipped/todo (`npm run test:run --
+tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx`).
+`npm run typecheck`, `npm run check:boundaries` a
+`npm run check:legacy-structure` PASS pro tento pracovní diff.
+V Electronu ověřeno vysvětlení u potvrzené verze a otevření formuláře
+i vyhledávatelného seznamu VŘ v pracovní verzi. Zápis do živých dat
+nebyl součástí tohoto průchodu; uložení a zákaz zápisu pokrývají testy.
+Datový model, oprávnění a serverové kontroly se nemění.
+
+### Ověření horního výběru VŘ (2026-09-20)
+
+Pracovní diff nad `419f777f`, integrační základna `8469a654`:
+- Cílený RED pro malý požadavek: původní cesta volala `budgetApi.save` s celým dokumentem.
+- `npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetImportDialog.test.tsx tests/constructionBudgetSettings.test.tsx tests/architectureGraphAnalysis.test.ts tests/architectureGraphResolver.test.ts`: 112 scénářů; po přesunu stále viditelného výběru byl upraven test pro dvě shodná zobrazení názvu VŘ. Ostatních 111 PASS, opravená sada nastavení níže PASS.
+- `npm run test:run -- tests/constructionBudgetSettings.test.tsx tests/themedRoleSelect.test.tsx`: 40 PASS, bez skipped/todo. Pokrývá i retry stejného operationId a fallback dodatečného práva pipeline.
+- `npm run typecheck`, `npm run build`, `npm run check:boundaries`, `npm run check:legacy-structure`, `npm run check:docs`: PASS. Web build upozorňuje na velké chunky.
+- V prohlížeči na izolované fixture se skutečnými komponentami ověřeno zarovnání do stejné lišty, absence otevíracího tlačítka a menu v buňkách, hledání mezi 61 VŘ, přiřazení, společný fokus a zalomení při šířce 480 px. Bez console errors; fixture nemá font ikon aplikace.
+- Živý zápis nebyl proveden. Síťový důvod uživatelského `Failed to fetch` není potvrzen. Finální CI a nová nezávislá revize jsou stále branou před merge; uživatel merge pozastavil.
+
+### Přímý zápis přiřazení a stav v buňce (2026-09-21)
+
+Pracovní diff nad `d59b65e2`, integrační základna `8469a654`.
+Uživatelský screenshot doložil `statement timeout`. Migrace
+`20260920220500_budget_assignment_fast_path.sql` přidává do existujícího RPC
+úzkou větev pro nahrazení přiřazení v pracovní revizi existujícím VŘ.
+Nemění dokument; zapisuje pouze alokace, verzi a kompatibilní zpětný patch
+historie. Zachovává vstupní oprávnění, projektové vazby, serializaci číselníku,
+kontrolu verze, zámkový trigger a tabulku idempotentních operací.
+Ostatní režimy importu používají dosavadní ukládání. Nejsou nové tabulky,
+FK ani indexy; záloha/obnova a mazání pracují se stejnými datovými vazbami.
+
+UI vykreslí VŘ ihned s označením Ukládání, jako dočasnou vrstvu nad revizí.
+Teprve potvrzená odpověď aktualizuje cache. Při selhání se vrstva odstraní;
+chyba je nad tabulkou a přežije zrušení výběru i odscrollování řádku.
+
+- RED: bez nové migrace test zachytil volání obecného `budget_save`; UI test
+  bez dočasné vrstvy nenašel název VŘ v buňce před dokončením požadavku.
+- `PGLITE_MODULE=tests/postgres/node_modules/@electric-sql/pglite/dist/index.js node --test tests/postgres/budgetEditor.test.mjs`: 20 PASS, 0 skipped/todo. Syntetický rozpočet 11 000 řádků: přibližně 200 ms na přiřazení; nejde o měření produkce. Testy zachovávají oprávnění, cizí projekt/VŘ, zdroj, verzi, zámek, historii a opakování.
+- `npm run test:run -- tests/constructionBudgetSettings.test.tsx tests/constructionBudgetTable.test.tsx`: 67 PASS, 0 skipped/todo.
+- `npm run typecheck`, `npm run build`: PASS; build má stávající varování velkých chunků.
+- Vizuální fixture skutečné tabulky: VŘ a Ukládání v buňce během čekání, po simulované chybě návrat původní hodnoty.
+- Preflight živé databáze: existující funkce SECURITY DEFINER s prázdným search_path a EXECUTE pouze postgres/authenticated; oba indexy tabulky operací existují. CLI dry-run nabízí pouze tuto migraci. Uživatel schválil nasazení; CLI push provedl tuto jedinou migraci. Následná kontrola potvrdila novou větev, stejná ACL/search_path a beze změn počty revizí, verzí, alokací, historie a operací. Finální dry-run: Remote database is up to date.
+- Advisory baseline je dostupný, ale není čistý: existující globální varování mutable search_path a veřejně spustitelných definer funkcí, výkonové indexy/politiky. Dotčená private tabulka operací má záměrně RLS bez klientských policies a bez přímých grantů; změna je neoslabuje.
+
+Po nasazení security/performance advisors zachovávají stejné počty kategorií zjištění jako preflight; nejde o čistý globální audit. Živý zápis položky a jeho latence nebyly měřeny.
+
+
+### Odstranění štítků z produktu (2026-09-21)
+
+Pracovní diff nad `f1e08cc7`, integrační základna `8469a654`: odstraněny sloupec,
+editor a hromadné přiřazování, správa v číselníku, exportní sloupec a zapojení
+štítků do globálního hledání. Staré nastavení sloupců se očistí při načtení;
+pokud by nezbyl viditelný sloupec, obnoví se výchozí sloupce. Staré tags zůstávají
+v datovém formátu a zálohách; běžná editace je nepřepisuje. Nejsou přenášeny
+z předchozí verze a neblokují opravy soupisů ani typů řádků. Ochrany přiřazení
+VŘ, tenant isolation a serverová validace zůstávají zachované. Bez migrace.
+
+RED: staré sloupce a globální hledání stále nabízely štítky. GREEN:
+`npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx tests/constructionBudgetCatalog.test.tsx tests/constructionBudgetImportDialog.test.tsx tests/constructionBudgetImportRepair.test.ts tests/constructionBudgetExport.test.ts` 152 PASS;
+`npm run test:run -- tests/constructionBudgetModel.test.ts` 7 PASS;
+po zrušení šířky devátého exportního sloupce cílený export 25 PASS.
+Žádné skipped/todo. Typecheck, web build, boundaries, legacy structure a docs
+PASS; build má stávající varování na velké chunky. Vizuálně zkontrolována
+skutečná tabulka na izolované fixture bez sloupce štítků. Finální CI a review
+zůstávají před merge, který je nadále pozastaven.
+Po doplnění obnovy viditelných sloupců pro nastavení obsahující jen štítky:
+`npm run test:run -- tests/constructionBudgetSettings.test.tsx` 32 PASS.
+
+
+### Ověření ukládání ceny a přepočtu (2026-09-21)
+Základna `8469a654`, pracovní diff nad `e378870c`. Změna pouze potvrzování
+textové/číselné buňky při opuštění editoru; API, oprávnění, tenant hranice,
+verzování a historie zůstávají stávající. Rozpracované číslo není uložená hodnota.
+
+- RED: `npm run test:run -- tests/constructionBudgetTable.test.tsx`: 39 prošlo,
+  2 selhaly (opuštění neukládalo změnu ani nezavíralo nezměněnou buňku).
+- GREEN: stejný příkaz, 42 testů; potvrzení ceny, součty položky/oddílu/rozpočtu,
+  zrušení, nezměněná hodnota, blokování duplicit a zachování hodnoty při chybě.
+- PostgreSQL/WASM: `PGLITE_MODULE=... node --test --test-name-pattern='persists an edited' tests/postgres/budgetEditor.test.mjs`:
+  1 test prošel, bez skipped/todo. Skutečná funkce save s kompaktní historií:
+  11 000 syntetických řádků, cena 100 × 2 600 = 260 000, zápis a následné čtení,
+  historie původní ceny, verze +1. Lokální zápis 602 ms; není měřením živého serveru.
+- Živá DB, pouze čtení: aktuální validační regex přijímá `100`, `260000.00`, `7510.49`.
+- Prohlížeč, izolovaná fixture skutečné tabulky: cena 100, klik na druhou položku,
+  Ukládání…, jedno uložení, cena 100 a součty 260 000. Bez zápisu do zákaznických dat.
+- `npm run typecheck`: prošlo. Finální kompletní CI a bezpečnostní revize PR
+  jsou samostatná brána; merge zůstává pozastavený.
+
+### Malý požadavek pro editaci buňky (2026-09-21)
+Snímek s `Failed to fetch` potvrdil selhání transportu po potvrzení ceny;
+samotné potvrzování editace proto nebylo úplným řešením. Přesnou příčinu
+konkrétního síťového výpadku bez jeho síťového záznamu nelze určit. Dosavadní
+RPC posílalo celý dokument tam i zpět (největší živý dokument 11 077 160 bajtů).
+
+`construction_budget_edit_item` přijímá pouze povolená pole jedné položky,
+identifikátory zdroje/revize/operace, očekávanou verzi a indexy vyřešených
+číselných chyb. Server počítá množství × cenu, synchronizuje celé přiřazené
+množství a volá původní validovaný save uvnitř databáze. Odpověď obsahuje jen
+položku, její alokace a novou verzi. React Query sloučí potvrzenou odpověď bez
+opětovného načtení dokumentu. Při psaní v editoru se součty neměnných dat
+nepočítají znovu.
+
+Opakování stejného požadavku pozná kompaktní historie (`clientEdit`) pouze pro
+stejného uživatele, stejné tělo a bez novější změny revize. Jinak vrací konflikt.
+Metadata jsou součástí stávající historie a jejích záloh/mazání/anonymizace;
+nevzniká nová tabulka ani vazba na účet. Zachována kontrola práv read/edit/prices,
+alokací, projektu, zdroje, verze, koše a zámku, prázdný search_path a zákaz anon.
+Původní full-save zůstává pro import, potvrzení a jiné operace nad celou revizí.
+Nasazení musí předcházet používání nového klientského volání.
+
+Ověřený pracovní diff nad `e378870c`, integrační základna `8469a654`:
+- RED: chybějící RPC v izolované DB; navíc regrese součtů zachytila 7 volání
+  místo 6 po jednom stisku klávesy (1 selhání, 42 nesouvisejících testů skipped).
+- `npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx`:
+  76 PASS, bez skipped/todo; po refaktoru aktualizován mock existujícího testu undo.
+- Celá izolovaná PostgreSQL sada: 27 PASS. Následná kontrola prázdné historie
+  doplnila COALESCE pro opakování nezměněné hodnoty; 7 dotčených DB testů PASS.
+- Syntetický dokument 11 000 řádků: malý zápis 560 ms, JSON požadavek 238 bajtů,
+  JSON odpověď 1 048 bajtů. Orientační lokální WASM měření, nikoli produkční SLA.
+- Prohlížeč se skutečnou tabulkou a 11 000 syntetickými řádky: klik mimo editor,
+  Ukládání, 100 × 2 600 = 260 000, součty, bez console errors. Persistenci této
+  vizuální fixture simuluje lokální stav; serverový zápis je ověřen odděleně SQL testy.
+- `npm run typecheck`, `npm run build`, `npm run check:boundaries`,
+  `npm run check:legacy-structure`, `npm run check:docs`, `git diff --check`: PASS.
+  Build nadále upozorňuje na velké chunky; závislosti se nemění.
+- Cloud preflight: kompaktní historie přítomna, nové RPC dosud nepřítomno;
+  `supabase db push --linked --dry-run` obsahuje pouze novou migraci.
+  Security/performance advisors obsahují existující globální varování; nejsou čistým auditem.
+- Migrace `20260920223500_budget_item_patch.sql` je připravena k samostatně
+  schválenému nasazení. Finální CI a nezávislá PR revize ještě nejsou dokladem
+  pro tento diff; merge zůstává pozastavený.
+
+
+Nasazení malého zápisu bylo uživatelem výslovně schváleno a dokončeno pro
+`254f4c56`. `supabase db push --linked --yes`: PASS; následný dry-run:
+`Remote database is up to date.` Ověřeno public RPC, authenticated EXECUTE,
+zamítnuté anon EXECUTE, private SECURITY DEFINER s prázdným search_path a
+odmítnutí volání bez auth.uid. Počty před/po: 5 revizí, součet verzí 9,
+10 záznamů historie; nasazení žádná data nezměnilo. Security i performance
+advisors mají stejné počty a žádný nález pro novou funkci. Existující globální
+varování zůstávají. Živá latence zápisu uživatelské buňky se tímto read-only
+ověřením neměřila. Vercel pro 254f4c56 PASS, finální Quality Checks ještě běží;
+nezávislá bezpečnostní revize poslední revize a merge jsou nadále samostatné brány.
+
+### Dokončení PR a příprava betaverze (2026-09-21)
+Základna stále `8469a654`, pracovní diff nad `830c1f6d`.
+Opraven fokus detailu včetně návratu, trvalý editor pro chybu odscrollované
+buňky, zneplatnění vytvoření VŘ po odmountování výběru a vyčištění výběru při
+změně listu importu. Regrese před opravou: 3 cílená selhání tabulky (RED).
+Export nepotvrzených změn je během zápisu zakázaný.
+
+Celopoložkový export VŘ používá uložené celkem; historické částečné alokace
+poměrnou část se zaokrouhlením na haléře. Náhled a dosud zakázané serverové
+převzetí plánu používají stejné pravidlo, oprávnění plánu se nezpřístupňují.
+Původní číselná oprávnění a neúplné ocenění exportu zůstávají zachované.
+
+Migrace `20260920230000_budget_assignment_patch.sql` sjednocuje přiřazení,
+odebrání a nulu bez přenosu dokumentu i bez dodatečných práv pipeline. Zachovává
+read/edit/prices/allocate, zdroj/revizi/projekt, verzi, zámek a historii.
+Opakování požadavku je vázáno na uživatele a přesný obsah v kompaktní historii;
+nevznikají nové tabulky ani lifecycle závislosti. Také opravuje dříve nasazené
+RPC editace pro několik alokací stejného VŘ pokrývajících celé množství.
+
+- Izolovaná PostgreSQL sada: 33 PASS, žádné skipped/todo. Testuje i nulovou
+  vazbu, odebrání z 11 000 položek, retry, práva, cizí projekt, historii, poměrnou
+  cenu a sloučení starších alokací. Chybějící nové RPC před implementací: RED.
+- Export před opravou celkové částky: RED; následné testy zachovaly i pravidla
+  neúplného ocenění. Importní editor prokazatelně zruší skrytý výběr při přepnutí listu.
+- Verze 1.9.39-beta.1 připravena ve stejném PR, bez změny závislostí.
+- Finální cílené UI/model/export/import sady: 148 PASS; release verifier: 4 PASS
+  (před opravou beta metadata RED). Typecheck, web build, web-dist, boundaries,
+  legacy a docs PASS. Build má dosavadní upozornění na velké chunky.
+- Po fail-closed zpřesnění nového RPC znovu 5 dotčených SQL testů PASS.
+- Browser fixture 11 000 položek: fokus detailu a návrat na původní položku
+  ověřen, console errors žádné. Nejde o průchod produkčním přihlášením.
+- Cloud preflight 5 revizí / součet verzí 10 / historie 11, plánové RPC zůstává
+  zakázané. Dry-run obsahuje pouze 20260920230000. Automatická kontrola nasazení
+  požaduje samostatný souhlas pro tuto migraci; zatím nebyla nasazena.
+- CI pro `f68d1292` nad `8469a654`: 3536 testů PASS, 3 skipped,
+  1 selhání konzistence indexu release poznámek. Opraven index a nadpis beta
+  poznámek; cílený `tests/desktopBuildEnv.security.test.ts`: 13 PASS.
+
+Navazující revize nad `44e3b97a` (základna `8469a654`) opravuje vrácení malých
+zápisů. `construction_budget_undo_patch` přijímá pouze identifikátor vlastní
+poslední operace a očekávanou verzi, obnovuje serverovou kompaktní historii a
+vrací ID/verzi. Zachovává zdroj, tenant, read/edit/prices a podle změny allocate,
+zámek, historii a idempotentní retry. Nelze vrátit cizí či starší operaci ani
+podstrčit klientský snapshot. Alokační undo nepřepisuje dokument; buněčné undo
+zachová přesné původní celkem a importní issues přes validovaný serverový save.
+
+Limity patch požadavků odpovídají stávajícímu 100 MB dokumentovému/importnímu
+kontraktu, počet vybraných ID zůstává omezen na 250 000 a popis na 32 768 znaků.
+Hromadné cesty používají SQL join místo opakovaného lineárního hledání v JSON poli.
+
+- RED: 4 nové SQL regrese a UI undo přes full save.
+- Cílená UI sada 34 PASS; navazující test alokačního undo PASS.
+- SQL sada 36 PASS / 1 selhání kvalifikace proměnné v novém alokačním undo;
+  po opravě 7 všech dotčených testů PASS, bez skipped/todo.
+- Ověřeno přesné vrácení celkem/issues, vlastní operace, cizí tenant,
+  allocate právo, zámek, retry a historické částečné alokace.
+- 11 000 řádků: hromadné přiřazení + undo přibližně 297 ms v lokálním WASM;
+  odpověď undo pod 100 B. Test všech 250 000 syntetických ID ověřuje velikost
+  požadavku (ID záměrně neexistují); není benchmarkem zápisu 250 000 řádků.
+- Typecheck, web build, boundaries, legacy, docs a diff PASS.
+- Nový dry-run opět obsahuje jen dosud nenasazenou migraci 20260920230000.
+  Ta nyní zahrnuje také navazující undo opravu. Souhlas s deployem zůstává pending.

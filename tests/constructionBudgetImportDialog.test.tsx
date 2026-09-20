@@ -127,7 +127,7 @@ describe('import repair workspace',()=>{
     render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
     fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
     fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Tento list má přiřazené štítky nebo množství');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tento list má přiřazené množství do VŘ');
     expect(budgetApi.download).not.toHaveBeenCalled();
     expect(importInWorker).not.toHaveBeenCalled();
     expect(budgetApi.sourceStatus).not.toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe('import repair workspace',()=>{
     fireEvent.change(screen.getByLabelText('Nadřazený uzel'),{target:{value:'sheet:0:row:3'}});
     fireEvent.click(screen.getByRole('button',{name:'Použít opravu'}));
     fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
-    fireEvent.click(screen.getByText('Přenos štítků a alokací z předchozí verze'));
+    fireEvent.click(screen.getByText('Přenos přiřazení VŘ z předchozí verze'));
     fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
     fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
     await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
@@ -184,14 +184,14 @@ describe('import repair workspace',()=>{
     expect(saved.allocations).toEqual([]);
     expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:5')?.tags).toEqual([]);
   });
-  it.each(['tags','allocations'])('protects a saved sheet with %s from being excluded',async(kind)=>{
+  it.each(['tags','allocations'])('preserves legacy %s data while only allocations prevent exclusion',async(kind)=>{
     const original=editorRevision();
     if(kind==='tags')original.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['tag'];
     else original.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
     render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
     fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
-    expect(screen.getByRole('checkbox',{name:'Zařadit Soupis'})).toBeDisabled();
-    expect(screen.getByRole('button',{name:'Žádný'})).toBeDisabled();
+    if(kind==='allocations'){expect(screen.getByRole('checkbox',{name:'Zařadit Soupis'})).toBeDisabled();expect(screen.getByRole('button',{name:'Žádný'})).toBeDisabled();}
+    else{expect(screen.getByRole('checkbox',{name:'Zařadit Soupis'})).toBeEnabled();expect(screen.getByRole('button',{name:'Žádný'})).toBeEnabled();}
     expect(screen.getByRole('checkbox',{name:'Zařadit Elektro'})).toBeEnabled();
     fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
     await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
@@ -205,7 +205,7 @@ describe('import repair workspace',()=>{
     fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
     fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 5'}));
     fireEvent.change(screen.getByLabelText('Nový typ řádku'),{target:{value:'note'}});
-    expect(screen.getByRole('alert')).toHaveTextContent('vazby');
+    expect(screen.getByRole('alert')).toHaveTextContent('přiřazení');
     expect(screen.getByRole('button',{name:'Použít opravu'})).toBeDisabled();
   });
 });
@@ -347,7 +347,7 @@ it('blocks allocation transfer without the allocate permission', async () => {
  vi.mocked(importInWorker).mockResolvedValue(document);
  const previous={id:'old',title:'Old',document,allocations:[{itemId:'a',categoryId:'c',quantity:'1'}]} as import('@features/projects/budget/model/types').BudgetRevision;
  render(<BudgetImportDialog projectId="p" previous={previous} source={{id:'s',project_id:'p',filename:'x.xlsx',storage_path:'s',sha256:'a',status:'ready',created_at:''}} onClose={vi.fn()} onComplete={vi.fn()}/>);
- fireEvent.click(await screen.findByText('Přenos štítků a alokací z předchozí verze'));
+ fireEvent.click(await screen.findByText('Přenos přiřazení VŘ z předchozí verze'));
  const transfer=await screen.findByRole('checkbox',{name:'Přenést ověřené vazby'});
  expect(transfer).toBeDisabled();
  expect(screen.getByText(/Přenos alokací vyžaduje oprávnění/)).toBeInTheDocument();
@@ -399,4 +399,106 @@ it('uses Excel letters in advanced mapping including columns after Z',async()=>{
  expect(code).toHaveValue('26');
  expect(code).toHaveTextContent('AA');
  expect(screen.queryByLabelText(/číslo sloupce/)).not.toBeInTheDocument();
+});
+it('edits cells and assigns tenders in the editor without opening another dialog, then persists both', async () => {
+  vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+  vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+  try {
+    render(<BudgetImportDialog canAllocate categories={[{id:'c',title:'Omítky'}]} projectId="p" source={editorSource} editRevision={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+    const row=screen.getByRole('button',{name:'Omítka',exact:true}).closest('[role="row"]') as HTMLElement;
+    fireEvent.doubleClick(within(row).getByRole('button',{name:'Omítka',exact:true}));
+    fireEvent.change(screen.getByLabelText('Upravit Popis'),{target:{value:'Nová omítka'}});
+    fireEvent.keyDown(screen.getByLabelText('Upravit Popis'),{key:'Enter'});
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Nová omítka'})).toBeVisible());
+    fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'c'}});
+    await waitFor(()=>expect(within(row).getByText('Omítky')).toBeVisible());
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.doubleClick(within(row).getByText('2',{exact:true}));
+    fireEvent.change(screen.getByLabelText('Upravit Množství'),{target:{value:'3'}});
+    fireEvent.keyDown(screen.getByLabelText('Upravit Množství'),{key:'Enter'});
+    await waitFor(()=>expect(within(row).getByText('3',{exact:true})).toBeVisible());
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'3'}],document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({description:'Nová omítka'})])})})));
+  } finally { vi.restoreAllMocks(); }
+});
+it('lets an explicit whole-item assignment replace transferred links in a new revision',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  const previous=editorRevision();previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'old',quantity:'2'}];
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'new'}});
+  await screen.findByRole('button',{name:'Odebrat VŘ'});
+  fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+  fireEvent.click(screen.getByText('Přenos přiřazení VŘ z předchozí verze'));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+  fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'new',quantity:'2'}]})));
+ }finally{vi.restoreAllMocks();}
+});
+it('hides draft assignment controls in assignment-only source repair',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  vi.mocked(budgetApi.registerSource).mockResolvedValue({...editorSource,status:'attachment'});
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate canImportTenders onCreateTender={vi.fn()} projectId="p" previous={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(screen.getByRole('radio',{name:/Pouze převzít přiřazení/}));
+  fireEvent.change(screen.getByLabelText('Soubor XLSX'),{target:{files:[new File(['xlsx'],'assignments.xlsx')]}});
+  fireEvent.click(screen.getByRole('button',{name:'Nahrát a pokračovat'}));
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  expect(screen.queryByRole('combobox',{name:'VŘ: 001'})).not.toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'Nové VŘ'})).not.toBeInTheDocument();
+ }finally{vi.restoreAllMocks();}
+});
+it('does not transfer retired tags into a new revision',async()=>{
+ const previous=editorRevision();previous.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['legacy'];
+ vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+ render(<BudgetImportDialog projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+ await screen.findByRole('button',{name:'Otevřít editor oprav'});
+ fireEvent.click(screen.getByText('Přenos přiřazení VŘ z předchozí verze'));
+ fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+ fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+ await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({id:'sheet:0:row:5',tags:[]})])})})));
+ expect(previous.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags).toEqual(['legacy']);
+});
+
+it('preserves explicit allocation removal when transferring links',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+ vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  const previous=editorRevision();previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'old',quantity:'2'}];
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'new',title:'Nové práce'}]} projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+  fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));
+    fireEvent.change(screen.getByLabelText('VŘ pro vybrané položky'),{target:{value:'new'}});
+  await screen.findByRole('button',{name:'Odebrat VŘ'});
+  fireEvent.click(screen.getByRole('button',{name:'Odebrat VŘ'}));
+  await waitFor(()=>expect(screen.queryByRole('button',{name:'Odebrat VŘ'})).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+  fireEvent.click(screen.getByText('Přenos přiřazení VŘ z předchozí verze'));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Přenést ověřené vazby'}));
+  fireEvent.click(screen.getByRole('button',{name:'Vytvořit novou verzi'}));
+  await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[]})));
+ }finally{vi.restoreAllMocks();}
+});
+it('clears selected items when changing the import editor sheet',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'vr',title:'Práce'}]} projectId="p" source={editorSource} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));expect(screen.getByLabelText('VŘ pro vybrané položky')).toBeVisible();
+  fireEvent.change(screen.getByLabelText('List v editoru'),{target:{value:'sheet:1'}});
+  expect(screen.queryByLabelText('VŘ pro vybrané položky')).not.toBeInTheDocument();expect(screen.getByRole('checkbox',{name:'Vybrat 001'})).not.toBeChecked();
+ }finally{vi.restoreAllMocks();}
 });

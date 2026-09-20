@@ -30,7 +30,7 @@ it.each([undefined,'Import uložen, dokončete složky v DocHubu.'])('confirms c
   fireEvent.click(screen.getByText('Potvrdit import přiřazení'));
   await waitFor(()=>expect(onComplete).toHaveBeenCalledWith(previous,warning));
   const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];
-  expect(request).toMatchObject({mode:'assignments',revisionId:'revision',version:3,assignments:[{itemId:'sheet:0:row:2',categoryId:'tender',action:'remaining'}]});
+  expect(request).toMatchObject({mode:'assignments',revisionId:'revision',version:3,assignments:[{itemId:'sheet:0:row:2',categoryId:'tender',action:'replace'}]});
   expect(request).not.toHaveProperty('document');expect(request).not.toHaveProperty('allocations');
 });
 it('blocks conflicting existing assignments until the user decides and reuses retry identity',async()=>{
@@ -38,7 +38,7 @@ it('blocks conflicting existing assignments until the user decides and reuses re
   vi.mocked(budgetApi.importTenders).mockRejectedValueOnce(new Error('Síť')).mockResolvedValue({revision:previous,createdCategoryIds:[]});
   fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText('VŘ: Práce');
   fireEvent.click(screen.getByRole('checkbox'));expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
-  fireEvent.change(screen.getByLabelText('Vazby sheet:0:row:2'),{target:{value:'remaining'}});fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.change(screen.getByLabelText('Vazby sheet:0:row:2'),{target:{value:'replace'}});fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByText('Potvrdit import přiřazení'));await screen.findByText(/Síť/);
   fireEvent.click(screen.getByText('Potvrdit import přiřazení'));await waitFor(()=>expect(onComplete).toHaveBeenCalled());
   expect(vi.mocked(budgetApi.importTenders).mock.calls[0][1].operationId).toBe(vi.mocked(budgetApi.importTenders).mock.calls[1][1].operationId);

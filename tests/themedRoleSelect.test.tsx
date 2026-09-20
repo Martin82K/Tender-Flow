@@ -224,3 +224,12 @@ describe("ThemedSelect pro role a oprávnění", () => {
     expect(team).toContain('ariaLabel="Vyberte člena organizace"');
   });
 });
+
+it.each([['start',400],['end',140]] as const)('aligns a wider select menu to %s without changing the trigger', (menuAlign,left)=>{
+ render(<ThemedNativeSelect aria-label="Zarovnání VŘ" onChange={vi.fn()} menuMinWidth={420} menuAlign={menuAlign}><option value="a">Zemní práce</option></ThemedNativeSelect>);
+ const trigger=screen.getByRole('combobox',{name:'Zarovnání VŘ'});
+ const geometry=vi.spyOn(trigger,'getBoundingClientRect').mockReturnValue({left:400,right:560,top:40,bottom:72,width:160,height:32,x:400,y:40,toJSON:()=>({})});
+ fireEvent.click(trigger);
+ expect(screen.getByRole('listbox',{name:'Zarovnání VŘ'}).closest('.tf-themed-select-popover')).toHaveStyle({left:`${left}px`,width:'420px'});
+ geometry.mockRestore();
+});

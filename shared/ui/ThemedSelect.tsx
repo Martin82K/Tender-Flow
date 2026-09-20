@@ -19,6 +19,8 @@ interface ThemedSelectProps<T extends string> {
   searchable?: boolean;
   wrapOptions?: boolean;
   menuMinWidth?: number;
+  menuAlign?: "start" | "end";
+  compact?: boolean;
   triggerStyle?: React.CSSProperties;
   onTriggerClick?: React.MouseEventHandler<HTMLButtonElement>;
   onTriggerChange?: (value: string) => void;
@@ -46,6 +48,8 @@ export const ThemedSelect = <T extends string>({
   searchable = false,
   wrapOptions = false,
   menuMinWidth = 0,
+  menuAlign = "start",
+  compact = false,
   triggerStyle,
   onTriggerClick,
   onTriggerChange,
@@ -82,8 +86,9 @@ export const ThemedSelect = <T extends string>({
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
     const viewportPadding = 8;
-    const searchHeight = searchable ? 48 : 0;
-    const desiredHeight = wrapOptions ? 368 : Math.min(368, Math.max(44, visibleOptions.length * 38 + 8 + searchHeight));
+    const searchHeight = searchable ? (compact ? 36 : 48) : 0;
+    const menuHeight = compact ? 320 : 368;
+    const desiredHeight = wrapOptions ? menuHeight : Math.min(menuHeight, Math.max(44, visibleOptions.length * (compact ? 26 : 38) + 8 + searchHeight));
     const roomBelow = window.innerHeight - rect.bottom - viewportPadding;
     const roomAbove = rect.top - viewportPadding;
     const openAbove = roomBelow < Math.min(desiredHeight, 180) && roomAbove > roomBelow;
@@ -92,7 +97,7 @@ export const ThemedSelect = <T extends string>({
     const width = Math.min(Math.max(rect.width, menuMinWidth), Math.max(0, window.innerWidth - viewportPadding * 2));
     setPosition({
       openAbove,
-      left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding)),
+      left: Math.max(viewportPadding, Math.min(menuAlign === "end" ? rect.right - width : rect.left, window.innerWidth - width - viewportPadding)),
       top,
       width,
       maxHeight,
@@ -203,6 +208,7 @@ export const ThemedSelect = <T extends string>({
   const menu = isOpen && position ? createPortal(
     <div
       ref={menuRef}
+      data-density={compact ? "compact" : undefined}
       className="tf-themed-select-popover fixed z-[400] flex flex-col overflow-hidden rounded-lg border shadow-xl outline-none"
       style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight, transform: position.openAbove ? "translateY(-100%)" : undefined }}
     >
@@ -242,7 +248,7 @@ export const ThemedSelect = <T extends string>({
         role="listbox"
         aria-label={ariaLabel}
         className="min-h-0 overflow-y-auto p-1"
-        style={{ maxHeight: searchable ? Math.max(44, position.maxHeight - 49) : position.maxHeight }}
+        style={{ maxHeight: searchable ? Math.max(44, position.maxHeight - (compact ? 37 : 49)) : position.maxHeight }}
       >
       {visibleOptions.map((option, index) => {
         const isSelected = option.value === value;
@@ -282,6 +288,7 @@ export const ThemedSelect = <T extends string>({
     <div ref={rootRef} className={`relative ${className}`}>
       <button
         ref={triggerRef}
+        data-density={compact ? "compact" : undefined}
         id={triggerId}
         title={triggerTitle}
         type="button"

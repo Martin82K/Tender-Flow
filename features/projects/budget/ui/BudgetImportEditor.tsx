@@ -1,13 +1,20 @@
 import React, { useMemo, useState } from 'react';
+import { BudgetTable, DEFAULT_COLUMNS } from './BudgetTable';
+import type { BudgetColumn } from './BudgetTable';
+import { BudgetSelectionTenders } from './BudgetRowTenders';
+import type { BudgetRowTenderProps } from './BudgetRowTenders';
+import { applyBudgetItemEdit, syncWholeItemQuantity, validateRevisionAllocations } from '../model/revisions';
 import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
 import { aggregateBudget } from '../model/budgetTree';
+import type { BudgetFilters } from '../model/budgetModel';
 import { formatBudgetNumber, normalizeSearch, sumMoney } from '../model/budgetModel';
 import { applyImportRepair, importNodePath, importRepairParents, previewImportRepair, sourceColumnName } from '../model/importRepair';
 import type { ImportRepair } from '../model/importRepair';
 import type { KrosMapping } from '../model/krosImport';
 import type { BudgetAllocation, BudgetDocument, BudgetNode, BudgetSheet } from '../model/types';
 
-interface Props {
+interface Props extends BudgetRowTenderProps {
+
   allocations?: readonly BudgetAllocation[];
   document: BudgetDocument; onChange: (document: BudgetDocument) => void;
   mapping: KrosMapping; onMapping: (mapping: KrosMapping) => void;
@@ -19,8 +26,11 @@ const fields = [['kind','Typ řádku'],['code','Kód'],['description','Popis'],[
 const kinds: Record<ImportRepair['kind'],string> = {section:'Oddíl / pododdíl',K:'Položka práce',M:'Materiál',VV:'Výkaz výměr',note:'Poznámka / hlavička',subtotal:'Mezisoučet'};
 const PAGE_SIZE = 100;
 
-export function BudgetImportEditor({allocations,document,onChange,mapping,onMapping,onRemap,onBack,onLoadPreview,initialSheet,initialRow,busy,savedRevision=false}:Props) {
-  const [step,setStep] = useState<'columns'|'structure'|'review'>(initialRow?'structure':'columns');
+export function BudgetImportEditor({allocations,document,onChange,mapping,onMapping,onRemap,onBack,onLoadPreview,initialSheet,initialRow,busy,savedRevision=false,...tenderProps}:Props) {
+  const [step,setStep] = useState<'items'|'columns'|'structure'|'review'>(initialRow?'structure':'columns');
+  const [tableFilters,setTableFilters]=useState<BudgetFilters>({});
+  const [tableColumns,setTableColumns]=useState<BudgetColumn[]>(DEFAULT_COLUMNS);
+  const [selection,setSelection]=useState(new Set<string>());
   const [sheetId,setSheetId] = useState(document.sheets.find(s=>s.name===initialSheet)?.id??document.sheets.find(s=>s.selected&&s.role==='items')?.id??document.sheets[0]?.id??'');
   const [selectedId,setSelectedId] = useState(document.nodes.find(n=>n.source.sheet===initialSheet&&n.source.row===initialRow)?.id??'');
   const [draft,setDraft] = useState<ImportRepair|null>(null);
@@ -52,7 +62,7 @@ export function BudgetImportEditor({allocations,document,onChange,mapping,onMapp
   const mustReplace = hasRepairs || savedRevision;
   const changeMapping = (update:typeof m)=>sheet&&onMapping({...mapping,[sheet.name]:{...m,format:m.format??sheet.format,...update}});
   const choose = (node:BudgetNode)=>{setSelectedId(node.id);setDraft(null);setMessage('');};
-  const chooseSheet = (id:string)=>{setSheetId(id);setSelectedId('');setDraft(null);setPage(0);setReplaceRepairs(false);setMessage('');};
+  const chooseSheet = (id:string)=>{setSelection(new Set());setSheetId(id);setSelectedId('');setDraft(null);setPage(0);setReplaceRepairs(false);setMessage('');};
   const update = (value:Partial<ImportRepair>)=>edit&&setDraft({...edit,...value});
   const openIssue = (name:string,row:number)=>{const target=document.sheets.find(s=>s.name===name);if(target)chooseSheet(target.id);const node=document.nodes.find(n=>n.source.sheet===name&&n.source.row===row);setSelectedId(node?.id??'');setStep(node?'structure':'columns');setOnlyIssues(true);};
   const columns = Array.from({length:sheet?.sourcePreview?.columnCount??Math.max(8,...Object.values(sheet?.columns??{}).map(v=>v+1))},(_,i)=>i);
@@ -62,7 +72,12 @@ export function BudgetImportEditor({allocations,document,onChange,mapping,onMapp
 
   return <section className="tf-budget-import-editor" aria-label="Editor importu">
     <div className="tf-budget-editor-toolbar"><button disabled={busy} onClick={onBack}>Zpět na listy</button><ThemedNativeSelect aria-label="List v editoru" value={sheetId} disabled={busy} onChange={e=>chooseSheet(e.target.value)}>{document.sheets.map(s=><option key={s.id} value={s.id}>{s.name} · {s.title}</option>)}</ThemedNativeSelect><span className="tf-budget-import-muted">Originální soubor zůstává beze změny.</span></div>
-    <nav className="tf-budget-editor-steps" aria-label="Kroky opravy importu">{([['columns','1 · Sloupce'],['structure','2 · Struktura'],['review','3 · Kontrola']] as const).map(([id,label])=><button key={id} aria-current={step===id?'step':undefined} disabled={busy} onClick={()=>setStep(id)}>{label}</button>)}</nav>
+    <nav className="tf-budget-editor-steps" aria-label="Kroky opravy importu">{([['items','Položky a VŘ'],['columns','1 · Sloupce'],['structure','2 · Struktura'],['review','3 · Kontrola']] as const).map(([id,label])=><button key={id} aria-current={step===id?'step':undefined} disabled={busy} onClick={()=>setStep(id)}>{label}</button>)}</nav>
+    {step==='items'&&<div className="tf-budget tf-budget-editor-items">{!!selection.size&&tenderProps.onAllocateSelection&&<BudgetSelectionTenders itemIds={[...selection]} categories={tenderProps.categories} disabled={busy||!tenderProps.canAllocate} onCreateTender={tenderProps.onCreateTender} onAssign={id=>tenderProps.onAllocateSelection!([...selection],id)} onRemove={allocations?.some(a=>selection.has(a.itemId))&&tenderProps.onRemoveSelection?()=>tenderProps.onRemoveSelection!([...selection]):undefined} onClose={()=>setSelection(new Set())}/>}<BudgetTable {...tenderProps} allocations={allocations} nodes={document.nodes.map(n=>({...n,tenders:[...new Set((allocations??[]).filter(a=>a.itemId===n.id).map(a=>tenderProps.categories?.find(c=>c.id===a.categoryId)?.title??'Nedostupné VŘ'))]}))} scope={sheetId} filters={tableFilters} onFilters={setTableFilters} selected={selection} onSelected={setSelection} showVV={false} wrap={false} density={44} columns={tableColumns} onColumns={setTableColumns} canPrices editable={!busy} onNotice={setMessage} onEdit={async(edited,fields)=>{
+      const original=document.nodes.find(n=>n.id===edited.id);
+      if(original?.unit!==edited.unit&&allocations?.some(a=>a.itemId===edited.id))throw new Error('Měrnou jednotku přiřazené položky nelze změnit. Nejdříve zrušte její přiřazení do VŘ.');
+      const next=applyBudgetItemEdit(document,edited,fields);validateRevisionAllocations(next,syncWholeItemQuantity(document,next,allocations??[],!!tenderProps.canAllocate));setUndo(document);onChange(next);
+    }}/>{message&&<p role="status">{message}</p>}</div>}
     {step==='columns'&&sheet&&<div className="tf-budget-editor-layout">
       <section className="tf-budget-editor-source" aria-label="Původní buňky"><h3>Náhled zdrojového listu</h3><p className="tf-budget-import-muted">{sheet.sourcePreview?.rowCount??'—'} řádků · písmena označují skutečné sloupce XLSX. Zobrazeno nejvýše 60 řádků okolo hlavičky.</p>
         {sheet.sourcePreview?.truncated&&<p role="status">Dlouhé texty náhledu jsou zkrácené kvůli velikosti sešitu. Původní hodnoty zůstávají zachované.</p>}
@@ -95,7 +110,7 @@ export function BudgetImportEditor({allocations,document,onChange,mapping,onMapp
         {preview?.error&&<p role="alert" className="tf-budget-error">{preview.error}</p>}
         <button className="tf-budget-import-primary" disabled={busy||!!preview?.error} onClick={()=>{try{const next=applyImportRepair(document,edit,allocations);setUndo(document);onChange(next);setDraft(null);setMessage('Oprava použita. Uložte pracovní rozpočet.');}catch(e){setMessage(e instanceof Error?e.message:'Oprava selhala.');}}}>Použít opravu</button>
         <details><summary>Původní buňky řádku</summary><dl className="tf-budget-source-cells">{Object.entries(selected.source.cells).map(([address,cell])=><React.Fragment key={address}><dt>{address}</dt><dd>{String(cell.value??'')}{cell.formula&&<small>Vzorec: {cell.formula} (nespouští se)</small>}</dd></React.Fragment>)}</dl></details>
-      </>}<button disabled={busy||!undo} onClick={()=>{if(undo){onChange(undo);setUndo(null);setDraft(null);setMessage('Poslední oprava vrácena.');}}}>Vrátit poslední opravu</button>{message&&<p role="status">{message}</p>}</aside>
+      </>}<button disabled={busy||!undo} onClick={()=>{if(undo){try{onChange(undo);setUndo(null);setDraft(null);setMessage('Poslední oprava vrácena.');}catch(e){setMessage(e instanceof Error?e.message:'Opravu nelze vrátit.');}}}}>Vrátit poslední opravu</button>{message&&<p role="status">{message}</p>}</aside>
     </div>}
     {step==='review'&&<section className="tf-budget-editor-detail" aria-label="Kontrola oprav"><h3>{selectedIssues.some(i=>i.severity==='error')?'Uložení pracovní verze je možné; potvrzení vyžaduje opravy':'Kontrola vybraných soupisů'}</h3><p>{document.sheets.filter(s=>s.selected&&s.role==='items').length} vybraných soupisů · {document.importRepairs?.length??0} ručních oprav.</p><p>Součet všech načtených položek: {formatBudgetNumber(totals.total,true)} Kč{totals.incomplete?' · ocenění není úplné':''}. Oddíly a mezisoučty se znovu nepřičítají.</p><p>Shoda částek sama nepotvrzuje správnou hierarchii.</p><div className="tf-budget-editor-issues">{selectedIssues.slice(0,100).map((issue,index)=><div key={index}><strong>{issue.sheet} · řádek {issue.row}</strong><p>{issue.message}</p><button onClick={()=>openIssue(issue.sheet,issue.row)}>Přejít na opravu</button></div>)}{selectedIssues.length>100&&<p>Další problémy zobrazíte filtrem Jen k ověření na příslušném listu.</p>}</div></section>}
   </section>;

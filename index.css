@@ -6523,6 +6523,7 @@ html[data-skin="basic"] .tf-project-overview-view * {
 .tf-themed-select-search-box{background:var(--tf-skin-surface-muted)!important;border-color:var(--tf-skin-line-2)!important;color:var(--tf-skin-text)!important}
 .tf-themed-select-search-box:focus-within{border-color:var(--tf-skin-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--tf-skin-accent) 18%,transparent)}
 .tf-themed-select-search-box input{background:transparent!important;color:var(--tf-skin-text)!important;box-shadow:none!important}
+html[data-skin] .tf-themed-select-search-box input:is(:focus,:focus-visible){outline:none!important;outline-offset:0!important;box-shadow:none!important;border-color:transparent!important}
 .tf-themed-select-search-box input::placeholder,.tf-themed-select-search-box>span{color:var(--tf-skin-muted)!important}
 
 /* Consistent square close target. Mouse clicks do not imitate keyboard focus. */
@@ -6551,3 +6552,11 @@ html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-t
 html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-trigger:hover {
   background: color-mix(in srgb, var(--tf-skin-accent) 8%, transparent) !important;
 }
+
+/* Dense budget pickers retain full labels and one shared search focus ring. */
+.tf-themed-select-trigger[data-density="compact"]{min-height:28px;padding:3px 7px!important;gap:4px;border-radius:5px;box-shadow:none}
+.tf-themed-select-popover[data-density="compact"]{border-radius:7px}
+.tf-themed-select-popover[data-density="compact"] .tf-themed-select-search-header{padding:4px}
+.tf-themed-select-popover[data-density="compact"] .tf-themed-select-search-box{gap:5px;border-radius:5px;padding:0 6px}
+.tf-themed-select-popover[data-density="compact"] .tf-themed-select-search-box input{padding:4px 0!important;line-height:18px}
+.tf-themed-select-popover[data-density="compact"] .tf-themed-select-option{min-height:26px;padding:4px 8px!important;line-height:18px;border-radius:4px;gap:4px}

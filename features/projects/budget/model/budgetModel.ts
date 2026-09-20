@@ -29,6 +29,17 @@ export function multiplyMoney(a: string, b: string): string {
   const [an, as] = parts(a); const [bn, bs] = parts(b); const result = render(round(an * bn, as + bs, 2), 2);
   decimal(result); return result;
 }
+/** Allocate the authoritative stored total, including an explicit total override. */
+export function allocatedMoney(item: { quantity: string | null; total: string | null }, quantity: string): string | null {
+  if(item.quantity===null||item.total===null)return null;
+  if(compareDecimal(item.quantity,quantity)===0)return money(item.total);
+  const [total,totalScale]=parts(item.total),[allocated,allocatedScale]=parts(quantity),[whole,wholeScale]=parts(item.quantity);
+  if(whole===0n)throw new Error('Nenulovou alokaci nelze ocenit z nulového množství.');
+  let numerator=total*allocated*power(wholeScale+2),denominator=whole*power(totalScale+allocatedScale);
+  if(denominator<0n){numerator=-numerator;denominator=-denominator;}
+  const sign=numerator<0n?-1n:1n;
+  return render(numerator/denominator+((numerator*sign%denominator)*2n>=denominator?sign:0n),2);
+}
 export function sumMoney(values: Array<string | null>): string {
   return render(values.reduce((sum, value) => sum + (value === null ? 0n : BigInt(money(value).replace('.', ''))), 0n), 2);
 }
@@ -47,7 +58,7 @@ export interface ColumnFilter { search?: string; selected?: string[]; min?: stri
 export type BudgetFilters = Record<string, ColumnFilter>;
 export interface FilterableItem { [key: string]: unknown }
 export function cellValues(item: FilterableItem, column: string): string[] {
-  if (column === '$all') return ['code','description','unit','tenders','tags'].flatMap(key => cellValues(item,key));
+  if (column === '$all') return ['code','description','unit','tenders'].flatMap(key => cellValues(item,key));
   const v = item[column]; return Array.isArray(v) ? (v.length ? v.map(String) : ['']) : [v === null || v === undefined ? '' : String(v)];
 }
 function matches(item: FilterableItem, column: string, filter: ColumnFilter): boolean {

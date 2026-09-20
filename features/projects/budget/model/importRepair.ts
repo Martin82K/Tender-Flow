@@ -30,7 +30,7 @@ export function previewImportRepair(document: BudgetDocument, repair: ImportRepa
   if (!['section','K','M','VV','note','subtotal'].includes(repair.kind) || !['row','subtree'].includes(repair.scope)) throw new Error('Neplatný typ nebo rozsah opravy.');
   const node = document.nodes.find(node => node.id === repair.nodeId);
   if (!node || node.kind === 'object' || node.kind === 'sheet') throw new Error('Vyberte zdrojový řádek.');
-  if (isPriced(node) && !['K','M'].includes(repair.kind) && (node.tags.length || allocations.some(a => a.itemId === node.id))) throw new Error('Položka má vazby na štítky nebo alokace. Nejprve je vyřešte v rozpočtu, potom změňte typ řádku.');
+  if (isPriced(node) && !['K','M'].includes(repair.kind) && allocations.some(a => a.itemId === node.id)) throw new Error('Položka má přiřazení do VŘ. Nejprve je vyřešte v rozpočtu, potom změňte typ řádku.');
   if (!importRepairParents(document, node.id, repair.kind).some(parent => parent.id === repair.parentId)) throw new Error('Nadřazený uzel musí předcházet řádku a patřit do stejného soupisu.');
   const ids = new Set([node.id]);
   // Imported and repaired nodes are topologically ordered; one pass is sufficient.

@@ -50,7 +50,9 @@ export const createSha512Base64 = (filePath) => {
 
 export const verifyReleaseArtifacts = ({ dir, version }) => {
     const errors = [];
-    const latestPath = join(dir, 'latest.yml');
+    const channel = /^\d+\.\d+\.\d+-([a-zA-Z][a-zA-Z0-9-]*)(?:[.]|$)/.exec(version)?.[1];
+    const metadataName = channel ? `${channel}.yml` : 'latest.yml';
+    const latestPath = join(dir, metadataName);
 
     if (!existsSync(latestPath)) {
         errors.push(`Missing ${latestPath}. Windows auto-update will fail with GitHub 404.`);
@@ -59,21 +61,21 @@ export const verifyReleaseArtifacts = ({ dir, version }) => {
 
     const latest = parseWindowsLatestYml(readFileSync(latestPath, 'utf-8'));
     if (latest.version !== version) {
-        errors.push(`latest.yml version is ${latest.version || 'missing'}, expected ${version}.`);
+        errors.push(`${metadataName} version is ${latest.version || 'missing'}, expected ${version}.`);
     }
 
     if (!latest.path) {
-        errors.push('latest.yml is missing top-level path.');
+        errors.push(`${metadataName} is missing top-level path.`);
         return errors;
     }
 
     if (latest.fileUrl && latest.fileUrl !== latest.path) {
-        errors.push(`latest.yml files[0].url (${latest.fileUrl}) does not match path (${latest.path}).`);
+        errors.push(`${metadataName} files[0].url (${latest.fileUrl}) does not match path (${latest.path}).`);
     }
 
     const installerPath = join(dir, latest.path);
     if (!existsSync(installerPath)) {
-        errors.push(`Missing installer referenced by latest.yml: ${installerPath}.`);
+        errors.push(`Missing installer referenced by ${metadataName}: ${installerPath}.`);
         return errors;
     }
 
@@ -84,12 +86,12 @@ export const verifyReleaseArtifacts = ({ dir, version }) => {
 
     const actualSize = statSync(installerPath).size;
     if (latest.size !== actualSize) {
-        errors.push(`latest.yml size is ${latest.size || 'missing'}, expected ${actualSize}.`);
+        errors.push(`${metadataName} size is ${latest.size || 'missing'}, expected ${actualSize}.`);
     }
 
     const actualSha512 = createSha512Base64(installerPath);
     if (latest.sha512 !== actualSha512) {
-        errors.push('latest.yml sha512 does not match the referenced installer.');
+        errors.push(`${metadataName} sha512 does not match the referenced installer.`);
     }
 
     return errors;
