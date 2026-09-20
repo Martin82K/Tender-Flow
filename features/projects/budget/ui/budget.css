@@ -297,3 +297,8 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-inline-detail{max-height:40vh;overflow:auto;padding:12px;border-top:1px solid var(--tf-skin-line,#cbd5e1)}
 .tf-budget-editor-items{height:60vh;min-height:320px;display:flex;flex-direction:column}
 @media(max-width:700px){.tf-budget-grid>div[style*="sticky"]{position:static!important}.tf-budget-check,.tf-budget-grid>.tf-budget-expand{position:static}}
+
+.tf-budget-direct-tender{display:flex;align-items:center;gap:4px}.tf-budget-direct-tender>div{flex:1;min-width:0}.tf-budget-direct-tender>button{flex:none}
+
+.tf-budget-assignment-strip{display:flex;align-items:center;gap:12px;padding:6px 12px;border-bottom:1px solid var(--budget-border);background:var(--budget-bg);min-width:0}
+.tf-budget-assignment-strip>small{white-space:nowrap}.tf-budget-assignment-select{margin-left:auto;width:min(420px,60%);min-width:0}.tf-budget-assignment-strip>button{flex:none;padding:4px 8px}

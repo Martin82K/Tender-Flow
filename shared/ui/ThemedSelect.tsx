@@ -19,6 +19,7 @@ interface ThemedSelectProps<T extends string> {
   searchable?: boolean;
   wrapOptions?: boolean;
   menuMinWidth?: number;
+  menuAlign?: "start" | "end";
   triggerStyle?: React.CSSProperties;
   onTriggerClick?: React.MouseEventHandler<HTMLButtonElement>;
   onTriggerChange?: (value: string) => void;
@@ -46,6 +47,7 @@ export const ThemedSelect = <T extends string>({
   searchable = false,
   wrapOptions = false,
   menuMinWidth = 0,
+  menuAlign = "start",
   triggerStyle,
   onTriggerClick,
   onTriggerChange,
@@ -92,7 +94,7 @@ export const ThemedSelect = <T extends string>({
     const width = Math.min(Math.max(rect.width, menuMinWidth), Math.max(0, window.innerWidth - viewportPadding * 2));
     setPosition({
       openAbove,
-      left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding)),
+      left: Math.max(viewportPadding, Math.min(menuAlign === "end" ? rect.right - width : rect.left, window.innerWidth - width - viewportPadding)),
       top,
       width,
       maxHeight,

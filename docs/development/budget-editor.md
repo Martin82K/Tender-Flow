@@ -133,8 +133,11 @@ U typu a štítků šipky a Enter vybírají možnosti; Tab přejde na tlačítk
 Uložit změnu (✓), které se potvrdí Enterem. Escape nejprve zavře otevřenou
 nabídku, další Escape zruší editor. Při chybě zůstane vstup otevřený.
 Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
-Sloupec Výběrové řízení rozbalí přímo řádek: zobrazí alokace a umožní
-přiřazení celé položky do jediného VŘ a odebrání přiřazení. Změna VŘ
+Sloupec Výběrové řízení je přímo vyhledávací seznam: výběr okamžitě
+přiřadí celou položku do jediného VŘ. Vedle je tlačítko + pro nové VŘ;
+existující přiřazení lze odebrat. Nabídka má pravý okraj zarovnaný s polem
+a dlouhé názvy se zalamují. Hromadné přiřazení otevře úzký řádek pod
+lištou výběru s počtem položek a výběrem VŘ vpravo. Změna VŘ
 nahradí dosavadní vazby položky; změna množství aktualizuje i přiřazení.
 Dílčí množství se nezadává. Starší dílčí nebo rozdělené vazby je nutné před změnou
 množství výslovně sjednotit výběrem jediného VŘ.

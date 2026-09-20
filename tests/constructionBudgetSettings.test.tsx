@@ -356,9 +356,10 @@ it('assigns multiple clicked rows to a tender and clears selection without delet
     render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[{ id: 'vr', title: 'Zemní práce' } as never]} canUseTenders/></QueryClientProvider>);
     fireEvent.click(await screen.findByRole('button', { name: 'Výkop', exact: true }));
     fireEvent.click(screen.getByRole('button', { name: 'Beton', exact: true }), { ctrlKey: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Přiřadit VŘ', exact: true }));
-    fireEvent.change(screen.getByLabelText('Cílové VŘ'), { target: { value: 'vr' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Potvrdit přiřazení' }));
+    fireEvent.click(screen.getByRole('button',{name:'Přiřadit VŘ',exact:true}));
+    fireEvent.click(screen.getByRole('combobox', { name: 'VŘ pro vybrané položky' }));
+    expect(screen.queryByRole('region',{name:'Přiřazení množství do VŘ'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option',{name:'Zemní práce'}));
     await waitFor(() => expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({ allocations: [{ itemId: 'item', categoryId: 'vr', quantity: '12' }, { itemId: 'other', categoryId: 'vr', quantity: '12' }] })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Zrušit výběr' }));
@@ -411,7 +412,7 @@ it('refreshes only catalog and project details when creating a tender before ass
  vi.mocked(budgetApi.save).mockImplementation(async input=>({...current,version:2,document:input.document,allocations:input.allocations}));
  try{
   await openBudget();
-  fireEvent.click(screen.getByRole('button',{name:'VŘ: 123'}));fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
+  fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));
   fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nová fasáda'}});
   fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'}));
   await waitFor(()=>expect(budgetApi.save).toHaveBeenCalled());

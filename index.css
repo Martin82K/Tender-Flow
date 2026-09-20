@@ -6523,6 +6523,7 @@ html[data-skin="basic"] .tf-project-overview-view * {
 .tf-themed-select-search-box{background:var(--tf-skin-surface-muted)!important;border-color:var(--tf-skin-line-2)!important;color:var(--tf-skin-text)!important}
 .tf-themed-select-search-box:focus-within{border-color:var(--tf-skin-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--tf-skin-accent) 18%,transparent)}
 .tf-themed-select-search-box input{background:transparent!important;color:var(--tf-skin-text)!important;box-shadow:none!important}
+html[data-skin] .tf-themed-select-search-box input:is(:focus,:focus-visible){outline:none!important;outline-offset:0!important;box-shadow:none!important;border-color:transparent!important}
 .tf-themed-select-search-box input::placeholder,.tf-themed-select-search-box>span{color:var(--tf-skin-muted)!important}
 
 /* Consistent square close target. Mouse clicks do not imitate keyboard focus. */
