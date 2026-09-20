@@ -82,3 +82,10 @@ it('omits retired tags even from a priced whole-budget export',()=>{
  const book=buildBudgetWorkbook(nodes,{scope:{kind:'whole'},allocations,includePrices:true,canViewPrices:true});
  expect(book.Sheets['Rozpočet']['!cols']).toHaveLength(8);expect(rows(book)[0]).not.toContain('Štítky');expect(JSON.stringify(book)).not.toContain('INTERNAL');
 });
+it('uses the manually edited total for a whole tender and prorates legacy partial assignments',()=>{
+ const edited=[node('manual',null,'K',{quantity:'12',unitPrice:'10',total:'175'})];
+ for(const [quantity,expected] of [['12','175.00'],['6','87.50']]){
+  const book=buildBudgetWorkbook(edited,{scope:{kind:'tender',categoryId:'vr',title:'VR'},allocations:[{itemId:'manual',categoryId:'vr',quantity}],includePrices:true,canViewPrices:true});
+  expect(rows(book).at(-1)?.[6]).toBe(expected);
+ }
+});

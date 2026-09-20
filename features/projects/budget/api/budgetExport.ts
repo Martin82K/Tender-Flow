@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { multiplyMoney, sumMoney, sumQuantities, validateAllocation } from '../model/budgetModel';
+import { allocatedMoney, sumMoney, sumQuantities, validateAllocation } from '../model/budgetModel';
 import { isPriced } from '../model/types';
 import type { BudgetAllocation, BudgetNode } from '../model/types';
 
@@ -57,9 +57,8 @@ export function buildBudgetWorkbook(nodes: BudgetNode[], options: BudgetExportOp
   const itemValues = new Map<string, { quantity: string | null; amount: string | null }>();
   for (const item of items) {
     const quantity = options.scope.kind === 'tender' ? allocated.get(item.id)! : item.quantity ?? null;
-    const unitPrice = item.unitPrice ?? null;
-    const amount = !options.includePrices || quantity === null || unitPrice === null ? null : options.scope.kind === 'tender'
-      ? multiplyMoney(quantity, unitPrice) : item.total ?? null;
+    const amount = !options.includePrices || quantity === null || item.unitPrice == null ? null : options.scope.kind === 'tender'
+      ? allocatedMoney(item, quantity) : item.total ?? null;
     itemValues.set(item.id, { quantity, amount });
     amounts.set(item.id, { value: sumMoney([amount]), complete: amount !== null });
   }

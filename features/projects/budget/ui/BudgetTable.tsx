@@ -43,7 +43,10 @@ export function BudgetTable(props: Props) {
   const [cell,setCell]=useState<{node:BudgetNode;column:BudgetColumn;value:string}|null>(null);
   const inlineCell=useRef<HTMLDivElement>(null);
   React.useEffect(()=>{if(cell)inlineCell.current?.querySelector<HTMLElement>('[role="combobox"], [role="option"][tabindex="0"], input, button')?.focus();},[cell?.node.id,cell?.column.key]);
-  const openDetail=(node:BudgetNode)=>{if(editLock.current)return;setCell(null);setEditError('');setDetail(node);};
+  const detailRegion=useRef<HTMLElement>(null),detailOrigin=useRef<HTMLElement|null>(null);
+  const openDetail=(node:BudgetNode,origin=document.activeElement as HTMLElement|null)=>{if(editLock.current)return;detailOrigin.current=origin;setCell(null);setEditError('');setDetail(node);};
+  const closeDetail=()=>{setDetail(null);setEditError('');(detailOrigin.current?.isConnected?detailOrigin.current:tableRef.current)?.focus();};
+  React.useLayoutEffect(()=>{if(detail)detailRegion.current?.querySelector<HTMLButtonElement>('button')?.focus();},[detail?.id]);
   const selectRow=(node:BudgetNode,event:React.MouseEvent)=>{
     if(event.detail>1)return;
     if(event.shiftKey&&anchor.current){
@@ -105,10 +108,10 @@ export function BudgetTable(props: Props) {
   const virtual=useVirtualizer({count:rows.length,getScrollElement:()=>scroll.current,estimateSize:i=>rowHeight(rows[i],density),getItemKey:i=>rows[i].id,overscan:12,useAnimationFrameWithResizeObserver:true});
   const virtualRows=virtual.getVirtualItems();
   React.useEffect(()=>{
-    if(cell&&!busy&&(!visibleColumns.some(c=>c.key===cell.column.key)||!virtualRows.some(v=>rows[v.index]?.id===cell.node.id))){
+    if(cell&&!busy&&!editError&&(!visibleColumns.some(c=>c.key===cell.column.key)||!virtualRows.some(v=>rows[v.index]?.id===cell.node.id))){
       setCell(null);setEditError('');onNotice('Rozpracovaná úprava byla zrušena, protože buňka již není viditelná.');
     }
-  },[cell,busy,virtualRows,rows,visibleColumns,onNotice]);
+  },[cell,busy,editError,virtualRows,rows,visibleColumns,onNotice]);
   React.useLayoutEffect(()=>{
     // Preserve measured sizes and resize mounted rows even while scrolling; measureElement defers then.
     scroll.current?.querySelectorAll<HTMLDivElement>('[data-index]').forEach(row=>virtual.resizeItem(Number(row.dataset.index),row.offsetHeight));
@@ -177,6 +180,10 @@ export function BudgetTable(props: Props) {
       {!matched.length&&<div className="p-8" role="status">Žádné položky neodpovídají rozsahu a filtrům.</div>}
     </div>
     <div ref={footer} className="tf-budget-totals overflow-hidden shrink-0">{totals.map(([label,total])=><div className="tf-budget-grid" style={{gridTemplateColumns:grid,width}} key={label}><div/><div/>{visibleColumns.map((c,i)=><div className={c.numeric?'tf-budget-number':''} key={c.key}>{c.key==='total'?numberLabel(total,true):c.key==='description'?label:i===0&&!visibleColumns.some(c=>c.key==='description')?label:''}</div>)}</div>)}{aggregate.incomplete&&<p role="status">Součet neobsahuje položky bez ceny.</p>}</div>
+    {cell&&editError&&!virtualRows.some(v=>rows[v.index]?.id===cell.node.id)&&<section className="tf-budget-inline-detail" aria-label="Neuložená úprava">
+      <p role="alert">{editError}</p><label>Neuložená hodnota: {cell.column.label}<input aria-label={`Neuložená hodnota: ${cell.column.label}`} value={cell.value} disabled={busy} onChange={event=>setCell({...cell,value:event.target.value})}/></label>
+      <button disabled={busy||!editable} onClick={()=>void saveCell()}>Znovu uložit změnu</button><button disabled={busy} onClick={()=>{setCell(null);setEditError('');}}>Zahodit neuloženou změnu</button>
+    </section>}
     {contextMenu&&<div ref={menuRef} role="menu" aria-label="Akce rozpočtu" className="tf-budget-context-menu" style={{left:contextMenu.x,top:contextMenu.y}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();}} onKeyDown={event=>{
       if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeContextMenu(true);}
       else if(event.key==='Tab')closeContextMenu();
@@ -187,12 +194,12 @@ export function BudgetTable(props: Props) {
     }}>
       <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set(showVV?expandableIds:nodes.filter(n=>['object','sheet','section'].includes(n.kind)&&expandableIds.has(n.id)).map(n=>n.id)));setContextMenu(null);virtual.scrollToOffset(0);tableRef.current?.focus();}}>Sbalit vše</button>
       <button type="button" role="menuitem" onClick={()=>{setCollapsed(new Set());setContextMenu(null);tableRef.current?.focus();}}>Rozbalit vše</button>
-      {contextMenu.filter&&<button type="button" role="menuitem" onClick={()=>{const row=menuOrigin.current?.closest('[data-index]');const node=row?rows[Number(row.getAttribute('data-index'))]:undefined;if(node)openDetail(node);setContextMenu(null);}}>Detail položky</button>}
+      {contextMenu.filter&&<button type="button" role="menuitem" onClick={()=>{const row=menuOrigin.current?.closest('[data-index]');const node=row?rows[Number(row.getAttribute('data-index'))]:undefined;if(node)openDetail(node,menuOrigin.current);setContextMenu(null);}}>Detail položky</button>}
       {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
     </div>}
     {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>{setFilter(null);filterOrigin.current?.focus();}}/>}
-    {detail&&<section className="tf-budget-inline-detail" aria-label={`Položka ${detail.code}`}><button type="button" disabled={busy} onClick={()=>{setDetail(null);setEditError('');}}>Zavřít detail</button>
-      <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);const original=nodes.find(node=>node.id===detail.id);if(!original)throw new Error('Položka již není dostupná.');const numericChanged=quantity!==original.quantity||price!==original.unitPrice;const edited={...detail,quantity,unitPrice:price,total:numericChanged?(quantity!==null&&price!==null?multiplyMoney(quantity,price):null):original.total};const fields=(['description','quantity','unitPrice','total'] as const).filter(key=>edited[key]!==original[key]);await onEdit(edited,fields);setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
+    {detail&&<section ref={detailRegion} className="tf-budget-inline-detail" aria-label={`Položka ${detail.code}`}><button type="button" disabled={busy} onClick={closeDetail}>Zavřít detail</button>
+      <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);const original=nodes.find(node=>node.id===detail.id);if(!original)throw new Error('Položka již není dostupná.');const numericChanged=quantity!==original.quantity||price!==original.unitPrice;const edited={...detail,quantity,unitPrice:price,total:numericChanged?(quantity!==null&&price!==null?multiplyMoney(quantity,price):null):original.total};const fields=(['description','quantity','unitPrice','total'] as const).filter(key=>edited[key]!==original[key]);await onEdit(edited,fields);closeDetail();}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
         <div className="flex gap-2"><label>Množství<input disabled={busy||!editable||!isPriced(detail)} value={detail.quantity??''} onChange={e=>setDetail({...detail,quantity:e.target.value})}/></label>{canPrices&&<label>Jednotková cena<input disabled={busy||!editable||!isPriced(detail)} value={detail.unitPrice??''} onChange={e=>setDetail({...detail,unitPrice:e.target.value})}/></label>}</div>

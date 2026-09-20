@@ -536,3 +536,31 @@ it('does not recalculate the entire budget while typing an uncommitted cell valu
  fireEvent.change(screen.getByRole('textbox',{name:'Upravit Popis'}),{target:{value:'Jiný popis'}});
  expect(sum).toHaveBeenCalledTimes(calls);
 });
+it('focuses the inline detail and restores its origin on close',()=>{
+ render(<BudgetTable {...table().props} editable/>);
+ const origin=screen.getByRole('button',{name:item.description});origin.focus();
+ fireEvent.contextMenu(origin);fireEvent.click(screen.getByRole('menuitem',{name:'Detail položky'}));
+ expect(screen.getByRole('button',{name:'Zavřít detail'})).toHaveFocus();
+ fireEvent.click(screen.getByRole('button',{name:'Zavřít detail'}));expect(origin).toHaveFocus();
+});
+it('keeps a failed offscreen cell draft in a persistent retry editor',async()=>{
+ let reject!:(error:Error)=>void;const onEdit=vi.fn(()=>new Promise<void>((_,fail)=>{reject=fail;}));
+ const props={...table().props,editable:true,onEdit};const {rerender}=render(<BudgetTable {...props}/>);
+ fireEvent.doubleClick(screen.getByRole('button',{name:item.description}));
+ fireEvent.change(screen.getByLabelText('Upravit Popis'),{target:{value:'Neztratit'}});
+ fireEvent.keyDown(screen.getByLabelText('Upravit Popis'),{key:'Enter'});
+ rerender(<BudgetTable {...props} filters={{code:{search:'456'}}}/>);
+ await act(async()=>reject(new Error('Výpadek spojení')));
+ expect(screen.getByRole('alert')).toHaveTextContent('Výpadek spojení');
+ expect(screen.getByLabelText('Neuložená hodnota: Popis')).toHaveValue('Neztratit');
+ fireEvent.click(screen.getByRole('button',{name:'Zahodit neuloženou změnu'}));
+ fireEvent.doubleClick(screen.getByRole('button',{name:'Neoceněná práce'}));
+ expect(screen.getByLabelText('Upravit Popis')).toHaveValue('Neoceněná práce');
+});
+it('does not assign after the selection unmounts while a tender is being created',async()=>{
+ let resolve!:(value:{id:string;title:string})=>void;const assign=vi.fn();
+ const {unmount}=render(<BudgetSelectionTenders itemIds={['item']} onAssign={assign} onCreateTender={()=>new Promise(done=>{resolve=done;})}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Nové VŘ'}));fireEvent.change(screen.getByLabelText('Název nového VŘ'),{target:{value:'Nové'}});
+ fireEvent.click(screen.getByRole('button',{name:'Vytvořit a přiřadit'}));unmount();
+ await act(async()=>resolve({id:'new',title:'Nové'}));expect(assign).not.toHaveBeenCalled();
+});

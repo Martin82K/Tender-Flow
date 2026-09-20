@@ -83,3 +83,16 @@ describe("release artifact verification", () => {
     }
   });
 });
+
+it('verifies beta metadata separately from the stable latest channel',()=>{
+ const dir=createFixtureDir();
+ try{
+  const version='1.9.39-beta.1',name=`Tender-Flow-Setup-${version}.exe`,path=join(dir,name);
+  writeFileSync(path,'fixture installer');const hash=createSha512Base64(path);
+  const metadata=`version: ${version}\nfiles:\n  - url: ${name}\n    sha512: ${hash}\n    size: 17\npath: ${name}\nsha512: ${hash}\n`;
+  writeLatestYml(dir,metadata);
+  expect(verifyReleaseArtifacts({dir,version})).toContain(`Missing ${join(dir,'beta.yml')}. Windows auto-update will fail with GitHub 404.`);
+  writeFileSync(join(dir,'beta.yml'),metadata);
+  expect(verifyReleaseArtifacts({dir,version})).toEqual([]);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

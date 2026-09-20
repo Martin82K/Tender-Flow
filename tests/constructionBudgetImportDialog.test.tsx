@@ -491,3 +491,14 @@ it('preserves explicit allocation removal when transferring links',async()=>{
   await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[]})));
  }finally{vi.restoreAllMocks();}
 });
+it('clears selected items when changing the import editor sheet',async()=>{
+ vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+ try{
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  render(<BudgetImportDialog canAllocate categories={[{id:'vr',title:'Práce'}]} projectId="p" source={editorSource} onClose={vi.fn()} onComplete={vi.fn()}/>);
+  fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+  fireEvent.click(screen.getByRole('checkbox',{name:'Vybrat 001'}));expect(screen.getByLabelText('VŘ pro vybrané položky')).toBeVisible();
+  fireEvent.change(screen.getByLabelText('List v editoru'),{target:{value:'sheet:1'}});
+  expect(screen.queryByLabelText('VŘ pro vybrané položky')).not.toBeInTheDocument();expect(screen.getByRole('checkbox',{name:'Vybrat 001'})).not.toBeChecked();
+ }finally{vi.restoreAllMocks();}
+});

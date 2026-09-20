@@ -7,7 +7,7 @@ import { Modal } from '@shared/ui/Modal';
 import type { DemandCategory } from '@/types';
 import { createBudgetTender } from '../api/createBudgetTender';
 import { budgetApi } from '../api/budgetApi';
-import type { TenderImportRequest, BudgetItemEditRequest } from '../api/budgetApi';
+import type { BudgetAssignmentRequest, BudgetItemEditRequest } from '../api/budgetApi';
 import { BudgetExportDialog } from './BudgetExportDialog';
 import { BudgetSelectionTenders } from './BudgetRowTenders';
 import { BudgetTable, DEFAULT_COLUMNS } from './BudgetTable';
@@ -18,7 +18,7 @@ import { BudgetRecap } from './BudgetRecap';
 import { BudgetTenderCatalog } from './BudgetTenderCatalog';
 import { BudgetTenderTemplates } from "./BudgetTenderTemplates";
 import { BudgetImportDialog } from './BudgetImportDialog';
-import { decimal, formatBudgetNumber, multiplyMoney, normalizeSearch, sumMoney } from '../model/budgetModel';
+import { decimal, formatBudgetNumber, allocatedMoney, normalizeSearch, sumMoney } from '../model/budgetModel';
 import type { BudgetFilters } from '../model/budgetModel';
 import { isPriced } from '../model/types';
 import type { BudgetNode, BudgetAllocation, BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
@@ -46,7 +46,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
   const [categoryId,setCategoryId]=useState('');
   const [pendingAssignment,setPendingAssignment]=useState<{revisionId:string;allocations:BudgetAllocation[];itemIds:Set<string>}|null>(null);
   const itemEditAttempt=useRef<{key:string;request:BudgetItemEditRequest}|null>(null);
-  const assignmentAttempt=useRef<{key:string;request:TenderImportRequest}|null>(null);
+  const assignmentAttempt=useRef<{key:string;request:BudgetAssignmentRequest}|null>(null);
   const actionLock=useRef(false);const saveLock=useRef(false);
   const [undo,setUndo]=useState<{revisionId:string;document:BudgetDocument;allocations:BudgetAllocation[];version:number}|null>(null);
   const index=useQuery({queryKey:[...key,'index'],queryFn:()=>budgetApi.index(projectId),refetchOnMount:'always'});
@@ -131,39 +131,24 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     void cache.invalidateQueries({queryKey:PROJECT_DETAILS_KEYS.detail(projectId)});
     return {...tender,warning};
   };
-  const assignTender=async(categoryId:string)=>{
+  const assignTender=async(categoryId:string|null)=>{
     if(!current||!editable||!permissions?.allocate||!selected.size)throw new Error('Přiřazení není povoleno.');
-    // Preserve the existing permission path for users without pipeline-module access.
-    if(!canUseTenders){await save(current.document,assignWholeItems(current.document.nodes,current.allocations,selected,categoryId));return;}
     if(saveLock.current)throw new Error('Počkejte na dokončení ukládání.');
-    const ids=[...selected].sort();
-    const attemptKey=JSON.stringify([projectId,current.id,current.version,ids,categoryId]);
+    const ids=[...selected].sort();const attemptKey=JSON.stringify([projectId,current.id,current.version,ids,categoryId]);
     saveLock.current=true;setSaving(true);setError('');
     try{
-      if(assignmentAttempt.current?.key!==attemptKey){
-        const expectedCatalog=await budgetApi.projectTenders(projectId);
-        assignmentAttempt.current={key:attemptKey,request:{operationId:crypto.randomUUID(),mode:'assignments',sourceId:current.source_id,revisionId:current.id,version:current.version,expectedCatalog,newCategories:[],assignments:ids.map(itemId=>({itemId,categoryId,action:'replace'}))}};
-      }
-      const result=await budgetApi.importTenders(projectId,assignmentAttempt.current.request);
-      if(!result.revision)throw new Error('Server nepotvrdil uložené přiřazení. Zopakujte stejný výběr.');
-      const saved=result.revision;assignmentAttempt.current=null;
-      setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
+      if(assignmentAttempt.current?.key!==attemptKey)assignmentAttempt.current={key:attemptKey,request:{operationId:crypto.randomUUID(),sourceId:current.source_id,revisionId:current.id,version:current.version,itemIds:ids,categoryId}};
+      const result=await budgetApi.setAssignments(projectId,assignmentAttempt.current.request);
+      if(result.id!==current.id||result.version!==current.version+1||JSON.stringify([...result.itemIds].sort())!==JSON.stringify(ids))throw new Error('Server nepotvrdil uložené přiřazení. Obnovte rozpočet.');
+      const changed=new Set(result.itemIds);const saved={...current,version:result.version,allocations:[...current.allocations.filter(a=>!changed.has(a.itemId)),...result.allocations]};
+      assignmentAttempt.current=null;setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:saved.version});
       cache.setQueryData([...key,'revision',saved.id],saved);void cache.invalidateQueries({queryKey:[...key,'index']});setNotice('Přiřazení uloženo na serveru.');
-    }catch(error){
-      const message=error instanceof Error?error.message:'';
-      if(message==='Import VŘ není povolen.'){
-        // This RPC also requires pipeline editing; the original endpoint enforces budget allocation rights itself.
-        assignmentAttempt.current=null;saveLock.current=false;
-        await save(current.document,assignWholeItems(current.document.nodes,current.allocations,selected,categoryId));return;
-      }
-      if(message.startsWith('Seznam VŘ se změnil.'))assignmentAttempt.current=null;
-      throw error;
     }finally{saveLock.current=false;setSaving(false);}
   };
-  const previewTenderAssignment=async(categoryId:string)=>{
+  const previewTenderAssignment=async(categoryId:string|null)=>{
     if(!current||!editable||!permissions?.allocate||!selected.size)return;
     setError('');
-    setPendingAssignment({revisionId:current.id,itemIds:new Set(selected),allocations:assignWholeItems(current.document.nodes,current.allocations,selected,categoryId)});
+    setPendingAssignment({revisionId:current.id,itemIds:new Set(selected),allocations:categoryId===null?current.allocations.filter(a=>!selected.has(a.itemId)):assignWholeItems(current.document.nodes,current.allocations,selected,categoryId)});
     try{await assignTender(categoryId);}catch(error){
       const message=error instanceof Error?error.message:'Přiřazení nelze uložit.';
       setError(/statement timeout/i.test(message)?'Server překročil časový limit. Přiřazení se neuložilo; původní hodnota byla obnovena.'
@@ -215,7 +200,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     </div>
     {(error||index.error||revision.error||sources.error)&&<p role="alert" className="tf-budget-error">{error||index.error?.message||revision.error?.message||sources.error?.message}<button onClick={()=>{setError('');void cache.invalidateQueries({queryKey:key});}}>Obnovit</button></p>}
     {notice&&<p role="status" className="tf-budget-notice">{notice}<button aria-label="Zavřít oznámení" onClick={()=>setNotice('')}>×</button></p>}
-    {tab==='tenders'?<BudgetTenderCatalog key={`${projectId}:${userId}`} projectId={projectId} userId={userId} readOnly={readOnly||locked||!permissions?.editTenders} canImportTemplates={!!permissions?.edit&&!!permissions.prices&&!!permissions.allocate} onTemplates={()=>setTemplatesOpen(true)}/>:tab==='versions'?<div className="overflow-auto p-4"><div className="tf-budget-toolbar tf-budget-import-actions" role="group" aria-label="Import a export rozpočtu"><strong>{current?.title||'Bez rozpočtu'} · CZK bez DPH</strong><span>{current?`Uložení ${current.version} · ${current.status==='confirmed'?'Potvrzená':'Pracovní'}`:''}</span><button disabled={!nodes.length} onClick={()=>setExportSelection([])}>Exportovat</button>{permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={locked} onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}</div><BudgetVersions revisions={index.data?.revisions??[]} sources={sources.data??[]} permissions={permissions!} purgeJobs={index.data?.purgeJobs} onPurge={async(jobId,selection)=>{try{await budgetApi.purge(projectId,jobId,selection);setRevisionId('');setSelected(new Set());setUndo(null);setNotice('Trvalé mazání dokončeno.');}finally{await cache.invalidateQueries({queryKey:key});}}} readOnly={readOnly||locked} categoryNames={new Map(categories.map(c=>[c.id,c.title]))}
+    {tab==='tenders'?<BudgetTenderCatalog key={`${projectId}:${userId}`} projectId={projectId} userId={userId} readOnly={readOnly||locked||!permissions?.editTenders} canImportTemplates={!!permissions?.edit&&!!permissions.prices&&!!permissions.allocate} onTemplates={()=>setTemplatesOpen(true)}/>:tab==='versions'?<div className="overflow-auto p-4"><div className="tf-budget-toolbar tf-budget-import-actions" role="group" aria-label="Import a export rozpočtu"><strong>{current?.title||'Bez rozpočtu'} · CZK bez DPH</strong><span>{current?`Uložení ${current.version} · ${current.status==='confirmed'?'Potvrzená':'Pracovní'}`:''}</span><button disabled={!nodes.length||saving} onClick={()=>setExportSelection([])}>Exportovat</button>{permissions?.edit&&permissions.prices&&!readOnly&&<button disabled={locked} onClick={()=>{setImportSource(undefined);setImportOpen(true);}}>Importovat</button>}</div><BudgetVersions revisions={index.data?.revisions??[]} sources={sources.data??[]} permissions={permissions!} purgeJobs={index.data?.purgeJobs} onPurge={async(jobId,selection)=>{try{await budgetApi.purge(projectId,jobId,selection);setRevisionId('');setSelected(new Set());setUndo(null);setNotice('Trvalé mazání dokončeno.');}finally{await cache.invalidateQueries({queryKey:key});}}} readOnly={readOnly||locked} categoryNames={new Map(categories.map(c=>[c.id,c.title]))}
       onOpen={id=>{openVersion(id);setTab(index.data?.revisions.find(r=>r.id===id)?.deleted_at?'versions':'items');}}
       onDownload={s=>void act(async()=>{const blob=await budgetApi.download(s);const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=s.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})}
       onConvert={s=>{setImportSource(s);setImportOpen(true);}}
@@ -223,7 +208,7 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
       <h3>Historie otevřené verze</h3>{history.data?.map(h=><p key={h.id}>{new Date(h.created_at).toLocaleString('cs-CZ')} · {({set_primary:'Nastavení hlavní verze',trash:'Přesunuto do koše',restore:'Obnoveno z koše',create:'Vytvoření',save:'Úprava',confirm:'Potvrzení',apply_tender_plan:'Převzetí do plánu VŘ'} as Record<string,string>)[h.event]||h.event} · verze {h.previous_version??'-'} → {h.new_version}</p>)}
     </div>:revision.isPending&&activeId?<p role="status">Načítání rozpočtu…</p>:!current?<div className="p-10"><h3>Rozpočet zatím neobsahuje žádné položky</h3><p>Nahrajte XLSX jako přílohu nebo jej převeďte na pracovní rozpočet.</p></div>:<>
       {!!activeFilters.length&&<div className="tf-budget-toolbar">{activeFilters.map(([c,f])=><button key={c} onClick={()=>{if(c==='$all'){onSearchChange?.('');return;}const next={...filters};delete next[c];setFilters(next);}}>{c==='$all'?'Hledání':DEFAULT_COLUMNS.find(col=>col.key===c)?.label}: {f.search||''} {f.selected!==undefined?`${f.selected.length} hodnot`:''} {f.min?`od ${f.min}`:''} {f.max?`do ${f.max}`:''} ×</button>)}<button onClick={()=>{setFilters({});onSearchChange?.('');}}>Vymazat všechny filtry</button></div>}
-      {<div className="tf-budget-toolbar tf-budget-selection" data-empty={!selected.size} aria-hidden={!selected.size}><strong>Vybráno {selected.size} položek</strong><button onClick={()=>setExportSelection([...selected])}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}><ListX size={16} aria-hidden="true"/>Zrušit výběr</button>{selected.size>0&&<BudgetSelectionTenders inline itemIds={[...selected]} categories={categories} disabled={!editable||!permissions?.allocate} disabledReason={allocationDisabledReason} onCreateTender={permissions?.editTenders?createTender:undefined} onAssign={previewTenderAssignment} onRemove={current.allocations.some(a=>selected.has(a.itemId))?async()=>{await save(current.document,current.allocations.filter(a=>!selected.has(a.itemId)));}:undefined}/>}</div>}
+      {<div className="tf-budget-toolbar tf-budget-selection" data-empty={!selected.size} aria-hidden={!selected.size}><strong>Vybráno {selected.size} položek</strong><button disabled={saving} onClick={()=>setExportSelection([...selected])}>Exportovat výběr</button><button onClick={()=>setSelected(new Set())}><ListX size={16} aria-hidden="true"/>Zrušit výběr</button>{selected.size>0&&<BudgetSelectionTenders inline itemIds={[...selected]} categories={categories} disabled={!editable||!permissions?.allocate} disabledReason={allocationDisabledReason} onCreateTender={permissions?.editTenders?createTender:undefined} onAssign={previewTenderAssignment} onRemove={current.allocations.some(a=>selected.has(a.itemId))?()=>previewTenderAssignment(null):undefined}/>}</div>}
 
 
       <div className={`tf-budget-workspace ${tab==='recap'?'tf-budget-workspace-recap':''}`}>{(view.panel||tab==='recap')&&<BudgetRecap prominentTotal={tab==='recap'} key={activeId} activeId={jumpId} nodes={nodes} onJump={jump} prices={!!permissions?.prices}/>}{tab==='items'&&<BudgetTable key={`table-${activeId}`} figures={current.document.figures} pendingTenderItems={pendingAssignment?.revisionId===current.id?pendingAssignment.itemIds:undefined} nodes={nodes} scope={view.scope} filters={effectiveFilters} onFilters={next=>{const {$all,...columns}=next;setFilters(columns);}} selected={selected} onSelected={setSelected} showVV={false} showNotes={view.showNotes} expandedVV={expandedVV} onExpandedVV={setExpandedVV} wrap={view.wrap} density={view.density} columns={view.columns} onColumns={columns=>updateView({columns})} canPrices={!!permissions?.prices} editable={editable} jumpId={jumpId} jumpRequest={jumpRequest} onNotice={setNotice} onEdit={saveItem}/>}</div>
@@ -232,9 +217,9 @@ export function ConstructionBudget({canUseTenders=false,projectId,organizationId
     {scopeOpen&&<Modal isOpen title="Rozsah rozpočtu" onClose={()=>setScopeOpen(false)}><div className="tf-budget-controls"><label className="tf-budget-field">Hledat soupis<input autoFocus aria-label="Hledat soupis" value={scopeSearch} onChange={e=>setScopeSearch(e.target.value)} placeholder="Kód nebo název soupisu…"/></label><button onClick={()=>{updateView({scope:''});setScopeOpen(false);}}>Celý rozpočet</button><p>Připnuté a nedávné soupisy jsou první. Výběr položek zůstává zachován.</p>{!sheets.some(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch)))&&<p role="status">Žádný soupis neodpovídá hledání.</p>}{sheets.filter(s=>normalizeSearch(`${s.name} ${s.title}`).includes(normalizeSearch(scopeSearch))).sort((a,b)=>(view.pinned.includes(b.id)?100:0)+(view.recent.includes(b.id)?10:0)-(view.pinned.includes(a.id)?100:0)-(view.recent.includes(a.id)?10:0)).map(s=><div className="flex gap-2 py-1" key={s.id}><button aria-label={`Připnout ${s.title}`} onClick={()=>updateView({pinned:view.pinned.includes(s.id)?view.pinned.filter(id=>id!==s.id):[...view.pinned,s.id]})}>{view.pinned.includes(s.id)?'★':'☆'}</button><button onClick={()=>{updateView({scope:s.id,recent:[s.id,...view.recent.filter(id=>id!==s.id)].slice(0,8)});setScopeOpen(false);}}>{s.title}</button></div>)}</div></Modal>}
     {columnsOpen&&<BudgetColumnSettings columns={view.columns} onChange={columns=>updateView({columns})} onClose={()=>{setColumnsOpen(false);viewOptionsButton.current?.focus();}}/>}
     {catalogOpen&&<BudgetCatalogDialog organizationId={organizationId} userId={userId} readOnly={readOnly} onClose={()=>setCatalogOpen(false)}/>}
-    {planOpen&&current&&<Modal isOpen title="Převzít částku do plánu VŘ" persistent={saving} onClose={()=>setPlanOpen(false)}><div className="tf-budget-controls flex flex-col gap-3"><p>Tato samostatná akce změní pouze plánovaný rozpočet vybraného VŘ. Nabídky a smlouvy zůstávají beze změny.</p><ThemedNativeSelect aria-label="VŘ pro převzetí plánu" value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Vyberte VŘ</option>{categories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</ThemedNativeSelect>{categoryId&&<><p>Původní plán: {formatBudgetNumber(String(incomingCategories.find(c=>c.id===categoryId)?.planBudget??0),true)} Kč</p><p>Nový plán: {formatBudgetNumber(sumMoney(current.allocations.filter(a=>a.categoryId===categoryId).map(a=>{const n=current.document.nodes.find(n=>n.id===a.itemId);return n?.unitPrice===null||!n?null:multiplyMoney(a.quantity,n.unitPrice);})),true)} Kč · zdroj {current.title}</p><button disabled={saving} onClick={()=>void act(async()=>{const amount=await budgetApi.applyPlan(projectId,current.id,categoryId,incomingCategories.find(c=>c.id===categoryId)?.planBudget??0);setPlanOpen(false);setNotice(`Plán VŘ aktualizován na ${formatBudgetNumber(amount,true)} Kč.`);await cache.invalidateQueries();})}>Potvrdit změnu plánu VŘ</button></>}{error&&<p role="alert">{error}</p>}</div></Modal>}
+    {planOpen&&current&&<Modal isOpen title="Převzít částku do plánu VŘ" persistent={saving} onClose={()=>setPlanOpen(false)}><div className="tf-budget-controls flex flex-col gap-3"><p>Tato samostatná akce změní pouze plánovaný rozpočet vybraného VŘ. Nabídky a smlouvy zůstávají beze změny.</p><ThemedNativeSelect aria-label="VŘ pro převzetí plánu" value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Vyberte VŘ</option>{categories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</ThemedNativeSelect>{categoryId&&<><p>Původní plán: {formatBudgetNumber(String(incomingCategories.find(c=>c.id===categoryId)?.planBudget??0),true)} Kč</p><p>Nový plán: {formatBudgetNumber(sumMoney(current.allocations.filter(a=>a.categoryId===categoryId).map(a=>{const n=current.document.nodes.find(n=>n.id===a.itemId);return n?.unitPrice==null?null:allocatedMoney(n,a.quantity);})),true)} Kč · zdroj {current.title}</p><button disabled={saving} onClick={()=>void act(async()=>{const amount=await budgetApi.applyPlan(projectId,current.id,categoryId,incomingCategories.find(c=>c.id===categoryId)?.planBudget??0);setPlanOpen(false);setNotice(`Plán VŘ aktualizován na ${formatBudgetNumber(amount,true)} Kč.`);await cache.invalidateQueries();})}>Potvrdit změnu plánu VŘ</button></>}{error&&<p role="alert">{error}</p>}</div></Modal>}
     {repairOpen&&current&&!locked&&<BudgetImportDialog onCreateTender={permissions?.editTenders?createTender:undefined} categories={categories} canAllocate={permissions?.allocate??false} key={current.id} editRevision={current} projectId={projectId} source={sources.data?.find(s=>s.id===current.source_id)} onClose={()=>setRepairOpen(false)} onComplete={r=>{setRepairOpen(false);if(r){cache.setQueryData([...key,'revision',r.id],r);setUndo({revisionId:current.id,document:current.document,allocations:current.allocations,version:r.version});}void cache.invalidateQueries({queryKey:key});}}/>}
-    {exportSelection&&current&&<BudgetExportDialog nodes={nodes} allocations={current.allocations} categories={categories} canViewPrices={permissions?.prices??false} selectedIds={exportSelection} onClose={()=>setExportSelection(null)}/>}
+    {exportSelection&&current&&!saving&&<BudgetExportDialog nodes={nodes} allocations={current.allocations} categories={categories} canViewPrices={permissions?.prices??false} selectedIds={exportSelection} onClose={()=>setExportSelection(null)}/>}
     {templatesOpen&&!locked&&!readOnly&&permissions?.editTenders&&permissions.edit&&permissions.prices&&permissions.allocate&&<BudgetTenderTemplates projectId={projectId} onClose={()=>setTemplatesOpen(false)}/>}
     {importOpen&&!locked&&<BudgetImportDialog onCreateTender={permissions?.editTenders?createTender:undefined} categories={categories} canImportTenders={canUseTenders} canAllocate={permissions?.allocate??false} hasVersions={!!index.data?.revisions.length} projectId={projectId} source={importSource} previous={current} onClose={()=>{setImportOpen(false);void cache.invalidateQueries({queryKey:key});}} onComplete={(r?:BudgetRevision,importNotice?:string)=>{setNotice(importNotice??'Import dokončen.');setImportOpen(false);if(r){setRevisionId(r.id);updateView({scope:''});setSelected(new Set());setUndo(null);cache.setQueryData([...key,'revision',r.id],r);}void cache.invalidateQueries({queryKey:key});}}/>}
   </section>;

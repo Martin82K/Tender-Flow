@@ -312,3 +312,38 @@ advisors mají stejné počty a žádný nález pro novou funkci. Existující g
 varování zůstávají. Živá latence zápisu uživatelské buňky se tímto read-only
 ověřením neměřila. Vercel pro 254f4c56 PASS, finální Quality Checks ještě běží;
 nezávislá bezpečnostní revize poslední revize a merge jsou nadále samostatné brány.
+
+### Dokončení PR a příprava betaverze (2026-09-21)
+Základna stále `8469a654`, pracovní diff nad `830c1f6d`.
+Opraven fokus detailu včetně návratu, trvalý editor pro chybu odscrollované
+buňky, zneplatnění vytvoření VŘ po odmountování výběru a vyčištění výběru při
+změně listu importu. Regrese před opravou: 3 cílená selhání tabulky (RED).
+Export nepotvrzených změn je během zápisu zakázaný.
+
+Celopoložkový export VŘ používá uložené celkem; historické částečné alokace
+poměrnou část se zaokrouhlením na haléře. Náhled a dosud zakázané serverové
+převzetí plánu používají stejné pravidlo, oprávnění plánu se nezpřístupňují.
+Původní číselná oprávnění a neúplné ocenění exportu zůstávají zachované.
+
+Migrace `20260920230000_budget_assignment_patch.sql` sjednocuje přiřazení,
+odebrání a nulu bez přenosu dokumentu i bez dodatečných práv pipeline. Zachovává
+read/edit/prices/allocate, zdroj/revizi/projekt, verzi, zámek a historii.
+Opakování požadavku je vázáno na uživatele a přesný obsah v kompaktní historii;
+nevznikají nové tabulky ani lifecycle závislosti. Také opravuje dříve nasazené
+RPC editace pro několik alokací stejného VŘ pokrývajících celé množství.
+
+- Izolovaná PostgreSQL sada: 33 PASS, žádné skipped/todo. Testuje i nulovou
+  vazbu, odebrání z 11 000 položek, retry, práva, cizí projekt, historii, poměrnou
+  cenu a sloučení starších alokací. Chybějící nové RPC před implementací: RED.
+- Export před opravou celkové částky: RED; následné testy zachovaly i pravidla
+  neúplného ocenění. Importní editor prokazatelně zruší skrytý výběr při přepnutí listu.
+- Verze 1.9.39-beta.1 připravena ve stejném PR, bez změny závislostí.
+- Finální cílené UI/model/export/import sady: 148 PASS; release verifier: 4 PASS
+  (před opravou beta metadata RED). Typecheck, web build, web-dist, boundaries,
+  legacy a docs PASS. Build má dosavadní upozornění na velké chunky.
+- Po fail-closed zpřesnění nového RPC znovu 5 dotčených SQL testů PASS.
+- Browser fixture 11 000 položek: fokus detailu a návrat na původní položku
+  ověřen, console errors žádné. Nejde o průchod produkčním přihlášením.
+- Cloud preflight 5 revizí / součet verzí 10 / historie 11, plánové RPC zůstává
+  zakázané. Dry-run obsahuje pouze 20260920230000. Automatická kontrola nasazení
+  požaduje samostatný souhlas pro tuto migraci; zatím nebyla nasazena.

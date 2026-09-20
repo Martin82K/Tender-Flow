@@ -62,7 +62,7 @@ export function BudgetImportEditor({allocations,document,onChange,mapping,onMapp
   const mustReplace = hasRepairs || savedRevision;
   const changeMapping = (update:typeof m)=>sheet&&onMapping({...mapping,[sheet.name]:{...m,format:m.format??sheet.format,...update}});
   const choose = (node:BudgetNode)=>{setSelectedId(node.id);setDraft(null);setMessage('');};
-  const chooseSheet = (id:string)=>{setSheetId(id);setSelectedId('');setDraft(null);setPage(0);setReplaceRepairs(false);setMessage('');};
+  const chooseSheet = (id:string)=>{setSelection(new Set());setSheetId(id);setSelectedId('');setDraft(null);setPage(0);setReplaceRepairs(false);setMessage('');};
   const update = (value:Partial<ImportRepair>)=>edit&&setDraft({...edit,...value});
   const openIssue = (name:string,row:number)=>{const target=document.sheets.find(s=>s.name===name);if(target)chooseSheet(target.id);const node=document.nodes.find(n=>n.source.sheet===name&&n.source.row===row);setSelectedId(node?.id??'');setStep(node?'structure':'columns');setOnlyIssues(true);};
   const columns = Array.from({length:sheet?.sourcePreview?.columnCount??Math.max(8,...Object.values(sheet?.columns??{}).map(v=>v+1))},(_,i)=>i);
