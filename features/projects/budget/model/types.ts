@@ -1,4 +1,5 @@
 export type BudgetNodeKind = 'object' | 'sheet' | 'section' | 'K' | 'M' | 'VV' | 'note' | 'subtotal';
+export type BudgetImportFormat = 'kros' | 'globus';
 export interface SourceCell { value: string | number | boolean | null; formula?: string }
 export interface BudgetNode {
   id: string; parentId: string | null; sheetId: string; kind: BudgetNodeKind; order: number;
@@ -7,7 +8,7 @@ export interface BudgetNode {
   sourceType: string; tags: string[]; tenders: string[];
   [key: string]: unknown;
 }
-export interface BudgetSheet { id: string; name: string; role: 'items' | 'figures' | 'summary' | 'instructions' | 'unknown'; object: string; title: string; headerRow: number; columns?: Record<string, number>; selected: boolean }
+export interface BudgetSheet { id: string; name: string; role: 'items' | 'figures' | 'summary' | 'instructions' | 'unknown'; object: string; title: string; headerRow: number; columns?: Record<string, number>; selected: boolean; format?: BudgetImportFormat }
 export interface FigureSource { sheet: string; row: number; cell: string; value: string }
 export interface FigureConflict { code: string; values: string[]; sources?: FigureSource[] }
 export interface FigureResolution { value: string; origin: 'source' | 'custom' }
