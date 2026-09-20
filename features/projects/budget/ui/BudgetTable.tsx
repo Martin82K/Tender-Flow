@@ -149,7 +149,12 @@ export function BudgetTable(props: Props) {
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
         <div className="flex gap-2"><label>Množství<input disabled={busy||!editable||!isPriced(detail)} value={detail.quantity??''} onChange={e=>setDetail({...detail,quantity:e.target.value})}/></label>{canPrices&&<label>Jednotková cena<input disabled={busy||!editable||!isPriced(detail)} value={detail.unitPrice??''} onChange={e=>setDetail({...detail,unitPrice:e.target.value})}/></label>}</div>
-        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=><div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description)&&<button type="button" onClick={()=>{try{const result=evaluateQuantityExpression(n.description,props.figures||{});setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}catch(e){setEditError(e instanceof Error?e.message:'Výraz nelze přepočítat.');}}}>Přepočítat výraz a připravit množství</button>}</div>)}
+        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=>{
+          const canRecalculate=editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description);
+          let result:string|undefined;let reason='';
+          if(canRecalculate){try{result=evaluateQuantityExpression(n.description,props.figures||{});}catch(error){reason=error instanceof Error?error.message:'Výraz nelze přepočítat.';}}
+          return <div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{canRecalculate&&<><button type="button" disabled={busy||result===undefined} onClick={()=>{if(result===undefined)return;setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}}>Přepočítat výraz a připravit množství</button>{reason&&<p>Přepočet není dostupný: {reason}</p>}</>}</div>;
+        })}
         {editError&&<p role="alert">{editError}</p>}{editable&&isPriced(detail)&&<button disabled={busy} type="submit">{busy?'Ukládání…':'Uložit změnu'}</button>}
       </form>
     </Modal>}

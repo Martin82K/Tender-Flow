@@ -234,3 +234,11 @@ obnovu jeho staré podepsané zálohy, dokončení purge jiným oprávněným u�
 reimport stejného XLSX, zachování současné revize a idempotenci obnovy.
 
 Nasazení 2026-09-20: obě výše uvedené migrace `20260920113812` a `20260920113933` byly nasazeny verzovaným `supabase db push`. Následný dry-run hlásí aktuální databázi. Katalog potvrzuje šest validovaných vazeb autorů `ON DELETE SET NULL` a jednu vazbu dočasného oprávnění `ON DELETE CASCADE`; pomocná funkce mapování zdrojů není spustitelná pro `anon` ani `authenticated`. Počty zdrojů a revizí zůstaly 2/2. Bezpečnostní advisor nepřidal nálezy; dosavadní upozornění na úrovni celého projektu trvají. Produkční testovací zápisy nebyly provedeny.
+
+### Oddělení projektového purge a chronologie převodů
+
+Migrace `20260920121018_guard_budget_purge_and_conversion_dates.sql` odmítá projektové úlohy v obou běžných purge RPC a nezobrazuje je mezi úlohami koše. Projektové oprávnění a dokončovací RPC zůstávají povinné. Trigger data převodu rozšiřuje přes minimum/maximum, takže podepsaná obnova v pořadí UUID nebo doplnění starší revize nevrací poslední převod do minulosti. Zahrnuje cílený přepočet rozsahu z existujících importních revizí, vynechává zamčené zdroje a zachovává dříve uložené krajní časy. Kopie revizí se do časů převodu nezapočítávají.
+
+Ověření: všechny 15 SQL regresní soubory na izolovaném PostgreSQL prošly; nové RED/GREEN pro záměnu purge, doplnění starší revize a úplnou obnovu s opačným pořadím dat. UI regrese 15/15, typecheck a web build prošly. Prohlížeč skutečně zobrazuje zakázaný přepočet s chybějící figurou a vysvětlení. Read-only produkční preflight našel 0 rozpracovaných purge úloh a 0 zdrojů vyžadujících opravu časů.
+
+Nasazeno 2026-09-20 verzovaným CLI push; postflight potvrzuje všechny tři purge guardy a monotónní trigger, zdroje/revize 2/2. Závěrečný dry-run hlásí aktuální databázi a advisors mají stejné nálezy jako před nasazením. Žádné produkční testovací zápisy.

@@ -259,3 +259,5 @@ Přenos vazeb ze starší revize s alokacemi vyžaduje oprávnění přiřazovat
 do VŘ; bez něj je volba zakázaná s vysvětlením. Smazání účtu autora ponechá
 rozpočty a historii, pouze odstraní jeho identitu. Obnova po novém importu
 stejného souboru zachová aktuální zdroj i revize a doplní chybějící staré revize.
+
+Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřešenou figuru nebo jinou chybu; důvod je zobrazen pod tlačítkem. Po vyřešení figury lze výsledek připravit a samostatně potvrdit uložením položky. Rozpracované mazání celého projektu se dokončuje opakováním mazání projektu, nikoli vysypáním koše rozpočtu. Obnova starších importních revizí zachovává nejstarší a nejnovější datum převodu bez závislosti na pořadí revizí v záloze.

@@ -6,6 +6,8 @@ BEGIN
  PERFORM set_config('request.jwt.claim.role','authenticated',true);
  old_source:=public.construction_budget_source(pid,'old.xlsx',repeat('8',64),'attachment');
  old_revision:=public.construction_budget_save(pid,(old_source->>'id')::uuid,NULL,0,'Old revision',doc,'[]',false);
+ UPDATE public.construction_budget_revisions SET created_at='2026-01-01' WHERE id=(old_revision->>'id')::uuid;
+ UPDATE public.construction_budget_sources SET first_converted_at='2026-01-01',last_converted_at='2026-01-01' WHERE id=(old_source->>'id')::uuid;
  PERFORM public.construction_budget_source(pid,'old.xlsx',repeat('8',64),'attachment');
  manifest:=private.budget_backup_export(jsonb_build_object('organization_id',org,'projects',jsonb_build_array(jsonb_build_object('id',pid))));
  DELETE FROM public.construction_budget_history WHERE project_id=pid;
@@ -18,6 +20,8 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.construction_budget_revisions WHERE id=(new_revision->>'id')::uuid AND title='New revision') THEN RAISE EXCEPTION 'Current revision overwritten'; END IF;
  IF (SELECT count(*) FROM public.construction_budget_sources WHERE project_id=pid)<>1 THEN RAISE EXCEPTION 'Duplicate source created'; END IF;
  IF private.budget_backup_restored_sources(manifest,org)->>(old_source->>'id') IS DISTINCT FROM new_source->>'id' THEN RAISE EXCEPTION 'Storage source mapping missing'; END IF;
+ IF (SELECT last_converted_at FROM public.construction_budget_sources WHERE id=(new_source->>'id')::uuid) IS DISTINCT FROM (new_revision->>'created_at')::timestamptz THEN RAISE EXCEPTION 'Restoring older revision regressed latest conversion'; END IF;
+ IF (SELECT first_converted_at FROM public.construction_budget_sources WHERE id=(new_source->>'id')::uuid) IS DISTINCT FROM '2026-01-01'::timestamptz THEN RAISE EXCEPTION 'Restoring oldest revision lost first conversion'; END IF;
  IF private.budget_backup_restore(manifest,org,'user')<>0 THEN RAISE EXCEPTION 'Repeated reconciliation is not idempotent'; END IF;
 END $$;
 SELECT 'same-hash reimport reconciled; both revisions preserved; storage map and retry passed' AS result;
