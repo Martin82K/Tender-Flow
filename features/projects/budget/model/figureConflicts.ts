@@ -48,6 +48,24 @@ export function getFigureResolution(document: BudgetDocument, code: string): Fig
   return Object.hasOwn(document.figures, code) && document.figures[code] === resolution.value ? resolution : undefined;
 }
 
+/** A scoped remap must not discard decisions for unchanged conflict values. */
+export function preserveUnchangedFigureResolutions(previous: BudgetDocument, parsed: BudgetDocument): BudgetDocument {
+  const before = new Map(getFigureConflicts(previous).map(conflict => [conflict.code, conflict]));
+  const signature = (values: string[]) => JSON.stringify([...new Set(values)].sort());
+  const figures = {...parsed.figures}; const resolutions: Record<string, FigureResolution> = {};
+  for (const conflict of getFigureConflicts(parsed)) {
+    const old = before.get(conflict.code); const resolution = getFigureResolution(previous, conflict.code);
+    if (!old || !resolution || signature(old.values) !== signature(conflict.values)) continue;
+    try {
+      if (decimal(resolution.value) !== resolution.value || !['source','custom'].includes(resolution.origin)) continue;
+      if (resolution.origin === 'source' && !conflict.values.includes(resolution.value)) continue;
+      Object.defineProperty(resolutions, conflict.code, {value:{...resolution},enumerable:true,writable:true,configurable:true});
+      Object.defineProperty(figures, conflict.code, {value:resolution.value,enumerable:true,writable:true,configurable:true});
+    } catch { /* Invalid legacy decisions must be reviewed again. */ }
+  }
+  return {...parsed,figures,figureResolutions:Object.keys(resolutions).length?resolutions:undefined};
+}
+
 /** Keep original warnings as provenance; only unresolved conflicts count in the review. */
 export function getPendingImportIssues(document: BudgetDocument): ImportIssue[] {
   return document.issues.flatMap(issue => {

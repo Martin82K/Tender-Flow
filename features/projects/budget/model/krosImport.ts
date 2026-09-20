@@ -40,10 +40,10 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     rowCount += range.e.r + 1;
     if (rowCount > XLSX_LIMITS.rows || range.e.c >= XLSX_LIMITS.columns) throw new Error('Sešit překročil limit řádků nebo sloupců.');
     const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null, blankrows: true, range: { s: { r: 0, c: 0 }, e: range.e } });
-    const override=overrides[name]||{};
+    const override=Object.hasOwn(overrides,name)?overrides[name]:{};
     const detected = detectBudgetLayout(rows);
-    const header=override.headerRow ? override.headerRow-1 : detected?.header ?? -1;
-    if(header>=rows.length||header < -1)throw new Error("Neplatný řádek hlavičky.");
+    const header=override.headerRow !== undefined ? override.headerRow-1 : detected?.header ?? -1;
+    if(!Number.isInteger(header)||header>=rows.length||header < -1||override.headerRow===0)throw new Error("Neplatný řádek hlavičky.");
     const layout = detectBudgetLayout(rows, header);
     const format = (override.format === 'auto' ? undefined : override.format) ?? layout?.format;
     const globus = format === 'globus';
@@ -60,7 +60,18 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       .filter(value => /^Úroveň \d+:$/.test(value))
       .sort((a, b) => Number(b.match(/\d+/)?.[0]) - Number(a.match(/\d+/)?.[0]));
     const title = override.title || identity?.title || levelLabels.map(labelAfter).find(Boolean) || labelAfter('Soupis:') || name;
-    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', ...(format ? { format } : {}) });
+    // Bounded, ephemeral raw preview also works when recognition fails.
+    const previewStart = Math.max(0, header - 5);
+    const previewRows = Math.min(60, Math.floor(200000 / workbook.SheetNames.length / (range.e.c + 1)));
+    const sourcePreview = { rowCount: rows.length, columnCount: range.e.c + 1, rows: rows.slice(previewStart, previewStart + previewRows).map((values, index) => ({
+      row: previewStart + index + 1, cells: values.map((value, column) => {
+        const cell = sheet[XLSX.utils.encode_cell({ r: previewStart + index, c: column })];
+        const formula = cell?.f;
+        if (text(value).length > XLSX_LIMITS.text || (formula?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
+        return { value: cell?.t === 'e' ? null : value as SourceCell['value'], ...(formula ? { formula } : {}) };
+      }),
+    })) };
+    document.sheets.push({ id: sheetId, name, role, object, title, headerRow: header + 1, selected: role === 'items', sourcePreview, ...(format ? { format } : {}) });
     if (role === 'figures') {
       const figureHeader=rows.findIndex(row=>row.some(v=>normalizeSearch(text(v))==='vymera')&&row.some(v=>normalizeSearch(text(v))==='kod'));
       if(figureHeader>=0){
@@ -83,7 +94,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     if (role !== 'items') { progress?.(sheetIndex + 1, workbook.SheetNames.length); continue; }
     if(header<0){document.issues.push({sheet:name,row:1,severity:'error',message:'Zvolte hlavičku a mapování sloupců.'});continue;}
     document.sheets[document.sheets.length-1].columns=mapping;
-    if (Object.values(mapping).some(v => !Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns)) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
+    if (Object.entries(mapping).some(([key,v]) => !(key === 'depth' && v === -1) && (!Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns))) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
     const objectId = `object:${object}`;
     const source = { sheet: name, row: 0, cells: {} };
     const base = { code: '', unit: '', quantity: null, unitPrice: null, total: null, sourceType: '', tags: [], tenders: [] };
@@ -92,14 +103,16 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     const sections: string[] = []; let lastItem: string | null = null;
     for (let r = header + 1; r < rows.length; r++) {
       const row = rows[r]; const rawKind = text(row[mapping.kind]).trim();
-      if (!rawKind) continue;
+      if (!row.some(value => text(value).trim())) continue;
+      if (globus && r === header + 1 && !rawKind) continue; // Second header row remains in sourcePreview.
       if (globus && r === header + 2 && isGlobusColumnGuide(row, mapping)) continue;
+      const repeatedHeader = normalizeSearch(rawKind) === 'typ' && normalizeSearch(text(row[mapping.description])) === normalizeSearch(text(rows[header][mapping.description]));
       const kind: BudgetNode['kind'] = rawKind === 'D' || (globus && rawKind === 'SD') ? 'section' : globus && rawKind === 'P' ? 'K' : rawKind === 'K' || rawKind === 'M' || rawKind === 'VV' ? rawKind : 'note';
       const cells: Record<string, SourceCell> = {};
       for (let c = 0; c <= range.e.c; c++) {
         const address = XLSX.utils.encode_cell({ r, c }); const cell = sheet[address]; if (!cell) continue;
         if (text(cell.v).length > XLSX_LIMITS.text || (cell.f?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
-        cells[address] = { value: cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}) };
+        cells[address] = { value: cell.t === 'e' ? null : cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}) };
       }
       const number = (column: number): string | null => {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: column })];
@@ -111,11 +124,17 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         } catch { document.issues.push({ sheet: name, row: r + 1, severity: kind === 'K' || kind === 'M' ? 'error' : 'warning', message: `Neplatná nebo chybějící hodnota ${XLSX.utils.encode_col(column)}.` }); return null; }
       };
       const id = `${sheetId}:row:${r + 1}`;
+      if (!repeatedHeader && !['D','K','M','VV','PP','PSC','TS',...(globus?['SD','P']:[])].includes(rawKind)) document.issues.push({sheet:name,row:r+1,severity:'error',kind:'unclassified',message:'Typ řádku nebyl rozpoznán. Určete položku, poznámku nebo mezisoučet v editoru struktury.'});
       let parentId = sections.at(-1) || sheetId;
       if (kind === 'section') {
-        const depthCell = sheet[`AU${r + 1}`];
-        const depth = globus ? 0 : depthCell && /^\d+$/.test(text(depthCell.v)) ? Math.min(32, Number(depthCell.v)) : (/^[A-Z]+$/.test(text(row[mapping.code])) ? 0 : 1);
-        sections.length = Math.min(depth, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
+        const depthColumn = override.columns?.depth;
+        const depthCell = depthColumn === -1 || (globus && depthColumn === undefined) ? undefined : sheet[XLSX.utils.encode_cell({r,c:depthColumn ?? 46})];
+        const explicit = depthCell && depthCell.t !== 'e' && /^\d+$/.test(text(depthCell.v)) ? Number(depthCell.v) : null;
+        const depth = explicit ?? (globus ? 0 : (/^[A-Z]+$/.test(text(row[mapping.code])) ? 0 : 1));
+        if ((!globus && explicit === null) || (globus && depthColumn !== undefined && depthColumn !== -1 && explicit === null) || depth > sections.length || depth > 32) {
+          document.issues.push({sheet:name,row:r+1,severity:'error',kind:'hierarchy',message:explicit===null?'Nadřazený oddíl je pouze návrh; ve zdroji chybí platná úroveň. Ověřte jej v editoru struktury.':'Úroveň přeskakuje chybějící nadřazený oddíl nebo překračuje limit 32. Opravte rodiče.'});
+        }
+        sections.length = Math.min(depth, 32, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
       } else if (kind === 'VV' || kind === 'note') parentId = lastItem || parentId;
       else lastItem = id;
       const priced = kind === 'K' || kind === 'M'; const quantity = (priced || kind === 'VV') ? number(mapping.quantity) : null;
