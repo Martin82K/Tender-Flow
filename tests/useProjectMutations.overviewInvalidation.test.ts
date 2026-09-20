@@ -222,6 +222,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
   });
 
   it("invaliduje overview cache po smazání projektu", async () => {
+    mocks.rpcMock.mockResolvedValueOnce({ data: { completed: true, paths: [] }, error: null });
     const { wrapper, invalidateSpy } = createWrapper();
     const { result } = renderHook(() => useDeleteProjectMutation(), { wrapper });
 

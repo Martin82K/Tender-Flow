@@ -1,6 +1,8 @@
 export type BackupType = 'user' | 'tenant' | 'contacts';
 
 export interface BackupManifest {
+    construction_budgets?: Array<{ payload: string; signature: string }>;
+    construction_budget_files?: Record<string, string>;
     version: string;
     type: 'user' | 'tenant';
     exported_at: string;
@@ -69,6 +71,7 @@ export function getManifestRecordCounts(manifest: AnyBackupManifest): Record<str
         };
     }
     return {
+        construction_budgets: manifest.construction_budgets?.length ?? 0,
         projects: manifest.projects?.length ?? 0,
         demand_categories: manifest.demand_categories?.length ?? 0,
         bids: manifest.bids?.length ?? 0,

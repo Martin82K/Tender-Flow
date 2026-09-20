@@ -1,3 +1,4 @@
+import { deleteProjectWithBudget } from '@features/projects/budget/api/deleteProjectWithBudget';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
@@ -156,8 +157,7 @@ export const useDeleteProjectMutation = () => {
                 return id;
             }
 
-            const { error } = await dbAdapter.from("projects").delete().eq("id", id);
-            if (error) throw error;
+            await deleteProjectWithBudget(id);
             return id;
         },
         onMutate: async (id) => {

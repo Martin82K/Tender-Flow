@@ -23,7 +23,7 @@ export function validateRevisionAllocations(document: BudgetDocument, allocation
   for (const allocation of allocations) {
     const node = nodes.get(allocation.itemId);
     if (!node || !isPriced(node) || node.quantity === null) throw new Error('Alokace odkazuje na neplatnou položku.');
-    grouped.set(node.id, [...(grouped.get(node.id) || []), allocation.quantity]);
+    const values = grouped.get(node.id) ?? []; values.push(allocation.quantity); grouped.set(node.id, values);
   }
   for (const [id, values] of grouped) validateAllocation(nodes.get(id)!.quantity!, values);
 }

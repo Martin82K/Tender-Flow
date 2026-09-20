@@ -56,13 +56,21 @@ export function uniqueValues<T extends FilterableItem>(items: T[], column: strin
   return [...new Set(filterItems(items, other).flatMap(item => cellValues(item, column)))].sort((a, b) => a.localeCompare(b, 'cs'));
 }
 export function validateAllocation(quantity: string, allocations: string[]): void {
-  const [q, qs] = parts(quantity); const parsed = allocations.map(parts); const scale = Math.max(qs, ...parsed.map(p => p[1]));
+  const [q, qs] = parts(quantity); const parsed = allocations.map(parts); const scale = parsed.reduce((max, [, s]) => Math.max(max, s), qs);
   const available = q * power(scale - qs);
   const used = parsed.reduce((sum, [n, s]) => {
     if ((q >= 0n && n < 0n) || (q < 0n && n > 0n)) throw new Error('Alokace musí mít stejné znaménko jako množství.');
     return sum + n * power(scale - s);
   }, 0n);
   if (available >= 0n ? used > available : used < available) throw new Error('Součet alokací přesahuje množství položky.');
+}
+/** Subtract allocations without conversion through floating-point numbers. */
+export function remainingQuantity(quantity: string, allocations: string[]): string {
+  validateAllocation(quantity, allocations);
+  const [q, qs] = parts(quantity); const parsed = allocations.map(parts);
+  const scale = parsed.reduce((max, [, s]) => Math.max(max, s), qs);
+  const remaining = parsed.reduce((sum, [n, s]) => sum - n * power(scale - s), q * power(scale - qs));
+  return decimal(render(remaining, scale))!;
 }
 /** Bounded recursive descent, fixed 12-digit arithmetic, no JavaScript or Excel execution. */
 export function evaluateExpression(expression: string, figures: Record<string, string>): string {
