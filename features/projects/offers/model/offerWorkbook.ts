@@ -51,15 +51,16 @@ export function extractOfferItems(workbook: XLSX.WorkBook, mappings: OfferSheetM
         const cell = sheet[XLSX.utils.encode_cell({ r, c })];
         if (cell?.t === 'e') throw new Error(`${mapping.sheet}, řádek ${r + 1}: chybová buňka Excelu.`);
         if (cell?.f && cell.v === undefined) throw new Error(`${mapping.sheet}, řádek ${r + 1}: vzorec nemá uložený výsledek.`);
-        return cell?.v ?? null;
+        return role === 'code' ? (cell?.w ?? cell?.v ?? null) : (cell?.v ?? null);
       };
       const text = (role: OfferColumn) => String(get(role) ?? '').trim();
       const description = text('description'), code = text('code'), unit = text('unit');
       if (text('group')) group = text('group');
       const quantityRaw = get('quantity');
       if (!description && !code && quantityRaw === null) continue;
-      if (!unit || quantityRaw === null || quantityRaw === '') {
-        if (description) notes.push(`${mapping.sheet}:${r + 1} — ${description}${text('note') ? ' — ' + text('note') : ''}`);
+      if (!unit && (quantityRaw === null || quantityRaw === '')) {
+        if (notes.length >= 10000) throw new Error('Příliš mnoho poznámek ve zdroji.');
+        if (description) notes.push(`${mapping.sheet}:${r + 1} — ${description}${text('note') ? ' — ' + text('note') : ''}${get('total') !== null ? ' — souhrn: ' + text('total') : ''}`);
         if (description && !unit && quantityRaw === null) group = description;
         continue;
       }

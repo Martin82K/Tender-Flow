@@ -25,3 +25,18 @@ it('renders zero prices and unmatched rows with continuous row styling', async (
  expect(await screen.findByText('0.00')).toBeInTheDocument();
  expect(screen.getByText('Malba').closest('tr')).toHaveClass('even:bg-slate-100');
 });
+it('allows completing an empty assignment list created through MCP', async () => {
+ const item={id:'a',code:'1',description:'Malba',group:'',unit:'m2',quantity:'1',total:'0',unitPrice:'0',source:{sheet:'S',row:2}};
+ const saved={id:'v',version:1,title:'Prázdné vazby',document:{schemaVersion:1,sources:[{id:'base',name:'Poptávka',items:[item],notes:[]},{id:'offer',name:'Nabídka',items:[{...item,id:'b'}],notes:[]}],assignments:{offer:[]}}};
+ api.index.mockResolvedValue({canEdit:true,views:[{id:'v',category_id:'c',title:saved.title}]});api.load.mockResolvedValue(saved);api.save.mockResolvedValue({...saved,version:2});
+ render(<OfferComparisonPanel projectId="p" categoryId="c" categoryTitle="Malby" resolveFolder={async()=>null} onClose={()=>{}}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Vybrat poptávku'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('combobox',{name:'Uložené porovnání'}));fireEvent.click(await screen.findByRole('option',{name:'Prázdné vazby'}));
+ await waitFor(()=>expect(screen.getByRole('combobox',{name:'Uložené porovnání'})).toHaveFocus());
+ fireEvent.change(await screen.findByRole('textbox',{name:'Hledat položku: Nabídka 1'}),{target:{value:'Malba'}});
+ fireEvent.click(screen.getByRole('combobox',{name:'Nabídka: 1 Malba'}));fireEvent.click(await screen.findByRole('option',{name:/1 · Malba/}));
+ expect(await screen.findByText('0.00')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Uložit porovnání'}));
+ await waitFor(()=>expect(api.save).toHaveBeenCalled());
+ expect(api.save.mock.calls[0][3].assignments.offer).toEqual([{baseId:'a',offerId:'b',status:'manual'}]);
+});

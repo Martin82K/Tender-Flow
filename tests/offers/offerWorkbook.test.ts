@@ -18,3 +18,10 @@ describe('offer workbook mapping', () => {
     expect(() => extractOfferItems(book, [{ sheet: 'Položky', headerRow: 1, columns: { description: 0, unit: 1, quantity: 2, total: 3 } }])).toThrow('chybová buňka');
   });
 });
+it('preserves formatted item codes and incomplete quantities as item evidence', () => {
+ const book=workbook([['Kód','Popis','MJ','Množství','Celkem'],[1,'Malba','m2',null,100]]);
+ book.Sheets.Položky.A2.z='0000';
+ const parsed=readOfferWorkbook(XLSX.write(book,{type:'array',bookType:'xlsx'}));
+ const result=extractOfferItems(parsed.workbook,parsed.mappings);
+ expect(result.items[0]).toMatchObject({code:'0001',quantity:null,total:'100'});
+});
