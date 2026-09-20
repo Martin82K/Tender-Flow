@@ -1,6 +1,6 @@
 import type { KrosMapping } from '../model/krosImport';
 import type { BudgetDocument } from '../model/types';
-export function importInWorker(file: Blob, signal: AbortSignal, onProgress: (done: number, total: number) => void, mapping:KrosMapping = {}): Promise<BudgetDocument> {
+export function importInWorker(file: Blob, signal: AbortSignal, onProgress: (done: number, total: number) => void, mapping:KrosMapping = {}, identityOnly = false): Promise<BudgetDocument> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('../workers/import.worker.ts', import.meta.url), { type: 'module' });
     const cleanup = () => { worker.terminate(); signal.removeEventListener('abort', abort); };
@@ -12,6 +12,6 @@ export function importInWorker(file: Blob, signal: AbortSignal, onProgress: (don
       if (event.data.type === 'progress') onProgress(event.data.done, event.data.total);
       else { cleanup(); if (event.data.type === 'complete') resolve(event.data.document); else reject(new Error(event.data.message)); }
     };
-    file.arrayBuffer().then(buffer => { if (!signal.aborted) worker.postMessage({buffer,mapping}, [buffer]); }).catch(error => { cleanup(); reject(error); });
+    file.arrayBuffer().then(buffer => { if (!signal.aborted) worker.postMessage({buffer,mapping,identityOnly}, [buffer]); }).catch(error => { cleanup(); reject(error); });
   });
 }

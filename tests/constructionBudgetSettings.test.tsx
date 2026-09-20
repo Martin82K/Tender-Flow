@@ -15,9 +15,9 @@ beforeEach(() => {
   vi.mocked(budgetApi.revision).mockResolvedValue(revision);
 });
 afterEach(() => { cleanup(); localStorage.clear(); vi.clearAllMocks(); });
-async function openBudget() {
+async function openBudget(canUseTenders=false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]}/></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]} canUseTenders={canUseTenders}/></QueryClientProvider>);
   return screen.findByRole('button', { name: 'Nastavení zobrazení' });
 }
 it('toggles cell grid lines and restores the saved preference after reopening', async () => {
@@ -300,4 +300,13 @@ it('requires allocation permission to copy a confirmed revision with assignments
   const copy = screen.getByRole('button', { name: 'Vytvořit pracovní kopii' });
   expect(copy).toBeDisabled();
   expect(copy).toHaveAttribute('title', 'Kopírování přiřazení vyžaduje oprávnění k alokacím.');
+});
+
+it.each([false,true])('gates tender import on pipeline availability (%s) independently of allocation permission',async canUseTenders=>{
+  vi.mocked(budgetApi.index).mockResolvedValue({revisions:[revision],permissions:{prices:true,edit:true,confirm:false,allocate:true}});
+  await openBudget(canUseTenders);
+  await waitFor(()=>expect(budgetApi.revision).toHaveBeenCalled());
+  expect(!!screen.queryByRole('button',{name:'Vlastní vzory VŘ'})).toBe(canUseTenders);
+  fireEvent.click(screen.getByRole('button',{name:'Importovat'}));
+  expect(!!screen.queryByRole('radio',{name:/Pouze převzít přiřazení do VŘ/})).toBe(canUseTenders);
 });

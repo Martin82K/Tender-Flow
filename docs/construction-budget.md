@@ -1,5 +1,45 @@
 # Rozpočet stavby
 
+## Převzetí přiřazení do výběrových řízení
+
+Při importu souboru do projektu s rozpočtem můžete zvolit **Aktualizovat rozpočet –
+nová verze**, nebo **Pouze převzít přiřazení do VŘ**. Druhá volba pracuje s právě
+otevřenou revizí: zachová její položky, strukturu, ceny a množství. Potvrzenou revizi
+nemění; vytvoří pracovní kopii. Soubor pro přiřazení nemusí obsahovat ceny ani
+množství. Při vytvoření nové verze lze převzetí VŘ zapnout samostatně.
+
+V náhledu potvrdíte navržené sloupce názvu a případně čísla VŘ pro každý list.
+Sloupce mohou být vložené před, mezi i za původní sloupce rozpočtu. Návrh vychází
+z hlaviček a obsahu; při nejasnosti vyberete sloupec ručně. Náhled ukazuje skutečné
+buňky. Pro nestandardní rozložení položek použijte také editor mapování importu.
+Prázdný název VŘ znamená vynechání řádku, nikoli smazání vazeb nebo převzetí hodnoty
+z předchozího řádku. Čárka v názvu VŘ zůstává součástí názvu. Čísla jako `02` zůstávají
+textovými kódy, oddělenými od interních identifikátorů.
+
+Párování kontroluje typ, kód, popis a jednotku. U duplicit může pomoci přesná část
+nebo ověřený zdrojový list a řádek. Zkrácené odkazy ani samotné pořadí nejsou důkazem
+shody. Nejasné položky přiřaďte ručně nebo výslovně vynechte. Vyhledávání dalších
+cílových položek nabízí shodné jednotky. Jeden cíl nelze použít pro více zdrojových
+řádků v téže operaci.
+
+Názvy mapujete na **VŘ tohoto projektu** nebo potvrdíte vytvoření chybějících.
+Existující vazby lze zachovat, doplnit pouze zbývající množství nebo výslovně nahradit.
+Před uložením potvrďte souhrn dopadů včetně vynechání a nahrazení vazeb. Změna plánu
+VŘ, nabídek a smluv není součástí tohoto importu. Změní-li někdo mezitím cílovou revizi
+nebo seznam VŘ, server zápis odmítne; otevřete nový náhled. Opakování stejného
+požadavku po síťové chybě nevytvoří další řízení ani alokace.
+
+**Vlastní vzory VŘ** umožňují uložit projektové názvy a externí kódy do vlastního
+souboru JSON a opakovaně jej použít v jiných projektech. Před vložením můžete upravit
+definice a vybrat, které vytvořit; existující názvy a kódy se nepřepisují. Projektové
+kopie lze dále upravovat v přehledu VŘ. Vzor neobsahuje položkové alokace, ceny,
+nabídky, dodavatele, stav řízení ani dokumenty. Nejde o živé sdílení mezi projekty.
+Soubor vzoru uchovávejte podle pravidel vaší organizace.
+
+Nový tok vyžaduje oprávnění pro úpravy rozpočtu, čtení cen, alokace a úpravy modulu
+VŘ v cílovém projektu. Původní XLSX zůstává chráněnou přílohou. Technický postup
+nasazení a ověření popisuje [import VŘ](development/budget-tender-import.md).
+
 Rozpočet otevřete v navigaci stavby. V části **Importy a verze** najdete revize
 rozpočtu a původní přílohy XLSX.
 
@@ -313,3 +353,8 @@ Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřeš
 Zkrácený náhled je označen upozorněním. Omezení platí pouze pro náhled, původní buňky ani soubor se nemění. Limit znaků brání tomu, aby opakované dlouhé shared strings z malého XLSX zahltily renderer.
 
 Oprava podstromu potvrzuje hierarchii všech dotčených řádků; jiné chyby rozpoznání a ocenění se tím nevyřeší. Položku s podřízeným výkazem výměr nebo poznámkami nelze změnit na necenový typ, dokud jejich zařazení neupravíte, aby zdrojové řádky nezmizely z běžného pohledu.
+
+Mapování sloupců VŘ prochází listy tlačítky **Předchozí list / Další list**.
+Pokud se nové skupiny shodují názvem nebo číslem, lze u jedné z nich zvolit
+**Použít nové VŘ** a přiřadit obě skupiny ke společné nové definici. Rozdílné
+kódy se bez vašeho výběru neslučují.

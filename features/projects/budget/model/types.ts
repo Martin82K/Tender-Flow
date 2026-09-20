@@ -1,6 +1,6 @@
 export type BudgetNodeKind = 'object' | 'sheet' | 'section' | 'K' | 'M' | 'VV' | 'note' | 'subtotal';
 export type BudgetImportFormat = 'kros' | 'globus';
-export interface SourceCell { value: string | number | boolean | null; formula?: string }
+export interface SourceCell { value: string | number | boolean | null; formula?: string; displayText?: string }
 export interface BudgetNode {
   id: string; parentId: string | null; sheetId: string; kind: BudgetNodeKind; order: number;
   code: string; description: string; unit: string; quantity: string | null; unitPrice: string | null; total: string | null;
