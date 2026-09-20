@@ -124,6 +124,44 @@ Nerozpoznané listy jsou výslovně označené jako neověřená úplnost. Konfl
 obsahují konkrétní kódy a hodnoty ke kontrole. Jejich aritmetické použití se nepovolí
 odhadem, uložené ceny a množství se však importují beze změny.
 
+### Editor oprav importu
+
+Automatické rozpoznání zůstává výchozí cestou. **Otevřít editor oprav** otevře větší
+pracovní plochu se třemi kroky: **Sloupce**, **Struktura**, **Kontrola**. Existující
+pracovní verzi otevřete přes **Akce → Opravit import**; potvrzenou verzi nejprve
+zkopírujte do pracovní. Uložení používá původní práva projektu a kontrolu verze.
+
+Ve Sloupcích je vlevo náhled původních buněk a vpravo stejně široké ovládací prvky.
+Sloupce vybíráte písmenem a názvem hlavičky. Náhled má nejvýše 60 řádků okolo hlavičky;
+ostatní importované řádky jsou dostupné ve Struktuře po 100 řádcích. Úroveň hierarchie
+lze mapovat mimo AU (číslování od 0). Volba podle profilu zachovává AU pro KROS a
+ploché oddíly Globus. KROS bez platné úrovně nebo se skokem přes chybějícího rodiče
+vytvoří návrh zařazení s blokující chybou, nikoli potvrzenou hierarchii.
+
+Ve Struktuře vyberte řádek, jeho typ a konkrétního rodiče s úplnou cestou. Náhled
+ukáže dotčené řádky a jejich cenu. Můžete přesunout celý podstrom nebo pouze vybraný
+řádek; u druhé možnosti se přímé děti přesunou k jeho původnímu rodiči. Další sousední
+oddíl se nemění. Rodič musí být dřívější uzel stejného soupisu, což zabrání cyklům
+a zachová pořadí pro serverové ověření. **Vrátit poslední opravu** vrací poslední
+změnu v otevřeném editoru. Poznámky, opakované hlavičky a mezisoučty nevstupují do
+ceny. Neznámé neprázdné řádky se zachovají pro ruční klasifikaci.
+
+**Uložit a zavřít** uloží pracovní verzi i opravy a umožní pozdější pokračování.
+Blokující chyby a neúplné ocenění nadále brání potvrzení; bezcenové potvrzené rozpočty
+tato změna nezavádí. Mapování se aplikuje jen na vybraný list. Má-li list ruční opravy,
+jejich zrušení při novém rozpoznání vyžaduje výslovné zaškrtnutí. U uložené verze
+je tento souhlas vyžadován vždy, protože načtení originálu nahradí také pozdější
+úpravy cen a množství daného listu. Existující alokace
+nebo štítky brání přemapování daného listu v téže verzi: použijte novou verzi a ověřený
+přenos vazeb. Opravy se nikdy automaticky nepřenášejí na další soubor.
+
+Originální XLSX je neměnný, vzorce se nespouštějí a všechny jeho texty se vykreslují
+jako text. Limity archivu a odmítání maker či externích vazeb zůstávají zachované.
+`sourcePreview` je pouze v paměti a ukládací API jej odstraňuje, protože může
+obsahovat ceny mimo serverem redigované `node.source.cells`. Po otevření konceptu
+je **Načíst náhled originálu** znovu stáhne přes chráněné úložiště, aniž by přepsalo
+opravy. `importRepairs` ukládá pouze typ, rodiče a rozsah ruční interpretace. Ukládání používá existující audit revizí a nevyžaduje migraci.
+
 ### Vyřešení konfliktů figur před importem
 
 V pravém panelu **Konflikty figur** rozbalte kód figury. U nalezených hodnot

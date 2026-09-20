@@ -6,10 +6,114 @@ import { parseKrosWorkbook } from '@features/projects/budget/model/krosImport';
 import { BudgetImportDialog } from '@features/projects/budget/ui/BudgetImportDialog';
 import { importInWorker } from '@features/projects/budget/api/importWorker';
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
+import type { BudgetRevision, BudgetSource } from '@features/projects/budget/model/types';
 
 vi.mock('@features/projects/budget/api/budgetApi', () => ({ budgetApi: { save: vi.fn().mockResolvedValue({ id: 'revision' }), registerSource: vi.fn(), sourceStatus: vi.fn().mockResolvedValue(undefined), download: vi.fn().mockResolvedValue(new Blob(['xlsx'])) } }));
 vi.mock('@features/projects/budget/api/importWorker', () => ({ importInWorker: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+function editorDocument() {
+  const book=XLSX.utils.book_new();
+  for(const name of ['Soupis','Elektro']) XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([
+    ['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem'],
+    ['D','HSV','HSV'],['D','6','Úpravy'],['D','61','Stěny'],['K','001','Omítka','m2',2,50,100],
+  ]),name);
+  return parseKrosWorkbook(book);
+}
+const editorSource:BudgetSource={id:'s',project_id:'p',filename:'rozpocet.xlsx',storage_path:'s',sha256:'a',status:'ready',created_at:'2026-09-20'};
+function editorRevision():BudgetRevision {return {id:'r',project_id:'p',organization_id:'o',source_id:'s',title:'Pracovní',status:'draft',version:3,created_at:'2026-09-20',document:editorDocument(),allocations:[]};}
+
+describe('import repair workspace',()=>{
+  it('opens source cells with column letters and aligned mapping controls',async()=>{
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={editorSource} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
+    expect(screen.getByRole('region',{name:'Původní buňky'})).toHaveTextContent('Omítka');
+    const code=screen.getByLabelText('Kód');
+    expect(code.closest('label')).toHaveClass('tf-budget-mapping-row');
+    expect(code).toHaveTextContent('B · Kód');
+    expect(screen.getByLabelText('Úroveň hierarchie')).toBeVisible();
+  });
+  it('resumes a draft, applies a scoped repair, supports undo and saves the same revision',async()=>{
+    const original=editorRevision();const complete=vi.fn();
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={complete}/>);
+    expect(importInWorker).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
+    fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 4'}));
+    fireEvent.change(screen.getByLabelText('Nadřazený uzel'),{target:{value:'sheet:0:row:3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Použít opravu'}));
+    expect(screen.getByRole('button',{name:'Vrátit poslední opravu'})).toBeEnabled();
+    fireEvent.click(screen.getByRole('button',{name:'Vrátit poslední opravu'}));
+    expect(screen.getByLabelText('Nadřazený uzel')).toHaveValue('sheet:0:row:2');
+    fireEvent.change(screen.getByLabelText('Nadřazený uzel'),{target:{value:'sheet:0:row:3'}});
+    fireEvent.click(screen.getByRole('button',{name:'Použít opravu'}));
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(complete).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0];
+    expect(saved.revision).toBe(original);
+    expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:4')?.parentId).toBe('sheet:0:row:3');
+    expect(saved.document.importRepairs).toHaveLength(1);
+    expect(original.document.nodes.find(n=>n.id==='sheet:0:row:4')?.parentId).toBe('sheet:0:row:2');
+  });
+  it('remaps only one sheet and preserves a repair in another sheet',async()=>{
+    const original=editorRevision();
+    original.document.nodes.find(n=>n.id==='sheet:1:row:4')!.parentId='sheet:1:row:3';
+    original.document.importRepairs=[{nodeId:'sheet:1:row:4',parentId:'sheet:1:row:3',kind:'section',scope:'subtree'}];
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
+    fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
+    await waitFor(()=>expect(importInWorker).toHaveBeenCalledOnce());
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Uložit a zavřít'})).toBeEnabled());
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    expect(vi.mocked(budgetApi.save).mock.calls[0][0].document.nodes.find(n=>n.id==='sheet:1:row:4')?.parentId).toBe('sheet:1:row:3');
+    expect(vi.mocked(budgetApi.save).mock.calls[0][0].document.importRepairs).toHaveLength(1);
+  });
+  it('requires an explicit choice before replacing manual repairs on the mapped sheet',()=>{
+    const original=editorRevision();original.document.importRepairs=[{nodeId:'sheet:0:row:4',parentId:'sheet:0:row:3',kind:'section',scope:'subtree'}];
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    expect(screen.getByRole('button',{name:'Použít mapování'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
+    expect(screen.getByRole('button',{name:'Použít mapování'})).toBeEnabled();
+  });
+  it('does not inherit row repairs when importing a new revision',async()=>{
+    const previous=editorRevision();previous.document.importRepairs=[{nodeId:'sheet:0:row:4',parentId:'sheet:0:row:3',kind:'section',scope:'subtree'}];
+    previous.document.nodes.find(n=>n.id==='sheet:0:row:4')!.parentId='sheet:0:row:3';
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={{...editorSource,id:'new-source'}} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole('button',{name:'Vytvořit novou verzi'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0];
+    expect(saved.document.importRepairs).toBeUndefined();
+    expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:4')?.parentId).toBe('sheet:0:row:2');
+    expect(saved.sourceId).toBe('new-source');
+  });
+  it('loads protected previews without replacing saved hierarchy or edited prices',async()=>{
+    const original=editorRevision();original.document.sheets.forEach(s=>delete s.sourcePreview);
+    original.document.nodes.find(n=>n.id==='sheet:0:row:4')!.parentId='sheet:0:row:3';
+    original.document.nodes.find(n=>n.id==='sheet:0:row:5')!.unitPrice='80';
+    vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'Načíst náhled originálu'}));
+    await waitFor(()=>expect(screen.queryByRole('button',{name:'Načíst náhled originálu'})).not.toBeInTheDocument());
+    expect(budgetApi.download).toHaveBeenCalledWith(editorSource);
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0].document;
+    expect(saved.nodes.find(n=>n.id==='sheet:0:row:4')?.parentId).toBe('sheet:0:row:3');
+    expect(saved.nodes.find(n=>n.id==='sheet:0:row:5')?.unitPrice).toBe('80');
+  });
+  it('refuses remapping an allocated sheet before downloading or altering it',async()=>{
+    const original=editorRevision();original.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('checkbox',{name:'Znovu rozpoznat tento list a nahradit jeho ruční úpravy'}));
+    fireEvent.click(screen.getByRole('button',{name:'Použít mapování'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tento list má přiřazené štítky nebo množství');
+    expect(budgetApi.download).not.toHaveBeenCalled();
+    expect(importInWorker).not.toHaveBeenCalled();
+  });
+});
 
 describe('budget import dialog', () => {
   it('allows choosing Globus for unrecognized headings before repeating recognition', async () => {
