@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@features/public/ui/LandingPage";
+import { DESKTOP_DOWNLOADS, DESKTOP_RELEASES_LATEST_URL } from "@features/public/model/desktopDownloads";
 
 const mockState = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -57,6 +58,39 @@ describe("LandingPage nové moduly", () => {
     expect(reference).not.toHaveTextContent(/[„“★]/);
   });
 
+  it("nabízí veřejné stažení desktopu pro Windows i macOS bez přihlášení", () => {
+    render(<LandingPage />);
+
+    const hero = screen.getByRole("heading", { level: 1 }).closest("section")!;
+    expect(within(hero).getByRole("link", { name: "Stáhnout pro Windows" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[0].href,
+    );
+    expect(within(hero).getByRole("link", { name: "Stáhnout pro macOS (Apple Silicon)" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[1].href,
+    );
+    expect(within(hero).getByRole("link", { name: "Všechny verze na GitHubu" })).toHaveAttribute(
+      "href",
+      DESKTOP_RELEASES_LATEST_URL,
+    );
+
+    const desktop = screen.getByRole("region", { name: "Aplikace pro Windows i macOS" });
+    expect(within(desktop).getByRole("link", { name: "Stáhnout pro Windows" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[0].href,
+    );
+    expect(within(desktop).getByRole("link", { name: "Stáhnout pro macOS (Apple Silicon)" })).toHaveAttribute(
+      "href",
+      DESKTOP_DOWNLOADS[1].href,
+    );
+    expect(screen.getByRole("contentinfo").textContent).toMatch(/Windows/);
+    expect(within(screen.getByRole("contentinfo")).getByRole("link", { name: "Všechny verze" })).toHaveAttribute(
+      "href",
+      DESKTOP_RELEASES_LATEST_URL,
+    );
+  });
+
   it("nezahlcuje úvod tlačítkem pro demo a nabízí kontakt v závěru stránky", () => {
     render(<LandingPage />);
 
@@ -105,6 +139,7 @@ describe("LandingPage nové moduly", () => {
     render(<LandingPage />);
 
     const navigation = within(screen.getByRole("banner"));
+    expect(navigation.getByRole("link", { name: "Desktop" })).toHaveAttribute("href", "#desktop");
     expect(navigation.getByRole("link", { name: "AI a data" })).toHaveAttribute("href", "#ai-data");
     expect(navigation.getByRole("link", { name: "MCP" })).toHaveAttribute("href", "#mcp");
     expect(navigation.getByRole("link", { name: "Ceník" })).toHaveAttribute("href", "#ceny");

@@ -22,6 +22,8 @@ vi.mock('../context/AuthContext', () => ({
 vi.mock('@/features/subscription/api', () => ({
   getEnabledFeatures: async () => [],
   getCurrentTier: async () => 'free',
+  getEffectiveUserTier: async () => ({ tier: 'free', source: 'default' }),
+  getEnabledFeaturesV2: async () => [],
 }));
 
 function Probe() {

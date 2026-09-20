@@ -1,0 +1,2 @@
+# Supabase Auth authenticates requests with Standard Webhooks HMAC signatures.
+verify_jwt = false

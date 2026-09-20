@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
+import { DEFAULT_APP_URL } from "@/shared/routing/routeUtils";
 import { authService } from "@features/auth/api";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
@@ -11,12 +12,16 @@ export const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [token, setToken] = useState("");
+  const [isAuthRecovery, setIsAuthRecovery] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(search);
-    const tokenParam = params.get("token");
+    const authToken = params.get("auth_token_hash");
+    const tokenParam = authToken || params.get("token");
+    setIsAuthRecovery(Boolean(authToken));
+    setToken(tokenParam || "");
     if (tokenParam) {
       setToken(tokenParam);
     } else {
@@ -45,7 +50,14 @@ export const ResetPasswordPage: React.FC = () => {
     setErrorMessage("");
 
     try {
-      await authService.confirmPasswordReset(token, password);
+      if (isAuthRecovery) {
+        if (!await authService.hasVerifiedPasswordRecoveryToken(token)) {
+          await authService.verifyPasswordRecoveryToken(token);
+        }
+        await authService.updateRecoveredPassword(password, token);
+      } else {
+        await authService.confirmPasswordReset(token, password);
+      }
       setStatus("success");
     } catch (error: any) {
       console.error("Reset confirmation error:", error);
@@ -85,14 +97,14 @@ export const ResetPasswordPage: React.FC = () => {
             <div className="auth-alert auth-alert-success">
               <p style={{ fontWeight: 600 }}>Heslo změněno!</p>
               <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem", opacity: 0.9 }}>
-                Vaše heslo bylo úspěšně nastaveno. Nyní se můžete přihlásit.
+                {isAuthRecovery ? "Vaše heslo bylo úspěšně nastaveno. Můžete pokračovat do aplikace." : "Vaše heslo bylo úspěšně nastaveno. Nyní se můžete přihlásit."}
               </p>
             </div>
             <button
               className="auth-btn-primary"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate(isAuthRecovery ? DEFAULT_APP_URL : "/login")}
             >
-              Přejít na přihlášení
+              {isAuthRecovery ? "Pokračovat do aplikace" : "Přejít na přihlášení"}
             </button>
           </div>
         ) : (
