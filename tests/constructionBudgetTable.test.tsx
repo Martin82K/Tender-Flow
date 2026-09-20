@@ -327,6 +327,16 @@ it('expands tender assignment in the item column without a dialog', async () => 
   await act(async()=>{fireEvent.click(within(row).getByRole('button', {name:'Přiřadit VŘ'}));});
   expect(onAllocate).toHaveBeenCalledWith('item','t1');
 });
+it('explains unavailable tender assignment instead of expanding an empty field', () => {
+  const onAllocate = vi.fn();
+  render(<BudgetTable {...table(false).props} canAllocate onAllocate={onAllocate}/>);
+  const trigger = screen.getByRole('button', {name:'VŘ: 123'});
+  expect(trigger).toHaveTextContent('Nepřiřazeno');
+  fireEvent.click(trigger);
+  expect(screen.getByText('Přiřazení VŘ nyní nelze měnit.')).toBeVisible();
+  expect(screen.queryByRole('combobox', {name:'Cílové VŘ'})).not.toBeInTheDocument();
+  expect(onAllocate).not.toHaveBeenCalled();
+});
 it('retains a failed inline edit and blocks duplicate submissions', async () => {
   let reject!: (error: Error) => void;
   const onEdit = vi.fn(() => new Promise<void>((_, fail) => { reject = fail; }));

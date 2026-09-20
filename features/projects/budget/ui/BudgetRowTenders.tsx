@@ -6,11 +6,12 @@ export interface BudgetRowTenderProps {
   categories?: readonly { id: string; title: string }[];
   allocations?: readonly BudgetAllocation[];
   canAllocate?: boolean;
+  allocationDisabledReason?: string;
   onCreateTender?: (name: string) => Promise<{id:string;title:string;warning?:string}>;
   onAllocate?: (itemId: string, categoryId: string) => Promise<void>;
   onRemoveAllocation?: (allocation: BudgetAllocation) => Promise<void>;
 }
-export function BudgetRowTenders({ node, categories = [], allocations = [], canAllocate, onAllocate, onRemoveAllocation, onCreateTender }: BudgetRowTenderProps & { node: BudgetNode }) {
+export function BudgetRowTenders({ node, categories = [], allocations = [], canAllocate, allocationDisabledReason, onAllocate, onRemoveAllocation, onCreateTender }: BudgetRowTenderProps & { node: BudgetNode }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState('');
   const [warning,setWarning]=useState('');
@@ -32,8 +33,9 @@ export function BudgetRowTenders({ node, categories = [], allocations = [], canA
     finally { lock.current = false; setBusy(false); }
   };
   return <div className="tf-budget-row-tenders">
-    <button type="button" aria-label={`VŘ: ${node.code || node.description}`} aria-expanded={open} onClick={() => setOpen(!open)}>{(assigned.length ? [...new Set(assigned.map(a => options.find(c => c.id === a.categoryId)?.title || 'Nedostupné VŘ'))].join(', ') : node.tenders.join(', ')) || 'Přiřadit VŘ'} {open ? '▴' : '▾'}</button>
+    <button type="button" aria-label={`VŘ: ${node.code || node.description}`} aria-expanded={open} onClick={() => setOpen(!open)}>{(assigned.length ? [...new Set(assigned.map(a => options.find(c => c.id === a.categoryId)?.title || 'Nedostupné VŘ'))].join(', ') : node.tenders.join(', ')) || (canAllocate && onAllocate ? 'Přiřadit VŘ' : 'Nepřiřazeno')} {open ? '▴' : '▾'}</button>
     {open && <div className="tf-budget-row-tender-fields">
+      {(!canAllocate || !onAllocate) && <small role="status">{allocationDisabledReason || 'Přiřazení VŘ nyní nelze měnit.'}</small>}
       {assigned.map((a, i) => <div key={`${a.categoryId}:${i}`}><span>{options.find(c => c.id === a.categoryId)?.title || 'Nedostupné VŘ'} · {a.quantity} {node.unit}</span>{canAllocate && onRemoveAllocation && <button type="button" disabled={busy} aria-label={`Odebrat ${options.find(c => c.id === a.categoryId)?.title || 'VŘ'}`} onClick={() => void run(() => onRemoveAllocation(a))}>×</button>}</div>)}
       {canAllocate && onAllocate && <>
         <small>Celá položka: {node.quantity ?? '—'} {node.unit}</small>

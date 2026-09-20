@@ -20,6 +20,22 @@ async function openBudget(canUseTenders=false) {
   render(<QueryClientProvider client={client}><ConstructionBudget projectId="p" userId="u" categories={[]} canUseTenders={canUseTenders}/></QueryClientProvider>);
   return screen.findByRole('button', { name: 'Nastavení zobrazení' });
 }
+it('explains how to assign tenders in a confirmed revision without enabling writes', async () => {
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(1200);
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400);
+  const item = { id: 'item', parentId: null, sheetId: 's', kind: 'K', order: 0, code: '123', description: 'Výkop', unit: 'm3', quantity: '12', unitPrice: '10', total: '120', source: { sheet: 'S', row: 1, cells: {} }, sourceType: 'K', tags: [], tenders: [] };
+  const confirmed = { ...revision, status: 'confirmed', document: { ...revision.document, nodes: [item] } } as BudgetRevision;
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [confirmed], permissions: { read: true, prices: true, edit: true, confirm: true, allocate: true } });
+  vi.mocked(budgetApi.revision).mockResolvedValue(confirmed);
+  try {
+    await openBudget();
+    fireEvent.click(screen.getByRole('button', { name: 'Položky', exact: true }));
+    fireEvent.click(await screen.findByRole('button', { name: 'VŘ: 123' }));
+    expect(screen.getByText('Tato verze je potvrzená. Pro přiřazení VŘ otevřete pracovní verzi v nabídce Verze nebo zvolte Akce → Vytvořit pracovní kopii.')).toBeVisible();
+    expect(screen.queryByRole('combobox', { name: 'Cílové VŘ' })).not.toBeInTheDocument();
+    expect(budgetApi.save).not.toHaveBeenCalled();
+  } finally { width.mockRestore(); height.mockRestore(); }
+});
 it('toggles cell grid lines and restores the saved preference after reopening', async () => {
   fireEvent.click(await openBudget());
   const grid = screen.getByRole('checkbox', { name: 'Zobrazit mřížku' });

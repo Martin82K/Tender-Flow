@@ -159,7 +159,7 @@ export function BudgetTable(props: Props) {
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
           if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={event=>group?setCollapsed(toggle(collapsed,n.id)):priced?selectRow(n,event):openDetail(n)}>{n.description}</button>;
-          else if(c.key==='tenders'&&priced)value=<BudgetRowTenders node={n} categories={props.categories} allocations={props.allocations} canAllocate={editable&&props.canAllocate} onAllocate={props.onAllocate} onRemoveAllocation={props.onRemoveAllocation} onCreateTender={props.onCreateTender}/>;
+          else if(c.key==='tenders'&&priced)value=<BudgetRowTenders node={n} categories={props.categories} allocations={props.allocations} canAllocate={editable&&props.canAllocate} allocationDisabledReason={props.allocationDisabledReason} onAllocate={props.onAllocate} onRemoveAllocation={props.onRemoveAllocation} onCreateTender={props.onCreateTender}/>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Neoceněno</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?'Poznámka':n.kind==='subtotal'?'Mezisoučet':n.kind;

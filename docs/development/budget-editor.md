@@ -139,6 +139,10 @@ nahradí dosavadní vazby položky; změna množství aktualizuje i přiřazení
 Dílčí množství se nezadává. Starší dílčí nebo rozdělené vazby je nutné před změnou
 množství výslovně sjednotit výběrem jediného VŘ.
 Zápis respektuje stávající edit/price/allocate oprávnění a zámek rozpočtu.
+Potvrzená verze se neupravuje; přiřazení VŘ vyžaduje pracovní verzi nebo
+Akce → Vytvořit pracovní kopii. Pokud přiřazení není dostupné, neobsazená
+buňka uvádí „Nepřiřazeno“ a po rozbalení vysvětlí důvod (potvrzení,
+zámek, oprávnění, koš nebo probíhající ukládání), místo prázdného obsahu.
 
 Editor importu nabízí stejnou tabulku v záložce Položky a VŘ. Změny v ní
 zůstávají pracovní až do uložení editoru; ukládá se dokument i alokace.
@@ -152,3 +156,14 @@ projektový číselník. Založení načítá aktuální seznam a používá exi
 RPC s kontrolou souběhu; při opakování využije shodný název. Číselník se
 uloží ihned, přiřazení v importním editoru až s pracovní verzí. Selhání
 přiřazení nezahodí už vytvořené VŘ ani nezakládá další kopii.
+
+Regrese prázdného rozbalení VŘ (základ `8b66ad51`, integrační main
+`8469a654`): dva nové scénáře nejprve RED; po opravě 63 testů tabulky
+a nastavení PASS bez skipped/todo (`npm run test:run --
+tests/constructionBudgetTable.test.tsx tests/constructionBudgetSettings.test.tsx`).
+`npm run typecheck`, `npm run check:boundaries` a
+`npm run check:legacy-structure` PASS pro tento pracovní diff.
+V Electronu ověřeno vysvětlení u potvrzené verze a otevření formuláře
+i vyhledávatelného seznamu VŘ v pracovní verzi. Zápis do živých dat
+nebyl součástí tohoto průchodu; uložení a zákaz zápisu pokrývají testy.
+Datový model, oprávnění a serverové kontroly se nemění.
