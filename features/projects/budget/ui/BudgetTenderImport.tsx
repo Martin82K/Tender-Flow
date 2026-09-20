@@ -20,6 +20,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
   useEffect(()=>setAcknowledged(false),[catalog.data,previous?.id,previous?.version,document]);
   const [choices,setChoices]=useState<Record<string,string>>({}); const [targets,setTargets]=useState<Record<string,string>>({});
   const [actions,setActions]=useState<Record<string,TenderAssignment['action']>>({});
+  const [groupPage,setGroupPage]=useState(0);const [groupQuery,setGroupQuery]=useState('');
   const [page,setPage]=useState(0); const [query,setQuery]=useState('');
   const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const lock=useRef(false);
   const [targetQuery,setTargetQuery]=useState('');
@@ -34,12 +35,19 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
   const nodeIndex=useMemo(()=>new Map(targetNodes.map(n=>[n.id,n])),[targetNodes]);
   const existingByItem=useMemo(()=>{const index=new Map<string,BudgetAllocation[]>();for(const a of existing)index.set(a.itemId,[...(index.get(a.itemId)??[]),a]);return index;},[existing]);
   const groups=useMemo(()=>[...new Map(named.map(row=>[tenderKey(row.externalCode,row.name),{key:tenderKey(row.externalCode,row.name),title:row.name,externalCode:row.externalCode}])).values()],[named]);
+  const catalogIndex=useMemo(()=>{
+    const names=new Map<string,ProjectTender[]>();const codes=new Map<string,ProjectTender[]>();
+    for(const c of catalog.data??[]){const key=tenderNameKey(c.title);const named=names.get(key)??[];named.push(c);names.set(key,named);if(c.externalCode){const coded=codes.get(c.externalCode)??[];coded.push(c);codes.set(c.externalCode,coded);}}
+    return {names,codes};
+  },[catalog.data]);
+  const visibleGroups=groups.filter(g=>`${g.externalCode} ${g.title}`.toLocaleLowerCase('cs').includes(groupQuery.toLocaleLowerCase('cs')));
+  const groupPages=Math.max(1,Math.ceil(visibleGroups.length/30));const currentGroupPage=Math.min(groupPage,groupPages-1);
   const newIds=useRef(new Map<string,string>());
   const getNewId=(key:string)=>{if(!newIds.current.has(key))newIds.current.set(key,crypto.randomUUID());return newIds.current.get(key)!;};
   const groupChoice=(group:typeof groups[number])=>{
     if(Object.hasOwn(choices,group.key))return choices[group.key];
-    const names=catalog.data?.filter(c=>tenderNameKey(c.title)===tenderNameKey(group.title))??[];
-    const codes=group.externalCode?catalog.data?.filter(c=>c.externalCode===group.externalCode)??[]:[];
+    const names=catalogIndex.names.get(tenderNameKey(group.title))??[];
+    const codes=group.externalCode?catalogIndex.codes.get(group.externalCode)??[]:[];
     if(names.length===1&&(!group.externalCode||!names[0].externalCode||names[0].externalCode===group.externalCode)&&codes.every(c=>c.id===names[0].id))return names[0].id;
     return names.length||codes.length?'':'new';
   };
@@ -59,13 +67,15 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     usedGroups.add(key);proposed.push({itemId:target,categoryId,action});
   }
   const newCategories:ProjectTender[]=groups.filter(g=>usedGroups.has(g.key)&&categories.get(g.key)==='new').map(g=>({id:getNewId(g.key),title:g.title,externalCode:g.externalCode}));
-  const duplicateDefinitions=newCategories.some((c,i)=>newCategories.slice(0,i).some(p=>tenderNameKey(p.title)===tenderNameKey(c.title)||!!c.externalCode&&p.externalCode===c.externalCode));
+  const definitionNames=new Set<string>();const definitionCodes=new Set<string>();
+  const duplicateDefinitions=newCategories.some(c=>{const name=tenderNameKey(c.title);if(definitionNames.has(name)||!!c.externalCode&&definitionCodes.has(c.externalCode))return true;definitionNames.add(name);if(c.externalCode)definitionCodes.add(c.externalCode);return false;});
+  const tooManyCategories=newCategories.length>1000;
   let validation='';let planned=existing;
   try{planned=planTenderAllocations(targetDocument.nodes,existing,proposed);}catch(e){validation=e instanceof Error?e.message:'Neplatné přiřazení.';}
   const visible=matches.filter(m=>`${m.row.node.code} ${m.row.node.description} ${m.row.name}`.toLocaleLowerCase('cs').includes(query.toLocaleLowerCase('cs')));
   const pages=Math.max(1,Math.ceil(visible.length/30));const currentPage=Math.min(page,pages-1);
   const save=async()=>{
-    if(lock.current||!confirmed||!acknowledged||unresolved||validation||duplicateDefinitions||!proposed.length||!catalog.data)return;
+    if(lock.current||!confirmed||!acknowledged||unresolved||validation||tooManyCategories||duplicateDefinitions||!proposed.length||!catalog.data)return;
     lock.current=true;setBusy(true);setError('');
     try{
       const request={mode,sourceId,expectedCatalog:catalog.data,newCategories,assignments:proposed,
@@ -96,11 +106,14 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     </>:<>
       <button disabled={busy} onClick={()=>{setConfirmed(false);setAcknowledged(false);}}>Upravit sloupce</button>
       <h4>Projektová výběrová řízení</h4>
-      <div className="tf-budget-tender-groups">{catalog.isPending?<p role="status">Načítání VŘ…</p>:catalog.error?<p role="alert">{catalog.error.message} <button onClick={()=>void catalog.refetch()}>Zkusit znovu</button></p>:groups.map(group=><label key={group.key}>{group.externalCode} · {group.title}
+      <label>Hledat skupinu VŘ<input value={groupQuery} onChange={e=>{setGroupQuery(e.target.value);setGroupPage(0);}}/></label>
+      <div className="tf-budget-tender-groups">{catalog.isPending?<p role="status">Načítání VŘ…</p>:catalog.error?<p role="alert">{catalog.error.message} <button onClick={()=>void catalog.refetch()}>Zkusit znovu</button></p>:visibleGroups.slice(currentGroupPage*30,(currentGroupPage+1)*30).map(group=><label key={group.key}>{group.externalCode} · {group.title}
         <ThemedNativeSelect aria-label={`VŘ: ${group.title}`} disabled={busy} value={groupChoice(group)} onChange={e=>{setChoices({...choices,[group.key]:e.target.value});setActions({});setAcknowledged(false);}}>
           <option value="">Vyřešit shodu názvu / čísla</option><option value="new">Vytvořit nové VŘ v tomto projektu</option><option value="skip">Vynechat tuto skupinu</option>
           {catalog.data?.map(c=><option key={c.id} value={c.id}>{c.externalCode} · {c.title}</option>)}
         </ThemedNativeSelect></label>)}</div>
+      <div><button disabled={currentGroupPage===0} onClick={()=>setGroupPage(currentGroupPage-1)}>Předchozí skupiny</button> {currentGroupPage+1} / {groupPages} <button disabled={currentGroupPage+1>=groupPages} onClick={()=>setGroupPage(currentGroupPage+1)}>Další skupiny</button></div>
+      {tooManyCategories&&<p role="alert">Nejvýše 1 000 nových VŘ lze vytvořit jedním importem. Další skupiny přiřaďte k existujícím VŘ nebo je vynechte.</p>}
       {duplicateDefinitions&&<p role="alert">Nové skupiny mají duplicitní název nebo číslo. Namapujte je na existující VŘ nebo jednu skupinu vynechte.</p>}
       <h4>Párování položek a existující vazby</h4>
       <label>Hledat položku<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label>
@@ -129,7 +142,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
       <p role="status">{rows.length} položek · {rows.length-named.length} bez názvu VŘ (beze změny) · {unresolved} nevyřešených · {newCategories.length} nových VŘ · {proposed.filter(a=>a.action==='replace').length} nahrazení vazeb · {planned.length} výsledných alokací.</p>
       <label><input type="checkbox" checked={acknowledged} disabled={busy||catalog.isPending||!!catalog.error} onChange={e=>setAcknowledged(e.target.checked)}/>Zkontroloval jsem dopady včetně vynechaných položek a nahrazení vazeb. Plány VŘ, nabídky a smlouvy se nemění.</label>
       {validation&&<p role="alert">{validation}</p>}
-      <button className="tf-budget-import-primary" disabled={busy||!acknowledged||!!unresolved||!!validation||duplicateDefinitions||!proposed.length||!catalog.data} onClick={()=>void save()}>{busy?'Ukládání…':'Potvrdit import přiřazení'}</button>
+      <button className="tf-budget-import-primary" disabled={busy||!acknowledged||!!unresolved||!!validation||tooManyCategories||duplicateDefinitions||!proposed.length||!catalog.data} onClick={()=>void save()}>{busy?'Ukládání…':'Potvrdit import přiřazení'}</button>
     </>}
     {error&&<p role="alert">{error} Při změně rozpočtu nebo seznamu VŘ zavřete import a otevřete nový náhled.</p>}
     <button disabled={busy} onClick={onBack}>Zpět ke kontrole rozpočtu</button>

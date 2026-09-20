@@ -46,7 +46,7 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
       if(!registered){if(!file)throw new Error('Vyberte soubor.');setPhase('Ukládání originálu');registered=await budgetApi.registerSource(projectId,file);setSource(registered);}
       if(abort.signal.aborted)return false;
       if(mode==='attachment'){onComplete();return true;}
-      if(!editRevision){await budgetApi.sourceStatus(registered,'processing');processingStarted=true;}setPhase('Rozpoznání a validace');
+      if(!editRevision&&mode!=='assignments'){await budgetApi.sourceStatus(registered,'processing');processingStarted=true;}setPhase('Rozpoznání a validace');
       const effectiveMapping:KrosMapping=targetSheet&&document?Object.fromEntries(document.sheets.map(s=>[s.name,{headerRow:s.headerRow||undefined,columns:s.columns,role:s.role,format:s.format,object:s.object,title:s.title,...(s.name===targetSheet&&Object.hasOwn(mapping,s.name)?mapping[s.name]:{})}])):mapping;
       const blob=file??await budgetApi.download(registered);const parsed=await importInWorker(blob,abort.signal,(done,total)=>setPhase(`Rozpoznání listů ${done}/${total}`),effectiveMapping,mode==='assignments');
       let result:BudgetDocument;
@@ -58,6 +58,7 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
         const next={...document,sheets,nodes:[...objects.values(),...sheets.flatMap(s=>(s.name===targetSheet?parsed:document).nodes.filter(n=>n.sheetId===s.id&&n.kind!=='object'))],issues:[...document.issues.filter(i=>i.sheet!==targetSheet&&i.kind!=='ambiguous-figures'),...parsed.issues.filter(i=>i.sheet===targetSheet||i.kind==='ambiguous-figures')],figures:parsed.figures,figureResolutions:undefined,importRepairs:document.importRepairs?.filter(r=>!affected.has(r.nodeId))};
         result=preserveUnchangedFigureResolutions(document,next);
       }else result={...parsed,origin:'import',importKey:crypto.randomUUID()};
+      if(processingStarted){await budgetApi.sourceStatus(registered,registered.status==='ready'?'ready':'attachment');processingStarted=false;}
       setDocument(result);
       if(previous){setLinks(proposeRevisionMapping(previous.document,result));setTransfer(false);}setPhase('');return true;
     }catch(e){if(registered&&processingStarted)await budgetApi.sourceStatus(registered,abort.signal.aborted?'cancelled':'failed').catch(()=>{});setError(e instanceof Error?e.message:'Import selhal.');return false;}finally{operationLock.current=false;setBusy(false);setPhase('');}
