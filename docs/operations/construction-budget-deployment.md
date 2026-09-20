@@ -212,3 +212,25 @@ Read-only preflight nenalezl v existujících produkčních revizích neplatný 
 Migrace zdrojového řádku je nasazená. Postflight potvrdil aktivní kontrolu,
 odebraný anonymní přístup a zachované 2 zdroje / 2 revize; advisors beze změny,
 závěrečný dry-run hlásí aktuální databázi.
+
+Migrace `20260920113812_preserve_budget_authors_on_account_delete.sql` odděluje
+historickou identitu autora od vlastnictví projektu: odkazy na smazaného autora
+se anonymizují (SET NULL), rozpočty/historie/purge joby zůstávají. Jednorázová
+oprávnění k obnově souboru se odstraní (CASCADE). Zámek purge dovoluje pouze
+anonymizaci těchto auditních polí, nikoli změnu obsahu. Obnova staré zálohy
+nepřipisuje práci smazaného autora uživateli, který ji obnovuje.
+
+Migrace `20260920113933_reconcile_reimported_budget_backup_sources.sql` při
+obnově sjednotí zdroj se stejným projektem a SHA-256, přemapuje pouze obnovované
+revize a vrátí klientovi mapu původního/aktuálního UUID. Klient používá tuto mapu
+pro Storage a ověřuje obsah hashem; existující originál nepřepisuje. Rozpracované
+mazání nebo jiný shodný zdroj v koši vyžaduje nejprve dokončení této operace.
+Starší klient bez podpory mapy může v tomto okrajovém případě obnovit metadata,
+ale pro dokončení souborové části potřebuje aktualizaci a opakování zálohy.
+
+Před nasazením byly všechny migrační soubory aplikovány od čistého lokálního
+schématu. Všech 14 SQL scénářů prošlo; nové regrese pokrývají mazání autora,
+obnovu jeho staré podepsané zálohy, dokončení purge jiným oprávněným uživatelem,
+reimport stejného XLSX, zachování současné revize a idempotenci obnovy.
+
+Nasazení 2026-09-20: obě výše uvedené migrace `20260920113812` a `20260920113933` byly nasazeny verzovaným `supabase db push`. Následný dry-run hlásí aktuální databázi. Katalog potvrzuje šest validovaných vazeb autorů `ON DELETE SET NULL` a jednu vazbu dočasného oprávnění `ON DELETE CASCADE`; pomocná funkce mapování zdrojů není spustitelná pro `anon` ani `authenticated`. Počty zdrojů a revizí zůstaly 2/2. Bezpečnostní advisor nepřidal nálezy; dosavadní upozornění na úrovni celého projektu trvají. Produkční testovací zápisy nebyly provedeny.

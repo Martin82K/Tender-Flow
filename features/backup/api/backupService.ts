@@ -71,7 +71,7 @@ export const backupService = {
             { backup_json: databaseManifest, target_org_id: orgId }
         );
         if (error) throw error;
-        await restoreBudgetBackupFiles(backupJson);
+        await restoreBudgetBackupFiles(backupJson, data?.restored_construction_budget_sources);
         return data as RestoreSummary;
     },
 
@@ -86,7 +86,7 @@ export const backupService = {
             { backup_json: databaseManifest, target_org_id: orgId }
         );
         if (error) throw error;
-        await restoreBudgetBackupFiles(backupJson);
+        await restoreBudgetBackupFiles(backupJson, data?.restored_construction_budget_sources);
         return data as RestoreSummary;
     },
 
