@@ -126,7 +126,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       let parentId = sections.at(-1) || sheetId;
       if (kind === 'section') {
         const depthColumn = override.columns?.depth;
-        const depthCell = depthColumn === -1 ? undefined : sheet[XLSX.utils.encode_cell({r,c:depthColumn ?? 46})];
+        const depthCell = depthColumn === -1 || (globus && depthColumn === undefined) ? undefined : sheet[XLSX.utils.encode_cell({r,c:depthColumn ?? 46})];
         const explicit = depthCell && depthCell.t !== 'e' && /^\d+$/.test(text(depthCell.v)) ? Number(depthCell.v) : null;
         const depth = explicit ?? (globus ? 0 : (/^[A-Z]+$/.test(text(row[mapping.code])) ? 0 : 1));
         if ((!globus && explicit === null) || (globus && depthColumn !== undefined && depthColumn !== -1 && explicit === null) || depth > sections.length || depth > 32) {
