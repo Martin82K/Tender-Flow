@@ -4,7 +4,7 @@ import { ThemedNativeSelect } from '@shared/ui/ThemedNativeSelect';
 import { Modal } from '@shared/ui/Modal';
 import { budgetApi } from '../api/budgetApi';
 import { importInWorker } from '../api/importWorker';
-import type { BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
+import type { BudgetAllocation, BudgetDocument, BudgetRevision, BudgetSource } from '../model/types';
 import type { KrosMapping } from '../model/krosImport';
 import { BudgetTenderImport } from "./BudgetTenderImport";
 import { BudgetImportEditor } from './BudgetImportEditor';
@@ -12,12 +12,13 @@ import { BudgetFigureConflicts } from './BudgetFigureConflicts';
 import { getPendingImportIssues, preserveUnchangedFigureResolutions } from '../model/figureConflicts';
 import { sourceColumnName } from '../model/importRepair';
 import { normalizeSearch } from '../model/budgetModel';
-import { compareRevisions, proposeRevisionMapping, transferRevisionLinks, validateRevisionAllocations } from '../model/revisions';
-interface Props { canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision,notice?:string)=>void }
-export function BudgetImportDialog({canImportTenders=false,canAllocate=false,editRevision,projectId,source:initialSource,previous:incomingPrevious,hasVersions=!!incomingPrevious,onClose,onComplete}:Props) {
+import { assignWholeItems, syncWholeItemQuantity, compareRevisions, proposeRevisionMapping, transferRevisionLinks, validateRevisionAllocations } from '../model/revisions';
+interface Props { onCreateTender?:(name:string)=>Promise<{id:string;title:string}>; tagOptions?:readonly {id:string;name:string}[]; categories?:readonly {id:string;title:string}[]; canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision,notice?:string)=>void }
+export function BudgetImportDialog({onCreateTender,tagOptions,categories=[],canImportTenders=false,canAllocate=false,editRevision,projectId,source:initialSource,previous:incomingPrevious,hasVersions=!!incomingPrevious,onClose,onComplete}:Props) {
   const previousRef=useRef(incomingPrevious);
   if(!previousRef.current&&incomingPrevious)previousRef.current=incomingPrevious;
   const previous=previousRef.current;
+  const [allocations,setAllocations]=useState<BudgetAllocation[]>(editRevision?.allocations??[]);
   const [tenderReview,setTenderReview]=useState<{document:BudgetDocument;allocations:BudgetRevision['allocations']}|null>(null);
   const [withTenders,setWithTenders]=useState(false);
   const [transfer,setTransfer]=useState(false);const [links,setLinks]=useState<Record<string,string>>({});
@@ -36,16 +37,16 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
     if(!/\.xlsx$/i.test(next.name)){setError('Podporován je pouze soubor XLSX.');return;}
     if(next.size>30*1024*1024){setError('Soubor překračuje limit 30 MB.');return;}
     if(!next.size){setError('Soubor je prázdný. Vyberte platný sešit XLSX.');return;}
-    setFile(next);setSource(undefined);setDocument(null);setMapping({});setMappingSheet('');setPhase('');setError('');
+    setFile(next);setAllocations([]);setSource(undefined);setDocument(null);setMapping({});setMappingSheet('');setPhase('');setError('');
   };
   const start=async(targetSheet?:string)=>{
     if(operationLock.current)return false;operationLock.current=true;
     setError('');setBusy(true);const abort=new AbortController();controller.current=abort;let registered=source;let processingStarted=false;
     try{
       if(editRevision&&!targetSheet)throw new Error('Vyberte konkrétní list pro nové rozpoznání.');
-      if(targetSheet&&document&&editRevision){
+      if(targetSheet&&document){
         const affected=new Set(document.nodes.filter(n=>n.source.sheet===targetSheet&&n.kind!=='object').map(n=>n.id));
-        if(editRevision.allocations.some(a=>affected.has(a.itemId))||document.nodes.some(n=>affected.has(n.id)&&n.tags.length))throw new Error('Tento list má přiřazené štítky nebo množství. Změnu sloupců proveďte jako novou verzi s ověřeným přenosem vazeb.');
+        if(allocations.some(a=>affected.has(a.itemId))||document.nodes.some(n=>affected.has(n.id)&&n.tags.length))throw new Error('Tento list má přiřazené štítky nebo množství. Změnu sloupců proveďte jako novou verzi s ověřeným přenosem vazeb.');
       }
       if(!registered){if(!file)throw new Error('Vyberte soubor.');setPhase('Ukládání originálu');registered=await budgetApi.registerSource(projectId,file);setSource(registered);}
       if(abort.signal.aborted)return false;
@@ -83,8 +84,8 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
       setDocument(current=>current?{...current,sheets:current.sheets.map(s=>({...s,sourcePreview:previews.get(s.id)}))}:current);
     }catch(e){setError(e instanceof Error?e.message:'Náhled se nepodařilo načíst.');}finally{setPhase('');operationLock.current=false;setBusy(false);}
   };
-  const allocatedIds=new Set(editRevision?.allocations.map(a=>a.itemId)??[]);
-  const linkedSheetIds=new Set(editRevision?(document?.nodes??[]).filter(n=>n.tags.length||allocatedIds.has(n.id)).map(n=>n.sheetId):[]);
+  const allocatedIds=new Set(allocations.map(a=>a.itemId)??[]);
+  const linkedSheetIds=new Set((document?.nodes??[]).filter(n=>n.tags.length||allocatedIds.has(n.id)).map(n=>n.sheetId));
   const publish=async()=>{
     if(!source||!document||operationLock.current)return;operationLock.current=true;setBusy(true);setError('');setPhase('Ukládání rozpočtu…');
     try{
@@ -94,8 +95,8 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
       const chosenObjects=new Set(document.nodes.filter(n=>n.kind==='sheet'&&chosen.has(n.id)).map(n=>n.parentId));
       const filtered={...document,nodes:document.nodes.filter(n=>chosen.has(n.sheetId)||(n.kind==='object'&&chosenObjects.has(n.id))),issues:document.issues.filter(i=>i.kind==='ambiguous-figures'||document.sheets.some(s=>s.name===i.sheet&&chosen.has(s.id)))};
       if(mode!=='assignments'&&transfer&&previous?.allocations.length&&!canAllocate)throw new Error('Přenos alokací vyžaduje oprávnění přiřazovat položky do VŘ.');
-      const transferred=mode!=='assignments'&&transfer&&previous?transferRevisionLinks(previous.document,filtered,previous.allocations,Object.fromEntries(Object.entries(links).filter(([,id])=>filtered.nodes.some(n=>n.id===id)))):{document:filtered,allocations:[]};
-      const payload=editRevision?{document:filtered,allocations:editRevision.allocations}:transferred;validateRevisionAllocations(payload.document,payload.allocations);if(!editRevision&&(mode==='assignments'||withTenders)){setTenderReview(payload);return;}const revision=await budgetApi.save({projectId,sourceId:source.id,revision:editRevision,title,...payload});onComplete(revision);
+      const transferred=mode!=='assignments'&&transfer&&previous?transferRevisionLinks(previous.document,filtered,previous.allocations,Object.fromEntries(Object.entries(links).filter(([,id])=>filtered.nodes.some(n=>n.id===id)))):{document:filtered,allocations};
+      const payload=editRevision?{document:filtered,allocations}:mode!=='assignments'&&transfer&&previous?{...transferred,allocations:[...transferred.allocations,...allocations]}:transferred;validateRevisionAllocations(payload.document,payload.allocations);if(!editRevision&&(mode==='assignments'||withTenders)){setTenderReview(payload);return;}const revision=await budgetApi.save({projectId,sourceId:source.id,revision:editRevision,title,...payload});onComplete(revision);
     }catch(e){setError(e instanceof Error?e.message:'Uložení selhalo.');}finally{operationLock.current=false;setBusy(false);setPhase('');}
   };
   const itemSheets=document?.sheets.filter(s=>s.role==='items')??[];
@@ -129,7 +130,10 @@ export function BudgetImportDialog({canImportTenders=false,canAllocate=false,edi
     {!document&&!initialSource&&<p className="tf-budget-import-assurance"><ShieldCheck size={16} aria-hidden="true"/><span>Původní soubor zůstane beze změny. Existující verze se nepřepíší.</span></p>}
     {phase&&<p role="status" className="tf-budget-import-progress">{busy&&<LoaderCircle size={16} className="tf-budget-spin" aria-hidden="true"/>}{phase}</p>}{busy&&phase!=='Ukládání rozpočtu…'&&<button onClick={()=>controller.current?.abort()}>Zrušit zpracování</button>}{error&&<p role="alert" className="tf-budget-error">{error}</p>}
     {initialSource&&!document&&!busy&&error&&<button onClick={()=>void start()}>Zkusit převod znovu</button>}
-    {document&&editor&&<BudgetImportEditor allocations={editRevision?.allocations} savedRevision={!!editRevision} document={document} onChange={next=>{setDocument(next);setTransfer(false);if(previous)setLinks(proposeRevisionMapping(previous.document,next));}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
+    {document&&editor&&<BudgetImportEditor onCreateTender={onCreateTender} tagOptions={tagOptions} allocations={allocations} categories={categories} canAllocate={canAllocate&&!busy} onAllocate={async(itemId,categoryId)=>{
+      if(!canAllocate||busy)throw new Error('Přiřazení není povoleno.');
+      const next=assignWholeItems(document.nodes,allocations,new Set([itemId]),categoryId);validateRevisionAllocations(document,next);setAllocations(next);
+    }} onRemoveAllocation={async allocation=>{if(!canAllocate||busy)throw new Error('Přiřazení není povoleno.');setAllocations(allocations.filter(a=>a!==allocation));}} savedRevision={!!editRevision} document={document} onChange={next=>{const nextAllocations=syncWholeItemQuantity(document,next,allocations,canAllocate);validateRevisionAllocations(next,nextAllocations);setAllocations(nextAllocations);setDocument(next);setTransfer(false);if(previous)setLinks(proposeRevisionMapping(previous.document,next));}} mapping={mapping} onMapping={setMapping} onRemap={start} onLoadPreview={loadPreview} initialSheet={editor.sheet} initialRow={editor.row} busy={busy} onBack={()=>setEditor(null)}/>}
     {document&&!editor&&<div className="tf-budget-import-review">
       <section className="tf-budget-import-selection" aria-label="Výběr soupisů">
       {sourcePreview}

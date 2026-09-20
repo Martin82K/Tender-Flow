@@ -67,7 +67,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     const categoryId=categoryFor(key)!;
     const prior=existingByItem.get(target)??[];
     const same=prior.length>0&&prior.every(a=>a.categoryId===categoryId);
-    const action=actions[match.row.node.id]??(prior.length?(same?'keep':'unresolved'):'remaining');
+    const action=actions[match.row.node.id]??(prior.length?(same?'keep':'unresolved'):'replace');
     if(action==='unresolved'){unresolved++;continue;}
     usedGroups.add(destinationKey(key));proposed.push({itemId:target,categoryId,action});
   }
@@ -140,8 +140,8 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
           {(selectedIds.get(target)??0)>1&&<span role="alert">Stejný cíl je vybraný vícekrát.</span>}
           {!candidates.length&&<small>Vyhledejte cílovou položku výše nebo položku výslovně vynechte. Jednotky se musí shodovat.</small>}
         </td><td>{prior.map(a=><div key={a.categoryId}>{catalog.data?.find(c=>c.id===a.categoryId)?.title??a.categoryId}: {a.quantity}</div>)}
-          <ThemedNativeSelect aria-label={`Vazby ${match.row.node.id}`} disabled={busy||!target||target==='skip'} value={actions[match.row.node.id]??(prior.length?(same?'keep':'unresolved'):'remaining')} onChange={e=>{setActions({...actions,[match.row.node.id]:e.target.value as TenderAssignment['action']});setAcknowledged(false);}}>
-            <option value="unresolved">Rozhodnout o vazbách</option><option value="keep">Zachovat beze změny</option><option value="remaining">Přiřadit jen zbývající množství</option><option value="replace">Nahradit vazby této položky</option>
+          <ThemedNativeSelect aria-label={`Vazby ${match.row.node.id}`} disabled={busy||!target||target==='skip'} value={actions[match.row.node.id]??(prior.length?(same?'keep':'unresolved'):'replace')} onChange={e=>{setActions({...actions,[match.row.node.id]:e.target.value as TenderAssignment['action']});setAcknowledged(false);}}>
+            <option value="unresolved">Rozhodnout o vazbách</option><option value="keep">Zachovat beze změny</option><option value="replace">Přiřadit celou položku do VŘ</option>
           </ThemedNativeSelect>
         </td></tr>;
       })}</tbody></table></div>

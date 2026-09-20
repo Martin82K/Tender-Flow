@@ -68,7 +68,7 @@ export function applyBudgetItemEdit(document: BudgetDocument, edited: BudgetNode
   if (complete) { decimal(edited.quantity); decimal(edited.unitPrice); decimal(edited.total); multiplyMoney(edited.quantity!, edited.unitPrice!); }
   return {
     ...document,
-    nodes: document.nodes.map(node => node.id === edited.id ? {...node, code: edited.code, unit: edited.unit, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
+    nodes: document.nodes.map(node => node.id === edited.id ? {...node, ...(editedFields?.includes('kind')&&['K','M'].includes(edited.kind)?{kind:edited.kind}:{}), ...(editedFields?.includes('tags')?{tags:edited.tags}:{}), code: edited.code, unit: edited.unit, description: edited.description, quantity: edited.quantity, unitPrice: edited.unitPrice, total: edited.total} : node),
     issues: document.issues.filter(issue => !(issue.sheet === original.source.sheet && issue.row === original.source.row && repairedColumns.has(/^Neplatná nebo chybějící hodnota ([A-Z]+)\.$/.exec(issue.message)?.[1] ?? '')) && !(edited.quantity !== null && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.message === 'Položka nemá vyplněné množství.') && !(complete && issue.sheet === original.source.sheet && issue.row === original.source.row && issue.severity === 'error' && (/^Neplatná nebo chybějící hodnota /.test(issue.message) || issue.message.startsWith('Položka nemá úplné ocenění') || issue.message === 'Položka nemá vyplněné množství.' || issue.message === 'Cena po zaokrouhlení přesahuje limit 24 číslic.' || issue.message === 'Množství × jednotková cena přesahuje limit 24 číslic.'))),
   };
 }
@@ -89,4 +89,33 @@ export function createRemainingAllocations(nodes: BudgetNode[], existing: Budget
     if (quantity !== '0') additions.push({ itemId: node.id, categoryId, quantity });
   }
   return additions;
+}
+
+/** One selected item belongs to one tender, always with its entire quantity. */
+export function assignWholeItems(nodes: BudgetNode[], existing: readonly BudgetAllocation[], selected: Set<string>, categoryId: string): BudgetAllocation[] {
+  if (!categoryId) throw new Error('Vyberte VŘ.');
+  const additions: BudgetAllocation[] = [];
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  for (const id of selected) {
+    const node = byId.get(id);
+    if (!node || !isPriced(node) || node.quantity === null) throw new Error('Položka nemá platné množství.');
+    additions.push({ itemId: id, categoryId, quantity: decimal(node.quantity)! });
+  }
+  return [...existing.filter(a => !selected.has(a.itemId)), ...additions];
+}
+
+/** Keep a whole-item assignment in sync when its item quantity changes. */
+export function syncWholeItemQuantity(before: BudgetDocument, after: BudgetDocument, existing: readonly BudgetAllocation[], canAllocate: boolean): BudgetAllocation[] {
+  const originals = new Map(before.nodes.map(n => [n.id, n]));
+  let result = [...existing];
+  for (const node of after.nodes) {
+    if (!isPriced(node) || node.quantity === originals.get(node.id)?.quantity) continue;
+    const assigned = result.filter(a => a.itemId === node.id);
+    if (!assigned.length) continue;
+    if (!canAllocate) throw new Error('Změna množství přiřazené položky vyžaduje oprávnění k VŘ.');
+    const categories = new Set(assigned.map(a => a.categoryId));
+    if (categories.size !== 1) throw new Error('Položka má starší rozdělené přiřazení. Nejdříve vyberte jedno VŘ pro celou položku.');
+    result = assignWholeItems(after.nodes, result, new Set([node.id]), assigned[0].categoryId);
+  }
+  return result;
 }

@@ -123,3 +123,29 @@ importu vrací uložený výsledek i při následném uzamčení, stále kontrol
 identitu, payload a oprávnění; nový import zůstává zakázaný. Obnova zámku
 vyžaduje edit i prices stejně jako standardní změna zámku. Opravy jsou
 součástí dosud nenasazené migrace `20260920195705`.
+
+### Úpravy přímo v tabulce
+
+Dvojklik nebo F2 otevře editor v konkrétní buňce položky (typ K/M, kód,
+popis, jednotka, množství, jednotková cena, celkem a dostupné štítky).
+Enter změnu uloží, Escape ji zruší; při chybě zůstane vstup otevřený.
+Změna množství či jednotkové ceny přepočítá celkem. Součty oddílů jsou odvozené.
+Sloupec Výběrové řízení rozbalí přímo řádek: zobrazí alokace a umožní
+přiřazení celé položky do jediného VŘ a odebrání přiřazení. Změna VŘ
+nahradí dosavadní vazby položky; změna množství aktualizuje i přiřazení.
+Dílčí množství se nezadává. Starší rozdělené vazby je nutné před změnou
+množství výslovně sjednotit výběrem jediného VŘ.
+Zápis respektuje stávající edit/price/allocate oprávnění a zámek rozpočtu.
+
+Editor importu nabízí stejnou tabulku v záložce Položky a VŘ. Změny v ní
+zůstávají pracovní až do uložení editoru; ukládá se dokument i alokace.
+Přemapování ani vyřazení soupisu s alokacemi nesmí vazby zahodit.
+Regrese pokrývají inline umístění bez dalšího dialogu, Enter/Escape,
+chybu a opakované potvrzení, čtení bez zápisu a společné uložení z editoru.
+
+Výběr VŘ má vždy aktivní vyhledávání s automatickým fokusem. Chybějící
+VŘ lze vytvořit a přiřadit přímo v řádku, pokud uživatel smí upravovat
+projektový číselník. Založení načítá aktuální seznam a používá existující
+RPC s kontrolou souběhu; při opakování využije shodný název. Číselník se
+uloží ihned, přiřazení v importním editoru až s pracovní verzí. Selhání
+přiřazení nezahodí už vytvořené VŘ ani nezakládá další kopii.

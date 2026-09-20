@@ -285,3 +285,15 @@ html .tf-modal-panel .tf-budget-columns tbody th{background-color:transparent!im
 .tf-budget-recap-total{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;flex-shrink:0;margin:8px 0 12px;padding:12px;background:var(--tf-skin-surface-muted,#f1f5f9);border:1px solid var(--tf-skin-line,#cbd5e1);border-radius:6px}
 .tf-budget-recap-total h4{font-size:14px;font-weight:600}
 .tf-budget-recap-total strong{font-size:22px;line-height:1.3;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+.tf-budget-inline-cell{display:flex;flex-wrap:wrap;gap:4px;white-space:normal}
+.tf-budget-inline-cell input{width:100%;min-width:0;padding:3px 5px;border:1px solid var(--tf-skin-accent,#b76d42);border-radius:3px;background:var(--budget-bg);color:inherit}
+.tf-budget-inline-cell button{padding:1px 7px}
+.tf-budget-inline-cell p,.tf-budget-row-tenders p{white-space:normal;font-size:12px;color:var(--tf-skin-danger,#b91c1c)}
+.tf-budget-row-tenders{white-space:normal;font-weight:400}
+.tf-budget-row-tenders>button{width:100%;text-align:left;overflow-wrap:anywhere;padding:2px 4px}
+.tf-budget-row-tender-fields{display:flex;flex-direction:column;gap:7px;padding-top:8px}
+.tf-budget-row-tender-fields input,.tf-budget-row-tender-fields select{width:100%;min-width:0}
+.tf-budget-inline-detail{max-height:40vh;overflow:auto;padding:12px;border-top:1px solid var(--tf-skin-line,#cbd5e1)}
+.tf-budget-editor-items{height:60vh;min-height:320px;display:flex;flex-direction:column}
+@media(max-width:700px){.tf-budget-grid>div[style*="sticky"]{position:static!important}.tf-budget-check,.tf-budget-grid>.tf-budget-expand{position:static}}

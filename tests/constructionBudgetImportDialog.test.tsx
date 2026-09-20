@@ -400,3 +400,27 @@ it('uses Excel letters in advanced mapping including columns after Z',async()=>{
  expect(code).toHaveTextContent('AA');
  expect(screen.queryByLabelText(/číslo sloupce/)).not.toBeInTheDocument();
 });
+it('edits cells and assigns tenders in the editor without opening another dialog, then persists both', async () => {
+  vi.spyOn(HTMLElement.prototype,'offsetWidth','get').mockReturnValue(1600);
+  vi.spyOn(HTMLElement.prototype,'offsetHeight','get').mockReturnValue(400);
+  try {
+    render(<BudgetImportDialog canAllocate categories={[{id:'c',title:'Omítky'}]} projectId="p" source={editorSource} editRevision={editorRevision()} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'Položky a VŘ'}));
+    const row=screen.getByRole('button',{name:'Omítka',exact:true}).closest('[role="row"]') as HTMLElement;
+    fireEvent.doubleClick(within(row).getByRole('button',{name:'Omítka',exact:true}));
+    fireEvent.change(screen.getByLabelText('Upravit Popis'),{target:{value:'Nová omítka'}});
+    fireEvent.keyDown(screen.getByLabelText('Upravit Popis'),{key:'Enter'});
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Nová omítka'})).toBeVisible());
+    fireEvent.click(screen.getByRole('button',{name:'VŘ: 001'}));
+    fireEvent.change(screen.getByLabelText('Cílové VŘ'),{target:{value:'c'}});
+    fireEvent.click(screen.getByRole('button',{name:'Přiřadit VŘ'}));
+    await waitFor(()=>expect(screen.getByText('Omítky · 2 m2')).toBeVisible());
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    fireEvent.doubleClick(within(row).getByText('2',{exact:true}));
+    fireEvent.change(screen.getByLabelText('Upravit Množství'),{target:{value:'3'}});
+    fireEvent.keyDown(screen.getByLabelText('Upravit Množství'),{key:'Enter'});
+    await waitFor(()=>expect(screen.getByText('Omítky · 3 m2')).toBeVisible());
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledWith(expect.objectContaining({allocations:[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'3'}],document:expect.objectContaining({nodes:expect.arrayContaining([expect.objectContaining({description:'Nová omítka'})])})})));
+  } finally { vi.restoreAllMocks(); }
+});

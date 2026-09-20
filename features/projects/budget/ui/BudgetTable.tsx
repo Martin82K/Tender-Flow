@@ -1,11 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Modal } from '@shared/ui/Modal';
 import { decimal, evaluateQuantityExpression, filterItems, formatBudgetNumber, multiplyMoney, sumMoney } from '../model/budgetModel';
 import type { BudgetFilters } from '../model/budgetModel';
 import { aggregateBudget, visibleBudgetRows } from '../model/budgetTree';
 import { isPriced } from '../model/types';
 import type { BudgetNode } from '../model/types';
+import { BudgetRowTenders } from './BudgetRowTenders';
+import type { BudgetRowTenderProps } from './BudgetRowTenders';
 import { BudgetFilter } from './BudgetFilter';
 export interface BudgetColumn { key: string; label: string; width: number; numeric?: boolean; hidden?: boolean; pinned?: boolean }
 export const DEFAULT_COLUMNS: BudgetColumn[] = [
@@ -14,7 +15,9 @@ export const DEFAULT_COLUMNS: BudgetColumn[] = [
   {key:'unitPrice',label:'J. cena',width:125,numeric:true}, {key:'total',label:'Celkem (Kč)',width:145,numeric:true},
   {key:'tenders',label:'Výběrové řízení',width:180}, {key:'tags',label:'Štítky',width:150},
 ];
-interface Props {
+interface Props extends BudgetRowTenderProps {
+  tagOptions?: readonly {id:string;name:string}[];
+  itemTags?: Readonly<Record<string, string[]>>;
   nodes: BudgetNode[]; scope: string; filters: BudgetFilters; onFilters: (f: BudgetFilters) => void;
   selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; showNotes?: boolean; wrap: boolean; density: number;
   columns: BudgetColumn[]; onColumns: (c: BudgetColumn[]) => void; canPrices: boolean; editable: boolean;
@@ -22,7 +25,7 @@ interface Props {
   figures?: Record<string,string>; onEdit: (node: BudgetNode, editedFields?: readonly string[]) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
 }
 const numberLabel = formatBudgetNumber;
-const editableFields = new Set(['code', 'description', 'unit', 'quantity', 'unitPrice']);
+const editableFields = new Set(['code', 'description', 'unit', 'quantity', 'unitPrice', 'total', 'kind', 'tags']);
 const isQuantityDetail = (node: BudgetNode) => node.kind === 'VV' || node.kind === 'note';
 const rowHeight = (node: BudgetNode, density: number) => isQuantityDetail(node) ? Math.max(24, density / 2) : density;
 interface BudgetContext { x: number; y: number; filter?: { column: string; values: string[] } }
@@ -52,9 +55,12 @@ export function BudgetTable(props: Props) {
     if(!cell||!editable||editLock.current)return;
     editLock.current=true;setBusy(true);setEditError('');
     try{
-      const edited={...cell.node,[cell.column.key]:cell.column.numeric?decimal(cell.value):cell.value};
-      if(cell.column.numeric)edited.total=edited.quantity!==null&&edited.unitPrice!==null?multiplyMoney(edited.quantity,edited.unitPrice):null;
-      await onEdit(edited,[cell.column.key,...(cell.column.numeric&&edited.total!==cell.node.total?['total']:[])]);setCell(null);
+      const latest=nodes.find(node=>node.id===cell.node.id);
+      if(!latest)throw new Error('Položka již není dostupná.');
+      if(JSON.stringify(latest[cell.column.key])!==JSON.stringify(cell.node[cell.column.key]))throw new Error('Hodnota se mezitím změnila. Zrušte úpravu a otevřete aktuální buňku.');
+      const edited={...latest,[cell.column.key]:cell.column.key==='tags'?JSON.parse(cell.value) as string[]:cell.column.numeric?decimal(cell.value):cell.value};
+      if(['quantity','unitPrice'].includes(cell.column.key))edited.total=edited.quantity!==null&&edited.unitPrice!==null?multiplyMoney(edited.quantity,edited.unitPrice):null;
+      await onEdit(edited,[cell.column.key,...(['quantity','unitPrice'].includes(cell.column.key)&&edited.total!==latest.total?['total']:[])]);setCell(null);
     }catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}
     finally{editLock.current=false;setBusy(false);}
   };
@@ -142,11 +148,16 @@ export function BudgetTable(props: Props) {
         {visibleColumns.map(c=>{
           let value:React.ReactNode='';
           if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={event=>group?setCollapsed(toggle(collapsed,n.id)):priced?selectRow(n,event):setDetail(n)}>{n.description}</button>;
+          else if(c.key==='tenders'&&priced)value=<BudgetRowTenders node={n} categories={props.categories} allocations={props.allocations} canAllocate={editable&&props.canAllocate} onAllocate={props.onAllocate} onRemoveAllocation={props.onRemoveAllocation} onCreateTender={props.onCreateTender}/>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Neoceněno</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
           else if(c.key==='kind')value=group?'':n.kind==='note'?'Poznámka':n.kind==='subtotal'?'Mezisoučet':n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
-          return <div key={c.key} tabIndex={priced&&editable&&editableFields.has(c.key)?0:undefined} title={priced&&editable&&editableFields.has(c.key)?'Dvojklik nebo F2 pro úpravu buňky':undefined} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onClick={event=>{if(priced&&c.key!=='description'&&!(event.target as HTMLElement).closest('input,button'))selectRow(n,event);}} onDoubleClick={()=>{if(priced&&editable&&editableFields.has(c.key)){setEditError('');setCell({node:n,column:c,value:String(n[c.key]??'')});}else if(priced&&c.key==='description')setDetail(n);}} onKeyDown={event=>{if(priced&&event.key==='F2'&&editable&&editableFields.has(c.key)){event.preventDefault();setEditError('');setCell({node:n,column:c,value:String(n[c.key]??'')});}}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{value}</div>;
+          return <div key={c.key} tabIndex={priced&&editable&&editableFields.has(c.key)&&(c.key!=='tags'||!!props.tagOptions)?0:undefined} title={priced&&editable&&editableFields.has(c.key)&&(c.key!=='tags'||!!props.tagOptions)?'Dvojklik nebo F2 pro úpravu buňky':undefined} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onClick={event=>{if(priced&&c.key!=='description'&&!(event.target as HTMLElement).closest('input,button,select,textarea'))selectRow(n,event);}} onDoubleClick={event=>{if((event.target as HTMLElement).closest('input,select,textarea'))return;if(busy||cell)return;if(priced&&editable&&editableFields.has(c.key)&&(c.key!=='tags'||!!props.tagOptions)){setEditError('');setCell({node:n,column:c,value:c.key==='tags'?JSON.stringify(props.itemTags?.[n.id]??n.tags):String(n[c.key]??'')});}else if(priced&&c.key==='description')setDetail(n);}} onKeyDown={event=>{if(busy||cell)return;if(priced&&event.key==='F2'&&editable&&editableFields.has(c.key)&&(c.key!=='tags'||!!props.tagOptions)){event.preventDefault();setEditError('');setCell({node:n,column:c,value:c.key==='tags'?JSON.stringify(props.itemTags?.[n.id]??n.tags):String(n[c.key]??'')});}}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{cell?.node.id===n.id&&cell.column.key===c.key?<div className="tf-budget-inline-cell">
+            {c.key==='kind'?<select autoFocus aria-label="Upravit Typ" disabled={busy||!editable} value={cell.value} onChange={e=>setCell({...cell,value:e.target.value})} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')void saveCell();if(e.key==='Escape'&&!busy)setCell(null);}}><option value="K">K</option><option value="M">M</option></select>:c.key==='tags'?<select multiple autoFocus aria-label="Upravit Štítky" disabled={busy||!editable} value={JSON.parse(cell.value) as string[]} onChange={e=>setCell({...cell,value:JSON.stringify(Array.from(e.target.selectedOptions,o=>o.value))})} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')void saveCell();if(e.key==='Escape'&&!busy)setCell(null);}}>{(props.tagOptions??[]).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>:<input autoFocus aria-label={`Upravit ${c.label}`} value={cell.value} disabled={busy||!editable} onChange={event=>setCell({...cell,value:event.target.value})} onKeyDown={event=>{event.stopPropagation();if(event.key==='Enter'){event.preventDefault();void saveCell();}if(event.key==='Escape'&&!busy){event.preventDefault();setCell(null);setEditError('');}}}/>}
+            <div><button type="button" aria-label="Uložit změnu" disabled={busy||!editable} onClick={()=>void saveCell()}>✓</button><button type="button" aria-label="Zrušit úpravu" disabled={busy} onClick={()=>{setCell(null);setEditError('');}}>×</button></div>
+            {editError&&<p role="alert">{editError}</p>}
+          </div>:value}</div>;
         })}
       </div>;})}
       </div>
@@ -166,16 +177,8 @@ export function BudgetTable(props: Props) {
       {contextMenu.filter&&<button type="button" role="menuitem" onClick={()=>{const row=menuOrigin.current?.closest('[data-index]');const node=row?rows[Number(row.getAttribute('data-index'))]:undefined;if(node)setDetail(node);setContextMenu(null);}}>Detail položky</button>}
       {contextMenu.filter&&<button type="button" role="menuitem" className="tf-budget-context-filter" onClick={()=>{const filter=contextMenu.filter!;onFilters({...filters,[filter.column]:{selected:filter.values}});setContextMenu(null);tableRef.current?.focus();}}>Filtrovat podle této hodnoty</button>}
     </div>}
-    {cell&&<Modal isOpen title={`Upravit ${cell.column.label}`} persistent={busy} onClose={()=>{if(!busy){setCell(null);setEditError('');}}}>
-      <form className="tf-budget-controls tf-budget-cell-editor" onSubmit={event=>{event.preventDefault();void saveCell();}}>
-        <p>{cell.node.code} · {cell.node.description}</p>
-        <label>{cell.column.label}<input autoFocus aria-label={`Upravit ${cell.column.label}`} value={cell.value} disabled={busy||!editable} onChange={event=>setCell({...cell,value:event.target.value})} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();void saveCell();}if(event.key==='Escape'&&!busy){event.preventDefault();event.stopPropagation();setCell(null);setEditError('');}}}/></label>
-        {editError&&<p role="alert">{editError}</p>}
-        <div className="tf-budget-toolbar"><button type="button" disabled={busy} onClick={()=>{setCell(null);setEditError('');}}>Zrušit</button><button disabled={busy||!editable}>Uložit změnu</button></div>
-      </form>
-    </Modal>}
     {filter&&<BudgetFilter column={filter.key} label={filter.label} numeric={filter.numeric} items={items} filters={filters} onChange={f=>onFilters({...filters,[filter.key]:f})} onClose={()=>{setFilter(null);filterOrigin.current?.focus();}}/>}
-    {detail&&<Modal isOpen title={`Položka ${detail.code}`} onClose={()=>{if(!busy){setDetail(null);setEditError('');}}} persistent={busy}>
+    {detail&&<section className="tf-budget-inline-detail" aria-label={`Položka ${detail.code}`}><button type="button" disabled={busy} onClick={()=>{setDetail(null);setEditError('');}}>Zavřít detail</button>
       <form className="tf-budget-controls flex flex-col gap-3" onSubmit={async e=>{e.preventDefault();if(editLock.current||!editable||!isPriced(detail))return;editLock.current=true;setBusy(true);try{const quantity=decimal(detail.quantity);const price=decimal(detail.unitPrice);const original=nodes.find(node=>node.id===detail.id);if(!original)throw new Error('Položka již není dostupná.');const numericChanged=quantity!==original.quantity||price!==original.unitPrice;const edited={...detail,quantity,unitPrice:price,total:numericChanged?(quantity!==null&&price!==null?multiplyMoney(quantity,price):null):original.total};const fields=(['description','quantity','unitPrice','total'] as const).filter(key=>edited[key]!==original[key]);await onEdit(edited,fields);setDetail(null);setEditError('');}catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}finally{editLock.current=false;setBusy(false);}}}>
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
@@ -188,6 +191,6 @@ export function BudgetTable(props: Props) {
         })}
         {editError&&<p role="alert">{editError}</p>}{editable&&isPriced(detail)&&<button disabled={busy} type="submit">{busy?'Ukládání…':'Uložit změnu'}</button>}
       </form>
-    </Modal>}
+    </section>}
   </div>;
 }
