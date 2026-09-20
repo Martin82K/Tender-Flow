@@ -163,6 +163,6 @@ describe('import repair', () => {
     expect(()=>applyImportRepair(doc,repair,[{itemId:repair.nodeId,categoryId:'c',quantity:'1'}])).toThrow(/vazby/);
     doc.nodes.find(n=>n.id===repair.nodeId)!.tags=['tag'];
     expect(()=>applyImportRepair(doc,repair)).toThrow(/vazby/);
-    expect(()=>applyImportRepair(doc,{...repair,kind:'M'})).not.toThrow();
+    expect(()=>applyImportRepair(doc,{...repair,kind:'M',scope:'subtree'})).not.toThrow();
   });
 });
