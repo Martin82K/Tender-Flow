@@ -118,6 +118,17 @@ describe("UserAccountMenu", () => {
     });
   });
 
+  it("obnoví podepsanou fotku při otevření menu a při chybě zobrazí iniciály", async () => {
+    render(<UserAccountMenu user={user} theme="dark" skin="basic" onSetTheme={vi.fn()} onSetSkin={vi.fn()} uiScale={1} onSetUiScale={vi.fn()} onResetUiScale={vi.fn()} onLogout={vi.fn()} />);
+    await waitFor(() => expect(document.querySelector('img')).toHaveAttribute('src', 'https://signed.example/avatar.png'));
+    userProfileServiceMocks.getAvatarUrl.mockResolvedValue('https://signed.example/refreshed.png');
+    fireEvent.click(screen.getByRole('button', { name: 'Uživatelské menu' }));
+    await waitFor(() => expect(within(screen.getByRole('menu')).getByRole('presentation')).toHaveAttribute('src', 'https://signed.example/refreshed.png'));
+    fireEvent.error(within(screen.getByRole('menu')).getByRole('presentation'));
+    expect(screen.getByRole('menu').querySelector('img')).toBeNull();
+    expect(within(screen.getByRole('menu')).getByText('MK')).toBeInTheDocument();
+  });
+
   it("zobrazuje účet v horním menu a naviguje do profilu", async () => {
     const { container } = render(
       <UserAccountMenu

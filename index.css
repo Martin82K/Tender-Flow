@@ -6537,3 +6537,17 @@ button.tf-icon-close:focus-visible{outline:2px solid var(--tf-skin-accent,#b76d4
 /* Keep the keyboard indicator compact while retaining the full click target. */
 button.tf-icon-close:focus-visible{outline-offset:-4px!important}
 html[data-skin] body button.tf-icon-close:focus-visible{outline-offset:-4px!important}
+
+/* Compact account controls; retain keyboard focus and dropdown behavior. */
+.tf-account-menu-panel .tf-appearance-picker,
+.tf-account-menu-panel .tf-theme-mode-control { min-height: 34px; }
+.tf-account-menu-panel .tf-theme-mode-button,
+.tf-account-menu-panel .tf-ui-scale-button { width: 28px; height: 28px; min-width: 28px; padding: 0; }
+.tf-account-menu-panel .tf-appearance-section .material-symbols-outlined { font-size: 16px; }
+html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-trigger {
+  min-height: 28px; padding: 4px 6px; border-color: transparent !important;
+  background: transparent !important; box-shadow: none !important;
+}
+html[data-skin] .tf-account-menu-panel .tf-appearance-picker .tf-themed-select-trigger:hover {
+  background: color-mix(in srgb, var(--tf-skin-accent) 8%, transparent) !important;
+}
