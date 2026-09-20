@@ -175,6 +175,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle={`${currentStatus} · ${visibleTabs.find(tab => tab.id === activeTab)?.label ?? "Přehled"}`}
         skin={skin}
         onSearchChange={setSearchQuery}
+        searchValue={searchQuery}
         searchPlaceholder="Hledat v projektu..."
         helpSlot={
           <div className="flex items-center gap-1">

@@ -24,6 +24,13 @@ const nodes: BudgetNode[] = [item,
 function table(showVV = true, canPrices = true, wrap = false, density = 44) {
   return <BudgetTable nodes={nodes} scope="" filters={{}} onFilters={vi.fn()} selected={new Set()} onSelected={vi.fn()} showVV={showVV} wrap={wrap} density={density} columns={DEFAULT_COLUMNS} onColumns={vi.fn()} canPrices={canPrices} editable={false} onEdit={vi.fn()} onNotice={vi.fn()}/>;
 }
+it('recalculates an imported quantity expression without its stored result and annotation', () => {
+  render(<BudgetTable {...table().props} editable nodes={[item, { ...nodes[2], description: '2*1 = 2,000 [A]' }]}/>);
+  fireEvent.click(screen.getByRole('button', { name: item.description }));
+  fireEvent.click(screen.getByRole('button', { name: 'Přepočítat výraz a připravit množství' }));
+  expect(screen.getByRole('textbox', { name: 'Množství' })).toHaveValue('2');
+  expect(screen.getByRole('alert')).toHaveTextContent('Výsledek 2 je připraven');
+});
 it('handles a repeated explicit jump while preserving filters that hide the target', () => {
   const onNotice = vi.fn();
   const props = { ...table().props, jumpId: 'item', filters: { code: { search: 'missing-code' } }, onNotice };

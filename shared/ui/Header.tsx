@@ -15,6 +15,8 @@ interface HeaderProps {
    * into the page body and rely on the global search in the Header.
    */
   onSearchChange?: (query: string) => void;
+  /** Optional controlled value for filters that can also be cleared in the page body. */
+  searchValue?: string;
   searchPlaceholder?: string;
   showSearch?: boolean;
   /** Slot for help button (rendered by caller) */
@@ -46,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   children,
   onSearchChange,
+  searchValue,
   searchPlaceholder = "Filtrovat…",
   showSearch = true,
   helpSlot,
@@ -56,7 +59,8 @@ export const Header: React.FC<HeaderProps> = ({
   titleSlot,
   skin = "classic",
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [localSearchQuery, setSearchQuery] = useState("");
+  const searchQuery = searchValue ?? localSearchQuery;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const accountMenu = useAccountMenu();
   const topbarActions = useTopbarActions();

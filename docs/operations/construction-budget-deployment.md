@@ -112,3 +112,22 @@ Kompaktní lišta byla ověřena v sestavené aplikaci: sekce, Verze, strom, Akc
 číselníky a nastavení sdílejí řádek; sekundární nabídky jsou mimo tok tabulky.
 Nález revize o šířce rekapitulace byl ověřen jako falešně pozitivní: již existující
 pravidlo `width:100%` se uplatňuje a prohlížeč naměřil vypočtenou šířku 1040 px.
+
+## Integrační review · 20. září 2026
+
+Připravena navazující migrace
+`20260920080712_harden_budget_validation_and_plan_rollout.sql`. Původní nasazené
+migrace se nemění. Validace hierarchie používá agregaci identifikátorů a rodičů
+podle pořadí místo opakovaného prohledávání a kopírování rostoucího pole.
+Zachovává odmítnutí duplicit, chybějících rodičů, cyklů a rodiče za potomkem.
+Nevydané převzetí do plánu VŘ ztrácí klientský EXECUTE na obou vstupních RPC.
+Tabulky, RLS, indexy, FK a zákaznická data se nemění; migrace nemá backfill.
+
+Regresní RED ověřil dostupné nevydané RPC a timeout původní validace 100 000
+syntetických uzlů při limitu 8 sekund. Opravená migrace s oběma scénáři prošla
+v transakci s rollbackem. Test na maximálních 250 000 uzlech nebyl spuštěn:
+automatická kontrola odmítla tuto dodatečnou zátěž produkční databáze.
+Maximální objem proto není vykazován jako výkonnostně ověřený.
+
+Před skutečným nasazením vyžadovat úspěšné CI, dry-run s právě touto migrací,
+ověření katalogu a oprávnění po nasazení a závěrečný dry-run bez čekajících migrací.

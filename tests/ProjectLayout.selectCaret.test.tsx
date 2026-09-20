@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/ui/Header", () => ({
@@ -7,13 +7,18 @@ vi.mock("@/shared/ui/Header", () => ({
     children,
     title,
     helpSlot,
+    searchValue,
+    onSearchChange,
   }: {
     children?: React.ReactNode;
     title?: string;
     helpSlot?: React.ReactNode;
+    searchValue?: string;
+    onSearchChange?: (value: string) => void;
   }) => (
     <div>
       <h1>{title}</h1>
+      <input aria-label="Hledat v projektu" value={searchValue ?? ''} onChange={event => onSearchChange?.(event.target.value)}/>
       {children}
       {helpSlot}
     </div>
@@ -21,6 +26,13 @@ vi.mock("@/shared/ui/Header", () => ({
 }));
 
 vi.mock("@features/projects/pipeline/Pipeline", () => ({ Pipeline: () => <div /> }));
+vi.mock("@features/projects/budget/ui/ConstructionBudget", () => ({
+  ConstructionBudget: ({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) => <div>
+    <span>Dotaz: {searchQuery}</span>
+    <button onClick={() => onSearchChange('')}>Hledání ×</button>
+    <button onClick={() => onSearchChange('')}>Vymazat všechny filtry</button>
+  </div>,
+}));
 vi.mock("@/features/projects/ui/TenderPlan", () => ({ TenderPlan: () => <div /> }));
 vi.mock("@/features/projects/ui/ProjectSchedule", () => ({ ProjectSchedule: () => <div /> }));
 vi.mock("@/features/projects/ui/ProjectOverviewNew", () => ({ ProjectOverviewNew: () => <div /> }));
@@ -46,6 +58,16 @@ vi.mock("@/context/FeatureContext", () => ({
 import { ProjectLayout } from "../features/projects/ProjectLayout";
 
 describe("ProjectLayout mobile select", () => {
+  it.each(['Hledání ×', 'Vymazat všechny filtry'])('keeps header and budget query synchronized after %s', name => {
+    render(<ProjectLayout projectId="p-1" projectDetails={{title:'Projekt A',location:'',finishDate:'',siteManager:''}} onUpdateDetails={() => undefined} onAddCategory={() => undefined} activeTab="budget" onTabChange={() => undefined} contacts={[]} statuses={[]} onUpdateContact={() => undefined}/>);
+    const input = screen.getByRole('textbox', { name: 'Hledat v projektu' });
+    fireEvent.change(input, { target: { value: 'beton' } });
+    expect(input).toHaveValue('beton');
+    expect(screen.getByText('Dotaz: beton')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name }));
+    expect(input).toHaveValue('');
+    expect(screen.getByText('Dotaz:')).toBeVisible();
+  });
   beforeEach(() => {
     localStorage.clear();
   });

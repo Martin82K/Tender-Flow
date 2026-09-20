@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Modal } from '@shared/ui/Modal';
-import { decimal, evaluateExpression, filterItems, formatBudgetNumber, multiplyMoney, sumMoney } from '../model/budgetModel';
+import { decimal, evaluateQuantityExpression, filterItems, formatBudgetNumber, multiplyMoney, sumMoney } from '../model/budgetModel';
 import type { BudgetFilters } from '../model/budgetModel';
 import { aggregateBudget, visibleBudgetRows } from '../model/budgetTree';
 import { isPriced } from '../model/types';
@@ -149,7 +149,7 @@ export function BudgetTable(props: Props) {
         <p>{detail.source.sheet} · řádek {detail.source.row}</p>
         <label>Úplný popis<textarea rows={5} disabled={busy||!editable||!isPriced(detail)} value={detail.description} onChange={e=>setDetail({...detail,description:e.target.value})}/></label>
         <div className="flex gap-2"><label>Množství<input disabled={busy||!editable||!isPriced(detail)} value={detail.quantity??''} onChange={e=>setDetail({...detail,quantity:e.target.value})}/></label>{canPrices&&<label>Jednotková cena<input disabled={busy||!editable||!isPriced(detail)} value={detail.unitPrice??''} onChange={e=>setDetail({...detail,unitPrice:e.target.value})}/></label>}</div>
-        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=><div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description)&&<button type="button" onClick={()=>{try{const result=evaluateExpression(n.description,props.figures||{});setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}catch(e){setEditError(e instanceof Error?e.message:'Výraz nelze přepočítat.');}}}>Přepočítat výraz a připravit množství</button>}</div>)}
+        <h4>Výkaz výměr a poznámky</h4>{nodes.filter(n=>n.parentId===detail.id).map(n=><div key={n.id}><p>{n.description} · {numberLabel(n.quantity)} {n.unit}</p>{editable&&n.kind==='VV'&&!/^(Součet|Mezisoučet)$/i.test(n.description)&&<button type="button" onClick={()=>{try{const result=evaluateQuantityExpression(n.description,props.figures||{});setDetail({...detail,quantity:result});setEditError(`Výsledek ${result} je připraven v množství. Potvrďte jej uložením položky.`);}catch(e){setEditError(e instanceof Error?e.message:'Výraz nelze přepočítat.');}}}>Přepočítat výraz a připravit množství</button>}</div>)}
         {editError&&<p role="alert">{editError}</p>}{editable&&isPriced(detail)&&<button disabled={busy} type="submit">{busy?'Ukládání…':'Uložit změnu'}</button>}
       </form>
     </Modal>}

@@ -6,6 +6,19 @@ import { Header } from "@/shared/ui/Header";
 import { AccountMenuProvider } from "@/shared/ui/AccountMenuContext";
 
 describe("Header layout", () => {
+  it('reflects a filter cleared outside the header and keeps subsequent typing controlled', () => {
+    const onSearchChange = vi.fn();
+    const view = (searchValue: string) => <Header title="Stavba" searchValue={searchValue} onSearchChange={onSearchChange}/>;
+    const { rerender } = render(view('beton'));
+    expect(screen.getByRole('textbox')).toHaveValue('beton');
+    rerender(view(''));
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Vymazat filtr' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zemina' } });
+    expect(onSearchChange).toHaveBeenLastCalledWith('zemina');
+    rerender(view('zemina'));
+    expect(screen.getByRole('textbox')).toHaveValue('zemina');
+  });
   it.each([
     { name: 'default', props: {} },
     { name: 'children below', props: { childrenBelow: true } },

@@ -56,6 +56,8 @@ zvlášť mezi připnutými a ostatními sloupci. Alespoň jeden sloupec zůstá
 viditelný. **Obnovit výchozí** vrátí původní sloupce; ostatní nastavení ponechá.
 Kliknutím na název sloupce otevřete jeho filtr s rovnou aktivním hledáním.
 Psaní průběžně filtruje položky; ostatní filtry i výběr hodnot zůstávají zachované.
+Vymazání čipu **Hledání** nebo volba **Vymazat všechny filtry** vyčistí také
+vyhledávací pole v projektové hlavičce.
 Vyhledávací pole jsou uvnitř filtrů, hlavička tabulky má jen názvy sloupců.
 Nadpisy množství a cen jsou zarovnané doprava stejně jako jejich hodnoty.
 Zalamování mění jen text popisu, také u pomocných řádků. Hustota mění výšku řádků. Upozornění **Chybí cena**
@@ -63,6 +65,9 @@ se zobrazuje pouze u neoceněných rozpočtových položek, nikoli u VV a pozná
 Úplný popis jednotlivé položky otevřete kliknutím na její název v tabulce.
 Pod názvem není samostatný odkaz pro rozbalení; zobrazení celého textu přímo
 v tabulce ovládá společná volba **Zalamovat text popisu**.
+Přepočet VV v detailu položky podporuje i importovaný zápis typu
+`2*1 = 2,000 [A]`: počítá samotný výraz, nikoli uložený výsledek za rovnítkem.
+Původní popis zůstává zachovaný; nové množství je nutné potvrdit uložením položky.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
 soupisy a oddíly. Výpočty a poznámky jednotlivých položek ovládá tlačítko **VV**. U řádků bez podřízeného obsahu tlačítko není.
@@ -193,6 +198,8 @@ používá nejstarší aktivní verzi, takže nové kopie nemění výchozí roz
 
 **Převzít do plánu VŘ** je poslední, neaktivní akce označená „Připravujeme“.
 Z této obrazovky nyní nelze měnit plánované částky VŘ.
+Navazující migrace `20260920080712_harden_budget_validation_and_plan_rollout.sql`
+odebírá klientské spuštění veřejného i soukromého RPC této nevydané funkce.
 
 
 ### Kompaktní ovládání rozpočtu

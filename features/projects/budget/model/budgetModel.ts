@@ -94,6 +94,15 @@ export function evaluateExpression(expression: string, figures: Record<string, s
   const result = add(); if (index !== tokens.length) throw new Error('Nepodporovaný výraz.');
   return decimal(render(result, scale))!;
 }
+/** Imported VV descriptions may append a cached result and a bracketed label. */
+export function evaluateQuantityExpression(description: string, figures: Record<string, string>): string {
+  if (description.length > 2000) throw new Error('Výraz je příliš dlouhý.');
+  const expression = description
+    .replace(/\s*\[[^\]\r\n]{1,80}\]\s*$/, '')
+    .replace(/\s*=\s*[+-]?\d+(?:[.,]\d+)?\s*$/, '')
+    .trim();
+  return evaluateExpression(expression, figures);
+}
 export function formatBudgetNumber(value: string | null | undefined, monetary = false): string {
   if(value===null||value===undefined)return '';
   const normalized=monetary?money(value):decimal(value)!;
