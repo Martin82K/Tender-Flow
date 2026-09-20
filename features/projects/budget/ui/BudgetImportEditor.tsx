@@ -5,9 +5,10 @@ import { formatBudgetNumber, normalizeSearch, sumMoney } from '../model/budgetMo
 import { applyImportRepair, importNodePath, importRepairParents, previewImportRepair, sourceColumnName } from '../model/importRepair';
 import type { ImportRepair } from '../model/importRepair';
 import type { KrosMapping } from '../model/krosImport';
-import type { BudgetDocument, BudgetNode, BudgetSheet } from '../model/types';
+import type { BudgetAllocation, BudgetDocument, BudgetNode, BudgetSheet } from '../model/types';
 
 interface Props {
+  allocations?: readonly BudgetAllocation[];
   document: BudgetDocument; onChange: (document: BudgetDocument) => void;
   mapping: KrosMapping; onMapping: (mapping: KrosMapping) => void;
   onRemap: (sheet: string) => Promise<void>; onBack: () => void;
@@ -18,7 +19,7 @@ const fields = [['kind','Typ řádku'],['code','Kód'],['description','Popis'],[
 const kinds: Record<ImportRepair['kind'],string> = {section:'Oddíl / pododdíl',K:'Položka práce',M:'Materiál',VV:'Výkaz výměr',note:'Poznámka / hlavička',subtotal:'Mezisoučet'};
 const PAGE_SIZE = 100;
 
-export function BudgetImportEditor({document,onChange,mapping,onMapping,onRemap,onBack,onLoadPreview,initialSheet,initialRow,busy,savedRevision=false}:Props) {
+export function BudgetImportEditor({allocations,document,onChange,mapping,onMapping,onRemap,onBack,onLoadPreview,initialSheet,initialRow,busy,savedRevision=false}:Props) {
   const [step,setStep] = useState<'columns'|'structure'|'review'>(initialRow?'structure':'columns');
   const [sheetId,setSheetId] = useState(document.sheets.find(s=>s.name===initialSheet)?.id??document.sheets.find(s=>s.selected&&s.role==='items')?.id??document.sheets[0]?.id??'');
   const [selectedId,setSelectedId] = useState(document.nodes.find(n=>n.source.sheet===initialSheet&&n.source.row===initialRow)?.id??'');
@@ -38,12 +39,12 @@ export function BudgetImportEditor({document,onChange,mapping,onMapping,onRemap,
   const preview = useMemo(()=>{
     if(!edit)return null;
     try{
-      const result=previewImportRepair(document,edit);
+      const result=previewImportRepair(document,edit,allocations);
       const affected=new Set(edit.scope==='subtree'?result.descendants.map(n=>n.id):[edit.nodeId]);
-      const after=applyImportRepair(document,edit).nodes.filter(n=>affected.has(n.id)&&(n.kind==='K'||n.kind==='M'));
+      const after=applyImportRepair(document,edit,allocations).nodes.filter(n=>affected.has(n.id)&&(n.kind==='K'||n.kind==='M'));
       return {result:{...result,totalAfter:sumMoney(after.map(n=>n.total)),incompleteAfter:after.some(n=>n.total===null)},error:''};
     }catch(e){return {result:null,error:e instanceof Error?e.message:'Neplatná oprava.'};}
-  },[document,edit?.nodeId,edit?.parentId,edit?.kind,edit?.scope]);
+  },[document,allocations,edit?.nodeId,edit?.parentId,edit?.kind,edit?.scope]);
   const parents = useMemo(()=>edit?importRepairParents(document,edit.nodeId,edit.kind):[],[document,edit?.nodeId,edit?.kind]);
   const totals = useMemo(()=>aggregateBudget(document.nodes),[document.nodes]);
   const m = sheet && Object.hasOwn(mapping,sheet.name)?mapping[sheet.name]:{};
@@ -91,7 +92,7 @@ export function BudgetImportEditor({document,onChange,mapping,onMapping,onRemap,
         <label className="tf-budget-mapping-row"><span>Rozsah opravy</span><ThemedNativeSelect className="w-full" aria-label="Rozsah opravy" value={edit.scope} disabled={busy} onChange={e=>update({scope:e.target.value as ImportRepair['scope']})}><option value="subtree">Řádek a jeho podstrom</option><option value="row">Pouze tento řádek</option></ThemedNativeSelect></label>
         <div className="tf-budget-repair-preview"><strong>Náhled změny</strong><p>Před: {importNodePath(selected.parentId,byId)}</p><p>Po: {importNodePath(edit.parentId,byId)}</p>{preview?.result&&<><p>Řádky: {preview.result.rows.slice(0,20).join(', ')}{preview.result.count>20?'…':''} · {preview.result.count} řádků, {preview.result.items} položek.</p><p>Součet před opravou: {formatBudgetNumber(preview.result.total,true)} Kč{preview.result.incomplete?' (neúplné ocenění)':''}.</p><p>Po opravě: {formatBudgetNumber(preview.result.totalAfter,true)} Kč{preview.result.incompleteAfter?' (neúplné ocenění)':''}.</p></>}{edit.scope==='row'&&<p>Přímé děti zůstanou pod původním nadřazeným uzlem.</p>}{edit.kind!==selected.kind&&<p>Změna typu může změnit započtení do ceny. Částky se načtou z původních buněk.</p>}</div>
         {preview?.error&&<p role="alert" className="tf-budget-error">{preview.error}</p>}
-        <button className="tf-budget-import-primary" disabled={busy||!!preview?.error} onClick={()=>{try{const next=applyImportRepair(document,edit);setUndo(document);onChange(next);setDraft(null);setMessage('Oprava použita. Uložte pracovní rozpočet.');}catch(e){setMessage(e instanceof Error?e.message:'Oprava selhala.');}}}>Použít opravu</button>
+        <button className="tf-budget-import-primary" disabled={busy||!!preview?.error} onClick={()=>{try{const next=applyImportRepair(document,edit,allocations);setUndo(document);onChange(next);setDraft(null);setMessage('Oprava použita. Uložte pracovní rozpočet.');}catch(e){setMessage(e instanceof Error?e.message:'Oprava selhala.');}}}>Použít opravu</button>
         <details><summary>Původní buňky řádku</summary><dl className="tf-budget-source-cells">{Object.entries(selected.source.cells).map(([address,cell])=><React.Fragment key={address}><dt>{address}</dt><dd>{String(cell.value??'')}{cell.formula&&<small>Vzorec: {cell.formula} (nespouští se)</small>}</dd></React.Fragment>)}</dl></details>
       </>}<button disabled={busy||!undo} onClick={()=>{if(undo){onChange(undo);setUndo(null);setDraft(null);setMessage('Poslední oprava vrácena.');}}}>Vrátit poslední opravu</button>{message&&<p role="status">{message}</p>}</aside>
     </div>}

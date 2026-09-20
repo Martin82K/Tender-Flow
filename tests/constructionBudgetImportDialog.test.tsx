@@ -167,6 +167,30 @@ describe('import repair workspace',()=>{
     expect(saved.allocations).toEqual([]);
     expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:5')?.tags).toEqual([]);
   });
+  it.each(['tags','allocations'])('protects a saved sheet with %s from being excluded',async(kind)=>{
+    const original=editorRevision();
+    if(kind==='tags')original.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['tag'];
+    else original.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'Zpět na listy'}));
+    expect(screen.getByRole('checkbox',{name:'Zařadit Soupis'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'Žádný'})).toBeDisabled();
+    expect(screen.getByRole('checkbox',{name:'Zařadit Elektro'})).toBeEnabled();
+    fireEvent.click(screen.getByRole('button',{name:'Uložit a zavřít'}));
+    await waitFor(()=>expect(budgetApi.save).toHaveBeenCalledOnce());
+    const saved=vi.mocked(budgetApi.save).mock.calls[0][0];
+    expect(saved.document.nodes.find(n=>n.id==='sheet:0:row:5')?.tags).toEqual(kind==='tags'?['tag']:[]);
+    expect(saved.allocations).toEqual(original.allocations);
+  });
+  it('blocks converting an allocated item to a note in the repair preview',()=>{
+    const original=editorRevision();original.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
+    render(<BudgetImportDialog projectId="p" source={editorSource} editRevision={original} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
+    fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 5'}));
+    fireEvent.change(screen.getByLabelText('Nový typ řádku'),{target:{value:'note'}});
+    expect(screen.getByRole('alert')).toHaveTextContent('vazby');
+    expect(screen.getByRole('button',{name:'Použít opravu'})).toBeDisabled();
+  });
 });
 
 describe('budget import dialog', () => {

@@ -1,6 +1,6 @@
 import { decimal, money, multiplyMoney, sumMoney } from './budgetModel';
 import { isPriced } from './types';
-import type { BudgetDocument, BudgetImportRepair, BudgetNode, ImportIssue } from './types';
+import type { BudgetAllocation, BudgetDocument, BudgetImportRepair, BudgetNode, ImportIssue } from './types';
 export type ImportRepair = BudgetImportRepair;
 
 export function sourceColumnName(index: number): string {
@@ -26,10 +26,11 @@ export function importRepairParents(document: BudgetDocument, nodeId: string, ki
     (parent.kind === 'sheet' || parent.kind === 'section' || ((kind === 'VV' || kind === 'note') && isPriced(parent))));
 }
 
-export function previewImportRepair(document: BudgetDocument, repair: ImportRepair) {
+export function previewImportRepair(document: BudgetDocument, repair: ImportRepair, allocations: readonly BudgetAllocation[] = []) {
   if (!['section','K','M','VV','note','subtotal'].includes(repair.kind) || !['row','subtree'].includes(repair.scope)) throw new Error('Neplatný typ nebo rozsah opravy.');
   const node = document.nodes.find(node => node.id === repair.nodeId);
   if (!node || node.kind === 'object' || node.kind === 'sheet') throw new Error('Vyberte zdrojový řádek.');
+  if (isPriced(node) && !['K','M'].includes(repair.kind) && (node.tags.length || allocations.some(a => a.itemId === node.id))) throw new Error('Položka má vazby na štítky nebo alokace. Nejprve je vyřešte v rozpočtu, potom změňte typ řádku.');
   if (!importRepairParents(document, node.id, repair.kind).some(parent => parent.id === repair.parentId)) throw new Error('Nadřazený uzel musí předcházet řádku a patřit do stejného soupisu.');
   const ids = new Set([node.id]);
   // Imported and repaired nodes are topologically ordered; one pass is sufficient.
@@ -44,8 +45,8 @@ export function previewImportRepair(document: BudgetDocument, repair: ImportRepa
     total: sumMoney(affected.filter(isPriced).map(item => item.total)), incomplete: affected.some(item => isPriced(item) && item.total === null), descendants };
 }
 
-export function applyImportRepair(document: BudgetDocument, repair: ImportRepair): BudgetDocument {
-  previewImportRepair(document, repair);
+export function applyImportRepair(document: BudgetDocument, repair: ImportRepair, allocations: readonly BudgetAllocation[] = []): BudgetDocument {
+  previewImportRepair(document, repair, allocations);
   const original = document.nodes.find(node => node.id === repair.nodeId)!;
   const columns = document.sheets.find(sheet => sheet.id === original.sheetId)?.columns;
   const number = (key: string): string | null => {

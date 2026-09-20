@@ -264,3 +264,5 @@ V **Nastavení zobrazení → Zobrazit mřížku** zapnete výraznější vodoro
 ohraničení buněk tabulky položek, včetně VV, záhlaví a součtů. Volba je ve výchozím
 stavu vypnutá a ukládá se v tomto prohlížeči zvlášť pro uživatele a projekt, stejně
 jako hustota řádků. Nemění data rozpočtu ani samostatnou mřížku rekapitulace.
+
+Při opravě uložené revize nelze položku se štítky nebo alokacemi změnit na necenový typ ani vyřadit její soupis. Editor omezení zobrazí před uložením; vazby je nutné nejprve vyřešit v rozpočtu. Změna práce na materiál a přesun v hierarchii vazby zachovávají.
