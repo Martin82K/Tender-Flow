@@ -129,6 +129,34 @@ test('comparison access, retry, concurrency and deletion lifecycle', async () =>
  await assert.rejects(()=>reserve('00000000-0000-0000-0000-000000000021'),/budget/);
  await db.query('UPDATE public.offer_processing_runs SET estimated_cost_usd=0.01,status=$1,result=$2 WHERE id=$3',['completed',{text:JSON.stringify({suggestions:[{baseId:'a',offerId:'b'}]})},run.runId]);
  await reserve('00000000-0000-0000-0000-000000000021');
+
+ // Rolling burst quotas count pending/failed attempts and share the organization lock.
+ for (const [scope,stage,count,age,userId] of [
+  ['user_hour','ocr',10,'0 minutes','00000000-0000-0000-0000-000000000001'],
+  ['user_day','ocr',40,'2 hours','00000000-0000-0000-0000-000000000001'],
+  ['org_hour','ocr',60,'0 minutes',null],
+  ['org_day','ocr',200,'2 hours',null],
+  ['user_hour','matching',25,'0 minutes','00000000-0000-0000-0000-000000000001'],
+  ['user_day','extraction',100,'2 hours','00000000-0000-0000-0000-000000000001'],
+  ['org_hour','matching',150,'0 minutes',null],
+  ['org_day','extraction',625,'2 hours',null]
+ ]) {
+  await db.exec('BEGIN');
+  await db.exec(`UPDATE public.offer_processing_settings SET monthly_limit_usd=10000; DELETE FROM public.offer_processing_runs;`);
+  await db.query(`INSERT INTO public.offer_processing_runs(organization_id,project_id,user_id,request_id,input_hash,stage,model,reserved_usd,pricing,status,created_at)
+   SELECT '00000000-0000-0000-0000-000000000002','own',$1,gen_random_uuid(),repeat('a',64),$2,'test',0.000001,'{}','failed',now()-$3::interval FROM generate_series(1,$4::integer)`,[userId,stage,age,count]);
+  const burst=()=>db.query('SELECT public.offer_processing_reserve($1,$2,$3,$4,$5,$6,$7,$8)',['own','00000000-0000-0000-0000-000000000001',randomUUID(),'c'.repeat(64),stage,'test',0.01,{version:'test'}]);
+  await rejectInside(burst,new RegExp(`AI rate limit exceeded: ${scope}`));
+  if (userId) {
+   const existing=(await db.query('SELECT request_id FROM public.offer_processing_runs LIMIT 1')).rows[0];
+   const retry=(await db.query('SELECT public.offer_processing_reserve($1,$2,$3,$4,$5,$6,$7,$8) AS r',['own',userId,existing.request_id,'a'.repeat(64),stage,'test',0.01,{version:'test'}])).rows[0].r;
+   assert.equal(retry.reused,true);
+  }
+  // A rolling window expires; rejected attempts never create a charged run.
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM public.offer_processing_runs')).rows[0].n,count);
+  await db.exec("UPDATE public.offer_processing_runs SET created_at=now()-interval '25 hours'");await burst();
+  await db.exec('ROLLBACK');
+ }
  await db.exec(`RESET ROLE; SELECT set_config('test.role','authenticated',false),set_config('test.edit','yes',false); SET ROLE authenticated;`);
  await db.query('SELECT public.offer_processing_feedback_save($1,$2,$3)',[run.runId,'a',true]);
  await assert.rejects(()=>db.query('SELECT public.offer_processing_feedback_save($1,$2,$3)',[run.runId,'foreign',true]),/Unknown/);

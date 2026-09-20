@@ -38,3 +38,8 @@ it('records failure without claiming a zero charge or leaking document text',asy
  fetchProvider.mockRejectedValue(new Error('provider private payload'));const response=await handler(request());
  expect(response.status).toBe(502);expect(await response.text()).not.toContain('private');expect(update).toHaveBeenCalledWith(expect.objectContaining({status:'failed'}));expect(update.mock.calls[0][0]).not.toHaveProperty('estimated_cost_usd');
 });
+
+it('rejects burst quota exhaustion before any paid call with a retryable response',async()=>{
+ rpc.mockImplementation(async(name:string)=>name==='offer_comparison_load'?{data:{canEdit:true}}:{error:{message:'AI rate limit exceeded: user_hour'}});
+ const response=await handler(request());expect(response.status).toBe(429);expect(await response.json()).toEqual({error:'processing_rate_limit_exceeded'});expect(fetchProvider).not.toHaveBeenCalled();
+});

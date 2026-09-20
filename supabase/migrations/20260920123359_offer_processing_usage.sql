@@ -34,7 +34,7 @@ REVOKE ALL ON public.offer_processing_settings,public.offer_processing_runs FROM
 GRANT ALL ON public.offer_processing_settings,public.offer_processing_runs TO service_role;
 CREATE FUNCTION public.offer_processing_reserve(project_input text,user_input uuid,request_input uuid,hash_input text,stage_input text,model_input text,reserve_input numeric,pricing_input jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE org uuid; settings public.offer_processing_settings; existing public.offer_processing_runs; spent numeric;
+DECLARE org uuid; settings public.offer_processing_settings; existing public.offer_processing_runs; spent numeric; quota record; request_count bigint; page_count bigint; token_count bigint;
 BEGIN
  SELECT p.organization_id INTO org FROM public.projects p JOIN public.organization_members m ON m.organization_id=p.organization_id WHERE p.id=project_input AND m.user_id=user_input AND m.is_active;
  IF org IS NULL OR reserve_input IS NULL OR reserve_input<=0 OR reserve_input>10 THEN RAISE EXCEPTION 'Invalid processing request'; END IF;
@@ -45,6 +45,27 @@ BEGIN
   IF existing.project_id IS DISTINCT FROM project_input OR existing.input_hash<>hash_input OR existing.user_id IS DISTINCT FROM user_input THEN RAISE EXCEPTION 'Request identity conflict'; END IF;
   RETURN jsonb_build_object('runId',existing.id,'status',existing.status,'result',existing.result,'reused',true);
  END IF;
+ -- The settings row is already locked: quota check, monthly reservation and INSERT
+ -- are one atomic operation across every user/project in this organization.
+ -- Count attempted work, including pending/failed runs. Every OCR call reserves
+ -- 20 pages; text calls reserve 160k tokens (24k input chars, JSON/system overhead,
+ -- and 4096 output tokens). Actual/missing usage never refunds the burst quota.
+ FOR quota IN SELECT * FROM (VALUES
+  ('user_hour',true,interval '1 hour',40,200,4000000),
+  ('user_day',true,interval '24 hours',160,800,16000000),
+  ('org_hour',false,interval '1 hour',240,1200,24000000),
+  ('org_day',false,interval '24 hours',1000,4000,100000000)
+ ) AS limits(scope,user_only,window_size,max_requests,max_pages,max_tokens) LOOP
+  SELECT count(*),COALESCE(sum(CASE WHEN stage='ocr' THEN 20 ELSE 0 END),0),
+   COALESCE(sum(CASE WHEN stage<>'ocr' THEN 160000 ELSE 0 END),0)
+   INTO request_count,page_count,token_count FROM public.offer_processing_runs
+   WHERE organization_id=org AND created_at>=now()-quota.window_size
+    AND (NOT quota.user_only OR user_id=user_input);
+  IF request_count+1>quota.max_requests
+   OR page_count+(CASE WHEN stage_input='ocr' THEN 20 ELSE 0 END)>quota.max_pages
+   OR token_count+(CASE WHEN stage_input='ocr' THEN 0 ELSE 160000 END)>quota.max_tokens
+  THEN RAISE EXCEPTION 'AI rate limit exceeded: %',quota.scope; END IF;
+ END LOOP;
  SELECT COALESCE(sum(COALESCE(estimated_cost_usd,reserved_usd)),0) INTO spent FROM public.offer_processing_runs WHERE organization_id=org AND created_at>=date_trunc('month',now());
  IF spent+reserve_input>settings.monthly_limit_usd THEN RAISE EXCEPTION 'Monthly AI budget exceeded'; END IF;
  INSERT INTO public.offer_processing_runs(organization_id,project_id,user_id,request_id,input_hash,stage,model,reserved_usd,pricing)

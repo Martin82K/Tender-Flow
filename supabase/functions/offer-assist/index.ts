@@ -74,6 +74,8 @@ Deno.serve(async (req: Request) => {
         }
         const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify({ stage: body.stage, payload }))))].map(b => b.toString(16).padStart(2, '0')).join('');
         const reserved = await service.rpc('offer_processing_reserve', { project_input: body.projectId, user_input: auth.data.user.id, request_input: body.requestId, hash_input: hash, stage_input: body.stage, model_input: model, reserve_input: Math.ceil(reserve * 1e6) / 1e6, pricing_input: price });
+        if (reserved.error?.message?.startsWith('AI rate limit exceeded:'))
+            return json(429, { error: 'processing_rate_limit_exceeded' });
         if (reserved.error)
             return json(409, { error: 'processing_disabled_budget_exceeded_or_request_conflict' });
         if (reserved.data.reused)
