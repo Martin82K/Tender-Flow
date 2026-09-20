@@ -202,3 +202,13 @@ Migrace katalogu je nasazená; postflight potvrdil privátní helpery bez
 klientského přístupu a zachování 2 zdrojů / 2 revizí. Závěrečný dry-run:
 databáze aktuální. Produkční katalog nebyl testy měněn;
 obnovovací regrese proběhly výhradně lokálně.
+
+Migrace `20260920111929_validate_budget_source_row.sql` vyžaduje `source.row`
+jako JSON číslo s nezápornou celočíselnou hodnotou do 2147483647. Nula zůstává
+platná pro syntetické uzly. Objekt, řetězec, chybějící hodnota, záporné nebo
+zlomkové číslo jsou odmítnuty před uložením; nelze tak poškodit detail položky
+objektem místo čísla. Lokální shape regrese, velký dokument a obnova prošly.
+Read-only preflight nenalezl v existujících produkčních revizích neplatný řádek.
+Migrace zdrojového řádku je nasazená. Postflight potvrdil aktivní kontrolu,
+odebraný anonymní přístup a zachované 2 zdroje / 2 revize; advisors beze změny,
+závěrečný dry-run hlásí aktuální databázi.
