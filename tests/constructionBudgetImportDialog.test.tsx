@@ -169,7 +169,7 @@ describe('import repair workspace',()=>{
     previous.document.nodes.find(n=>n.id==='sheet:0:row:5')!.tags=['tag'];
     previous.allocations=[{itemId:'sheet:0:row:5',categoryId:'c',quantity:'1'}];
     vi.mocked(importInWorker).mockResolvedValue(editorDocument());
-    render(<BudgetImportDialog projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
+    render(<BudgetImportDialog canAllocate projectId="p" source={editorSource} previous={previous} onClose={vi.fn()} onComplete={vi.fn()}/>);
     fireEvent.click(await screen.findByRole('button',{name:'Otevřít editor oprav'}));
     fireEvent.click(screen.getByRole('button',{name:'2 · Struktura'}));
     fireEvent.click(screen.getByRole('button',{name:'Upravit řádek 4'}));
