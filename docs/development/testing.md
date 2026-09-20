@@ -41,6 +41,13 @@ pravidla v [AGENTS.md](../../AGENTS.md) zůstávají beze změny.
 
 ## Testovací pyramida
 
+Před implementací zmapujte skutečně dotčené životní cykly a vazby změny.
+Podle dopadu zvažte oprávnění a tenant isolation, opakování/idempotenci,
+zálohu a obnovu, mazání vlastníka/účtu a související datové vazby. Relevantní
+scénáře zařaďte do cíleného regresního plánu; opakující se zjištění uchovejte
+stručně v existujících testech nebo technické dokumentaci, bez soukromých dat.
+Nejde o plošný povinný checklist pro kosmetické změny.
+
 ### Čisté modelové testy
 
 Ověřují mapování, normalizaci, filtry, výpočty, merge algoritmy a bezpečné

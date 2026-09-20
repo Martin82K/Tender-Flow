@@ -128,7 +128,10 @@ očekávané; jinak test selže.
 1. Přečíst okolní kód a dokumentaci, projednat a schválit konkrétní rozsah.
    Schválení platí pro celý cyklus včetně běžných oprav a validace; nové je
    potřeba při podstatné změně rozsahu nebo rizika.
-2. Zapsat testovací plán.
+2. Zmapovat skutečně dotčené životní cykly a vazby a podle dopadu zapsat
+   [cílený regresní plán](testing.md#testovací-pyramida), včetně relevantních
+   scénářů oprávnění, opakování, obnovy a mazání. Opakující se zjištění uchovat
+   v existujících testech nebo technické dokumentaci; kosmetika nevyžaduje plošný checklist.
 3. Při změně chování přidat regresní test a zachytit RED stav.
 4. Implementovat nejmenší bezpečnou změnu a průběžně tvořit malé smysluplné commity.
 5. Ověřit dotčený rozsah podle dopadu a evidovat verzi výsledků; platné kontroly neopakovat.
