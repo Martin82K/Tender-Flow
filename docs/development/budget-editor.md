@@ -300,3 +300,15 @@ Ověřený pracovní diff nad `e378870c`, integrační základna `8469a654`:
 - Migrace `20260920223500_budget_item_patch.sql` je připravena k samostatně
   schválenému nasazení. Finální CI a nezávislá PR revize ještě nejsou dokladem
   pro tento diff; merge zůstává pozastavený.
+
+
+Nasazení malého zápisu bylo uživatelem výslovně schváleno a dokončeno pro
+`254f4c56`. `supabase db push --linked --yes`: PASS; následný dry-run:
+`Remote database is up to date.` Ověřeno public RPC, authenticated EXECUTE,
+zamítnuté anon EXECUTE, private SECURITY DEFINER s prázdným search_path a
+odmítnutí volání bez auth.uid. Počty před/po: 5 revizí, součet verzí 9,
+10 záznamů historie; nasazení žádná data nezměnilo. Security i performance
+advisors mají stejné počty a žádný nález pro novou funkci. Existující globální
+varování zůstávají. Živá latence zápisu uživatelské buňky se tímto read-only
+ověřením neměřila. Vercel pro 254f4c56 PASS, finální Quality Checks ještě běží;
+nezávislá bezpečnostní revize poslední revize a merge jsou nadále samostatné brány.
