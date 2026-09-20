@@ -10,7 +10,7 @@ import type { BudgetAllocation, BudgetDocument, BudgetRevision } from '../model/
 interface Props {
   projectId: string; sourceId: string; document: BudgetDocument; previous?: BudgetRevision;
   mode: 'assignments' | 'revision'; title: string; allocations: BudgetAllocation[];
-  onBack: () => void; onComplete: (revision: BudgetRevision) => void; onBusyChange: (busy:boolean) => void;
+  onBack: () => void; onComplete: (revision: BudgetRevision, notice?: string) => void; onBusyChange: (busy:boolean) => void;
 }
 export function BudgetTenderImport({projectId,sourceId,document,previous,mode,title,allocations,onBack,onComplete,onBusyChange}: Props) {
   const cache=useQueryClient();
@@ -34,7 +34,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
   const targetNodes=useMemo(()=>targetDocument.nodes.filter(isPriced),[targetDocument]);
   const nodeIndex=useMemo(()=>new Map(targetNodes.map(n=>[n.id,n])),[targetNodes]);
   const existingByItem=useMemo(()=>{const index=new Map<string,BudgetAllocation[]>();for(const a of existing)index.set(a.itemId,[...(index.get(a.itemId)??[]),a]);return index;},[existing]);
-  const groups=useMemo(()=>[...new Map(named.map(row=>[tenderKey(row.externalCode,row.name),{key:tenderKey(row.externalCode,row.name),title:row.name,externalCode:row.externalCode}])).values()],[named]);
+  const groups=useMemo(()=>{const unique=new Map<string,{key:string;title:string;externalCode:string}>();for(const row of named){const key=tenderKey(row.externalCode,row.name);if(!unique.has(key))unique.set(key,{key,title:row.name,externalCode:row.externalCode});}return [...unique.values()];},[named]);
   const catalogIndex=useMemo(()=>{
     const names=new Map<string,ProjectTender[]>();const codes=new Map<string,ProjectTender[]>();
     for(const c of catalog.data??[]){const key=tenderNameKey(c.title);const named=names.get(key)??[];named.push(c);names.set(key,named);if(c.externalCode){const coded=codes.get(c.externalCode)??[];coded.push(c);codes.set(c.externalCode,coded);}}
@@ -85,7 +85,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
       if(operation.current?.signature!==signature)operation.current={signature,id:crypto.randomUUID()};
       const result=await budgetApi.importTenders(projectId,{...request,operationId:operation.current.id});
       if(!result.revision)throw new Error('Server nevrátil uloženou revizi.');
-      await cache.invalidateQueries();onComplete(result.revision);
+      await cache.invalidateQueries();onComplete(result.revision,result.docHubWarning);
     }catch(e){setError(e instanceof Error?e.message:'Import se nepodařilo uložit.');}finally{lock.current=false;setBusy(false);}
   };
   return <div className="tf-budget-tender-import tf-budget-controls">

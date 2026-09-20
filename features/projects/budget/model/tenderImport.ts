@@ -9,8 +9,8 @@ export interface ProjectTender extends TenderDefinition { id: string }
 export interface TenderRow { node: BudgetNode; name: string; externalCode: string; part: string; sourceRef: string }
 export interface TenderMatch { row: TenderRow; targetId?: string; candidates: string[] }
 export interface TenderAssignment { itemId: string; categoryId: string; action: 'remaining' | 'replace' | 'keep' | 'unresolved' }
-export const tenderKey = (code: string, name: string) => JSON.stringify([code.trim(), name.trim()]);
 export const tenderNameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('cs');
+export const tenderKey = (code: string, name: string) => JSON.stringify([code.trim(), tenderNameKey(name)]);
 export function columnLetter(column: number): string {
   let value = column + 1; let result = '';
   while (value > 0) { value--; result = String.fromCharCode(65 + value % 26) + result; value = Math.floor(value / 26); }
