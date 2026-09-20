@@ -218,3 +218,27 @@ V **Nastavení zobrazení → Zobrazit mřížku** zapnete výraznější vodoro
 ohraničení buněk tabulky položek, včetně VV, záhlaví a součtů. Volba je ve výchozím
 stavu vypnutá a ukládá se v tomto prohlížeči zvlášť pro uživatele a projekt, stejně
 jako hustota řádků. Nemění data rozpočtu ani samostatnou mřížku rekapitulace.
+
+### Záloha, obnova a mazání projektu
+
+Záloha uživatele i firmy zahrnuje dostupné rozpočty, revize, alokace, historii,
+hlavní verzi, číselníky a původní XLSX. Pro úplnou zálohu je nutné oprávnění
+číst rozpočty včetně cen. XLSX se kontrolují pomocí SHA-256; chybějící soubor
+hotového rozpočtu nebo překročení limitu 50 MB ukončí export chybou.
+Starší klient při přítomnosti rozpočtu vyžádá aktualizaci, místo aby vytvořil
+neúplnou zálohu.
+
+Rozpočtová část zálohy je podepsaná databází. Obnova odmítne pozměněný obsah,
+cizí organizaci nebo projekt mimo oprávnění uživatele. Doplňuje chybějící
+revize; existující revize a jejich historie zůstávají autoritativní. Pokud po
+obnově dat selže nahrání XLSX, aplikace vyzve k opakování stejné obnovy.
+Původní soubory se nepřepisují.
+
+Mazání projektu nejprve uzamkne rozpočty proti dalším změnám, odstraní jejich
+soubory přes Storage API a teprve potom smaže databázové záznamy a projekt.
+Po výpadku opakujte mazání stejného projektu. Rozpracované samostatné mazání
+v koši rozpočtu je nutné nejprve dokončit.
+
+Export položek do Excelu zapisuje množství a ceny jako textové buňky, aby
+zachoval všechny číslice. Prázdné množství při přiřazení do VŘ znamená dosud
+nepřiřazené množství, nikoli celé množství položky.

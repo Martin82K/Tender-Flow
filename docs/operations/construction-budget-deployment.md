@@ -131,3 +131,36 @@ Maximální objem proto není vykazován jako výkonnostně ověřený.
 
 Před skutečným nasazením vyžadovat úspěšné CI, dry-run s právě touto migrací,
 ověření katalogu a oprávnění po nasazení a závěrečný dry-run bez čekajících migrací.
+
+## Integrace 20. září 2026 – nasazené opravy
+
+Nasazené migrace:
+- `20260920080712_harden_budget_validation_and_plan_rollout.sql`
+- `20260920100020_budget_project_deletion.sql`
+- `20260920100028_construction_budget_backup.sql`
+
+Preflight i postflight zachovaly 2 zdroje a 2 revize, bez aktivního purge jobu.
+Závěrečný `db push --dry-run` hlásil aktuální databázi. Po požadavku uživatele se produkce nepoužívala
+pro další regresní ani zátěžové testy. Devět SQL scénářů prošlo na izolovaném lokálním
+PostgreSQL 17 se syntetickými daty, včetně 100 000 uzlů, podepsané obnovy,
+odmítnutí podvržené zálohy a opakování mazání projektu.
+
+Nové testy `supabase/tests/construction_budget_backup_delete.sql` a
+`supabase/tests/construction_budget_shape.sql` vyžadují lokální syntetický
+fixture uvedený v souborech; nejsou určeny pro produkci. Ostatní SQL testy se
+spouštějí v transakci zakončené ROLLBACK.
+
+Klient exportu nyní předává `include_budget_files: true`; klient doplní XLSX
+před uložením souboru zálohy. Jednoparametrové exportní RPC při přítomnosti
+rozpočtu vyžádá aktualizaci klienta. Obnova vyžaduje původní podpis ze stejné
+databáze a stejnou organizaci. Obnovovací právo k chybějícímu souboru je
+privátní, vázané na zdroj a aktuálního oprávněného uživatele; nedává právo
+přepisovat existující soubor.
+
+Kontrola oprávnění po nasazení: anon nemá přístup k mazání projektu,
+authenticated nemůže podepisovat zálohy ani volat nevydaný převod do plánu.
+Advisors nadále hlásí existující širší nálezy. U privátních tabulek rozpočtu
+je RLS bez klientských politik záměrné: přímá práva jsou odebraná a operace
+provádějí autorizované funkce. Nový index pro autora obnovy dosud nebyl použit.
+Koncový test skutečné Storage služby a Electron obnovy zůstává oddělený od
+lokálních SQL a UI testů; samotný PostgreSQL kontejner tyto služby neobsahuje.

@@ -290,3 +290,14 @@ it('clears revision-specific selection, undo and scope when another user changes
     expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!).scope).toBe('');
   } finally { width.mockRestore(); height.mockRestore(); }
 });
+
+it('requires allocation permission to copy a confirmed revision with assignments', async () => {
+  const confirmed = { ...revision, status: 'confirmed' as const, allocations: [{ itemId: 'item', categoryId: 'category', quantity: '1' }] };
+  vi.mocked(budgetApi.index).mockResolvedValue({ revisions: [confirmed], permissions: { read: true, prices: true, edit: true, confirm: true, allocate: false } });
+  vi.mocked(budgetApi.revision).mockResolvedValue(confirmed);
+  await openBudget();
+  fireEvent.click(screen.getByRole('button', { name: 'Akce rozpočtu' }));
+  const copy = screen.getByRole('button', { name: 'Vytvořit pracovní kopii' });
+  expect(copy).toBeDisabled();
+  expect(copy).toHaveAttribute('title', 'Kopírování přiřazení vyžaduje oprávnění k alokacím.');
+});

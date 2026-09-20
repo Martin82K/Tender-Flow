@@ -1,4 +1,6 @@
 BEGIN;
+SET LOCAL lock_timeout='2s';
+SET LOCAL statement_timeout='30s';
 
 CREATE OR REPLACE FUNCTION private.budget_save(project_input text,source_input uuid,revision_input uuid,version_input integer,title_input text,document_input jsonb,allocations_input jsonb,confirm_input boolean DEFAULT false) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
@@ -22,6 +24,20 @@ BEGIN
  IF document_input->>'schemaVersion' IS DISTINCT FROM '1' OR jsonb_typeof(document_input->'nodes') IS DISTINCT FROM 'array'
     OR jsonb_typeof(allocations_input) IS DISTINCT FROM 'array' OR jsonb_array_length(document_input->'nodes')>250000
     OR pg_column_size(document_input)>100000000 THEN RAISE EXCEPTION 'Invalid budget document'; END IF;
+ -- Mandatory collections must be usable by all readers immediately after save.
+ IF jsonb_typeof(document_input->'sheets') IS DISTINCT FROM 'array'
+    OR jsonb_typeof(document_input->'issues') IS DISTINCT FROM 'array'
+    OR jsonb_typeof(document_input->'figures') IS DISTINCT FROM 'object'
+    OR (document_input ? 'figureResolutions' AND jsonb_typeof(document_input->'figureResolutions') IS DISTINCT FROM 'object')
+ THEN RAISE EXCEPTION 'Invalid budget document'; END IF;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(document_input->'sheets') s
+   WHERE jsonb_typeof(s) IS DISTINCT FROM 'object' OR jsonb_typeof(s->'id') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(s->'name') IS DISTINCT FROM 'string' OR jsonb_typeof(s->'selected') IS DISTINCT FROM 'boolean')
+ OR EXISTS(SELECT 1 FROM jsonb_array_elements(document_input->'issues') i
+   WHERE jsonb_typeof(i) IS DISTINCT FROM 'object' OR i->>'severity' IS NULL OR i->>'severity' NOT IN ('warning','error')
+      OR jsonb_typeof(i->'message') IS DISTINCT FROM 'string')
+ OR EXISTS(SELECT 1 FROM jsonb_each(document_input->'figures') f WHERE jsonb_typeof(f.value) IS DISTINCT FROM 'string')
+ THEN RAISE EXCEPTION 'Invalid budget document'; END IF;
  -- Set-based validation avoids a growing array scan/copy for every node.
  -- Ordinality preserves the existing parent-before-child rule (and rejects cycles).
  IF EXISTS (
@@ -41,7 +57,23 @@ BEGIN
      OR count(*) FILTER (WHERE is_node)<>1
      OR min(position) FILTER (WHERE NOT is_node)<=min(position) FILTER (WHERE is_node)
  ) THEN RAISE EXCEPTION 'Invalid hierarchy'; END IF;
+ -- Older drafts may omit optional display collections. Canonicalize their defaults;
+ -- reject explicit malformed values rather than persisting a document the UI cannot render.
+ document_input:=jsonb_set(document_input,'{nodes}',COALESCE((SELECT jsonb_agg(
+   jsonb_build_object('tags','[]'::jsonb,'tenders','[]'::jsonb,'code','','description','','unit','','sheetId','','order',0,
+     'source',jsonb_build_object('sheet','','row',0,'cells','{}'::jsonb)) || n ORDER BY position)
+   FROM jsonb_array_elements(document_input->'nodes') WITH ORDINALITY AS items(n,position)),'[]'::jsonb));
  FOR node IN SELECT value FROM jsonb_array_elements(document_input->'nodes') LOOP
+   IF jsonb_typeof(node->'tags') IS DISTINCT FROM 'array' OR jsonb_typeof(node->'tenders') IS DISTINCT FROM 'array'
+      OR jsonb_typeof(node->'source') IS DISTINCT FROM 'object'
+      OR jsonb_typeof(node#>'{source,cells}') IS DISTINCT FROM 'object'
+      OR jsonb_typeof(node#>'{source,sheet}') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(node->'description') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(node->'code') IS DISTINCT FROM 'string' OR jsonb_typeof(node->'unit') IS DISTINCT FROM 'string'
+   THEN RAISE EXCEPTION 'Invalid budget node shape'; END IF;
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(node->'tags') v WHERE jsonb_typeof(v) IS DISTINCT FROM 'string')
+      OR EXISTS(SELECT 1 FROM jsonb_array_elements(node->'tenders') v WHERE jsonb_typeof(v) IS DISTINCT FROM 'string')
+   THEN RAISE EXCEPTION 'Invalid budget node shape'; END IF;
    IF length(node->>'description')>32768 THEN RAISE EXCEPTION 'Description too long'; END IF;
    IF node->>'kind' IN ('K','M') THEN
      FOREACH tag IN ARRAY ARRAY['quantity','unitPrice','total'] LOOP
@@ -54,17 +86,29 @@ BEGIN
    END LOOP;
  END LOOP;
  IF confirm_input AND EXISTS(SELECT 1 FROM jsonb_array_elements(document_input->'issues') i WHERE i->>'severity'='error') THEN RAISE EXCEPTION 'Blocking import errors'; END IF;
- FOR allocation IN SELECT value FROM jsonb_array_elements(allocations_input) LOOP
-   SELECT value INTO node FROM jsonb_array_elements(document_input->'nodes') WHERE value->>'id'=allocation->>'itemId';
-   IF node IS NULL OR node->>'kind' NOT IN ('K','M') OR node->>'quantity' IS NULL
-      OR allocation->>'quantity' IS NULL OR allocation->>'quantity' !~ '^-?[0-9]{1,24}(\.[0-9]{1,18})?$'
-      OR NOT EXISTS(SELECT 1 FROM public.demand_categories c WHERE c.id=allocation->>'categoryId' AND c.project_id=project_input)
-      THEN RAISE EXCEPTION 'Invalid allocation or foreign project'; END IF;
-   qty := (node->>'quantity')::numeric;
-   IF sign((allocation->>'quantity')::numeric) NOT IN (0,sign(qty)) THEN RAISE EXCEPTION 'Invalid allocation sign'; END IF;
-   SELECT sum((a->>'quantity')::numeric) INTO allocated FROM jsonb_array_elements(allocations_input) a WHERE a->>'itemId'=node->>'id';
-   IF abs(allocated)>abs(qty) THEN RAISE EXCEPTION 'Overallocation'; END IF;
- END LOOP;
+ -- Parse and group allocations once; never rescan the document for each allocation.
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(allocations_input) a
+   WHERE jsonb_typeof(a) IS DISTINCT FROM 'object' OR a->>'itemId' IS NULL OR a->>'categoryId' IS NULL
+      OR a->>'quantity' IS NULL OR a->>'quantity' !~ '^-?[0-9]{1,24}(\.[0-9]{1,18})?$')
+ THEN RAISE EXCEPTION 'Invalid allocation or foreign project'; END IF;
+ IF EXISTS(
+   WITH allocations AS MATERIALIZED (
+     SELECT a->>'itemId' AS item_id,a->>'categoryId' AS category_id,(a->>'quantity')::numeric AS quantity
+     FROM jsonb_array_elements(allocations_input) a
+   ), totals AS (
+     SELECT item_id,sum(quantity) AS used,min(quantity) AS minimum,max(quantity) AS maximum FROM allocations GROUP BY item_id
+   ), nodes AS (
+     SELECT n->>'id' AS id,n->>'kind' AS kind,
+       CASE WHEN n->>'kind' IN ('K','M') THEN (n->>'quantity')::numeric END AS quantity
+     FROM jsonb_array_elements(document_input->'nodes') n
+   )
+   SELECT 1 FROM totals a LEFT JOIN nodes n ON n.id=a.item_id
+   WHERE n.kind IS NULL OR n.kind NOT IN ('K','M') OR n.quantity IS NULL
+      OR abs(a.used)>abs(n.quantity) OR (n.quantity>=0 AND a.minimum<0) OR (n.quantity<=0 AND a.maximum>0)
+   UNION ALL
+   SELECT 1 FROM allocations a LEFT JOIN public.demand_categories c
+     ON c.id=a.category_id AND c.project_id=project_input WHERE c.id IS NULL
+ ) THEN RAISE EXCEPTION 'Invalid allocation or foreign project'; END IF;
  IF revision_input IS NULL THEN
    INSERT INTO public.construction_budget_revisions(project_id,organization_id,source_id,title,document,allocations,status,import_key)
    VALUES(project_input,org,source_input,title_input,document_input,allocations_input,CASE WHEN confirm_input THEN 'confirmed' ELSE 'draft' END,(document_input->>'importKey')::uuid) RETURNING * INTO saved;
