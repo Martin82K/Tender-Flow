@@ -24,20 +24,30 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT auth.uid() IS NOT NULL
  AND public.can_project_module_action(project_input,'module_pipeline',write_input)
  AND EXISTS(SELECT 1 FROM public.projects p JOIN public.organization_members m ON m.organization_id=p.organization_id
-   WHERE p.id=project_input AND m.user_id=auth.uid() AND m.is_active)
+   LEFT JOIN public.organization_role_permissions rp ON rp.organization_id=m.organization_id AND rp.role_key=m.professional_role AND rp.permission_key='tenders.bids'
+   WHERE p.id=project_input AND m.user_id=auth.uid() AND m.is_active
+    AND (p.owner_id=auth.uid() OR CASE WHEN write_input THEN rp.access_level='write' ELSE rp.access_level IN ('read','write') END))
  AND (COALESCE(auth.jwt()->>'role','') <> 'tenderflow_mcp_client' OR
    (public.mcp_has_permission('tenderflow.read') AND public.mcp_has_permission('tenderflow.contacts.read')
     AND (NOT write_input OR (public.mcp_has_permission('tenderflow.write') AND public.mcp_has_permission('tenderflow.bids.offer.write')))))
 $$;
 REVOKE ALL ON FUNCTION private.offer_comparison_access(text,boolean) FROM PUBLIC,anon;
 
+CREATE FUNCTION private.offer_comparison_document_access(project_input text,document_input jsonb) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ SELECT NOT EXISTS(SELECT 1 FROM jsonb_array_elements(document_input->'sources') s WHERE s->>'origin'='budget')
+ OR private.budget_access(project_input,'read') IS TRUE
+$$;
+REVOKE ALL ON FUNCTION private.offer_comparison_document_access(text,jsonb) FROM PUBLIC,anon,authenticated,tenderflow_mcp_client;
+
 CREATE FUNCTION private.offer_comparison_load(project_input text,id_input uuid DEFAULT NULL) RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
 BEGIN
  IF private.offer_comparison_access(project_input,false) IS NOT TRUE THEN RAISE EXCEPTION 'Comparison access denied' USING ERRCODE='42501'; END IF;
  IF id_input IS NULL THEN
-  RETURN jsonb_build_object('canEdit',private.offer_comparison_access(project_input,true),'views',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'title',title,'category_id',category_id,'version',version,'updated_at',updated_at) ORDER BY updated_at DESC) FROM public.offer_comparison_views WHERE project_id=project_input),'[]'::jsonb));
+  RETURN jsonb_build_object('canEdit',private.offer_comparison_access(project_input,true),'views',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'title',title,'category_id',category_id,'version',version,'updated_at',updated_at) ORDER BY updated_at DESC) FROM public.offer_comparison_views WHERE project_id=project_input AND private.offer_comparison_document_access(project_input,document)),'[]'::jsonb));
  END IF;
+ IF EXISTS(SELECT 1 FROM public.offer_comparison_views v WHERE v.project_id=project_input AND v.id=id_input AND private.offer_comparison_document_access(project_input,v.document) IS NOT TRUE) THEN RAISE EXCEPTION 'Budget read denied' USING ERRCODE='42501'; END IF;
  RETURN (SELECT to_jsonb(v) FROM public.offer_comparison_views v WHERE project_id=project_input AND id=id_input);
 END $$;
 CREATE FUNCTION public.offer_comparison_load(project_input text,id_input uuid DEFAULT NULL) RETURNS jsonb
@@ -59,9 +69,12 @@ BEGIN
   IF jsonb_typeof(source->'items') IS DISTINCT FROM 'array' OR jsonb_array_length(source->'items') NOT BETWEEN 0 AND 10000
    OR COALESCE(source->>'sha256','') !~ '^[a-f0-9]{64}$' OR length(COALESCE(source->>'name','')) NOT BETWEEN 1 AND 255
   THEN RAISE EXCEPTION 'Invalid comparison source'; END IF;
-  IF length(COALESCE(source->>'id','')) NOT BETWEEN 1 AND 200 OR source->>'id'=ANY(source_ids)
+  IF jsonb_typeof(source->'id') IS DISTINCT FROM 'string' OR jsonb_typeof(source->'name') IS DISTINCT FROM 'string'
+   OR jsonb_typeof(source->'sha256') IS DISTINCT FROM 'string' OR COALESCE(source->>'origin','') NOT IN ('file','budget','mcp')
+   OR length(COALESCE(source->>'id','')) NOT BETWEEN 1 AND 200 OR source->>'id'=ANY(source_ids)
    OR jsonb_typeof(source->'notes') IS DISTINCT FROM 'array' OR jsonb_array_length(source->'notes')>10000
   THEN RAISE EXCEPTION 'Invalid source identity or notes'; END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(source->'notes') n WHERE jsonb_typeof(n) IS DISTINCT FROM 'string' OR length(n#>>'{}')>4000) THEN RAISE EXCEPTION 'Invalid source notes'; END IF;
   source_ids:=array_append(source_ids,source->>'id');
   offer_ids:=ARRAY[]::text[];
   FOR item IN SELECT value FROM jsonb_array_elements(source->'items') LOOP
@@ -74,7 +87,7 @@ BEGIN
     IF NOT item ? key OR (item->key <> 'null'::jsonb AND (jsonb_typeof(item->key) IS DISTINCT FROM 'string' OR item->>key !~ '^-?[0-9]{1,15}(\.[0-9]{1,12})?$')) THEN RAISE EXCEPTION 'Invalid item number'; END IF;
    END LOOP;
    IF jsonb_typeof(item->'source'->'sheet') IS DISTINCT FROM 'string' OR length(item->'source'->>'sheet')>255
-    OR COALESCE(item->'source'->>'row','') !~ '^[1-9][0-9]{0,8}$' THEN RAISE EXCEPTION 'Invalid item reference'; END IF;
+    OR jsonb_typeof(item->'source'->'row') IS DISTINCT FROM 'number' OR COALESCE(item->'source'->>'row','') !~ '^[1-9][0-9]{0,8}$' THEN RAISE EXCEPTION 'Invalid item reference'; END IF;
   END LOOP;
   IF cardinality(source_ids)>1 THEN
    links:=document_input->'assignments'->(source->>'id');
@@ -91,6 +104,7 @@ BEGIN
    END LOOP;
   END IF;
   IF source->>'origin'='budget' THEN
+   IF private.budget_access(project_input,'read') IS NOT TRUE THEN RAISE EXCEPTION 'Budget read denied' USING ERRCODE='42501'; END IF;
    IF NOT EXISTS(SELECT 1 FROM public.construction_budget_revisions r WHERE r.id::text=source->>'revisionId' AND r.project_id=project_input AND r.version::text=source->>'revisionVersion' AND r.deleted_at IS NULL) THEN RAISE EXCEPTION 'Budget revision changed or unavailable' USING ERRCODE='40001'; END IF;
   END IF;
  END LOOP;
@@ -106,7 +120,7 @@ BEGIN
   END IF;
  ELSE
   UPDATE public.offer_comparison_views SET title=title_input,document=document_input,version=version+1,updated_at=now()
-  WHERE id=id_input AND project_id=project_input AND version=version_input RETURNING * INTO result;
+  WHERE id=id_input AND project_id=project_input AND version=version_input AND private.offer_comparison_document_access(project_input,document) IS TRUE RETURNING * INTO result;
   IF result.id IS NULL THEN RAISE EXCEPTION 'Comparison changed; reload before saving' USING ERRCODE='40001'; END IF;
  END IF;
  RETURN to_jsonb(result);

@@ -10,6 +10,7 @@ BEGIN
  FOR project IN SELECT value FROM jsonb_array_elements(manifest->'projects') LOOP
   IF NOT EXISTS(SELECT 1 FROM public.offer_comparison_views WHERE project_id=project->>'id') THEN CONTINUE; END IF;
   IF private.offer_comparison_access(project->>'id',false) IS NOT TRUE THEN RAISE EXCEPTION 'Comparison backup access denied' USING ERRCODE='42501'; END IF;
+  IF EXISTS(SELECT 1 FROM public.offer_comparison_views v WHERE v.project_id=project->>'id' AND private.offer_comparison_document_access(v.project_id,v.document) IS NOT TRUE) THEN RAISE EXCEPTION 'Budget comparison backup access denied' USING ERRCODE='42501'; END IF;
   SELECT jsonb_build_object('project_id',project->>'id','organization_id',manifest->>'organization_id','views',jsonb_agg(to_jsonb(v) ORDER BY id))::text INTO payload FROM public.offer_comparison_views v WHERE project_id=project->>'id';
   envelopes:=envelopes||jsonb_build_array(jsonb_build_object('payload',payload,'signature',private.budget_backup_signature(payload)));
  END LOOP;
@@ -31,6 +32,7 @@ BEGIN
    OR private.offer_comparison_access(pid,true) IS NOT TRUE THEN RAISE EXCEPTION 'Foreign comparison backup'; END IF;
   FOR item IN SELECT value FROM jsonb_array_elements(snapshot->'views') LOOP
    entry:=jsonb_populate_record(NULL::public.offer_comparison_views,item);
+   IF private.offer_comparison_document_access(pid,entry.document) IS NOT TRUE THEN RAISE EXCEPTION 'Budget comparison restore access denied' USING ERRCODE='42501'; END IF;
    IF entry.project_id IS DISTINCT FROM pid OR entry.organization_id IS DISTINCT FROM org_id THEN RAISE EXCEPTION 'Foreign comparison entry'; END IF;
    IF EXISTS(SELECT 1 FROM public.offer_comparison_views WHERE id=entry.id AND (project_id<>pid OR organization_id<>org_id OR document IS DISTINCT FROM entry.document)) THEN RAISE EXCEPTION 'Comparison restore conflict'; END IF;
    IF NOT EXISTS(SELECT 1 FROM auth.users WHERE id=entry.created_by) THEN entry.created_by:=NULL; END IF;

@@ -94,7 +94,7 @@ export const logMcpAuditEvent = async (supabase, event, options = {}) => {
       success: event.success,
       error_message: event.errorMessage ?? null,
       request_summary: /^tf_(list_offer_comparisons|match_offer_items|save_offer_comparison)$/.test(event.toolName)
-        ? { projectId: event.requestSummary?.projectId, id: event.requestSummary?.id, documentContentOmitted: true }
+        ? redactForAudit({ projectId: event.requestSummary?.projectId, id: event.requestSummary?.id, documentContentOmitted: true })
         : redactForAudit(event.requestSummary ?? null),
       result_summary: redactForAudit(event.resultSummary ?? null),
     });
