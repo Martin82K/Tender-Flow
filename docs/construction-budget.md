@@ -353,3 +353,8 @@ Přepočet VV v detailu položky je nedostupný, dokud výraz obsahuje nevyřeš
 Zkrácený náhled je označen upozorněním. Omezení platí pouze pro náhled, původní buňky ani soubor se nemění. Limit znaků brání tomu, aby opakované dlouhé shared strings z malého XLSX zahltily renderer.
 
 Oprava podstromu potvrzuje hierarchii všech dotčených řádků; jiné chyby rozpoznání a ocenění se tím nevyřeší. Položku s podřízeným výkazem výměr nebo poznámkami nelze změnit na necenový typ, dokud jejich zařazení neupravíte, aby zdrojové řádky nezmizely z běžného pohledu.
+
+Mapování sloupců VŘ prochází listy tlačítky **Předchozí list / Další list**.
+Pokud se nové skupiny shodují názvem nebo číslem, lze u jedné z nich zvolit
+**Použít nové VŘ** a přiřadit obě skupiny ke společné nové definici. Rozdílné
+kódy se bez vašeho výběru neslučují.

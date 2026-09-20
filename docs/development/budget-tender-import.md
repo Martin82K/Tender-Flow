@@ -195,3 +195,16 @@ PostgreSQL 12 passed / 0 skipped. Nezávislá bezpečnostní revize této revize
 bez nálezu. Finální společný commit vyžaduje novou CI. Root audit zůstává na
 7 známých nálezech v nezměněných závislostech (2 low, 5 moderate); desktop a
 izolovaný PostgreSQL runtime mají 0. Existující varování velkých chunků trvá.
+
+Poslední review doplnilo stránkování mapování po jednom listu a explicitní volbu
+společného nového VŘ pro kolidující zdrojové skupiny (stejný název nebo kód).
+Nabídka společných nových definic je omezená na 100 shod; neplatný odkaz po změně
+cílové skupiny znovu blokuje potvrzení. Neupravuje se automaticky význam rozdílných
+kódů. Upravené kódy JSON vzoru se před kontrolou a odesláním ořezávají.
+
+Registrace bajtově shodného souboru nejprve přes projektovou RLS dohledá aktivní
+ready zdroj mimo koš/purge a vrací jej bez resetu stavu či zápisu do úložiště.
+Historický poskytovatel local používá stejnou desktopovou validaci osobní cesty
+jako onedrive. Na diffu po `a5c34048` / main `0b4af027` prošlo 55 cílených testů
+(po RED pro všech pět nálezů), typecheck a browser desktop/mobil. Dodatečná regrese
+neplatného odkazu na nové VŘ prošla v desetici UI testů. Migrace se nemění.

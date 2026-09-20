@@ -20,6 +20,9 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
   useEffect(()=>setAcknowledged(false),[catalog.data,previous?.id,previous?.version,document]);
   const [choices,setChoices]=useState<Record<string,string>>({}); const [targets,setTargets]=useState<Record<string,string>>({});
   const [actions,setActions]=useState<Record<string,TenderAssignment['action']>>({});
+  const [sheetPage,setSheetPage]=useState(0);
+  const mappingSheets=document.sheets.filter(s=>s.selected&&s.role==='items');
+  const currentSheetPage=Math.min(sheetPage,Math.max(0,mappingSheets.length-1));
   const [groupPage,setGroupPage]=useState(0);const [groupQuery,setGroupQuery]=useState('');
   const [page,setPage]=useState(0); const [query,setQuery]=useState('');
   const [busy,setBusy]=useState(false); const [error,setError]=useState(''); const lock=useRef(false);
@@ -52,19 +55,21 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     return names.length||codes.length?'':'new';
   };
   const categories=new Map(groups.map(g=>[g.key,groupChoice(g)]));
+  const destinationKey=(key:string)=>{const choice=categories.get(key);return choice?.startsWith('new:')?choice.slice(4):key;};
+  const categoryFor=(key:string)=>{const choice=categories.get(key);const destination=destinationKey(key);return choice==='new'||choice?.startsWith('new:')?(categories.get(destination)==='new'?getNewId(destination):''):choice;};
   const targetOf=(m:typeof matches[number])=>Object.hasOwn(targets,m.row.node.id)?targets[m.row.node.id]:m.targetId??'';
   const selectedIds=new Map<string,number>();for(const m of matches){if(categories.get(tenderKey(m.row.externalCode,m.row.name))==='skip')continue;const id=targetOf(m);if(id&&id!=='skip')selectedIds.set(id,(selectedIds.get(id)??0)+1);}
   let unresolved=0; const proposed:TenderAssignment[]=[]; const usedGroups=new Set<string>();
   for(const match of matches){
     const key=tenderKey(match.row.externalCode,match.row.name);const choice=categories.get(key);const target=targetOf(match);
     if(choice==='skip'||target==='skip')continue;
-    if(!choice||!target||(selectedIds.get(target)??0)>1){unresolved++;continue;}
-    const categoryId=choice==='new'?getNewId(key):choice;
+    if(!choice||!categoryFor(key)||!target||(selectedIds.get(target)??0)>1){unresolved++;continue;}
+    const categoryId=categoryFor(key)!;
     const prior=existingByItem.get(target)??[];
     const same=prior.length>0&&prior.every(a=>a.categoryId===categoryId);
     const action=actions[match.row.node.id]??(prior.length?(same?'keep':'unresolved'):'remaining');
     if(action==='unresolved'){unresolved++;continue;}
-    usedGroups.add(key);proposed.push({itemId:target,categoryId,action});
+    usedGroups.add(destinationKey(key));proposed.push({itemId:target,categoryId,action});
   }
   const newCategories:ProjectTender[]=groups.filter(g=>usedGroups.has(g.key)&&categories.get(g.key)==='new').map(g=>({id:getNewId(g.key),title:g.title,externalCode:g.externalCode}));
   const definitionNames=new Set<string>();const definitionCodes=new Set<string>();
@@ -94,7 +99,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
     {mode==='assignments'&&previous!.status==='confirmed'&&<p>Potvrzená revize zůstane zachovaná. Vznikne její pracovní kopie s přiřazením.</p>}
     {!confirmed?<>
       <p>Zkontrolujte navržené sloupce podle skutečných buněk. Každý list může mít jiné rozložení.</p>
-      {document.sheets.filter(s=>s.selected&&s.role==='items').map(sheet=><fieldset key={sheet.id}><legend>{sheet.name}</legend>
+      {mappingSheets.slice(currentSheetPage,currentSheetPage+1).map(sheet=><fieldset key={sheet.id}><legend>{sheet.name}</legend>
         {(['name','code','part','sourceRef'] as const).map((field,index)=><label key={field}>{['Název VŘ','Číslo VŘ (volitelné)','Část / objekt (volitelné)','Zdrojový list a řádek (volitelné)'][index]}
           <ThemedNativeSelect aria-label={`${sheet.name}: ${field}`} value={mapping[sheet.id]?.[field]??''} onChange={e=>{setMapping({...mapping,[sheet.id]:{...mapping[sheet.id],[field]:e.target.value===''?undefined:Number(e.target.value)}});setTargets({});setActions({});setChoices({});setAcknowledged(false);}}>
             <option value="">{field==='name'?'Bez přiřazení z tohoto listu':'Nepoužít'}</option>
@@ -102,6 +107,7 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
           </ThemedNativeSelect></label>)}
         <div className="tf-budget-tender-preview"><table><thead><tr><th>Řádek</th><th>Kód položky</th><th>Číslo VŘ</th><th>Název VŘ</th></tr></thead><tbody>{rows.filter(r=>r.node.sheetId===sheet.id).slice(0,5).map(r=><tr key={r.node.id}><td>{r.node.source.row}</td><td>{r.node.code}</td><td>{r.externalCode||'—'}</td><td>{r.name||'—'}</td></tr>)}</tbody></table></div>
       </fieldset>)}
+      <div><button disabled={currentSheetPage===0} onClick={()=>setSheetPage(currentSheetPage-1)}>Předchozí list</button> {currentSheetPage+1} / {mappingSheets.length} <button disabled={currentSheetPage+1>=mappingSheets.length} onClick={()=>setSheetPage(currentSheetPage+1)}>Další list</button></div>
       <button onClick={()=>setConfirmed(true)} disabled={!named.length}>Potvrdit sloupce a zkontrolovat shody</button>
     </>:<>
       <button disabled={busy} onClick={()=>{setConfirmed(false);setAcknowledged(false);}}>Upravit sloupce</button>
@@ -110,16 +116,17 @@ export function BudgetTenderImport({projectId,sourceId,document,previous,mode,ti
       <div className="tf-budget-tender-groups">{catalog.isPending?<p role="status">Načítání VŘ…</p>:catalog.error?<p role="alert">{catalog.error.message} <button onClick={()=>void catalog.refetch()}>Zkusit znovu</button></p>:visibleGroups.slice(currentGroupPage*30,(currentGroupPage+1)*30).map(group=><label key={group.key}>{group.externalCode} · {group.title}
         <ThemedNativeSelect aria-label={`VŘ: ${group.title}`} disabled={busy} value={groupChoice(group)} onChange={e=>{setChoices({...choices,[group.key]:e.target.value});setActions({});setAcknowledged(false);}}>
           <option value="">Vyřešit shodu názvu / čísla</option><option value="new">Vytvořit nové VŘ v tomto projektu</option><option value="skip">Vynechat tuto skupinu</option>
+          {groups.filter(g=>g.key!==group.key&&categories.get(g.key)==='new'&&(tenderNameKey(g.title)===tenderNameKey(group.title)||!!group.externalCode&&g.externalCode===group.externalCode)).slice(0,100).map(g=><option key={`new:${g.key}`} value={`new:${g.key}`}>Použít nové VŘ: {g.externalCode} · {g.title}</option>)}
           {catalog.data?.map(c=><option key={c.id} value={c.id}>{c.externalCode} · {c.title}</option>)}
         </ThemedNativeSelect></label>)}</div>
       <div><button disabled={currentGroupPage===0} onClick={()=>setGroupPage(currentGroupPage-1)}>Předchozí skupiny</button> {currentGroupPage+1} / {groupPages} <button disabled={currentGroupPage+1>=groupPages} onClick={()=>setGroupPage(currentGroupPage+1)}>Další skupiny</button></div>
       {tooManyCategories&&<p role="alert">Nejvýše 1 000 nových VŘ lze vytvořit jedním importem. Další skupiny přiřaďte k existujícím VŘ nebo je vynechte.</p>}
-      {duplicateDefinitions&&<p role="alert">Nové skupiny mají duplicitní název nebo číslo. Namapujte je na existující VŘ nebo jednu skupinu vynechte.</p>}
+      {duplicateDefinitions&&<p role="alert">Nové skupiny mají duplicitní název nebo číslo. Vyberte společné nové či existující VŘ, nebo skupinu vynechte.</p>}
       <h4>Párování položek a existující vazby</h4>
       <label>Hledat položku<input value={query} onChange={e=>{setQuery(e.target.value);setPage(0);}}/></label>
       <label>Hledat další cílové položky (kód nebo popis)<input value={targetQuery} onChange={e=>setTargetQuery(e.target.value)}/></label>
       <div className="tf-budget-tender-preview"><table><thead><tr><th>Zdroj</th><th>Cílová položka</th><th>Existující přiřazení</th></tr></thead><tbody>{visible.slice(currentPage*30,(currentPage+1)*30).map(match=>{
-        const target=targetOf(match);const prior=existingByItem.get(target)??[];const group=categories.get(tenderKey(match.row.externalCode,match.row.name));const categoryId=group==='new'?getNewId(tenderKey(match.row.externalCode,match.row.name)):group;
+        const target=targetOf(match);const prior=existingByItem.get(target)??[];const categoryId=categoryFor(tenderKey(match.row.externalCode,match.row.name));
         const same=prior.length>0&&prior.every(a=>a.categoryId===categoryId);
         const suggestions=match.candidates.length?match.candidates.map(id=>nodeIndex.get(id)!).filter(Boolean):targetNodes.filter(n=>n.unit===match.row.node.unit&&n.code===match.row.node.code).slice(0,100);
         const searched=targetQuery.trim()?targetNodes.filter(n=>n.unit===match.row.node.unit&&`${n.code} ${n.description}`.toLocaleLowerCase('cs').includes(targetQuery.toLocaleLowerCase('cs'))).slice(0,100):[];

@@ -3,7 +3,7 @@ import { dbAdapter } from '@infra/db/dbAdapter';
 import { budgetApi } from '@features/projects/budget/api/budgetApi';
 import { syncImportedTenderDocHub } from '@features/projects/budget/api/tenderDocHub';
 import type { BudgetDocument } from '@features/projects/budget/model/types';
-vi.mock('@infra/db/dbAdapter',()=>({dbAdapter:{rpc:vi.fn()}}));
+vi.mock('@infra/db/dbAdapter',()=>({dbAdapter:{rpc:vi.fn(),from:vi.fn(),storage:{from:vi.fn(()=>({info:vi.fn(async()=>({error:null}))}))}}}));
 vi.mock('@features/projects/budget/api/tenderDocHub',()=>({syncImportedTenderDocHub:vi.fn()}));
 beforeEach(()=>{vi.clearAllMocks();vi.mocked(syncImportedTenderDocHub).mockResolvedValue();vi.mocked(dbAdapter.rpc).mockResolvedValue({data:{id:'saved'},error:null} as never);});
 it('never persists raw sheet previews outside the server-redacted source cells',async()=>{
@@ -30,4 +30,12 @@ it('never synchronizes folders when the database import fails',async()=>{
   vi.mocked(dbAdapter.rpc).mockResolvedValue({data:null,error:{message:'Denied'}} as never);
   await expect(budgetApi.importTenders('p',{mode:'template',operationId:'op',expectedCatalog:[],newCategories:[],assignments:[]})).rejects.toThrow('Denied');
   expect(syncImportedTenderDocHub).not.toHaveBeenCalled();
+});
+
+it('reuses an active ready source without resetting its status or rewriting storage',async()=>{
+  const source={id:'ready',project_id:'p',status:'ready',storage_path:'immutable.xlsx'};
+  const query={select:vi.fn(()=>query),eq:vi.fn(()=>query),is:vi.fn(()=>query),maybeSingle:vi.fn(async()=>({data:source,error:null}))};vi.mocked(dbAdapter.from).mockReturnValue(query as never);
+  const file=new File(['same'],'same.xlsx');Object.defineProperty(file,'arrayBuffer',{value:async()=>new Uint8Array([1,2,3]).buffer});
+  expect(await budgetApi.registerSource('p',file)).toEqual(source);expect(dbAdapter.rpc).not.toHaveBeenCalled();
+  expect(query.eq).toHaveBeenCalledWith('project_id','p');expect(query.eq).toHaveBeenCalledWith('status','ready');expect(query.is).toHaveBeenCalledWith('deleted_at',null);expect(query.is).toHaveBeenCalledWith('purge_job_id',null);
 });

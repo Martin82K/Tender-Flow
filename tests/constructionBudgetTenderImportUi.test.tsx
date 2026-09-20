@@ -102,3 +102,27 @@ it('groups equivalent new tender names without dropping either item',async()=>{
   await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalled());
   const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];expect(request.newCategories).toHaveLength(1);expect(request.assignments).toHaveLength(2);
 });
+
+it('lets colliding source groups share one explicitly selected new tender',async()=>{
+  vi.mocked(budgetApi.projectTenders).mockResolvedValue([]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['č. VŘ','Název VŘ','Typ','Kód','Popis','MJ','Množství','J.cena','Celkem'],
+    ['02','Práce','K','1','První','m2',1,1,1],['','Práce','K','2','Druhá','m2',1,1,1]]),'SO');
+  const document=parseKrosWorkbook(wb);vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:{id:'r'} as BudgetRevision,createdCategoryIds:[]});
+  render(<QueryClientProvider client={new QueryClient()}><BudgetTenderImport projectId="p" sourceId="s" document={document} mode="revision" title="Nová" allocations={[]} onBack={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()}/></QueryClientProvider>);
+  fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findAllByLabelText('VŘ: Práce');
+  fireEvent.change(screen.getAllByLabelText('VŘ: Práce')[1],{target:{value:'new:'+JSON.stringify(['02','práce'])}});
+  fireEvent.change(screen.getAllByLabelText('VŘ: Práce')[0],{target:{value:'skip'}});
+  fireEvent.click(screen.getByRole('checkbox'));expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
+  fireEvent.change(screen.getAllByLabelText('VŘ: Práce')[0],{target:{value:'new'}});
+  fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByText('Potvrdit import přiřazení'));
+  await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalled());
+  const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];expect(request.newCategories).toHaveLength(1);expect(request.assignments).toHaveLength(2);expect(new Set(request.assignments.map(a=>a.categoryId)).size).toBe(1);
+});
+it('renders column mapping for only one sheet at a time while retaining all sheet mappings',()=>{
+  const wb=XLSX.utils.book_new();for(let i=0;i<12;i++)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','Název VŘ'],['K','1','Položka','m2',1,1,1,'Práce']]),`SO${i}`);
+  const document=parseKrosWorkbook(wb);
+  render(<QueryClientProvider client={new QueryClient()}><BudgetTenderImport projectId="p" sourceId="s" document={document} mode="revision" title="Nová" allocations={[]} onBack={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()}/></QueryClientProvider>);
+  expect(screen.getAllByRole('group')).toHaveLength(1);expect(screen.getByLabelText('SO0: name')).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Další list'));expect(screen.getByLabelText('SO1: name')).toBeInTheDocument();expect(screen.queryByLabelText('SO0: name')).not.toBeInTheDocument();
+});
