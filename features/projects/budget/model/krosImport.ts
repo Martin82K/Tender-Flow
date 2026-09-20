@@ -30,7 +30,7 @@ export function inspectXlsxArchive(input: Uint8Array | ArrayBuffer): void {
   if (!workbook || !contentTypes) throw new Error('Soubor není sešit XLSX.');
 }
 const text = (v: unknown) => v === undefined || v === null ? '' : String(v);
-export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: number, total: number) => void, overrides: KrosMapping = {}): BudgetDocument {
+export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: number, total: number) => void, overrides: KrosMapping = {}, identityOnly = false): BudgetDocument {
   if (workbook.SheetNames.length > XLSX_LIMITS.sheets) throw new Error('Příliš mnoho listů.');
   const document: BudgetDocument = { schemaVersion: 1, sheets: [], nodes: [], issues: [], figures: {} };
   const figureSources = new Map<string, FigureSource[]>();
@@ -42,14 +42,15 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null, blankrows: true, range: { s: { r: 0, c: 0 }, e: range.e } });
     const override=Object.hasOwn(overrides,name)?overrides[name]:{};
     const detected = detectBudgetLayout(rows);
-    const header=override.headerRow !== undefined ? override.headerRow-1 : detected?.header ?? -1;
+    const identityHeader=identityOnly?rows.findIndex(row=>{const labels=row.map(v=>normalizeSearch(text(v)).trim());return labels.includes('typ')&&labels.some(v=>v==='kod'||v==='kod polozky')&&labels.some(v=>v==='popis'||v==='nazev polozky')&&labels.includes('mj');}):-1;
+    const header=override.headerRow !== undefined ? override.headerRow-1 : detected?.header ?? identityHeader;
     if(!Number.isInteger(header)||header>=rows.length||header < -1||override.headerRow===0)throw new Error("Neplatný řádek hlavičky.");
     const layout = detectBudgetLayout(rows, header);
-    const format = (override.format === 'auto' ? undefined : override.format) ?? layout?.format;
+    const format = (override.format === 'auto' ? undefined : override.format) ?? layout?.format ?? (identityOnly&&rows[header]?.some(v=>normalizeSearch(text(v))==='kod polozky')?'globus':undefined);
     const globus = format === 'globus';
     const columns = (rows[header] ?? []).map(v => normalizeSearch(text(v)));
     const col = (pattern: RegExp) => columns.findIndex(v => pattern.test(v));
-    const mapping = { kind: col(/^typ$/), code: col(/^kod$/), description: col(/^popis$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...layout?.columns, ...override.columns };
+    const mapping = { kind: col(/^typ$/), code: col(/^kod( polozky)?$/), description: col(/^(popis|nazev polozky)$/), unit: col(/^mj$/), quantity: col(/^mnozstvi$/), unitPrice: col(/^j\.?\s*cena/), total: col(/^(cena celkem|celkem)/), ...layout?.columns, ...override.columns };
     const sheetId = `sheet:${sheetIndex}`;
     const heading = rows.slice(0, 30).flat().map(text).join(' ');
     const role: BudgetSheet['role'] = override.role ?? (header >= 0 ? 'items' : /rekapitulace/i.test(heading) ? 'summary' : /seznam figur/i.test(heading + name) ? 'figures' : /pokyny/i.test(heading + name) ? 'instructions' : 'unknown');
@@ -94,7 +95,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
     if (role !== 'items') { progress?.(sheetIndex + 1, workbook.SheetNames.length); continue; }
     if(header<0){document.issues.push({sheet:name,row:1,severity:'error',message:'Zvolte hlavičku a mapování sloupců.'});continue;}
     document.sheets[document.sheets.length-1].columns=mapping;
-    if (Object.entries(mapping).some(([key,v]) => !(key === 'depth' && v === -1) && (!Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns))) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
+    if (Object.entries(mapping).filter(([key])=>!identityOnly||['kind','code','description','unit'].includes(key)).some(([key,v]) => !(key === 'depth' && v === -1) && (!Number.isInteger(v) || v < 0 || v >= XLSX_LIMITS.columns))) { document.issues.push({ sheet: name, row: header + 1, severity: 'error', message: 'Chybí požadovaný sloupec; upravte mapování ve zdrojovém sešitu.' }); continue; }
     const objectId = `object:${object}`;
     const source = { sheet: name, row: 0, cells: {} };
     const base = { code: '', unit: '', quantity: null, unitPrice: null, total: null, sourceType: '', tags: [], tenders: [] };
@@ -112,7 +113,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
       for (let c = 0; c <= range.e.c; c++) {
         const address = XLSX.utils.encode_cell({ r, c }); const cell = sheet[address]; if (!cell) continue;
         if (text(cell.v).length > XLSX_LIMITS.text || (cell.f?.length ?? 0) > XLSX_LIMITS.text) throw new Error('Text buňky překročil limit.');
-        cells[address] = { value: cell.t === 'e' ? null : cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}) };
+        cells[address] = { value: cell.t === 'e' ? null : cell.v ?? null, ...(cell.f ? { formula: cell.f } : {}), ...(cell.t === 'n' && /^0+$/.test(cell.z ?? '') ? {displayText:XLSX.utils.format_cell(cell)} : {}) };
       }
       const number = (column: number): string | null => {
         const cell = sheet[XLSX.utils.encode_cell({ r, c: column })];
@@ -137,14 +138,14 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         sections.length = Math.min(depth, 32, sections.length); parentId = sections.at(-1) || sheetId; sections.push(id); lastItem = null;
       } else if (kind === 'VV' || kind === 'note') parentId = lastItem || parentId;
       else lastItem = id;
-      const priced = kind === 'K' || kind === 'M'; const quantity = (priced || kind === 'VV') ? number(mapping.quantity) : null;
-      const unitPrice = priced ? number(mapping.unitPrice) : null; const rawTotal = priced ? number(mapping.total) : null;
+      const priced = kind === 'K' || kind === 'M'; const quantity = !identityOnly && (priced || kind === 'VV') ? number(mapping.quantity) : null;
+      const unitPrice = !identityOnly && priced ? number(mapping.unitPrice) : null; const rawTotal = !identityOnly && priced ? number(mapping.total) : null;
       let total: string | null = null;
       if (rawTotal !== null) {
         try { total = money(rawTotal); decimal(total); }
         catch { total = null; document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Cena po zaokrouhlení přesahuje limit 24 číslic.' }); }
       }
-      if (priced && (quantity === null || unitPrice === null || total === null)) document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Položka nemá úplné ocenění; prázdná hodnota není nula.' });
+      if (!identityOnly && priced && (quantity === null || unitPrice === null || total === null)) document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Položka nemá úplné ocenění; prázdná hodnota není nula.' });
       if (priced && quantity !== null && unitPrice !== null && total !== null) {
         try { if (multiplyMoney(quantity, unitPrice) !== total) document.issues.push({ sheet: name, row: r + 1, severity: 'warning', message: 'Uložená cena se liší od množství × jednotkové ceny.' }); }
         catch { document.issues.push({ sheet: name, row: r + 1, severity: 'error', message: 'Množství × jednotková cena přesahuje limit 24 číslic.' }); }
@@ -168,7 +169,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
   }
   return document;
 }
-export function readKrosFile(bytes: Uint8Array, progress?: (done: number, total: number) => void, overrides: KrosMapping = {}): BudgetDocument {
+export function readKrosFile(bytes: Uint8Array, progress?: (done: number, total: number) => void, overrides: KrosMapping = {}, identityOnly = false): BudgetDocument {
   inspectXlsxArchive(bytes);
-  return parseKrosWorkbook(XLSX.read(bytes, { type: 'array', cellFormula: true, cellHTML: false, cellStyles: false, bookVBA: false }), progress, overrides);
+  return parseKrosWorkbook(XLSX.read(bytes, { type: 'array', cellFormula: true, cellHTML: false, cellStyles: false, cellNF: true, bookVBA: false }), progress, overrides, identityOnly);
 }
