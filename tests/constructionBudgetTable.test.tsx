@@ -2,7 +2,8 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BudgetTable, DEFAULT_COLUMNS } from '@features/projects/budget/ui/BudgetTable';
-import type { BudgetNode } from '@features/projects/budget/model/types';
+import { applyBudgetItemEdit } from '@features/projects/budget/model/revisions';
+import type { BudgetDocument, BudgetNode } from '@features/projects/budget/model/types';
 import type { BudgetFilters } from '@features/projects/budget/model/budgetModel';
 
 // jsdom has no layout. Supply geometry while exercising the real virtualizer.
@@ -276,4 +277,19 @@ it('keeps untouched price errors when only the full detail description changes',
  fireEvent.change(screen.getByLabelText('Úplný popis'),{target:{value:'Jiný popis'}});
  await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Uložit změnu'}));});
  await vi.waitFor(()=>expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({description:'Jiný popis',unitPrice:null,total:null}),['description']));
+});
+
+it('does not mark an unchanged unpriced total as repaired when saving quantity', async () => {
+  const unpriced = { ...item, unitPrice: null, total: null };
+  const document: BudgetDocument = { schemaVersion: 1, figures: {}, nodes: [unpriced],
+    sheets: [{ id: 's', name: 'Soupis', columns: { quantity: 4, unitPrice: 5, total: 6 } } as BudgetDocument['sheets'][number]],
+    issues: [{ sheet: 'Soupis', row: 1, severity: 'error', message: 'Neplatná nebo chybějící hodnota G.' }] };
+  const onEdit = vi.fn(async (edited: BudgetNode, fields?: readonly string[]) => {
+    expect(applyBudgetItemEdit(document, edited, fields).issues).toEqual(document.issues);
+  });
+  render(<BudgetTable {...table().props} nodes={[unpriced]} editable onEdit={onEdit}/>);
+  const row = screen.getByRole('button', { name: item.description }).closest('[role="row"]') as HTMLElement;
+  fireEvent.doubleClick(within(row).getByText('12'));
+  await act(async () => { fireEvent.keyDown(screen.getByRole('textbox', { name: 'Upravit Množství' }), { key: 'Enter' }); });
+  expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ quantity: '12', total: null }), ['quantity']);
 });

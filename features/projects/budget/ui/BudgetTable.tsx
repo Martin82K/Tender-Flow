@@ -54,7 +54,7 @@ export function BudgetTable(props: Props) {
     try{
       const edited={...cell.node,[cell.column.key]:cell.column.numeric?decimal(cell.value):cell.value};
       if(cell.column.numeric)edited.total=edited.quantity!==null&&edited.unitPrice!==null?multiplyMoney(edited.quantity,edited.unitPrice):null;
-      await onEdit(edited,[cell.column.key,...(cell.column.numeric?['total']:[])]);setCell(null);
+      await onEdit(edited,[cell.column.key,...(cell.column.numeric&&edited.total!==cell.node.total?['total']:[])]);setCell(null);
     }catch(error){setEditError(error instanceof Error?error.message:'Uložení selhalo.');}
     finally{editLock.current=false;setBusy(false);}
   };

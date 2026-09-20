@@ -94,3 +94,22 @@ sjednocuje whitespace klíč názvu se stávajícím importem a klientem a vrac�
 Neuděluje nová oprávnění, nemění granty ani RLS. Import vzoru si zachovává
 původní přísnější oprávnění. RED: 4 UI/model scénáře a 1 SQL scénář;
 GREEN: 76 cílených testů a 11 editorových PostgreSQL testů.
+
+Navazující oprava PR #495 (`20260920195705`) ruší globální výjimku zámku
+pro čekající mazací úlohu. Jen autorizované zahájení/dokončení mazání dočasně
+odemyká rozpočet uvnitř transakce pod zámkem projektu. Zahájení původní stav
+obnoví; selhání transakce vrátí i stav zámku. Mezi fázemi zůstávají revize
+i identita VŘ chráněné. Regrese zahrnují opakování, neplatnou úlohu,
+zbývající Storage soubory, chybějící oprávnění/předplatné, izolaci projektu,
+anonymizaci autora a obnovu zálohy. Autorizační helpery musí vrátit true.
+Validátor kontroluje také skutečně ukládanou délku názvu po btrim.
+Buněčný editor předává odvozené total jen při změně hodnoty; uložení množství
+neodstraňuje chybu jiného zdrojového sloupce s neplatnou cenou.
+
+Ověření pracovního diffu nad `a4376595`, integrační základna `7517c42c`:
+- Před opravou: 1 buněčný a 2 PostgreSQL regresní scénáře očekávaně RED.
+- `npm run test:run -- tests/constructionBudgetTable.test.tsx tests/constructionBudgetRevisions.test.ts`: 24 PASS.
+- `PGLITE_MODULE=... node --test tests/postgres/budgetEditor.test.mjs`: 14 PASS, žádné skipped/todo; izolovaná databáze se syntetickými daty, autorizační helpery stubované.
+- `npm run typecheck`: PASS; testovací PGlite 0.5.8 z existujícího lockfile má nulový audit, ověřený registry podpis a provenance.
+- Začleněná lokální rekapitulace: 34 testů rekapitulace/nastavení PASS, obsah zachovaný spolu s novějšími opravami PR.
+Finální CI, nezávislé review a cloudový postflight se ověřují pro finální commit.

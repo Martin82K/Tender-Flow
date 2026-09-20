@@ -21,7 +21,7 @@ async function fixture(){
     CREATE TABLE auth.users(id uuid PRIMARY KEY);
     CREATE TABLE public.organizations(id uuid PRIMARY KEY);
     CREATE TABLE public.projects(id text PRIMARY KEY,organization_id uuid,owner_id uuid);
-    CREATE TABLE public.demand_categories(id text PRIMARY KEY,project_id text REFERENCES projects(id),title text,status text,description text,budget_display text,sod_budget numeric,plan_budget numeric);
+    CREATE TABLE public.demand_categories(id text PRIMARY KEY,project_id text REFERENCES projects(id) ON DELETE CASCADE,title varchar(255),status text,description text,budget_display text,sod_budget numeric,plan_budget numeric);
     CREATE FUNCTION public.can_project_module_action(text,text,boolean) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT $1='p' AND $2='module_pipeline' AND current_setting('test.pipeline',true)='yes' $$;
     CREATE FUNCTION private.budget_access(text,text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT auth.uid() IS NOT NULL AND $1='p' AND current_setting('test.'||$2,true)='yes' $$;
     CREATE FUNCTION public.has_project_share_permission(text,uuid,text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
@@ -41,8 +41,14 @@ async function fixture(){
   for(const scope of ['user','tenant'])await db.exec(`CREATE FUNCTION public.restore_${scope}_backup_without_offer_deadline_20260817(backup_json jsonb,target_org_id uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ DECLARE cnt_categories integer:=0; item jsonb; BEGIN FOR item IN SELECT value FROM jsonb_array_elements(backup_json->'demand_categories') LOOP IF item->>'project_id'='p' THEN cnt_categories := cnt_categories + 1; END IF; END LOOP; RETURN '{}'::jsonb; END $$;`);
   await db.exec(read('20260321130000_harden_clone_tender_rpc_ownerless_access.sql'));
   await db.exec(migration);
-  await db.exec(`CREATE TABLE private.construction_budget_preferences(project_id text PRIMARY KEY REFERENCES projects(id),revision_id uuid);
-    CREATE TABLE private.construction_budget_purge_jobs(project_id text,deletes_project boolean,completed_at timestamptz);
+  await db.exec(`CREATE TABLE private.construction_budget_preferences(project_id text PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,revision_id uuid);
+    CREATE TABLE private.construction_budget_purge_jobs(project_id text,deletes_project boolean,completed_at timestamptz,id uuid PRIMARY KEY DEFAULT gen_random_uuid(),actor_id uuid,revision_ids uuid[],source_ids uuid[]);
+    ALTER TABLE construction_budget_sources ADD purge_job_id uuid;
+    ALTER TABLE construction_budget_revisions ADD purge_job_id uuid;
+    CREATE SCHEMA storage; CREATE TABLE storage.objects(bucket_id text,name text);
+    CREATE FUNCTION public.can_project_action(text,text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT $1='p' AND auth.uid()='00000000-0000-0000-0000-000000000001'::uuid AND current_setting('test.delete',true)='yes' $$;
+    CREATE FUNCTION public.has_project_subscription(text) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT current_setting('test.subscription',true)='yes' $$;
+    SET test.delete='yes'; SET test.subscription='yes';
     CREATE FUNCTION private.budget_load(text,uuid DEFAULT NULL) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN IF NOT private.budget_access($1,'read') THEN RAISE EXCEPTION 'denied'; END IF; RETURN '{}'::jsonb; END $$;
     CREATE FUNCTION public.create_project_with_team(project_id_input text,name_input text,location_input text,status_input text,organization_id_input uuid,team_input jsonb DEFAULT '[]') RETURNS text LANGUAGE plpgsql AS $$ DECLARE member jsonb; BEGIN INSERT INTO projects VALUES(project_id_input,organization_id_input,auth.uid()); FOR member IN SELECT value FROM jsonb_array_elements(team_input) LOOP NULL; END LOOP; RETURN project_id_input; END $$;
     CREATE FUNCTION private.budget_backup_export(jsonb) RETURNS jsonb LANGUAGE sql AS $$ SELECT $1 $$;
@@ -54,6 +60,7 @@ async function fixture(){
   if(!process.env.BUDGET_UX_RED)await db.exec(read('20260920182433_budget_lock_and_personal_tenders.sql'));
   await db.exec(read('20260920190558_harden_budget_catalog_guards.sql'));
   await db.exec(read('20260920193400_align_budget_catalog_permissions_and_names.sql'));
+  await db.exec(read('20260920195705_scope_budget_delete_lock_bypass.sql'));
   return db;
 }
 
@@ -137,8 +144,8 @@ test('keeps account anonymization and authorized project deletion possible while
    await db.exec('ALTER TABLE construction_budget_revisions ALTER COLUMN created_by DROP NOT NULL');
    await db.exec('UPDATE construction_budget_revisions SET created_by=NULL');
    await assert.rejects(db.exec("UPDATE construction_budget_revisions SET created_by=NULL,title='bad'"),/uzamčen/);
-   await db.exec("INSERT INTO private.construction_budget_purge_jobs VALUES('p',true,NULL)");
-   await db.exec('DELETE FROM construction_budget_revisions; DELETE FROM construction_budget_sources');
+   await db.exec("INSERT INTO private.construction_budget_purge_jobs(project_id,deletes_project,completed_at) VALUES('p',true,NULL)");
+   await assert.rejects(db.exec('DELETE FROM construction_budget_revisions'),/uzamčen/);
    await db.exec("SET test.actor='00000000-0000-0000-0000-000000000009'");await defaults(db,definitions,0);
    await db.exec("DELETE FROM auth.users WHERE id='00000000-0000-0000-0000-000000000009'");
    assert.equal((await db.query("SELECT count(*)::int n FROM private.personal_tender_defaults")).rows[0].n,0);
@@ -156,15 +163,15 @@ test('provides a shared starting catalog to every new user and preserves explici
  }finally{await db.close();}
 });
 
-test('guards direct tender identity writes while locked but permits pipeline status and authorized purge',async()=>{
+test('guards direct tender identity writes while locked but permits pipeline status',async()=>{
  const db=await fixture();try{
   await lock(db,true);
   await assert.rejects(db.exec("UPDATE demand_categories SET title='changed' WHERE id='existing'"),/uzamčen/);
   await assert.rejects(db.exec("INSERT INTO demand_categories(id,project_id,title) VALUES('new','p','New')"),/uzamčen/);
   await assert.rejects(db.exec("DELETE FROM demand_categories WHERE id='existing'"),/uzamčen/);
   await db.exec("UPDATE demand_categories SET status='closed' WHERE id='existing'");
-  await db.exec("INSERT INTO private.construction_budget_purge_jobs VALUES('p',true,NULL)");
-  await db.exec("DELETE FROM demand_categories WHERE id='existing'");
+  await db.exec("INSERT INTO private.construction_budget_purge_jobs(project_id,deletes_project,completed_at) VALUES('p',true,NULL)");
+  await assert.rejects(db.exec("DELETE FROM demand_categories WHERE id='existing'"),/uzamčen/);
  }finally{await db.close();}
 });
 test('edits a project catalog larger than personal defaults without relaxing the personal limit',async()=>{
@@ -186,5 +193,44 @@ test('rejects whitespace-equivalent tender names and reports pipeline editing se
   assert.equal((await db.query("SELECT construction_budget_load('p') result")).rows[0].result.permissions.editTenders,true);
   await db.exec("SET test.pipeline='no'");
   assert.equal((await db.query("SELECT construction_budget_load('p') result")).rows[0].result.permissions.editTenders,false);
+ }finally{await db.close();}
+});
+
+test('rejects overlong stored titles even when whitespace normalization is short',async()=>{
+ const db=await fixture();try{
+  const title='A'+' '.repeat(300)+'B';
+  await assert.rejects(defaults(db,[{...definitions[0],title}],0),/platné/);
+  const base=[{id:'existing',title:'Existující',externalCode:''}];
+  await assert.rejects(db.query("SELECT save_project_tender_catalog('p',$1,$2)",[base,[{...base[0],title}]]),/platné/);
+ }finally{await db.close();}
+});
+test('does not let a pending project deletion bypass locked revisions or tender identity',async()=>{
+ const db=await fixture();try{
+  await lock(db,true);
+  await db.exec("INSERT INTO private.construction_budget_purge_jobs(project_id,deletes_project,completed_at) VALUES('p',true,NULL)");
+  await assert.rejects(db.exec("UPDATE construction_budget_revisions SET title='changed'"),/uzamčen/);
+  await assert.rejects(db.exec("UPDATE demand_categories SET title='changed' WHERE id='existing'"),/uzamčen/);
+ }finally{await db.close();}
+});
+
+test('scopes unlock to authorized delete transactions, preserves retries and rolls back failed completion',async()=>{
+ const db=await fixture();try{
+  await lock(db,true);
+  const start=()=>db.query("SELECT private.budget_project_delete_start('p') result").then(r=>r.rows[0].result);
+  const finish=id=>db.query("SELECT private.budget_project_delete_finish('p',$1)",[id]);
+  await db.exec("SET test.delete='no'");await assert.rejects(start(),/denied/);
+  await db.exec("SET test.delete='yes'");
+  const job=await start();assert.equal((await start()).id,job.id);
+  assert.equal((await db.query("SELECT locked FROM private.budget_edit_locks WHERE project_id='p'")).rows[0].locked,true);
+  await assert.rejects(db.exec("UPDATE demand_categories SET title='changed' WHERE id='existing'"),/uzamčen/);
+  await assert.rejects(finish(randomUUID()),/Invalid deletion job/);
+  await db.exec("INSERT INTO storage.objects VALUES('construction-budgets','p/file')");
+  await assert.rejects(finish(job.id),/odstranit soubory/);
+  assert.equal((await db.query("SELECT locked FROM private.budget_edit_locks WHERE project_id='p'")).rows[0].locked,true);
+  await db.exec("DELETE FROM storage.objects; SET test.subscription='no'");await assert.rejects(finish(job.id),/denied/);
+  await db.exec("SET test.subscription='yes'; SET test.delete='no'");await assert.rejects(finish(job.id),/denied/);
+  await db.exec("SET test.delete='yes'");await finish(job.id);await finish(job.id);
+  assert.equal((await db.query("SELECT count(*)::int n FROM projects WHERE id='p'")).rows[0].n,0);
+  assert.equal((await db.query("SELECT count(*)::int n FROM projects WHERE id='foreign'")).rows[0].n,1);
  }finally{await db.close();}
 });
