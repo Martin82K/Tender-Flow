@@ -70,8 +70,12 @@ Verzovaná migrace: `20260920112056_budget_tender_import.sql`.
    aditivní schema; sloupec ani audit operací nemažte a nevracejte uživatelské alokace
    hromadnou destruktivní migrací. Opravy nasazovat další verzovanou migrací.
 
-Externí dokumentové složky nejsou součástí databázové transakce; tento import ukládá
-definice VŘ. Návazné dokumentové operace používají existující workflow VŘ. Produkční
+Externí dokumentové složky nejsou součástí databázové transakce. Po úspěšném RPC
+se vrácená nová VŘ synchronizují přes existující cloudový upsert nebo lokální
+ensureStructure s ověřenou osobní cestou. Dotazy jsou omezené na daný projekt,
+cloudové požadavky na čtyři souběžná volání. Lokální synchronizace vyžaduje desktop.
+Selhání složek vrací upozornění u úspěšného importu; zápis se neopakuje a složky
+lze doplnit v nastavení DocHubu. Opakovaná synchronizace používá stejné identity. Produkční
 průchod proti skutečné cílové revizi nelze nahradit porovnáním souboru se sebou samým.
 
 ## Ověření podle dopadu
@@ -164,3 +168,16 @@ Ověření pracovního diffu po bd1d9cc8 na main 67bc303d: cílený Vitest impor
 dialogu a VŘ má 33 passed; PostgreSQL průchod má 12 passed, 0 skipped/todo.
 Nové scénáře nejprve prokázaly RED. Typecheck a browser průchod bez console/page
 chyb prošly. Finální CI musí proběhnout pro publikovanou revizi.
+
+Navazující review sjednotilo klíče VŘ podle normalizovaných názvů (mezery a velikost
+písmen) a zachovalo původní cílovou revizi po dobu otevřeného dialogu. Změna hlavní
+revize při refetchi nesmí změnit cíl ani způsobit pád; server nadále kontroluje
+verzi zachyceného cíle. RED/GREEN testy ověřují obě vazby i synchronizaci DocHubu
+po commitu. Chyba RPC nikdy nespouští složky, chyba složek neruší uložená data.
+
+Na diffu po 7c4b75c7 (main 67bc303d) prošlo 74 cílených testů importu, persistence,
+DocHubu a architektury. Dvě další bezpečnostní regrese následně prošly v desetici
+persistence/DocHub testů. Typecheck, web build, browser desktop/mobil a docs prošly;
+hranice zůstávají bez nových výjimek (36), legacy importů 126 a frozen souborů 111.
+Graf má 684 uzlů, 2144 hran, 1828 vyřešených a 316 očekávaných externích odkazů.
+Testy DocHubu používají mockované cloudové i lokální služby, nikoli skutečné složky.

@@ -20,15 +20,15 @@ function setup(allocations:BudgetRevision['allocations']=[],duplicate=false,fall
   render(<QueryClientProvider client={client}><BudgetTenderImport projectId="p" sourceId="incoming" document={document} previous={previous} mode="assignments" title="Import" allocations={[]} onBack={vi.fn()} onComplete={onComplete} onBusyChange={vi.fn()}/></QueryClientProvider>);
   return {previous,onComplete,client};
 }
-it('confirms detected columns and sends only assignments, never imported prices or quantities',async()=>{
-  const {previous,onComplete}=setup();vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:previous,createdCategoryIds:[]});
+it.each([undefined,'Import uložen, dokončete složky v DocHubu.'])('confirms columns and forwards the saved result with optional folder warning (%s)',async warning=>{
+  const {previous,onComplete}=setup();vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:previous,createdCategoryIds:[],docHubWarning:warning});
   expect(screen.getByLabelText('SO: name')).toHaveValue('1');
   fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));
   await screen.findByLabelText('VŘ: Práce');
   expect(screen.getByText('Potvrdit import přiřazení')).toBeDisabled();
   fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByText('Potvrdit import přiřazení'));
-  await waitFor(()=>expect(onComplete).toHaveBeenCalledWith(previous));
+  await waitFor(()=>expect(onComplete).toHaveBeenCalledWith(previous,warning));
   const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];
   expect(request).toMatchObject({mode:'assignments',revisionId:'revision',version:3,assignments:[{itemId:'sheet:0:row:2',categoryId:'tender',action:'remaining'}]});
   expect(request).not.toHaveProperty('document');expect(request).not.toHaveProperty('allocations');
@@ -86,4 +86,19 @@ it('pages large tender group lists and blocks creating over 1000 categories befo
   fireEvent.change(screen.getByLabelText('VŘ: Skupina 1000'),{target:{value:'skip'}});
   expect(screen.queryByText(/Nejvýše 1 000 nových VŘ/)).not.toBeInTheDocument();
   expect(budgetApi.importTenders).not.toHaveBeenCalled();
+});
+
+it('groups equivalent new tender names without dropping either item',async()=>{
+  vi.mocked(budgetApi.projectTenders).mockResolvedValue([]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Typ','Kód','Popis','MJ','Množství','J.cena','Celkem','Název VŘ'],
+    ['K','1','První','m2',1,1,1,'Práce HSV'],['K','2','Druhá','m2',1,1,1,'práce  hsv']]),'SO');
+  const document=parseKrosWorkbook(wb);const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+  render(<QueryClientProvider client={client}><BudgetTenderImport projectId="p" sourceId="s" document={document} mode="revision" title="Nová" allocations={[]} onBack={vi.fn()} onComplete={vi.fn()} onBusyChange={vi.fn()}/></QueryClientProvider>);
+  fireEvent.click(screen.getByText('Potvrdit sloupce a zkontrolovat shody'));await screen.findByLabelText(/^VŘ: /);
+  expect(screen.getAllByLabelText(/^VŘ: /)).toHaveLength(1);
+  fireEvent.click(screen.getByRole('checkbox'));expect(screen.getByText('Potvrdit import přiřazení')).not.toBeDisabled();
+  fireEvent.click(screen.getByText('Potvrdit import přiřazení'));
+  await waitFor(()=>expect(budgetApi.importTenders).toHaveBeenCalled());
+  const request=vi.mocked(budgetApi.importTenders).mock.calls[0][1];expect(request.newCategories).toHaveLength(1);expect(request.assignments).toHaveLength(2);
 });

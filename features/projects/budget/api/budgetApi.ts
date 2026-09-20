@@ -18,9 +18,14 @@ export const budgetApi = {
     const rows = unwrap<Array<{id:string;title:string;external_code:string|null}>>(await supabase.from('demand_categories').select('id,title,external_code').eq('project_id',projectId).order('id'));
     return rows.map(row=>({id:row.id,title:row.title,externalCode:row.external_code??''}));
   },
-  async importTenders(projectId: string, request: TenderImportRequest): Promise<{revision:BudgetRevision|null;createdCategoryIds:string[]}> {
+  async importTenders(projectId: string, request: TenderImportRequest): Promise<{revision:BudgetRevision|null;createdCategoryIds:string[];docHubWarning?:string}> {
     const payload = request.document ? {...request,document:{...request.document,sheets:request.document.sheets.map(sheet=>{const stored={...sheet};delete stored.sourcePreview;return stored;})}} : request;
-    return unwrap(await supabase.rpc('construction_budget_import_tenders',{project_input:projectId,request_input:payload}));
+    const result=unwrap<{revision:BudgetRevision|null;createdCategoryIds:string[]}>(await supabase.rpc('construction_budget_import_tenders',{project_input:projectId,request_input:payload}));
+    if(result.createdCategoryIds.length){
+      try{const {syncImportedTenderDocHub}=await import('./tenderDocHub');await syncImportedTenderDocHub(projectId,result.createdCategoryIds);}
+      catch{return {...result,docHubWarning:'Import je uložený. Složky nových VŘ se nepodařilo synchronizovat; dokončete jejich vytvoření v nastavení DocHubu (lokální složky v desktopové aplikaci).'};}
+    }
+    return result;
   },
   async purge(projectId: string, jobId: string, selection: BudgetPurgeSelection): Promise<void> {
     const job = unwrap<BudgetPurgeJob & { paths: string[]; completed: boolean }>(await supabase.rpc('construction_budget_purge_start', {

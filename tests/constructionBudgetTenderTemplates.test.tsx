@@ -34,3 +34,12 @@ it('lets the user exclude a selected definition after editing it to an existing 
   fireEvent.click(screen.getAllByRole('checkbox')[0]);
   expect(screen.getByText('Vytvořit 1 VŘ v tomto projektu')).not.toBeDisabled();
 });
+
+it('shows a post-save DocHub warning without offering the same definitions again',async()=>{
+  vi.mocked(budgetApi.importTenders).mockResolvedValue({revision:null,createdCategoryIds:['new'],docHubWarning:'Data uložena, dokončete složky v DocHubu.'});
+  setup();await upload([{title:'Nové',externalCode:'02'}]);
+  fireEvent.click(screen.getByText('Vytvořit 1 VŘ v tomto projektu'));
+  expect(await screen.findByRole('status')).toHaveTextContent('dokončete složky v DocHubu');
+  expect(screen.queryByText('Vytvořit 1 VŘ v tomto projektu')).not.toBeInTheDocument();
+  expect(budgetApi.importTenders).toHaveBeenCalledTimes(1);
+});

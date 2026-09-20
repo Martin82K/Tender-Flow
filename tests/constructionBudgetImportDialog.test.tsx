@@ -376,3 +376,13 @@ it('returns a parsed new-revision source to attachment while awaiting confirmati
   await screen.findByRole('button',{name:'Vytvořit rozpočet'});
   expect(vi.mocked(budgetApi.sourceStatus).mock.calls.map(call=>call[1])).toEqual(['processing','attachment']);
 });
+
+it('retains the assignment target when the parent revision query temporarily disappears',async()=>{
+  vi.mocked(budgetApi.registerSource).mockResolvedValue({...editorSource,status:'attachment'});
+  vi.mocked(importInWorker).mockResolvedValue(editorDocument());
+  const props={canAllocate:true,canImportTenders:true,projectId:'p',onClose:vi.fn(),onComplete:vi.fn()};
+  const {rerender}=render(<BudgetImportDialog {...props} previous={editorRevision()}/>);
+  fireEvent.click(screen.getByRole('radio',{name:/Pouze převzít přiřazení/}));
+  rerender(<BudgetImportDialog {...props} previous={undefined}/>);
+  expect(screen.getByRole('radio',{name:/Pouze převzít přiřazení/})).toBeChecked();
+});

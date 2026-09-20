@@ -33,8 +33,8 @@ export function BudgetTenderTemplates({projectId,onClose}:{projectId:string;onCl
     try{
       const request={mode:'template' as const,expectedCatalog:catalog.data,newCategories:chosen,assignments:[]};
       const signature=JSON.stringify(request);if(operation.current?.signature!==signature)operation.current={signature,id:crypto.randomUUID()};
-      await budgetApi.importTenders(projectId,{...request,operationId:operation.current.id});
-      setNotice(`V projektu bylo vytvořeno ${chosen.length} samostatných VŘ. Názvy lze upravit v přehledu VŘ.`);setDefinitions([]);setSelected(new Set());await cache.invalidateQueries();
+      const result=await budgetApi.importTenders(projectId,{...request,operationId:operation.current.id});
+      setNotice(`V projektu bylo vytvořeno ${chosen.length} samostatných VŘ. Názvy lze upravit v přehledu VŘ. ${result.docHubWarning??''}`);setDefinitions([]);setSelected(new Set());await cache.invalidateQueries();
     }catch(e){setError(e instanceof Error?e.message:'Vzor se nepodařilo použít.');}finally{lock.current=false;setBusy(false);}
   };
   return <Modal isOpen title="Vlastní vzory VŘ" persistent={busy} onClose={onClose}><div className="tf-budget-tender-import tf-budget-controls">

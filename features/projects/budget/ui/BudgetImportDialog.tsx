@@ -12,8 +12,11 @@ import { BudgetFigureConflicts } from './BudgetFigureConflicts';
 import { getPendingImportIssues, preserveUnchangedFigureResolutions } from '../model/figureConflicts';
 import { normalizeSearch } from '../model/budgetModel';
 import { compareRevisions, proposeRevisionMapping, transferRevisionLinks, validateRevisionAllocations } from '../model/revisions';
-interface Props { canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision)=>void }
-export function BudgetImportDialog({canImportTenders=false,canAllocate=false,editRevision,projectId,source:initialSource,previous,hasVersions=!!previous,onClose,onComplete}:Props) {
+interface Props { canImportTenders?:boolean; canAllocate?:boolean; editRevision?:BudgetRevision; projectId:string; source?:BudgetSource; previous?:BudgetRevision; hasVersions?:boolean; onClose:()=>void; onComplete:(revision?:BudgetRevision,notice?:string)=>void }
+export function BudgetImportDialog({canImportTenders=false,canAllocate=false,editRevision,projectId,source:initialSource,previous:incomingPrevious,hasVersions=!!incomingPrevious,onClose,onComplete}:Props) {
+  const previousRef=useRef(incomingPrevious);
+  if(!previousRef.current&&incomingPrevious)previousRef.current=incomingPrevious;
+  const previous=previousRef.current;
   const [tenderReview,setTenderReview]=useState<{document:BudgetDocument;allocations:BudgetRevision['allocations']}|null>(null);
   const [withTenders,setWithTenders]=useState(false);
   const [transfer,setTransfer]=useState(false);const [links,setLinks]=useState<Record<string,string>>({});
