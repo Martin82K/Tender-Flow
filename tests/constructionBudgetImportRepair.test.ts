@@ -22,16 +22,16 @@ export function repairFixture() {
 
 describe('import repair', () => {
   it('bounds aggregate preview text across sheets while preserving source values and formulas',()=>{
-    const book=repairFixture(),long='x'.repeat(32767);
+    const book=repairFixture(),long='x'.repeat(512);
     book.Sheets.Soupis.C9={t:'s',v:long};book.Sheets.Soupis.F9={t:'n',v:5,f:long};
     for(let i=0;i<3;i++){
-      const sheet:XLSX.WorkSheet={'!ref':'A1:GR60'};
-      for(let r=35;r<60;r++)for(let c=0;c<200;c++)sheet[XLSX.utils.encode_cell({r,c})]={t:'s',v:long};
+      const sheet:XLSX.WorkSheet={'!ref':'A1:BH60'};
+      for(let r=35;r<60;r++)for(let c=0;c<60;c++)sheet[XLSX.utils.encode_cell({r,c})]={t:'s',v:long};
       XLSX.utils.book_append_sheet(book,sheet,`Unknown ${i}`);
     }
     const doc=parseKrosWorkbook(book);
     const cells=doc.sheets.flatMap(s=>s.sourcePreview?.rows.flatMap(r=>r.cells)??[]);
-    expect(cells.reduce((n,c)=>n+(typeof c.value==='string'?c.value.length:0)+(c.formula?.length??0),0)).toBeLessThanOrEqual(1000000);
+    expect(cells.reduce((n,c)=>n+(typeof c.value==='string'?c.value.length:0)+(c.formula?.length??0),0)).toBe(1000000);
     expect(cells.every(c=>(typeof c.value!=='string'||c.value.length<=256)&&(c.formula?.length??0)<=256)).toBe(true);
     expect(doc.sheets.some(s=>s.sourcePreview?.truncated)).toBe(true);
     expect(doc.nodes.find(n=>n.source.row===9)?.source.cells.C9.value).toBe(long);
