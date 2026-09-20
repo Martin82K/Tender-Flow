@@ -57,3 +57,18 @@ Doplněné RED/GREEN scénáře: úplně chybějící cenové sloupce, prázdné
 oprava neoceněného řádku, neplatná číselná cena a mapování AA. V prohlížeči
 se používá skutečný XLSX worker nad syntetickým sešitem 40 × 50 položek;
 kontroluje se zachování všech 2 000 položek a viditelnost patičky při scrollu.
+
+Ověření 20. 9. 2026: revize `3571d634` nad základnou `b63ef1ea` prošla
+238 cílenými testy rozpočtu (3 nedostupné soukromé fixture přeskočeny),
+typecheckem a web buildem. Úplné CI odhalilo pouze dvě zastaralá očekávání
+velikosti architektonického grafu (3 458 ostatních testů prošlo). Přidání
+číselníku a importu modalu mění graf na 696 uzlů a 2 187 hran, z toho
+1 871 rozlišených; počet nevyřešených hran, legacy importů a cyklů se nemění.
+Po aktualizaci očekávání prošlo všech 12 cílených architektonických testů.
+
+Cloudová migrace byla nasazena souběžnou úlohou. Následná read-only kontrola
+potvrdila verzi `20260920182433`, 14 základních profesí, RLS obou privátních
+tabulek a absenci přímých grantů authenticated. Finální `supabase db push
+--linked --dry-run` hlásí `Remote database is up to date`. Nasazovací záznam
+potvrzuje zachování původních dat a provedení security/performance advisorů;
+jejich existující upozornění zůstávají výše uvedeným omezením.
