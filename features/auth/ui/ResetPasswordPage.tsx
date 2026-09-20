@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
+import { DEFAULT_APP_URL } from "@/shared/routing/routeUtils";
 import { authService } from "@features/auth/api";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
@@ -96,14 +97,14 @@ export const ResetPasswordPage: React.FC = () => {
             <div className="auth-alert auth-alert-success">
               <p style={{ fontWeight: 600 }}>Heslo změněno!</p>
               <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem", opacity: 0.9 }}>
-                Vaše heslo bylo úspěšně nastaveno. Nyní se můžete přihlásit.
+                {isAuthRecovery ? "Vaše heslo bylo úspěšně nastaveno. Můžete pokračovat do aplikace." : "Vaše heslo bylo úspěšně nastaveno. Nyní se můžete přihlásit."}
               </p>
             </div>
             <button
               className="auth-btn-primary"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate(isAuthRecovery ? DEFAULT_APP_URL : "/login")}
             >
-              Přejít na přihlášení
+              {isAuthRecovery ? "Pokračovat do aplikace" : "Přejít na přihlášení"}
             </button>
           </div>
         ) : (

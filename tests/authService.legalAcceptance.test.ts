@@ -81,6 +81,12 @@ describe("authService legal acceptance", () => {
     });
   });
 
+  it("rejects oversized names before making an Auth signup request", async () => {
+    await expect(authService.register("x".repeat(256), "test@example.com", "password", {
+      termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION,
+    })).rejects.toThrow("Jméno může mít nejvýše 255 znaků.");
+    expect(mockState.authSignUp).not.toHaveBeenCalled();
+  });
   it("registrace po signUp uloží souhlasy přes RPC a vrátí hydratovaného uživatele", async () => {
     const hydratedUser = {
       id: "user-1",

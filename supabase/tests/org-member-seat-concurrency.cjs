@@ -29,7 +29,8 @@ const auth = `SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim
       INSERT INTO public.organizations(id,name,type,subscription_tier,subscription_status,max_seats)
       VALUES('${org}','Seat race fixture','business','enterprise','trial',2);
       INSERT INTO public.organization_members(organization_id,user_id,role) VALUES('${org}','${owner}','owner');`);
-    for (const mode of ['uuid', 'email', 'activation', 'duplicate', 'replace_email', 'replace_approval']) {
+    sql(`INSERT INTO public.platform_admins(user_id,grant_source) VALUES('${owner}','manual_grant');`);
+    for (const mode of ['uuid', 'email', 'activation', 'duplicate', 'replace_email', 'replace_approval', 'admin_limit']) {
       sql(`DELETE FROM public.organization_members WHERE organization_id='${org}' AND user_id <> '${owner}';`);
       if (mode === 'activation') sql(`INSERT INTO public.organization_members(organization_id,user_id,role,is_active,is_billable) VALUES('${org}','${secondUser}','member',true,false);`);
       const replacing = mode.startsWith('replace_');
@@ -37,7 +38,9 @@ const auth = `SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim
       const request = randomUUID();
       if (mode === 'replace_approval') sql(`INSERT INTO public.organization_join_requests(id,organization_id,user_id,email) VALUES('${request}','${org}','${secondUser}','${secondUser}@gmail.com');`);
       let second;
-      const contender = mode === 'replace_approval'
+      const contender = mode === 'admin_limit'
+        ? `public.admin_update_org_subscription(target_org_id=>'${org}',new_max_seats=>1)`
+        : mode === 'replace_approval'
         ? `public.approve_org_join_request('${request}')`
         : mode === 'activation'
         ? `public.activate_org_member('${org}','${secondUser}')`
@@ -63,7 +66,7 @@ const auth = `SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim
       if (mode === 'duplicate') assert.equal(secondResult.code, 0, secondResult.error);
       else {
         assert.notEqual(secondResult.code, 0, 'Competing seat must be rejected');
-        assert.match(secondResult.error, /Seat limit reached/);
+        assert.match(secondResult.error, mode === 'admin_limit' ? /Cannot reduce seats below/ : /Seat limit reached/);
       }
       assert.equal(sql(`SELECT count(*) FROM public.organization_members WHERE organization_id='${org}' AND is_active AND is_billable;`), '2');
       sql(`DELETE FROM public.organization_join_requests WHERE id='${request}';`);

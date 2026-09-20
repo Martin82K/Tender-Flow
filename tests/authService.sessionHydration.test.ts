@@ -17,6 +17,7 @@ const mockState = vi.hoisted(() => ({
 let platformAdminActive = false;
 let subscriptionOverride: string | null = null;
 let organizationId: string | null = null;
+let organizationMemberships: Array<{ organization_id: string; is_active: boolean; organization: { type: string } }> | null = null;
 let organizationTier: string | null = null;
 let userSettingsPreferences: any = null;
 let legalAcceptanceRow: any = null;
@@ -54,6 +55,7 @@ describe("authService session hydration", () => {
     platformAdminActive = false;
     subscriptionOverride = null;
     organizationId = null;
+    organizationMemberships = null;
     organizationTier = null;
     userSettingsPreferences = {
       theme: "system",
@@ -116,18 +118,11 @@ describe("authService session hydration", () => {
       }
 
       if (table === "organization_members") {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: organizationId ? { organization_id: organizationId } : null,
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-        };
+        const rows = organizationMemberships ?? (organizationId ? [{ organization_id: organizationId, is_active: true, organization: { type: "business" } }] : []);
+        return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue(Object.assign(
+          Promise.resolve({ data: rows, error: null }),
+          { limit: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: rows[0] ?? null, error: null }) }) }
+        )) }) };
       }
 
       if (table === "organizations") {
@@ -153,6 +148,16 @@ describe("authService session hydration", () => {
     });
   });
 
+  it("selects the active business membership after approval ahead of a personal fallback", async () => {
+    organizationMemberships = [
+      { organization_id: "a-personal", is_active: true, organization: { type: "personal" } },
+      { organization_id: "z-company", is_active: true, organization: { type: "business" } },
+      { organization_id: "b-disabled", is_active: false, organization: { type: "business" } },
+    ];
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("z-company");
+    organizationMemberships.reverse();
+    expect((await authService.getUserFromSession(makeSession(), { skipUserCache: true }))?.organizationId).toBe("z-company");
+  });
   const pendingSession = () => ({ user: { ...makeSession().user, email_confirmed_at: "2026-09-19T08:00:00Z", user_metadata: {
     name: "User One", signup_legal_acceptance: { termsVersion: CURRENT_TERMS_VERSION, privacyVersion: CURRENT_PRIVACY_VERSION },
   } } });
@@ -238,6 +243,7 @@ describe("authService session hydration", () => {
 
     subscriptionOverride = null;
     organizationId = null;
+    organizationMemberships = null;
     organizationTier = null;
     legalAcceptanceRow = {
       subscription_tier_override: null,

@@ -59,6 +59,7 @@ export const RegisterPage: React.FC = () => {
     setError("");
     setLoading(true);
     try {
+      if (name.length > 255) throw new Error("Jméno může mít nejvýše 255 znaků.");
       if (password !== confirmPassword) throw new Error("Hesla se neshodují");
       if (!termsAccepted || !privacyAccepted) {
         throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
@@ -119,6 +120,7 @@ export const RegisterPage: React.FC = () => {
             name="name"
             id="name"
             autoComplete="name"
+            maxLength={255}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="auth-input"

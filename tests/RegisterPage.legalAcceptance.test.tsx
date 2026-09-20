@@ -75,6 +75,13 @@ describe("RegisterPage legal acceptance", () => {
     expect(mockState.navigate).not.toHaveBeenCalled();
     expect(mockState.register).toHaveBeenCalledWith("Test", "test@example.com", "password", expect.any(Object), "/app/project/fixture?tab=tasks");
   });
+  it("rejects a name longer than 255 characters before registration", async () => {
+    render(<RegisterPage />);
+    fireEvent.change(screen.getByPlaceholderText("Jméno a Příjmení"), { target: { value: "x".repeat(256) } });
+    fireEvent.submit(screen.getByRole("button", { name: "Vytvořit účet" }).closest("form")!);
+    expect(await screen.findByText("Jméno může mít nejvýše 255 znaků.")).toBeInTheDocument();
+    expect(mockState.register).not.toHaveBeenCalled();
+  });
   it("bez potvrzení podmínek registraci nepustí", async () => {
     render(<RegisterPage />);
 

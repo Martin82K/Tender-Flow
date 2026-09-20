@@ -236,6 +236,7 @@ export const authService = {
         legalAcceptance: LegalAcceptanceInput,
         nextPath?: string,
     ): Promise<User | null> => {
+        if (name.length > 255) throw new Error('Jméno může mít nejvýše 255 znaků.');
         // Check registration settings before allowing signup
         const canRegister = await authService.checkRegistrationAllowed(email);
         if (!canRegister.allowed) {
@@ -717,18 +718,25 @@ export const authService = {
                     Promise.resolve(
                         supabase
                             .from('organization_members')
-                            .select('organization_id, is_active')
+                            .select('organization_id, is_active, organization:organizations!inner(type)')
                             .eq('user_id', session.user.id)
-                            .limit(1)
-                            .maybeSingle()
                     ),
                     queryTimeoutMs,
                     'Org member load'
                 );
-                const { data, error } = res as any;
-                if (error) return null;
-                if (!data?.organization_id) return null;
-                return { organizationId: data.organization_id, isActive: data.is_active ?? true };
+                const { data, error } = res as { data: Array<{
+                    organization_id: string;
+                    is_active: boolean | null;
+                    organization: { type: string };
+                }> | null; error: unknown };
+                if (error || !data?.length) return null;
+                // Approval may leave a legitimate personal workspace intact. Choose an
+                // active company first, then a stable fallback independent of row order.
+                const priority = (member: NonNullable<typeof data>[number]) =>
+                    (member.is_active === false ? 2 : 0) + (member.organization?.type === 'business' ? 0 : 1);
+                const selected = [...data].sort((a, b) => priority(a) - priority(b)
+                    || a.organization_id.localeCompare(b.organization_id))[0];
+                return { organizationId: selected.organization_id, isActive: selected.is_active ?? true };
             } catch (e) {
                 console.warn('[authService] Could not fetch org member', e);
                 return null;

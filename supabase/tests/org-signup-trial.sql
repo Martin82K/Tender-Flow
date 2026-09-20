@@ -60,7 +60,7 @@ BEGIN
   END IF;
   UPDATE auth.users SET email_confirmed_at=now() WHERE id IN (u,u2);
   IF NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id=u AND subscription_status='expired') THEN
-    RAISE EXCEPTION 'Business signup must not seed a parallel profile trial';
+    RAISE EXCEPTION 'Signup must not seed a parallel profile trial';
   END IF;
 
   UPDATE public.user_profiles
@@ -152,6 +152,9 @@ BEGIN
   )
   RETURNING id INTO org_id;
 
+  INSERT INTO private.verified_organization_domains(domain,organization_id,evidence)
+  VALUES ('expired-join-' || u || '.invalid',org_id,'Synthetic DNS verification');
+
   IF public.get_or_create_user_organization_internal(
     u,
     'member@expired-join-' || u || '.invalid',
@@ -179,6 +182,9 @@ BEGIN
   VALUES (org_id, u2, 'owner', true, true)
   ON CONFLICT (organization_id, user_id) DO UPDATE
     SET is_billable = true, is_active = true, role = 'owner';
+
+  INSERT INTO private.verified_organization_domains(domain,organization_id,evidence)
+  VALUES ('seat-limit-' || u || '.invalid',org_id,'Synthetic DNS verification');
 
   personal_org_id := public.get_or_create_user_organization_internal(
     u,

@@ -12,6 +12,7 @@ const sql = query => {
   return result.stdout.trim();
 };
 const firstId = randomUUID(), secondId = randomUUID();
+const ownerId = randomUUID(), orgId = randomUUID();
 const domain = `race-${randomUUID()}.invalid`;
 const run = (query, onData) => new Promise((resolve, reject) => {
   const child = spawn(docker, args); let output = '', error = '';
@@ -23,6 +24,7 @@ const run = (query, onData) => new Promise((resolve, reject) => {
 });
 (async () => {
   try {
+    sql(`INSERT INTO auth.users(id,email) VALUES('${ownerId}','owner@${domain}'); INSERT INTO public.organizations(id,name,type,owner_user_id,max_seats,subscription_tier,subscription_status) VALUES('${orgId}','Verified race fixture','business','${ownerId}',1,'enterprise','active'); INSERT INTO private.verified_organization_domains(domain,organization_id,evidence) VALUES('${domain}','${orgId}','Synthetic DNS verification');`);
     sql(`INSERT INTO auth.users(id,email) VALUES('${firstId}','first@${domain}'),('${secondId}','second@${domain}');`);
     let second;
     const first = run(`BEGIN; UPDATE auth.users SET email_confirmed_at=now() WHERE id='${firstId}'; SELECT 'provisioned'; SELECT pg_sleep(1.5); COMMIT;`, output => {
@@ -31,14 +33,14 @@ const run = (query, onData) => new Promise((resolve, reject) => {
     await first;
     if (!second) throw Error('Second confirmation did not start');
     await second;
-    const count = sql(`SELECT count(*) FROM public.organizations WHERE '${domain}'=ANY(domain_whitelist);`);
-    if (count !== '1') throw Error(`Concurrent confirmations created ${count} organizations instead of one`);
+    const count = sql(`SELECT count(*) FROM public.organization_members WHERE organization_id='${orgId}';`);
+    if (count !== '1') throw Error(`Concurrent confirmations created ${count} memberships instead of one`);
     const memberships = sql(`SELECT count(*) FROM public.organization_members WHERE user_id IN('${firstId}','${secondId}');`);
     if (memberships !== '2') throw Error('Both confirmed users must have membership');
     const trials = sql(`SELECT count(*) FROM public.organizations WHERE owner_user_id IN('${firstId}','${secondId}') AND subscription_status='trial';`);
-    if (trials !== '1') throw Error('Additional address of a full company must not mint another trial');
-    console.log('PASS: simultaneous confirmations share one company and only one trial');
+    if (trials !== '0') throw Error('Additional address of a full company must not mint another trial');
+    console.log('PASS: simultaneous confirmations reserve one verified-company seat and create no extra trial');
   } finally {
-    sql(`DELETE FROM public.organizations WHERE owner_user_id IN('${firstId}','${secondId}'); DELETE FROM auth.users WHERE id IN('${firstId}','${secondId}');`);
+    sql(`DELETE FROM public.organizations WHERE owner_user_id IN('${ownerId}','${firstId}','${secondId}'); DELETE FROM auth.users WHERE id IN('${ownerId}','${firstId}','${secondId}');`);
   }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

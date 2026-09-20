@@ -1,7 +1,8 @@
 -- Synthetic auth users in an isolated schema only; all changes roll back.
 BEGIN;
 INSERT INTO auth.users(id,email,email_confirmed_at) VALUES ('96200000-0000-4000-8000-000000000001','owner@verified-join-fixture.invalid',now());
-UPDATE public.organizations SET max_seats=2 WHERE owner_user_id='96200000-0000-4000-8000-000000000001';
+UPDATE public.organizations SET max_seats=2, type='business' WHERE owner_user_id='96200000-0000-4000-8000-000000000001';
+INSERT INTO private.verified_organization_domains(domain,organization_id,evidence) SELECT 'verified-join-fixture.invalid',id,'Synthetic DNS verification' FROM public.organizations WHERE owner_user_id='96200000-0000-4000-8000-000000000001';
 INSERT INTO auth.users(id,email) VALUES ('96200000-0000-4000-8000-000000000002','pending@verified-join-fixture.invalid');
 DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM public.organization_members WHERE user_id='96200000-0000-4000-8000-000000000002') THEN RAISE EXCEPTION 'Unverified signup must not reserve membership through a legacy trigger'; END IF;

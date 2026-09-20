@@ -5,6 +5,7 @@ import { testConsoleGuard } from "./utils/consoleGuard";
 import { ResetPasswordPage } from "@/features/auth/ui/ResetPasswordPage";
 
 const state = vi.hoisted(() => ({
+  navigate: vi.fn(),
   search: "?auth_token_hash=signed-hash",
   verifyPasswordRecoveryToken: vi.fn(),
   hasVerifiedPasswordRecoveryToken: vi.fn(),
@@ -14,7 +15,7 @@ const state = vi.hoisted(() => ({
 vi.mock("@features/auth/api", () => ({ authService: state }));
 vi.mock("@/shared/routing/router", () => ({
   useLocation: () => ({ search: state.search }),
-  navigate: vi.fn(),
+  navigate: state.navigate,
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 const submit = () => {
@@ -40,6 +41,12 @@ describe("password recovery", () => {
     expect(state.updateRecoveredPassword).toHaveBeenCalledWith("new-password", "signed-hash");
     expect(state.verifyPasswordRecoveryToken.mock.invocationCallOrder[0]).toBeLessThan(state.updateRecoveredPassword.mock.invocationCallOrder[0]);
     expect(state.confirmPasswordReset).not.toHaveBeenCalled();
+  });
+  it("continues to the app after Auth recovery and retains legacy login navigation", async () => {
+    render(<ResetPasswordPage />); submit();
+    await screen.findByText("Heslo změněno!");
+    fireEvent.click(screen.getByRole("button", { name: "Pokračovat do aplikace" }));
+    expect(state.navigate).toHaveBeenCalledWith("/app/projects?status=all");
   });
   it("does not update a password when verification fails", async () => {
     testConsoleGuard.expect("error", "Reset confirmation error: Error: Invalid token");
@@ -94,6 +101,8 @@ describe("password recovery", () => {
     await screen.findByText("Heslo změněno!");
     expect(state.confirmPasswordReset).toHaveBeenCalledWith("legacy-token", "new-password");
     expect(state.verifyPasswordRecoveryToken).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Přejít na přihlášení" }));
+    expect(state.navigate).toHaveBeenCalledWith("/login");
   });
   it("disables submission for a missing token", async () => {
     state.search = "";
