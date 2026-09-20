@@ -372,3 +372,15 @@ it('allows pipeline editors to edit the tender catalog without budget item editi
  expect(screen.getByRole('button',{name:'Přidat VŘ'})).not.toBeDisabled();
  expect(screen.getByRole('button',{name:'Importovat / exportovat vzor'})).toBeDisabled();
 });
+
+it('defaults notes off for older settings and persists their independent toggle', async () => {
+ localStorage.setItem('tf-budget-view:u:p',JSON.stringify({wrap:true}));
+ fireEvent.click(await openBudget());
+ expect(screen.getByRole('checkbox',{name:'Zobrazit poznámky'})).not.toBeChecked();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Zobrazit poznámky'}));
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({showNotes:true,wrap:true}));
+ cleanup();fireEvent.click(await openBudget());
+ expect(screen.getByRole('checkbox',{name:'Zobrazit poznámky'})).toBeChecked();
+ fireEvent.click(screen.getByRole('checkbox',{name:'Zobrazit poznámky'}));
+ await waitFor(()=>expect(JSON.parse(localStorage.getItem('tf-budget-view:u:p')!)).toMatchObject({showNotes:false}));
+});

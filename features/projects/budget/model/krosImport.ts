@@ -136,7 +136,7 @@ export function parseKrosWorkbook(workbook: XLSX.WorkBook, progress?: (done: num
         } catch { document.issues.push({ sheet: name, row: r + 1, severity: kind === 'K' || kind === 'M' ? 'error' : 'warning', message: `Neplatná nebo chybějící hodnota ${XLSX.utils.encode_col(column)}.` }); return null; }
       };
       const id = `${sheetId}:row:${r + 1}`;
-      if (!repeatedHeader && !['D','K','M','VV','PP','PSC','TS',...(globus?['SD','P']:[])].includes(rawKind)) document.issues.push({sheet:name,row:r+1,severity:'error',kind:'unclassified',message:'Typ řádku nebyl rozpoznán. Určete položku, poznámku nebo mezisoučet v editoru struktury.'});
+      if (!repeatedHeader && !['D','K','M','VV','PP','PSC','Online PSC','TS',...(globus?['SD','P']:[])].includes(rawKind)) document.issues.push({sheet:name,row:r+1,severity:'error',kind:'unclassified',message:'Typ řádku nebyl rozpoznán. Určete položku, poznámku nebo mezisoučet v editoru struktury.'});
       let parentId = sections.at(-1) || sheetId;
       if (kind === 'section') {
         const depthColumn = override.columns?.depth;

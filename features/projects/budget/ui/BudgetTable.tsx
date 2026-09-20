@@ -16,7 +16,7 @@ export const DEFAULT_COLUMNS: BudgetColumn[] = [
 ];
 interface Props {
   nodes: BudgetNode[]; scope: string; filters: BudgetFilters; onFilters: (f: BudgetFilters) => void;
-  selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; wrap: boolean; density: number;
+  selected: Set<string>; onSelected: (s: Set<string>) => void; showVV: boolean; showNotes?: boolean; wrap: boolean; density: number;
   columns: BudgetColumn[]; onColumns: (c: BudgetColumn[]) => void; canPrices: boolean; editable: boolean;
   expandedVV?: Set<string>; onExpandedVV?: (value: Set<string>) => void;
   figures?: Record<string,string>; onEdit: (node: BudgetNode, editedFields?: readonly string[]) => Promise<void>; jumpId?: string; jumpRequest?: number; onNotice: (message: string) => void;
@@ -27,12 +27,12 @@ const isQuantityDetail = (node: BudgetNode) => node.kind === 'VV' || node.kind =
 const rowHeight = (node: BudgetNode, density: number) => isQuantityDetail(node) ? Math.max(24, density / 2) : density;
 interface BudgetContext { x: number; y: number; filter?: { column: string; values: string[] } }
 export function BudgetTable(props: Props) {
-  const {nodes,scope,filters,onFilters,selected,onSelected,showVV,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
+  const {nodes,scope,filters,onFilters,selected,onSelected,showVV,showNotes=false,wrap,density,columns,onColumns,canPrices,editable,onEdit,jumpId,onNotice}=props;
   const scroll=useRef<HTMLDivElement>(null); const header=useRef<HTMLDivElement>(null); const footer=useRef<HTMLDivElement>(null);
   const [collapsed,setCollapsed]=useState(new Set<string>());
   const [localVV,setLocalVV]=useState(new Set<string>());
   const expandedVV=props.expandedVV??localVV;const setExpandedVV=props.onExpandedVV??setLocalVV;
-  const quantityParents=useMemo(()=>new Set(nodes.filter(isQuantityDetail).map(n=>n.parentId)),[nodes]);
+  const quantityParents=useMemo(()=>new Set(nodes.filter(n=>n.kind==='VV').map(n=>n.parentId)),[nodes]);
   const visibleVV=showVV?true:expandedVV;
   const [filter,setFilter]=useState<BudgetColumn|null>(null); const [detail,setDetail]=useState<BudgetNode|null>(null);
   const filterOrigin=useRef<HTMLButtonElement|null>(null);
@@ -88,7 +88,7 @@ export function BudgetTable(props: Props) {
   const matched=useMemo(()=>filterItems(items,filters),[items,filters]);
   const expandableIds=useMemo(()=>new Set(nodes.filter(n=>n.parentId).map(n=>n.parentId!)),[nodes]);
   const mutedItems=useMemo(()=>new Set(items.filter((_,index)=>index%2===1).map(item=>item.id)),[items]);
-  const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,visibleVV),[nodes,matched,collapsed,visibleVV]);
+  const rows=useMemo(()=>visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),collapsed,visibleVV,showNotes),[nodes,matched,collapsed,visibleVV,showNotes]);
   const aggregate=useMemo(()=>aggregateBudget(nodes),[nodes]);
   const visibleColumns=useMemo(()=>columns.filter(c=>!c.hidden&&(canPrices||!['unitPrice','total'].includes(c.key))).sort((a,b)=>Number(Boolean(b.pinned))-Number(Boolean(a.pinned))),[columns,canPrices]);
   const grid=`44px 42px ${visibleColumns.map(c=>`${c.width}px`).join(' ')}`;
@@ -103,7 +103,7 @@ export function BudgetTable(props: Props) {
     if(!jumpId)return;
     const byId=new Map(nodes.map(n=>[n.id,n]));let parent:string|null=jumpId;const next=new Set(collapsed);while(parent){next.delete(parent);parent=byId.get(parent)?.parentId??null;}
     setCollapsed(next);
-    const target=visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),next,visibleVV).findIndex(n=>n.id===jumpId);
+    const target=visibleBudgetRows(nodes,new Set(matched.map(n=>n.id)),next,visibleVV,showNotes).findIndex(n=>n.id===jumpId);
     if(target<0)onNotice('Položky cílového oddílu skrývají aktivní filtry. Filtry zůstaly zachované.');
     else requestAnimationFrame(()=>virtual.scrollToIndex(target,{align:'start'}));
     // A jump is an explicit navigation action; filter edits must not repeatedly move the viewport.
@@ -144,7 +144,7 @@ export function BudgetTable(props: Props) {
           if(c.key==='description')value=<button className={`tf-budget-description ${wrap?'tf-budget-wrap':''}`} onClick={event=>group?setCollapsed(toggle(collapsed,n.id)):priced?selectRow(n,event):setDetail(n)}>{n.description}</button>;
           else if(c.key==='total')value=group?<>{numberLabel(aggregate.byId.get(n.id),true)}{aggregate.incompleteIds.has(n.id)&&<small className="tf-budget-incomplete block">Neúplný součet</small>}</>:priced&&n.total===null?<span className="tf-budget-incomplete">Neoceněno</span>:numberLabel(n.total,true);
           else if(c.key==='quantity'||c.key==='unitPrice')value=numberLabel(n[c.key] as string|null,c.key==='unitPrice');
-          else if(c.key==='kind')value=group?'':n.kind==='note'?n.sourceType:n.kind==='subtotal'?'Mezisoučet':n.kind;
+          else if(c.key==='kind')value=group?'':n.kind==='note'?'Poznámka':n.kind==='subtotal'?'Mezisoučet':n.kind;
           else value=Array.isArray(n[c.key])?(n[c.key] as string[]).join(', '):String(n[c.key]??'');
           return <div key={c.key} tabIndex={priced&&editable&&editableFields.has(c.key)?0:undefined} title={priced&&editable&&editableFields.has(c.key)?'Dvojklik nebo F2 pro úpravu buňky':undefined} className={`${c.numeric?'tf-budget-number':''} ${wrap&&c.key==='description'?'tf-budget-wrap':''}`} style={c.pinned?{position:'sticky',left:lefts.get(c.key),zIndex:2}:undefined} onClick={event=>{if(priced&&c.key!=='description'&&!(event.target as HTMLElement).closest('input,button'))selectRow(n,event);}} onDoubleClick={()=>{if(priced&&editable&&editableFields.has(c.key)){setEditError('');setCell({node:n,column:c,value:String(n[c.key]??'')});}else if(priced&&c.key==='description')setDetail(n);}} onKeyDown={event=>{if(priced&&event.key==='F2'&&editable&&editableFields.has(c.key)){event.preventDefault();setEditError('');setCell({node:n,column:c,value:String(n[c.key]??'')});}}} onContextMenu={event=>{event.preventDefault();event.stopPropagation();const raw=n[c.key];openContextMenu(event.clientX,event.clientY,event.target as HTMLElement,priced?{column:c.key,values:Array.isArray(raw)?raw as string[]:[raw===null?'':String(raw??'')]}:undefined);}}>{value}</div>;
         })}

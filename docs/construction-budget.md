@@ -110,8 +110,8 @@ Globus podporuje dvouřádkové záhlaví cen, jednotlivé objekty a soupisy, od
 Kódy zůstávají textové, včetně úvodních nul; varianty a cenová soustava zůstávají
 ve zdrojových buňkách. Položky `P` používají interní kategorii práce `K`, ale
 původní označení `P` se uchovává v `sourceType`. Oddíly `SD` jsou sourozenci
-pod soupisem. Podrobnosti `PP`, `VV` a `TS` se zobrazí pod příslušnou položkou
-tlačítkem **VV** ve zdrojovém pořadí.
+pod soupisem. Výkaz `VV` se zobrazí tlačítkem **VV**; poznámky `PP` a `TS` přepínačem
+**Zobrazit poznámky** v nastavení. Podrobnosti zachovávají zdrojové pořadí.
 
 Textové výpočty Globus, např. `2*1 = 2,000 [A]`, se uchovávají jako původní
 text. Pokud VV nemá číselnou buňku množství, zůstane množství prázdné; import
@@ -132,8 +132,8 @@ Lokální test reálného vzoru lze spustit přes `GLOBUS_SMOKE_FILE` a
 Při přidání dalšího formátu je nutný reprezentativní vzor a regresní test
 automatického rozpoznání, zdrojových vazeb a součtů.
 
-Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty a poznámky.
-Jednotlivé výkazy lze otevírat nezávisle; u položky bez podrobností je tlačítko neaktivní.
+Tlačítko **VV** vlevo u každé položky zobrazí pouze její výpočty.
+Jednotlivé výkazy lze otevírat nezávisle; u položky bez výkazu výměr je tlačítko neaktivní.
 Mají drobnější písmo, nižší řádky a odsazený popis. VV a Online PSC mají čisté
 pozadí tabulky bez podbarvení položky, také při jejím označení. Mezi výpočty
 nejsou dělicí čáry; množství zůstává ve svém sloupci.
@@ -161,7 +161,7 @@ Přepočet VV v detailu položky podporuje i importovaný zápis typu
 Původní popis zůstává zachovaný; nové množství je nutné potvrdit uložením položky.
 
 Tlačítka **+ / −** úplně vlevo před zaškrtávátkem rozbalují a sbalují objekty,
-soupisy a oddíly. Výpočty a poznámky jednotlivých položek ovládá tlačítko **VV**. U řádků bez podřízeného obsahu tlačítko není.
+soupisy a oddíly. Výpočty jednotlivých položek ovládá tlačítko **VV**, poznámky přepínač **Zobrazit poznámky** v nastavení. U řádků bez podřízeného obsahu tlačítko není.
 Ovládání zůstává vlevo i při vodorovném posouvání tabulky.
 
 Pravým tlačítkem v tabulce otevřete nabídku **Sbalit vše / Rozbalit vše** pro
@@ -437,3 +437,11 @@ numerickou přesnost Excelu (přibližně 15 platných číslic); vstupy začín
 
 Export podporuje nejvýše 256 úrovní vnoření. Hlubší nebo cyklická struktura
 zobrazí chybu před vytvořením souboru; upravte nejprve hierarchii rozpočtu.
+
+
+Řádky typu **Online PSC** se importují jako **Poznámka** bez chyby nerozpoznaného
+typu. Zachovávají původní obsah a vazbu na položku, ale nemají množství, cenu ani
+vliv na součty. Poznámky jsou ve výchozím stavu skryté; volba **Zobrazit poznámky**
+v ozubeném kolečku je zapíná nezávisle na VV a pamatuje se pro uživatele a projekt.
+Zobrazení respektuje aktivní filtry, rozsah a sbalené oddíly. Detail položky nadále
+umožňuje přečíst její poznámky i při jejich skrytí v tabulce.

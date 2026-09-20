@@ -70,3 +70,14 @@ it('preserves invalid priced rows and still reports malformed numbers',()=>{
  const result=parseKrosWorkbook(w);expect(result.nodes.filter(n=>n.kind==='K')).toHaveLength(1);
  expect(result.issues.some(i=>i.severity==='error'&&i.message.includes('F'))).toBe(true);
 });
+
+it('imports Online PSC as a non-priced note without blocking conversion', () => {
+ const w=workbook();
+ XLSX.utils.sheet_add_aoa(w.Sheets.Soupis, [['Online PSC','','Informace online','',999,999,998001]], {origin:'A10'});
+ const d=parseKrosWorkbook(w);
+ const note=d.nodes.find(n=>n.sourceType==='Online PSC')!;
+ expect(note).toMatchObject({kind:'note',description:'Informace online',quantity:null,unitPrice:null,total:null,parentId:d.nodes.find(n=>n.description==='Druhá položka')!.id});
+ expect(note.source.cells.A10.value).toBe('Online PSC');
+ expect(d.issues.filter(i=>i.row===10)).toEqual([]);
+ expect(aggregateBudget(d.nodes).total).toBe('50.00');
+});
