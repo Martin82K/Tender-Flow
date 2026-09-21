@@ -22,6 +22,7 @@ export const NotificationBell: React.FC = () => {
   const {
     notifications,
     isLoading,
+    dismissError,
     unreadCount,
     refresh,
     markRead,
@@ -77,6 +78,7 @@ export const NotificationBell: React.FC = () => {
         onClose={() => setIsOpen(false)}
         notifications={notifications}
         isLoading={isLoading}
+        dismissError={dismissError}
         onMarkRead={markRead}
         onMarkAllRead={markAllRead}
         onDismiss={dismiss}

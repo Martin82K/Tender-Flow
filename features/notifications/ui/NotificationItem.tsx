@@ -50,8 +50,18 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     <div
       data-help-id="notification-item"
       className={`group flex items-start gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 transition-colors ${
-        notification.action_url ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" : ""
+        "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
       } ${isUnread ? "bg-primary/5" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Skrýt notifikaci: ${notification.title}`}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick(notification);
+        }
+      }}
       onClick={() => onClick(notification)}
     >
       <span className={`material-symbols-outlined text-[18px] mt-0.5 shrink-0 ${color}`}>

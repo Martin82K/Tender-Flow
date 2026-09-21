@@ -4,11 +4,12 @@ import type { AppNotification } from "../types";
 import { notificationApi } from "../api/notificationApi";
 import { useNotificationSubscription } from "./useNotificationSubscription";
 
-const POLL_INTERVAL = 30_000; // 30s fallback polling
+const POLL_INTERVAL = 300_000; // Five-minute fallback when Realtime is unavailable
 
 interface UseNotificationsReturn {
   notifications: AppNotification[];
   isLoading: boolean;
+  dismissError: string | null;
   unreadCount: number;
   refresh: () => Promise<void>;
   markRead: (id: string) => Promise<void>;
@@ -24,6 +25,12 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     enabled && user && user.role !== "demo" && normalizedUserId
       ? normalizedUserId
       : null;
+  const [connection, setConnection] = useState<{ userId: string; connected: boolean } | null>(null);
+  const [dismissFailure, setDismissFailure] = useState<{ userId: string; message: string } | null>(null);
+  const hiddenRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: activeUserId, ids: new Set() });
+  if (hiddenRef.current.userId !== activeUserId) {
+    hiddenRef.current = { userId: activeUserId, ids: new Set() };
+  }
   const activeUserIdRef = useRef<string | null>(activeUserId);
   activeUserIdRef.current = activeUserId;
   const seenNotificationIdsRef = useRef<{
@@ -61,7 +68,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       };
       setState({
         userId: requestUserId,
-        notifications: data,
+        notifications: data.filter((notification) => !hiddenRef.current.ids.has(notification.id)),
         isLoading: false,
       });
     } catch (error) {
@@ -79,24 +86,36 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     }
   }, [activeUserId]);
 
-  // Initial load + polling fallback
+  // Initial load for each identity
   useEffect(() => {
     if (!activeUserId) {
       seenNotificationIdsRef.current = { userId: null, ids: new Set() };
       setState({ userId: null, notifications: [], isLoading: false });
       return;
     }
+    setConnection(null);
+    setDismissFailure(null);
     void loadNotifications();
-    const interval = setInterval(loadNotifications, POLL_INTERVAL);
-    return () => clearInterval(interval);
   }, [activeUserId, loadNotifications]);
+
+  const connected = connection?.userId === activeUserId && connection.connected;
+  useEffect(() => {
+    if (!activeUserId || connected) return;
+    const interval = setInterval(() => { void loadNotifications(); }, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [activeUserId, connected, loadNotifications]);
 
   // Realtime subscription - also triggers desktop notification for important types
   useNotificationSubscription({
     userId: activeUserId ?? undefined,
     enabled: activeUserId !== null,
+    onConnectionChange: (connected, sourceUserId) => {
+      if (activeUserIdRef.current !== sourceUserId) return;
+      setConnection({ userId: sourceUserId, connected });
+    },
     onNewNotification: (notification, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;
+      if (hiddenRef.current.ids.has(notification.id)) return;
       const seen = seenNotificationIdsRef.current;
       if (seen.userId !== sourceUserId) {
         seenNotificationIdsRef.current = {
@@ -114,8 +133,8 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
             : [notification],
         isLoading: false,
       }));
-      // Show desktop notification for warning/success/error types
-      if (notification.type === "warning" || notification.type === "success" || notification.type === "error") {
+      // Interrupt only for warnings and errors
+      if (notification.type === "warning" || notification.type === "error") {
         void notificationApi.showDesktopNotification(notification.title, notification.body ?? undefined);
       }
     },
@@ -177,27 +196,33 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   }, [activeUserId]);
 
   const dismiss = useCallback(async (id: string) => {
-    if (!activeUserId) return;
+    if (!activeUserId || activeUserIdRef.current !== activeUserId || hiddenRef.current.ids.has(id)) return;
     const requestUserId = activeUserId;
+    const hidden = hiddenRef.current;
+    const removedIndex = notifications.findIndex((notification) => notification.id === id);
+    const removed = notifications[removedIndex];
+    if (!removed) return;
+    hidden.ids.add(id);
+    setDismissFailure(null);
+    setState((previous) => previous.userId === requestUserId
+      ? { ...previous, notifications: previous.notifications.filter((notification) => notification.id !== id) }
+      : previous);
     try {
-      await notificationApi.dismiss(id);
-      if (activeUserIdRef.current !== requestUserId) return;
-      setState((previous) =>
-        previous.userId === requestUserId
-          ? {
-              ...previous,
-              notifications: previous.notifications.filter(
-                (notification) => notification.id !== id,
-              ),
-            }
-          : previous,
-      );
-    } catch (error) {
-      if (activeUserIdRef.current === requestUserId) {
-        console.error("[useNotifications] Failed to dismiss:", error);
-      }
+      const success = await notificationApi.dismiss(id);
+      if (!success) throw new Error("Notification dismissal failed");
+    } catch {
+      hidden.ids.delete(id);
+      if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
+      console.error("[useNotifications] Failed to dismiss notification");
+      setDismissFailure({ userId: requestUserId, message: "Notifikaci se nepodařilo skrýt. Zkuste to znovu." });
+      setState((previous) => {
+        if (previous.userId !== requestUserId) return previous;
+        const restored = previous.notifications.filter((notification) => notification.id !== id);
+        restored.splice(Math.min(removedIndex, restored.length), 0, removed);
+        return { ...previous, notifications: restored };
+      });
     }
-  }, [activeUserId]);
+  }, [activeUserId, notifications]);
 
   const dismissAll = useCallback(async () => {
     if (!activeUserId) return;
@@ -220,6 +245,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   return {
     notifications,
     isLoading,
+    dismissError: dismissFailure?.userId === activeUserId ? dismissFailure.message : null,
     unreadCount,
     refresh: loadNotifications,
     markRead,

@@ -102,7 +102,7 @@ describe("useNotificationSubscription", () => {
     try {
       state.subscriptions[0].onSubscriptionError?.("TIMED_OUT");
       expect(warn).toHaveBeenCalledExactlyOnceWith(
-        "[notifications] Spojení pro okamžité notifikace není dostupné (TIMED_OUT); pravidelné načítání pokračuje každých 30 sekund.",
+        "[notifications] Spojení pro okamžité notifikace není dostupné (TIMED_OUT); pravidelné načítání pokračuje každých 5 minut.",
       );
     } finally {
       unmount();

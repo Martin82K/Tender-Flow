@@ -7,6 +7,7 @@ type NotificationConnectionFailure = "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
 interface NotificationSubscriptionOptions {
   userId: string;
   onNewNotification: (notification: AppNotification) => void;
+  onConnectionChange?: (connected: boolean) => void;
   onSubscriptionError?: (status: NotificationConnectionFailure) => void;
 }
 
@@ -68,6 +69,7 @@ export const notificationApi = {
     userId,
     onNewNotification,
     onSubscriptionError,
+    onConnectionChange,
   }: NotificationSubscriptionOptions): () => void {
     const supabase = notificationService.getSupabaseClient();
     let disposed = false;
@@ -90,11 +92,13 @@ export const notificationApi = {
       .subscribe((status) => {
         if (disposed) return;
         if (status === "SUBSCRIBED") {
+          onConnectionChange?.(true);
           outageReported = false;
           return;
         }
         // The SDK retries channel errors/timeouts; polling continues independently.
         if (!outageReported && (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")) {
+          onConnectionChange?.(false);
           outageReported = true;
           onSubscriptionError?.(status);
         }

@@ -5,6 +5,7 @@ import type { AppNotification } from "../types";
 interface UseNotificationSubscriptionOptions {
   userId: string | undefined;
   enabled: boolean;
+  onConnectionChange?: (connected: boolean, userId: string) => void;
   onNewNotification: (
     notification: AppNotification,
     sourceUserId: string,
@@ -19,7 +20,10 @@ export const useNotificationSubscription = ({
   userId,
   enabled,
   onNewNotification,
+  onConnectionChange,
 }: UseNotificationSubscriptionOptions) => {
+  const connectionRef = useRef(onConnectionChange);
+  connectionRef.current = onConnectionChange;
   const callbackRef = useRef(onNewNotification);
   callbackRef.current = onNewNotification;
 
@@ -31,9 +35,10 @@ export const useNotificationSubscription = ({
       onNewNotification: (notification) => {
         callbackRef.current(notification, userId);
       },
+      onConnectionChange: (connected) => connectionRef.current?.(connected, userId),
       onSubscriptionError: (status) => {
         // Log only the status, never transport errors that may contain credentials.
-        console.warn(`[notifications] Spojení pro okamžité notifikace není dostupné (${status}); pravidelné načítání pokračuje každých 30 sekund.`);
+        console.warn(`[notifications] Spojení pro okamžité notifikace není dostupné (${status}); pravidelné načítání pokračuje každých 5 minut.`);
       },
     });
   }, [userId, enabled]);

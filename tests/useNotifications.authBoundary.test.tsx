@@ -6,6 +6,7 @@ import type { AppNotification } from "@features/notifications/types";
 type SubscriptionOptions = {
   userId: string | undefined;
   enabled: boolean;
+  onConnectionChange: (connected: boolean, userId: string) => void;
   onNewNotification: (
     notification: AppNotification,
     sourceUserId: string,
@@ -143,7 +144,7 @@ describe("useNotifications auth boundary", () => {
     expect(result.current.unreadCount).toBe(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(300_000);
     });
     expect(state.getNotifications).toHaveBeenCalledTimes(2);
 
@@ -151,6 +152,62 @@ describe("useNotifications auth boundary", () => {
       await result.current.refresh();
     });
     expect(state.getNotifications).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops polling while connected and resumes after an outage", async () => {
+    renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    act(() => state.subscriptionOptions?.onConnectionChange(false, "user-b"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(270_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+  });
+
+  it("hides immediately, suppresses stale loads and restores a failed dismissal", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    await act(async () => { await result.current.refresh(); });
+    expect(result.current.notifications).toEqual([]);
+    pending.resolve(false);
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
+    expect(result.current.dismissError).toBeTruthy();
+    expect(consoleError).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
+  });
+
+  it("does not restore a failed dismissal into another account", async () => {
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result, rerender } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("initial"); });
+    state.identity = userA;
+    state.getNotifications.mockResolvedValue([makeNotification("user-a")]);
+    rerender();
+    await flushPromises();
+    pending.resolve(false);
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["user-a"]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("does not send desktop alerts for routine successes", async () => {
+    renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onNewNotification(makeNotification("success", { type: "success" }), "user-b"));
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
   });
 
   it("normalizes the shared identity before network work", async () => {
@@ -243,7 +300,7 @@ describe("useNotifications auth boundary", () => {
     expect(result.current.notifications).toEqual([]);
     expect(state.showDesktopNotification).not.toHaveBeenCalled();
 
-    const current = makeNotification("current", { type: "success" });
+    const current = makeNotification("current", { type: "warning" });
     act(() => {
       onNewNotification?.(current, "user-b");
       onNewNotification?.(current, "user-b");

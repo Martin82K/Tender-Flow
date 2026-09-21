@@ -12,7 +12,7 @@ const notification: AppNotification = {
   created_at: "2026-07-11T10:00:00.000Z",
   read_at: null,
   category: "system",
-  action_url: null,
+  action_url: "/projects/test",
   entity_type: null,
   entity_id: null,
   dismissed_at: null,
@@ -49,7 +49,8 @@ describe("NotificationCenter auth-aware callbacks", () => {
 
     fireEvent.click(screen.getByText("Testovací notifikace"));
     await waitFor(() => {
-      expect(onMarkRead).toHaveBeenCalledWith("notification-1");
+      expect(onDismiss).toHaveBeenCalledWith("notification-1");
+      expect(onMarkRead).not.toHaveBeenCalled();
     });
 
     fireEvent.click(screen.getByTitle("Skrýt"));

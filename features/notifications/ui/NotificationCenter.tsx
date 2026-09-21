@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { navigate } from "@shared/routing/router";
 import type { AppNotification, NotificationCategory } from "../types";
 import { NOTIFICATION_CATEGORY_LABELS } from "../types";
 import { NotificationItem } from "./NotificationItem";
@@ -40,6 +39,7 @@ interface NotificationCenterProps {
   onClose: () => void;
   notifications: AppNotification[];
   isLoading: boolean;
+  dismissError?: string | null;
   onMarkRead: (id: string) => Promise<void>;
   onMarkAllRead: () => Promise<void>;
   onDismiss: (id: string) => Promise<void>;
@@ -54,6 +54,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClose,
   notifications,
   isLoading,
+  dismissError,
   onMarkRead,
   onMarkAllRead,
   onDismiss,
@@ -103,16 +104,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   }, [onDismiss]);
 
   const handleClick = useCallback(async (notification: AppNotification) => {
-    // Mark as read
-    if (!notification.read_at) {
-      await onMarkRead(notification.id);
-    }
-    // Navigate to action URL
-    if (notification.action_url) {
-      onClose();
-      navigate(notification.action_url);
-    }
-  }, [onClose, onMarkRead]);
+    await onDismiss(notification.id);
+  }, [onDismiss]);
 
   const handleMarkAllRead = useCallback(async () => {
     await onMarkAllRead();
@@ -220,9 +213,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         ))}
       </div>
 
+      {dismissError && <p role="alert" className="px-4 py-2 text-sm text-red-600 dark:text-red-400">{dismissError}</p>}
+
       {/* Content */}
       <div data-help-id="notification-center-list" className="max-h-96 overflow-y-auto">
-        {isLoading ? (
+        {isLoading && notifications.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500">
             <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
           </div>

@@ -6,7 +6,7 @@ Stav: implementováno a lokálně ověřeno, 11. července 2026
 
 Notifikační UI používá jediný datový hook `useNotifications`. Hook čte pouze
 read-only `AuthIdentity` (`id`, `email`, `role`) a řídí počáteční načtení,
-30sekundový fallback polling, realtime odběr, lokální stav, mutace a předání
+pětiminutový fallback polling, realtime odběr, lokální stav, mutace a předání
 důležitých událostí desktopové notifikaci.
 
 `NotificationCenter` nevolá API přímo. Mark-read, mark-all-read, dismiss a
@@ -19,7 +19,7 @@ identity.
 ```text
 AuthProvider → AuthIdentityContext → useNotifications
                                       ├─ notificationApi RPC/read
-                                      ├─ 30s polling
+                                      ├─ 5min polling při výpadku
                                       ├─ useNotificationSubscription
                                       └─ desktop notification adapter
 
@@ -54,7 +54,7 @@ Stav je označený ID identity, pro kterou vznikl. Při přepnutí A → B:
 - deduplikace realtime událostí se vede odděleně pro aktivní identitu.
 
 Desktopová notifikace vznikne jen pro novou, neduplikovanou událost aktivní
-identity a pouze pro typ `warning`, `success` nebo `error`.
+identity a pouze pro typ `warning` nebo `error`.
 
 ## Autor změny a příjemce
 
@@ -74,7 +74,9 @@ rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
 ## Výpadky realtime spojení
 
 Realtime „subscription“ označuje odběr databázových událostí, nikoli placené
-předplatné. Polling běží každých 30 sekund nezávisle na stavu realtime spojení.
+předplatné. Polling běží každých 5 minut, dokud není realtime spojení potvrzené.
+Stav `SUBSCRIBED` timer zastaví; výpadek jej znovu spustí. Otevření zvonku
+vždy obnoví seznam ručně. Aktualizace zachovává již načtené položky.
 Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
 za souvislý výpadek; `SUBSCRIBED` umožní hlásit případný další výpadek. Opakování
 připojení po chybě nebo timeoutu zajišťuje Supabase SDK. Uzavřený kanál zůstává
@@ -89,6 +91,14 @@ serverové Realtime logy, platnost session a zařazení tabulky `notifications`
 do publikace `supabase_realtime`. Samotná obecná hláška neurčuje příčinu.
 Polling obnovuje seznam; desktopová upozornění nadále vznikají pouze z realtime
 událostí, takže při jeho výpadku nemusí vyskočit.
+
+## Skrytí položky
+
+Kliknutí na tělo položky, Enter, mezerník i křížek ji skryjí; `action_url`
+se při tom neotevírá. Skrytí je okamžité a používá existující autorizované
+RPC. Souběžné načtení ani opakovaná realtime událost skrytou položku nevrátí.
+Při chybě nebo výsledku `false` se položka obnoví a panel nabídne opakování
+pomocí chybové zprávy. Opožděné selhání z jiného účtu nesmí obnovit jeho data.
 
 ## Serverová autorizace
 

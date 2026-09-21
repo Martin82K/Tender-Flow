@@ -28,14 +28,15 @@ describe("notificationApi realtime subscriptions", () => {
       channel: vi.fn().mockReturnValue(channel),
       removeChannel,
     });
+    const onConnectionChange = vi.fn();
     const onSubscriptionError = vi.fn();
     const onNewNotification = vi.fn();
     const cleanup = notificationApi.subscribeToUserNotifications({
-      userId: "user-1", onSubscriptionError, onNewNotification,
+      userId: "user-1", onSubscriptionError, onNewNotification, onConnectionChange,
     });
     const status = subscribe.mock.calls[0][0] as (value: string) => void;
     const payload = on.mock.calls[0][2] as (value: { new: unknown }) => void;
-    return { status, payload, cleanup, removeChannel, onSubscriptionError, onNewNotification };
+    return { onConnectionChange, status, payload, cleanup, removeChannel, onSubscriptionError, onNewNotification };
   };
 
   it.each(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"])("reports %s once per outage and resets after recovery", (failure) => {
@@ -44,7 +45,9 @@ describe("notificationApi realtime subscriptions", () => {
     subscription.status("CHANNEL_ERROR");
     subscription.status("TIMED_OUT");
     expect(subscription.onSubscriptionError).toHaveBeenCalledExactlyOnceWith(failure);
+    expect(subscription.onConnectionChange).toHaveBeenLastCalledWith(false);
     subscription.status("SUBSCRIBED");
+    expect(subscription.onConnectionChange).toHaveBeenLastCalledWith(true);
     subscription.status(failure);
     expect(subscription.onSubscriptionError).toHaveBeenCalledTimes(2);
   });
