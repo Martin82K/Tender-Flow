@@ -162,18 +162,18 @@ describe("useNotifications auth boundary", () => {
     await flushPromises();
     act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
     await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
-    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
     act(() => state.subscriptionOptions?.onConnectionChange(false, "user-b"));
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-    expect(state.getNotifications).toHaveBeenCalledTimes(1);
-    await act(async () => { await vi.advanceTimersByTimeAsync(270_000); });
     expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(270_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
     state.getNotifications.mockResolvedValue([makeNotification("during-outage")]);
     act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
     await flushPromises();
-    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+    expect(state.getNotifications).toHaveBeenCalledTimes(4);
     await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
-    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+    expect(state.getNotifications).toHaveBeenCalledTimes(4);
   });
 
   it("hides immediately, suppresses stale loads and restores a failed dismissal", async () => {
@@ -235,14 +235,14 @@ describe("useNotifications auth boundary", () => {
 
   it("retries a failed snapshot even when realtime is connected", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    state.getNotifications.mockRejectedValueOnce(new Error("offline"));
+    state.getNotifications.mockRejectedValueOnce(new Error("offline")).mockRejectedValueOnce(new Error("offline"));
     const { result } = renderHook(() => useNotifications(true));
     act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
     await flushPromises();
     await act(async () => { await vi.advanceTimersByTimeAsync(300_000); });
     expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
     await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
-    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
     consoleError.mockRestore();
   });
 
@@ -295,10 +295,34 @@ describe("useNotifications auth boundary", () => {
     act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
     state.getNotifications.mockResolvedValue([]);
     await act(async () => { await vi.advanceTimersByTimeAsync(3_599_000); });
-    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(result.current.notifications).toEqual([]);
     expect(state.showDesktopNotification).not.toHaveBeenCalled();
+  });
+
+  it("reconciles the initial connection gap and ignores the older initial response", async () => {
+    const initial = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(initial.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    state.getNotifications.mockResolvedValue([makeNotification("connection-gap")]);
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    initial.resolve([]);
+    await flushPromises();
+    expect(result.current.notifications.map(n => n.id)).toEqual(["connection-gap"]);
+  });
+
+  it("reconciles a lost dismissal response against the server", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    state.dismiss.mockRejectedValue(new Error("response lost"));
+    state.getNotifications.mockResolvedValue([]);
+    await act(async () => { await result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+    error.mockRestore();
   });
 
   it("does not send desktop alerts for routine successes", async () => {

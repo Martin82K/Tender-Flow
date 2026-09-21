@@ -29,7 +29,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   const [connection, setConnection] = useState<{ userId: string; connected: boolean } | null>(null);
   const [failedLoadUserId, setFailedLoadUserId] = useState<string | null>(null);
   const connectionRef = useRef<typeof connection>(null);
-  const [dismissFailure, setDismissFailure] = useState<{ userId: string; message: string } | null>(null);
+  const [dismissFailure, setDismissFailure] = useState<{ userId: string; notificationId: string; message: string } | null>(null);
   const hiddenRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: activeUserId, ids: new Set() });
   if (hiddenRef.current.userId !== activeUserId) {
     hiddenRef.current = { userId: activeUserId, ids: new Set() };
@@ -56,19 +56,21 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       : false;
 
   const loadNotifications = useCallback(async () => {
-    if (!activeUserId) return;
+    if (!activeUserId || activeUserIdRef.current !== activeUserId) return;
     const requestUserId = activeUserId;
     const requestRevision = ++loadRevisionRef.current;
     setState((previous) => ({
       userId: requestUserId,
       notifications:
         previous.userId === requestUserId ? previous.notifications : [],
-      isLoading: previous.userId !== requestUserId,
+      isLoading: previous.userId !== requestUserId || previous.isLoading,
     }));
     try {
       const data = await notificationApi.getNotifications(30);
       if (activeUserIdRef.current !== requestUserId || loadRevisionRef.current !== requestRevision) return;
       setFailedLoadUserId(null);
+      setDismissFailure((previous) => previous?.userId === requestUserId
+        && !data.some((notification) => notification.id === previous.notificationId) ? null : previous);
       seenNotificationIdsRef.current = {
         userId: requestUserId,
         ids: new Set(data.map((notification) => notification.id)),
@@ -125,11 +127,11 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     },
     onConnectionChange: (connected, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;
-      const recovering = connected && connectionRef.current?.userId === sourceUserId
-        && connectionRef.current.connected === false;
+      const needsSnapshot = connected && (connectionRef.current?.userId !== sourceUserId
+        || connectionRef.current.connected !== true);
       connectionRef.current = { userId: sourceUserId, connected };
       setConnection(connectionRef.current);
-      if (recovering) void loadNotifications();
+      if (needsSnapshot) void loadNotifications();
     },
     onNewNotification: (notification, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;
@@ -234,15 +236,17 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       hidden.ids.delete(id);
       if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
       console.error("[useNotifications] Failed to dismiss notification");
-      setDismissFailure({ userId: requestUserId, message: "Notifikaci se nepodařilo skrýt. Zkuste to znovu." });
+      setDismissFailure({ userId: requestUserId, notificationId: id, message: "Notifikaci se nepodařilo skrýt. Zkuste to znovu." });
       setState((previous) => {
         if (previous.userId !== requestUserId) return previous;
         const restored = previous.notifications.filter((notification) => notification.id !== id);
         restored.splice(Math.min(removedIndex, restored.length), 0, removed);
         return { ...previous, notifications: restored };
       });
+      // A lost response does not prove the write failed; reconcile before leaving a rollback visible.
+      await loadNotifications();
     }
-  }, [activeUserId, notifications]);
+  }, [activeUserId, notifications, loadNotifications]);
 
   const dismissAll = useCallback(async () => {
     if (!activeUserId || activeUserIdRef.current !== activeUserId) return;

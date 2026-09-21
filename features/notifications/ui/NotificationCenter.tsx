@@ -100,12 +100,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
   const handleDismiss = useCallback(async (id: string) => {
+    const buttons = Array.from(panelRef.current?.querySelectorAll<HTMLButtonElement>("[data-notification-id]") ?? []);
+    const index = buttons.findIndex((button) => button.dataset.notificationId === id);
+    const next = index >= 0 ? buttons[index + 1] ?? buttons[index - 1] : undefined;
+    (next ?? panelRef.current)?.focus();
     await onDismiss(id);
   }, [onDismiss]);
 
   const handleClick = useCallback(async (notification: AppNotification) => {
-    await onDismiss(notification.id);
-  }, [onDismiss]);
+    await handleDismiss(notification.id);
+  }, [handleDismiss]);
 
   const handleMarkAllRead = useCallback(async () => {
     await onMarkAllRead();
@@ -153,6 +157,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const panel = (
     <div
       ref={panelRef}
+      role="region"
+      aria-label="Notifikace"
+      tabIndex={-1}
       data-help-id="notification-center"
       style={
         anchor

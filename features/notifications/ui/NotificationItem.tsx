@@ -56,6 +56,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       <button
         type="button"
         className="flex flex-1 min-w-0 items-start gap-3 text-left rounded focus-visible:outline-2 focus-visible:outline-primary"
+        data-notification-id={notification.id}
         aria-label={`Skrýt notifikaci: ${notification.title}`}
         aria-describedby={`${notification.body ? descriptionId + " " : ""}${timeId}`}
         onClick={() => onClick(notification)}
