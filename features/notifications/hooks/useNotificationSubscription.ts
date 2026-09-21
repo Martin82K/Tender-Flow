@@ -34,17 +34,28 @@ export const useNotificationSubscription = ({
   useEffect(() => {
     if (!enabled || !userId) return;
 
-    return notificationApi.subscribeToUserNotifications({
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const cleanup = notificationApi.subscribeToUserNotifications({
       userId,
       onNewNotification: (notification) => {
         callbackRef.current(notification, userId);
       },
-      onNotificationsChanged: () => changeRef.current?.(userId),
+      onNotificationsChanged: () => {
+        if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = undefined;
+          changeRef.current?.(userId);
+        }, 250);
+      },
       onConnectionChange: (connected) => connectionRef.current?.(connected, userId),
       onSubscriptionError: (status) => {
         // Log only the status, never transport errors that may contain credentials.
         console.warn(`[notifications] Spojení pro okamžité notifikace není dostupné (${status}); pravidelné načítání pokračuje každých 5 minut.`);
       },
     });
+    return () => {
+      if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+      cleanup();
+    };
   }, [userId, enabled]);
 };

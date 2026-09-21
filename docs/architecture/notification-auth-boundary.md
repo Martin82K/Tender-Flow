@@ -75,11 +75,13 @@ rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
 
 Realtime „subscription“ označuje odběr databázových událostí, nikoli placené
 předplatné. Polling běží každých 5 minut, dokud není realtime spojení potvrzené.
-Stav `SUBSCRIBED` timer zastaví; výpadek jej znovu spustí. Po zotavení z výpadku
+Stav `SUBSCRIBED` přepne timer na tichou hodinovou reconciliaci, která zachytí
+i serverové mazání starých řádků. Výpadek vrátí pětiminutový interval. Po zotavení z výpadku
 se seznam jednorázově obnoví, aby obsahoval i zmeškané události.
 Události `UPDATE` obnovují přečtení/skrytí provedené na jiném zařízení bez
-desktopového upozornění. Neúspěšný snapshot se po 5 minutách zopakuje i při
-připojeném Realtime; po úspěchu tento záložní timer skončí. Otevření zvonku
+desktopového upozornění. Rychlé série UPDATE se sloučí s prodlevou 250 ms.
+Starší souběžná odpověď snapshotu nepřepíše novější. Neúspěšný snapshot se po 5 minutách zopakuje i při
+připojeném Realtime; po úspěchu se vrátí hodinový interval. Otevření zvonku
 vždy obnoví seznam ručně. Aktualizace zachovává již načtené položky.
 Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
 za souvislý výpadek; `SUBSCRIBED` umožní hlásit případný další výpadek. Opakování
@@ -103,7 +105,8 @@ se při tom neotevírá. Skrytí je okamžité a používá existující autoriz
 RPC. Souběžné načtení ani opakovaná realtime událost skrytou položku nevrátí.
 Výsledek RPC `false` znamená, že již neexistuje aktivní vlastní řádek,
 a považuje se za idempotentní úspěch. Při chybě se položka obnoví a panel nabídne opakování
-pomocí chybové zprávy. Opožděné selhání z jiného účtu nesmí obnovit jeho data.
+pomocí chybové zprávy. Opožděné selhání z jiného účtu nesmí obnovit jeho data. Úspěšné hromadné
+skrytí zneplatní starší snapshoty i rollback čekajícího individuálního skrytí.
 
 ## Serverová autorizace
 

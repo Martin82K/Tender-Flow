@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppNotification } from "@features/notifications/types";
 
@@ -65,8 +65,7 @@ describe("useNotificationSubscription", () => {
     );
 
     expect(state.subscriptions[0].userId).toBe("user-a");
-    state.subscriptions[0].onNotificationsChanged?.();
-    expect(onNotificationsChanged).toHaveBeenCalledWith("user-a");
+
     state.subscriptions[0].onNewNotification(notification);
     expect(onNewNotification).toHaveBeenCalledWith(notification, "user-a");
 
@@ -76,6 +75,27 @@ describe("useNotificationSubscription", () => {
 
     unmount();
     expect(state.cleanups[1]).toHaveBeenCalledOnce();
+  });
+
+  it("coalesces update bursts and cancels pending refreshes on cleanup", async () => {
+    vi.useFakeTimers();
+    const onNotificationsChanged = vi.fn();
+    const { unmount } = renderHook(() => useNotificationSubscription({
+      userId: "user-a", enabled: true, onNewNotification: vi.fn(), onNotificationsChanged,
+    }));
+    try {
+      for (let i = 0; i < 100; i++) state.subscriptions[0].onNotificationsChanged?.();
+      expect(onNotificationsChanged).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+      expect(onNotificationsChanged).toHaveBeenCalledExactlyOnceWith("user-a");
+      state.subscriptions[0].onNotificationsChanged?.();
+      unmount();
+      await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+      expect(onNotificationsChanged).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 
   it("does not create a subscription without an enabled user", () => {

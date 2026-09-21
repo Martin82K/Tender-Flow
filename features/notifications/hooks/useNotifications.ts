@@ -4,6 +4,7 @@ import type { AppNotification } from "../types";
 import { notificationApi } from "../api/notificationApi";
 import { useNotificationSubscription } from "./useNotificationSubscription";
 
+const RECONCILE_INTERVAL = 3_600_000; // Silent hourly reconciliation covers server-side deletion
 const POLL_INTERVAL = 300_000; // Five-minute fallback when Realtime is unavailable
 
 interface UseNotificationsReturn {
@@ -33,6 +34,8 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   if (hiddenRef.current.userId !== activeUserId) {
     hiddenRef.current = { userId: activeUserId, ids: new Set() };
   }
+  const loadRevisionRef = useRef(0);
+  const dismissAllGenerationRef = useRef(0);
   const activeUserIdRef = useRef<string | null>(activeUserId);
   activeUserIdRef.current = activeUserId;
   const seenNotificationIdsRef = useRef<{
@@ -55,15 +58,16 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   const loadNotifications = useCallback(async () => {
     if (!activeUserId) return;
     const requestUserId = activeUserId;
+    const requestRevision = ++loadRevisionRef.current;
     setState((previous) => ({
       userId: requestUserId,
       notifications:
         previous.userId === requestUserId ? previous.notifications : [],
-      isLoading: true,
+      isLoading: previous.userId !== requestUserId,
     }));
     try {
       const data = await notificationApi.getNotifications(30);
-      if (activeUserIdRef.current !== requestUserId) return;
+      if (activeUserIdRef.current !== requestUserId || loadRevisionRef.current !== requestRevision) return;
       setFailedLoadUserId(null);
       seenNotificationIdsRef.current = {
         userId: requestUserId,
@@ -75,12 +79,12 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
         isLoading: false,
       });
     } catch (error) {
-      if (activeUserIdRef.current === requestUserId) {
+      if (activeUserIdRef.current === requestUserId && loadRevisionRef.current === requestRevision) {
         setFailedLoadUserId(requestUserId);
         console.error("[useNotifications] Failed to load:", error);
       }
     } finally {
-      if (activeUserIdRef.current === requestUserId) {
+      if (activeUserIdRef.current === requestUserId && loadRevisionRef.current === requestRevision) {
         setState((previous) =>
           previous.userId === requestUserId
             ? { ...previous, isLoading: false }
@@ -106,8 +110,9 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
 
   const connected = connection?.userId === activeUserId && connection.connected;
   useEffect(() => {
-    if (!activeUserId || (connected && failedLoadUserId !== activeUserId)) return;
-    const interval = setInterval(() => { void loadNotifications(); }, POLL_INTERVAL);
+    if (!activeUserId) return;
+    const delay = connected && failedLoadUserId !== activeUserId ? RECONCILE_INTERVAL : POLL_INTERVAL;
+    const interval = setInterval(() => { void loadNotifications(); }, delay);
     return () => clearInterval(interval);
   }, [activeUserId, connected, failedLoadUserId, loadNotifications]);
 
@@ -212,6 +217,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     if (!activeUserId || activeUserIdRef.current !== activeUserId || hiddenRef.current.ids.has(id)) return;
     const requestUserId = activeUserId;
     const hidden = hiddenRef.current;
+    const dismissAllGeneration = dismissAllGenerationRef.current;
     const removedIndex = notifications.findIndex((notification) => notification.id === id);
     const removed = notifications[removedIndex];
     if (!removed) return;
@@ -224,6 +230,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       // false means no active owned row matched (already dismissed or removed).
       await notificationApi.dismiss(id);
     } catch {
+      if (dismissAllGenerationRef.current !== dismissAllGeneration) return;
       hidden.ids.delete(id);
       if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
       console.error("[useNotifications] Failed to dismiss notification");
@@ -238,14 +245,18 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   }, [activeUserId, notifications]);
 
   const dismissAll = useCallback(async () => {
-    if (!activeUserId) return;
+    if (!activeUserId || activeUserIdRef.current !== activeUserId) return;
     const requestUserId = activeUserId;
+    const hidden = hiddenRef.current;
     try {
       await notificationApi.dismissAll();
-      if (activeUserIdRef.current !== requestUserId) return;
+      if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
+      dismissAllGenerationRef.current += 1;
+      loadRevisionRef.current += 1;
+      setDismissFailure(null);
       setState((previous) =>
         previous.userId === requestUserId
-          ? { ...previous, notifications: [] }
+          ? { ...previous, notifications: [], isLoading: false }
           : previous,
       );
     } catch (error) {

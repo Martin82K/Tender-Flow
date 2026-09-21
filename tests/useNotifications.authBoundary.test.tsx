@@ -246,6 +246,61 @@ describe("useNotifications auth boundary", () => {
     consoleError.mockRestore();
   });
 
+  it("does not restore an individual dismissal after a successful dismiss all", async () => {
+    state.getNotifications.mockResolvedValue([makeNotification("one"), makeNotification("two")]);
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("one"); });
+    await act(async () => { await result.current.dismissAll(); });
+    pending.reject(new Error("late failure"));
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("does not apply an older snapshot after dismiss all succeeds", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValue(pending.promise);
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    await act(async () => { await result.current.dismissAll(); });
+    pending.resolve([makeNotification("initial")]);
+    await act(async () => { await refresh; });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("keeps the newest snapshot when requests finish out of order", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(pending.promise);
+    let older!: Promise<void>;
+    act(() => { older = result.current.refresh(); });
+    state.getNotifications.mockResolvedValue([makeNotification("newest")]);
+    await act(async () => { await result.current.refresh(); });
+    pending.resolve([makeNotification("old")]);
+    await act(async () => { await older; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["newest"]);
+  });
+
+  it("silently reconciles deleted records once an hour while connected", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    state.getNotifications.mockResolvedValue([]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_599_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(result.current.notifications).toEqual([]);
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
+  });
+
   it("does not send desktop alerts for routine successes", async () => {
     renderHook(() => useNotifications(true));
     await flushPromises();
