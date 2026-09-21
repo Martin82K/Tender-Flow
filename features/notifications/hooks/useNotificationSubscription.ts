@@ -5,6 +5,7 @@ import type { AppNotification } from "../types";
 interface UseNotificationSubscriptionOptions {
   userId: string | undefined;
   enabled: boolean;
+  onNotificationsChanged?: (userId: string) => void;
   onConnectionChange?: (connected: boolean, userId: string) => void;
   onNewNotification: (
     notification: AppNotification,
@@ -13,7 +14,7 @@ interface UseNotificationSubscriptionOptions {
 }
 
 /**
- * Subscribes to Supabase Realtime for INSERT events on the notifications table.
+ * Subscribes to Supabase Realtime for INSERT and UPDATE events on the notifications table.
  * Falls back gracefully if subscription fails.
  */
 export const useNotificationSubscription = ({
@@ -21,7 +22,10 @@ export const useNotificationSubscription = ({
   enabled,
   onNewNotification,
   onConnectionChange,
+  onNotificationsChanged,
 }: UseNotificationSubscriptionOptions) => {
+  const changeRef = useRef(onNotificationsChanged);
+  changeRef.current = onNotificationsChanged;
   const connectionRef = useRef(onConnectionChange);
   connectionRef.current = onConnectionChange;
   const callbackRef = useRef(onNewNotification);
@@ -35,6 +39,7 @@ export const useNotificationSubscription = ({
       onNewNotification: (notification) => {
         callbackRef.current(notification, userId);
       },
+      onNotificationsChanged: () => changeRef.current?.(userId),
       onConnectionChange: (connected) => connectionRef.current?.(connected, userId),
       onSubscriptionError: (status) => {
         // Log only the status, never transport errors that may contain credentials.

@@ -76,7 +76,10 @@ rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
 Realtime „subscription“ označuje odběr databázových událostí, nikoli placené
 předplatné. Polling běží každých 5 minut, dokud není realtime spojení potvrzené.
 Stav `SUBSCRIBED` timer zastaví; výpadek jej znovu spustí. Po zotavení z výpadku
-se seznam jednorázově obnoví, aby obsahoval i zmeškané události. Otevření zvonku
+se seznam jednorázově obnoví, aby obsahoval i zmeškané události.
+Události `UPDATE` obnovují přečtení/skrytí provedené na jiném zařízení bez
+desktopového upozornění. Neúspěšný snapshot se po 5 minutách zopakuje i při
+připojeném Realtime; po úspěchu tento záložní timer skončí. Otevření zvonku
 vždy obnoví seznam ručně. Aktualizace zachovává již načtené položky.
 Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
 za souvislý výpadek; `SUBSCRIBED` umožní hlásit případný další výpadek. Opakování
@@ -98,7 +101,8 @@ událostí, takže při jeho výpadku nemusí vyskočit.
 Kliknutí na tělo položky, Enter, mezerník i křížek ji skryjí; `action_url`
 se při tom neotevírá. Skrytí je okamžité a používá existující autorizované
 RPC. Souběžné načtení ani opakovaná realtime událost skrytou položku nevrátí.
-Při chybě nebo výsledku `false` se položka obnoví a panel nabídne opakování
+Výsledek RPC `false` znamená, že již neexistuje aktivní vlastní řádek,
+a považuje se za idempotentní úspěch. Při chybě se položka obnoví a panel nabídne opakování
 pomocí chybové zprávy. Opožděné selhání z jiného účtu nesmí obnovit jeho data.
 
 ## Serverová autorizace

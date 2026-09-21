@@ -6,6 +6,7 @@ import type { AppNotification } from "@features/notifications/types";
 type SubscriptionOptions = {
   userId: string | undefined;
   enabled: boolean;
+  onNotificationsChanged: (userId: string) => void;
   onConnectionChange: (connected: boolean, userId: string) => void;
   onNewNotification: (
     notification: AppNotification,
@@ -89,10 +90,12 @@ const makeNotification = (
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((nextResolve) => {
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    reject = nextReject;
     resolve = nextResolve;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 };
 
 const flushPromises = async () => {
@@ -184,7 +187,7 @@ describe("useNotifications auth boundary", () => {
     expect(result.current.notifications).toEqual([]);
     await act(async () => { await result.current.refresh(); });
     expect(result.current.notifications).toEqual([]);
-    pending.resolve(false);
+    pending.reject(new Error("network unavailable"));
     await act(async () => { await dismissal; });
     expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
     expect(result.current.dismissError).toBeTruthy();
@@ -203,10 +206,44 @@ describe("useNotifications auth boundary", () => {
     state.getNotifications.mockResolvedValue([makeNotification("user-a")]);
     rerender();
     await flushPromises();
-    pending.resolve(false);
+    pending.reject(new Error("network unavailable"));
     await act(async () => { await dismissal; });
     expect(result.current.notifications.map(n => n.id)).toEqual(["user-a"]);
     expect(result.current.dismissError).toBeNull();
+  });
+
+  it("treats an already dismissed notification as an idempotent success", async () => {
+    state.dismiss.mockResolvedValue(false);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    await act(async () => { await result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("refreshes changes from another tab without desktop alerts", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    state.getNotifications.mockResolvedValue([]);
+    act(() => state.subscriptionOptions?.onNotificationsChanged("user-a"));
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    act(() => state.subscriptionOptions?.onNotificationsChanged("user-b"));
+    await flushPromises();
+    expect(result.current.notifications).toEqual([]);
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed snapshot even when realtime is connected", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    state.getNotifications.mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useNotifications(true));
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    await act(async () => { await vi.advanceTimersByTimeAsync(300_000); });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    consoleError.mockRestore();
   });
 
   it("does not send desktop alerts for routine successes", async () => {

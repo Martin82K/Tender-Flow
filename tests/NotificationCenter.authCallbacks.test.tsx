@@ -47,6 +47,9 @@ describe("NotificationCenter auth-aware callbacks", () => {
       />,
     );
 
+    const dismissBody = screen.getByRole("button", { name: "Skrýt notifikaci: Testovací notifikace" });
+    expect(dismissBody).toHaveAccessibleDescription(/Obsah notifikace/);
+    expect(dismissBody.querySelector("button")).toBeNull();
     fireEvent.click(screen.getByText("Testovací notifikace"));
     await waitFor(() => {
       expect(onDismiss).toHaveBeenCalledWith("notification-1");

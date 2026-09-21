@@ -26,6 +26,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       ? normalizedUserId
       : null;
   const [connection, setConnection] = useState<{ userId: string; connected: boolean } | null>(null);
+  const [failedLoadUserId, setFailedLoadUserId] = useState<string | null>(null);
   const connectionRef = useRef<typeof connection>(null);
   const [dismissFailure, setDismissFailure] = useState<{ userId: string; message: string } | null>(null);
   const hiddenRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: activeUserId, ids: new Set() });
@@ -63,6 +64,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     try {
       const data = await notificationApi.getNotifications(30);
       if (activeUserIdRef.current !== requestUserId) return;
+      setFailedLoadUserId(null);
       seenNotificationIdsRef.current = {
         userId: requestUserId,
         ids: new Set(data.map((notification) => notification.id)),
@@ -74,6 +76,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       });
     } catch (error) {
       if (activeUserIdRef.current === requestUserId) {
+        setFailedLoadUserId(requestUserId);
         console.error("[useNotifications] Failed to load:", error);
       }
     } finally {
@@ -94,6 +97,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       setState({ userId: null, notifications: [], isLoading: false });
       return;
     }
+    setFailedLoadUserId(null);
     connectionRef.current = null;
     setConnection(null);
     setDismissFailure(null);
@@ -102,15 +106,18 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
 
   const connected = connection?.userId === activeUserId && connection.connected;
   useEffect(() => {
-    if (!activeUserId || connected) return;
+    if (!activeUserId || (connected && failedLoadUserId !== activeUserId)) return;
     const interval = setInterval(() => { void loadNotifications(); }, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [activeUserId, connected, loadNotifications]);
+  }, [activeUserId, connected, failedLoadUserId, loadNotifications]);
 
   // Realtime subscription - also triggers desktop notification for important types
   useNotificationSubscription({
     userId: activeUserId ?? undefined,
     enabled: activeUserId !== null,
+    onNotificationsChanged: (sourceUserId) => {
+      if (activeUserIdRef.current === sourceUserId) void loadNotifications();
+    },
     onConnectionChange: (connected, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;
       const recovering = connected && connectionRef.current?.userId === sourceUserId
@@ -214,8 +221,8 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       ? { ...previous, notifications: previous.notifications.filter((notification) => notification.id !== id) }
       : previous);
     try {
-      const success = await notificationApi.dismiss(id);
-      if (!success) throw new Error("Notification dismissal failed");
+      // false means no active owned row matched (already dismissed or removed).
+      await notificationApi.dismiss(id);
     } catch {
       hidden.ids.delete(id);
       if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;

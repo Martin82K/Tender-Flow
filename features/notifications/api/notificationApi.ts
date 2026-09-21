@@ -7,6 +7,7 @@ type NotificationConnectionFailure = "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED";
 interface NotificationSubscriptionOptions {
   userId: string;
   onNewNotification: (notification: AppNotification) => void;
+  onNotificationsChanged?: () => void;
   onConnectionChange?: (connected: boolean) => void;
   onSubscriptionError?: (status: NotificationConnectionFailure) => void;
 }
@@ -70,6 +71,7 @@ export const notificationApi = {
     onNewNotification,
     onSubscriptionError,
     onConnectionChange,
+    onNotificationsChanged,
   }: NotificationSubscriptionOptions): () => void {
     const supabase = notificationService.getSupabaseClient();
     let disposed = false;
@@ -87,6 +89,13 @@ export const notificationApi = {
         (payload) => {
           if (disposed) return;
           onNewNotification(payload.new as AppNotification);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        () => {
+          if (!disposed) onNotificationsChanged?.();
         },
       )
       .subscribe((status) => {

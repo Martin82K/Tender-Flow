@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import type { AppNotification } from "../types";
 
 interface NotificationItemProps {
@@ -42,6 +42,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
   onDismiss,
   onClick,
 }) => {
+  const descriptionId = useId();
+  const timeId = useId();
   const isUnread = !notification.read_at;
   const icon = TYPE_ICON[notification.type] ?? "info";
   const color = TYPE_COLOR[notification.type] ?? "text-slate-400";
@@ -50,46 +52,44 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     <div
       data-help-id="notification-item"
       className={`group flex items-start gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isUnread ? "bg-primary/5" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-label={`Skrýt notifikaci: ${notification.title}`}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick(notification);
-        }
-      }}
-      onClick={() => onClick(notification)}
     >
-      <span className={`material-symbols-outlined text-[18px] mt-0.5 shrink-0 ${color}`}>
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <div
-          className={`text-sm leading-tight truncate ${
-            isUnread
-              ? "font-semibold text-slate-900 dark:text-white"
-              : "font-medium text-slate-700 dark:text-slate-300"
-          }`}
-        >
-          {notification.title}
-        </div>
-        {notification.body && (
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-            {notification.body}
-          </div>
-        )}
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-          {formatRelativeTime(notification.created_at)}
-        </div>
-      </div>
       <button
+        type="button"
+        className="flex flex-1 min-w-0 items-start gap-3 text-left rounded focus-visible:outline-2 focus-visible:outline-primary"
+        aria-label={`Skrýt notifikaci: ${notification.title}`}
+        aria-describedby={`${notification.body ? descriptionId + " " : ""}${timeId}`}
+        onClick={() => onClick(notification)}
+      >
+        <span className={`material-symbols-outlined text-[18px] mt-0.5 shrink-0 ${color}`}>
+          {icon}
+        </span>
+        <span className="flex-1 min-w-0">
+          <span
+            className={`block text-sm leading-tight truncate ${
+              isUnread
+                ? "font-semibold text-slate-900 dark:text-white"
+                : "font-medium text-slate-700 dark:text-slate-300"
+            }`}
+          >
+            {notification.title}
+          </span>
+          {notification.body && (
+            <span id={descriptionId} className="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+              {notification.body}
+            </span>
+          )}
+          <span id={timeId} className="block text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+            {formatRelativeTime(notification.created_at)}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onDismiss(notification.id);
         }}
-        className="opacity-0 group-hover:opacity-100 shrink-0 mt-0.5 p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 shrink-0 mt-0.5 p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
         title="Skrýt"
       >
         <span className="material-symbols-outlined text-[14px] text-slate-400">close</span>
