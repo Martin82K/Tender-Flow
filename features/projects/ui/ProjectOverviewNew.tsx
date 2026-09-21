@@ -12,6 +12,7 @@ import {
   getWinningBids,
 } from "@/features/projects/model/projectOverviewNewModel";
 import { useProjectOverviewNewController } from "@/features/projects/model/useProjectOverviewNewController";
+import { ProjectClientCardSummary } from "@features/projects/client/ui/ProjectClientCardSummary";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 import { useFileExport } from "@shared/hooks/useFileExport";
 
@@ -1053,6 +1054,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
           , document.body)}
         </div>
       </div>
+      <ProjectClientCardSummary projectId={project.id} />
     </section>
   );
 

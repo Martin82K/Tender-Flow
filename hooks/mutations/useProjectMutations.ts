@@ -13,6 +13,8 @@ import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubS
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 import { resolveEffectiveProjectDocHubRoot } from "@features/projects/dochub/model/personalRoot";
 import { buildInvestorInvoiceRow } from "@features/projects/contracts/investor/investorBillingPersistence";
+import { clientCardApi } from "@features/projects/client/clientCardApi";
+import { projectClientCardQueryKey } from "@features/projects/client/useProjectClientCard";
 import { sanitizeDocHubSettings } from "@shared/dochub/cloudConnection";
 import {
     emitCategoryStatusNotification,
@@ -103,7 +105,8 @@ export const useAddProjectMutation = () => {
                         id: newProject.id,
                         title: newProject.name,
                         location: newProject.location,
-                        categories: []
+                        categories: [],
+                        ...(newProject.initialClientCard ? { clientCard: newProject.initialClientCard } : {}),
                     } as any;
                     saveDemoData(demoData);
                 }
@@ -122,6 +125,14 @@ export const useAddProjectMutation = () => {
                 })),
             });
             if (error) throw error;
+            if (newProject.initialClientCard) {
+                try {
+                    await clientCardApi.save(newProject.id, newProject.organizationId, newProject.initialClientCard);
+                } catch (cardError) {
+                    const detail = cardError instanceof Error ? cardError.message : "Kartu objednatele se nepodařilo uložit.";
+                    throw new Error(`Stavba byla vytvořena, kartu objednatele se nepodařilo uložit. ${detail}`);
+                }
+            }
             return newProject;
         },
         onMutate: async (newProject) => {
@@ -133,10 +144,13 @@ export const useAddProjectMutation = () => {
         onError: (_err, _newProject, context) => {
             queryClient.setQueryData(PROJECT_KEYS.list(), context?.previousProjects);
         },
-        onSettled: () => {
+        onSettled: (_data, _error, newProject) => {
             queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
             queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY });
             queryClient.invalidateQueries({ queryKey: PROJECT_SEARCH_KEY });
+            if (newProject?.id) {
+                queryClient.invalidateQueries({ queryKey: projectClientCardQueryKey(newProject.id) });
+            }
         },
     });
 };

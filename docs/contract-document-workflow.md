@@ -12,7 +12,7 @@ Detail smlouvy zachovává seznam vlevo a souhrn smlouvy nad pěti záložkami:
 
 V sidebaru rozbalte **Dokumenty → Subdodavatel**. Přehled seskupuje smlouvy a počty protokolů podle identity subdodavatele. Záložka **Předávací protokoly** nabízí hledání, filtr smlouvy a typu. Bez smlouvy se zobrazí vysvětlení a **Přejít na smlouvy**; bez práva upravovat smlouvy zůstávají zápisy zakázané s uvedeným důvodem. Neplatný filtr smlouvy v URL neblokuje založení záznamu. Klikněte na **Nový záznam**, vyberte smlouvu a typ **Předání staveniště** nebo **Předání díla**, doplňte název, plánované datum, rozsah a interní poznámku. Zvolte editor nebo připojení souboru po uložení.
 
-Objednatel, Sdružení, Evidence reklamací a horizontální Ostatní dokumenty zobrazují **Ve vývoji**. Dosavadní Ceníky zůstávají dostupné v rozbalené sekci Dokumenty.
+**Dokumenty → Objednatel** ukládá kartu identity objednatele (firma, IČO, adresa, jeden kontakt a interní poznámka). Není to finanční smlouva. **Smlouvy → Objednatel** dál eviduje SOD, dodatky, faktury a pozastávky; jméno z karty se do `customerName` zapíše jen po výslovném potvrzení. Sdružení, Evidence reklamací a horizontální Ostatní dokumenty zobrazují **Ve vývoji**. Dosavadní Ceníky zůstávají dostupné v rozbalené sekci Dokumenty.
 
 V editoru Údaje se předvyplní z vybrané smlouvy a stavby, údaje organizace a její logo z organizace stavby. Adresa a kontakty subdodavatele se načítají přes dodavatele navázaného na smlouvu; pokud vazba chybí, lze je dopsat. Souhrn údajů lze rozbalit a upravit pouze pro tento dokument.
 

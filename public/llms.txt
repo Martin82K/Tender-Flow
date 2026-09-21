@@ -20,7 +20,8 @@ Aktualizováno: 8. září 2026.
 - Výběrová řízení: plán VŘ, poptávkové kategorie, pipeline nabídek, výběr subdodavatele a vazba nabídky na smlouvu.
 - Komunikace v pipeline: příprava e-mailových konceptů; jejich odeslání provádí uživatel v e-mailovém klientu.
 - Smlouvy: smluvní ceny, dodatky, fakturace, pozastávky a dokumenty. OCR předvyplňuje návrh údajů, které uživatel kontroluje.
-- Investor: evidence smlouvy s objednatelem, dodatků, faktur, pozastávek a skutečných úhrad v projektu.
+- Objednatel v Dokumentech: karta identity u stavby (firma nebo jméno, IČO, adresa, kontakt a interní poznámka). Prázdná karta práci na stavbě neblokuje.
+- Objednatel ve Smlouvách: finanční evidence smlouvy, dodatků, faktur, pozastávek a úhrad. Jméno z karty identity se do smlouvy přenese jen po potvrzení uživatele.
 - Kontakty: dodavatelé, kontaktní osoby, specializace, hodnocení, import a doplnění firemních údajů z ARES.
 - Dokumenty a Složkomat: organizace projektové dokumentace, šablony a práce s připojeným úložištěm či lokálními složkami podle platformy.
 - Harmonogram a přehledy: termíny a souhrny stavby; export přehledu stavby do Excelu.

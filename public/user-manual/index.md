@@ -349,7 +349,7 @@ U příslušné vazby použijte **Odpojit** a přečtěte potvrzení. Potvrzení
 
 ![Objednatel Javor: základ smlouvy, dodatek a samostatná evidence fakturace.](./assets/objednatel.png)
 
-V části **Objednatel** vyplňte zákazníka, číslo smlouvy, základní cenu a další smluvní údaje. Dodatky přidávejte samostatně. V našem příkladu **2 500 000 + 100 000 = 2 600 000 Kč**. Ve fakturaci evidujte číslo, období, vystavení, splatnost, částku, stav a případné pozastávky. Úhradu zaznamenejte až podle skutečného stavu.
+V části **Smlouvy → Objednatel** evidujete finance: zákazníka na smlouvě, číslo smlouvy, základní cenu a další smluvní údaje. Identita objednatele (firma, IČO, adresa a kontakt) je samostatná karta v **Dokumenty → Objednatel** a do smlouvy se její jméno přenese jen po potvrzení. Dodatky přidávejte samostatně. V našem příkladu **2 500 000 + 100 000 = 2 600 000 Kč**. Ve fakturaci evidujte číslo, období, vystavení, splatnost, částku, stav a případné pozastávky. Úhradu zaznamenejte až podle skutečného stavu.
 
 ### Založení a úprava subdodavatelské smlouvy
 
@@ -416,7 +416,7 @@ Skutečné předání potvrďte samostatně v detailu protokolu s datem, výsled
 
 **Upravit záznam** uloží novou verzi protokolu. **Smazat záznam** vyžaduje potvrzení a odebere záznam ze seznamu; historie, přílohy a skutečná předání zůstávají pro audit. Bez dostupné smlouvy použijte **Přejít na smlouvy**.
 
-**Objednatel**, **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
+**Dokumenty → Objednatel** je karta identity objednatele u stavby. Lze ji přeskočit; prázdná karta nebrání práci na stavbě ani výběrovém řízení. **Smlouvy → Objednatel** zůstává finanční evidence smlouvy, dodatků, faktur a pozastávek. **Sdružení**, **Evidence reklamací** a **Ostatní dokumenty** jsou zatím označené **Ve vývoji**. Dosavadní **Ceníky** zůstávají v Dokumentech dostupné.
 
 
 **K čemu slouží:** zpřístupnit správnou dokumentaci a používat opakovaně stejné zadání poptávek.
