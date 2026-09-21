@@ -276,8 +276,9 @@ describe("architecture graph analysis", () => {
 
     expect(rawGraph.collectionErrors).toEqual([]);
     expect(rawGraph.nodes).toHaveLength(698);
-    expect(rawGraph.edges).toHaveLength(2199);
-    expect(resolvedGraph.edges).toHaveLength(1883);
+    // NotificationCenter dismisses locally and no longer imports the router.
+    expect(rawGraph.edges).toHaveLength(2198);
+    expect(resolvedGraph.edges).toHaveLength(1882);
     expect(resolvedGraph.unresolvedEdges).toHaveLength(316);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {
