@@ -1,10 +1,11 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppNotification } from "@features/notifications/types";
 
 type ApiSubscriptionOptions = {
   userId: string;
   onNewNotification: (notification: AppNotification) => void;
+  onNotificationsChanged?: () => void;
   onSubscriptionError?: (status: "CHANNEL_ERROR" | "TIMED_OUT" | "CLOSED") => void;
 };
 
@@ -51,17 +52,20 @@ describe("useNotificationSubscription", () => {
 
   it("identifies the source user and cleans up on identity change and unmount", () => {
     const onNewNotification = vi.fn();
+    const onNotificationsChanged = vi.fn();
     const { rerender, unmount } = renderHook(
       ({ userId }) =>
         useNotificationSubscription({
           userId,
           enabled: true,
           onNewNotification,
+          onNotificationsChanged,
         }),
       { initialProps: { userId: "user-a" } },
     );
 
     expect(state.subscriptions[0].userId).toBe("user-a");
+
     state.subscriptions[0].onNewNotification(notification);
     expect(onNewNotification).toHaveBeenCalledWith(notification, "user-a");
 
@@ -71,6 +75,27 @@ describe("useNotificationSubscription", () => {
 
     unmount();
     expect(state.cleanups[1]).toHaveBeenCalledOnce();
+  });
+
+  it("coalesces update bursts and cancels pending refreshes on cleanup", async () => {
+    vi.useFakeTimers();
+    const onNotificationsChanged = vi.fn();
+    const { unmount } = renderHook(() => useNotificationSubscription({
+      userId: "user-a", enabled: true, onNewNotification: vi.fn(), onNotificationsChanged,
+    }));
+    try {
+      for (let i = 0; i < 100; i++) state.subscriptions[0].onNotificationsChanged?.();
+      expect(onNotificationsChanged).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+      expect(onNotificationsChanged).toHaveBeenCalledExactlyOnceWith("user-a");
+      state.subscriptions[0].onNotificationsChanged?.();
+      unmount();
+      await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+      expect(onNotificationsChanged).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 
   it("does not create a subscription without an enabled user", () => {
@@ -102,7 +127,7 @@ describe("useNotificationSubscription", () => {
     try {
       state.subscriptions[0].onSubscriptionError?.("TIMED_OUT");
       expect(warn).toHaveBeenCalledExactlyOnceWith(
-        "[notifications] Spojení pro okamžité notifikace není dostupné (TIMED_OUT); pravidelné načítání pokračuje každých 30 sekund.",
+        "[notifications] Spojení pro okamžité notifikace není dostupné (TIMED_OUT); pravidelné načítání pokračuje každých 5 minut.",
       );
     } finally {
       unmount();

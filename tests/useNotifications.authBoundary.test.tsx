@@ -6,6 +6,8 @@ import type { AppNotification } from "@features/notifications/types";
 type SubscriptionOptions = {
   userId: string | undefined;
   enabled: boolean;
+  onNotificationsChanged: (userId: string) => void;
+  onConnectionChange: (connected: boolean, userId: string) => void;
   onNewNotification: (
     notification: AppNotification,
     sourceUserId: string,
@@ -88,10 +90,12 @@ const makeNotification = (
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((nextResolve) => {
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((nextResolve, nextReject) => {
+    reject = nextReject;
     resolve = nextResolve;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 };
 
 const flushPromises = async () => {
@@ -143,7 +147,7 @@ describe("useNotifications auth boundary", () => {
     expect(result.current.unreadCount).toBe(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(300_000);
     });
     expect(state.getNotifications).toHaveBeenCalledTimes(2);
 
@@ -151,6 +155,271 @@ describe("useNotifications auth boundary", () => {
       await result.current.refresh();
     });
     expect(state.getNotifications).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops polling while connected and resumes after an outage", async () => {
+    renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    act(() => state.subscriptionOptions?.onConnectionChange(false, "user-b"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(270_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+    state.getNotifications.mockResolvedValue([makeNotification("during-outage")]);
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    expect(state.getNotifications).toHaveBeenCalledTimes(4);
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(4);
+  });
+
+  it("hides immediately, suppresses stale loads and restores a failed dismissal", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    await act(async () => { await result.current.refresh(); });
+    expect(result.current.notifications).toEqual([]);
+    pending.reject(new Error("network unavailable"));
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
+    expect(result.current.dismissError).toBeTruthy();
+    expect(consoleError).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
+  });
+
+  it("does not restore a failed dismissal into another account", async () => {
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result, rerender } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("initial"); });
+    state.identity = userA;
+    state.getNotifications.mockResolvedValue([makeNotification("user-a")]);
+    rerender();
+    await flushPromises();
+    pending.reject(new Error("network unavailable"));
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["user-a"]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("treats an already dismissed notification as an idempotent success", async () => {
+    state.dismiss.mockResolvedValue(false);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    await act(async () => { await result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("refreshes changes from another tab without desktop alerts", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    state.getNotifications.mockResolvedValue([]);
+    act(() => state.subscriptionOptions?.onNotificationsChanged("user-a"));
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+    act(() => state.subscriptionOptions?.onNotificationsChanged("user-b"));
+    await flushPromises();
+    expect(result.current.notifications).toEqual([]);
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed snapshot even when realtime is connected", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    state.getNotifications.mockRejectedValueOnce(new Error("offline")).mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useNotifications(true));
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    await act(async () => { await vi.advanceTimersByTimeAsync(300_000); });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["initial"]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+    consoleError.mockRestore();
+  });
+
+  it("does not restore an individual dismissal after a successful dismiss all", async () => {
+    state.getNotifications.mockResolvedValue([makeNotification("one"), makeNotification("two")]);
+    const pending = deferred<boolean>();
+    state.dismiss.mockReturnValue(pending.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    let dismissal!: Promise<void>;
+    act(() => { dismissal = result.current.dismiss("one"); });
+    await act(async () => { await result.current.dismissAll(); });
+    pending.reject(new Error("late failure"));
+    await act(async () => { await dismissal; });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+  });
+
+  it("does not apply an older snapshot after dismiss all succeeds", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValue(pending.promise);
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    await act(async () => { await result.current.dismissAll(); });
+    pending.resolve([makeNotification("initial")]);
+    await act(async () => { await refresh; });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("coalesces overlapping refreshes into one active request and a follow-up", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(pending.promise);
+    let older!: Promise<void>;
+    let newer!: Promise<void>;
+    act(() => { older = result.current.refresh(); });
+    state.getNotifications.mockResolvedValue([makeNotification("newest")]);
+    act(() => { newer = result.current.refresh(); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    pending.resolve([makeNotification("old")]);
+    await act(async () => { await Promise.all([older, newer]); });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["newest"]);
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+  });
+
+  it("silently reconciles deleted records once an hour while connected", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    state.getNotifications.mockResolvedValue([]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_599_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(result.current.notifications).toEqual([]);
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
+  });
+
+  it("reconciles the initial connection gap and ignores the older initial response", async () => {
+    const initial = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(initial.promise);
+    const { result } = renderHook(() => useNotifications(true));
+    state.getNotifications.mockResolvedValue([makeNotification("connection-gap")]);
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    initial.resolve([]);
+    await flushPromises();
+    expect(result.current.notifications.map(n => n.id)).toEqual(["connection-gap"]);
+  });
+
+  it("reconciles a lost dismissal response against the server", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    state.dismiss.mockRejectedValue(new Error("response lost"));
+    state.getNotifications.mockResolvedValue([]);
+    await act(async () => { await result.current.dismiss("initial"); });
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.dismissError).toBeNull();
+    error.mockRestore();
+  });
+
+  it("merges realtime inserts received after a snapshot started", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(pending.promise);
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    const arriving = makeNotification("arriving");
+    act(() => state.subscriptionOptions?.onNewNotification(arriving, "user-b"));
+    pending.resolve([makeNotification("initial")]);
+    await act(async () => { await refresh; });
+    expect(result.current.notifications.map(n => n.id)).toEqual(["arriving", "initial"]);
+  });
+
+  it("preserves a new notification arriving during dismiss all", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<number>();
+    state.dismissAll.mockReturnValueOnce(pending.promise);
+    let dismissAll!: Promise<void>;
+    act(() => { dismissAll = result.current.dismissAll(); });
+    const arriving = makeNotification("arriving");
+    act(() => state.subscriptionOptions?.onNewNotification(arriving, "user-b"));
+    state.getNotifications.mockResolvedValue([arriving]);
+    pending.resolve(1);
+    await act(async () => { await dismissAll; });
+    await flushPromises();
+    expect(result.current.notifications.map(n => n.id)).toEqual(["arriving"]);
+  });
+
+  it("retains a successful initial snapshot if the connection reconciliation fails", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const initial = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(initial.promise).mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useNotifications(true));
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    initial.resolve([makeNotification("usable")]);
+    await flushPromises();
+    expect(result.current.notifications.map(n => n.id)).toEqual(["usable"]);
+    error.mockRestore();
+  });
+
+  it("shows loading when retrying an empty snapshot after a failure", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    state.getNotifications.mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(pending.promise);
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    expect(result.current.isLoading).toBe(true);
+    pending.resolve([]);
+    await act(async () => { await refresh; });
+    expect(result.current.isLoading).toBe(false);
+    error.mockRestore();
+  });
+
+  it("does not start a queued refresh after unmount", async () => {
+    const pending = deferred<AppNotification[]>();
+    state.getNotifications.mockReturnValueOnce(pending.promise);
+    const { result, unmount } = renderHook(() => useNotifications(true));
+    let refresh!: Promise<void>;
+    act(() => { refresh = result.current.refresh(); });
+    unmount();
+    pending.resolve([]);
+    await act(async () => { await refresh; });
+    expect(state.getNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps notifications arriving during mark all read unread", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<void>();
+    state.markAllRead.mockReturnValueOnce(pending.promise);
+    let markAll!: Promise<void>;
+    act(() => { markAll = result.current.markAllRead(); });
+    const arriving = makeNotification("arriving");
+    act(() => state.subscriptionOptions?.onNewNotification(arriving, "user-b"));
+    pending.resolve();
+    await act(async () => { await markAll; });
+    expect(result.current.notifications.find(n => n.id === "arriving")?.read_at).toBeNull();
+    expect(result.current.notifications.find(n => n.id === "initial")?.read_at).not.toBeNull();
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("does not send desktop alerts for routine successes", async () => {
+    renderHook(() => useNotifications(true));
+    await flushPromises();
+    act(() => state.subscriptionOptions?.onNewNotification(makeNotification("success", { type: "success" }), "user-b"));
+    expect(state.showDesktopNotification).not.toHaveBeenCalled();
   });
 
   it("normalizes the shared identity before network work", async () => {
@@ -243,7 +512,7 @@ describe("useNotifications auth boundary", () => {
     expect(result.current.notifications).toEqual([]);
     expect(state.showDesktopNotification).not.toHaveBeenCalled();
 
-    const current = makeNotification("current", { type: "success" });
+    const current = makeNotification("current", { type: "warning" });
     act(() => {
       onNewNotification?.(current, "user-b");
       onNewNotification?.(current, "user-b");

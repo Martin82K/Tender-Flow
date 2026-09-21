@@ -12,7 +12,7 @@ const notification: AppNotification = {
   created_at: "2026-07-11T10:00:00.000Z",
   read_at: null,
   category: "system",
-  action_url: null,
+  action_url: "/projects/test",
   entity_type: null,
   entity_id: null,
   dismissed_at: null,
@@ -32,6 +32,23 @@ describe("NotificationCenter auth-aware callbacks", () => {
     onDismissAll.mockResolvedValue(undefined);
   });
 
+  it("keeps keyboard focus in the notification list after dismissal", () => {
+    const Harness = () => {
+      const [items, setItems] = React.useState([notification, { ...notification, id: "second", title: "Druhá" }]);
+      return <NotificationCenter isOpen onClose={vi.fn()} notifications={items} isLoading={false}
+        onMarkRead={onMarkRead} onMarkAllRead={onMarkAllRead} onDismissAll={onDismissAll}
+        onDismiss={async (id) => { setItems(previous => previous.filter(item => item.id !== id)); }} unreadCount={items.length} />;
+    };
+    render(<Harness />);
+    const first = screen.getByRole("button", { name: "Skrýt notifikaci: Testovací notifikace" });
+    first.focus();
+    fireEvent.click(first);
+    const second = screen.getByRole("button", { name: "Skrýt notifikaci: Druhá" });
+    expect(second).toHaveFocus();
+    fireEvent.click(second);
+    expect(screen.getByRole("region", { name: "Notifikace" })).toHaveFocus();
+  });
+
   it("routes every notification mutation through supplied callbacks", async () => {
     render(
       <NotificationCenter
@@ -47,9 +64,13 @@ describe("NotificationCenter auth-aware callbacks", () => {
       />,
     );
 
+    const dismissBody = screen.getByRole("button", { name: "Skrýt notifikaci: Testovací notifikace" });
+    expect(dismissBody).toHaveAccessibleDescription(/Obsah notifikace/);
+    expect(dismissBody.querySelector("button")).toBeNull();
     fireEvent.click(screen.getByText("Testovací notifikace"));
     await waitFor(() => {
-      expect(onMarkRead).toHaveBeenCalledWith("notification-1");
+      expect(onDismiss).toHaveBeenCalledWith("notification-1");
+      expect(onMarkRead).not.toHaveBeenCalled();
     });
 
     fireEvent.click(screen.getByTitle("Skrýt"));
