@@ -81,7 +81,10 @@ se seznam jednorázově obnoví, aby obsahoval i zmeškané události. Stejná
 reconciliace proběhne po prvním připojení kvůli mezeře mezi snapshotem a odběrem.
 Události `UPDATE` obnovují přečtení/skrytí provedené na jiném zařízení bez
 desktopového upozornění. Rychlé série UPDATE se sloučí s prodlevou 250 ms.
-Starší souběžná odpověď snapshotu nepřepíše novější. Neúspěšný snapshot se po 5 minutách zopakuje i při
+Načítání je serializované: nejvýše jeden probíhající požadavek a jeden
+sloučený požadavek na navazující obnovu. Úspěšný snapshot zůstane zobrazený
+i po selhání navazující obnovy. INSERTy přijaté během načítání se sloučí
+s výsledkem; zrušení komponenty nebo změna identity zastaví čekající obnovy. Neúspěšný snapshot se po 5 minutách zopakuje i při
 připojeném Realtime; po úspěchu se vrátí hodinový interval. Otevření zvonku
 vždy obnoví seznam ručně. Aktualizace zachovává již načtené položky.
 Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
@@ -111,7 +114,8 @@ server mohl zápis dokončit před ztrátou odpovědi; potvrzené skrytí odstra
 i chybovou zprávu. Pokud je síť stále nedostupná, zůstane rollback a běží
 pětiminutové opakování. Fokus se při skrytí přesune na další/předchozí položku,
 případně na prázdný panel. Opožděné selhání z jiného účtu nesmí obnovit jeho data. Úspěšné hromadné
-skrytí zneplatní starší snapshoty i rollback čekajícího individuálního skrytí.
+skrytí zneplatní starší snapshoty i rollback dotčených individuálních skrytí.
+Novější položky zachová do následného ověření skutečného výsledku na serveru.
 
 ## Serverová autorizace
 

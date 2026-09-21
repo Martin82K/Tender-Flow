@@ -19,6 +19,23 @@ interface UseNotificationsReturn {
   dismissAll: () => Promise<void>;
 }
 
+interface NotificationSession {
+  userId: string | null;
+  ids: Set<string>;
+  bulkDismissedIds: Set<string>;
+  inserts: Map<string, { notification: AppNotification; revision: number }>;
+  insertRevision: number;
+  mutationRevision: number;
+  loading: Promise<void> | null;
+  reloadRequested: boolean;
+  disposed: boolean;
+}
+
+const createNotificationSession = (userId: string | null): NotificationSession => ({
+  userId, ids: new Set(), bulkDismissedIds: new Set(), inserts: new Map(),
+  insertRevision: 0, mutationRevision: 0, loading: null, reloadRequested: false, disposed: false,
+});
+
 export const useNotifications = (enabled: boolean = true): UseNotificationsReturn => {
   const user = useAuthIdentity();
   const normalizedUserId = user?.id.trim();
@@ -30,12 +47,10 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   const [failedLoadUserId, setFailedLoadUserId] = useState<string | null>(null);
   const connectionRef = useRef<typeof connection>(null);
   const [dismissFailure, setDismissFailure] = useState<{ userId: string; notificationId: string; message: string } | null>(null);
-  const hiddenRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: activeUserId, ids: new Set() });
+  const hiddenRef = useRef<NotificationSession>(createNotificationSession(activeUserId));
   if (hiddenRef.current.userId !== activeUserId) {
-    hiddenRef.current = { userId: activeUserId, ids: new Set() };
+    hiddenRef.current = createNotificationSession(activeUserId);
   }
-  const loadRevisionRef = useRef(0);
-  const dismissAllGenerationRef = useRef(0);
   const activeUserIdRef = useRef<string | null>(activeUserId);
   activeUserIdRef.current = activeUserId;
   const seenNotificationIdsRef = useRef<{
@@ -57,43 +72,62 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
 
   const loadNotifications = useCallback(async () => {
     if (!activeUserId || activeUserIdRef.current !== activeUserId) return;
-    const requestUserId = activeUserId;
-    const requestRevision = ++loadRevisionRef.current;
-    setState((previous) => ({
-      userId: requestUserId,
-      notifications:
-        previous.userId === requestUserId ? previous.notifications : [],
-      isLoading: previous.userId !== requestUserId || previous.isLoading,
-    }));
-    try {
-      const data = await notificationApi.getNotifications(30);
-      if (activeUserIdRef.current !== requestUserId || loadRevisionRef.current !== requestRevision) return;
-      setFailedLoadUserId(null);
-      setDismissFailure((previous) => previous?.userId === requestUserId
-        && !data.some((notification) => notification.id === previous.notificationId) ? null : previous);
-      seenNotificationIdsRef.current = {
-        userId: requestUserId,
-        ids: new Set(data.map((notification) => notification.id)),
-      };
-      setState({
-        userId: requestUserId,
-        notifications: data.filter((notification) => !hiddenRef.current.ids.has(notification.id)),
-        isLoading: false,
-      });
-    } catch (error) {
-      if (activeUserIdRef.current === requestUserId && loadRevisionRef.current === requestRevision) {
-        setFailedLoadUserId(requestUserId);
-        console.error("[useNotifications] Failed to load:", error);
-      }
-    } finally {
-      if (activeUserIdRef.current === requestUserId && loadRevisionRef.current === requestRevision) {
-        setState((previous) =>
-          previous.userId === requestUserId
-            ? { ...previous, isLoading: false }
-            : previous,
-        );
-      }
+    const session = hiddenRef.current;
+    if (session.disposed) return;
+    if (session.loading) {
+      session.reloadRequested = true;
+      return session.loading;
     }
+    const isCurrent = () => !session.disposed && activeUserIdRef.current === activeUserId && hiddenRef.current === session;
+    session.loading = (async () => {
+      do {
+        session.reloadRequested = false;
+        const mutationRevision = session.mutationRevision;
+        const insertRevision = session.insertRevision;
+        setState((previous) => ({
+          userId: activeUserId,
+          notifications: previous.userId === activeUserId ? previous.notifications : [],
+          isLoading: previous.userId !== activeUserId || previous.notifications.length === 0,
+        }));
+        try {
+          const data = await notificationApi.getNotifications(30);
+          if (!isCurrent()) return;
+          if (session.mutationRevision !== mutationRevision) {
+            session.reloadRequested = true;
+            continue;
+          }
+          // Preserve INSERTs delivered while the database snapshot was in flight.
+          const arrived = [...session.inserts.values()]
+            .filter((entry) => entry.revision > insertRevision)
+            .sort((a, b) => b.revision - a.revision)
+            .map((entry) => entry.notification);
+          const arrivedIds = new Set(arrived.map((notification) => notification.id));
+          const merged = [...arrived, ...data.filter((notification) => !arrivedIds.has(notification.id))]
+            .filter((notification) => !session.ids.has(notification.id));
+          for (const [id, entry] of session.inserts) {
+            if (entry.revision <= insertRevision) session.inserts.delete(id);
+          }
+          setFailedLoadUserId(null);
+          setDismissFailure((previous) => previous?.userId === activeUserId
+            && !merged.some((notification) => notification.id === previous.notificationId) ? null : previous);
+          seenNotificationIdsRef.current = { userId: activeUserId, ids: new Set(merged.map((notification) => notification.id)) };
+          setState({ userId: activeUserId, notifications: merged, isLoading: false });
+        } catch (error) {
+          if (isCurrent()) {
+            setFailedLoadUserId(activeUserId);
+            console.error("[useNotifications] Failed to load:", error);
+          }
+        } finally {
+          if (isCurrent()) {
+            setState((previous) => previous.userId === activeUserId ? { ...previous, isLoading: false } : previous);
+          }
+        }
+      } while (session.reloadRequested && isCurrent());
+    })().finally(() => {
+      session.loading = null;
+      if (session.reloadRequested && isCurrent()) void loadNotifications();
+    });
+    return session.loading;
   }, [activeUserId]);
 
   // Initial load for each identity
@@ -103,11 +137,14 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       setState({ userId: null, notifications: [], isLoading: false });
       return;
     }
+    const session = hiddenRef.current;
+    session.disposed = false;
     setFailedLoadUserId(null);
     connectionRef.current = null;
     setConnection(null);
     setDismissFailure(null);
     void loadNotifications();
+    return () => { session.disposed = true; };
   }, [activeUserId, loadNotifications]);
 
   const connected = connection?.userId === activeUserId && connection.connected;
@@ -145,6 +182,8 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       }
       if (seenNotificationIdsRef.current.ids.has(notification.id)) return;
       seenNotificationIdsRef.current.ids.add(notification.id);
+      const session = hiddenRef.current;
+      session.inserts.set(notification.id, { notification, revision: ++session.insertRevision });
       setState((previous) => ({
         userId: sourceUserId,
         notifications:
@@ -219,7 +258,6 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     if (!activeUserId || activeUserIdRef.current !== activeUserId || hiddenRef.current.ids.has(id)) return;
     const requestUserId = activeUserId;
     const hidden = hiddenRef.current;
-    const dismissAllGeneration = dismissAllGenerationRef.current;
     const removedIndex = notifications.findIndex((notification) => notification.id === id);
     const removed = notifications[removedIndex];
     if (!removed) return;
@@ -232,7 +270,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       // false means no active owned row matched (already dismissed or removed).
       await notificationApi.dismiss(id);
     } catch {
-      if (dismissAllGenerationRef.current !== dismissAllGeneration) return;
+      if (hidden.bulkDismissedIds.has(id)) return;
       hidden.ids.delete(id);
       if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
       console.error("[useNotifications] Failed to dismiss notification");
@@ -252,23 +290,27 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     if (!activeUserId || activeUserIdRef.current !== activeUserId) return;
     const requestUserId = activeUserId;
     const hidden = hiddenRef.current;
+    const startingIds = new Set([...notifications.map((notification) => notification.id), ...hidden.ids]);
     try {
       await notificationApi.dismissAll();
       if (activeUserIdRef.current !== requestUserId || hiddenRef.current !== hidden) return;
-      dismissAllGenerationRef.current += 1;
-      loadRevisionRef.current += 1;
+      hidden.mutationRevision += 1;
+      for (const id of startingIds) {
+        hidden.ids.add(id);
+        hidden.bulkDismissedIds.add(id);
+      }
       setDismissFailure(null);
-      setState((previous) =>
-        previous.userId === requestUserId
-          ? { ...previous, notifications: [], isLoading: false }
-          : previous,
-      );
+      setState((previous) => previous.userId === requestUserId
+        ? { ...previous, notifications: previous.notifications.filter((notification) => !startingIds.has(notification.id)), isLoading: false }
+        : previous);
+      // The server may have included some concurrent INSERTs; reconcile its actual result.
+      void loadNotifications();
     } catch (error) {
-      if (activeUserIdRef.current === requestUserId) {
+      if (activeUserIdRef.current === requestUserId && hiddenRef.current === hidden) {
         console.error("[useNotifications] Failed to dismiss all:", error);
       }
     }
-  }, [activeUserId]);
+  }, [activeUserId, notifications, loadNotifications]);
 
   return {
     notifications,
