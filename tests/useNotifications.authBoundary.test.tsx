@@ -399,6 +399,22 @@ describe("useNotifications auth boundary", () => {
     expect(state.getNotifications).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps notifications arriving during mark all read unread", async () => {
+    const { result } = renderHook(() => useNotifications(true));
+    await flushPromises();
+    const pending = deferred<void>();
+    state.markAllRead.mockReturnValueOnce(pending.promise);
+    let markAll!: Promise<void>;
+    act(() => { markAll = result.current.markAllRead(); });
+    const arriving = makeNotification("arriving");
+    act(() => state.subscriptionOptions?.onNewNotification(arriving, "user-b"));
+    pending.resolve();
+    await act(async () => { await markAll; });
+    expect(result.current.notifications.find(n => n.id === "arriving")?.read_at).toBeNull();
+    expect(result.current.notifications.find(n => n.id === "initial")?.read_at).not.toBeNull();
+    expect(result.current.unreadCount).toBe(1);
+  });
+
   it("does not send desktop alerts for routine successes", async () => {
     renderHook(() => useNotifications(true));
     await flushPromises();

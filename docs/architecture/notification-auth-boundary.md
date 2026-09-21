@@ -116,6 +116,8 @@ pětiminutové opakování. Fokus se při skrytí přesune na další/předchoz�
 případně na prázdný panel. Opožděné selhání z jiného účtu nesmí obnovit jeho data. Úspěšné hromadné
 skrytí zneplatní starší snapshoty i rollback dotčených individuálních skrytí.
 Novější položky zachová do následného ověření skutečného výsledku na serveru.
+Také hromadné označení přečtení lokálně mění pouze ID přítomná při kliknutí;
+notifikace doručená během čekání neztratí svůj nepřečtený stav.
 
 ## Serverová autorizace
 

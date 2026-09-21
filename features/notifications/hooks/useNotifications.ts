@@ -232,6 +232,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
   const markAllRead = useCallback(async () => {
     if (!activeUserId) return;
     const requestUserId = activeUserId;
+    const startingIds = new Set(notifications.map((notification) => notification.id));
     try {
       await notificationApi.markAllRead();
       if (activeUserIdRef.current !== requestUserId) return;
@@ -240,7 +241,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
           ? {
               ...previous,
               notifications: previous.notifications.map((notification) =>
-                notification.read_at
+                notification.read_at || !startingIds.has(notification.id)
                   ? notification
                   : { ...notification, read_at: new Date().toISOString() },
               ),
@@ -252,7 +253,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
         console.error("[useNotifications] Failed to mark all read:", error);
       }
     }
-  }, [activeUserId]);
+  }, [activeUserId, notifications]);
 
   const dismiss = useCallback(async (id: string) => {
     if (!activeUserId || activeUserIdRef.current !== activeUserId || hiddenRef.current.ids.has(id)) return;
