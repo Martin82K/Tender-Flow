@@ -165,6 +165,12 @@ describe("useNotifications auth boundary", () => {
     expect(state.getNotifications).toHaveBeenCalledTimes(1);
     await act(async () => { await vi.advanceTimersByTimeAsync(270_000); });
     expect(state.getNotifications).toHaveBeenCalledTimes(2);
+    state.getNotifications.mockResolvedValue([makeNotification("during-outage")]);
+    act(() => state.subscriptionOptions?.onConnectionChange(true, "user-b"));
+    await flushPromises();
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
+    await act(async () => { await vi.advanceTimersByTimeAsync(600_000); });
+    expect(state.getNotifications).toHaveBeenCalledTimes(3);
   });
 
   it("hides immediately, suppresses stale loads and restores a failed dismissal", async () => {

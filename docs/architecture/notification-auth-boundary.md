@@ -75,7 +75,8 @@ rozesílání týmu ani právo klienta zapisovat notifikace jiným uživatelům.
 
 Realtime „subscription“ označuje odběr databázových událostí, nikoli placené
 předplatné. Polling běží každých 5 minut, dokud není realtime spojení potvrzené.
-Stav `SUBSCRIBED` timer zastaví; výpadek jej znovu spustí. Otevření zvonku
+Stav `SUBSCRIBED` timer zastaví; výpadek jej znovu spustí. Po zotavení z výpadku
+se seznam jednorázově obnoví, aby obsahoval i zmeškané události. Otevření zvonku
 vždy obnoví seznam ručně. Aktualizace zachovává již načtené položky.
 Stavy `CHANNEL_ERROR`, `TIMED_OUT` a neočekávané `CLOSED` vyvolají jedno varování
 za souvislý výpadek; `SUBSCRIBED` umožní hlásit případný další výpadek. Opakování

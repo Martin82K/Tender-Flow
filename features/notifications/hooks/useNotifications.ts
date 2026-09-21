@@ -26,6 +26,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       ? normalizedUserId
       : null;
   const [connection, setConnection] = useState<{ userId: string; connected: boolean } | null>(null);
+  const connectionRef = useRef<typeof connection>(null);
   const [dismissFailure, setDismissFailure] = useState<{ userId: string; message: string } | null>(null);
   const hiddenRef = useRef<{ userId: string | null; ids: Set<string> }>({ userId: activeUserId, ids: new Set() });
   if (hiddenRef.current.userId !== activeUserId) {
@@ -93,6 +94,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       setState({ userId: null, notifications: [], isLoading: false });
       return;
     }
+    connectionRef.current = null;
     setConnection(null);
     setDismissFailure(null);
     void loadNotifications();
@@ -111,7 +113,11 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
     enabled: activeUserId !== null,
     onConnectionChange: (connected, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;
-      setConnection({ userId: sourceUserId, connected });
+      const recovering = connected && connectionRef.current?.userId === sourceUserId
+        && connectionRef.current.connected === false;
+      connectionRef.current = { userId: sourceUserId, connected };
+      setConnection(connectionRef.current);
+      if (recovering) void loadNotifications();
     },
     onNewNotification: (notification, sourceUserId) => {
       if (activeUserIdRef.current !== sourceUserId) return;

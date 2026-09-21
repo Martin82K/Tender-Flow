@@ -96,7 +96,7 @@ export const notificationApi = {
           outageReported = false;
           return;
         }
-        // The SDK retries channel errors/timeouts; polling continues independently.
+        // The SDK retries channel errors/timeouts; consumers enable fallback polling.
         if (!outageReported && (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED")) {
           onConnectionChange?.(false);
           outageReported = true;
