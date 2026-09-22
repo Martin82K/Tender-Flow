@@ -7,6 +7,8 @@ import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { TaskCreateButton } from '@features/tasks';
 import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
+import { emptyClientCardDraft, resolveClientCardDraft, type ProjectClientCardDraft } from '@features/projects/client/clientCardModel';
+import { ProjectClientCardFields } from '@features/projects/client/ui/ProjectClientCardFields';
 import { organizationService } from '@features/organization/api';
 import type { OrganizationMember } from '@features/organization/api';
 import { useAuth } from '@/context/AuthContext';
@@ -128,6 +130,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [newProjectName, setNewProjectName] = useState('');
     const [newProjectLocation, setNewProjectLocation] = useState('');
     const [newProjectStatus, setNewProjectStatus] = useState<ProjectStatus>('tender');
+    const [clientCardDraft, setClientCardDraft] = useState<ProjectClientCardDraft>(emptyClientCardDraft);
+    const [clientCardErrors, setClientCardErrors] = useState<Partial<Record<keyof ProjectClientCardDraft, string>>>({});
     const [isCreating, setIsCreating] = useState(false);
     const [createMembers, setCreateMembers] = useState<OrganizationMember[]>([]);
     const [initialTeam, setInitialTeam] = useState<Record<string, boolean>>({});
@@ -437,6 +441,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             return;
         }
         if (!newProjectName || !newProjectLocation) return;
+        const clientCard = resolveClientCardDraft(clientCardDraft);
+        if (Object.keys(clientCard.errors).length > 0) {
+            setClientCardErrors(clientCard.errors);
+            return;
+        }
+        setClientCardErrors({});
         setIsCreating(true);
 
         const newProject: Project = {
@@ -447,6 +457,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             ownerId: user?.id,
             organizationId: user?.organizationId,
             initialTeam: Object.keys(initialTeam).filter((userId) => initialTeam[userId]).map((userId) => ({ userId })),
+            ...(clientCard.card ? { initialClientCard: clientCard.card } : {}),
             // Owner ID handled by service/backend
         };
 
@@ -459,14 +470,17 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
             setNewProjectName('');
             setNewProjectLocation('');
+            setClientCardDraft(emptyClientCardDraft());
+            setClientCardErrors({});
             setInitialTeam({});
             navigate(buildAppUrl('project', { projectId: newProject.id, tab: 'overview' }));
         } catch (error) {
             console.error('Error creating project:', error);
+            const detail = error instanceof Error ? error.message : '';
             setAlertModal({
                 isOpen: true,
                 title: 'Chyba',
-                message: 'Chyba při vytváření projektu.',
+                message: detail.startsWith('Stavba byla vytvořena') ? detail : 'Chyba při vytváření projektu.',
                 variant: 'error'
             });
         } finally {
@@ -680,6 +694,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </ThemedNativeSelect>
                             </div>
                         </div>
+                        <fieldset className="mb-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                            <legend className="px-1 text-sm font-semibold text-slate-700 dark:text-slate-200">Objednatel</legend>
+                            <p className="mb-3 text-xs text-slate-500">Volitelné. Prázdný blok stavbu nezablokuje a uloží se jako nevyplněný.</p>
+                            <ProjectClientCardFields idPrefix="new-project-client" draft={clientCardDraft} errors={clientCardErrors} onChange={(next) => { setClientCardDraft(next); setClientCardErrors({}); }} />
+                        </fieldset>
                         {createMembers.length > 0 && <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
                             <div className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">Realizační tým</div>
                             <div className="space-y-2">

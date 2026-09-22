@@ -156,6 +156,18 @@ export interface ChartData {
 export type ProjectStatus = "tender" | "realization" | "archived";
 export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
 
+export interface ProjectClientCard {
+  companyName: string;
+  ico?: string;
+  street?: string;
+  zip?: string;
+  city?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  internalNote?: string;
+}
+
 export interface Project {
   id: string;
   investor?: string;
@@ -170,6 +182,8 @@ export interface Project {
   sharedWith?: string[];
   organizationId?: string;
   initialTeam?: ProjectTeamInput[];
+  /** Optional identity captured while creating the project. Empty means no card. */
+  initialClientCard?: ProjectClientCard;
 }
 
 export interface ContractDetails {
@@ -291,6 +305,8 @@ export interface ProjectDetails {
   categories: DemandCategory[];
   contract?: ContractDetails;
   investorFinancials?: InvestorFinancials;
+  /** Identity of the project client. Independent from investorFinancials. */
+  clientCard?: ProjectClientCard | null;
   bids?: Record<string, Bid[]>;
 }
 

@@ -11,6 +11,7 @@ export interface BackupManifest {
     user_id: string;
     organization_id: string;
     projects: unknown[];
+    project_client_cards?: unknown[];
     project_contracts: unknown[];
     project_investor_financials: unknown[];
     project_amendments: unknown[];
@@ -38,6 +39,7 @@ export interface RestoreSummary {
     restored_contracts: number;
     restored_contract_amendments: number;
     restored_contract_drawdowns: number;
+    restored_project_client_cards?: number;
     restored_project_contracts: number;
     restored_project_investor_financials: number;
     restored_project_amendments: number;
@@ -81,6 +83,7 @@ export function getManifestRecordCounts(manifest: AnyBackupManifest): Record<str
         subcontractors: manifest.subcontractors?.length ?? 0,
         contracts: manifest.contracts?.length ?? 0,
         tender_plans: manifest.tender_plans?.length ?? 0,
+        project_client_cards: manifest.project_client_cards?.length ?? 0,
         project_contracts: manifest.project_contracts?.length ?? 0,
         project_amendments: manifest.project_amendments?.length ?? 0,
         contract_amendments: manifest.contract_amendments?.length ?? 0,

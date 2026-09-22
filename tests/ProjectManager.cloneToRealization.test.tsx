@@ -98,7 +98,29 @@ describe("ProjectManager clone to realization", () => {
       await waitFor(() => expect(mocks.onAddMock).toHaveBeenCalledTimes(1));
       const created = mocks.onAddMock.mock.calls[0][0];
       await waitFor(() => expect(window.location.pathname).toContain(created.id));
+      expect(created.initialClientCard).toBeUndefined();
     } finally { view.unmount(); act(() => navigate('/')); }
+  });
+
+  it("předá vyplněného objednatele a prázdný blok nevyžaduje", async () => {
+    const view = renderProjectManager([]);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "+ Nová stavba" }));
+      fireEvent.change(screen.getByPlaceholderText("Např. Rezidence Park"), { target: { value: "Nová škola" } });
+      fireEvent.change(screen.getByPlaceholderText("Např. Plzeň"), { target: { value: "Brno" } });
+      fireEvent.change(screen.getByLabelText("IČO"), { target: { value: "123" } });
+      fireEvent.click(screen.getByRole("button", { name: "Vytvořit projekt" }));
+      expect(await screen.findByText("IČO nemá platný formát.")).toBeInTheDocument();
+      expect(mocks.onAddMock).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByLabelText("IČO"), { target: { value: "" } });
+      fireEvent.change(screen.getByLabelText("Firma nebo jméno"), { target: { value: "Javor Invest" } });
+      fireEvent.click(screen.getByRole("button", { name: "Vytvořit projekt" }));
+      await waitFor(() => expect(mocks.onAddMock).toHaveBeenCalledTimes(1));
+      expect(mocks.onAddMock.mock.calls[0][0].initialClientCard).toEqual(expect.objectContaining({
+        companyName: "Javor Invest",
+      }));
+    } finally { view.unmount(); }
   });
 
   it("zobrazí tlačítko jen pro aktivní soutěž", () => {

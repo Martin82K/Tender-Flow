@@ -2,6 +2,10 @@ import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectOverviewNew } from "@features/projects/ui/ProjectOverviewNew";
+
+vi.mock("@features/projects/client/ui/ProjectClientCardSummary", () => ({
+  ProjectClientCardSummary: () => null,
+}));
 import { exportProjectOverviewToXlsx } from "@features/projects/api/projectOverviewExportApi";
 import type { ProjectDetails } from "@/types";
 

@@ -275,11 +275,11 @@ describe("architecture graph analysis", () => {
     });
 
     expect(rawGraph.collectionErrors).toEqual([]);
-    expect(rawGraph.nodes).toHaveLength(698);
-    // NotificationCenter dismisses locally and no longer imports the router.
-    expect(rawGraph.edges).toHaveLength(2198);
-    expect(resolvedGraph.edges).toHaveLength(1882);
-    expect(resolvedGraph.unresolvedEdges).toHaveLength(316);
+    // Client identity card adds six source files under features/projects/client.
+    expect(rawGraph.nodes).toHaveLength(704);
+    expect(rawGraph.edges).toHaveLength(2221);
+    expect(resolvedGraph.edges).toHaveLength(1901);
+    expect(resolvedGraph.unresolvedEdges).toHaveLength(320);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {
         const category = target === "types"
@@ -306,7 +306,7 @@ describe("architecture graph analysis", () => {
       css: 13,
       fonts: 1,
       public: 1,
-      types: 224,
+      types: 228,
     });
     expect(
       resolvedGraph.unresolvedEdges.filter(({ target }) =>
@@ -315,7 +315,7 @@ describe("architecture graph analysis", () => {
       ),
     ).toEqual([]);
     expect(resolvedGraph.ambiguousEdges).toEqual([]);
-    expect(analysis.stronglyConnectedComponents).toHaveLength(696);
+    expect(analysis.stronglyConnectedComponents).toHaveLength(702);
     expect(analysis.stronglyConnectedComponents.filter(({ cyclic }) => cyclic)).toEqual([
       {
         id: "services/authSessionService.ts",
