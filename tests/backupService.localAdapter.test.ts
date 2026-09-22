@@ -75,3 +75,10 @@ describe("backupService local adapter boundary", () => {
     await expect(backupService.openLocalBackupFolder()).rejects.toThrow("folder missing");
   });
 });
+
+it("počítá karty objednatele a toleruje starší zálohy bez nich", async () => {
+  const { getManifestRecordCounts } = await import("../features/backup/model/backupTypes");
+  const legacy = { type: "user", projects: [] } as unknown as import("../features/backup/model/backupTypes").BackupManifest;
+  expect(getManifestRecordCounts(legacy).project_client_cards).toBe(0);
+  expect(getManifestRecordCounts({ ...legacy, project_client_cards: [{ project_id: "p" }] }).project_client_cards).toBe(1);
+});
