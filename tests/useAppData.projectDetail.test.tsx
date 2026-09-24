@@ -167,15 +167,16 @@ describe("useAppData project detail recovery", () => {
     expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(false);
   });
 
-  it("refreshes summary data for incoming realtime bid changes", () => {
+  it("refreshes summary data after coalescing incoming realtime bid changes", async () => {
     database(success);
     const { client, wrapper } = setup();
     client.setQueryDefaults(["overviewTenantData"], { gcTime: Infinity });
     const overviewKey = ["overviewTenantData", "user-1"];
     client.setQueryData(overviewKey, { total: 1 });
     renderHook(() => useProjectBidRealtimeSync({ allProjectDetails: {}, selectedProjectId: null }), { wrapper });
-    act(() => mocks.onRealtimeBid?.("c1"));
-    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(true);
+    act(() => { mocks.onRealtimeBid?.("c1"); mocks.onRealtimeBid?.("c1"); });
+    expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(false);
+    await waitFor(() => expect(client.getQueryState(overviewKey)?.isInvalidated).toBe(true));
   });
 
   it("removes summary invalidation listeners when the app data hook unmounts", async () => {

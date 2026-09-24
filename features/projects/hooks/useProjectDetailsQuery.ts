@@ -2,13 +2,13 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
 export { PROJECT_DETAILS_KEYS } from "@shared/queryKeys/projectDetailKeys";
 
+import { fetchProjectBids } from "@features/projects/api/projectBidsApi";
 import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { applyLocalBudgetAttachments } from "@features/projects/model/budgetAttachmentLocalStore";
 import { dbAdapter } from "@infra/db/dbAdapter";
 import { withRetry } from "@shared/async/asyncControl";
 import type {
   ActiveProjectStatus,
-  Bid,
   DemandCategory,
   DocumentLink,
   InvestorInvoice,
@@ -126,24 +126,6 @@ interface InvestorInvoiceRow {
   note?: string | null;
 }
 
-interface BidRow {
-  id: string;
-  demand_category_id: string;
-  subcontractor_id: string;
-  company_name: string;
-  contact_person: string;
-  email?: string;
-  phone?: string;
-  price_display?: string | null;
-  price?: string | number | null;
-  price_history?: Bid["priceHistory"];
-  notes?: string;
-  tags?: string[];
-  status: Bid["status"];
-  update_date?: string;
-  selection_round?: number;
-  contracted?: boolean | null;
-}
 
 const fetchProjectDetails = async (
   projectId: string,
@@ -247,46 +229,10 @@ const fetchProjectDetails = async (
   const internalAmendmentsData = internalAmendmentsRes.data || [];
   const investorInvoicesData = investorInvoicesRes.data || [];
   const categoryIds = categories.map((category) => category.id);
-  const bidsRecord: Record<string, Bid[]> = {};
-
-  if (categoryIds.length > 0) {
-    const bidsRes = await withRetry<QueryResponse<BidRow[]>>(async () =>
-      dbAdapter
-        .from("bids")
-        .select("*")
-        .in("demand_category_id", categoryIds),
-    );
-
-    if (bidsRes.error) throw bidsRes.error;
-
-    const bidsData = bidsRes.data || [];
-    bidsData.forEach((bid) => {
-      const categoryId = bid.demand_category_id;
-      if (!bidsRecord[categoryId]) bidsRecord[categoryId] = [];
-
-      bidsRecord[categoryId].push({
-        id: bid.id,
-        subcontractorId: bid.subcontractor_id,
-        companyName: bid.company_name,
-        contactPerson: bid.contact_person,
-        email: bid.email,
-        phone: bid.phone,
-        price:
-          bid.price_display || (bid.price != null ? bid.price.toString() : undefined),
-        priceHistory: bid.price_history || undefined,
-        notes: bid.notes,
-        tags: bid.tags,
-        status: bid.status,
-        updateDate: bid.update_date,
-        selectionRound: bid.selection_round,
-        contracted: bid.contracted || false,
-      });
-    });
-
-    categories.forEach((category) => {
-      category.subcontractorCount = bidsRecord[category.id]?.length || 0;
-    });
-  }
+  const bidsRecord = await fetchProjectBids(categoryIds);
+  categories.forEach((category) => {
+    category.subcontractorCount = bidsRecord[category.id]?.length || 0;
+  });
 
   return {
     id: project.id,

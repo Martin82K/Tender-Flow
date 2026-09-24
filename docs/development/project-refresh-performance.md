@@ -31,3 +31,33 @@ katalog, počty, security/performance advisors a znovu dry-run bez čekajících
 migrací. Měření EXPLAIN ANALYZE musí běžet pod rolí authenticated s odpovídajícími
 JWT claims; administrátorský dotaz neodpovídá běžnému API. Produkční RLS se při
 měření nevypíná. Do evidence patří pouze agregované metriky, žádná obchodní data.
+
+## Klientská synchronizace
+
+`useProjectBidRealtimeSync` slučuje události v okně 250 ms a dovoluje jen jednu
+obnovu současně. Známá změněná kategorie načítá nabídky a minimální kontrolu
+přístupu k projektu/kategoriím, bez smluv a finančních tabulek. Odpověď se použije
+jen pokud je stále platná instance query a její data mezitím nezměnil jiný
+požadavek nebo lokální zápis. Odhlášení/vyčištění cache ji nesmí obnovit.
+
+Chybějící projekt vyprázdní cache. Chybějící kategorie/modul vyžádá úplnou
+obnovu, aby nezůstala data jiných kategorií po odebrání přístupu. Chyba čtení
+není považována za smazání; předá se do úplné query s existujícím chybovým UX.
+Částečná obnova nezvyšuje čas aktuálnosti metadat projektu.
+
+Viditelný online detail dál používá úplnou minutovou obnovu pro vzdálené DELETE,
+změny metadat a zmeškané Realtime události. Ve skrytém/offline okně se odloží i
+událostmi vyvolané obnovy; po návratu, online nebo opětovném připojení kanálu se
+provede úplná kontrola. Jiný dříve otevřený projekt se pouze označí za neaktuální.
+Kontroly licence v FeatureContext zůstávají samostatné a nezměněné.
+
+Cílené regrese:
+
+```sh
+npm run test:run -- tests/features/projects/useProjectBidRealtimeSync.test.tsx tests/features/projects/refreshProjectBidCategories.test.ts tests/features/projects/projectRefresh.integration.test.tsx tests/features/projects/projectBidRealtimeApi.test.ts tests/useProjectDetailsQuery.contract.test.tsx
+```
+
+Integrační test vykreslí projekt, simuluje změnu z druhého zařízení, ověří tři
+čtení místo osmi, zachycení smazání minutovým fallbackem a vyprázdnění při
+odebrání přístupu. Scheduler pokrývá skryté/offline okno, burst, reconnect,
+přepnutí projektu a cleanup; cache testy pokrývají souběžný zápis a změnu účtu.

@@ -3,13 +3,17 @@ import { dbAdapter } from "@infra/db/dbAdapter";
 interface BidUpdateSubscriptionOptions {
   onBidUpdated: (demandCategoryId: string | null) => void;
   onSubscriptionError?: () => void;
+  onReconnected?: () => void;
 }
 
 export const projectBidRealtimeApi = {
   subscribeToBidUpdates({
     onBidUpdated,
     onSubscriptionError,
+    onReconnected,
   }: BidUpdateSubscriptionOptions): () => void {
+    let connected = false;
+    let interrupted = false;
     const handleChange = (payload: { new: Record<string, unknown> }) => {
       const demandCategoryId = payload.new.demand_category_id;
       onBidUpdated(typeof demandCategoryId === "string" ? demandCategoryId : null);
@@ -22,7 +26,13 @@ export const projectBidRealtimeApi = {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bids" }, handleChange)
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          interrupted = true;
           onSubscriptionError?.();
+        }
+        if (status === "SUBSCRIBED") {
+          if (connected || interrupted) onReconnected?.();
+          connected = true;
+          interrupted = false;
         }
       });
 

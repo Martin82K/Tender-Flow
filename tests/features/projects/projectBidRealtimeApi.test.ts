@@ -52,6 +52,15 @@ describe("projectBidRealtimeApi", () => {
     expect(state.on.mock.calls.map(call => call[1].event)).toEqual(["INSERT", "UPDATE"]);
   });
 
+  it("reconciles after resubscription but not on the initial connection", () => {
+    const onReconnected = vi.fn();
+    projectBidRealtimeApi.subscribeToBidUpdates({ onBidUpdated: vi.fn(), onReconnected });
+    state.statusHandler?.("SUBSCRIBED");
+    expect(onReconnected).not.toHaveBeenCalled();
+    state.statusHandler?.("TIMED_OUT"); state.statusHandler?.("SUBSCRIBED");
+    expect(onReconnected).toHaveBeenCalledOnce();
+  });
+
   it("ohlásí výpadek a při cleanup odstraní kanál", () => {
     const onSubscriptionError = vi.fn();
     const cleanup = projectBidRealtimeApi.subscribeToBidUpdates({

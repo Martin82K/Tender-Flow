@@ -275,11 +275,11 @@ describe("architecture graph analysis", () => {
     });
 
     expect(rawGraph.collectionErrors).toEqual([]);
-    // Client identity card adds six source files under features/projects/client.
-    expect(rawGraph.nodes).toHaveLength(704);
-    expect(rawGraph.edges).toHaveLength(2221);
-    expect(resolvedGraph.edges).toHaveLength(1901);
-    expect(resolvedGraph.unresolvedEdges).toHaveLength(320);
+    // Category refresh adds the bid API and guarded cache refresh modules.
+    expect(rawGraph.nodes).toHaveLength(706);
+    expect(rawGraph.edges).toHaveLength(2230);
+    expect(resolvedGraph.edges).toHaveLength(1908);
+    expect(resolvedGraph.unresolvedEdges).toHaveLength(322);
     const unresolvedCategories = resolvedGraph.unresolvedEdges.reduce<Record<string, number>>(
       (categories, { target }) => {
         const category = target === "types"
@@ -306,7 +306,7 @@ describe("architecture graph analysis", () => {
       css: 13,
       fonts: 1,
       public: 1,
-      types: 228,
+      types: 230,
     });
     expect(
       resolvedGraph.unresolvedEdges.filter(({ target }) =>
@@ -315,7 +315,7 @@ describe("architecture graph analysis", () => {
       ),
     ).toEqual([]);
     expect(resolvedGraph.ambiguousEdges).toEqual([]);
-    expect(analysis.stronglyConnectedComponents).toHaveLength(702);
+    expect(analysis.stronglyConnectedComponents).toHaveLength(704);
     expect(analysis.stronglyConnectedComponents.filter(({ cyclic }) => cyclic)).toEqual([
       {
         id: "services/authSessionService.ts",
