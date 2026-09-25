@@ -61,3 +61,31 @@ Integrační test vykreslí projekt, simuluje změnu z druhého zařízení, ov�
 čtení místo osmi, zachycení smazání minutovým fallbackem a vyprázdnění při
 odebrání přístupu. Scheduler pokrývá skryté/offline okno, burst, reconnect,
 přepnutí projektu a cleanup; cache testy pokrývají souběžný zápis a změnu účtu.
+
+## Rozpočet načítaný podle použití (beta.5)
+
+Položkový rozpočet není součástí `fetchProjectDetails`. Jeho komponenta se
+vykresluje pouze na záložce Rozpočet; od beta.5 se také její JavaScript/CSS
+načítá dynamicky až při tomto vstupu. Lokální Suspense zachová navigaci při
+načítání a existující aplikační LazyViewErrorBoundary obslouží chybu chunku.
+Přímý odkaz na rozpočet používá tutéž cestu. Sdílené knihovny mohou být
+potřebné i pro jiné obrazovky; odložený modul neznamená nulové načítání všech
+knihoven pro XLSX v celé aplikaci.
+
+První otevření položek načte index oprávnění/verzí a aktivní revizi. Seznam
+zdrojových příloh se vyžádá až v sekci Importy a verze nebo po akci Opravit
+import. Při jeho načítání či chybě se nezobrazuje falešný prázdný seznam ani
+akce koše závislé na přílohách. Oprava dostane přílohu před prvním mountem,
+protože editor ji ukládá do lokálního stavu. Chybějící příloha editor neotevře;
+chybu načtení lze zopakovat. Zavření během požadavku editor později neotevře.
+Selhání obnovy již načtených příloh nesmí zahodit rozepsanou opravu.
+
+Index se při návratu stále ověřuje (`refetchOnMount: 'always'`) kvůli sdílené
+hlavní verzi, zámku a oprávněním. Dotazy i cache příloh zůstávají oddělené podle
+projektu a uživatele; změna uživatele resetuje instanci rozpočtu. Změna nemění
+RPC, RLS, uložená data, zálohu/obnovu ani mazání projektu/účtu. Nevyžaduje
+migraci a neslibuje změřenou úsporu paměti databáze.
+
+Regrese: `tests/ProjectLayout.budgetLoading.test.tsx` ověřuje odložený import,
+přepnutí zpět a opětovný vstup; `tests/constructionBudgetLoading.test.tsx`
+ověřuje odložené přílohy, cache, načítání, chyby, opakování, zavření a oprávnění.

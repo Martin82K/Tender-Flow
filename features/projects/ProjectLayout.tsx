@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { contractMutationsApi } from "@features/projects/contracts/api";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
@@ -32,7 +32,7 @@ import { ProjectTeamSettings } from "@features/projects/team/ProjectTeamSettings
 import { projectService } from "@/services/projectService";
 import { ThemedNativeSelect } from "@shared/ui/ThemedNativeSelect";
 import { projectNavigationForSession } from "@features/projects/model/projectNavigation";
-import { ConstructionBudget } from "@features/projects/budget/ui/ConstructionBudget";
+const ConstructionBudget = lazy(() => import("@features/projects/budget/ui/ConstructionBudget").then(module => ({ default: module.ConstructionBudget })));
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -207,7 +207,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             skin={skin}
           />
         )}
-        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <ConstructionBudget canUseTenders={hasFeature(FEATURES.MODULE_PIPELINE)} searchQuery={searchQuery} onSearchChange={setSearchQuery} key={projectId} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} />}
+        {activeTab === "budget" && visibleTabs.some(tab => tab.id === "budget") && <Suspense fallback={<div className="p-6" role="status">Načítání rozpočtu…</div>}><ConstructionBudget canUseTenders={hasFeature(FEATURES.MODULE_PIPELINE)} searchQuery={searchQuery} onSearchChange={setSearchQuery} key={`${projectId}:${currentUserId ?? "guest"}`} projectId={projectId} organizationId={project.organizationId} userId={currentUserId} categories={project.categories || []} readOnly={isReadOnly} /></Suspense>}
         {activeTab === "tender-plan" && (
           <TenderPlan
             projectId={projectId}
