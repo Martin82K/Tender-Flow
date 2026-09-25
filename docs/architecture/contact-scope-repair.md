@@ -22,6 +22,9 @@ přiřazení 20 prověřených historických kontaktů organizaci Baustav.
   jsou mimo opravu. Dva další zkoumané kontakty jiného vlastníka nejsou zahrnuté.
 - Identitu celé schválené sady, původního vlastnictví i cílové organizace připíná
   SHA-256 otisk. Stejný počet jiných kontaktů proto nelze omylem převést.
+- Další předem připnutý SHA-256 otisk pokrývá celé původní řádky včetně obsahu
+  a času změny. Úprava osobního kontaktu původním vlastníkem před nasazením
+  tedy opravu zastaví. Nový otisk se nesmí automaticky schválit po selhání.
 - Existenci/jednoznačnost organizace a přesný počet se kontrolují pod zámky. Při odchylce
   nebo kolizi názvu migrace selže atomicky; existující duplicate trigger zůstává.
 - Mění se pouze `organization_id`, `owner_id` a `updated_at`. Organizace je

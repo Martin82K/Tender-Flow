@@ -8,11 +8,13 @@ const read = name => readFileSync(new URL(`../../supabase/migrations/${name}`, i
 const migration = read('20260925081917_restore_baustav_shared_contacts.sql');
 const pinnedHash = migration.match(/expected_scope_hash CONSTANT TEXT := '([a-f0-9]{64})'/)?.[1];
 const orphanHash = migration.match(/expected_orphan_hash CONSTANT TEXT := '([a-f0-9]{64})'/)?.[1];
+const contentHash = migration.match(/expected_content_hash CONSTANT TEXT := '([a-f0-9]{64})'/)?.[1];
 // Only the environment-specific fingerprint is substituted. Freeze it before
 // each scenario changes data; a count-preserving replacement must still fail.
 const sqlFor = db => {
-  const sql = pinnedHash ? migration.replace(pinnedHash, db.approvedScopeHash) : migration;
-  return orphanHash ? sql.replace(orphanHash, db.approvedOrphanHash) : sql;
+  let sql = pinnedHash ? migration.replace(pinnedHash, db.approvedScopeHash) : migration;
+  if (orphanHash) sql = sql.replace(orphanHash, db.approvedOrphanHash);
+  return contentHash ? sql.replace(contentHash, db.approvedContentHash) : sql;
 };
 const tenant = '00000000-0000-0000-0000-000000000001';
 const other = '00000000-0000-0000-0000-000000000002';
@@ -75,6 +77,9 @@ async function fixture() {
   db.approvedOrphanHash = (await db.query(`SELECT encode(sha256(convert_to(string_agg(
     jsonb_build_array(id,subcontractor_id,demand_category_id)::text,'|' ORDER BY id),'UTF8')),'hex') AS hash
     FROM bids WHERE id LIKE 'legacy-orphan-%'`)).rows[0].hash;
+  db.approvedContentHash = (await db.query(`SELECT encode(sha256(convert_to(string_agg(
+    to_jsonb(s)::text,'|' ORDER BY id),'UTF8')),'hex') AS hash
+    FROM subcontractors s WHERE id LIKE 'repair-%'`)).rows[0].hash;
   return db;
 }
 const run = db => db.exec(`BEGIN; ${sqlFor(db)} COMMIT;`);
@@ -118,7 +123,7 @@ test('shares legacy contacts with active members, preserves content and referenc
     assert.equal((await db.query("SELECT count(*)::int n FROM subcontractors WHERE organization_id=$1 AND owner_id IS NULL",[tenant])).rows[0].n,20);
   } finally { await db.close(); }
 });
-for (const scenario of ['count drift','name conflict','ambiguous organization','unresolvable reference','same-count replacement','same-count orphan replacement','missing organization','foreign contract project','missing contract project']) {
+for (const scenario of ['count drift','name conflict','ambiguous organization','unresolvable reference','same-count replacement','same-count orphan replacement','personal content edit','missing organization','foreign contract project','missing contract project']) {
   test(`aborts atomically on ${scenario}`, async()=>{
     const db=await fixture();
     try {
@@ -128,6 +133,7 @@ for (const scenario of ['count drift','name conflict','ambiguous organization','
       if(scenario==='unresolvable reference') await db.exec("INSERT INTO bids VALUES ('unscoped','repair-1',NULL)");
       if(scenario==='same-count replacement') await db.exec("DELETE FROM bids WHERE subcontractor_id='repair-1'; INSERT INTO bids VALUES ('replacement','personal','target')");
       if(scenario==='same-count orphan replacement') await db.exec("UPDATE bids SET id='different-orphan' WHERE id='legacy-orphan-1'");
+      if(scenario==='personal content edit') await db.exec(`SET request.jwt.claims='{"sub":"${former}"}'; SET ROLE authenticated; UPDATE subcontractors SET contacts='[{"name":"Changed after approval"}]' WHERE id='repair-1'; RESET ROLE;`);
       if(scenario==='missing organization') await db.exec(`UPDATE organizations SET name='Renamed' WHERE id='${tenant}'`);
       if(scenario==='foreign contract project') await db.exec(`UPDATE contracts SET project_id='other',organization_id='${tenant}' WHERE id='contract-11'`);
       if(scenario==='missing contract project') await db.exec("UPDATE contracts SET project_id=NULL WHERE id='contract-11'");

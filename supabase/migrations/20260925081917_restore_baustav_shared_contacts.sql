@@ -26,6 +26,7 @@ DECLARE
   -- Pin identity without committing production UUIDs or contact data.
   expected_scope_hash CONSTANT TEXT := '79f7f5f6305dfc733139b593fc996d8367611fabe4d0a4c1b796ec6a982b74cc';
   expected_orphan_hash CONSTANT TEXT := '62de1ca9b6880aa01f4b84f9434700ec41d47639051962e76afa4af9b40f4ad0';
+  expected_content_hash CONSTANT TEXT := 'fac0e074400597be4ad193df79f6b290afe40ab00af142f94be155cf5352c0ed';
   reviewed_scope_hash TEXT;
   target_org UUID;
   target_count INTEGER;
@@ -131,6 +132,15 @@ BEGIN
   WHERE p.id IS NULL;
   IF reviewed_scope_hash IS DISTINCT FROM expected_orphan_hash THEN
     RAISE EXCEPTION 'Reviewed unresolved bid references changed';
+  END IF;
+
+  -- Personal rows can still be editable by their original owner before repair.
+  -- Refuse payload or timestamp drift since approval, under the same write lock.
+  SELECT encode(sha256(convert_to(string_agg(to_jsonb(s)::TEXT, '|' ORDER BY s.id), 'UTF8')), 'hex')
+    INTO reviewed_scope_hash
+  FROM public.subcontractors s JOIN baustav_contact_scope_candidates c ON c.id = s.id;
+  IF reviewed_scope_hash IS DISTINCT FROM expected_content_hash THEN
+    RAISE EXCEPTION 'Reviewed contact content changed';
   END IF;
 
   INSERT INTO private.baustav_contact_scope_repair_20260925 (
