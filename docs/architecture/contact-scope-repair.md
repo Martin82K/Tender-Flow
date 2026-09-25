@@ -16,6 +16,8 @@ přiřazení 20 prověřených historických kontaktů organizaci Baustav.
   Oba mají také platné vazby na Baustav a stejného původního vlastníka.
   Tato známá neúplnost je zaznamenána v historii opravy; přesný počet šest vazeb
   na dvou kontaktech je další brána. Nová odchylka nasazení zastaví.
+  Samostatný SHA-256 otisk připíná také ID nabídek, kontaktů a odkazovaných kategorií
+  těchto šesti neúplných vazeb; neprojde ani náhrada při zachování počtu.
 - Kontakty jiných vlastníků, bez vazeb, novější záznamy a záznamy jiné organizace
   jsou mimo opravu. Dva další zkoumané kontakty jiného vlastníka nejsou zahrnuté.
 - Identitu celé schválené sady, původního vlastnictví i cílové organizace připíná

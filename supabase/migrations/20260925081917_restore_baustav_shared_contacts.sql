@@ -25,6 +25,7 @@ DECLARE
   -- SHA-256 of the reviewed IDs, original scope and destination, in ID order.
   -- Pin identity without committing production UUIDs or contact data.
   expected_scope_hash CONSTANT TEXT := '79f7f5f6305dfc733139b593fc996d8367611fabe4d0a4c1b796ec6a982b74cc';
+  expected_orphan_hash CONSTANT TEXT := '62de1ca9b6880aa01f4b84f9434700ec41d47639051962e76afa4af9b40f4ad0';
   reviewed_scope_hash TEXT;
   target_org UUID;
   target_count INTEGER;
@@ -118,6 +119,18 @@ BEGIN
     INTO unresolved_count, unresolved_contacts FROM baustav_contact_scope_candidates;
   IF unresolved_count <> 6 OR unresolved_contacts <> 2 THEN
     RAISE EXCEPTION 'Unexpected unresolved references: % bids on % contacts', unresolved_count, unresolved_contacts;
+  END IF;
+  -- Pin the exact reviewed anomalies as well, not just their cardinality.
+  SELECT encode(sha256(convert_to(string_agg(jsonb_build_array(
+    b.id, b.subcontractor_id, b.demand_category_id
+  )::TEXT, '|' ORDER BY b.id), 'UTF8')), 'hex') INTO reviewed_scope_hash
+  FROM public.bids b
+  JOIN baustav_contact_scope_candidates c ON c.id::TEXT = b.subcontractor_id::TEXT
+  LEFT JOIN public.demand_categories d ON d.id::TEXT = b.demand_category_id::TEXT
+  LEFT JOIN public.projects p ON p.id::TEXT = d.project_id::TEXT
+  WHERE p.id IS NULL;
+  IF reviewed_scope_hash IS DISTINCT FROM expected_orphan_hash THEN
+    RAISE EXCEPTION 'Reviewed unresolved bid references changed';
   END IF;
 
   INSERT INTO private.baustav_contact_scope_repair_20260925 (
