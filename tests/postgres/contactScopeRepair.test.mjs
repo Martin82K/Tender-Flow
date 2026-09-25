@@ -38,6 +38,7 @@ async function fixture() {
     INSERT INTO subcontractors(id,owner_id,company_name) SELECT 'repair-'||n,'${former}','Supplier '||n FROM generate_series(1,20) n;
     INSERT INTO bids SELECT 'bid-'||n,'repair-'||n,'target' FROM generate_series(1,10) n;
     INSERT INTO contracts SELECT 'contract-'||n,'repair-'||n,'${tenant}' FROM generate_series(11,20) n;
+    INSERT INTO bids SELECT 'legacy-orphan-'||n,CASE WHEN n<=4 THEN 'repair-2' ELSE 'repair-16' END,NULL FROM generate_series(1,6) n;
     INSERT INTO subcontractors(id,owner_id,company_name) VALUES
       ('personal','${former}','Personal'),('cross','${former}','Cross tenant'),('foreign-owner','${outsider}','Unconfirmed owner');
     INSERT INTO bids VALUES ('cross-target','cross','target'),('cross-other','cross','other'),('foreign','foreign-owner','target');
@@ -88,6 +89,7 @@ test('shares legacy contacts with active members, preserves content and referenc
     assert.equal(await visible(db,member,'anon'),0);
     assert.deepEqual(await snapshot(db),before);
     assert.equal((await db.query('SELECT count(*)::int n FROM private.baustav_contact_scope_repair_20260925')).rows[0].n,20);
+    assert.equal((await db.query('SELECT sum(unresolved_bid_count)::int n FROM private.baustav_contact_scope_repair_20260925')).rows[0].n,6);
     assert.equal((await db.query("SELECT count(*)::int n FROM subcontractors WHERE id IN ('personal','cross','foreign-owner') AND organization_id IS NULL")).rows[0].n,3);
     await db.exec(`SET request.jwt.claims='{"sub":"${member}"}'; SET ROLE authenticated; UPDATE subcontractors SET contacts='[{"name":"Updated"}]' WHERE id='repair-1'; RESET ROLE;`);
     await run(db); // Do not rewrite later edits on repeated application.
@@ -102,13 +104,14 @@ test('shares legacy contacts with active members, preserves content and referenc
     assert.equal((await db.query("SELECT count(*)::int n FROM subcontractors WHERE organization_id=$1 AND owner_id IS NULL",[tenant])).rows[0].n,20);
   } finally { await db.close(); }
 });
-for (const scenario of ['count drift','name conflict','ambiguous organization']) {
+for (const scenario of ['count drift','name conflict','ambiguous organization','unresolvable reference']) {
   test(`aborts atomically on ${scenario}`, async()=>{
     const db=await fixture();
     try {
       if(scenario==='count drift') await db.exec("DELETE FROM bids WHERE subcontractor_id='repair-1'");
       if(scenario==='name conflict') await db.exec(`INSERT INTO subcontractors(id,organization_id,company_name) VALUES ('duplicate','${tenant}','Supplier 1')`);
       if(scenario==='ambiguous organization') await db.exec(`UPDATE organizations SET name='Baustav' WHERE id='${other}'`);
+      if(scenario==='unresolvable reference') await db.exec("INSERT INTO bids VALUES ('unscoped','repair-1',NULL)");
       const before=await snapshot(db);
       await assert.rejects(run(db)); await db.exec('ROLLBACK');
       assert.deepEqual(await snapshot(db),before);

@@ -8,7 +8,12 @@ přiřazení 20 prověřených historických kontaktů organizaci Baustav.
 - Záznam nemá organizaci, vznikl před 20. 8. 2026 a jeho vlastník je neaktivní
   člen cílové organizace bez jiného aktivního členství.
 - Existuje vazba přes nabídku/stavbu nebo smlouvu na cílovou organizaci.
-  Každá taková vazba musí patřit této organizaci; i neurčený tenant je překážka.
+  Každá dohledatelná vazba musí patřit této organizaci; existující stavba nebo
+  smlouva bez organizace je překážka. Při preflightu bylo zjištěno šest starých
+  nabídek odkazujících na chybějící kategorie/stavby u dvou z těchto kontaktů.
+  Oba mají také platné vazby na Baustav a stejného původního vlastníka.
+  Tato známá neúplnost je zaznamenána v historii opravy; přesný počet šest vazeb
+  na dvou kontaktech je další brána. Nová odchylka nasazení zastaví.
 - Kontakty jiných vlastníků, bez vazeb, novější záznamy a záznamy jiné organizace
   jsou mimo opravu. Dva další zkoumané kontakty jiného vlastníka nejsou zahrnuté.
 - Jednoznačnost organizace a přesný počet se kontrolují pod zámky. Při odchylce
@@ -33,7 +38,8 @@ ověřit přístup pod `authenticated` pro členy a nečleny, spustit security a
 performance advisors a závěrečný linked dry-run.
 
 Neveřejná tabulka `private.baustav_contact_scope_repair_20260925` uchovává
-původní přiřazení a čas změny, cílovou organizaci a otisk nezměněného obsahu.
+původní přiřazení a čas změny, cílovou organizaci, otisk nezměněného obsahu
+a počet známých neúplných vazeb.
 Neukládá jména, e-maily ani obsah kontaktů. RLS je zapnuté a žádná klientská
 role včetně `service_role` nemá grant. Historie nemá FK na uživatele či kontakt,
 takže neblokuje jejich odstranění a neobnoví smazaný obsah.

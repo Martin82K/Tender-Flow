@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS private.baustav_contact_scope_repair_20260925 (
   previous_updated_at TIMESTAMP,
   target_organization_id UUID NOT NULL,
   content_hash TEXT NOT NULL,
+  unresolved_bid_count INTEGER NOT NULL,
   repaired_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- Deliberately no FK to contacts/users: this minimal scope history must not block
@@ -25,6 +26,8 @@ DECLARE
   target_count INTEGER;
   candidate_count INTEGER;
   repaired_count INTEGER;
+  unresolved_count INTEGER;
+  unresolved_contacts INTEGER;
 BEGIN
   LOCK TABLE public.organizations, public.organization_members, public.projects,
     public.demand_categories, public.bids, public.contracts IN SHARE MODE;
@@ -51,15 +54,18 @@ BEGIN
 
   CREATE TEMP TABLE baustav_contact_scope_candidates ON COMMIT DROP AS
   WITH contact_references AS (
-    SELECT b.subcontractor_id::TEXT AS contact_id, p.organization_id
+    SELECT b.subcontractor_id::TEXT AS contact_id, p.organization_id,
+      p.id IS NOT NULL AS resolved
     FROM public.bids b
-    JOIN public.demand_categories d ON d.id::TEXT = b.demand_category_id::TEXT
-    JOIN public.projects p ON p.id::TEXT = d.project_id::TEXT
+    LEFT JOIN public.demand_categories d ON d.id::TEXT = b.demand_category_id::TEXT
+    LEFT JOIN public.projects p ON p.id::TEXT = d.project_id::TEXT
     UNION ALL
-    SELECT c.vendor_id::TEXT, c.organization_id FROM public.contracts c
+    SELECT c.vendor_id::TEXT, c.organization_id, true FROM public.contracts c
     WHERE c.vendor_id IS NOT NULL
   )
-  SELECT s.id FROM public.subcontractors s
+  SELECT s.id, (SELECT COUNT(*)::INTEGER FROM contact_references r
+    WHERE r.contact_id = s.id::TEXT AND NOT r.resolved) AS unresolved_bid_count
+  FROM public.subcontractors s
   WHERE s.organization_id IS NULL
     AND s.created_at < TIMESTAMP '2026-08-20 00:00:00'
     AND EXISTS (
@@ -77,7 +83,8 @@ BEGIN
     )
     AND NOT EXISTS (
       SELECT 1 FROM contact_references r
-      WHERE r.contact_id = s.id::TEXT AND r.organization_id IS DISTINCT FROM target_org
+      WHERE r.contact_id = s.id::TEXT AND r.resolved
+        AND r.organization_id IS DISTINCT FROM target_org
     );
 
   SELECT COUNT(*) INTO candidate_count FROM baustav_contact_scope_candidates;
@@ -85,12 +92,22 @@ BEGIN
     RAISE EXCEPTION 'Expected 20 reviewed legacy contacts, found %', candidate_count;
   END IF;
 
+  -- Reviewed legacy anomaly: six bids on two of these contacts refer to missing
+  -- categories/projects. Both contacts have resolved Baustav references and a
+  -- former Baustav owner with no other active membership. Keep those bid IDs
+  -- intact, record the anomaly, and reject any additional unresolved references.
+  SELECT COALESCE(SUM(unresolved_bid_count), 0), COUNT(*) FILTER (WHERE unresolved_bid_count > 0)
+    INTO unresolved_count, unresolved_contacts FROM baustav_contact_scope_candidates;
+  IF unresolved_count <> 6 OR unresolved_contacts <> 2 THEN
+    RAISE EXCEPTION 'Unexpected unresolved references: % bids on % contacts', unresolved_count, unresolved_contacts;
+  END IF;
+
   INSERT INTO private.baustav_contact_scope_repair_20260925 (
     subcontractor_id, previous_organization_id, previous_owner_id,
-    previous_updated_at, target_organization_id, content_hash
+    previous_updated_at, target_organization_id, content_hash, unresolved_bid_count
   )
   SELECT s.id, s.organization_id, s.owner_id, s.updated_at, target_org,
-    md5((to_jsonb(s) - 'organization_id' - 'owner_id' - 'updated_at')::TEXT)
+    md5((to_jsonb(s) - 'organization_id' - 'owner_id' - 'updated_at')::TEXT), c.unresolved_bid_count
   FROM public.subcontractors s JOIN baustav_contact_scope_candidates c ON c.id = s.id;
 
   -- Tenant-owned contacts remain editable by active members and do not grant
