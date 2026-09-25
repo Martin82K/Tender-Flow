@@ -22,6 +22,10 @@ REVOKE ALL ON TABLE private.baustav_contact_scope_repair_20260925
 
 DO $$
 DECLARE
+  -- SHA-256 of the reviewed IDs, original scope and destination, in ID order.
+  -- Pin identity without committing production UUIDs or contact data.
+  expected_scope_hash CONSTANT TEXT := '79f7f5f6305dfc733139b593fc996d8367611fabe4d0a4c1b796ec6a982b74cc';
+  reviewed_scope_hash TEXT;
   target_org UUID;
   target_count INTEGER;
   candidate_count INTEGER;
@@ -35,14 +39,17 @@ BEGIN
 
   SELECT COUNT(*), MIN(id::TEXT)::UUID INTO target_count, target_org
   FROM public.organizations WHERE name = 'Baustav' AND type = 'business';
-  IF target_count = 0 THEN RETURN; END IF;
   IF target_count <> 1 THEN
-    RAISE EXCEPTION 'Ambiguous Baustav organization';
+    RAISE EXCEPTION 'Expected exactly one Baustav organization, found %', target_count;
   END IF;
 
   SELECT COUNT(*) INTO repaired_count FROM private.baustav_contact_scope_repair_20260925;
   IF repaired_count > 0 THEN
-    IF repaired_count <> 20 OR EXISTS (
+    SELECT encode(sha256(convert_to(string_agg(jsonb_build_array(
+      subcontractor_id, previous_owner_id, previous_organization_id, target_organization_id
+    )::TEXT, '|' ORDER BY subcontractor_id), 'UTF8')), 'hex') INTO reviewed_scope_hash
+    FROM private.baustav_contact_scope_repair_20260925;
+    IF repaired_count <> 20 OR reviewed_scope_hash IS DISTINCT FROM expected_scope_hash OR EXISTS (
       SELECT 1 FROM private.baustav_contact_scope_repair_20260925
       WHERE target_organization_id <> target_org
     ) THEN
@@ -55,16 +62,19 @@ BEGIN
   CREATE TEMP TABLE baustav_contact_scope_candidates ON COMMIT DROP AS
   WITH contact_references AS (
     SELECT b.subcontractor_id::TEXT AS contact_id, p.organization_id,
-      p.id IS NOT NULL AS resolved
+      p.id IS NOT NULL AS must_match_tenant
     FROM public.bids b
     LEFT JOIN public.demand_categories d ON d.id::TEXT = b.demand_category_id::TEXT
     LEFT JOIN public.projects p ON p.id::TEXT = d.project_id::TEXT
     UNION ALL
-    SELECT c.vendor_id::TEXT, c.organization_id, true FROM public.contracts c
+    -- Contract access is scoped by its project, not the optional legacy column
+    -- contracts.organization_id. Missing contract projects must also fail closed.
+    SELECT c.vendor_id::TEXT, p.organization_id, true FROM public.contracts c
+    LEFT JOIN public.projects p ON p.id::TEXT = c.project_id::TEXT
     WHERE c.vendor_id IS NOT NULL
   )
   SELECT s.id, (SELECT COUNT(*)::INTEGER FROM contact_references r
-    WHERE r.contact_id = s.id::TEXT AND NOT r.resolved) AS unresolved_bid_count
+    WHERE r.contact_id = s.id::TEXT AND NOT r.must_match_tenant) AS unresolved_bid_count
   FROM public.subcontractors s
   WHERE s.organization_id IS NULL
     AND s.created_at < TIMESTAMP '2026-08-20 00:00:00'
@@ -83,13 +93,21 @@ BEGIN
     )
     AND NOT EXISTS (
       SELECT 1 FROM contact_references r
-      WHERE r.contact_id = s.id::TEXT AND r.resolved
+      WHERE r.contact_id = s.id::TEXT AND r.must_match_tenant
         AND r.organization_id IS DISTINCT FROM target_org
     );
 
   SELECT COUNT(*) INTO candidate_count FROM baustav_contact_scope_candidates;
   IF candidate_count <> 20 THEN
     RAISE EXCEPTION 'Expected 20 reviewed legacy contacts, found %', candidate_count;
+  END IF;
+
+  SELECT encode(sha256(convert_to(string_agg(jsonb_build_array(
+    s.id, s.owner_id, s.organization_id, target_org
+  )::TEXT, '|' ORDER BY s.id), 'UTF8')), 'hex') INTO reviewed_scope_hash
+  FROM public.subcontractors s JOIN baustav_contact_scope_candidates c ON c.id = s.id;
+  IF reviewed_scope_hash IS DISTINCT FROM expected_scope_hash THEN
+    RAISE EXCEPTION 'Reviewed contact identity or ownership changed';
   END IF;
 
   -- Reviewed legacy anomaly: six bids on two of these contacts refer to missing

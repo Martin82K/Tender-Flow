@@ -8,6 +8,8 @@ přiřazení 20 prověřených historických kontaktů organizaci Baustav.
 - Záznam nemá organizaci, vznikl před 20. 8. 2026 a jeho vlastník je neaktivní
   člen cílové organizace bez jiného aktivního členství.
 - Existuje vazba přes nabídku/stavbu nebo smlouvu na cílovou organizaci.
+  U smluv rozhoduje organizace jejich stavby (`contracts.project_id`), stejně
+  jako v oprávněních aplikace; nepovinné `contracts.organization_id` nestačí.
   Každá dohledatelná vazba musí patřit této organizaci; existující stavba nebo
   smlouva bez organizace je překážka. Při preflightu bylo zjištěno šest starých
   nabídek odkazujících na chybějící kategorie/stavby u dvou z těchto kontaktů.
@@ -16,7 +18,9 @@ přiřazení 20 prověřených historických kontaktů organizaci Baustav.
   na dvou kontaktech je další brána. Nová odchylka nasazení zastaví.
 - Kontakty jiných vlastníků, bez vazeb, novější záznamy a záznamy jiné organizace
   jsou mimo opravu. Dva další zkoumané kontakty jiného vlastníka nejsou zahrnuté.
-- Jednoznačnost organizace a přesný počet se kontrolují pod zámky. Při odchylce
+- Identitu celé schválené sady, původního vlastnictví i cílové organizace připíná
+  SHA-256 otisk. Stejný počet jiných kontaktů proto nelze omylem převést.
+- Existenci/jednoznačnost organizace a přesný počet se kontrolují pod zámky. Při odchylce
   nebo kolizi názvu migrace selže atomicky; existující duplicate trigger zůstává.
 - Mění se pouze `organization_id`, `owner_id` a `updated_at`. Organizace je
   vlastníkem (`owner_id = NULL`), proto záznam nezávisí na účtu bývalého autora
