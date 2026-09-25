@@ -58,8 +58,9 @@ vi.mock("@/context/FeatureContext", () => ({
 import { ProjectLayout } from "../features/projects/ProjectLayout";
 
 describe("ProjectLayout mobile select", () => {
-  it.each(['Hledání ×', 'Vymazat všechny filtry'])('keeps header and budget query synchronized after %s', name => {
+  it.each(['Hledání ×', 'Vymazat všechny filtry'])('keeps header and budget query synchronized after %s', async name => {
     render(<ProjectLayout projectId="p-1" projectDetails={{title:'Projekt A',location:'',finishDate:'',siteManager:''}} onUpdateDetails={() => undefined} onAddCategory={() => undefined} activeTab="budget" onTabChange={() => undefined} contacts={[]} statuses={[]} onUpdateContact={() => undefined}/>);
+    await screen.findByText('Dotaz:');
     const input = screen.getByRole('textbox', { name: 'Hledat v projektu' });
     fireEvent.change(input, { target: { value: 'beton' } });
     expect(input).toHaveValue('beton');
